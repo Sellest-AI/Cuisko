@@ -1,0 +1,23 @@
+# The editor-side half of the line-ending story.
+#
+# `.gitattributes` fixes files on their way INTO git — this fixes them on save, so they are
+# already correct before git sees them. Two layers on purpose: the editor one gives immediate,
+# visible correctness, and the git one still holds when someone edits with a tool that ignores
+# this file.
+#
+# VS Code needs the "EditorConfig for VS Code" extension to apply this. JetBrains, Zed, Vim and
+# most others read it natively.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Two trailing spaces are a hard line break in Markdown — trimming them silently reflows text.
+[*.md]
+trim_trailing_whitespace = false
