@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R7), C1–C6, tests.
+#
+# CI runs the same command, but CI runs *after* the bad commit exists and after it has been
+# pushed. Every rule in AGENTS.md is only real because something fails when it is broken, and
+# the earliest place to fail is here.
+#
+# Installed by the `prepare` script (`git config core.hooksPath .githooks`), which pnpm runs on
+# install — so a fresh clone is protected after `pnpm install`, with no dependency to add.
+#
+# Genuinely need to bypass it?  git commit --no-verify
+# Do that only when you already know what is broken and why it must land anyway.
+
+set -e
+
+# ── Branch naming ────────────────────────────────────────────────────────────────────────
+# Same vocabulary as the commit types, plus `hotfix/` — which exists here and NOT as a commit
+# type, because urgency is a property of the process, not of the change.
+#
+# Skipped when HEAD is detached (rebase, bisect, `git commit` during a merge), where the branch
+# name is not the committer's to choose.
+branch=$(git symbolic-ref --short -q HEAD || echo "")
+
+if [ -n "$branch" ] && [ "$branch" != "main" ]; then
+  if ! echo "$branch" | grep -Eq '^(feat|fix|hotfix|refactor|perf|docs|test|chore|ci)/[a-z0-9]+(-[a-z0-9]+)*$'; then
+    echo "✖ Commit refused: branch name \"$branch\" does not follow the convention." >&2
+    echo "" >&2
+    echo "  Format:  <type>/<kebab-case-summary>" >&2
+    echo "  Types:   feat fix hotfix refactor perf docs test chore ci" >&2
+    echo "  Example: git branch -m feat/recipe-scaling" >&2
+    exit 1
+  fi
+fi
+
+echo "→ pre-commit: pnpm verify"
+
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "✖ pnpm not found on PATH — cannot verify this commit." >&2
+  echo "  Install pnpm, or bypass deliberately with: git commit --no-verify" >&2
+  exit 1
+fi
+
+if ! pnpm verify; then
+  echo "" >&2
+  echo "✖ Commit refused: pnpm verify failed." >&2
+  echo "  Fix the findings above and commit again." >&2
+  exit 1
+fi
+
+echo "✓ pre-commit: clean"

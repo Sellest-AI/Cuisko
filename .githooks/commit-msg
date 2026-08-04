@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# Validates the commit message against Conventional Commits (see commitlint.config.js).
+#
+# `git commit` writes the message to a temp file and passes its path as $1; commitlint reads it
+# with --edit. Merge and revert commits are ignored by commitlint's own defaults, so this does
+# not fire on `git merge`.
+#
+# Genuinely need to bypass it?  git commit --no-verify
+# That skips the pre-commit hook too, so you lose `pnpm verify` as well.
+
+set -e
+
+if ! pnpm exec commitlint --edit "$1"; then
+  echo "" >&2
+  echo "✖ Commit refused: the message does not follow Conventional Commits." >&2
+  echo "" >&2
+  echo "  Format:  <type>(<scope>)?: <subject>" >&2
+  echo "  Types:   feat fix refactor perf docs test chore ci revert" >&2
+  echo "  Example: feat(recipes): add serving-size scaling" >&2
+  echo "" >&2
+  echo "  Breaking change?  feat(api)!: ...  or a 'BREAKING CHANGE:' footer." >&2
+  echo "  Urgent production fix?  Still 'fix:' — urgency belongs to a hotfix/ branch." >&2
+  exit 1
+fi

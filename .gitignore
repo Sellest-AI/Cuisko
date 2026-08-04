@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+
+# expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# native
+/ios
+/android
+
+# env — never commit real values. `.env.example` documents the keys.
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.tsbuildinfo
+npm-debug.log*
+.pnpm-debug.log*
+
+# NOTE: convex/_generated is deliberately NOT ignored. Before you "clean this up":
+#
+#   CI has no Convex credentials, so it cannot run codegen. Without these files committed,
+#   `tsc --noEmit` fails on every import of `api` or `dataModel` — i.e. no CI, no pre-commit
+#   hook, and no `pnpm verify` on a fresh clone. Convex's own CLI says to commit them.
+#
+# The usual objection to committing generated code — that it goes stale — barely applies here:
+# `api.js` is `anyApi` (generic), and `api.d.ts` maps module paths to `typeof <the real module>`,
+# so it is a manifest rather than a snapshot. Changing a function's signature needs no
+# regeneration. Only adding, deleting or renaming a Convex file does, and check C7 fails the
+# build when that happens without codegen.
+
+.history

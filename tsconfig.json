@@ -1,0 +1,25 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "~/*": ["./src/*"],
+      /* Not for application code to use — `src/**` and `app/**` reach the backend only through
+         src/lib/convex/api.ts (ADR 0006, lint R3). It is here because the generated API's type
+         graph imports every convex module, so this project must resolve their specifiers to
+         typecheck at all. */
+      "@convex/*": ["./convex/*"],
+      "@ui/hooks/*": ["./src/ui/hooks/*"],
+      "@ui/utils": ["./src/ui/utils"],
+      "@ui/*": ["./src/ui/components/*"],
+      "@shared/*": ["./shared/*"],
+      "theme": ["./src/global/theme.ts"],
+      "routes": ["./src/global/routes.ts"],
+      "env": ["./env.ts"],
+      "assets/*": ["./assets/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mts", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules", "convex", "dist", ".expo"]
+}

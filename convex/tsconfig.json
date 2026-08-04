@@ -1,0 +1,44 @@
+{
+  /* Backend project. Typechecks convex/ and shared/ under the Convex runtime.
+   * Some settings are required by Convex — see the comments below.
+   */
+  "compilerOptions": {
+    /* Not required by Convex; ours. */
+    "allowJs": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    /* Required by Convex. */
+    "target": "ESNext",
+    "lib": [
+      "ES2021",
+      "dom"
+    ],
+    "types": [
+      "node"
+    ],
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "isolatedModules": true,
+    "noEmit": true,
+    /* Convex's bundler reads these too, so an alias here works at deploy time. */
+    "paths": {
+      "@convex/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "../shared/*"
+      ]
+    }
+  },
+  "include": [
+    "./**/*",
+    "../shared/**/*"
+  ],
+  "exclude": [
+    "./_generated"
+  ]
+}

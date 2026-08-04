@@ -1,0 +1,4 @@
+allowBuilds:
+  # Convex bundles with esbuild; eslint's resolver needs its native binding.
+  esbuild: true
+  unrs-resolver: true

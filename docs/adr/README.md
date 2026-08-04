@@ -1,0 +1,57 @@
+# Architecture Decision Records
+
+One decision per file. Each declares the files it governs, states its rules as imperatives, and
+carries the command that proves it still holds.
+
+| # | Decision | Governs | Verify |
+| --- | --- | --- | --- |
+| [0001](./0001-convex-procedures-only.md) | Convex builders come from `procedures.ts`; `api` never enters it | `convex/**` | `pnpm lint`, `pnpm test` |
+| [0002](./0002-ui-isolation.md) | `src/ui/` does not know the backend exists | `src/ui/**` | `pnpm lint` |
+| [0003](./0003-ownership-via-procedure.md) | Ownership is a procedure capability | `convex/router/**` | `pnpm typecheck`, `pnpm lint`, `pnpm check:exports`, `pnpm check:authtests` |
+| [0004](./0004-webhooks-must-verify.md) | A webhook cannot be defined without a verifier | `convex/http/**` | `pnpm lint` |
+| [0005](./0005-env-validated-at-boot.md) | Environment is Zod-validated and throws at boot | `convex/env.ts`, `env.ts` | `pnpm test`, `pnpm typecheck` |
+| [0006](./0006-screens-never-fetch.md) | Screens never fetch; feature hooks own the data | `app/**`, `src/modules/**` | `pnpm lint` |
+| [0007](./0007-every-query-uses-an-index.md) | Every query reads an index; pagination never filters | `convex/**` | `pnpm check:queries`, `pnpm check:schema` |
+
+`pnpm verify` runs all of them — on demand, in the pre-commit hook, and in CI.
+
+## Format
+
+```markdown
+---
+id: 0008
+applies_to: ["convex/**/*.ts"]    # the ADR is relevant only to files matching these globs
+status: accepted                  # accepted | superseded | deprecated
+supersedes: []
+---
+
+# One-line imperative title
+
+MUST / MUST NOT / MAY — RFC 2119, one rule per line. No judgement to exercise.
+
+## Why
+Short. The narrative belongs in ../ARCHITECTURE.md, linked.
+
+## Verify
+The command that proves compliance.
+```
+
+Four properties, each doing a job:
+
+- **`applies_to`** — an agent loads the ADR only for files it governs, so cost scales with relevance
+  rather than with project size.
+- **MUST / MUST NOT / MAY** — imperatives, not explanation. A rule that requires interpretation gets
+  interpreted differently each time.
+- **`## Verify`** — a rule with no mechanical check decays, and you get no signal when it stops
+  holding. The check is written into the rule itself.
+- **`status`** — a rule the project stops following becomes `superseded`, **not** silent drift.
+
+## The one rule about these rules
+
+If a violation is deliberate, the ADR changes. A knowingly-broken rule must become
+`status: superseded`, with the record that replaces it named in the new ADR's `supersedes`.
+
+**Never leave a rule documented as active that the project has stopped following.** That single
+failure — not volume, not structure — is what let 58 files drift in the predecessor project while
+six documents continued to assert the rule in bold. See
+[_reference/02-DIVERGENCE.md](../_reference/02-DIVERGENCE.md).

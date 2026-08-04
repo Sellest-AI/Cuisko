@@ -1,0 +1,21 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # typecheck + lint + C1/C2/C3 + tests. This runs from the first commit, on purpose:
+      # every rule in AGENTS.md is only real because this job fails when it is broken.
+      #
+      # NOTE: this job has no Convex credentials, so it cannot run codegen. convex/_generated
+      # is committed for exactly that reason — see .gitignore.
+      - run: pnpm verify
