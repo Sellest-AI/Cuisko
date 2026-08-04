@@ -50,6 +50,7 @@ you find a doc that contradicts it, say so and offer to fix the doc.
 | Never add a `v.id()` field without its cascade index **and** `CASCADE` entry        | 0007 |
 | Never write an empty `catch {}`                                                     | —    |
 | Never commit secrets, force-push, or `git commit` unless asked                      | —    |
+| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit              | —    |
 
 ## Non-obvious patterns
 
@@ -184,6 +185,10 @@ cannot recover is intent. So the body is the payload, not decoration:
 - **What you deliberately did not do**, if a reader would wonder. Absent scope is invisible in a diff.
 
 Omit the body only when the subject is complete alone (`chore(deps): bump convex to 1.44`).
+
+⚠️ **Never start a body line with `word:`.** The parser reads `Note:`, `Result:`, `enforced:` as a
+footer token and treats everything after it as footers — silently wrecking the structure the history
+is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase mid-line.
 
 ```
 fix(convex): reject paginated queries that filter post-index
