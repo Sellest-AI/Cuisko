@@ -98,7 +98,7 @@ convex/
 ├── router/         ★ The public API. {domain}/{operation}.ts. ≤80 lines each.
 ├── functions/      Reusable logic that TOUCHES the database. Plain (ctx, args) functions.
 ├── lib/            Vendor clients and pure helpers. Never touches ctx.db.
-├── llm/            ★ Sealed AI boundary. agents / config / tools.
+├── agent/          ★ Sealed AI boundary. agents / config / tools.
 ├── http/           ★ Webhooks. verified.ts is the only way to define one.
 ├── crons/          Cron bodies; crons.ts holds the schedule.
 ├── workflows/      Durable multi-step jobs (@convex-dev/workflow).
@@ -112,7 +112,7 @@ convex/
 | `router/` | validators, procedure wrappers, arg shaping, call `functions/` | loops, domain branching, domain-library imports, >80 lines |
 | `functions/` | touch `ctx.db`, domain logic, call `lib/` | be a registered Convex procedure |
 | `lib/` | vendor SDKs, pure helpers | touch `ctx.db` |
-| `llm/` | import `ai` / `@convex-dev/agent` | be imported by `src/` |
+| `agent/` | import `ai` / `@convex-dev/agent` | be imported by `src/` |
 | `http/` | define webhooks via `verifiedWebhook` | call `httpAction` directly |
 | `procedures.ts` | import `_generated/server` | import `_generated/api` — type cycle |
 | everything else | import `_generated/api` | import `_generated/server` |
@@ -243,7 +243,7 @@ never by number: `_internal_persist` survives refactoring, `_internal_step3` doe
 
 ### The AI boundary
 
-`llm/` is sealed: the `ai` SDK and `@convex-dev/agent` are imported there and nowhere else. AI-backed
+`agent/` is sealed: the `ai` SDK and `@convex-dev/agent` are imported there and nowhere else. AI-backed
 endpoints are ordinary `router/` files that call into it — not a parallel tree, which in the
 predecessor meant two places to look for an endpoint for no benefit.
 
