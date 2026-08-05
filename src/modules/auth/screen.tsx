@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import { Button } from "@ui/button";
 import { TextField } from "@ui/text-field";
+import { ArrowRight } from "@ui/icons";
+import { ButtonPill } from "@ui/button-pill";
+import { Button } from "@ui/button";
 import { theme } from "theme";
 
 import { useAuth, type AuthFlow } from "./_hooks/useAuth";
@@ -22,7 +24,7 @@ export const AuthScreen = () => {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color={theme.colors.primary} />
+        <ActivityIndicator color={theme.colors.primary.base} />
       </View>
     );
   }
@@ -38,7 +40,13 @@ export const AuthScreen = () => {
           <Field label="Role" value={user.role} />
         </View>
 
-        <Button label="Sign out" onPress={() => void signOut()} variant="ghost" />
+        <ButtonPill
+          onPress={() => void signOut()}
+          variant="neutral"
+          leftIcon={ArrowRight}
+        >
+          Sign out
+        </ButtonPill>
       </View>
     );
   }
@@ -72,17 +80,21 @@ export const AuthScreen = () => {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Button
+        <ButtonPill
           disabled={!email || !password}
           isLoading={isSubmitting}
-          label={isSignUp ? "Create account" : "Sign in"}
           onPress={() => void signIn({ email: email.trim(), password, flow })}
-        />
+          leftIcon={ArrowRight}
+          elevated
+        >
+          {isSignUp ? "Create account" : "Sign in"}
+        </ButtonPill>
         <Button
-          label={isSignUp ? "I already have an account" : "Create an account"}
+          variant="neutral"
           onPress={() => setFlow(isSignUp ? "signIn" : "signUp")}
-          variant="ghost"
-        />
+        >
+          {isSignUp ? "I already have an account" : "Create an account"}
+        </Button>
       </View>
     </View>
   );
@@ -106,12 +118,12 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
   },
   centered: { alignItems: "center" },
-  heading: { color: theme.colors.text, fontSize: theme.font.xl, fontWeight: "700" },
-  subheading: { color: theme.colors.textMuted, fontSize: theme.font.md },
+  heading: { color: theme.colors.foreground, fontSize: theme.font.h4.fontSize, fontWeight: "700" },
+  subheading: { color: theme.colors.muted, fontSize: theme.font.lg.fontSize, fontWeight: "500" },
   form: { gap: theme.spacing.md, marginTop: theme.spacing.md },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface.elevated,
+    borderColor: theme.colors.border.default,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     gap: theme.spacing.md,
@@ -119,7 +131,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   field: { gap: theme.spacing.xs },
-  fieldLabel: { color: theme.colors.textMuted, fontSize: theme.font.sm, fontWeight: "600" },
-  fieldValue: { color: theme.colors.text, fontFamily: "monospace", fontSize: theme.font.md },
-  error: { color: theme.colors.danger, fontSize: theme.font.sm },
+  fieldLabel: { color: theme.colors.muted, fontSize: theme.font.sm.fontSize, fontWeight: "600" },
+  fieldValue: { color: theme.colors.foreground, fontFamily: "monospace", fontSize: theme.font.sm.fontSize },
+  error: { color: theme.colors.danger.base, fontSize: theme.font.sm.fontSize },
 });
