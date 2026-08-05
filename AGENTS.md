@@ -126,6 +126,8 @@ this; you must actually read the diff.
 - No new `any` without a comment justifying it.
 - Any `docs/` page this change just made wrong.
 
+**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
+
 **If anything fails: STOP. Report to the user and wait.** Do not fix silently, and do not fold fixes
 into the same edit. Report in this shape:
 
