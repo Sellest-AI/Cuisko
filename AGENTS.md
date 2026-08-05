@@ -166,6 +166,21 @@ has stopped following** — that single failure is what let 58 files drift in th
 
 ## Writing a commit
 
+**First, check the branch: `git branch --show-current`.** The `pre-commit` hook validates the branch
+*name* against the type vocabulary; it cannot tell whether the change belongs there. So a commit
+landing on the wrong branch fails silently — and stays invisible, because nobody reviewing that PR
+expects it. Moving it afterwards costs a cherry-pick, a reset and a rebase.
+
+Ask what the branch exists to do, then:
+
+- The change serves that purpose → commit.
+- It does not — a doc, an unrelated fix, a chore no other commit here needs → **stop and ask the
+  user**, naming the branch it belongs on. Usually `main`, or a branch of its own.
+- Unsure → ask. The question is cheaper than the move.
+
+Supporting work is not a stray: a `chore(deps)` the feature consumes, or a `fix` for something the
+branch itself broke, belongs on the branch.
+
 Format is Conventional Commits, enforced by the `commit-msg` hook. Branch names are enforced by
 `pre-commit`. Full rules: `docs/CONVENTIONS.md` §10.
 
