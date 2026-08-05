@@ -32,7 +32,7 @@ export const TextField = ({
       keyboardType={kind === "email" ? "email-address" : "default"}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor={theme.colors.textMuted}
+      placeholderTextColor={theme.colors.muted}
       secureTextEntry={isSecure}
       style={[styles.input, !editable && styles.inputDisabled]}
       textContentType={kind === "email" ? "emailAddress" : isSecure ? "password" : "none"}
@@ -43,14 +43,14 @@ export const TextField = ({
 
 const styles = StyleSheet.create({
   wrapper: { gap: theme.spacing.xs },
-  label: { color: theme.colors.textMuted, fontSize: theme.font.sm, fontWeight: "600" },
+  label: { color: theme.colors.muted, fontSize: theme.font.sm.fontSize, fontWeight: "600" },
   input: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface.input,
+    borderColor: theme.colors.border.default,
     borderRadius: theme.radius.md,
-    borderWidth: 1,
-    color: theme.colors.text,
-    fontSize: theme.font.md,
+    borderWidth: 2,
+    color: theme.colors.foreground,
+    fontSize: theme.font.base.fontSize,
     minHeight: 48,
     paddingHorizontal: theme.spacing.md,
   },

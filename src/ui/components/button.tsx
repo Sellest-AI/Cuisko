@@ -1,66 +1,40 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { ReactNode } from "react";
+import { ButtonPill } from "./button-pill";
+import { Icon, MorphIcon } from "./icons";
+import { ViewStyle } from "react-native";
 
-import { theme } from "theme";
-
-/**
- * Structural props only — a label and a callback. This component has no idea what it submits,
- * which is exactly why `src/ui/` never needs to import the backend (ADR 0002).
- */
 type Props = {
-  label: string;
+  children: ReactNode;
   onPress: () => void;
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "secondary" | "neutral";
+  elevated?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
+  style?: ViewStyle;
+  leftIcon?: Icon;
+  rightIcon?: Icon;
 };
 
 export const Button = ({
-  label,
+  children,
   onPress,
   variant = "primary",
+  elevated = false,
   isLoading = false,
   disabled = false,
-}: Props) => {
-  const isDisabled = disabled || isLoading;
-  const isPrimary = variant === "primary";
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled, busy: isLoading }}
-      disabled={isDisabled}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        isPrimary ? styles.primary : styles.ghost,
-        pressed && !isDisabled && styles.pressed,
-        isDisabled && styles.disabled,
-      ]}
-    >
-      {isLoading ? (
-        <ActivityIndicator color={isPrimary ? theme.colors.primaryText : theme.colors.primary} />
-      ) : (
-        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelGhost]}>
-          {label}
-        </Text>
-      )}
-    </Pressable>
-  );
-};
-
-const styles = StyleSheet.create({
-  base: {
-    alignItems: "center",
-    borderRadius: theme.radius.md,
-    justifyContent: "center",
-    minHeight: 48,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  primary: { backgroundColor: theme.colors.primary },
-  ghost: { backgroundColor: "transparent" },
-  pressed: { opacity: 0.8 },
-  disabled: { opacity: 0.5 },
-  label: { fontSize: theme.font.md, fontWeight: "600" },
-  labelPrimary: { color: theme.colors.primaryText },
-  labelGhost: { color: theme.colors.primary },
-});
+  style,
+  leftIcon,
+  rightIcon,
+}: Props) => <ButtonPill
+  onPress={onPress}
+  variant={variant}
+  elevated={elevated}
+  isLoading={isLoading}
+  disabled={disabled}
+  style={style}
+  leftContent={leftIcon ? <MorphIcon icon={leftIcon} size={20} /> : undefined}
+  rightContent={rightIcon ? <MorphIcon icon={rightIcon} size={20} /> : undefined}
+  size="md"
+>
+    {children}
+  </ButtonPill>;
