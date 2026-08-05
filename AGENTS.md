@@ -104,6 +104,9 @@ this; you must actually read the diff.
 | Convex indexes                  | `by_<field>[_and_<field>]`, fields in definition order                         |
 | Convex exports                  | only `anon` · `authed` · `admin` · `server` · `_internal` · `_internal_<verb>` |
 
+The table is the floor, not the bar. Read the names themselves too: a name that is legal but says
+nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never rename silently.
+
 ### Architecture
 
 - Every entry in the **Never** table above.
@@ -130,11 +133,13 @@ this; you must actually read the diff.
 
 **Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
 
-**If anything fails: STOP. Report to the user and wait.** Do not fix silently, and do not fold fixes
-into the same edit. Report in this shape:
+**If anything fails — or could simply be better: STOP. Report to the user and wait.** Do not fix
+silently, and do not fold fixes into the same edit. A broken rule is BLOCKING; something legal but
+weaker than it should be — a vague name, a shape that duplicates an existing one — is NON-BLOCKING.
+It still gets reported, and the user decides whether it is worth the churn. Report in this shape:
 
 ```
-⚠️ Review found 4 issues in 3 changed files
+⚠️ Review found 5 issues in 5 changed files
 
 BLOCKING
 1. convex/router/wallets/getOne.ts:48 — export `admin` uses `authQuery`  (ADR 0001 · C1)
@@ -153,7 +158,11 @@ NON-BLOCKING
 4. src/modules/recipes/_hooks/use-recipes.ts — hook file should be camelCase  (naming)
    Fix: rename to useRecipes.ts.
 
-Want me to apply these? I can do 1–3 now and 4 separately if you'd rather keep the rename isolated.
+5. convex/functions/recipes/loadRecipe.ts:22 — `const data = await ctx.db.get(id)`  (naming, quality)
+   Legal, but `data` says nothing at the call site three lines down.
+   Fix: rename to `recipe`.
+
+Want me to apply these? I can do 1–3 now and 4–5 separately if you'd rather keep the renames isolated.
 ```
 
 Rules for the report: list **all** issues before fixing **any**; separate blocking from non-blocking;
