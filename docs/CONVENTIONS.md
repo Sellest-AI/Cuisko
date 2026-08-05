@@ -326,7 +326,7 @@ Is it backend code?
 ├─ Callable from the client?                          → convex/router/{domain}/{operation}.ts
 ├─ Reusable and touches ctx.db?                       → convex/functions/{domain}/
 ├─ Wraps a vendor SDK, no ctx.db?                     → convex/lib/{vendor}/
-├─ Uses an LLM?                                       → convex/llm/  (called from router/)
+├─ Uses an LLM or agent?                              → convex/agent/  (called from router/)
 ├─ A webhook?                                         → convex/http/  (via verifiedWebhook)
 ├─ Runs on a schedule?                                → convex/crons/  + schedule in crons.ts
 └─ Multi-step, must survive failure?                  → convex/workflows/
@@ -426,17 +426,17 @@ chore(deps): bump convex to 1.44
 feat(api)!: drop the legacy wallet endpoint      ← breaking
 ```
 
-| Type | For | Semver |
-| --- | --- | --- |
-| `feat` | a new user-visible capability | minor |
-| `fix` | a bug fix | patch |
-| `refactor` | production code changed, behaviour did not | — |
-| `perf` | performance | patch |
-| `docs` | `docs/`, comments, `AGENTS.md` | — |
-| `test` | tests only | — |
-| `chore` | deps, config, tooling, regenerated `_generated` | — |
-| `ci` | `.github/workflows` | — |
-| `revert` | a revert | — |
+| Type       | For                                             | Semver |
+| ---------- | ----------------------------------------------- | ------ |
+| `feat`     | a new user-visible capability                   | minor  |
+| `fix`      | a bug fix                                       | patch  |
+| `refactor` | production code changed, behaviour did not      | —      |
+| `perf`     | performance                                     | patch  |
+| `docs`     | `docs/`, comments, `AGENTS.md`                  | —      |
+| `test`     | tests only                                      | —      |
+| `chore`    | deps, config, tooling, regenerated `_generated` | —      |
+| `ci`       | `.github/workflows`                             | —      |
+| `revert`   | a revert                                        | —      |
 
 Scope is the layer or domain: `convex`, `ui`, `recipes`, `adr`, `deps`. Optional.
 
@@ -452,12 +452,12 @@ reconstructing why the code looks the way it does from `git log`, `git log --gre
 
 So the body is not optional prose, it is the payload:
 
-| Include | Why |
-| --- | --- |
-| **The trigger** — what was broken, missing, or newly required | The single highest-value sentence; nothing else in the repo records it |
-| **What changed by layer**, not by file | The diff lists files. Only the author can say "the check moved from `router/` into `procedures.ts`" |
-| **The governing rule** — `ADR 0003`, `C4`, `lint R7` | Makes `git log --grep="ADR 0003"` return every commit that ever touched that decision |
-| **What was deliberately left out** | Absent scope is invisible in a diff and expensive to re-derive |
+| Include                                                       | Why                                                                                                 |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **The trigger** — what was broken, missing, or newly required | The single highest-value sentence; nothing else in the repo records it                              |
+| **What changed by layer**, not by file                        | The diff lists files. Only the author can say "the check moved from `router/` into `procedures.ts`" |
+| **The governing rule** — `ADR 0003`, `C4`, `lint R7`          | Makes `git log --grep="ADR 0003"` return every commit that ever touched that decision               |
+| **What was deliberately left out**                            | Absent scope is invisible in a diff and expensive to re-derive                                      |
 
 Omit the body only when the subject is genuinely complete on its own
 (`chore(deps): bump convex to 1.44`).
