@@ -12,6 +12,7 @@ module.exports = defineConfig([
       "convex/_generated/**",
       "dist/**",
       ".expo/**",
+      ".history/**",
       "android/**",
       "ios/**",
       "node_modules/**",
