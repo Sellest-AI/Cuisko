@@ -10,7 +10,7 @@
   NEAREST one, so state a rule in the folder it governs rather than adding it here.
 -->
 
-**Cuisko** — a cooking app for storing recipes and their ingredients.
+**Cuisko** — An agent that plans a week of meals from the food you already own, and lists only what is missing.
 Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 
 ## Commands
@@ -25,6 +25,8 @@ pnpm test -- <file>  # single test file
 
 ## Before writing code
 
+- `docs/PRODUCT.md` — what the app is for, who it serves, what it refuses to be. Read it when a
+  choice affects what the user sees or is worded for them.
 - `docs/CONVENTIONS.md` — naming, file placement, the "where does this go?" decision tree.
 - `docs/adr/` — decisions that constrain code. Each declares `applies_to` globs; read the ones
   matching the files you are touching.
