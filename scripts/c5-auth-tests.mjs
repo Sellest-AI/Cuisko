@@ -81,8 +81,8 @@ for (const file of listFiles(path.join(ROOT, "convex", "router"))) {
           file: testPath,
           message: `A6 — no rejection assertion for the gated exports in ${base}.ts.`,
           fix:
-            `A test that only checks the happy path does not prove the gate works. Assert the ` +
-            `wrong caller is rejected — e.g. await expect(...).rejects.toThrow().`,
+            "A test that only checks the happy path does not prove the gate works. Assert the " +
+            "wrong caller is rejected — e.g. await expect(...).rejects.toThrow().",
         });
       }
     }

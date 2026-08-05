@@ -213,4 +213,11 @@ module.exports = defineConfig([
       "no-empty": ["error", { allowEmptyCatch: false }],
     },
   },
+
+  // ── Enforced formatting ──────────────────────────────────────────────────
+  {
+    rules: {
+      quotes: ["error", "double", { avoidEscape: true }],
+    },
+  },
 ]);

@@ -67,7 +67,7 @@ for (const name of onDisk) {
 
   findings.push({
     file: `convex/${name}.ts`,
-    message: `Not registered in _generated/api.d.ts — codegen has not seen this file.`,
+    message: "Not registered in _generated/api.d.ts — codegen has not seen this file.",
     fix: "Run `npx convex codegen` (or `pnpm convex:dev`) and commit convex/_generated/.",
   });
 }
