@@ -42,9 +42,10 @@ cuisko/
 ├── convex/               Backend.
 ├── shared/               Runs in BOTH runtimes. No browser APIs, no Node built-ins.
 ├── docs/                 This folder.
-├── scripts/              C1–C7 architectural checks.
+├── scripts/              C1–C7 architectural checks, plus dev-tooling shims.
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── env.ts                Client env — Zod validated.
+├── metro.config.js       Metro: open-file cap (EMFILE) + .history blocklist.
 ├── commitlint.config.js  Conventional Commits rules.
 └── eslint.config.js      Carries the architectural lint rules R1–R7.
 ```
