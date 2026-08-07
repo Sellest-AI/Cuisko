@@ -339,7 +339,8 @@ If a secret is required, A1 has already guaranteed it exists. There is never a r
 ```
 Is it a React component with no data access?
 ├─ Product-agnostic (button, sheet, skeleton)?        → src/ui/components/
-├─ Domain-shaped but pure (recipe card)?              → src/ui/cards/
+├─ Domain-shaped but pure — a card?                   → src/ui/components/cards/
+├─ Domain-shaped but pure — a carousel?               → src/ui/components/carousels/
 └─ Needs Convex data?                                 → src/modules/{domain}/
 
 Is it a React hook?
