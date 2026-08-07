@@ -123,10 +123,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  day: { marginBottom: theme.spacing["2xs"], textAlign: "center" },
+  day: { marginBottom: theme.spacing[2], textAlign: "center" },
   dayNumber: { marginBottom: NUMBER_GAP, textAlign: "center" },
   icon: {
     borderRadius: theme.radius.full,
-    padding: theme.spacing.xs,
+    padding: theme.spacing[4],
   },
 });

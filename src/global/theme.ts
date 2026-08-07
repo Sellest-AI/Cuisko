@@ -21,6 +21,8 @@
  * changes. That is the whole reason primitives stay private.
  */
 
+import { Platform } from "react-native";
+
 // ── Tier 1: primitives ───────────────────────────────────────────────────────────────────────
 
 const PALETTE = {
@@ -110,7 +112,7 @@ const Texts = {
     fontSize: 15,
     lineHeight: 16.8,
     letterSpacing: -0.28,
-    fontWeight: 500
+    fontWeight: Platform.OS === "web" ? 600 : 500
   },
   sm: {
     fontSize: 11,
@@ -145,7 +147,14 @@ export const theme = {
       medium: _withAlpha(PALETTE.neutral[200], 0.14),
     },
   },
-  spacing: { "2xs": 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24 },
+  /**
+   * Keyed by its own value, not by rank. A t-shirt scale names position (`sm` < `md`), so
+   * inserting a step means renaming every step above it — and the renamed call sites still
+   * compile, now meaning something else. `spacing[6]` reads at the call site and inserts for free.
+   *
+   * The closed union is the whole point: `padding: 7` compiles, `theme.spacing[7]` does not.
+   */
+  spacing: { 2: 2, 4: 4, 6: 6, 8: 8, 12: 12, 16: 16, 24: 24 },
   radius: { xs: 6, md: 20, lg: 24, full: 999 },
   font: Texts,
 } as const;

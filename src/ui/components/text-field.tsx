@@ -42,7 +42,7 @@ export const TextField = ({
 );
 
 const styles = StyleSheet.create({
-  wrapper: { gap: theme.spacing.xs },
+  wrapper: { gap: theme.spacing[4] },
   label: { color: theme.colors.muted, fontSize: theme.font.sm.fontSize, fontWeight: "600" },
   input: {
     backgroundColor: theme.colors.surface.input,
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
     fontSize: theme.font.base.fontSize,
     minHeight: 48,
-    paddingHorizontal: theme.spacing.md,
+    paddingHorizontal: theme.spacing[12],
   },
   inputDisabled: { opacity: 0.6 },
 });

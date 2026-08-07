@@ -18,8 +18,17 @@ import { useSpin } from "@ui/hooks/useSpin";
  */
 export type { IconInput as Icon } from "morphicons/react-native";
 
-export { ArrowRight, LoaderCircle, Check, CircleDashed } from "lucide";
-export { ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon } from "lucide-react-native";
+export type { LucideIcon as IconComponent } from "lucide-react-native";
+
+export {
+  ArrowRight, LoaderCircle, Check, CircleDashed, ChevronDown, ChevronUp, ArrowLeftRight,
+  CalendarPlus, Eye, Star
+} from "lucide";
+export {
+  ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
+  ArrowLeftRight as ArrowLeftRightIcon, CalendarPlus as CalendarPlusIcon, Eye as EyeIcon,
+  Star as StarIcon
+} from "lucide-react-native";
 
 /** The renderer, re-exported so nothing outside this file has to know about morphicons. */
 export { MorphIcon } from "morphicons/react-native";
