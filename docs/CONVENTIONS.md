@@ -38,6 +38,7 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | Sub-components of one parent               | **dot notation**                     | `recipe-form.tsx`, `recipe-form.ingredients.tsx` | 👁             |
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
 | Convex step files                          | `<operation>.steps.ts`               | `createOne.steps.ts`                             | 👁             |
+| Companion types of one component           | `<name>.types.ts`                    | `select.types.ts`                                | 👁             |
 
 **The hook exception is deliberate, not an oversight.** The predecessor's docs said "kebab-case
 everywhere", its code used camelCase for all 19 hook files, and the two conventions coexisted in two
@@ -47,6 +48,32 @@ filename and the symbol match, so searching for either finds both. **Write it do
 > Files with **multiple dots** (`*.test.ts`, `*.d.ts`, `*.steps.ts`) are skipped by Convex's bundler,
 > which is why test and ambient-type files can live inside `convex/` without being pushed to a
 > deployment.
+
+#### A component becomes a folder at three files 👁
+
+One or two files stay flat and use the dot notation above. **The third file makes it a folder** named
+after the component, entered through `index`:
+
+```
+✅ select.tsx + select.ios.tsx                 two files — flat
+✅ select/index.tsx                            three — folder
+   select/index.ios.tsx
+   select/types.ts
+❌ select.tsx + select.ios.tsx + select.types.ts
+```
+
+Inside the folder the prefix is redundant, so companions drop it: `types.ts`, not `select.types.ts`.
+Platform resolution is unaffected — Metro applies `.ios` / `.web` / `.native` to the directory's
+`index` exactly as it does to a bare file.
+
+**Call sites never change.** `@ui/*` maps to `src/ui/components/*`
+([tsconfig.json](../tsconfig.json)), so `@ui/select` resolves to `select.tsx` before the move and
+`select/index.tsx` after it. Nothing outside the folder knows which shape it is in — which is why the
+threshold can be a judgement call (👁) rather than a script: getting it wrong costs a rename, never a
+broken import.
+
+Three, not two, because two files are still readable side by side in one directory listing; three of
+them start burying the neighbours.
 
 ### 1.2 Code
 
