@@ -110,7 +110,7 @@ const Texts = {
     fontSize: 15,
     lineHeight: 16.8,
     letterSpacing: -0.28,
-    fontWeight: 400
+    fontWeight: 500
   },
   sm: {
     fontSize: 11,
