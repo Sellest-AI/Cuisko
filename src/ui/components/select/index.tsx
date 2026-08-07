@@ -83,7 +83,8 @@ export const Select = <T extends string>({
               styles.popover,
               {
                 left: anchor.x,
-                minWidth: Math.max(anchor.width, MIN_WIDTH),
+                minWidth: MIN_WIDTH,
+                maxWidth: anchor.width,
                 ...(dropsUp
                   ? { bottom: windowHeight - anchor.y + theme.spacing[8] }
                   : { top: anchor.y + anchor.height + theme.spacing[8] }),
@@ -134,7 +135,6 @@ type Anchor = { x: number; y: number; width: number; height: number };
  */
 const MAX_HEIGHT = 280;
 const MIN_WIDTH = 160;
-const CHEVRON_SIZE = 16;
 const CHECK_SIZE = 16;
 const CHECK_STROKE = 3;
 const ENTER_MS = 160;
