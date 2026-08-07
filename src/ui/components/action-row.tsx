@@ -98,7 +98,7 @@ export const ActionRow = ({
           <Text.Base color={color.content}>
             {content}
           </Text.Base>
-          {subtitle && <Text.Sm style={{ marginTop: theme.spacing["2xs"] }} color={color.subtle}>
+          {subtitle && <Text.Sm style={{ marginTop: theme.spacing[2] }} color={color.subtle}>
             {subtitle}
           </Text.Sm>}
         </View>
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   container: {
     position: "relative",
     borderRadius: theme.radius.lg,
-    paddingRight: theme.spacing.xl,
+    paddingRight: theme.spacing[24],
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
@@ -140,16 +140,16 @@ const styles = StyleSheet.create({
   rightContent: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: theme.spacing.md,
+    gap: theme.spacing[12],
   },
   leftButton: {
-    padding: theme.spacing.lg,
+    padding: theme.spacing[16],
     borderRightWidth: RAIL_DIVIDER_WIDTH,
     borderRightColor: colors.border.default,
     marginRight: RAIL_GAP,
   },
   leftContent: {
-    marginLeft: theme.spacing.lg,
+    marginLeft: theme.spacing[16],
     marginRight: LEFT_CONTENT_GAP,
     maxHeight: LEFT_CONTENT_MAX_HEIGHT,
     justifyContent: "center",

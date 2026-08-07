@@ -65,11 +65,11 @@ export const ButtonPill = ({
   const borderColor = variant === "neutral" && !elevated ?
     colors.border.medium : colors.border.default;
 
-  const padding = size === "lg" ? theme.spacing.sm : theme.spacing.xs;
-  const paddingRight = rightIcon ? padding : rightContent ? theme.spacing.lg :
-    (size === "lg" ? theme.spacing.xl : theme.spacing.lg);
-  const paddingLeft = leftIcon ? padding : leftContent ? theme.spacing.lg :
-    (size === "lg" ? theme.spacing.xl : theme.spacing.lg);
+  const padding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
+  const paddingRight = rightIcon ? padding : rightContent ? theme.spacing[16] :
+    (size === "lg" ? theme.spacing[24] : theme.spacing[16]);
+  const paddingLeft = leftIcon ? padding : leftContent ? theme.spacing[16] :
+    (size === "lg" ? theme.spacing[24] : theme.spacing[16]);
 
   return (
     <Pressable
@@ -139,12 +139,12 @@ export const ButtonPill = ({
 
 const styles = StyleSheet.create({
   base: {
-    padding: theme.spacing.sm,
+    padding: theme.spacing[8],
     borderRadius: theme.radius.full,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: theme.spacing.md,
+    gap: theme.spacing[12],
     overflow: "hidden",
     minHeight: 36,
   },

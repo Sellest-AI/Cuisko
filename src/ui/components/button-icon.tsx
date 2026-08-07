@@ -70,7 +70,7 @@ export const ButtonIcon = ({
 
 const styles = StyleSheet.create({
   base: {
-    padding: theme.spacing.md,
+    padding: theme.spacing[12],
     borderRadius: theme.radius.full,
     justifyContent: "center",
     alignItems: "center",

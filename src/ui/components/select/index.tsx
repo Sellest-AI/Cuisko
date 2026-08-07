@@ -85,8 +85,8 @@ export const Select = <T extends string>({
                 left: anchor.x,
                 minWidth: Math.max(anchor.width, MIN_WIDTH),
                 ...(dropsUp
-                  ? { bottom: windowHeight - anchor.y + theme.spacing.sm }
-                  : { top: anchor.y + anchor.height + theme.spacing.sm }),
+                  ? { bottom: windowHeight - anchor.y + theme.spacing[8] }
+                  : { top: anchor.y + anchor.height + theme.spacing[8] }),
               },
             ]}
           >
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: colors.border.medium,
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: theme.spacing[4],
     overflow: "hidden",
     boxShadow: [
       {
@@ -163,8 +163,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing[12],
+    paddingVertical: theme.spacing[12],
+    paddingHorizontal: theme.spacing[16],
   },
 });
