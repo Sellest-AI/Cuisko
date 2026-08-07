@@ -35,6 +35,11 @@ pnpm test -- <file>  # single test file
 Prefer reading the code over the docs when they disagree. **The code is the source of truth** — if
 you find a doc that contradicts it, say so and offer to fix the doc.
 
+Before adding a helper, hook or component, search for one that already exists —
+`docs/CONVENTIONS.md` says where it would live. If it does, call it. If you are about to write the
+second copy of the same logic, propose extracting it — never paste it, never refactor the first
+copy silently.
+
 ## Never
 
 | Rule                                                                                | ADR  |
@@ -133,10 +138,13 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 
 **Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
 
-**If anything fails — or could simply be better: STOP. Report to the user and wait.** Do not fix
-silently, and do not fold fixes into the same edit. A broken rule is BLOCKING; something legal but
-weaker than it should be — a vague name, a shape that duplicates an existing one — is NON-BLOCKING.
-It still gets reported, and the user decides whether it is worth the churn. Report in this shape:
+**When the review finds anything: STOP. Report to the user and wait.** Do not fix silently, and do
+not fold fixes into the same edit. A broken rule is BLOCKING. Something that breaks no rule but is
+weaker than it should be — a name that says nothing, a shape that duplicates one already in the
+codebase — is NON-BLOCKING: report it, and let the user decide whether it is worth the churn. That
+second tier is deliberately open to general code criticism: duplication, a name that says nothing
+ — anything you would raise on a colleague's PR. The one bar is that you can point at the line and
+ say what it costs. Report in this shape:
 
 ```
 ⚠️ Review found 5 issues in 5 changed files
