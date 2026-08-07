@@ -21,6 +21,8 @@
  * changes. That is the whole reason primitives stay private.
  */
 
+import { Platform } from "react-native";
+
 // ── Tier 1: primitives ───────────────────────────────────────────────────────────────────────
 
 const PALETTE = {
@@ -110,7 +112,7 @@ const Texts = {
     fontSize: 15,
     lineHeight: 16.8,
     letterSpacing: -0.28,
-    fontWeight: 500
+    fontWeight: Platform.OS === "web" ? 600 : 500
   },
   sm: {
     fontSize: 11,
