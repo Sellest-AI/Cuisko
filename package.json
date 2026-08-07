@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.94",
+    "@shopify/flash-list": "2.0.2",
     "convex": "^1.43.0",
     "convex-helpers": "^0.1.121",
     "expo": "~57.0.10",
