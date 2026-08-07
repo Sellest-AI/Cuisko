@@ -4,6 +4,7 @@ import { Pressable } from "./pressable"
 import { StyleSheet, View, ViewStyle } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSpin } from "@ui/hooks/useSpin";
+import { BlurView } from "./blur-view";
 
 type Props = {
   children: Icon;
@@ -50,7 +51,7 @@ export const ButtonIcon = ({
       onPress={onPress}
       disabled={disabled || isLoading}
     >
-      <View style={[
+      <BlurView style={[
         styles.base,
         elevated && styles.elevated,
         color,
@@ -63,7 +64,7 @@ export const ButtonIcon = ({
             icon={isLoading ? LoaderCircle : children}
           />
         </Animated.View>
-      </View>
+      </BlurView>
     </Component>
   )
 }
