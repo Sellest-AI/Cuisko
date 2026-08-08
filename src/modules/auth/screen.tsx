@@ -6,6 +6,7 @@ import { ArrowRight } from "@ui/icons";
 import { ButtonPill } from "@ui/button-pill";
 import { Button } from "@ui/button";
 import { theme } from "theme";
+import { useTranslations } from "translations";
 
 import { useAuth, type AuthFlow } from "./_hooks/useAuth";
 
@@ -16,6 +17,7 @@ import { useAuth, type AuthFlow } from "./_hooks/useAuth";
  * options, layout, and one feature-hook call (ADR 0006). Composition belongs to the module.
  */
 export const AuthScreen = () => {
+  const t = useTranslations("Home");
   const { user, isAuthenticated, isLoading, isSubmitting, error, signIn, signOut } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,9 +58,7 @@ export const AuthScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Cuisko</Text>
-      <Text style={styles.subheading}>
-        {isSignUp ? "Create an account." : "Sign in to continue."}
-      </Text>
+      <Text style={styles.subheading}>{t("Hero.subtitle")}</Text>
 
       <View style={styles.form}>
         <TextField

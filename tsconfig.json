@@ -16,6 +16,8 @@
       "@shared/*": ["./shared/*"],
       "theme": ["./src/global/theme.ts"],
       "routes": ["./src/global/routes.ts"],
+      "translations": ["./translations/index.ts"],
+      "translations/*": ["./translations/*"],
       "env": ["./env.ts"],
       "assets/*": ["./assets/*"]
     }
