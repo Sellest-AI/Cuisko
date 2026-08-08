@@ -3,8 +3,8 @@
 <!--
   MAINTENANCE: every line here must be a command, a boundary, a non-obvious pattern,
   or a pointer. No directory trees, no architecture prose — those live in docs/ and
-  are read on demand. Budget is 300 lines — a ceiling, not a target: this file is
-  loaded on every request, so an unnecessary line is paid for on every one. Past 300,
+  are read on demand. Budget is 350 lines — a ceiling, not a target: this file is
+  loaded on every request, so an unnecessary line is paid for on every one. Past 350,
   extract to docs/ rather than trimming what earns its place.
   Nested files live at convex/AGENTS.md and src/ui/AGENTS.md — agents read the
   NEAREST one, so state a rule in the folder it governs rather than adding it here.
@@ -31,9 +31,16 @@ pnpm test -- <file>  # single test file
 - `docs/adr/` — decisions that constrain code. Each declares `applies_to` globs; read the ones
   matching the files you are touching.
 - `docs/ARCHITECTURE.md` — layer contracts and data flow. Read when the task crosses layers.
+- `docs/plans/` — the slice in flight, if there is one. **Intent, not description:** where it
+  disagrees with the code the code wins, and the plan should already have been deleted.
 
 Prefer reading the code over the docs when they disagree. **The code is the source of truth** — if
 you find a doc that contradicts it, say so and offer to fix the doc.
+
+**A change crossing two layers starts with a plan.** Copy `docs/plans/_template.md` and agree it
+before building: what it settles — file placement, call stack, what a hook returns — is the seam
+between whoever writes the backend and whoever wires the screen, and a seam discovered during wiring
+is a rewrite for one side. One file, one screen or a dep bump needs none. Deleted when the slice lands.
 
 Before adding a helper, hook or component, search for one that already exists —
 `docs/CONVENTIONS.md` says where it would live. If it does, call it. If you are about to write the
@@ -91,8 +98,21 @@ small — most defects this catches are one-line changes.
 
 **Step 2 — get the changed set.** `git diff --name-only` plus untracked files.
 
-**Step 3 — read each changed file against every table below.** `pnpm verify` does not catch most of
-this; you must actually read the diff.
+**Step 3 — spawn the reviewer. Every time.** A cold context catches what yours cannot: you know what
+you meant, so you read the diff as intent rather than as text. Spawn a **read-only** agent whose
+prompt carries the changed-file list, the `docs/adr/` records whose `applies_to` globs match them,
+and every table below as its criteria (see **Sub-agents** — it remembers nothing of this session).
+`pnpm verify` does not catch most of this; something has to actually read the diff.
+
+**Step 4 — `/code-review` when the diff contains logic.** It hunts defects, which the tables below do
+not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Trigger is concrete —
+`convex/functions/`, `convex/router/` beyond a validator change, `src/modules/**/_hooks/`, or
+`shared/`. Skip it for pure `src/ui/` styling, docs, config and dependency bumps; a defect hunt on a
+stylesheet finds nothing and teaches you to skip the step that matters.
+
+**Step 5 — verify every finding before relaying it.** Open the file each one names and confirm it. A
+reviewer that never saw the conversation also invents findings, and passing one on unchecked costs
+more trust than the whole review buys.
 
 ### Naming
 
@@ -274,5 +294,8 @@ result as if it had returned.
 - The architecture review above ran and reported clean, or the user approved the exceptions.
 - Every new non-`anon` Convex export has a test asserting the wrong caller is rejected.
 - Any `docs/` page the change invalidated has been updated.
+- The slice's plan file is **deleted** — with any decision worth keeping promoted to an ADR or to
+  `docs/CONVENTIONS.md` first. A plan that outlives its build is a specification nobody maintains,
+  and the next agent will build against it.
 
 ---

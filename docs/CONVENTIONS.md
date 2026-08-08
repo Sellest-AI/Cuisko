@@ -368,6 +368,8 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 **Always**
 
 - [ ] `pnpm verify` passes — the pre-commit hook refuses the commit otherwise
+- [ ] Reviewer sub-agent ran and reported clean, or its findings were approved 👁
+- [ ] The slice's plan file is deleted; anything worth keeping was promoted to an ADR first 👁
 - [ ] `docs/` updated if a layer, convention or table changed (📐 C6 catches dead links/paths only)
 - [ ] No `@deprecated` code left behind — delete it, git remembers 👁
 - [ ] No empty `catch {}` 🔒
@@ -491,23 +493,31 @@ not skip anything.
 
 ## 11. Rules that stay 👁, and why
 
-Every rule that *could* be mechanised has been. What remains judgement is listed here, so that a 👁
-reads as a decision rather than an omission — and so nobody mistakes this section for a backlog.
+What remains judgement is listed here, so that a 👁 reads as a decision rather than an omission.
 
-| Rule                                             | Why no mechanism                                                                                                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself. |
-| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                      |
-| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                 |
-| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                         |
-| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                      |
-| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                         |
-| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                             |
-| A7 — rate limiting                               | "Costs money" is not a static property.                                                                                                                          |
-| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                    |
-| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                |
-| A10 — `ConvexError({ code })`                    | Mostly mechanisable; deferred until an error convention has been exercised by real domains.                                                                      |
-| Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                 |
+Most entries are here because **no mechanism is possible** — the check would have to *be* the
+judgement. A few, marked ⏳, are mechanisable and deliberately **not built yet**, because the rule
+has not been exercised enough to know what the check should assert. That distinction is the point of
+the column: a ⏳ is the only thing in this section that is a backlog item, and everything without one
+is settled. **Never add a ⏳ for a rule you simply have not got round to** — that is how this section
+would rot into a wish list, and a rule nobody intends to mechanise should say so plainly instead.
+
+| Rule                                             | Why no mechanism                                                                                                                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself.     |
+| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                          |
+| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                     |
+| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                             |
+| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                          |
+| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                             |
+| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                                 |
+| A7 — rate limiting                               | "Costs money" is not a static property.                                                                                                                              |
+| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                        |
+| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                    |
+| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                         |
+| Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                     |
+| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).                |
+| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.              |
 
 **The rule about this section: do not promote a tag before its mechanism exists.** A 👁 that claims
 to be 📐 is worse than no rule at all, because a green `pnpm verify` then certifies something nobody

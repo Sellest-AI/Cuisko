@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-start.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Reading repo state"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/stop-checks.mjs\"",
+            "timeout": 60,
+            "statusMessage": "Checking the working set"
+          }
+        ]
+      }
+    ]
+  }
+}
