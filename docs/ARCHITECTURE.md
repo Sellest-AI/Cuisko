@@ -41,9 +41,14 @@ cuisko/
 │   └── global/           theme, routes, constants.
 ├── convex/               Backend.
 ├── shared/               Runs in BOTH runtimes. No browser APIs, no Node built-ins.
-├── docs/                 This folder.
+├── docs/                 PRODUCT · ARCHITECTURE (this page) · CONVENTIONS
+│   ├── adr/              Decisions that constrain code. Each declares its applies_to globs.
+│   ├── plans/            The slice in flight. Intent, not description — deleted when it lands.
+│   ├── external/         What lives outside the repo: hosting, accounts, design source.
+│   └── _reference/       Frozen audit of the predecessor. History, not documentation.
 ├── scripts/              C1–C7 architectural checks, plus dev-tooling shims.
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
+├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
 ├── metro.config.js       Metro: open-file cap (EMFILE) + .history blocklist.
 ├── commitlint.config.js  Conventional Commits rules.
@@ -435,6 +440,12 @@ contact with a growing codebase.
 [pre-commit hook](../.githooks/pre-commit) — so a failing commit cannot be created — and in CI on
 every push, which is what catches a `--no-verify` bypass.
 
+A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4 and C6 against
+the working set at the end of an agent turn, so a violation surfaces one turn after it is written
+rather than at commit time. C5 and C7 are excluded — C5 is legitimately unsatisfied mid-slice, and
+C7 needs codegen that cannot be run from an editing turn. **Adding a check means adding it there
+too**; nothing links the two, and a check missing from that list simply stops running early.
+
 Rules that remain human judgement are listed, with the reason, in
 [CONVENTIONS §11](./CONVENTIONS.md#11-rules-that-stay--and-why). A tag is never promoted ahead of
 its mechanism.
@@ -453,8 +464,13 @@ domain — the predecessor built breadth-first and got twenty dialects of the sa
       `afterUserCreatedOrUpdated` callback, the `procedures.ts` merge, `Providers`, and the
       authorization test harness (C5 now requires one per gated export).
 - [x] **4. UI foundations** — `theme` and the first `src/ui/components/` primitives.
-- [ ] **5. First vertical slice: recipes** — `schema/recipes.ts` → `functions/recipes/` →
-      `router/recipes/` → `modules/recipes/_hooks/useRecipes.ts` → `app/(tabs)/recipes.tsx`.
+- [ ] **5. First vertical slice: recipes** — thin end to end first, then deepened. The hook comes
+      *first*: `modules/recipes/_hooks/useRecipes.ts` returning hardcoded, fully typed data, so the
+      screen can be built against the real interface while the backend is still empty. Then
+      `schema/recipes.ts` with one operation and its rejection test; then the hook's internals swap
+      to the real query and the screen changes nothing; then list, pagination, mutations, empty and
+      error states. Ordering the layers bottom-up instead puts five of them between the start and
+      anything runnable, and the interface is discovered during wiring rather than agreed before it.
       This slice is the template every later domain copies. It is also what first makes
       `ownedQuery` / `ownedMutation` usable — `OwnedTable` resolves to `never` until those tables
       exist.
