@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "main": "expo-router/entry",
-  "packageManager": "pnpm@11.0.3",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "start": "expo start",
     "start:clear": "expo start --clear",
