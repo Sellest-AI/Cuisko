@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C7)               |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C8)               |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept
@@ -243,7 +243,7 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 | Layer                  | Rule                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `translations/`        | The only home for user-facing copy. `en` and `fr` key sets stay identical.                      |
+| `translations/`        | The only home for user-facing copy. Every locale carries the same key set 📐 C8.                 |
 | `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                  |
 | `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                           |
 | Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
@@ -261,8 +261,8 @@ call site, that the string takes a variable.
 }
 ```
 
-👁 until two mechanisms land: a lint rule rejecting user-facing string literals, and a check that the
-`en` and `fr` key sets match. Promote the tag in the commit that adds them.
+The heading stays 👁 for the half still unmechanised: nothing rejects a user-facing string literal
+written straight into a component. Promote it in the commit that adds that lint rule.
 
 ---
 

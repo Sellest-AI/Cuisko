@@ -21,7 +21,8 @@
     "check:authtests": "node scripts/c5-auth-tests.mjs",
     "check:docs": "node scripts/c6-doc-integrity.mjs",
     "check:codegen": "node scripts/c7-generated-api.mjs",
-    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen",
+    "check:i18n": "node scripts/c8-i18n-parity.mjs",
+    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n",
     "verify": "pnpm typecheck && pnpm lint && pnpm check && pnpm test",
     "prepare": "git config core.hooksPath .githooks"
   },

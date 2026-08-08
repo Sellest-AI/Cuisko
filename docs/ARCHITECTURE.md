@@ -46,7 +46,7 @@ cuisko/
 │   ├── plans/            The slice in flight. Intent, not description — deleted when it lands.
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
-├── scripts/              C1–C7 architectural checks, plus dev-tooling shims.
+├── scripts/              C1–C8 architectural checks, plus dev-tooling shims.
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
@@ -431,6 +431,7 @@ contact with a growing codebase.
 | Gated exports have a rejection test | script C5 | `pnpm check:authtests` |
 | Docs point at things that exist | script C6 | `pnpm check:docs` |
 | Committed `_generated` matches the tree | script C7 | `pnpm check:codegen` |
+| Locales carry identical key sets | script C8 | `pnpm check:i18n` |
 | Commit messages follow Conventional Commits | commitlint | `commit-msg` hook |
 | Branch names follow `<type>/<summary>` | `pre-commit` hook | `pre-commit` hook |
 | Ownership is checked | `ownedQuery`/`ownedMutation` type signatures | `pnpm typecheck` |
@@ -440,7 +441,7 @@ contact with a growing codebase.
 [pre-commit hook](../.githooks/pre-commit) — so a failing commit cannot be created — and in CI on
 every push, which is what catches a `--no-verify` bypass.
 
-A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4 and C6 against
+A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4, C6 and C8 against
 the working set at the end of an agent turn, so a violation surfaces one turn after it is written
 rather than at commit time. C5 and C7 are excluded — C5 is legitimately unsatisfied mid-slice, and
 C7 needs codegen that cannot be run from an editing turn. **Adding a check means adding it there

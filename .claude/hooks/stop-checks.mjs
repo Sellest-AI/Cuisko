@@ -47,6 +47,14 @@ const CHECKS = [
   { name: "C3 query and index rules", script: "c3-query-rules.mjs", when: (f) => f.startsWith("convex/") },
   { name: "C4 schema invariants", script: "c4-schema-invariants.mjs", when: (f) => f.startsWith("convex/") },
   { name: "C6 doc integrity", script: "c6-doc-integrity.mjs", when: () => true },
+  // `shared/` is in the trigger as well as `translations/` because C8 reads SUPPORTED_LOCALES out
+  // of shared/translations.ts: adding a locale to that constant and no directory to go with it is
+  // a violation in which no translations/ file is touched at all.
+  {
+    name: "C8 i18n parity",
+    script: "c8-i18n-parity.mjs",
+    when: (f) => f.startsWith("translations/") || f.startsWith("shared/"),
+  },
 ];
 
 /* ── What changed ───────────────────────────────────────────────────────────────────────── */

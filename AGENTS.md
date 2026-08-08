@@ -16,7 +16,7 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C7 + test — the pre-commit hook runs this and
+pnpm verify        # typecheck + lint + C1–C8 + test — the pre-commit hook runs this and
                    # refuses the commit if it fails. `--no-verify` bypasses it; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
@@ -94,7 +94,7 @@ owns that domain's queries, mutations and module-scoped Jotai state.
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R7 + the C1–C7 scripts + tests).
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R7 + the C1–C8 scripts + tests).
 
 **Step 2 — get the changed set.** `git diff --name-only` plus untracked files.
 
