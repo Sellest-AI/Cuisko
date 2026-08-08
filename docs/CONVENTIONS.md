@@ -236,6 +236,36 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 ---
 
+### 3.3 Language 👁
+
+**French and English are both first-class, from launch** — see
+[PRODUCT.md § Bilingual by nature](./PRODUCT.md).
+
+| Layer                  | Rule                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `translations/`        | The only home for user-facing copy. `en` and `fr` key sets stay identical.                      |
+| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                  |
+| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                           |
+| Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
+
+**Key naming.** Namespaces and groups are `PascalCase`; the text keys under them are `snake_case`.
+A key whose string interpolates a value marks it with `_x_` — the key alone then tells you, at the
+call site, that the string takes a variable.
+
+```jsonc
+{
+  "Cellar": {                                    // namespace / group → PascalCase
+    "add_item": "Add an item",                   // plain text key → snake_case
+    "add_x_items": "Add {{count}} items"         // _x_ → this string takes a variable
+  }
+}
+```
+
+👁 until two mechanisms land: a lint rule rejecting user-facing string literals, and a check that the
+`en` and `fr` key sets match. Promote the tag in the commit that adds them.
+
+---
+
 ## 4. Schema rules
 
 | #   | Rule                                                                                      | Tag  |
@@ -364,6 +394,8 @@ Is it backend code?
 Does it run in BOTH Expo and Convex?                  → shared/   (no browser/Node APIs)
 
 Is it a table definition?                             → convex/schema/{domain}.ts
+
+Is it user-facing copy?                               → translations/   (en + fr, keys in sync)
 ```
 
 A directory is created the first time a file belongs in it — but the destination is decided here,
@@ -436,7 +468,6 @@ oversights:
 | "Every file needs a header comment" | Comment density should match the surrounding code. Noise ages badly.                                                                                                     |
 | "One export per file"               | The multi-access-level pattern is *better* than splitting: the shared handler is the point.                                                                              |
 | "No barrel files"                   | `functions/*/index.ts` barrels worked well in the predecessor (13/13 domains). Keep them; avoid deep re-export chains.                                                   |
-| "i18n everything"                   | Either enforce from screen one or do not install it. Half-installed i18n is pure cost — the predecessor had 7 keys across 332 files. Current decision: **English-only.** |
 
 ---
 
