@@ -76,20 +76,23 @@ export const useWeeklyPlan = () => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [mealType, setMealType] = useState<MealType>("lunch");
 
-  const selectedDayIndex = days.findIndex((day) => _isSameDay(day.date, selectedDate));
+  const selectedDayIndex = useMemo(() => days.findIndex((day) => _isSameDay(day.date, selectedDate)), [days, selectedDate]);
 
   /**
    * The plate the day and the meal toggle agree on. Only today carries both a lunch and a
    * dinner, so fall back to the day alone — otherwise picking a past day while the toggle
    * says "lunch" matches nothing and the carousel sits where it was. -1 it ignores.
    */
-  const exactMatch = meals.findIndex(
+  const exactMatch = useMemo(() => meals.findIndex(
     (meal) => _isSameDay(meal.date, selectedDate) && meal.type === mealType,
-  );
-  const selectedMealIndex =
-    exactMatch === -1
+  ), [meals, selectedDate, mealType]);
+
+  const selectedMealIndex = useMemo(
+    () => (exactMatch === -1
       ? meals.findIndex((meal) => _isSameDay(meal.date, selectedDate))
-      : exactMatch;
+      : exactMatch),
+    [exactMatch, meals, selectedDate],
+  );
 
   const selectDay = useCallback((day: WeekDay) => setSelectedDate(day.date), []);
 
