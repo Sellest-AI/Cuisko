@@ -7,8 +7,8 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 
 /** Placeholder counts until the list and the cellar arrive from Convex. */
-const PENDING_ITEMS = 560_000_000;
-const STORED_ITEMS = 37_000_000;
+const PENDING_ITEMS = 56;
+const STORED_ITEMS = 37;
 
 /** The things you reach for without going looking: what to add, and where things are kept. */
 export const QuickAccess = () => {
@@ -31,12 +31,12 @@ export const QuickAccess = () => {
         />
         <ActionRow
           variant="flat"
-          onPress={() => console.log("open cellier pressed")}
+          onPress={() => console.log("open cellar pressed")}
           content={t("QuickAccess.cellar")}
           contentIcon={Store}
           subtitle={t("QuickAccess.in_stock_x_items", { count: STORED_ITEMS })}
           leftIcon={Plus}
-          onLeftIconPress={() => console.log("add cellier item pressed")}
+          onLeftIconPress={() => console.log("add cellar item pressed")}
         />
       </View>
     </View>
