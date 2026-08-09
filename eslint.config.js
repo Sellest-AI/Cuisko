@@ -21,6 +21,12 @@ module.exports = defineConfig([
 
   // Path aliases are resolved by tsc and Metro, not by eslint-plugin-import. Without a
   // resolver these rules only produce false positives.
+  //
+  // Import CYCLES are checked by C9 (scripts/c9-import-cycles.mjs), not by `import/no-cycle`.
+  // The plugin rule works, but it resolves every node_modules specifier to classify it as
+  // external, which measured 4s -> 20s on `pnpm lint` and 16s -> 32s on `pnpm verify` — a tax
+  // paid on every commit to look for cycles through react-native that this repo could not fix
+  // anyway. C9 ignores bare specifiers entirely and runs in 370ms.
   {
     rules: {
       "import/namespace": "off",
@@ -152,13 +158,24 @@ module.exports = defineConfig([
               group: ["**/convex/_generated/**"],
               message: "Import from ~/lib/convex/api instead.",
             },
+            // ── R8 — a module's underscore folders are its interior ──────────────────────
+            // In-module imports are RELATIVE (`./_hooks/useX`); only a cross-module reach is
+            // written with the `~/modules/` alias. So banning the aliased form hits every
+            // violation and no legitimate use — which is why this needs no exception for the
+            // module that owns the folder.
+            {
+              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**"],
+              message:
+                "A module's _hooks/ and _components/ are private. Import the module's root, or " +
+                "re-export the hook from its hooks.ts.",
+            },
           ],
         },
       ],
     },
   },
 
-  // ── R4 — screens do not fetch (+ R3, restated: this block replaces it for app/**) ────────
+  // ── R4 — screens do not fetch (+ R3 and R8, restated: this block replaces them for app/**) ─
   {
     files: ["app/**/*.{ts,tsx}"],
     rules: {
@@ -169,6 +186,12 @@ module.exports = defineConfig([
             {
               group: ["**/convex/_generated/**"],
               message: "Import from ~/lib/convex/api instead.",
+            },
+            {
+              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**"],
+              message:
+                "A module's _hooks/ and _components/ are private. A screen composes a module's " +
+                "public root — and never calls a hook directly (ADR 0006).",
             },
           ],
           paths: [

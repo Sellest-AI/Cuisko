@@ -55,6 +55,14 @@ const CHECKS = [
     script: "c8-i18n-parity.mjs",
     when: (f) => f.startsWith("translations/") || f.startsWith("shared/"),
   },
+  // Any moved or renamed file can create a cycle, and a barrel makes one invisible to read — so
+  // the trigger is every source root C9 walks, not just the file that closed the loop.
+  {
+    name: "C9 import cycles",
+    script: "c9-import-cycles.mjs",
+    when: (f) =>
+      f.startsWith("src/") || f.startsWith("app/") || f.startsWith("convex/") || f.startsWith("shared/"),
+  },
 ];
 
 /* ── What changed ───────────────────────────────────────────────────────────────────────── */

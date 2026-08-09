@@ -9,8 +9,9 @@ supersedes: []
 
 MUST NOT: call `useQuery` / `useMutation` / `useAction`, or import `~/lib/convex/api`,
           `~/lib/convex/client` or `convex/react`, from `app/**`.
-MUST: put a domain's Convex bindings in `src/modules/{domain}/_hooks/use{Domain}.ts` — the only
-      place `api.router.{domain}.*` is referenced.
+MUST: put a domain's Convex bindings in `src/modules/{domain}/_hooks/` — the only place
+      `api.router.{domain}.*` is referenced. Hook files are named for what they return
+      (`useWeeklyPlan.ts`), not after the domain.
 MUST NOT: import `convex/_generated/**` from anywhere in `src/**` or `app/**` except
           `src/lib/convex/api.ts`.
 MAY: use `useLocalSearchParams`, `<Stack.Screen options>`, layout composition, and **one** feature
@@ -42,6 +43,21 @@ None of that is expressible when fetching is scattered across screens.
 
 The full contract, with the feature-hook shape every domain follows, is in
 [ARCHITECTURE.md § Feature hooks own the data](../ARCHITECTURE.md#feature-hooks-own-the-data).
+
+## Revised — the binding site is the folder, not one file
+
+This originally required a single `_hooks/use{Domain}.ts` per domain. That granularity does not
+survive a real domain: `recipes` wants a list hook, a detail hook and a form hook, and the example
+in ARCHITECTURE.md already shows two exports sharing one file to satisfy the letter of it. Forcing
+them together produces one long file whose name stops describing what is in it.
+
+What the decision was actually for is unchanged, and it is the folder that delivers it: **one layer
+owns fetching, and `grep api.router.plans` lands in exactly one directory.** Several hooks in that
+directory cost nothing — a hook named after the domain that returns four unrelated things costs
+every reader who opens it.
+
+So the naming rule is the ordinary one: a hook file is named for what it returns and matches its
+export ([CONVENTIONS.md §1.1](../CONVENTIONS.md#11-files)).
 
 ## Verify
 

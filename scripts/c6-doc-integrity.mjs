@@ -54,7 +54,14 @@ const markdownIn = (dir) => {
 
 const docs = [
   ...markdownIn(path.join(ROOT, "docs")),
-  ...["AGENTS.md", "CLAUDE.md", "README.md", "convex/AGENTS.md", "src/ui/AGENTS.md"]
+  ...[
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "convex/AGENTS.md",
+    "src/ui/AGENTS.md",
+    "src/modules/AGENTS.md",
+  ]
     .map((f) => path.join(ROOT, f))
     .filter(existsSync),
 ];
