@@ -17,7 +17,7 @@ import { useAuth, type AuthFlow } from "./_hooks/useAuth";
  * options, layout, and one feature-hook call (ADR 0006). Composition belongs to the module.
  */
 export const AuthScreen = () => {
-  const t = useTranslations("Home");
+  const t = useTranslations("Auth");
   const { user, isAuthenticated, isLoading, isSubmitting, error, signIn, signOut } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,7 +58,7 @@ export const AuthScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Cuisko</Text>
-      <Text style={styles.subheading}>{t("Hero.subtitle")}</Text>
+      <Text style={styles.subheading}>{t("tagline")}</Text>
 
       <View style={styles.form}>
         <TextField

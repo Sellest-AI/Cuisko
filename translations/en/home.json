@@ -1,6 +1,14 @@
 {
-  "Hero": {
-    "title": "Welcome to Our Application",
-    "subtitle": "Your journey starts here."
+  "QuickAccess": {
+    "title": "Quick Access",
+    "grocery_list": "Grocery list",
+    "to_buy_x_items_one": "{{count, number}} item to buy",
+    "to_buy_x_items_other": "{{count, number}} items to buy",
+    "cellar": "The cellar",
+    "in_stock_x_items_one": "{{count, number}} item in stock",
+    "in_stock_x_items_other": "{{count, number}} items in stock"
+  },
+  "Spotlight": {
+    "title": "Ideas for this week"
   }
 }

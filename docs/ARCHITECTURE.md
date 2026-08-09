@@ -471,7 +471,7 @@ contact with a growing codebase.
 | Gated exports have a rejection test | script C5 | `pnpm check:authtests` |
 | Docs point at things that exist | script C6 | `pnpm check:docs` |
 | Committed `_generated` matches the tree | script C7 | `pnpm check:codegen` |
-| Locales carry identical key sets | script C8 | `pnpm check:i18n` |
+| Locales carry identical key sets, and plural call sites pass a `count` | script C8 | `pnpm check:i18n` |
 | Commit messages follow Conventional Commits | commitlint | `commit-msg` hook |
 | Branch names follow `<type>/<summary>` | `pre-commit` hook | `pre-commit` hook |
 | Ownership is checked | `ownedQuery`/`ownedMutation` type signatures | `pnpm typecheck` |

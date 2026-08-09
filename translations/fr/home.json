@@ -1,6 +1,16 @@
 {
-  "Hero": {
-    "title": "Bienvenue dans notre application",
-    "subtitle": "Votre voyage commence ici."
+  "QuickAccess": {
+    "title": "Accès rapide",
+    "grocery_list": "Liste de courses",
+    "to_buy_x_items_one": "{{count, number}} article à acheter",
+    "to_buy_x_items_many": "{{count, number}} d'articles à acheter",
+    "to_buy_x_items_other": "{{count, number}} articles à acheter",
+    "cellar": "Le cellier",
+    "in_stock_x_items_one": "{{count, number}} produit en réserve",
+    "in_stock_x_items_many": "{{count, number}} de produits en réserve",
+    "in_stock_x_items_other": "{{count, number}} produits en réserve"
+  },
+  "Spotlight": {
+    "title": "Des idées pour la semaine"
   }
 }

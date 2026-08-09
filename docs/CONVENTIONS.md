@@ -254,7 +254,7 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 | Layer                  | Rule                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `translations/`        | The only home for user-facing copy. Every locale carries the same key set 📐 C8.                 |
+| `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted. |
 | `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                  |
 | `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                           |
 | Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
@@ -267,10 +267,51 @@ call site, that the string takes a variable.
 {
   "Cellar": {                                    // namespace / group → PascalCase
     "add_item": "Add an item",                   // plain text key → snake_case
-    "add_x_items": "Add {{count}} items"         // _x_ → this string takes a variable
+    "added_x_name": "{{name}} is in the cellar"  // _x_ → this string takes a variable
   }
 }
 ```
+
+**Plurals.** A counted string is one key per plural category **of its own locale**, suffixed with
+the CLDR category name. The locales do *not* carry the same suffixes, and that is the point:
+
+```jsonc
+// en — English has two categories
+"to_buy_x_items_one":   "{{count, number}} item to buy",
+"to_buy_x_items_other": "{{count, number}} items to buy"
+
+// fr — French has three
+"to_buy_x_items_one":   "{{count, number}} article à acheter",
+"to_buy_x_items_many":  "{{count, number}} d'articles à acheter",
+"to_buy_x_items_other": "{{count, number}} articles à acheter"
+```
+
+**`many` is not "a lot".** It is a CLDR category, and in French it means *millions* — `300` selects
+`other`, `1000000` selects `many`. That is why the French `many` form carries the elision (*un
+million **de** produits*) and the others do not. Read the category as a rule, never as a quantity.
+
+`, number` runs the count through `Intl.NumberFormat` for the active locale — `1 000 000` in
+French, `1,000,000` in English. Use it on **every** form of a family or none: the form most likely
+to be forgotten is `many`, which is the only one whose number is large enough for grouping to
+matter.
+
+Call it by the **base name** — `t("QuickAccess.to_buy_x_items", { count })`. `TranslationKeys` in
+`translations/types.ts` strips the suffixes, so a family is one key at the call site and naming a
+form directly is a type error. Two rules make that hold, and 📐 C8 enforces both:
+
+- **The counted variable is always `count`.** i18next picks the form from that property and from
+  nothing else, so `t(key, { n })` finds no form and renders the key itself on screen. C8's
+  assertion 6 reads `src/` and `app/` to check this — it cannot be checked in `translations/`,
+  because a form is allowed to omit the number entirely ("One item to buy").
+- **Never end an ordinary key with a category name** — `_zero` `_one` `_two` `_few` `_many`
+  `_other`. `translations/types.ts` and C8 both read that suffix as proof of a plural and neither
+  looks deeper, so a stray `step_one` is reported as a family missing its other forms.
+
+Give a locale one category too few and i18next finds no form, falls through to `fallbackLng`, and
+renders **English at a French user** — at `count: 1000000`, which no test would think to try. French
+needs `_many` and English has no such category, so comparing key sets literally would call the
+correct French wrong and the broken French right. C8 therefore measures each locale against
+`Intl.PluralRules` rather than against `en`.
 
 The heading stays 👁 for the half still unmechanised: nothing rejects a user-facing string literal
 written straight into a component. Promote it in the commit that adds that lint rule.
