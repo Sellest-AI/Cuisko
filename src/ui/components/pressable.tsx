@@ -14,7 +14,7 @@ type PressableProps = {
   style?: ViewStyle | (ViewStyle | undefined | false)[];
 } & ComponentProps<typeof NativePressable>;
 
-export const Pressable = ({ disabled, onPress, children, animated = true, intensity = 0.98, onDoublePress, style: _style, ...props }: PressableProps) => {
+export const Pressable = ({ disabled, onPress, children, animated = true, intensity = 0.98, onDoublePress, style: styleProp, ...props }: PressableProps) => {
   // eslint-disable-next-line react-hooks/refs
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -62,7 +62,7 @@ export const Pressable = ({ disabled, onPress, children, animated = true, intens
     }).start();
   };
 
-  const style = StyleSheet.flatten(_style ?? {}) as ViewStyle;
+  const style = StyleSheet.flatten(styleProp ?? {}) as ViewStyle;
   const {
     margin, marginTop, marginBottom, width, top,
     left, minHeight, height, position, bottom, right, zIndex, ...filteredStyle } = style;

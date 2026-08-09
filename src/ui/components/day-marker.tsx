@@ -22,7 +22,7 @@ type Props = {
   selected?: boolean;
 };
 
-const STATUS_COLORS = (selected: boolean) => ({
+const _statusColors = (selected: boolean) => ({
   empty: {
     borderWidth: 0,
     backgroundColor: selected ? colors.neutral.elevated : colors.neutral.subtle,
@@ -47,6 +47,13 @@ const STATUS_COLORS = (selected: boolean) => ({
     date: selected ? colors.success.elevated : colors.neutral.base,
   },
 }) as const;
+
+/** Both variants built once at module load rather than on every render: a week strip is seven
+ *  markers re-deriving three nested objects each, and none of it varies at runtime. */
+const STATUS_COLORS = {
+  default: _statusColors(false),
+  selected: _statusColors(true),
+} as const;
 
 const DEFAULT_LOCALE = "en-US";
 
@@ -91,7 +98,7 @@ const NUMBER_GAP = 6;
  * never stops moving.
  */
 export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style, onPress, selected = false }: Props) => {
-  const color = STATUS_COLORS(selected)[status];
+  const color = STATUS_COLORS[selected ? "selected" : "default"][status];
   const day = weekdayInitial(date, locale);
   // Local time on purpose — "Tuesday" has to mean the user's Tuesday, not UTC's.
   const dayNumber = date.getDate();

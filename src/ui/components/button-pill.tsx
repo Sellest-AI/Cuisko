@@ -86,19 +86,19 @@ export const ButtonPill = ({
     colors.border.medium : colors.border.default;
 
   const { paddingHorizontal, paddingVertical, gap,
-    paddingLeft: _paddingLeft, paddingRight: _paddingRight,
-    padding: _padding, minHeight, ...rest } = StyleSheet.flatten(style || {}) || {};
+    paddingLeft: overridePaddingLeft, paddingRight: overridePaddingRight,
+    padding: overridePadding, minHeight, ...rest } = StyleSheet.flatten(style || {}) || {};
 
   const defaultPadding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
-  const padding = _padding ?? defaultPadding;
+  const padding = overridePadding ?? defaultPadding;
 
   const defaultPaddingRight = rightIcon ? padding : rightContent ? theme.spacing[16] :
     (size === "lg" ? theme.spacing[24] : theme.spacing[16]);
   const defaultPaddingLeft = leftIcon ? padding : leftContent ? theme.spacing[16] :
     (size === "lg" ? theme.spacing[24] : theme.spacing[16]);
 
-  const paddingLeft = _paddingLeft ?? paddingHorizontal ?? defaultPaddingLeft;
-  const paddingRight = _paddingRight ?? paddingHorizontal ?? defaultPaddingRight;
+  const paddingLeft = overridePaddingLeft ?? paddingHorizontal ?? defaultPaddingLeft;
+  const paddingRight = overridePaddingRight ?? paddingHorizontal ?? defaultPaddingRight;
 
   const ViewComponent = variant === "neutral" ? BlurView : View;
 

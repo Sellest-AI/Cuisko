@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
         spreadDistance: 0,
         color: "rgba(0, 0, 0, 0.07)",
       },
-    ]
+    ],
   },
   imageCard: {
     aspectRatio: 4 / 3,
