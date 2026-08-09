@@ -46,13 +46,13 @@ cuisko/
 │   ├── plans/            The slice in flight. Intent, not description — deleted when it lands.
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
-├── scripts/              C1–C8 architectural checks, plus dev-tooling shims.
+├── scripts/              C1–C9 architectural checks, plus dev-tooling shims.
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
 ├── metro.config.js       Metro: open-file cap (EMFILE) + .history blocklist.
 ├── commitlint.config.js  Conventional Commits rules.
-└── eslint.config.js      Carries the architectural lint rules R1–R7.
+└── eslint.config.js      Carries the architectural lint rules R1–R8.
 ```
 
 ### Two runtimes, two TypeScript projects
@@ -289,13 +289,53 @@ The most valuable frontend pattern, and the contract every domain follows:
 
 ```
 src/modules/recipes/
-├── screen.list.tsx              composed screen sections
+├── screen.list.tsx              a screen, and below it the parts only that screen uses
+├── screen.list.filters.tsx      dot notation — nothing but screen.list.tsx imports this
 ├── screen.detail.tsx
-├── recipe-form.tsx
-├── recipe-form.ingredients.tsx  dot notation for sub-components of one parent
-└── _hooks/
-    └── useRecipes.ts            ★ the ONLY place api.router.recipes.* is referenced
+├── hooks.ts                     the door — re-exports the hooks other modules may call
+├── _components/                 used by more than one parent in this module
+│   ├── recipe-form.tsx
+│   └── recipe-form.ingredients.tsx   the dot still marks a part of recipe-form.tsx
+└── _hooks/                      ★ the ONLY place api.router.recipes.* is referenced
+    ├── useRecipes.ts            as many hooks as the domain needs, each named for what it
+    └── useRecipeForm.ts         returns — the folder is the binding site, not one file
 ```
+
+**The dot is a claim, not a spelling.** `screen.list.filters.tsx` states that the filters exist to
+build the list screen and that nothing else imports them — so a change to them can only break one
+file, and that file is named in the filename. `_components/` states the opposite: several parents in
+this module depend on this, so changing it means checking all of them.
+
+Getting it backwards costs a rename, which is nothing. What it costs meanwhile is trust: a dotted
+file that three screens import has told every reader a lie about the blast radius of editing it, and
+the reader has no reason to doubt it until something breaks.
+
+**A module has a public surface and an interior, and the root is the surface.** Root files are
+public: any module or route may import them. `_components/` and `_hooks/` are the interior — that
+module only, reached by relative path. So a component another module needs sits at the root, and
+that is not an exception carved out for it; it is the module's product. `weekly-plan.tsx` is at
+`planning/`'s root because `home/` renders it.
+
+If it is pure it does not belong here at all — it belongs in `src/ui/`, where any module may draw it
+without a data path. The module layer keeps only what needs a domain's data.
+
+**Hooks reach the surface through `hooks.ts`, not by moving.** A hook stays in `_hooks/` beside its
+siblings; the barrel re-exports the ones other modules may call:
+
+```ts
+// src/modules/planning/hooks.ts
+export { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
+```
+
+That keeps the published data surface an enumerated list somebody can read in one screen, and makes
+exposing a hook a one-line edit that shows up in review — rather than an emergent property of who
+happened to import what. It re-exports and nothing else: logic in the barrel means it has stopped
+being a door. Write it at the first real consumer, not in advance.
+
+**Peer modules may depend on each other; that is composition, not coupling.** Home shows planning,
+and will show recipes and groceries. Forbidding it outright leaves one place to compose them —
+`app/` — and routes then grow into the pages they were supposed to route to. What actually hurts is
+reaching past the underscore (lint R8) and cycles between modules.
 
 ```ts
 // src/modules/recipes/_hooks/useRecipes.ts

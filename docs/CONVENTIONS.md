@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C8)               |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C9)               |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept
@@ -35,7 +35,9 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | `src/ui/**`, `src/modules/**` (components) | **kebab-case**                       | `recipe-card.tsx`                                | 👁             |
 | `app/**` (routes)                          | **kebab-case**                       | `saved-recipes.tsx`                              | 🔒 Expo Router |
 | **Hook files, everywhere**                 | **camelCase, matching the export**   | `useRecipes.ts` exports `useRecipes`             | 👁             |
-| Sub-components of one parent               | **dot notation**                     | `recipe-form.tsx`, `recipe-form.ingredients.tsx` | 👁             |
+| Sub-components of **one** parent           | **dot notation**                     | `recipe-form.tsx`, `recipe-form.ingredients.tsx` | 👁             |
+| Module components with **several** parents | `_components/`                       | `_components/recipe-form.tsx`                    | 👁             |
+| A module's public hooks                    | `hooks.ts` at the module root        | `export { useX } from "./_hooks/useX"`           | 🔒 R8          |
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
 | Convex step files                          | `<operation>.steps.ts`               | `createOne.steps.ts`                             | 👁             |
 | Companion types of one component           | `<name>.types.ts`                    | `select.types.ts`                                | 👁             |
@@ -214,9 +216,18 @@ Full reasoning: [ADR 0001](./adr/0001-convex-procedures-only.md).
 | Layer          | May import                                                | May **not** import                                                  | Tag  |
 | -------------- | --------------------------------------------------------- | ------------------------------------------------------------------- | ---- |
 | `app/`         | `~/modules/*`, `@ui/*`, `expo-router`                     | `~/lib/convex/client`, `api`, `convex/react`                        | 🔒 R4 |
-| `src/modules/` | anything below                                            | `app/`                                                              | 👁    |
+| `src/modules/` | anything below, and another module's **root**             | `app/`, another module's `_hooks/` or `_components/`                | 🔒 R8 |
 | `src/lib/`     | vendor SDKs, `~/lib/*`                                    | `~/modules/*`, `app/`                                               | 👁    |
 | `src/ui/`      | `react`, `react-native`, `@ui/*`, `theme`, animation libs | **anything Convex**, `~/modules/*`, `~/providers/*`, `translations` | 🔒 R1 |
+
+**No import cycles anywhere.** 📐 C9 — peer modules may import each other's public roots, and a
+`{domain}/hooks.ts` barrel makes a cycle easy to write and impossible to see. Metro does not fail on
+one; it hands the second module a partially-initialised export, so the crash is a runtime
+`undefined` on one import order and not another.
+
+C9 rather than eslint's `import/no-cycle`, which resolves every node_modules specifier to classify
+it as external and cost 16s on every `pnpm verify` to do it. C9 ignores bare specifiers, reads its
+alias table out of `tsconfig.json` so it cannot drift, and runs in under half a second.
 
 **`src/ui/` prop types are structural, never `Doc<'x'>` / `Id<'x'>`.** 🔬
 
@@ -372,9 +383,15 @@ Is it a React component with no data access?
 ├─ Domain-shaped but pure — a card?                   → src/ui/components/cards/
 ├─ Domain-shaped but pure — a carousel?               → src/ui/components/carousels/
 └─ Needs Convex data?                                 → src/modules/{domain}/
+   ├─ One parent imports it?                          → {parent}.{name}.tsx   beside its parent
+   ├─ Several parents in the module import it?        → src/modules/{domain}/_components/
+   └─ Another module imports it?                      → the module ROOT (that is its public surface)
 
 Is it a React hook?
-├─ Owns a domain's Convex bindings?                   → src/modules/{domain}/_hooks/use{Domain}.ts
+├─ Touches a domain's Convex bindings?                → src/modules/{domain}/_hooks/
+│  (as many as the domain needs — named for what they return, not after the domain)
+│  └─ Another module needs to call it?                → re-export it from {domain}/hooks.ts
+│                                                       the hook itself does NOT move
 ├─ Generic, no Convex (useDebounce)?                  → src/hooks/
 └─ Presentation-only (useColorScheme)?                → src/ui/hooks/
 

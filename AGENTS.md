@@ -16,7 +16,7 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C8 + test — the pre-commit hook runs this and
+pnpm verify        # typecheck + lint + C1–C9 + test — the pre-commit hook runs this and
                    # refuses the commit if it fails. `--no-verify` bypasses it; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
@@ -55,6 +55,7 @@ copy silently.
 | Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle) | 0001 |
 | Never import Convex, `~/modules/*` or `translations` from `src/ui/**`               | 0002 |
 | Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook      | 0006 |
+| Never import another module's `_hooks/` or `_components/` — use its root or `hooks.ts` | 0006 |
 | Never define a webhook with bare `httpAction` — use `verifiedWebhook`               | 0004 |
 | Never default a secret to `''` — env is Zod-validated and throws at boot            | 0005 |
 | Never gate a security check on its secret being truthy (`if (secret) verify()`)     | 0005 |
@@ -86,15 +87,21 @@ they cannot be grouped in an object.
 **Mutations taking a document id use `ownedMutation('<table>')`.** It loads the row and asserts
 ownership before your handler runs; the document arrives as `ctx.doc`. Never re-implement the check.
 
-**Screens never fetch.** Data access lives in `src/modules/{domain}/_hooks/use{Domain}.ts`, which
-owns that domain's queries, mutations and module-scoped Jotai state.
+**Screens never fetch.** Data access lives in `src/modules/{domain}/_hooks/`, the only place that
+domain's queries, mutations and module-scoped Jotai state are referenced. As many hooks as the
+domain needs, each named for what it returns — the folder is the binding site, not one file.
+
+**A module's root is public; its underscore folders are not.** Any module or route may import a
+root file. `_components/` and `_hooks/` are that module's interior, reached only by relative path
+— lint R8 blocks the aliased form. A hook other modules need is re-exported from the module's
+`hooks.ts`; it does not move. Full contract: `src/modules/AGENTS.md`.
 
 ## Before committing — full review (REQUIRED)
 
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R7 + the C1–C8 scripts + tests).
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C9 scripts + tests).
 
 **Step 2 — get the changed set.** `git diff --name-only` plus untracked files.
 
