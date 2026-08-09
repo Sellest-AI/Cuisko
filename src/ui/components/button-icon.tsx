@@ -13,10 +13,16 @@ type Props = {
   isLoading?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
   style?: ViewStyle;
-} & Action;
-
-type Action = { composite?: false; onPress: () => void, disabled?: boolean } |
-{ composite: true; onPress?: undefined, disabled?: false };
+  disabled?: boolean;
+  onPress?: () => void;
+  /**
+   * The icon is one part of a larger control — a `ButtonPill` side, an `ActionRow` — rather than a
+   * button in its own right. Visual only: it drives the press animation. It used to swap the
+   * `Pressable` for a `View`, which is why it once forbade `onPress`; now that the icon is
+   * pressable either way, the two are independent and a side icon can carry its own handler.
+   */
+  composite?: boolean;
+};
 
 export const ButtonIcon = ({
   children,
@@ -35,28 +41,40 @@ export const ButtonIcon = ({
     variant === "primary-subtle" ? styles.primaryElevated :
       variant === "secondary" ? styles.secondary :
         variant === "secondary-subtle" ? styles.secondaryElevated :
-          styles.neutral;
+          variant === "neutral" ? styles.neutral : styles.neutralSubtle;
 
   const padding =
-    size === "xs" ? 6 :
+    size === "xs" ? 8 :
       size === "sm" ? 10 :
         size === "md" ? 12 :
           size === "lg" ? 16 : 18;
 
-  const Component = composite ? View : Pressable;
+  const Component = variant.includes("neutral") ? BlurView : View;
+
+  const extraPressableStyle = variant.includes("neutral") ? {
+    borderRadius: theme.radius.full,
+    backgroundColor: colors.surface.elevatedSubtle,
+  } : undefined;
 
   return (
-    <Component
-      style={{ alignSelf: "flex-start", ...style }}
+    <Pressable
+      style={{
+        alignSelf: "flex-start",
+        ...extraPressableStyle,
+        ...style
+      }}
       onPress={onPress}
       disabled={disabled || isLoading}
+      animated={!composite}
     >
-      <BlurView style={[
-        styles.base,
-        elevated && styles.elevated,
-        color,
-        { padding },
-      ]}>
+      <Component
+        tint="light"
+        style={[
+          styles.base,
+          elevated && styles.elevated,
+          color,
+          { padding },
+        ]}>
         <Animated.View style={spin}>
           <MorphIcon
             size={20}
@@ -64,8 +82,8 @@ export const ButtonIcon = ({
             icon={isLoading ? LoaderCircle : children}
           />
         </Animated.View>
-      </BlurView>
-    </Component>
+      </Component>
+    </Pressable>
   )
 }
 
@@ -108,5 +126,9 @@ const styles = StyleSheet.create({
   neutral: {
     backgroundColor: colors.surface.elevatedSubtle,
     color: colors.foreground,
+  },
+  neutralSubtle: {
+    backgroundColor: colors.surface.elevatedSubtle,
+    color: colors.muted,
   }
 })

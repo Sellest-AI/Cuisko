@@ -14,6 +14,7 @@ import { Pressable } from "../pressable";
 import { Text } from "../text";
 import type { SelectProps } from "./types";
 import { Button } from "../button";
+import { BlurView } from "../blur-view";
 
 /**
  * The shared select — Android and web.
@@ -65,6 +66,12 @@ export const Select = <T extends string>({
     <>
       <View ref={triggerRef} collapsable={false} style={style}>
         <Button
+          style={{
+            paddingLeft: theme.spacing[12],
+            paddingRight: theme.spacing[8],
+            gap: theme.spacing[6],
+            minHeight: 28
+          }}
           variant="neutral"
           disabled={disabled}
           onPress={open}
@@ -91,34 +98,36 @@ export const Select = <T extends string>({
               },
             ]}
           >
-            <ScrollView bounces={false} style={{ maxHeight: MAX_HEIGHT }}>
-              {options.map((option) => (
-                <Pressable
-                  key={option.value}
-                  disabled={option.disabled}
-                  style={styles.row}
-                  onPress={() => {
-                    onChange(option.value);
-                    close();
-                  }}
-                >
-                  <Text.Base
-                    numberOfLines={1}
-                    weight={option.value === value ? 600 : 500}
-                    color={option.disabled ? colors.neutral.muted : colors.foreground}
+            <BlurView tint="light" style={[styles.popoverContent]}>
+              <ScrollView bounces={false} style={{ maxHeight: MAX_HEIGHT }}>
+                {options.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    disabled={option.disabled}
+                    style={styles.row}
+                    onPress={() => {
+                      onChange(option.value);
+                      close();
+                    }}
                   >
-                    {option.label}
-                  </Text.Base>
-                  {option.value === value && (
-                    <CheckIcon
-                      size={CHECK_SIZE}
-                      strokeWidth={CHECK_STROKE}
-                      color={colors.secondary.base}
-                    />
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
+                    <Text.Base
+                      numberOfLines={1}
+                      weight={option.value === value ? 600 : 500}
+                      color={option.disabled ? colors.neutral.muted : colors.foreground}
+                    >
+                      {option.label}
+                    </Text.Base>
+                    {option.value === value && (
+                      <CheckIcon
+                        size={CHECK_SIZE}
+                        strokeWidth={CHECK_STROKE}
+                        color={colors.secondary.base}
+                      />
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </BlurView>
           </Animated.View>
         )}
       </Modal>
@@ -142,11 +151,10 @@ const ENTER_MS = 160;
 const styles = StyleSheet.create({
   popover: {
     position: "absolute",
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface.elevated,
     borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: colors.border.medium,
-    paddingVertical: theme.spacing[4],
+    borderColor: colors.border.default,
+    borderWidth: 2,
     overflow: "hidden",
     boxShadow: [
       {
@@ -154,9 +162,12 @@ const styles = StyleSheet.create({
         offsetY: 8,
         blurRadius: 24,
         spreadDistance: 0,
-        color: "rgba(0, 0, 0, 0.12)",
+        color: "rgba(0, 0, 0, 0.07)",
       },
     ],
+  },
+  popoverContent: {
+    paddingVertical: theme.spacing[4],
   },
   row: {
     alignSelf: "stretch",

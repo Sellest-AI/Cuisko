@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { ComponentProps, useEffect, useRef } from "react";
-import { Animated, GestureResponderEvent, Pressable as NativePressable, ViewStyle } from "react-native";
+import { Animated, GestureResponderEvent, Pressable as NativePressable, ViewStyle, StyleSheet } from "react-native";
 
 /** How long a press stays locked against a second one. Also the double-tap window. */
 const PRESS_LOCK_MS = 300;
@@ -11,10 +11,10 @@ type PressableProps = {
   onDoublePress?: (e: GestureResponderEvent) => void;
   children: React.ReactNode;
   intensity?: number;
-  style?: ViewStyle;
+  style?: ViewStyle | (ViewStyle | undefined | false)[];
 } & ComponentProps<typeof NativePressable>;
 
-export const Pressable = ({ disabled, onPress, children, animated = true, intensity = 0.98, onDoublePress, style, ...props }: PressableProps) => {
+export const Pressable = ({ disabled, onPress, children, animated = true, intensity = 0.98, onDoublePress, style: _style, ...props }: PressableProps) => {
   // eslint-disable-next-line react-hooks/refs
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -62,9 +62,10 @@ export const Pressable = ({ disabled, onPress, children, animated = true, intens
     }).start();
   };
 
+  const style = StyleSheet.flatten(_style ?? {}) as ViewStyle;
   const {
     margin, marginTop, marginBottom, width, top,
-    left, minHeight, height, position, bottom, right, zIndex, ...filteredStyle } = (style ?? {}) as ViewStyle;
+    left, minHeight, height, position, bottom, right, zIndex, ...filteredStyle } = style;
 
   return (
     <NativePressable

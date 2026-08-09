@@ -13,7 +13,7 @@ type Props = {
 export const Badge = ({ style, icon, children }: Props) => {
   const Icon = icon;
   return (
-    <BlurView style={[styles.container, style]}>
+    <BlurView style={[styles.container, style]} tint="light">
       {Icon && <Icon size={12} color={theme.colors.foreground} />}
       <Text.Sm color={theme.colors.foreground} style={{ marginTop: -1 }}>
         {children}

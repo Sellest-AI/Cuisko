@@ -100,7 +100,7 @@ const Texts = {
     fontSize: 20,
     lineHeight: 22,
     letterSpacing: -0.4,
-    fontWeight: 600,
+    fontWeight: 700,
   },
   lg: {
     fontSize: 16,
@@ -154,7 +154,7 @@ export const theme = {
    *
    * The closed union is the whole point: `padding: 7` compiles, `theme.spacing[7]` does not.
    */
-  spacing: { 2: 2, 4: 4, 6: 6, 8: 8, 12: 12, 16: 16, 24: 24 },
+  spacing: { 2: 2, 4: 4, 6: 6, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 28: 28 },
   radius: { xs: 6, md: 20, lg: 24, full: 999 },
   font: Texts,
 } as const;

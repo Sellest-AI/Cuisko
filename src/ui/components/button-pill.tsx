@@ -6,6 +6,7 @@ import { Text } from "./text";
 import { ReactNode } from "react";
 import { Icon } from "./icons";
 import { ButtonIcon } from "./button-icon";
+import { BlurView } from "./blur-view";
 
 /**
  * Structural props only — a label and a callback. This component has no idea what it submits,
@@ -32,8 +33,25 @@ type BaseProps = {
  * Icon *or* content per side, never both — two things in one slot is a layout bug rather than a
  * choice, and the `?: undefined` arm is what makes passing both a compile error.
  */
-type LeftSide = { leftIcon?: Icon; leftContent?: undefined } | { leftContent?: ReactNode; leftIcon?: undefined };
-type RightSide = { rightIcon?: Icon; rightContent?: undefined } | { rightContent?: ReactNode; rightIcon?: undefined };
+type LeftSide = {
+  leftIcon?: Icon;
+  onLeftPress?: () => void;
+  leftContent?: undefined
+} | {
+  leftContent?: ReactNode;
+  onLeftPress?: undefined;
+  leftIcon?: undefined
+};
+
+type RightSide = {
+  rightIcon?: Icon;
+  onRightPress?: () => void;
+  rightContent?: undefined
+} | {
+  rightContent?: ReactNode;
+  onRightPress?: undefined;
+  rightIcon?: undefined
+};
 
 /**
  * A pill-shaped button with icons or arbitrary content on either side.
@@ -42,6 +60,8 @@ type RightSide = { rightIcon?: Icon; rightContent?: undefined } | { rightContent
 export const ButtonPill = ({
   children,
   onPress,
+  onLeftPress,
+  onRightPress,
   variant = "primary",
   size = "md",
   elevated,
@@ -65,29 +85,55 @@ export const ButtonPill = ({
   const borderColor = variant === "neutral" && !elevated ?
     colors.border.medium : colors.border.default;
 
-  const padding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
-  const paddingRight = rightIcon ? padding : rightContent ? theme.spacing[16] :
+  const { paddingHorizontal, paddingVertical, gap,
+    paddingLeft: _paddingLeft, paddingRight: _paddingRight,
+    padding: _padding, minHeight, ...rest } = StyleSheet.flatten(style || {}) || {};
+
+  const defaultPadding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
+  const padding = _padding ?? defaultPadding;
+
+  const defaultPaddingRight = rightIcon ? padding : rightContent ? theme.spacing[16] :
     (size === "lg" ? theme.spacing[24] : theme.spacing[16]);
-  const paddingLeft = leftIcon ? padding : leftContent ? theme.spacing[16] :
+  const defaultPaddingLeft = leftIcon ? padding : leftContent ? theme.spacing[16] :
     (size === "lg" ? theme.spacing[24] : theme.spacing[16]);
+
+  const paddingLeft = _paddingLeft ?? paddingHorizontal ?? defaultPaddingLeft;
+  const paddingRight = _paddingRight ?? paddingHorizontal ?? defaultPaddingRight;
+
+  const ViewComponent = variant === "neutral" ? BlurView : View;
+
+  const extraPressableStyle = variant === "neutral" ? {
+    borderRadius: theme.radius.full,
+    backgroundColor: elevated ? colors.surface.elevated : colors.surface.elevatedSubtle,
+  } : undefined;
 
   return (
     <Pressable
-      style={{ alignSelf: "flex-start", ...style }}
+      style={{
+        alignSelf: "flex-start",
+        ...extraPressableStyle,
+        ...styles.borderRadius,
+        ...rest
+      }}
       onPress={onPress}
       disabled={disabled || isLoading}
     >
-      <View style={[
-        styles.base,
-        { padding, paddingLeft, paddingRight },
-        elevated && styles.elevated,
-        color
-      ]}>
+      <ViewComponent
+        tint="light"
+        style={[
+          styles.base,
+          styles.borderRadius,
+          { gap },
+          { padding, paddingLeft, paddingRight },
+          { paddingHorizontal, paddingVertical, minHeight },
+          elevated && styles.elevated,
+          color
+        ]}>
         {elevated && <LinearGradient
           colors={gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: -10 }}
-          style={styles.absolute}
+          style={[styles.absolute, styles.borderRadius]}
         />}
         <View
           style={{
@@ -106,6 +152,7 @@ export const ButtonPill = ({
           composite
           size="sm"
           isLoading={isLoading}
+          onPress={onLeftPress}
         >
           {leftIcon}
         </ButtonIcon>}
@@ -126,13 +173,14 @@ export const ButtonPill = ({
           composite
           size="sm"
           isLoading={isLoading}
+          onPress={onRightPress}
         >
           {rightIcon}
         </ButtonIcon>}
         {rightContent && <View style={{ position: "relative" }}>
           {rightContent}
         </View>}
-      </View>
+      </ViewComponent>
     </Pressable>
   )
 }
@@ -140,13 +188,14 @@ export const ButtonPill = ({
 const styles = StyleSheet.create({
   base: {
     padding: theme.spacing[8],
-    borderRadius: theme.radius.full,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: theme.spacing[12],
-    overflow: "hidden",
     minHeight: 36,
+  },
+  borderRadius: {
+    borderRadius: theme.radius.full,
   },
   absolute: {
     position: "absolute",

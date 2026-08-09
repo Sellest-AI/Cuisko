@@ -49,9 +49,13 @@ const AnimatedFlashList = Animated.createAnimatedComponent(
  *  imperative handle — hence the cast at the ref site. */
 type PlateListRef = React.ComponentProps<typeof AnimatedFlashList>["ref"];
 
-type Props = {
+type Props<T extends Plate> = {
   style?: ViewStyle,
-  items: Plate[],
+  items: T[],
+  /** Index of the plate to hold centred. A change the caller makes is followed; the one we just
+   *  reported through `onSelect` is not, so mirroring that straight back here costs nothing. */
+  selectedIndex?: number,
+  onSelect?: (plate: T) => void
 }
 
 /** The badge is absolutely positioned, so it has no intrinsic width to grow from. Approximate one
@@ -59,7 +63,12 @@ type Props = {
 const _badgeMinWidth = ({ title, subtitle }: Plate) =>
   Math.max(title.length, (subtitle?.length ?? 0) * 0.8) * 11;
 
-export const PlateCarousel = ({ style, items }: Props) => {
+export const PlateCarousel = <T extends Plate>({
+  style,
+  items,
+  selectedIndex,
+  onSelect
+}: Props<T>) => {
   const window = useWindowDimensions();
   const [width, setWidth] = useState(window.width);
   const scrollX = useSharedValue(0);
@@ -67,10 +76,51 @@ export const PlateCarousel = ({ style, items }: Props) => {
 
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  /** Which plate we consider centred, and whether the movement getting it there is ours.
+   *  `scrollX` drives the animation on the UI thread; `scrollOffset` is it on this one. */
+  const centred = useRef(selectedIndex ?? 0);
+  const driving = useRef(false);
+  const scrollOffset = useRef(0);
+
   /** Half a viewport minus half a plate on each end, so item 0 and item n-1 can both sit centred.
    *  The right side drops one gap: the last item still carries its trailing margin, and without
    *  this you can scroll a gap's worth past the final plate and it never quite settles centred. */
   const sidePadding = Math.max((width - PLATE_SIZE) / 2, 0);
+
+  /** The slot the viewport is closest to right now — where a release here would settle. */
+  const nearestIndex = useCallback(
+    (offset: number) =>
+      Math.min(Math.max(Math.round(offset / SNAP), 0), Math.max(items.length - 1, 0)),
+    [items]
+  );
+
+  /**
+   * Report the centred plate while the finger is still moving, not once the list has stopped:
+   * the screen mirrors the selection elsewhere (the day markers), and waiting for the settle
+   * makes that mirror lag the carousel by a visible beat. Guarding on the index means one call
+   * per plate crossed rather than one per scroll frame.
+   */
+  const select = useCallback((offset: number) => {
+    scrollOffset.current = offset;
+
+    /** Frames from our own animation are not the user choosing anything, and reporting them would
+     *  emit every plate it travels over. It ends on `centred`, which is where we release. */
+    if (driving.current) {
+      if (Math.abs(offset - centred.current * SNAP) < SETTLE_TOLERANCE) driving.current = false;
+      return;
+    }
+
+    const index = nearestIndex(offset);
+
+    if (index === centred.current) return;
+
+    const plate = items[index];
+
+    if (!plate) return;
+
+    centred.current = index;
+    onSelect?.(plate);
+  }, [items, nearestIndex, onSelect]);
 
   /**
    * `snapToInterval` covers iOS and Android, but react-native-web ignores it — it only snaps for
@@ -83,20 +133,54 @@ export const PlateCarousel = ({ style, items }: Props) => {
     clearTimeout(settleTimer.current);
 
     settleTimer.current = setTimeout(() => {
-      const lastIndex = Math.max(items.length - 1, 0);
-      const nearest = Math.min(Math.max(Math.round(offset / SNAP), 0), lastIndex);
-      const target = nearest * SNAP;
+      /** Nothing has moved for a while, so no animation of ours is still running — releasing here
+       *  is what stops an interrupted one from muting selection until the next drive. */
+      driving.current = false;
+
+      const target = nearestIndex(offset) * SNAP;
 
       if (Math.abs(offset - target) < SETTLE_TOLERANCE) return;
 
       listRef.current?.scrollToOffset({ offset: target, animated: true });
     }, SETTLE_DELAY);
-  }, [items.length]);
+  }, [nearestIndex]);
+
+  /** Move the list ourselves, muting `select` for the frames it takes to arrive. Skipped when we
+   *  are already there: no scroll event would follow, and the mute would never be released. */
+  const scrollToIndex = useCallback((index: number, animated: boolean) => {
+    const target = index * SNAP;
+
+    centred.current = index;
+
+    if (Math.abs(scrollOffset.current - target) < SETTLE_TOLERANCE) return;
+
+    driving.current = true;
+    listRef.current?.scrollToOffset({ offset: target, animated });
+  }, []);
+
+  /** Follow the caller's selection — a tap on the day markers, a restored route param. Comparing
+   *  against `centred` is what keeps the echo of our own `onSelect` from scrolling the list: that
+   *  echo lands mid-gesture, and acting on it would pull the plates out from under the finger. */
+  useEffect(() => {
+    if (selectedIndex === undefined || selectedIndex === centred.current) return;
+    if (items[selectedIndex] === undefined) return;
+
+    scrollToIndex(selectedIndex, true);
+  }, [selectedIndex, items, scrollToIndex]);
+
+  /** FlashList measures itself at the end of its first render, so an offset set any earlier has
+   *  nothing to apply to. `onLoad` is the first moment the initial selection can be honoured. */
+  const onLoad = () => {
+    if (selectedIndex === undefined || items[selectedIndex] === undefined) return;
+
+    scrollToIndex(selectedIndex, false);
+  };
 
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollX.value = event.contentOffset.x;
+    runOnJS(select)(event.contentOffset.x);
     runOnJS(settle)(event.contentOffset.x);
   });
 
@@ -121,8 +205,13 @@ export const PlateCarousel = ({ style, items }: Props) => {
         decelerationRate="fast"
         scrollEventThrottle={16}
         onScroll={onScroll}
+        onScrollBeginDrag={() => { driving.current = false }}
+        onLoad={onLoad}
         renderItem={({ item, index }) => (
-          <PlateItem plate={item} index={index} scrollX={scrollX} />
+          <PlateItem plate={{
+            ...item,
+            onPress: item.onPress ?? (onSelect ? () => onSelect(item as T) : undefined)
+          }} index={index} scrollX={scrollX} />
         )}
       />
     </View>
@@ -165,6 +254,7 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
           }}
         />}
         <BlurView
+          tint="light"
           style={[styles.itemBadge, styles.itemBadgePosition, { minWidth: _badgeMinWidth(plate) }]}
         >
           <Text.Base
@@ -200,7 +290,7 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: theme.spacing[24]
+    paddingBottom: 36
   },
   item: {
     width: PLATE_SIZE,

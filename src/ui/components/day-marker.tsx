@@ -6,6 +6,7 @@ import { colors, theme } from "theme";
 
 import { Check, CircleDashed, MorphIcon } from "./icons";
 import { Text } from "./text";
+import { Pressable } from "./pressable";
 
 type Props = {
   status: "complete" | "pending" | "empty";
@@ -17,33 +18,37 @@ type Props = {
    */
   locale?: string;
   style?: ViewStyle;
+  onPress?: () => void;
+  selected?: boolean;
 };
 
-const STATUS_COLORS = {
+const STATUS_COLORS = (selected: boolean) => ({
   empty: {
     borderWidth: 0,
-    backgroundColor: colors.neutral.subtle,
-    icon: { backgroundColor: colors.neutral.elevated, color: colors.neutral.muted },
+    backgroundColor: selected ? colors.neutral.elevated : colors.neutral.subtle,
+    icon: selected ? { backgroundColor: colors.neutral.subtle, color: colors.neutral.muted }
+      : { backgroundColor: colors.neutral.elevated, color: colors.neutral.muted },
     day: colors.neutral.muted,
     date: colors.neutral.base,
   },
   pending: {
     borderWidth: 0,
-    backgroundColor: colors.primary.subtle,
+    backgroundColor: selected ? colors.primary.subtle : colors.neutral.subtle,
     icon: { backgroundColor: colors.primary.base, color: colors.primary.subtle },
     day: colors.primary.base,
     date: colors.primary.base,
   },
   complete: {
     borderWidth: 2,
-    backgroundColor: colors.surface.elevatedSubtle,
-    icon: { backgroundColor: colors.success.subtle, color: colors.success.base },
-    day: colors.neutral.muted,
-    date: colors.neutral.base,
+    backgroundColor: selected ? colors.secondary.subtle : colors.surface.elevatedSubtle,
+    icon: selected ? { backgroundColor: colors.success.elevated, color: colors.success.foreground } :
+      { backgroundColor: colors.success.subtle, color: colors.success.base },
+    day: selected ? colors.success.elevated : colors.neutral.muted,
+    date: selected ? colors.success.elevated : colors.neutral.base,
   },
-} as const;
+}) as const;
 
-const DEFAULT_LOCALE = "fr-FR";
+const DEFAULT_LOCALE = "en-US";
 
 /**
  * Building an `Intl.DateTimeFormat` costs far more than formatting one letter with it, and a week
@@ -76,7 +81,7 @@ const ICON_SIZE = 12;
  * Off the spacing scale deliberately: the chip's proportions are tuned to its icon rather than to
  * page rhythm, and snapping them to `theme.spacing` visibly distorts the circle.
  */
-const CHIP_PADDING = 6;
+const CHIP_PADDING = 4;
 const NUMBER_GAP = 6;
 
 /**
@@ -85,16 +90,20 @@ const NUMBER_GAP = 6;
  * `pending` is the only status that turns — a settled day should be still, or a week of markers
  * never stops moving.
  */
-export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style }: Props) => {
-  const color = STATUS_COLORS[status];
+export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style, onPress, selected = false }: Props) => {
+  const color = STATUS_COLORS(selected)[status];
   const day = weekdayInitial(date, locale);
   // Local time on purpose — "Tuesday" has to mean the user's Tuesday, not UTC's.
   const dayNumber = date.getDate();
   const icon = status === "complete" ? Check : CircleDashed;
   const spin = useSpin(status === "pending", { revolutionMs: PENDING_REVOLUTION_MS });
 
+  const Component = onPress ? Pressable : View;
+
   return (
-    <View
+    <Component
+      intensity={0.85}
+      onPress={onPress}
       style={[
         styles.container,
         { backgroundColor: color.backgroundColor, borderWidth: color.borderWidth },
@@ -110,7 +119,7 @@ export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style }: Prop
       <Animated.View style={[styles.icon, spin, { backgroundColor: color.icon.backgroundColor }]}>
         <MorphIcon icon={icon} size={ICON_SIZE} color={color.icon.color} />
       </Animated.View>
-    </View>
+    </Component>
   );
 };
 

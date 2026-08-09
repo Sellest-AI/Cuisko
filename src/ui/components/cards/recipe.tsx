@@ -60,6 +60,15 @@ const styles = StyleSheet.create({
     gap: theme.spacing[8],
     padding: theme.spacing[6],
     paddingBottom: theme.spacing[12],
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 2,
+        blurRadius: 16,
+        spreadDistance: 0,
+        color: "rgba(0, 0, 0, 0.07)",
+      },
+    ]
   },
   imageCard: {
     aspectRatio: 4 / 3,
