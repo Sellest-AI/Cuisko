@@ -47,6 +47,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
             styles.suggestionsContainer,
             styles.suggestionsContainerRadius,
             styles.elevated,
+            { transformOrigin: "bottom" },
             focused && { left: 10, right: 10 }
           ]}>
           <BlurView
@@ -72,10 +73,11 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           />
         </m.View>}
       </AnimatePresence>
-      <View style={[
-        styles.container,
-        focused ? { maxWidth: "100%", width: "100%" } : { maxWidth: 242, width: "auto" },
-      ]}>
+      <m.View
+        style={[
+          styles.container,
+          focused ? { maxWidth: "100%", width: "100%" } : { maxWidth: 242, width: "100%" },
+        ]}>
         <Input
           elevated
           placeholder={t("ask_anything").slice(0, 15).trim().concat("…")}
@@ -89,7 +91,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           onFocus={onFocus}
           onBlur={() => Platform.OS === "web" && onBlur?.()}
         />
-      </View>
+      </m.View>
     </View>
   )
 }
