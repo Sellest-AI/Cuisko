@@ -164,10 +164,10 @@ module.exports = defineConfig([
             // violation and no legitimate use — which is why this needs no exception for the
             // module that owns the folder.
             {
-              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**"],
+              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**", "~/modules/*/_model/**"],
               message:
-                "A module's _hooks/ and _components/ are private. Import the module's root, or " +
-                "re-export the hook from its hooks.ts.",
+                "A module's _hooks/, _components/ and _model/ are private. Import the module's " +
+                "root, or re-export the hook from its hooks.ts.",
             },
           ],
         },
@@ -188,10 +188,10 @@ module.exports = defineConfig([
               message: "Import from ~/lib/convex/api instead.",
             },
             {
-              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**"],
+              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**", "~/modules/*/_model/**"],
               message:
-                "A module's _hooks/ and _components/ are private. A screen composes a module's " +
-                "public root — and never calls a hook directly (ADR 0006).",
+                "A module's _hooks/, _components/ and _model/ are private. A screen composes a " +
+                "module's public root — and never calls a hook directly (ADR 0006).",
             },
           ],
           paths: [

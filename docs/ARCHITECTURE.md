@@ -296,9 +296,11 @@ src/modules/recipes/
 ├── _components/                 used by more than one parent in this module
 │   ├── recipe-form.tsx
 │   └── recipe-form.ingredients.tsx   the dot still marks a part of recipe-form.tsx
-└── _hooks/                      ★ the ONLY place api.router.recipes.* is referenced
-    ├── useRecipes.ts            as many hooks as the domain needs, each named for what it
-    └── useRecipeForm.ts         returns — the folder is the binding site, not one file
+├── _hooks/                      ★ the ONLY place api.router.recipes.* is referenced
+│   ├── useRecipes.ts            as many hooks as the domain needs, each named for what it
+│   └── useRecipeForm.ts         returns — the folder is the binding site, not one file
+└── _model/                      ★ the domain as data, and the pure functions over it — no
+    └── model.ts                 React, no Jotai, no Convex import lands here, ever
 ```
 
 **The dot is a claim, not a spelling.** `screen.list.filters.tsx` states that the filters exist to
@@ -311,13 +313,20 @@ file that three screens import has told every reader a lie about the blast radiu
 the reader has no reason to doubt it until something breaks.
 
 **A module has a public surface and an interior, and the root is the surface.** Root files are
-public: any module or route may import them. `_components/` and `_hooks/` are the interior — that
-module only, reached by relative path. So a component another module needs sits at the root, and
-that is not an exception carved out for it; it is the module's product. `weekly-plan.tsx` is at
-`planning/`'s root because `home/` renders it.
+public: any module or route may import them. `_components/`, `_hooks/` and `_model/` are the
+interior — that module only, reached by relative path. So a component another module needs sits at
+the root, and that is not an exception carved out for it; it is the module's product.
+`weekly-plan.tsx` is at `planning/`'s root because `home/` renders it.
 
-If it is pure it does not belong here at all — it belongs in `src/ui/`, where any module may draw it
-without a data path. The module layer keeps only what needs a domain's data.
+If it is pure **and generic** it does not belong here at all — it belongs in `src/ui/`, where any
+module may draw it without a data path. The module layer keeps only what needs a domain's data —
+which `_model/` does not, and it lives here anyway: its purity is about framework, not about the
+domain. `useRecipes.ts` knows how to *fetch* a recipe; `_model/model.ts` knows what a recipe *is* —
+its types, its invariants, the functions that turn a raw snapshot into what a screen draws. Testing
+the second kind means asserting on a plain object; testing the first means mounting a provider tree
+to fake the query it wraps. Splitting them means the domain rules can be tested at the first kind of
+cost even while the domain has no backend yet — the placeholder in `_hooks/atoms.ts` and the real
+`_model/` functions built against it are already the shape the eventual Convex-backed version keeps.
 
 **Hooks reach the surface through `hooks.ts`, not by moving.** A hook stays in `_hooks/` beside its
 siblings; the barrel re-exports the ones other modules may call:

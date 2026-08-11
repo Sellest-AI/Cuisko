@@ -1,0 +1,517 @@
+/**
+ * The grocery domain as data, and the pure functions over it.
+ *
+ * Four sets, and every row on screen is a view of them:
+ *
+ * - **lines** — what is wanted, one row per ingredient × recipe. Never merged on write: dropping
+ *   a recipe from the week is then deleting its lines, not unpicking a total that has already
+ *   forgotten where it came from. A line with no recipe is one the shopper added themselves.
+ * - **cellar** — what the household owns. The single truth of "have".
+ * - **receipts** — what went in within the last few minutes, so a mistap at the till can be
+ *   undone by its exact amount.
+ * - **history** — what has been bought before. Pure memory, and the only set nothing is derived
+ *   from; it exists so a shopper can rebuild a list from what they usually buy.
+ *
+ * One ingredient moves through three states, in this order:
+ *
+ *     to buy  ──buy──▶  cellar  ──take out──▶  recently bought  ──put back──▶  to buy
+ *                          └──undo, inside the window──▶ to buy
+ *
+ * "Recently bought" is the end of that run, not a stage inside it: it holds what is neither owned
+ * nor wanted. What is *missing* is never stored, only derived — `needed - owned` — which is what
+ * makes the undo safe. Giving a receipt back decrements the cellar and the gap reopens on its
+ * own, with no second number to keep in step.
+ *
+ * Taking stock out for good is the other half, and it discharges the lines as well: an ingredient
+ * that has been cooked is no longer owned *and* no longer asked for, which is exactly what drops
+ * it into memory instead of straight back onto the list.
+ *
+ * No React and no Jotai here; `atoms.ts` holds the state and the hooks call into this.
+ */
+
+import { UNITS as SHARED_UNITS } from "@shared/ingredients";
+
+export const UNITS = SHARED_UNITS;
+export type Unit = (typeof UNITS)[number];
+
+export const isUnit = (value: string | undefined): value is Unit =>
+  value !== undefined && (UNITS as readonly string[]).includes(value);
+
+/** Which section a tap came from. Each one can only move stock its own way. */
+export const INTENTS = ["buy", "remove", "relist"] as const;
+export type Intent = (typeof INTENTS)[number];
+
+export const isIntent = (value: string | undefined): value is Intent =>
+  value !== undefined && (INTENTS as readonly string[]).includes(value);
+
+/**
+ * How long a purchase stays undoable. Inside it, emptying a cellar row puts the stock back on the
+ * grocery list; past it, the same gesture means the food was used, and the row falls into memory.
+ */
+export const UNDO_WINDOW_MS = 5 * 60 * 1000;
+
+/** Rows stop reordering by recency this long after their last touch, and go alphabetical. */
+const ALPHABETICAL_ORDERING_DELAY_MS = 30 * 1000;
+
+export type Ingredient = {
+  id: string;
+  name: string;
+  /** Stand-in for the produce photo until real ones exist. */
+  emoji: string;
+};
+
+/** One claim on one ingredient. The unit is whoever asked for it, not normalised. */
+export type GroceryLine = {
+  id: string;
+  ingredientId: string;
+  amount: number;
+  unit: Unit;
+  /** Absent when the shopper added it themselves rather than a recipe asking for it. */
+  recipe?: { id: string; name: string };
+  /** Becomes `_creationTime` once this is a table. */
+  createdAt: Date;
+};
+
+export type CellarEntry = {
+  id: string;
+  ingredientId: string;
+  unit: Unit;
+  amount: number;
+  updatedAt: Date;
+};
+
+/** A purchase, as logged. Giving one back is the undo; nothing else has to be remembered. */
+export type Receipt = {
+  id: string;
+  ingredientId: string;
+  unit: Unit;
+  amount: number;
+  at: Date;
+};
+
+/** What this household buys, and how much of it at a time. One row per ingredient and unit. */
+export type HistoryEntry = {
+  id: string;
+  ingredientId: string;
+  unit: Unit;
+  /** The last amount bought — what the sheet offers first when putting it back on the list. */
+  amount: number;
+  at: Date;
+};
+
+export type Snapshot = {
+  ingredients: Ingredient[];
+  lines: GroceryLine[];
+  cellar: CellarEntry[];
+  receipts: Receipt[];
+  history: HistoryEntry[];
+  now: Date;
+};
+
+/**
+ * Ingredient plus unit, because that is the only pair that can legally be added up — 500 g and
+ * 3 pcs of the same carrot are two rows, not one. Name is never a key: it is display text.
+ */
+export const stockKey = (ingredientId: string, unit: Unit) => `${ingredientId}:${unit}`;
+
+export const isLive = (receipt: Receipt, now: Date) =>
+  now.getTime() - receipt.at.getTime() < UNDO_WINDOW_MS;
+
+export type StockRef = { ingredientId: string; unit: Unit };
+
+export const matchesRef =
+  (ref: StockRef) =>
+    (row: StockRef) =>
+      row.ingredientId === ref.ingredientId && row.unit === ref.unit;
+
+export type Stock = {
+  /** Everything asked for, across every recipe and anything added by hand. */
+  needed: number;
+  /** Everything the cellar holds. */
+  owned: number;
+  /** The part of `owned` still inside the undo window, and so still reversible. */
+  live: number;
+  /** The gap the shopper has to close. */
+  toBuy: number;
+  /** The most recent live purchase — what an undo offers first. */
+  lastPurchase: Receipt | null;
+  /** What was last bought, whether or not any is owned now. */
+  lastBought: HistoryEntry | null;
+  touchedAt: Date;
+};
+
+const _newest = (dates: Date[], fallback: Date) =>
+  dates.reduce((latest, date) => (date > latest ? date : latest), fallback);
+
+export const stockFor = (snapshot: Snapshot, ref: StockRef): Stock => {
+  const matches = matchesRef(ref);
+
+  const lines = snapshot.lines.filter(matches);
+  const entry = snapshot.cellar.find(matches);
+  const remembered = snapshot.history.find(matches);
+  const live = snapshot.receipts
+    .filter((receipt) => matches(receipt) && isLive(receipt, snapshot.now))
+    .sort((a, b) => b.at.getTime() - a.at.getTime());
+
+  const needed = lines.reduce((total, line) => total + line.amount, 0);
+  const owned = entry?.amount ?? 0;
+
+  return {
+    needed,
+    owned,
+    live: live.reduce((total, receipt) => total + receipt.amount, 0),
+    toBuy: Math.max(0, needed - owned),
+    lastPurchase: live[0] ?? null,
+    lastBought: remembered ?? null,
+    touchedAt: _newest(
+      [
+        ...lines.map((line) => line.createdAt),
+        ...live.map((receipt) => receipt.at),
+        ...(entry ? [entry.updatedAt] : []),
+        ...(remembered ? [remembered.at] : []),
+      ],
+      snapshot.now,
+    ),
+  };
+};
+
+export type Section = "to-buy" | "cellar" | "recently-bought";
+
+/** A section can only move stock its own way, so the tap never has to be told what it meant. */
+const INTENT_FOR: Record<Section, Intent> = {
+  "to-buy": "buy",
+  cellar: "remove",
+  "recently-bought": "relist",
+};
+
+export type QuantityOption = {
+  amount: number;
+  unit: Unit;
+  /** Set on the first tile only — what makes it the answer rather than one choice among nine. */
+  caption?: string;
+  /** Undo tiles are drawn apart: they take a purchase back rather than commit a new one. */
+  type?: "undo" | "default";
+};
+
+/**
+ * The ladder offered when no amount is obvious. Placeholder: real steps follow the ingredient,
+ * which is also where the free-text input and the per-ingredient normalising will land.
+ */
+const STEPS: Record<Unit, number[]> = {
+  g: [50, 100, 150, 200, 250, 300, 400, 500, 750],
+  mg: [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000],
+  kg: [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6],
+  lb: [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6],
+  oz: [1, 2, 3, 4, 5, 6, 8, 10, 12],
+  cl: [10, 20, 25, 33, 50, 75, 100, 150, 200],
+  ml: [50, 100, 150, 200, 250, 300, 500, 750, 1000],
+  l: [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5],
+  pcs: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  cs: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  cc: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+};
+
+const OPTION_COUNT = 9;
+
+/**
+ * What the quantity sheet offers, first tile first.
+ *
+ * The opening tile is the amount the shopper most likely means, so the common case is one tap:
+ * everything still missing when adding, the purchase just made when undoing a mistap, the whole
+ * row once it has settled, and the usual amount when pulling something back out of memory.
+ *
+ * Undoing proposes the *last* receipt rather than the live total — two trips to the same shelf are
+ * two mistakes to unmake, not one. Removals are capped at what the cellar actually holds; adding
+ * is not capped at all, since a shopper may come home with more than the week asks for.
+ *
+ * Pure, and computed for every row rather than only for the open sheet, because a row that leaves
+ * the shopper no choice should not be asking the question at all.
+ */
+export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent): QuantityOption[] => {
+  const proposed = (): { amount: number; caption: string; type: "undo" | "default" } => {
+    if (intent === "buy") return { amount: stock.toBuy, caption: "Needed", type: "default" };
+    if (intent === "relist") {
+      return { amount: stock.lastBought?.amount ?? 0, caption: "Last time", type: "default" };
+    }
+
+    /** Inside the window the cellar row is still a purchase, so removing it is unmaking one. */
+    return stock.lastPurchase
+      ? { amount: stock.lastPurchase.amount, caption: "Just added", type: "undo" }
+      : { amount: stock.owned, caption: "All of it", type: "default" };
+  };
+
+  const { amount, caption, type } = proposed();
+  const ceiling = intent === "remove" ? stock.owned : null;
+
+  const ladder = STEPS[unit]
+    .filter((step) => step !== amount && (ceiling === null || step <= ceiling))
+    .map((step): QuantityOption => ({ amount: step, unit }));
+
+  const suggestion: QuantityOption[] = amount > 0 ? [{ amount, unit, caption, type }] : [];
+
+  return [...suggestion, ...ladder].slice(0, OPTION_COUNT);
+};
+
+/** What a card draws. Structural on purpose — `src/ui` never learns these types (ADR 0002). */
+export type StockRow = {
+  /**
+   * Stable across a change of section, which is what lets the card fly rather than fade.
+   *
+   * An ingredient usually holds one row, and that row keeps the bare `ingredient:unit` key
+   * wherever it sits — so buying it moves the same mounted card from "To Buy" into the cellar and
+   * React carries it there. A partly-owned ingredient holds two rows at once and they cannot both
+   * be that key, so the extra one is section-scoped: the card the shopper tapped keeps its
+   * identity, and the leftover is the one that fades.
+   */
+  id: string;
+  section: Section;
+  ingredientId: string;
+  name: string;
+  emoji: string;
+  amount: number;
+  unit: Unit;
+  /** A cellar row whose purchase is still reversible. Drawn as such, and tapped to undo. */
+  undoable: boolean;
+  /** What tapping this row does. Fixed by the section it sits in. */
+  intent: Intent;
+  /**
+   * The single amount this row could possibly move, when the sheet would offer exactly one tile.
+   * A one-tap answer to a question with one answer, so the card acts instead of asking.
+   */
+  onlyOption: number | null;
+  updatedAt: Date;
+};
+
+/**
+ * Recency first, then alphabetical.
+ *
+ * A list that reorders itself while it is being read is worse than one that is merely stale, so
+ * a row only rides the recency sort while it is fresh; after that it settles into its name and
+ * stays put. `asc` puts the newest first — a smaller age is a more recent touch.
+ */
+const _compare = (a: StockRow, b: StockRow, order: "asc" | "desc", now: Date) => {
+  const ageOf = (row: StockRow) => now.getTime() - row.updatedAt.getTime();
+  const [aAge, bAge] = [ageOf(a), ageOf(b)];
+
+  if (aAge > ALPHABETICAL_ORDERING_DELAY_MS && bAge > ALPHABETICAL_ORDERING_DELAY_MS) {
+    return a.name.localeCompare(b.name);
+  }
+
+  return order === "asc" ? aAge - bAge : bAge - aAge;
+};
+
+/** Every ingredient+unit pair mentioned anywhere in the snapshot, each once. */
+const _stockKeys = (snapshot: Snapshot): StockRef[] => {
+  const keys = new Map<string, StockRef>();
+
+  const add = ({ ingredientId, unit }: StockRef) =>
+    keys.set(stockKey(ingredientId, unit), { ingredientId, unit });
+
+  snapshot.lines.forEach(add);
+  snapshot.cellar.forEach(add);
+  snapshot.receipts.forEach(add);
+  snapshot.history.forEach(add);
+
+  return [...keys.values()];
+};
+
+export type Sections = Record<Section, StockRow[]>;
+
+/**
+ * The three sections, sorted and ready to render.
+ *
+ * "Recently bought" is defined by exclusion — bought before, not owned now, not wanted now — so
+ * it needs no emptying and no expiry. An ingredient lands there the moment the cellar row and the
+ * to-buy row are both gone, and leaves the instant either comes back.
+ */
+export function buildSections(snapshot: Snapshot): Sections {
+  const rows = _stockKeys(snapshot).flatMap((ref): StockRow[] => {
+    const ingredient = snapshot.ingredients.find(({ id }) => id === ref.ingredientId);
+    if (!ingredient) return [];
+
+    const stock = stockFor(snapshot, ref);
+
+    /** Neither owned nor wanted, but bought before: all that is left of it is the memory. */
+    const forgotten = stock.owned === 0 && stock.toBuy === 0 ? stock.lastBought : null;
+
+    /** In priority order — the first one standing is the row that carries the ingredient's key. */
+    const present = [
+      stock.toBuy > 0 ? { section: "to-buy" as const, amount: stock.toBuy, undoable: false } : null,
+      stock.owned > 0 ? { section: "cellar" as const, amount: stock.owned, undoable: stock.live > 0 } : null,
+      forgotten ? { section: "recently-bought" as const, amount: forgotten.amount, undoable: false } : null,
+    ].filter((candidate) => candidate !== null);
+
+    const key = stockKey(ref.ingredientId, ref.unit);
+
+    return present.map(({ section, amount, undoable }, index): StockRow => {
+      const intent = INTENT_FOR[section];
+      const [only, ...rest] = quantityOptions(stock, ref.unit, intent);
+
+      return {
+        id: index === 0 ? key : `${section}:${key}`,
+        section,
+        ingredientId: ref.ingredientId,
+        name: ingredient.name,
+        emoji: ingredient.emoji,
+        amount,
+        unit: ref.unit,
+        undoable,
+        intent,
+        onlyOption: only && rest.length === 0 ? only.amount : null,
+        updatedAt: stock.touchedAt,
+      };
+    });
+  });
+
+  const section = (name: Section, order: "asc" | "desc") =>
+    rows.filter((row) => row.section === name).sort((a, b) => _compare(a, b, order, snapshot.now));
+
+  return {
+    "to-buy": section("to-buy", "desc"),
+    cellar: section("cellar", "asc"),
+    "recently-bought": section("recently-bought", "asc"),
+  };
+}
+
+/**
+ * Takes `amount` off the newest live receipts first.
+ *
+ * Last in, first out, because the receipt a shopper wants back is the one they just made — and
+ * peeling from the newest end makes a partial undo the exact inverse of the purchase that
+ * created it. Receipts drained to zero are dropped; expired ones are never touched, so asking
+ * for more than was recently bought simply stops at the live edge.
+ */
+export const peelReceipts = (receipts: Receipt[], ref: StockRef, amount: number, now: Date): Receipt[] => {
+  const peelable = receipts
+    .filter((receipt) => matchesRef(ref)(receipt) && isLive(receipt, now))
+    .sort((a, b) => b.at.getTime() - a.at.getTime());
+
+  let remaining = amount;
+  const drained = new Map<string, number>();
+
+  for (const receipt of peelable) {
+    if (remaining <= 0) break;
+
+    const taken = Math.min(remaining, receipt.amount);
+    remaining -= taken;
+    drained.set(receipt.id, receipt.amount - taken);
+  }
+
+  return receipts
+    .map((receipt) => {
+      const left = drained.get(receipt.id);
+
+      return left === undefined ? receipt : { ...receipt, amount: left };
+    })
+    .filter((receipt) => receipt.amount > 0);
+};
+
+/**
+ * Moves the cellar by `delta`, creating the entry if the household has never owned this before
+ * and never letting it fall below zero. The cellar is the only stored quantity in the domain —
+ * what is missing is derived from it — so this is the one place a number actually changes.
+ *
+ * Rows are found *and* written by ref. Ingredient plus unit is the real key here: at most one
+ * cellar row can exist for it, whereas an id is only as unique as whatever minted it.
+ */
+export const adjustCellar = (
+  entries: CellarEntry[],
+  { ref, delta, now, id }: { ref: StockRef; delta: number; now: Date; id: string },
+): CellarEntry[] => {
+  const existing = entries.find(matchesRef(ref));
+
+  if (!existing) {
+    if (delta <= 0) return entries;
+
+    return [...entries, { id, ...ref, amount: delta, updatedAt: now }];
+  }
+
+  const amount = Math.max(0, existing.amount + delta);
+
+  return entries.map((entry) => (matchesRef(ref)(entry) ? { ...entry, amount, updatedAt: now } : entry));
+};
+
+/**
+ * Records that this household deals in this ingredient.
+ *
+ * `amount` is only overwritten by a purchase: what the memory is for is answering "how much do I
+ * usually buy", and how much happened to be left when the jar ran out is not that.
+ *
+ * Keyed by ref, for the same reason the cellar is.
+ */
+export const rememberStock = (
+  entries: HistoryEntry[],
+  {
+    ref,
+    amount,
+    at,
+    id,
+    overwriteAmount,
+  }: { ref: StockRef; amount: number; at: Date; id: string; overwriteAmount: boolean },
+): HistoryEntry[] => {
+  const existing = entries.find(matchesRef(ref));
+
+  if (!existing) return [...entries, { id, ...ref, amount, at }];
+
+  return entries.map((entry) =>
+    matchesRef(ref)(entry) ? { ...entry, amount: overwriteAmount ? amount : entry.amount, at } : entry,
+  );
+};
+
+/**
+ * Discharges `amount` of what was asked for, oldest claim first.
+ *
+ * Stock leaving the cellar for good has been used, so the claim on it is settled too — without
+ * this the derived gap would reopen and the ingredient would bounce back onto the list instead of
+ * falling into memory.
+ *
+ * Oldest first is a placeholder. The real discharge arrives from the recipe being cooked, which
+ * knows which lines are its own and does not have to guess.
+ */
+export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number): GroceryLine[] => {
+  const claimed = lines
+    .filter(matchesRef(ref))
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  let remaining = amount;
+  const drained = new Map<string, number>();
+
+  for (const line of claimed) {
+    if (remaining <= 0) break;
+
+    const taken = Math.min(remaining, line.amount);
+    remaining -= taken;
+    drained.set(line.id, line.amount - taken);
+  }
+
+  return lines
+    .map((line) => {
+      const left = drained.get(line.id);
+
+      return left === undefined ? line : { ...line, amount: left };
+    })
+    .filter((line) => line.amount > 0);
+};
+
+const UNIT_LABELS: Record<Unit, string> = {
+  g: "g",
+  mg: "mg",
+  kg: "kg",
+  lb: "lb",
+  oz: "oz",
+  cl: "cl",
+  ml: "ml",
+  l: "L",
+  pcs: "pcs",
+  cs: "cs",
+  cc: "cc",
+};
+
+export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
+
+/**
+ * Placeholder formatting. Real copy normalises per ingredient — "4 yaourts", not "500 g of
+ * yoghurt" — which needs the ingredient to carry its own preferred unit, and that is not
+ * modelled yet.
+ */
+export const formatQuantity = (amount: number, unit: Unit) => `${amount} ${unitLabel(unit)}`;

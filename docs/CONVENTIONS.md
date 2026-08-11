@@ -216,7 +216,7 @@ Full reasoning: [ADR 0001](./adr/0001-convex-procedures-only.md).
 | Layer          | May import                                                | May **not** import                                                  | Tag  |
 | -------------- | --------------------------------------------------------- | ------------------------------------------------------------------- | ---- |
 | `app/`         | `~/modules/*`, `@ui/*`, `expo-router`                     | `~/lib/convex/client`, `api`, `convex/react`                        | 🔒 R4 |
-| `src/modules/` | anything below, and another module's **root**             | `app/`, another module's `_hooks/` or `_components/`                | 🔒 R8 |
+| `src/modules/` | anything below, and another module's **root**             | `app/`, another module's `_hooks/`, `_components/` or `_model/`     | 🔒 R8 |
 | `src/lib/`     | vendor SDKs, `~/lib/*`                                    | `~/modules/*`, `app/`                                               | 👁    |
 | `src/ui/`      | `react`, `react-native`, `@ui/*`, `theme`, animation libs | **anything Convex**, `~/modules/*`, `~/providers/*`, `translations` | 🔒 R1 |
 
@@ -435,6 +435,11 @@ Is it a React hook?
 │                                                       the hook itself does NOT move
 ├─ Generic, no Convex (useDebounce)?                  → src/hooks/
 └─ Presentation-only (useColorScheme)?                → src/ui/hooks/
+
+Is it domain logic with no React, Jotai or Convex import — types, invariants, pure functions?
+├─ Used by one `_hooks/` file only?                   → stays inline in that hook, for now
+└─ Several `_hooks/` files in the module need it?      → src/modules/{domain}/_model/
+   (unit-tested directly, no provider tree — see src/modules/groceries/_model/model.ts)
 
 Is it a screen?                                       → app/  (routing only — no useQuery)
 
