@@ -1,7 +1,9 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AnimationProvider } from "./animation";
 
 import { convexAuthStorage } from "~/lib/convex/storage";
 import { env } from "env";
@@ -25,7 +27,13 @@ const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
 export const Providers = ({ children }: { children: React.ReactNode }) => (
   <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
     <ConvexQueryCacheProvider>
-      <SafeAreaProvider>{children}</SafeAreaProvider>
+      <KeyboardProvider>
+        <AnimationProvider>
+          <SafeAreaProvider>
+            {children}
+          </SafeAreaProvider>
+        </AnimationProvider>
+      </KeyboardProvider>
     </ConvexQueryCacheProvider>
   </ConvexAuthProvider>
 );

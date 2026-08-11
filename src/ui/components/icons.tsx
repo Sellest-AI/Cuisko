@@ -23,14 +23,14 @@ export type { LucideIcon as IconComponent } from "lucide-react-native";
 export {
   ArrowRight, LoaderCircle, Check, CircleDashed, ChevronDown, ChevronUp, ArrowLeftRight,
   CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
-  BadgePercent
+  BadgePercent, X, ArrowLeft, Sparkles
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
   ArrowLeftRight as ArrowLeftRightIcon, CalendarPlus as CalendarPlusIcon, Eye as EyeIcon,
   Star as StarIcon, Bell as BellIcon, Camera as CameraIcon, Mic as MicIcon, ForkKnife as ForkKnifeIcon,
   Plus as PlusIcon, ListPlus as ListPlusIcon, Store as StoreIcon, ReceiptText as ReceiptTextIcon,
-  BadgePercent as BadgePercentIcon
+  BadgePercent as BadgePercentIcon, X as XIcon, ArrowLeft as ArrowLeftIcon, Sparkles as SparklesIcon
 } from "lucide-react-native";
 
 /** The renderer, re-exported so nothing outside this file has to know about morphicons. */

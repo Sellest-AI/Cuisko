@@ -1,5 +1,6 @@
 import auth from "./en/auth.json";
 import common from "./en/common.json";
+import groceries from "./en/groceries.json";
 import home from "./en/home.json";
 import navigation from "./en/navigation.json";
 import planning from "./en/planning.json";
@@ -8,6 +9,7 @@ import planning from "./en/planning.json";
 type TranslationResources = {
   Auth: typeof auth;
   Common: typeof common;
+  Groceries: typeof groceries;
   Home: typeof home;
   Navigation: typeof navigation;
   Planning: typeof planning;

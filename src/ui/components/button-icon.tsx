@@ -5,10 +5,11 @@ import { StyleSheet, View, ViewStyle } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSpin } from "@ui/hooks/useSpin";
 import { BlurView } from "./blur-view";
+import { LinearGradient } from "expo-linear-gradient";
 
 type Props = {
   children: Icon;
-  variant?: "primary" | "primary-subtle" | "secondary" | "secondary-subtle" | "neutral" | "neutral-subtle";
+  variant?: "primary" | "primary-subtle" | "secondary" | "secondary-subtle" | "neutral" | "neutral-inverted" | "neutral-subtle";
   elevated?: boolean;
   isLoading?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
@@ -41,7 +42,9 @@ export const ButtonIcon = ({
     variant === "primary-subtle" ? styles.primaryElevated :
       variant === "secondary" ? styles.secondary :
         variant === "secondary-subtle" ? styles.secondaryElevated :
-          variant === "neutral" ? styles.neutral : styles.neutralSubtle;
+          variant === "neutral" ? styles.neutral :
+            variant === "neutral-inverted" ? styles.neutralInverted :
+              styles.neutralSubtle;
 
   const padding =
     size === "xs" ? 8 :
@@ -49,12 +52,19 @@ export const ButtonIcon = ({
         size === "md" ? 12 :
           size === "lg" ? 16 : 18;
 
-  const Component = variant.includes("neutral") ? BlurView : View;
+  const isBaseNeutral = variant.includes("neutral") && !variant.includes("inverted");
 
-  const extraPressableStyle = variant.includes("neutral") ? {
+  const Component = isBaseNeutral ? BlurView : View;
+
+  const extraPressableStyle = isBaseNeutral ? {
     borderRadius: theme.radius.full,
     backgroundColor: colors.surface.elevatedSubtle,
   } : undefined;
+
+  const elevation = variant === "neutral-inverted" ?
+    styles.elevated : styles.elevatedSubtle;
+
+  const borderWidth = variant === "neutral-inverted" ? 1 : 2;
 
   return (
     <Pressable
@@ -71,10 +81,18 @@ export const ButtonIcon = ({
         tint="light"
         style={[
           styles.base,
-          elevated && styles.elevated,
+          elevated && elevation,
           color,
-          { padding },
+          { padding, borderWidth },
         ]}>
+        {variant === "neutral-inverted" && (
+          <LinearGradient
+            colors={[theme.colors.neutral.base, theme.colors.neutral.muted]}
+            style={[StyleSheet.absoluteFill, { borderRadius: theme.radius.full }]}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 1, y: 0 }}
+          />
+        )}
         <Animated.View style={spin}>
           <MorphIcon
             size={20}
@@ -96,7 +114,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border.default,
   },
-  elevated: {
+  elevatedSubtle: {
     boxShadow: [
       {
         offsetX: -2,
@@ -104,6 +122,17 @@ const styles = StyleSheet.create({
         blurRadius: 16,
         spreadDistance: 0,
         color: "rgba(0, 0, 0, 0.07)",
+      },
+    ],
+  },
+  elevated: {
+    boxShadow: [
+      {
+        offsetX: -2,
+        offsetY: 2,
+        blurRadius: 24,
+        spreadDistance: 0,
+        color: "rgba(0, 0, 0, 0.2)",
       },
     ],
   },
@@ -130,5 +159,9 @@ const styles = StyleSheet.create({
   neutralSubtle: {
     backgroundColor: colors.surface.elevatedSubtle,
     color: colors.muted,
+  },
+  neutralInverted: {
+    backgroundColor: colors.neutral.muted,
+    color: colors.background
   }
 })

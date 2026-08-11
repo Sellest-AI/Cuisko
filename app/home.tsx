@@ -1,7 +1,5 @@
 import { Stack } from "expo-router";
-
 import { HomeScreen } from "~/modules/home/screen";
-import { NavigationBar } from "~/modules/navigation/navigation-bar";
 
 /**
  * Routing only — screen options and module components. No data access lives here (ADR 0006);
@@ -15,7 +13,6 @@ export default function Home() {
     <>
       <Stack.Screen options={{ title: "Cuisko" }} />
       <HomeScreen />
-      <NavigationBar />
     </>
   );
 }

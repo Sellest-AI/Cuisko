@@ -1,3 +1,7 @@
 {
-  "ask_anything": "Demande-moi ce que tu veux…"
+  "ask_anything": "Demande-moi ce que tu veux",
+  "Suggestions": {
+    "title": "Suggestions",
+    "subtitle": "Ajoute-le à ta liste de courses"
+  }
 }

@@ -1,12 +1,23 @@
-import { StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet } from "react-native";
 
 import { ButtonIcon } from "@ui/button-icon";
-import { ButtonPill } from "@ui/button-pill";
-import { Camera, ForkKnife, MicIcon } from "@ui/icons";
+import { ArrowLeft, ForkKnife } from "@ui/icons";
 import { theme } from "theme";
-import { useTranslations } from "translations";
+import { router, usePathname } from "expo-router";
+import { m, AnimatePresence } from "@ui/motion";
+import { NAVIGATION_BAR_OFFSET } from "./constants";
+import { useState } from "react";
+import { NavigationBarInput } from "./navigation-bar.input";
 
-const MIC_ICON_SIZE = 20;
+const INITIAL_DELAY = 50;
+
+const sharedTransition = (width?: number) => ({
+  from: { opacity: 1, width: width ? 0 : undefined, translateY: NAVIGATION_BAR_OFFSET },
+  animate: { opacity: 1, width, translateY: 0 },
+  exit: { opacity: 0, width: width ? 0 : undefined, translateY: NAVIGATION_BAR_OFFSET },
+  transition: { delay: INITIAL_DELAY + 50 },
+  exitTransition: { delay: 0, duration: 100 },
+})
 
 /**
  * The bar that floats over every page: ask Cuisko anything, or go straight to cooking.
@@ -19,29 +30,68 @@ const MIC_ICON_SIZE = 20;
  * renders it is responsible for leaving room at the bottom of the scroll.
  */
 export const NavigationBar = () => {
-  const t = useTranslations("Navigation");
+  const path = usePathname();
+  const isHome = path.startsWith("/home");
+  const isGroceries = path.startsWith("/groceries");
+
+  const hasNavigationBar = isHome || isGroceries;
+
+  const [inputFocused, setInputFocused] = useState(false);
 
   return (
-    <View style={styles.container}>
-      <ButtonPill
-        elevated
-        variant="neutral"
-        leftIcon={Camera}
-        onPress={() => console.log("camera pressed")}
-        rightContent={<MicIcon size={MIC_ICON_SIZE} color={theme.colors.foreground} />}
-        size="lg"
-      >
-        {t("ask_anything")}
-      </ButtonPill>
-      <ButtonIcon
-        elevated
-        variant="secondary"
-        onPress={() => console.log("fork knife pressed")}
-        size="lg"
-      >
-        {ForkKnife}
-      </ButtonIcon>
-    </View>
+    <>
+      {hasNavigationBar && inputFocused && Platform.OS !== "web" && (
+        // Sits below the bar in z-order (rendered first) so it only ever catches taps outside
+        // the bar and its suggestions dropdown — a tap inside them never reaches the input's
+        // native onBlur before the press registers.
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setInputFocused(false)}
+        />
+      )}
+      <AnimatePresence>
+        {hasNavigationBar && (
+          <m.View
+            style={styles.container}
+            {...sharedTransition()}
+            transition={{ delay: INITIAL_DELAY }}
+          >
+            <AnimatePresence>
+              {(!isHome && !inputFocused) &&
+                <m.View {...sharedTransition(44)}>
+                  <ButtonIcon
+                    elevated
+                    variant="neutral-inverted"
+                    onPress={() => router.canGoBack() ? router.back() : router.dismissTo("/home")}
+                    style={{ alignSelf: "auto" }}
+                    size="md"
+                  >
+                    {ArrowLeft}
+                  </ButtonIcon>
+                </m.View>}
+            </AnimatePresence>
+            <NavigationBarInput
+              focused={inputFocused}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+            />
+            <AnimatePresence>
+              {(isHome && !inputFocused) && <m.View {...sharedTransition(56)}>
+                <ButtonIcon
+                  elevated
+                  style={{ alignSelf: "auto" }}
+                  variant="secondary"
+                  onPress={() => console.log("fork knife pressed")}
+                  size="lg"
+                >
+                  {ForkKnife}
+                </ButtonIcon>
+              </m.View>}
+            </AnimatePresence>
+          </m.View>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

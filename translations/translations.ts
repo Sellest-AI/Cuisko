@@ -7,11 +7,13 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@shared/translations";
 // Import all translations at build time
 import enAuth from "./en/auth.json";
 import enCommon from "./en/common.json";
+import enGroceries from "./en/groceries.json";
 import enHome from "./en/home.json";
 import enNavigation from "./en/navigation.json";
 import enPlanning from "./en/planning.json";
 import frAuth from "./fr/auth.json";
 import frCommon from "./fr/common.json";
+import frGroceries from "./fr/groceries.json";
 import frHome from "./fr/home.json";
 import frNavigation from "./fr/navigation.json";
 import frPlanning from "./fr/planning.json";
@@ -41,6 +43,7 @@ i18n.use(initReactI18next).init({
       translation: {
         Auth: enAuth,
         Common: enCommon,
+        Groceries: enGroceries,
         Home: enHome,
         Navigation: enNavigation,
         Planning: enPlanning,
@@ -50,6 +53,7 @@ i18n.use(initReactI18next).init({
       translation: {
         Auth: frAuth,
         Common: frCommon,
+        Groceries: frGroceries,
         Home: frHome,
         Navigation: frNavigation,
         Planning: frPlanning,

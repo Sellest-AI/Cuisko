@@ -5,6 +5,7 @@ import { ListPlus, Plus, Store } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { router } from "expo-router";
 
 /** Placeholder counts until the list and the cellar arrive from Convex. */
 const PENDING_ITEMS = 56;
@@ -22,7 +23,7 @@ export const QuickAccess = () => {
       <View style={[styles.gutter, styles.rows]}>
         <ActionRow
           variant="secondary"
-          onPress={() => console.log("open grocery list pressed")}
+          onPress={() => router.push("/groceries")}
           content={t("QuickAccess.grocery_list")}
           contentIcon={ListPlus}
           subtitle={t("QuickAccess.to_buy_x_items", { count: PENDING_ITEMS })}
