@@ -4,6 +4,7 @@ import { Platform, View } from "react-native";
 import { theme } from "theme";
 import { ButtonIcon } from "@ui/button-icon";
 import { X } from "@ui/icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function ModalsLayout() {
   const router = useRouter();
@@ -38,7 +39,8 @@ export default function ModalsLayout() {
           borderRadius: theme.radius.full,
           backgroundColor: theme.colors.neutral.elevated,
           marginHorizontal: "auto",
-          marginTop: theme.spacing[16]
+          marginTop: theme.spacing[16],
+          zIndex: 1,
         }}
         />
         <Stack
@@ -50,6 +52,19 @@ export default function ModalsLayout() {
             },
             animation: "slide_from_right",
           }}
+        />
+        <LinearGradient
+          colors={[theme.colors.background, "transparent"]}
+          style={{
+            pointerEvents: "none",
+            position: "absolute",
+            top: 26,
+            left: 0,
+            right: 0,
+            height: 32,
+          }}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
         />
         <ButtonIcon
           elevated

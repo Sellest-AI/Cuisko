@@ -74,6 +74,7 @@ export const Pressable = ({ disabled, onPress, children, animated = true, intens
       style={{
         flex: style?.flex,
         alignSelf: style?.alignSelf,
+        pointerEvents: style?.pointerEvents,
         minHeight,
         height,
         aspectRatio: style?.aspectRatio,

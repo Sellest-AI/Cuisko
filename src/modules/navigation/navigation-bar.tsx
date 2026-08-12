@@ -33,8 +33,9 @@ export const NavigationBar = () => {
   const path = usePathname();
   const isHome = path.startsWith("/home");
   const isGroceries = path.startsWith("/groceries");
+  const isAssistant = path.startsWith("/assistant");
 
-  const hasNavigationBar = isHome || isGroceries;
+  const hasNavigationBar = isHome || isGroceries || isAssistant;
 
   const [inputFocused, setInputFocused] = useState(false);
 
@@ -57,7 +58,7 @@ export const NavigationBar = () => {
             transition={{ delay: INITIAL_DELAY }}
           >
             <AnimatePresence>
-              {(!isHome && !inputFocused) &&
+              {(!isHome && !inputFocused && !isAssistant) &&
                 <m.View {...sharedTransition(44)}>
                   <ButtonIcon
                     elevated

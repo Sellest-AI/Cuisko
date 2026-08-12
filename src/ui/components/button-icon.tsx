@@ -71,6 +71,7 @@ export const ButtonIcon = ({
       style={{
         alignSelf: "flex-start",
         ...extraPressableStyle,
+        pointerEvents: composite ? "none" : "auto",
         ...style
       }}
       onPress={onPress}

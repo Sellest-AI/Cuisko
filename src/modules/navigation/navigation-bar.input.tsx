@@ -10,6 +10,7 @@ import { BlurView } from "~/ui/components/blur-view";
 import { Suggestions } from "./_components/suggestions";
 import { useSuggestions } from "./_hooks/useSuggestions";
 import { useStockActions } from "~/modules/groceries/hooks";
+import { router } from "expo-router";
 
 const MIC_ICON_SIZE = 20;
 
@@ -85,7 +86,10 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           onLeftPress={() => console.log("camera pressed")}
           rightContent={<MicIcon size={MIC_ICON_SIZE} color={theme.colors.foreground} />}
           style={{ width: "100%" }}
-          onSubmit={(value) => console.log("submitted value:", value)}
+          onSubmit={() => {
+            router.push("/assistant");
+            setValue("");
+          }}
           value={value}
           onChangeText={(text) => setValue(text)}
           onFocus={onFocus}
