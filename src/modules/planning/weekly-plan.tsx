@@ -9,6 +9,7 @@ import { theme } from "theme";
 import { resolveLocale, useTranslations } from "translations";
 
 import { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
+import { MEAL_STATUS } from "./_components/meal-status";
 
 const TOGGLE_ICON_SIZE = 14;
 
@@ -40,6 +41,7 @@ export const WeeklyPlan = () => {
     selectMeal,
     toggleMealType,
   } = useWeeklyPlan();
+
   const t = useTranslations("Planning");
   const locale = resolveLocale();
 
@@ -59,14 +61,17 @@ export const WeeklyPlan = () => {
             rightContent={<ArrowLeftRightIcon size={TOGGLE_ICON_SIZE} />}
             style={styles.mealToggle}
           >
-            {mealType === "lunch" ? t("WeeklyPlan.lunch") : t("WeeklyPlan.dinner")}
+            {mealType === "lunch" ? t("Meal.lunch") : t("Meal.dinner")}
           </ButtonPill>
         </View>
         <Text.Base color={theme.colors.muted}>{t("WeeklyPlan.call_to_cook")}</Text.Base>
       </View>
       <PlateCarousel
         style={styles.carousel}
-        items={meals}
+        items={meals.map((meal) => ({
+          ...meal,
+          subtitle: t(MEAL_STATUS[meal.status].key)
+        }))}
         selectedIndex={selectedMealIndex}
         onSelect={selectMeal}
       />

@@ -1,0 +1,151 @@
+import { StyleSheet, View } from "react-native";
+
+import { CircleCheckIcon, CircleDashedIcon } from "@ui/icons";
+import { Image } from "@ui/image";
+import { Pressable } from "@ui/pressable";
+import { Text } from "@ui/text";
+import { colors, theme } from "theme";
+
+import { formatQuantity } from "@shared/ingredients";
+
+import { type GroceryRow, type PlannedMeal } from "../_model/model";
+
+type Props = {
+  row: GroceryRow;
+  /** The meals needing this row, already resolved — drawn as the stack of little plates. */
+  meals: PlannedMeal[];
+  owned: boolean;
+  haveLabel: string;
+  needLabel: string;
+  onToggle: () => void;
+};
+
+const AVATAR = 22;
+const AVATAR_OVERLAP = -8;
+const PRODUCE = {
+  width: 56,
+  height: 64,
+};
+
+/**
+ * One ingredient the week needs: how much, what it costs, and which meals are asking for it.
+ *
+ * The stack of plates is the row's justification — it answers "why is this on my list?" without a
+ * tap, which is the difference between a list you trust and one you second-guess in the shop.
+ */
+export const TunnelGroceryRow = ({ row, meals, owned, haveLabel, needLabel, onToggle }: Props) => (
+  <View style={styles.row}>
+    <View style={styles.produce}>
+      <Text.H4 style={styles.emoji}>{row.emoji}</Text.H4>
+    </View>
+    <View style={[styles.body, owned ? { opacity: 0.5 } : {}]}>
+      <View style={styles.titleRow}>
+        <Text.Base
+          color={colors.muted}
+          numberOfLines={1}
+          style={styles.name}
+        >
+          {row.name}
+        </Text.Base>
+        <View style={[styles.quantity, owned ? { opacity: 0.5 } : {}]}>
+          <Text.Base>
+            {formatQuantity(row.amount, row.unit)}
+          </Text.Base>
+        </View>
+      </View>
+      {row.pricePerKg !== undefined && (
+        <Text.Sm color={colors.muted}>{row.pricePerKg.toFixed(2)}€/kg</Text.Sm>
+      )}
+      <View style={styles.avatars}>
+        {meals.map((meal, index) => (
+          <Image
+            key={meal.id}
+            source={meal.imageSrc}
+            contentFit="cover"
+            style={[styles.avatar, index > 0 && { marginLeft: AVATAR_OVERLAP }]}
+          />
+        ))}
+      </View>
+    </View>
+    <Pressable
+      intensity={0.94}
+      onPress={onToggle}
+      style={{ ...styles.toggle, ...(owned ? styles.toggleOwned : styles.toggleNeeded) }}
+    >
+      {owned
+        ? <CircleCheckIcon size={16} color={colors.secondary.base} />
+        : <CircleDashedIcon size={16} color={colors.muted} />}
+      <Text.Base color={owned ? colors.secondary.base : colors.muted} weight={600}>
+        {owned ? haveLabel : needLabel}
+      </Text.Base>
+    </Pressable>
+  </View>
+);
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[12],
+    paddingVertical: theme.spacing[12],
+    paddingHorizontal: theme.spacing[16],
+  },
+  produce: {
+    width: PRODUCE.width,
+    height: PRODUCE.height,
+    borderRadius: theme.radius.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface.elevated,
+  },
+  body: { flex: 1 },
+  /** Overrides the H4 metrics — an emoji needs the room a heading does not. */
+  emoji: {
+    fontSize: 32,
+    lineHeight: 40
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[8],
+  },
+  name: { flexShrink: 1 },
+  quantity: {
+    paddingHorizontal: theme.spacing[8],
+    paddingVertical: theme.spacing[2],
+    borderRadius: theme.radius.full,
+    borderWidth: 2,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.elevated,
+  },
+  avatars: { flexDirection: "row", alignItems: "center" },
+  avatar: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: theme.radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.background,
+    marginTop: theme.spacing[6]
+  },
+  toggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[6],
+    padding: theme.spacing[16],
+    borderRadius: theme.radius.sm,
+    borderWidth: 2,
+    marginLeft: theme.spacing[8],
+  },
+  /** Already in the kitchen: closed and tinted, the way the cellar reads elsewhere. */
+  toggleOwned: {
+    borderStyle: "solid",
+    borderColor: colors.secondary.elevated,
+    backgroundColor: colors.secondary.subtle,
+  },
+  /** Still missing: an open, dashed outline — nothing has happened to it yet. */
+  toggleNeeded: {
+    borderStyle: "dashed",
+    borderColor: colors.neutral.elevated,
+    backgroundColor: colors.surface.elevatedSubtle,
+  },
+});

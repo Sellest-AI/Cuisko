@@ -1,8 +1,86 @@
 {
   "WeeklyPlan": {
     "today_heading": "Au menu",
+    "call_to_cook": "Prends un couteau, on passe en cuisine"
+  },
+  "Screen": {
+    "title": "Planning",
+    "preferences": "Mes goûts",
+    "plan_next_days": "Remplir la semaine",
+    "plan_next_days_subtitle": "Jusqu'à sept jours de cuisine",
+    "update_preferences": "Ajuster mes goûts",
+    "empty_plate": "Assiette vide",
+    "import_receipt": "Ajouter un plat"
+  },
+  "Preferences": {
+    "question": "Quels repas veux-tu voir ?",
+    "high_protein": "Riche en protéines",
+    "high_calorie": "Riche en calories",
+    "low_carb": "Pauvre en glucides"
+  },
+  "Meal": {
     "lunch": "Déjeuner",
     "dinner": "Dîner",
-    "call_to_cook": "Prends un couteau, on passe en cuisine"
+    "x_minutes_one": "{{count, number}} minute",
+    "x_minutes_many": "{{count, number}} de minutes",
+    "x_minutes_other": "{{count, number}} minutes"
+  },
+  "Status": {
+    "cooked": "Cuisiné",
+    "ready": "Tout prêt",
+    "shopping_needed": "Il manque un peu",
+    "empty": "Assiette libre"
+  },
+  "Tunnel": {
+    "next_step": "Étape suivante",
+    "Setup": {
+      "title": "Elle ressemble à quoi, ta semaine ?",
+      "placeholder": "Envie de pâtes ? Peu de temps ? Dis-moi tout.",
+      "people": "Vous êtes combien à table ?",
+      "days": "Sur combien de jours ?",
+      "meals": "Quels repas ?",
+      "utensils": "Qu'est-ce qu'il y a dans ta cuisine ?"
+    },
+    "Diet": {
+      "title": "Tu manges comment ?"
+    },
+    "Generating": {
+      "title": "On mijote ta semaine",
+      "subtitle": "Les bonnes choses prennent le temps. Une minute.",
+      "progress": "plats dressés"
+    },
+    "Review": {
+      "title": "Planning",
+      "subtitle": "Ta semaine, servie"
+    },
+    "Meal": {
+      "portions": "Ajuster les portions",
+      "change": "Changer le plat",
+      "pick": "Choisir un plat",
+      "search": "Chercher une recette…",
+      "selected": "Choisi",
+      "no_match": "Aucun plat de ce nom",
+      "missing": "Cette assiette n'est plus au programme"
+    },
+    "Groceries": {
+      "title": "Liste de courses",
+      "subtitle": "Ce qui manque dans ta cuisine",
+      "info_title": "Important",
+      "info_body": "Cette liste tient déjà compte de ce qu'il y a dans ta cave et des ingrédients utilisés par tes futurs repas prévus. Coche \"J'en ai\" seulement pour les ingrédients que tu viens d'acheter et que tu n'as pas encore ajoutés à ta cave.",
+      "save": "Ajouter à ma liste",
+      "x_new_items_one": "{{count, number}} chose à rapporter",
+      "x_new_items_many": "{{count, number}} de choses à rapporter",
+      "x_new_items_other": "{{count, number}} choses à rapporter",
+      "have": "J'en ai",
+      "need": "Il m'en faut"
+    }
+  },
+  "Categories": {
+    "vegetables": "Légumes",
+    "meats": "Viandes",
+    "fish": "Poissons",
+    "dairy": "Crèmerie",
+    "grains": "Féculents",
+    "other": "Le reste"
   }
 }

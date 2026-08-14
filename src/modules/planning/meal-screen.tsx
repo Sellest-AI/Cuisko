@@ -1,0 +1,254 @@
+import { useCallback, useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+
+import { Badge } from "@ui/badge";
+import { CardChoice } from "@ui/cards/choice";
+import { CheckIcon, Search, Trash2 } from "@ui/icons";
+import { Input } from "@ui/input";
+import { StepSlider } from "@ui/step-slider";
+import { Text } from "@ui/text";
+import { theme } from "theme";
+import { useTranslations } from "translations";
+
+import { useModalAction } from "~/modules/navigation/modal-action";
+
+import { MEAL_STATUS } from "./_components/meal-status";
+import { SectionLabel } from "./_components/section-label";
+import { useMealEditor, type MealScope, type MealTarget } from "./_hooks/useMealEditor";
+import { MAX_SERVINGS, parseDateParam, parseMealSlot, type Recipe } from "./_model/model";
+import { LinearGradient } from "expo-linear-gradient";
+
+const COLUMNS = 2;
+const GUTTER = theme.spacing[16];
+const GAP = theme.spacing[12];
+
+/** Clears the close button and the action beside it, both drawn by the modal layout. */
+const CHROME_HEIGHT = 24;
+
+const TILE_IMAGE_HEIGHT = 86;
+
+/** A plate already in the plan, or the day and slot of one that is not there yet. */
+type Params = { mealId?: string; date?: string; slot?: string; scope?: string };
+
+type Props = {
+  params: Params;
+  onClose: () => void;
+};
+
+const Nothing = ({ label }: { label: string }) => (
+  <View style={[styles.page, styles.empty]}>
+    <Text.Base color={theme.colors.muted}>{label}</Text.Base>
+  </View>
+);
+
+/** The pill under a tile: what this dish would cost the kitchen, or that it is the one on the plate. */
+const RecipeBadge = ({ recipe, selected }: { recipe: Recipe; selected: boolean }) => {
+  const t = useTranslations("Planning");
+  const status = MEAL_STATUS[recipe.status];
+
+  if (selected) return <Badge
+    icon={CheckIcon}
+    variant="neutral"
+    textColor={theme.colors.neutral.foreground}
+  >
+    {t("Tunnel.Meal.selected")}
+  </Badge>;
+
+  return <Badge icon={status.icon} variant={status.badge}>{t(status.key)}</Badge>;
+};
+
+type EditorProps = {
+  /** The portions the plate is set to, or the ones a plate would be created for. */
+  servings: number;
+  /** The dish on the plate. Absent while the slot is still empty — nothing is marked selected. */
+  selectedRecipeId?: string;
+  recipes: Recipe[];
+  query: string;
+  setQuery: (query: string) => void;
+  setServings: (servings: number) => void;
+  choose: (recipe: Recipe) => void;
+};
+
+const Editor = ({
+  servings,
+  selectedRecipeId,
+  recipes,
+  query,
+  setQuery,
+  setServings,
+  choose,
+}: EditorProps) => {
+  const t = useTranslations("Planning");
+  const { width } = useWindowDimensions();
+
+  const tileWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
+
+  /**
+   * The dish on the plate when the sheet opened. Pinned rather than read live, so tapping a tile
+   * does not reshuffle the grid under the finger that tapped it — on an empty slot there is
+   * nothing to pin, and the catalogue keeps the order it came in.
+   */
+  const [pinnedRecipeId] = useState(selectedRecipeId);
+
+  const ordered = useMemo(
+    () => [...recipes].sort((first, second) =>
+      Number(second.id === pinnedRecipeId) - Number(first.id === pinnedRecipeId)),
+    [recipes, pinnedRecipeId],
+  );
+
+
+  return (
+    <>
+      <LinearGradient
+        colors={[theme.colors.neutral.subtle, theme.colors.neutral.foreground]}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 0, y: 0 }}
+      />
+      <ScrollView
+        contentContainerStyle={styles.page}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <SectionLabel label={t("Tunnel.Meal.portions")} value={String(servings)} />
+        <StepSlider value={servings} max={MAX_SERVINGS} onChange={setServings} />
+        <SectionLabel
+          label={t(selectedRecipeId ? "Tunnel.Meal.change" : "Tunnel.Meal.pick")}
+          value={String(recipes.length)}
+        />
+        <Input
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("Tunnel.Meal.search")}
+          rightIcon={Search}
+          style={styles.search}
+        />
+        {recipes.length === 0 ? (
+          <Text.Base color={theme.colors.muted}>{t("Tunnel.Meal.no_match")}</Text.Base>
+        ) : (
+          <View style={styles.grid}>
+            {ordered.map((recipe) => {
+              const selected = recipe.id === selectedRecipeId;
+
+              return (
+                <CardChoice
+                  key={recipe.id}
+                  tone="neutral"
+                  label={recipe.title}
+                  imageSrc={recipe.imageSrc}
+                  width={tileWidth - 1}
+                  selected={selected}
+                  elevated={selected}
+                  onPress={() => choose(recipe)}
+                  imageStyle={{ height: TILE_IMAGE_HEIGHT }}
+                  badge={<RecipeBadge recipe={recipe} selected={selected} />}
+                  style={{ padding: theme.spacing[12] }}
+                />
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+    </>
+  );
+};
+
+/**
+ * The plate the list tapped: cooked for how many, made of what, or dropped from the week — and on
+ * an empty slot, the same sheet with nothing on it yet.
+ *
+ * Picking a dish does not close the sheet. The three questions are one visit — a user swapping a
+ * dish is the one most likely to want the portions changed with it, and a sheet that shuts on the
+ * first answer makes them open it again to give the second.
+ *
+ * A route of its own rather than a sheet inside the review step, so the planning screen can reach
+ * the same plate later. Its params are therefore untrusted, and validated before a hook runs.
+ */
+const Sheet = ({ target, scope, onClose }: {
+  target: MealTarget;
+  scope: MealScope;
+  onClose: () => void;
+}) => {
+  const t = useTranslations("Planning");
+  const { meal, missing, remove, ...editor } = useMealEditor(target, scope);
+
+  /** Removing leaves nothing to come back to, so the sheet goes with it. */
+  const destroy = useCallback(() => {
+    remove();
+    onClose();
+  }, [remove, onClose]);
+
+  const choose = useCallback((recipe: Recipe) => {
+    editor.choose(recipe);
+    onClose();
+  }, [editor, onClose]);
+
+  /** Nothing to throw away until a dish is on the plate, so the slot opens without the action. */
+  useModalAction(meal ? { icon: Trash2, onPress: destroy, variant: "danger" } : null);
+
+  /** A stale link, or the moment between removing the plate and the dismissal landing. */
+  if (missing) return <Nothing label={t("Tunnel.Meal.missing")} />;
+
+  return <Editor {...editor} choose={choose} />;
+};
+
+/**
+ * What the sheet was opened on, out of route text that could say anything.
+ *
+ * `mealId` first: a plate that exists is edited wherever it sits, and only a link without one is
+ * read as an invitation to fill a slot. A day and a slot that do not both survive validation leave
+ * nothing to open — better an honest empty state than a plate created on a day nobody asked for.
+ */
+const _targetOf = ({ mealId, date, slot }: Params): MealTarget | undefined => {
+  if (mealId) return { kind: "meal", mealId };
+
+  const day = parseDateParam(date);
+  const mealSlot = parseMealSlot(slot);
+
+  return day && mealSlot ? { kind: "slot", date: day, slot: mealSlot } : undefined;
+};
+
+/**
+ * Which week the link meant, defaulting to the one the app keeps.
+ *
+ * The plan is the safe default and the draft is the one that has to say so: a tunnel link that
+ * lost its scope would edit the week the user is still keeping, where a planning link that lost
+ * its scope only edits a draft nothing is reading — visibly nothing happens, rather than
+ * invisibly the wrong thing.
+ */
+const _scopeOf = (scope?: string): MealScope => (scope === "draft" ? "draft" : "plan");
+
+export const MealScreen = ({ params, onClose }: Props) => {
+  const t = useTranslations("Planning");
+  const { mealId, date, slot, scope } = params;
+
+  /**
+   * Keyed on the params themselves rather than on the object holding them, which the route rebuilds
+   * every render: the target carries a `Date`, and a new one each render would hand the hook a new
+   * identity — and with it a new `choose` — on every keystroke in the search box.
+   */
+  const target = useMemo(() => _targetOf({ mealId, date, slot }), [mealId, date, slot]);
+
+  if (!target) return <Nothing label={t("Tunnel.Meal.missing")} />;
+
+  return <Sheet target={target} scope={_scopeOf(scope)} onClose={onClose} />;
+};
+
+const styles = StyleSheet.create({
+  page: {
+    paddingTop: CHROME_HEIGHT,
+    paddingBottom: theme.spacing[32],
+    paddingHorizontal: GUTTER,
+  },
+  empty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  search: { marginBottom: theme.spacing[12] },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: GAP,
+  },
+});

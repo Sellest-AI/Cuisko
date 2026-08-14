@@ -8,6 +8,10 @@ One folder per domain. It owns that domain's data and everything drawn with it.
     ├── weekly-plan.tsx     PUBLIC  — any module or route may import this
     ├── screen.tsx          PUBLIC
     ├── hooks.ts            PUBLIC  — the door: re-exports the hooks other modules may call
+    ├── tunnel/             PUBLIC  — a sub-domain: one flow, several screens of its own
+    │   ├── chrome.tsx              the frame its routes mount into
+    │   ├── setup.tsx, diet.tsx     one file per step
+    │   └── _components/, _hooks/   PRIVATE to the sub-domain, same rules one level down
     ├── _components/        PRIVATE — this module only, by relative path
     ├── _hooks/             PRIVATE — the ONLY place api.router.planning.* is referenced
     └── _model/             PRIVATE — framework-free domain types and pure functions; no React,
@@ -16,6 +20,14 @@ One folder per domain. It owns that domain's data and everything drawn with it.
 Root files are public. The underscore folders are the interior: reach them with `./_hooks/useX`,
 never with `~/modules/other/_hooks/useX`. Sharing a hook across modules is one line added to
 `hooks.ts` — a deliberate edit somebody reviews — not an import that walks past the underscore.
+
+**A named subfolder is a sub-domain, and carries the same shape as a module.** Reach for one when a
+single flow owns several screens that belong together — a generation tunnel, an onboarding — rather
+than scattering them across the root, or claiming a parent that does not exist (`tunnel.setup.tsx`
+says there is a `tunnel.tsx` to read first). Its files are public to the module and to `app/`, and
+it may grow its own `_components/`, `_hooks/` and `_model/` on exactly the rules above, one level
+down. A single screen is not a sub-domain: that is `screen.tsx` at the root, with its parts in dot
+notation beside it.
 
 `_model/` is where the domain lives once it grows past a couple of pure functions used by one
 hook — types, invariants, derivations, all of it framework-free and unit-testable without

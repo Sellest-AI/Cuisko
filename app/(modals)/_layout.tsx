@@ -6,6 +6,8 @@ import { ButtonIcon } from "@ui/button-icon";
 import { X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { ModalActionButton } from "~/modules/navigation/modal-action";
+
 export default function ModalsLayout() {
   const router = useRouter();
   const isFullScreen = Platform.OS === "web";
@@ -40,6 +42,7 @@ export default function ModalsLayout() {
           backgroundColor: theme.colors.neutral.elevated,
           marginHorizontal: "auto",
           marginTop: theme.spacing[16],
+          marginBottom: theme.spacing[4],
           zIndex: 1,
         }}
         />
@@ -78,6 +81,13 @@ export default function ModalsLayout() {
         >
           {X}
         </ButtonIcon>
+        <ModalActionButton
+          style={{
+            position: "absolute",
+            top: theme.spacing[16],
+            right: theme.spacing[16],
+          }}
+        />
       </View>
     </SafeAreaView>
   )

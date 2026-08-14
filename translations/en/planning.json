@@ -1,8 +1,84 @@
 {
   "WeeklyPlan": {
     "today_heading": "Ready for",
+    "call_to_cook": "Grab a knife and let's get cooking"
+  },
+  "Screen": {
+    "title": "Planning",
+    "preferences": "My tastes",
+    "plan_next_days": "Fill the week ahead",
+    "plan_next_days_subtitle": "Up to seven days of cooking",
+    "update_preferences": "Tweak my tastes",
+    "empty_plate": "Empty plate",
+    "import_receipt": "Import receipt"
+  },
+  "Preferences": {
+    "question": "What meals do you want to see?",
+    "high_protein": "High protein",
+    "high_calorie": "High calorie",
+    "low_carb": "Low carb"
+  },
+  "Meal": {
     "lunch": "Lunch",
     "dinner": "Dinner",
-    "call_to_cook": "Grab a knife and let's get cooking"
+    "x_minutes_one": "{{count, number}} minute",
+    "x_minutes_other": "{{count, number}} minutes"
+  },
+  "Status": {
+    "cooked": "Cooked",
+    "ready": "All set",
+    "shopping_needed": "Short a few",
+    "empty": "Open slot"
+  },
+  "Tunnel": {
+    "next_step": "Next step",
+    "Setup": {
+      "title": "How is your week looking?",
+      "placeholder": "Craving pasta? Short on time? Tell me.",
+      "people": "How many at the table?",
+      "days": "How many days?",
+      "meals": "Which meals?",
+      "utensils": "What is in your kitchen?"
+    },
+    "Diet": {
+      "title": "How do you eat?"
+    },
+    "Generating": {
+      "title": "Cooking up your week",
+      "subtitle": "Good things simmer. Give me a minute.",
+      "progress": "dishes plated"
+    },
+    "Review": {
+      "title": "Planning",
+      "subtitle": "Your week, served"
+    },
+    "Meal": {
+      "portions": "Update the portions",
+      "change": "Change the meal",
+      "pick": "Pick a meal",
+      "search": "Search recipes…",
+      "selected": "Selected",
+      "no_match": "No dish by that name",
+      "missing": "That plate is no longer in the plan"
+    },
+    "Groceries": {
+      "title": "Grocery list",
+      "subtitle": "What is missing from your kitchen",
+      "info_title": "Important",
+      "info_body": "This list already accounts for your cellar stock and the ingredients used by your future planned meals. Mark \"Got it\" only for ingredients you just bought and have not added to your cellar yet.",
+      "save": "Add to my list",
+      "x_new_items_one": "{{count, number}} thing to pick up",
+      "x_new_items_other": "{{count, number}} things to pick up",
+      "have": "Got it",
+      "need": "Need it"
+    }
+  },
+  "Categories": {
+    "vegetables": "Vegetables",
+    "meats": "Meats",
+    "fish": "Fish",
+    "dairy": "Dairy",
+    "grains": "Grains",
+    "other": "Odds and ends"
   }
 }

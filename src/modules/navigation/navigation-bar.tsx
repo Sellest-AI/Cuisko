@@ -34,8 +34,9 @@ export const NavigationBar = () => {
   const isHome = path.startsWith("/home");
   const isGroceries = path.startsWith("/groceries");
   const isAssistant = path.startsWith("/assistant");
+  const isPlanning = path === "/planning";
 
-  const hasNavigationBar = isHome || isGroceries || isAssistant;
+  const hasNavigationBar = isHome || isGroceries || isAssistant || isPlanning;
 
   const [inputFocused, setInputFocused] = useState(false);
 

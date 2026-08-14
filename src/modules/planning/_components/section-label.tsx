@@ -1,0 +1,50 @@
+import { StyleSheet, View } from "react-native";
+
+import { Text } from "@ui/text";
+import { colors, theme } from "theme";
+
+type Props = {
+  label: string;
+  /**
+   * The answer, echoed in a chip beside the question.
+   *
+   * Optional because some sections answer themselves — two of two meal toggles lit needs no "2/2"
+   * repeating it, where "how many days" reads as a slider position until a number names it.
+   */
+  value?: string;
+};
+
+/**
+ * A section's question, with its current answer beside it.
+ *
+ * At `_components/` because the setup step and the swap sheet both draw it, and the sheet is not
+ * one of the tunnel's steps: dot notation beside `setup.tsx` would claim a parent it does not have.
+ */
+export const SectionLabel = ({ label, value }: Props) => (
+  <View style={styles.row}>
+    <Text.Lg color={colors.muted}>{label}</Text.Lg>
+    {value !== undefined && (
+      <View style={styles.counter}>
+        <Text.Base weight={700}>{value}</Text.Base>
+      </View>
+    )}
+  </View>
+);
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: theme.spacing[28],
+    marginBottom: theme.spacing[12],
+  },
+  counter: {
+    paddingHorizontal: theme.spacing[12],
+    paddingVertical: theme.spacing[6],
+    borderRadius: theme.radius.full,
+    borderWidth: 2,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.elevatedSubtle,
+  },
+});
