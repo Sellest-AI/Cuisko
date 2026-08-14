@@ -29,15 +29,17 @@ export const QuickAccess = () => {
           subtitle={t("QuickAccess.to_buy_x_items", { count: PENDING_ITEMS })}
           leftIcon={Plus}
           onLeftIconPress={() => console.log("add grocery item pressed")}
+          style={{ alignSelf: "stretch" }}
         />
         <ActionRow
           variant="flat"
-          onPress={() => console.log("open cellar pressed")}
+          onPress={() => router.push("/groceries")}
           content={t("QuickAccess.cellar")}
           contentIcon={Store}
           subtitle={t("QuickAccess.in_stock_x_items", { count: STORED_ITEMS })}
           leftIcon={Plus}
           onLeftIconPress={() => console.log("add cellar item pressed")}
+          style={{ alignSelf: "stretch" }}
         />
       </View>
     </View>
