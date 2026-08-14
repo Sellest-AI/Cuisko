@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { cellarAtom, historyAtom, linesAtom, receiptsAtom } from "./atoms";
 import {
   adjustCellar,
+  dropMealLines,
   isLive,
   matchesRef,
   peelReceipts,
@@ -96,8 +97,8 @@ export const useStockActions = () => {
   );
 
   /**
-   * Back onto the list from memory, as a claim the shopper made rather than a recipe. It carries
-   * no recipe, so dropping a recipe from the week can never take it away again.
+   * Back onto the list from memory, as a claim the shopper made rather than a plate. It carries
+   * no plate, so dropping a meal from the week can never take it away again.
    */
   const addToList = useCallback(
     (ref: StockRef, amount: number) => {
@@ -122,5 +123,20 @@ export const useStockActions = () => {
     [buy, removeFromCellar, addToList],
   );
 
-  return { apply };
+  /**
+   * A plate left the week, so the list stops shopping for it.
+   *
+   * The plan→groceries seam, and the reason a line carries the plate it came from: planning knows
+   * the plate id and nothing else about this module, so dropping a meal is one call rather than
+   * planning reaching in to work out which lines were its own.
+   *
+   * Only claims are taken. What the shopper already bought is in the cellar, which this does not
+   * touch — food in the house does not stop existing because a plan changed its mind.
+   */
+  const dropMeal = useCallback(
+    (mealId: string) => setLines((current) => dropMealLines(current, mealId)),
+    [setLines],
+  );
+
+  return { apply, dropMeal };
 };

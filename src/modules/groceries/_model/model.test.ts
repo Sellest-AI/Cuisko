@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adjustCellar,
   buildSections,
+  dropMealLines,
   peelReceipts,
   reduceLines,
   rememberStock,
@@ -19,14 +20,14 @@ const ago = (ms: number) => new Date(NOW.getTime() - ms);
 const CARROTS = { ingredientId: "carrots", unit: "pcs" } as const;
 
 /**
- * The scenario the whole model exists for: six carrots are wanted across two recipes, one is
+ * The scenario the whole model exists for: six carrots are wanted across two plates, one is
  * already owned, so five are missing.
  */
 const base: Snapshot = {
   ingredients: [{ id: "carrots", name: "Carottes", emoji: "🥕" }],
   lines: [
-    { id: "l1", ...CARROTS, recipe: { id: "r1", name: "Ratatouille" }, amount: 2, createdAt: ago(60_000) },
-    { id: "l2", ...CARROTS, recipe: { id: "r2", name: "Soupe" }, amount: 4, createdAt: ago(60_000) },
+    { id: "l1", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000) },
+    { id: "l2", ...CARROTS, meal: { id: "2026-01-07:lunch", title: "Soupe" }, amount: 4, createdAt: ago(60_000) },
   ],
   cellar: [{ id: "c1", ...CARROTS, amount: 1, updatedAt: ago(60_000) }],
   receipts: [],
@@ -245,6 +246,30 @@ describe("peeling receipts", () => {
 
   it("leaves the rest of a partially undone purchase in place", () => {
     expect(peelReceipts([bought(6, ago(1_000))], CARROTS, 2, NOW).map((r) => r.amount)).toEqual([4]);
+  });
+});
+
+describe("dropping a plate's claims", () => {
+  const lines: GroceryLine[] = base.lines;
+
+  it("takes only what that plate asked for", () => {
+    expect(dropMealLines(lines, "2026-01-06:dinner").map((line) => line.id)).toEqual(["l2"]);
+  });
+
+  /** The reason lines key on the plate and not the dish: one swap must not empty the other day. */
+  it("leaves another plate serving the same dish untouched", () => {
+    const twice: GroceryLine[] = [
+      { id: "mon", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Soupe" }, amount: 2, createdAt: NOW },
+      { id: "fri", ...CARROTS, meal: { id: "2026-01-10:dinner", title: "Soupe" }, amount: 2, createdAt: NOW },
+    ];
+
+    expect(dropMealLines(twice, "2026-01-06:dinner").map((line) => line.id)).toEqual(["fri"]);
+  });
+
+  it("never touches a line the shopper added themselves", () => {
+    const byHand: GroceryLine[] = [{ id: "own", ...CARROTS, amount: 2, createdAt: NOW }];
+
+    expect(dropMealLines(byHand, "2026-01-06:dinner")).toEqual(byHand);
   });
 });
 
