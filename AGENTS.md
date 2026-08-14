@@ -292,7 +292,7 @@ result as if it had returned.
 ## Done means
 
 - `pnpm verify` is green.
-- The architecture review above ran and reported clean, or the user approved the exceptions.
+- **Only when you are asked to commit**: The architecture review above ran and reported clean, or the user approved the exceptions.
 - Every new non-`anon` Convex export has a test asserting the wrong caller is rejected.
 - Any `docs/` page the change invalidated has been updated.
 - The slice's plan file is **deleted** — with any decision worth keeping promoted to an ADR or to
