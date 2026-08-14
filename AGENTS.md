@@ -49,23 +49,23 @@ copy silently.
 
 ## Never
 
-| Rule                                                                                | ADR  |
-| ----------------------------------------------------------------------------------- | ---- |
-| Never import `convex/_generated/server` outside `convex/procedures.ts`              | 0001 |
-| Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle) | 0001 |
-| Never import Convex, `~/modules/*` or `translations` from `src/ui/**`               | 0002 |
-| Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook      | 0006 |
+| Rule                                                                                   | ADR  |
+| -------------------------------------------------------------------------------------- | ---- |
+| Never import `convex/_generated/server` outside `convex/procedures.ts`                 | 0001 |
+| Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle)    | 0001 |
+| Never import Convex, `~/modules/*` or `translations` from `src/ui/**`                  | 0002 |
+| Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook         | 0006 |
 | Never import another module's `_hooks/` or `_components/` — use its root or `hooks.ts` | 0006 |
-| Never define a webhook with bare `httpAction` — use `verifiedWebhook`               | 0004 |
-| Never default a secret to `''` — env is Zod-validated and throws at boot            | 0005 |
-| Never gate a security check on its secret being truthy (`if (secret) verify()`)     | 0005 |
-| Never combine `.filter()` with `.paginate()` — put the predicate in the index       | 0007 |
-| Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                | 0007 |
-| Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`       | 0003 |
-| Never add a `v.id()` field without its cascade index **and** `CASCADE` entry        | 0007 |
-| Never write an empty `catch {}`                                                     | —    |
-| Never commit secrets, force-push, or `git commit` unless asked                      | —    |
-| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit              | —    |
+| Never define a webhook with bare `httpAction` — use `verifiedWebhook`                  | 0004 |
+| Never default a secret to `''` — env is Zod-validated and throws at boot               | 0005 |
+| Never gate a security check on its secret being truthy (`if (secret) verify()`)        | 0005 |
+| Never combine `.filter()` with `.paginate()` — put the predicate in the index          | 0007 |
+| Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                   | 0007 |
+| Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`          | 0003 |
+| Never add a `v.id()` field without its cascade index **and** `CASCADE` entry           | 0007 |
+| Never write an empty `catch {}`                                                        | —    |
+| Never commit secrets, force-push, or `git commit` unless asked                         | —    |
+| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                 | —    |
 
 ## Non-obvious patterns
 
@@ -129,7 +129,7 @@ more trust than the whole review buys.
 | File name — components, screens | kebab-case (`recipe-card.tsx`, `saved-recipes.tsx`)                            |
 | File name — hooks, anywhere     | camelCase **matching the export** (`useRecipes.ts` → `useRecipes`)             |
 | File name — sub-components      | dot notation (`recipe-form.ingredients.tsx`)                                   |
-| Component reaching 3 files      | folder + `index` — `select/index.tsx`, `index.ios.tsx`, `types.ts`            |
+| Component reaching 3 files      | folder + `index` — `select/index.tsx`, `index.ios.tsx`, `types.ts`             |
 | Router file names               | operation-based, not resource-based — `getOne.ts` ✅ / `getRecipe.ts` ❌         |
 | Components / types              | `PascalCase`, no `I` prefix                                                    |
 | Functions, variables            | `camelCase`; module-private `_camelCase`                                       |
