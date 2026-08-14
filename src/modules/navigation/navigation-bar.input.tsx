@@ -109,7 +109,6 @@ const styles = StyleSheet.create({
     left: -theme.spacing[6],
     right: -theme.spacing[6],
     paddingBottom: NAVIGATION_BAR_HEIGHT,
-    backgroundColor: theme.colors.surface.elevated
   },
   suggestionsContainerRadius: {
     borderRadius: theme.radius.lg,

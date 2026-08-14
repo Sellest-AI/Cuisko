@@ -1,9 +1,18 @@
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, TextInput, TextStyle, View } from "react-native";
 
 import { theme } from "theme";
 
-type Props = {
-  label: string;
+/**
+ * A visible label, or a placeholder standing in for one — never neither.
+ *
+ * The union is what enforces it: `accessibilityLabel` falls back to the placeholder, so making
+ * both optional would let an input with no accessible name typecheck, and a screen reader would
+ * announce it as nothing at all.
+ */
+type Props = BaseProps & ({ label: string } | { placeholder: string });
+
+type BaseProps = {
+  label?: string;
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
@@ -11,6 +20,8 @@ type Props = {
   /** `email` turns off capitalisation and autocorrect, which otherwise mangle addresses. */
   kind?: "text" | "email";
   editable?: boolean;
+  multiline?: boolean;
+  style?: TextStyle;
 };
 
 export const TextField = ({
@@ -21,20 +32,23 @@ export const TextField = ({
   isSecure = false,
   kind = "text",
   editable = true,
+  multiline = false,
+  style,
 }: Props) => (
-  <View style={styles.wrapper}>
-    <Text style={styles.label}>{label}</Text>
+  <View style={[styles.wrapper, !label && styles.shadow]}>
+    {label && <Text style={styles.label}>{label}</Text>}
     <TextInput
-      accessibilityLabel={label}
+      accessibilityLabel={label ?? placeholder}
       autoCapitalize={kind === "email" ? "none" : "sentences"}
       autoCorrect={kind !== "email"}
       editable={editable}
       keyboardType={kind === "email" ? "email-address" : "default"}
+      multiline={multiline}
       onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={theme.colors.muted}
       secureTextEntry={isSecure}
-      style={[styles.input, !editable && styles.inputDisabled]}
+      style={[styles.input, !editable && styles.inputDisabled, style]}
       textContentType={kind === "email" ? "emailAddress" : isSecure ? "password" : "none"}
       value={value}
     />
@@ -42,12 +56,26 @@ export const TextField = ({
 );
 
 const styles = StyleSheet.create({
-  wrapper: { gap: theme.spacing[4] },
+  wrapper: {
+    gap: theme.spacing[4],
+    borderRadius: theme.radius.sm,
+  },
   label: { color: theme.colors.muted, fontSize: theme.font.sm.fontSize, fontWeight: "600" },
+  shadow: {
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 4,
+        blurRadius: 32,
+        spreadDistance: 0,
+        color: "rgba(0, 0, 0, 0.07)",
+      },
+    ],
+  },
   input: {
     backgroundColor: theme.colors.surface.input,
     borderColor: theme.colors.border.default,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radius.sm,
     borderWidth: 2,
     color: theme.colors.foreground,
     fontSize: theme.font.base.fontSize,

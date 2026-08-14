@@ -22,7 +22,7 @@ type Props = {
 }
 
 export const Input = ({ style, elevated, placeholder, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
-  const color = styles.neutral;
+  const color = elevated ? styles.neutralElevated : styles.neutral;
   const placeholderColor = theme.colors.neutral.muted;
 
   const padding = elevated ? theme.spacing[8] : theme.spacing[4];
@@ -37,7 +37,6 @@ export const Input = ({ style, elevated, placeholder, leftIcon, onLeftPress, onF
       { borderRadius: theme.radius.full },
       { padding, paddingLeft, paddingRight },
       elevated && styles.elevated,
-      elevated && styles.neutralElevated,
       style,
     ]}>
       <ViewComponent
@@ -48,7 +47,6 @@ export const Input = ({ style, elevated, placeholder, leftIcon, onLeftPress, onF
           color
         ]}
       />
-      <View style={[StyleSheet.absoluteFill, styles.borders]} />
       {leftIcon && <ButtonIcon
         variant={"neutral-subtle"}
         elevated={true}

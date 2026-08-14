@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 import { ButtonPill } from "./button-pill";
 import { Icon, MorphIcon } from "./icons";
-import { ViewStyle } from "react-native";
+import { ViewStyle, StyleSheet } from "react-native";
+import { theme } from "theme";
 
 type Props = {
   children: ReactNode;
@@ -31,10 +32,18 @@ export const Button = ({
   elevated={elevated}
   isLoading={isLoading}
   disabled={disabled}
-  style={style}
-  leftContent={leftIcon ? <MorphIcon icon={leftIcon} size={20} /> : undefined}
-  rightContent={rightIcon ? <MorphIcon icon={rightIcon} size={20} /> : undefined}
+  style={StyleSheet.flatten([styles.button, style])}
+  leftContent={leftIcon ? <MorphIcon icon={leftIcon} size={18} /> : undefined}
+  rightContent={rightIcon ? <MorphIcon icon={rightIcon} size={18} /> : undefined}
   size="md"
 >
     {children}
   </ButtonPill>;
+
+const styles = StyleSheet.create({
+  button: {
+    paddingVertical: theme.spacing[6],
+    paddingHorizontal: theme.spacing[12],
+    gap: theme.spacing[8],
+  }
+})

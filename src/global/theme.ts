@@ -110,7 +110,7 @@ const Texts = {
   },
   base: {
     fontSize: 15,
-    lineHeight: 16.8,
+    lineHeight: 17.1,
     letterSpacing: -0.28,
     fontWeight: Platform.OS === "web" ? 600 : 500
   },
@@ -139,7 +139,7 @@ export const theme = {
       /** Frosted card sitting above the page. */
       elevated: _withAlpha(PALETTE.neutral[0], 0.7),
       elevatedSubtle: _withAlpha(PALETTE.neutral[0], 0.3),
-      input: PALETTE.neutral[100],
+      input: _withAlpha(PALETTE.neutral[0], 0.7),
     },
     border: {
       /** Hairline on translucent surfaces; reads as a highlight, not a line. */
@@ -154,8 +154,8 @@ export const theme = {
    *
    * The closed union is the whole point: `padding: 7` compiles, `theme.spacing[7]` does not.
    */
-  spacing: { 2: 2, 4: 4, 6: 6, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 28: 28 },
-  radius: { xs: 6, md: 20, lg: 24, full: 999 },
+  spacing: { 2: 2, 4: 4, 6: 6, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 28: 28, 32: 32 },
+  radius: { xs: 6, sm: 16, md: 20, lg: 24, full: 999 },
   font: Texts,
 } as const;
 

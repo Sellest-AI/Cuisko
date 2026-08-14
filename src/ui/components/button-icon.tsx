@@ -9,7 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 type Props = {
   children: Icon;
-  variant?: "primary" | "primary-subtle" | "secondary" | "secondary-subtle" | "neutral" | "neutral-inverted" | "neutral-subtle";
+  variant?: "primary" | "primary-subtle" | "secondary" | "secondary-subtle" | "neutral" | "neutral-inverted" | "neutral-subtle" | "danger";
   elevated?: boolean;
   isLoading?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
@@ -38,13 +38,14 @@ export const ButtonIcon = ({
 }: Props) => {
   const spin = useSpin(isLoading);
 
-  const color = variant === "primary" ? styles.primary :
-    variant === "primary-subtle" ? styles.primaryElevated :
-      variant === "secondary" ? styles.secondary :
-        variant === "secondary-subtle" ? styles.secondaryElevated :
-          variant === "neutral" ? styles.neutral :
-            variant === "neutral-inverted" ? styles.neutralInverted :
-              styles.neutralSubtle;
+  const color = variant === "danger" ? styles.danger :
+    variant === "primary" ? styles.primary :
+      variant === "primary-subtle" ? styles.primaryElevated :
+        variant === "secondary" ? styles.secondary :
+          variant === "secondary-subtle" ? styles.secondaryElevated :
+            variant === "neutral" ? styles.neutral :
+              variant === "neutral-inverted" ? styles.neutralInverted :
+                styles.neutralSubtle;
 
   const padding =
     size === "xs" ? 8 :
@@ -56,21 +57,17 @@ export const ButtonIcon = ({
 
   const Component = isBaseNeutral ? BlurView : View;
 
-  const extraPressableStyle = isBaseNeutral ? {
-    borderRadius: theme.radius.full,
-    backgroundColor: colors.surface.elevatedSubtle,
-  } : undefined;
-
   const elevation = variant === "neutral-inverted" ?
     styles.elevated : styles.elevatedSubtle;
 
   const borderWidth = variant === "neutral-inverted" ? 1 : 2;
 
+  const hasGradient = variant === "neutral-inverted" || (variant === "danger" && elevated);
+
   return (
     <Pressable
       style={{
         alignSelf: "flex-start",
-        ...extraPressableStyle,
         pointerEvents: composite ? "none" : "auto",
         ...style
       }}
@@ -86,9 +83,11 @@ export const ButtonIcon = ({
           color,
           { padding, borderWidth },
         ]}>
-        {variant === "neutral-inverted" && (
+        {hasGradient && (
           <LinearGradient
-            colors={[theme.colors.neutral.base, theme.colors.neutral.muted]}
+            colors={
+              variant === "neutral-inverted" ? [theme.colors.neutral.base, theme.colors.neutral.muted] :
+                [theme.colors.danger.base, theme.colors.danger.elevated]}
             style={[StyleSheet.absoluteFill, { borderRadius: theme.radius.full }]}
             start={{ x: 0, y: 1 }}
             end={{ x: 1, y: 0 }}
@@ -96,7 +95,7 @@ export const ButtonIcon = ({
         )}
         <Animated.View style={spin}>
           <MorphIcon
-            size={20}
+            size={size === "xs" ? 18 : 20}
             color={color.color}
             icon={isLoading ? LoaderCircle : children}
           />
@@ -164,5 +163,10 @@ const styles = StyleSheet.create({
   neutralInverted: {
     backgroundColor: colors.neutral.muted,
     color: colors.background
+  },
+  /** Destructive, and the only place in the app that fills a control with it. */
+  danger: {
+    backgroundColor: colors.danger.base,
+    color: colors.danger.foreground,
   }
 })

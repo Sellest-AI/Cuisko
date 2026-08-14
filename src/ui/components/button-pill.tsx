@@ -102,16 +102,10 @@ export const ButtonPill = ({
 
   const ViewComponent = variant === "neutral" ? BlurView : View;
 
-  const extraPressableStyle = variant === "neutral" ? {
-    borderRadius: theme.radius.full,
-    backgroundColor: elevated ? colors.surface.elevated : colors.surface.elevatedSubtle,
-  } : undefined;
-
   return (
     <Pressable
       style={{
         alignSelf: "flex-start",
-        ...extraPressableStyle,
         ...styles.borderRadius,
         ...rest
       }}
@@ -123,7 +117,7 @@ export const ButtonPill = ({
         style={[
           styles.base,
           styles.borderRadius,
-          { gap },
+          { gap, borderColor },
           { padding, paddingLeft, paddingRight },
           { paddingHorizontal, paddingVertical, minHeight },
           elevated && styles.elevated,
@@ -135,14 +129,6 @@ export const ButtonPill = ({
           end={{ x: 1, y: -10 }}
           style={[styles.absolute, styles.borderRadius]}
         />}
-        <View
-          style={{
-            ...styles.absolute,
-            borderWidth: 2,
-            borderColor: borderColor,
-            borderRadius: theme.radius.full,
-          }}
-        />
         {leftContent && <View style={{ position: "relative" }}>
           {leftContent}
         </View>}
@@ -193,6 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: theme.spacing[12],
     minHeight: 36,
+    borderWidth: 2,
   },
   borderRadius: {
     borderRadius: theme.radius.full,

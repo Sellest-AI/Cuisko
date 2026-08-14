@@ -23,14 +23,19 @@ export type { LucideIcon as IconComponent } from "lucide-react-native";
 export {
   ArrowRight, LoaderCircle, Check, CircleDashed, ChevronDown, ChevronUp, ArrowLeftRight,
   CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
-  BadgePercent, X, ArrowLeft, Sparkles
+  BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck,
+  ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
   ArrowLeftRight as ArrowLeftRightIcon, CalendarPlus as CalendarPlusIcon, Eye as EyeIcon,
   Star as StarIcon, Bell as BellIcon, Camera as CameraIcon, Mic as MicIcon, ForkKnife as ForkKnifeIcon,
   Plus as PlusIcon, ListPlus as ListPlusIcon, Store as StoreIcon, ReceiptText as ReceiptTextIcon,
-  BadgePercent as BadgePercentIcon, X as XIcon, ArrowLeft as ArrowLeftIcon, Sparkles as SparklesIcon
+  BadgePercent as BadgePercentIcon, X as XIcon, ArrowLeft as ArrowLeftIcon, Sparkles as SparklesIcon,
+  Sun as SunIcon, Moon as MoonIcon, Minus as MinusIcon, Calendar as CalendarIcon,
+  CircleAlert as CircleAlertIcon, CircleCheck as CircleCheckIcon, ThumbsUp as ThumbsUpIcon,
+  EllipsisVertical as EllipsisVerticalIcon, SlidersHorizontal as SlidersHorizontalIcon,
+  Smile as SmileIcon, Search as SearchIcon, Trash2 as Trash2Icon, MessageCircleWarning as MessageCircleWarningIcon
 } from "lucide-react-native";
 
 /** The renderer, re-exported so nothing outside this file has to know about morphicons. */

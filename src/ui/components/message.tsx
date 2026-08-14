@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     borderBottomLeftRadius: theme.radius.xs,
     backgroundColor: "transparent",
-    maxWidth: "95%"
+    flexShrink: 1,
   },
   elevated: {
     boxShadow: [
