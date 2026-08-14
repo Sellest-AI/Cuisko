@@ -16,10 +16,15 @@ import type { CellarEntry, GroceryLine, HistoryEntry, Ingredient, Receipt } from
 /** One clock for the whole seed, so the ordering of the placeholder rows is stable. */
 const SEEDED_AT = new Date();
 
-const RATATOUILLE = { id: "ratatouille", name: "Ratatouille" };
-const SOUPE = { id: "soupe", name: "Soupe de légumes" };
-const TARTE = { id: "tarte", name: "Tarte au citron" };
-const GRATIN = { id: "gratin", name: "Gratin de courgettes" };
+/**
+ * The plates these claims came from, keyed the way planning mints a plate id — `YYYY-MM-DD:slot`.
+ * Fixed dates rather than dates around `SEEDED_AT`: nothing reads them yet, and a seed that drifts
+ * with the clock is one more thing to explain when it does.
+ */
+const RATATOUILLE = { id: "2026-01-06:dinner", title: "Ratatouille" };
+const SOUPE = { id: "2026-01-07:lunch", title: "Soupe de légumes" };
+const TARTE = { id: "2026-01-07:dinner", title: "Tarte au citron" };
+const GRATIN = { id: "2026-01-08:dinner", title: "Gratin de courgettes" };
 
 const INGREDIENTS: Ingredient[] = [
   { id: "tomatoes", name: "Tomates", emoji: "🍅" },
@@ -37,27 +42,27 @@ const INGREDIENTS: Ingredient[] = [
 ];
 
 /**
- * Deliberately holds the same ingredient more than once — carrots are claimed by two recipes,
- * and stay two rows. The grid adds them up for display; the store never does.
+ * Deliberately holds the same ingredient more than once — carrots are claimed by two plates, and
+ * stay two rows. The grid adds them up for display; the store never does.
  */
 const LINES: GroceryLine[] = [
-  { id: "line-1", ingredientId: "tomatoes", recipe: RATATOUILLE, amount: 500, unit: "g", createdAt: SEEDED_AT },
-  { id: "line-2", ingredientId: "tomatoes", recipe: SOUPE, amount: 300, unit: "g", createdAt: SEEDED_AT },
-  { id: "line-3", ingredientId: "carrots", recipe: RATATOUILLE, amount: 2, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-4", ingredientId: "carrots", recipe: SOUPE, amount: 4, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-5", ingredientId: "peppers", recipe: RATATOUILLE, amount: 3, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-6", ingredientId: "aubergines", recipe: RATATOUILLE, amount: 2, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-7", ingredientId: "onions", recipe: RATATOUILLE, amount: 1, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-8", ingredientId: "onions", recipe: SOUPE, amount: 200, unit: "g", createdAt: SEEDED_AT },
-  { id: "line-9", ingredientId: "garlic", recipe: RATATOUILLE, amount: 1, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-10", ingredientId: "lemons", recipe: TARTE, amount: 4, unit: "pcs", createdAt: SEEDED_AT },
-  { id: "line-11", ingredientId: "parmesan", recipe: GRATIN, amount: 200, unit: "g", createdAt: SEEDED_AT },
+  { id: "line-1", ingredientId: "tomatoes", meal: RATATOUILLE, amount: 500, unit: "g", createdAt: SEEDED_AT },
+  { id: "line-2", ingredientId: "tomatoes", meal: SOUPE, amount: 300, unit: "g", createdAt: SEEDED_AT },
+  { id: "line-3", ingredientId: "carrots", meal: RATATOUILLE, amount: 2, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-4", ingredientId: "carrots", meal: SOUPE, amount: 4, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-5", ingredientId: "peppers", meal: RATATOUILLE, amount: 3, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-6", ingredientId: "aubergines", meal: RATATOUILLE, amount: 2, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-7", ingredientId: "onions", meal: RATATOUILLE, amount: 1, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-8", ingredientId: "onions", meal: SOUPE, amount: 200, unit: "g", createdAt: SEEDED_AT },
+  { id: "line-9", ingredientId: "garlic", meal: RATATOUILLE, amount: 1, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-10", ingredientId: "lemons", meal: TARTE, amount: 4, unit: "pcs", createdAt: SEEDED_AT },
+  { id: "line-11", ingredientId: "parmesan", meal: GRATIN, amount: 200, unit: "g", createdAt: SEEDED_AT },
 ];
 
 /**
  * Carrots seed the case the whole model exists for: six are wanted, one is already owned, so the
  * list asks for five — and an undo must give back the five, never the one. Bread seeds the other
- * half: owned, claimed by no recipe, and so visible nowhere but the cellar.
+ * half: owned, claimed by no plate, and so visible nowhere but the cellar.
  */
 const CELLAR: CellarEntry[] = [
   { id: "cellar-1", ingredientId: "carrots", unit: "pcs", amount: 1, updatedAt: SEEDED_AT },

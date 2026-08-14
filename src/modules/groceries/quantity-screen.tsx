@@ -75,7 +75,7 @@ const Picker = ({
             unit={unitLabel(option.unit)}
             caption={option.caption}
             type={intent === "remove" ? "undo" : "default"}
-            width={itemWidth}
+            width={itemWidth - 1}
             onPress={() => choose(option.amount)}
           />
         ))}

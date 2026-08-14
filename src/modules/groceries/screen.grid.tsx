@@ -142,7 +142,7 @@ export const GroceryGrid = () => {
             quantity={quantity}
             emoji={row.stock.emoji}
             variant={variantFor(row.stock)}
-            width={itemWidth}
+            width={itemWidth - 1}
             onPress={() => tap(row.stock)}
           />
         )

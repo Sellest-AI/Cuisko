@@ -3,9 +3,9 @@
  *
  * Four sets, and every row on screen is a view of them:
  *
- * - **lines** — what is wanted, one row per ingredient × recipe. Never merged on write: dropping
- *   a recipe from the week is then deleting its lines, not unpicking a total that has already
- *   forgotten where it came from. A line with no recipe is one the shopper added themselves.
+ * - **lines** — what is wanted, one row per ingredient × plate. Never merged on write: dropping a
+ *   meal from the week is then deleting its lines, not unpicking a total that has already
+ *   forgotten where it came from. A line with no meal is one the shopper added themselves.
  * - **cellar** — what the household owns. The single truth of "have".
  * - **receipts** — what went in within the last few minutes, so a mistap at the till can be
  *   undone by its exact amount.
@@ -29,13 +29,10 @@
  * No React and no Jotai here; `atoms.ts` holds the state and the hooks call into this.
  */
 
-import { UNITS as SHARED_UNITS } from "@shared/ingredients";
+import { type Unit } from "@shared/ingredients";
 
-export const UNITS = SHARED_UNITS;
-export type Unit = (typeof UNITS)[number];
-
-export const isUnit = (value: string | undefined): value is Unit =>
-  value !== undefined && (UNITS as readonly string[]).includes(value);
+/** The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too. */
+export { formatQuantity, isUnit, unitLabel, type Unit } from "@shared/ingredients";
 
 /** Which section a tap came from. Each one can only move stock its own way. */
 export const INTENTS = ["buy", "remove", "relist"] as const;
@@ -66,8 +63,15 @@ export type GroceryLine = {
   ingredientId: string;
   amount: number;
   unit: Unit;
-  /** Absent when the shopper added it themselves rather than a recipe asking for it. */
-  recipe?: { id: string; name: string };
+  /**
+   * The plate that asked for it. Absent when the shopper added it themselves.
+   *
+   * Keyed on the *plate* — one dish on one day — and not on the recipe, because a week serving the
+   * same dish twice would otherwise have both plates sharing an id: swapping Tuesday's would take
+   * Friday's claims away with it, and the list would quietly stop asking for food still being
+   * cooked. `title` rides along for display; nothing matches on it.
+   */
+  meal?: { id: string; title: string };
   /** Becomes `_creationTime` once this is a table. */
   createdAt: Date;
 };
@@ -125,7 +129,7 @@ export const matchesRef =
       row.ingredientId === ref.ingredientId && row.unit === ref.unit;
 
 export type Stock = {
-  /** Everything asked for, across every recipe and anything added by hand. */
+  /** Everything asked for, across every plate and anything added by hand. */
   needed: number;
   /** Everything the cellar holds. */
   owned: number;
@@ -459,14 +463,28 @@ export const rememberStock = (
 };
 
 /**
+ * The list without what one plate was asking for.
+ *
+ * The counterpart to putting a dish on a plate: swapping Tuesday's dinner or dropping it from the
+ * week has to take its claims with it, or the list goes on shopping for a meal nobody is cooking.
+ * Lines the shopper added by hand carry no plate and so are never caught by this — which is the
+ * whole reason a hand-added line is stored without one.
+ *
+ * Deleted rather than reduced. A plate's claims are the plate's; there is no shared total to unpick,
+ * which is exactly what keeping one line per ingredient × plate buys.
+ */
+export const dropMealLines = (lines: GroceryLine[], mealId: string): GroceryLine[] =>
+  lines.filter((line) => line.meal?.id !== mealId);
+
+/**
  * Discharges `amount` of what was asked for, oldest claim first.
  *
  * Stock leaving the cellar for good has been used, so the claim on it is settled too — without
  * this the derived gap would reopen and the ingredient would bounce back onto the list instead of
  * falling into memory.
  *
- * Oldest first is a placeholder. The real discharge arrives from the recipe being cooked, which
- * knows which lines are its own and does not have to guess.
+ * Oldest first is a placeholder. The real discharge arrives from the plate being cooked, which
+ * knows which lines are its own and does not have to guess — see `dropMealLines`.
  */
 export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number): GroceryLine[] => {
   const claimed = lines
@@ -493,25 +511,3 @@ export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number)
     .filter((line) => line.amount > 0);
 };
 
-const UNIT_LABELS: Record<Unit, string> = {
-  g: "g",
-  mg: "mg",
-  kg: "kg",
-  lb: "lb",
-  oz: "oz",
-  cl: "cl",
-  ml: "ml",
-  l: "L",
-  pcs: "pcs",
-  cs: "cs",
-  cc: "cc",
-};
-
-export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
-
-/**
- * Placeholder formatting. Real copy normalises per ingredient — "4 yaourts", not "500 g of
- * yoghurt" — which needs the ingredient to carry its own preferred unit, and that is not
- * modelled yet.
- */
-export const formatQuantity = (amount: number, unit: Unit) => `${amount} ${unitLabel(unit)}`;
