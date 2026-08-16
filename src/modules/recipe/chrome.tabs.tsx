@@ -5,7 +5,7 @@ import { Button } from "@ui/button";
 import { Icon } from "@ui/icons";
 import { theme } from "theme";
 
-import { SCREEN_PADDING } from "../constants";
+import { SCREEN_PADDING } from "./constants";
 
 export type RecipeTab = {
   key: string;

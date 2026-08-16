@@ -5,7 +5,7 @@ import { ButtonIcon } from "@ui/button-icon";
 import { Heart, Share2, SquarePen } from "@ui/icons";
 import { theme } from "theme";
 
-import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../constants";
+import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "./constants";
 
 type Props = {
   /** Diet and course labels, already written for display — "🥬 Vegetarian". */

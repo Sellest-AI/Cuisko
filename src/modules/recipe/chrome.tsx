@@ -8,10 +8,10 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 
 import { CONTENT_NEGATIVE_SPACE } from "./constants";
-import { RecipeHeader } from "./_components/recipe-header";
-import { RecipeIntro } from "./_components/recipe-intro";
-import { RecipeTabs, RecipeTab } from "./_components/recipe-tabs";
-import { ChromeNavigationBar } from "./_components/chrome-navigation-bar";
+import { RecipeHeader } from "./chrome.header";
+import { RecipeIntro } from "./chrome.intro";
+import { RecipeTabs, RecipeTab } from "./chrome.tabs";
+import { ChromeNavigationBar } from "./chrome.navigation-bar";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const RECIPE = {

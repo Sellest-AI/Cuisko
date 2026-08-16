@@ -5,7 +5,7 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { Stat } from "./stat";
+import { Stat } from "./nutrition-card.stat";
 
 type Props = {
   protein: string;

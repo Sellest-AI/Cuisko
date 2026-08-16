@@ -59,7 +59,7 @@ export const IngredientsScreen = () => {
       <ActionRow
         variant="secondary"
         style={styles.action}
-        onPress={() => { }}
+        onPress={() => null}
         content={t("Ingredients.add_to_list")}
         contentIcon={ListPlus}
         subtitle={t("Ingredients.add_to_list_subtitle")}
