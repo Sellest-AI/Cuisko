@@ -4,7 +4,7 @@ import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
 import { Minus, Plus, X } from "@ui/icons";
-import { m } from "@ui/motion";
+import { AnimatePresence, m } from "@ui/motion";
 import { ParallaxScrollView } from "@ui/parallax-scroll-view";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { theme } from "theme";
@@ -89,6 +89,7 @@ export const StepByStepScreen = ({ onClose }: Props) => {
   const [barHeight, setBarHeight] = useState(NAVIGATION_BAR_OFFSET);
 
   const step = STEPS[index]!;
+  const isLast = index === STEPS.length - 1;
 
   return (
     <View style={styles.screen}>
@@ -128,6 +129,7 @@ export const StepByStepScreen = ({ onClose }: Props) => {
               duration={step.duration}
               instruction={step.instruction}
               ingredients={step.ingredients}
+              isLast={isLast}
             />
           </m.View>
         </RecipeScreen>
@@ -141,23 +143,32 @@ export const StepByStepScreen = ({ onClose }: Props) => {
         <ButtonIcon elevated variant="neutral-inverted" size="md" onPress={onClose}>
           {X}
         </ButtonIcon>
-        <ButtonPill
-          elevated
-          variant="primary"
-          leftIcon={Minus}
-          rightIcon={Plus}
-          // Set the serving size
-          onLeftPress={() => { }}
-          onRightPress={() => { }}
-          onPress={() => null}
-          size="sm"
-        >
-          5
-        </ButtonPill>
+        <AnimatePresence>
+          {index === 0 && <m.View
+            from={{ opacity: 0, translateX: "100%" }}
+            animate={{ opacity: 1, translateX: "0%" }}
+            exit={{ opacity: 0, translateX: "100%" }}
+            transition={{ type: "timing", duration: 220 }}
+          >
+            <ButtonPill
+              elevated
+              variant="primary"
+              leftIcon={Minus}
+              rightIcon={Plus}
+              // Set the serving size
+              onLeftPress={() => { }}
+              onRightPress={() => { }}
+              onPress={() => null}
+              size="sm"
+            >
+              5
+            </ButtonPill>
+          </m.View>}
+        </AnimatePresence>
       </SafeAreaView>
       <StepBar
         isFirst={index === 0}
-        isLast={index === STEPS.length - 1}
+        isLast={isLast}
         onPrevious={() => { setIndex((current) => Math.max(0, current - 1)); setPreviousIndex(index) }}
         onNext={() => { setIndex((current) => Math.min(STEPS.length - 1, current + 1)); setPreviousIndex(index); }}
         /**
@@ -175,6 +186,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    overflow: "hidden",
   },
   /**
    * The rounded strip of content that overlaps the photo, so the two meet on a curve. It paints

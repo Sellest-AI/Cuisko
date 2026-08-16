@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, View, ViewStyle } from "react-native";
 
+import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
 import { DatabaseX, SkipBack, SkipForward } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
@@ -58,12 +59,12 @@ const UpdateCellarButton = ({ onPress, style }: { onPress: () => void; style: Vi
 
   return (
     <ButtonPill
+      size="lg"
       elevated
       variant="secondary"
-      size="lg"
       leftIcon={DatabaseX}
       onPress={onPress}
-      style={StyleSheet.flatten([style, disabled ? { opacity: 0.5 } : undefined])}
+      style={style}
       disabled={disabled}
     >
       {updateCellarText}
@@ -90,20 +91,32 @@ export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, onHeigh
       exit={{ opacity: 0, translateY: NAVIGATION_BAR_HEIGHT }}
       transition={{ type: "timing", duration: 300, delay: 300 }}
     >
-      {!isLast && <LinearGradient
+      <LinearGradient
         pointerEvents="none"
         colors={["transparent", "rgba(0, 0, 0, 0.1)"]}
         style={styles.fade}
-      />}
+      />
       {isLast ? (
         <>
           <InfoBanner variant="secondary" title={t("Cooking.cellar_title")} icon={DatabaseX} style={styles.banner}>
             {t("Cooking.cellar_body")}
           </InfoBanner>
-          <UpdateCellarButton
-            style={styles.finish}
-            onPress={onFinish}
-          />
+          <View style={styles.controls}>
+            <ButtonIcon
+              elevated
+              onPress={onPrevious}
+              variant="neutral-subtle"
+              style={styles.finish}
+              disabled={isFirst}
+              size="lg"
+            >
+              {SkipBack}
+            </ButtonIcon>
+            <UpdateCellarButton
+              style={styles.finish}
+              onPress={onFinish}
+            />
+          </View>
         </>
       ) : (
         <View style={styles.controls}>
@@ -118,11 +131,17 @@ export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, onHeigh
             rightIcon={SkipBack}
             onPress={onPrevious}
             disabled={isFirst}
-            style={isFirst ? styles.inert : undefined}
+            elevated
           >
             {t("Cooking.previous")}
           </ButtonPill>
-          <ButtonPill elevated variant="secondary" size="lg" leftIcon={SkipForward} onPress={onNext}>
+          <ButtonPill
+            elevated
+            variant="secondary"
+            size="lg"
+            leftIcon={SkipForward}
+            onPress={onNext}
+          >
             {t("Cooking.next")}
           </ButtonPill>
         </View>
@@ -159,6 +178,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: theme.spacing[16],
   },
-  inert: { opacity: 0.5 },
   finish: { alignSelf: "center" },
 });

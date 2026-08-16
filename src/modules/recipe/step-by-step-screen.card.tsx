@@ -11,6 +11,8 @@ import { columnWidth } from "./constants";
 type Props = {
   /** 1-based, because it is what the cook reads — the array index is the screen's business. */
   position: number;
+  /** The final step, badged so the cook sees the end coming before the bar changes shape. */
+  isLast?: boolean;
   /** Already written for display — "15 minutes". */
   duration: string;
   instruction: string;
@@ -22,14 +24,19 @@ type Props = {
 const COLUMNS = 3;
 
 /** One step of the method, spelled out: what to do, how long it takes, what it takes. */
-export const StepCard = ({ position, duration, instruction, ingredients }: Props) => {
+export const StepCard = ({ position, duration, instruction, ingredients, isLast }: Props) => {
   const t = useTranslations("Recipe");
   const { width } = useWindowDimensions();
 
   return (
     <View style={styles.card}>
       <View style={styles.heading}>
-        <Text.H4 color={theme.colors.neutral.muted}>{stepNumber(position)}</Text.H4>
+        <Text.H4 color={theme.colors.neutral.muted}>
+          {stepNumber(position)}
+          {isLast && <Text.Base style={{ marginLeft: theme.spacing[8] }} color={theme.colors.primary.base}>
+            {t("Cooking.last_step")}
+          </Text.Base>}
+        </Text.H4>
         <Text.Base color={theme.colors.neutral.muted}>{duration}</Text.Base>
       </View>
       <Text.Body color={theme.colors.foreground} style={styles.instruction}>

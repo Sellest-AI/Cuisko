@@ -30,6 +30,7 @@
     "title": "Instructions"
   },
   "Cooking": {
+    "last_step": "Last step",
     "step_ingredients": "For this step",
     "previous": "Previous",
     "next": "Next",
