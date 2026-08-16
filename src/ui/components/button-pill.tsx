@@ -114,6 +114,10 @@ export const ButtonPill = ({
 
   const gap = styleGap ?? styles.base.gap;
 
+  const isDisabled = disabled || isLoading;
+  const containerOpacity = isDisabled ? 0.5 : 1;
+  const textOpacity = isDisabled ? 0.7 : 1;
+
   const ViewComponent = variant === "neutral" ? BlurView : View;
 
   return (
@@ -121,10 +125,11 @@ export const ButtonPill = ({
       style={{
         alignSelf: "flex-start",
         ...styles.borderRadius,
-        ...rest
+        ...rest,
+        opacity: containerOpacity,
       }}
       onPress={onPress}
-      disabled={disabled || isLoading}
+      disabled={isDisabled}
     >
       <ViewComponent
         tint="light"
@@ -161,7 +166,7 @@ export const ButtonPill = ({
             style={{
               color: color.color,
               fontWeight: 600,
-              opacity: isLoading ? 0.5 : 1,
+              opacity: textOpacity,
             }}
           >
             {children}
