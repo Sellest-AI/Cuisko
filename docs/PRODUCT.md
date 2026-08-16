@@ -219,11 +219,18 @@ The first version has to make the core promise real end to end, and nothing more
 
 - The cellar, the grocery list, and the weekly planning — the loop from "what I own" to "what I
   cook" to "what I still need to buy".
+- The recipe screens and step-by-step cooking mode, which close that loop: cooking is the step that
+  turns owned food into a meal, and it is what tells the cellar which ingredients were spent.
 
-Everything else — receipt scanning, the community catalogue, nutrition goals, step-by-step cooking
-mode — is real product, planned, and deliberately not first. They amplify the core loop; none of
-them can substitute for it. If a decision trades quality in the core loop for progress on one of
-these, it is the wrong trade.
+Step-by-step cooking mode was originally listed below as deliberately not first. It moved into
+scope once it became clear the cellar cannot stay accurate without it — the app has no other moment
+at which to learn what a meal consumed. It ships ahead of its data: the screens are built, and the
+queries that feed them are not.
+
+Everything else — receipt scanning, the community catalogue, nutrition goals — is real product,
+planned, and deliberately not first. They amplify the core loop; none of them can substitute for
+it. If a decision trades quality in the core loop for progress on one of these, it is the wrong
+trade.
 
 ---
 
