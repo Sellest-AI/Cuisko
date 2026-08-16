@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 
 import { GroceryItem } from "@ui/cards/grocery-item";
@@ -9,7 +8,7 @@ import { SCREEN_PADDING } from "./constants";
 
 type Props = {
   title: string;
-  /** Right-hand note on the heading — "For 2 people". */
+  /** Right-hand note on the heading — Example: "For 2 people". */
   caption?: string;
   items: { emoji: string; name: string }[];
 };
@@ -20,7 +19,7 @@ type Props = {
  * The row bleeds to both screen edges and pads its own content instead of sitting inside a gutter,
  * so a list longer than the screen looks cut off by the screen rather than by a margin.
  */
-export const GroceryRow = ({ title, caption, items }: Props): ReactNode => (
+export const GroceryRow = ({ title, caption, items }: Props) => (
   <View>
     <View style={styles.heading}>
       <Text.Lg>{title}</Text.Lg>
