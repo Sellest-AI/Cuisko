@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, View, ViewStyle } from "react-native";
 
@@ -9,7 +10,6 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 
 import { NAVIGATION_BAR_HEIGHT } from "~/modules/navigation/constants";
-import { useEffect, useState } from "react";
 
 type Props = {
   /** Nothing came before this step, so there is nowhere to go back to. */
@@ -29,15 +29,28 @@ type Props = {
 /** How far above the bar the content has dissolved by, in points. */
 const FADE_HEIGHT = 40;
 
+/**
+ * How long the cellar button stays inert, in seconds. Finishing spends real ingredients out of the
+ * cook's stock, and the last step is the one place the Next button has been under a moving thumb —
+ * so the control that consumes the cellar refuses to be the one that thumb lands on.
+ */
+const FINISH_DELAY_SECONDS = 3;
+
 const UpdateCellarButton = ({ onPress, style }: { onPress: () => void; style: ViewStyle }) => {
   const t = useTranslations("Recipe");
-  const [timer, setTimer] = useState(3);
+  const [timer, setTimer] = useState(FINISH_DELAY_SECONDS);
+
+  /**
+   * Stopping is the effect's job, not the updater's: a state updater must be pure, and React runs
+   * it twice under StrictMode — so clearing the interval inside it fired the teardown on a render
+   * that had not committed. Re-running on each tick lets the guard below end the countdown at zero
+   * rather than one past it.
+   */
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimer((current) => { if (current <= 0) { clearInterval(interval); } return current - 1; });
-    }, 1000);
+    if (timer <= 0) return;
+    const interval = setInterval(() => setTimer((current) => Math.max(0, current - 1)), 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timer]);
 
   const disabled = timer > 0;
   const updateCellarText = disabled ?
