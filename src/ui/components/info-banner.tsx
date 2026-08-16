@@ -8,7 +8,11 @@ type Props = {
   title: string,
   icon: Icon,
   children: string,
-  variant: "warning"
+  /**
+   * What the banner is for, not what it looks like: `warning` is something to be careful about,
+   * `secondary` something about to happen that the user is expected to welcome.
+   */
+  variant: "warning" | "secondary"
 }
 
 export const InfoBanner = ({ variant, style, title, icon, children }: Props) => {
@@ -58,5 +62,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.danger.elevated,
     backgroundColor: theme.colors.danger.subtle,
     color: theme.colors.danger.base,
+  },
+  secondary: {
+    borderColor: theme.colors.secondary.elevated,
+    backgroundColor: theme.colors.secondary.subtle,
+    color: theme.colors.secondary.base,
   }
 })

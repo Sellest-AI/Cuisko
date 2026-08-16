@@ -110,7 +110,7 @@ const Texts = {
   },
   base: {
     fontSize: 15,
-    lineHeight: 17.1,
+    lineHeight: 17.8,
     letterSpacing: -0.28,
     fontWeight: Platform.OS === "web" ? 600 : 500
   },

@@ -26,7 +26,7 @@ type BaseProps = {
   isLoading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
 };
 
 /**
@@ -78,14 +78,19 @@ export const ButtonPill = ({
     variant === "secondary" ? [colors.secondary.base, colors.secondary.elevated] :
       ["transparent", "transparent"];
 
-  const color = variant === "primary" ? styles.primary :
+  const defaultColor = variant === "primary" ? styles.primary :
     variant === "secondary" ? styles.secondary :
       styles.neutral;
+
+  const color = {
+    backgroundColor: StyleSheet.flatten([defaultColor, style]).backgroundColor,
+    color: (StyleSheet.flatten([defaultColor, style]) as { color: ColorValue }).color,
+  };
 
   const borderColor = variant === "neutral" && !elevated ?
     colors.border.medium : colors.border.default;
 
-  const { paddingHorizontal, paddingVertical, gap,
+  const { paddingHorizontal, paddingVertical, gap: styleGap,
     paddingLeft: overridePaddingLeft, paddingRight: overridePaddingRight,
     padding: overridePadding, minHeight, ...rest } = StyleSheet.flatten(style || {}) || {};
 
@@ -99,6 +104,8 @@ export const ButtonPill = ({
 
   const paddingLeft = overridePaddingLeft ?? paddingHorizontal ?? defaultPaddingLeft;
   const paddingRight = overridePaddingRight ?? paddingHorizontal ?? defaultPaddingRight;
+
+  const gap = styleGap ?? styles.base.gap;
 
   const ViewComponent = variant === "neutral" ? BlurView : View;
 
@@ -135,8 +142,8 @@ export const ButtonPill = ({
         {leftIcon && <ButtonIcon
           variant={elevated ? `${variant}-subtle` : variant}
           elevated={true}
-          composite
-          size="sm"
+          composite={!onLeftPress}
+          size={size === "sm" ? "xs" : "sm"}
           isLoading={isLoading}
           onPress={onLeftPress}
         >
@@ -156,8 +163,8 @@ export const ButtonPill = ({
         {rightIcon && <ButtonIcon
           variant={elevated ? `${variant}-subtle` : variant}
           elevated={true}
-          composite
-          size="sm"
+          composite={!onRightPress}
+          size={size === "sm" ? "xs" : "sm"}
           isLoading={isLoading}
           onPress={onRightPress}
         >

@@ -77,6 +77,10 @@ const Lg = ({ children, color, weight, className, style, ...props }: Props) => {
   )
 }
 
+const Body = ({ style, ...props }: Props) => {
+  return <Base style={{ lineHeight: Texts.base.lineHeight * 1.1, fontWeight: 400, ...style }} {...props} />
+}
+
 const Base = ({ children, color, weight, className, style, ...props }: Props) => {
   const textBreakProps = style?.textBalance ? {
     textBreakStrategy: "balanced" as const,
@@ -126,4 +130,5 @@ const styles = StyleSheet.create({
 Text.H4 = H4;
 Text.Lg = Lg;
 Text.Base = Base;
+Text.Body = Body;
 Text.Sm = Sm;

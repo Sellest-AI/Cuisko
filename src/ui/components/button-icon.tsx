@@ -13,6 +13,8 @@ type Props = {
   elevated?: boolean;
   isLoading?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
+  /** The glyph alone, when the disc's own size is not the right scale for it. */
+  iconSize?: number;
   style?: ViewStyle;
   disabled?: boolean;
   onPress?: () => void;
@@ -34,6 +36,7 @@ export const ButtonIcon = ({
   elevated = false,
   size = "md",
   isLoading = false,
+  iconSize: iconSizeOverride,
   style,
 }: Props) => {
   const spin = useSpin(isLoading);
@@ -47,11 +50,13 @@ export const ButtonIcon = ({
               variant === "neutral-inverted" ? styles.neutralInverted :
                 styles.neutralSubtle;
 
-  const padding =
+  const defaultPadding =
     size === "xs" ? 8 :
       size === "sm" ? 10 :
         size === "md" ? 12 :
           size === "lg" ? 16 : 18;
+
+  const iconSize = iconSizeOverride ?? (size === "xs" ? 18 : 20);
 
   const isBaseNeutral = variant.includes("neutral") && !variant.includes("inverted");
 
@@ -62,18 +67,37 @@ export const ButtonIcon = ({
 
   const borderWidth = variant === "neutral-inverted" ? 1 : 2;
 
+  /**
+   * Padding is the disc's, not the frame's, so it is pulled out of `style` here and applied only
+   * below — spreading it onto the `Pressable` as well would apply a caller's padding twice.
+   */
+  const { padding: stylePadding, ...outerStyle } = StyleSheet.flatten(style || {});
+
+  const basePadding = stylePadding ?? defaultPadding;
+  /**
+   * `BlurView` repaints the border in an overlay, so it costs no layout — a neutral disc came out
+   * `borderWidth` smaller on every side than the same disc drawn on a `View`, and a `ButtonPill`
+   * holding one shrank with it. The blurred branch pays that inset in padding instead.
+   */
+  const padding = isBaseNeutral && typeof basePadding === "number" ?
+    basePadding + borderWidth : basePadding;
+
   const hasGradient = variant === "neutral-inverted" || (variant === "danger" && elevated);
+
+  const pressIntensity = size === "xs" ? 0.95 :
+    size === "sm" ? 0.97 : undefined;
 
   return (
     <Pressable
       style={{
         alignSelf: "flex-start",
         pointerEvents: composite ? "none" : "auto",
-        ...style
+        ...outerStyle
       }}
       onPress={onPress}
       disabled={disabled || isLoading}
       animated={!composite}
+      intensity={pressIntensity}
     >
       <Component
         tint="light"
@@ -95,7 +119,7 @@ export const ButtonIcon = ({
         )}
         <Animated.View style={spin}>
           <MorphIcon
-            size={size === "xs" ? 18 : 20}
+            size={iconSize}
             color={color.color}
             icon={isLoading ? LoaderCircle : children}
           />

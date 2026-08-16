@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanim
 import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { theme } from "theme";
+import { Image } from "../image";
 
 /**
  * One line of a grocery list — something to buy, or something already owned.
@@ -44,13 +45,14 @@ type Props = {
   quantity?: string;
   /** Stand-in for the produce photo until real ones exist. */
   emoji: string;
-  variant?: GroceryItemVariant;
+  markerSrc?: string;
+  variant?: GroceryItemVariant | "ghost";
   width?: number;
   onPress?: () => void;
   style?: ViewStyle;
 };
 
-export const GroceryItem = ({ name, quantity, emoji, variant = "pending", width, onPress, style }: Props) => (
+export const GroceryItem = ({ name, quantity, emoji, markerSrc, variant = "pending", width, onPress, style }: Props) => (
   <Animated.View layout={ITEM_TRANSITION} entering={ITEM_ENTERING} exiting={ITEM_EXITING} style={{ width }}>
     <Pressable
       intensity={0.9}
@@ -64,11 +66,19 @@ export const GroceryItem = ({ name, quantity, emoji, variant = "pending", width,
       <Text.Base color={theme.colors.muted} numberOfLines={1}>
         {name}
       </Text.Base>
-      {quantity && <View style={styles.quantity}>
-        <View style={styles.marker}>
-          <Text.Sm style={styles.markerEmoji}>{emoji}</Text.Sm>
-        </View>
-        <Text.Sm color={theme.colors.foreground} weight={700}>
+      {(quantity || markerSrc) && <View style={styles.quantity}>
+        {markerSrc && <View style={styles.marker}>
+          <Image
+            source={{ uri: markerSrc }}
+            style={styles.markerImage}
+            contentFit="contain"
+          />
+        </View>}
+        <Text.Sm
+          weight={700}
+          color={theme.colors.foreground}
+          style={variant === "ghost" ? styles.quantityBadge : undefined}
+        >
           {quantity}
         </Text.Sm>
       </View>}
@@ -88,6 +98,13 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.neutral.elevated,
     backgroundColor: theme.colors.surface.elevatedSubtle,
     minWidth: 100
+  },
+  ghost: {
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    minWidth: 64
   },
   /** Still missing: the container alone already draws it, so there is nothing to add. */
   pending: {},
@@ -120,17 +137,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing[4],
   },
+  quantityBadge: {
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface.elevatedSubtle,
+    borderColor: theme.colors.border.default,
+    borderWidth: 2,
+    padding: theme.spacing[4],
+    paddingHorizontal: theme.spacing[8],
+  },
   marker: {
     width: 16,
     height: 16,
-    borderRadius: theme.radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-    backgroundColor: theme.colors.neutral.subtle,
   },
-  markerEmoji: {
-    fontSize: 9,
-    lineHeight: 13,
+  markerImage: {
+    width: "100%",
+    height: "100%",
   },
 });
