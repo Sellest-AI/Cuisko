@@ -82,9 +82,16 @@ export const ButtonPill = ({
     variant === "secondary" ? styles.secondary :
       styles.neutral;
 
-  const color = {
-    backgroundColor: StyleSheet.flatten([defaultColor, style]).backgroundColor,
-    color: (StyleSheet.flatten([defaultColor, style]) as { color: ColorValue }).color,
+  const flatStyle = StyleSheet.flatten(style || {}) || {};
+
+  /**
+   * The label colour can only come from `defaultColor`: `style` is a `ViewStyle`, which has no
+   * `color`. Typed optional rather than asserted present, so a variant that ever ships without one
+   * shows up here instead of silently rendering the label in the platform default.
+   */
+  const color = StyleSheet.flatten([defaultColor, flatStyle]) as {
+    backgroundColor?: ColorValue;
+    color?: ColorValue;
   };
 
   const borderColor = variant === "neutral" && !elevated ?
@@ -92,7 +99,7 @@ export const ButtonPill = ({
 
   const { paddingHorizontal, paddingVertical, gap: styleGap,
     paddingLeft: overridePaddingLeft, paddingRight: overridePaddingRight,
-    padding: overridePadding, minHeight, ...rest } = StyleSheet.flatten(style || {}) || {};
+    padding: overridePadding, minHeight, ...rest } = flatStyle;
 
   const defaultPadding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
   const padding = overridePadding ?? defaultPadding;
