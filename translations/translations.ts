@@ -11,12 +11,14 @@ import enGroceries from "./en/groceries.json";
 import enHome from "./en/home.json";
 import enNavigation from "./en/navigation.json";
 import enPlanning from "./en/planning.json";
+import enRecipe from "./en/recipe.json";
 import frAuth from "./fr/auth.json";
 import frCommon from "./fr/common.json";
 import frGroceries from "./fr/groceries.json";
 import frHome from "./fr/home.json";
 import frNavigation from "./fr/navigation.json";
 import frPlanning from "./fr/planning.json";
+import frRecipe from "./fr/recipe.json";
 
 // Import the type to use in this file
 import type { IntlMessages, TranslationKeys } from "./types";
@@ -47,6 +49,7 @@ i18n.use(initReactI18next).init({
         Home: enHome,
         Navigation: enNavigation,
         Planning: enPlanning,
+        Recipe: enRecipe,
       },
     },
     fr: {
@@ -57,6 +60,7 @@ i18n.use(initReactI18next).init({
         Home: frHome,
         Navigation: frNavigation,
         Planning: frPlanning,
+        Recipe: frRecipe,
       },
     },
   },

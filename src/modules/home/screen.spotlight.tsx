@@ -4,6 +4,7 @@ import { CardRecipe } from "@ui/cards/recipe";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { router } from "expo-router";
 
 const CARD_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
 
@@ -42,6 +43,7 @@ export const WeeklySpotlight = () => {
             subtitle={recipe.subtitle}
             imageSrc={CARD_PLACEHOLDER}
             style={{ width: CARD_WIDTH }}
+            onPress={() => router.push("/recipe/pizza-slug-id")}
           />
         ))}
       </ScrollView>

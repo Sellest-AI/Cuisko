@@ -1,0 +1,41 @@
+{
+  "Tabs": {
+    "overview": "Aperçu",
+    "ingredients": "Ingrédients",
+    "instructions": "Instructions"
+  },
+  "Chrome": {
+    "start_cooking": "Passer en cuisine"
+  },
+  "Overview": {
+    "difficulty": "Difficulté",
+    "chef": "Chef",
+    "utensils": "Ustensiles",
+    "ingredients": "Ingrédients"
+  },
+  "Nutrition": {
+    "title": "Nutrition",
+    "estimated": "Estimation IA",
+    "protein": "Protéines",
+    "fat": "Lipides",
+    "carbs": "Glucides",
+    "calories": "Calories"
+  },
+  "Ingredients": {
+    "servings": "Portions",
+    "add_to_list": "Ajouter à ma liste",
+    "add_to_list_subtitle": "Seulement ce qui manque dans ta cuisine"
+  },
+  "Instructions": {
+    "title": "Instructions"
+  },
+  "Cooking": {
+    "step_ingredients": "Pour cette étape",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "update_cellar": "Mettre à jour ma cave",
+    "update_cellar_pending": "Mettre à jour ma cave ({{seconds, number}})",
+    "cellar_title": "Ta cave, mise à jour pour toi",
+    "cellar_body": "Tout ce que cette recette a utilisé sort de ta cave, pour que ta prochaine liste ne demande que ce qui manque vraiment."
+  }
+}

@@ -6,9 +6,9 @@ import { Providers } from "~/providers";
 /**
  * Root layout: the provider tree and the navigator. Nothing else belongs here.
  *
- * Only the modal group is declared. Expo Router registers every other route on its own; this one
- * needs a line because presentation is a property of how the parent stack pushes it, and nothing
- * inside `(modals)` can ask to be presented as a sheet.
+ * Only two routes are declared. Expo Router registers every other one on its own; these need a
+ * line because presentation is a property of how the parent stack pushes a route, and nothing
+ * inside `(modals)` — or inside the cooking screen — can ask to be presented over the app.
  */
 export default function RootLayout() {
   return (
@@ -16,6 +16,14 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+        {/*
+          * Cooking covers the app rather than sitting inside it: hands are busy, and a back
+          * gesture or a bar edge caught mid-step is a lost place in the method.
+          */}
+        <Stack.Screen
+          name="recipe/step-by-step/[id]"
+          options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+        />
       </Stack>
       <NavigationBar />
     </Providers>

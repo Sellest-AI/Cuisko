@@ -1,0 +1,41 @@
+{
+  "Tabs": {
+    "overview": "Overview",
+    "ingredients": "Ingredients",
+    "instructions": "Instructions"
+  },
+  "Chrome": {
+    "start_cooking": "Start cooking"
+  },
+  "Overview": {
+    "difficulty": "Difficulty",
+    "chef": "Chef",
+    "utensils": "Utensils",
+    "ingredients": "Ingredients"
+  },
+  "Nutrition": {
+    "title": "Nutrition",
+    "estimated": "AI estimate",
+    "protein": "Protein",
+    "fat": "Fat",
+    "carbs": "Carbs",
+    "calories": "Calories"
+  },
+  "Ingredients": {
+    "servings": "Servings",
+    "add_to_list": "Add to my list",
+    "add_to_list_subtitle": "Only what your kitchen is missing"
+  },
+  "Instructions": {
+    "title": "Instructions"
+  },
+  "Cooking": {
+    "step_ingredients": "For this step",
+    "previous": "Previous",
+    "next": "Next",
+    "update_cellar": "Update my cellar",
+    "update_cellar_pending": "Update my cellar ({{seconds, number}})",
+    "cellar_title": "Your cellar, updated for you",
+    "cellar_body": "Everything this recipe used comes out of your cellar, so your next list only asks for what is really missing."
+  }
+}
