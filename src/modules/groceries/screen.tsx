@@ -45,7 +45,7 @@ export const GroceryScreen = () => {
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.header}>
           <View style={styles.title}>
-            <ReceiptTextIcon size={28} />
+            <ReceiptTextIcon size={24} />
             <Text.H4>{t("title")}</Text.H4>
           </View>
           <Select value={list} onChange={setList} options={LISTS} />
