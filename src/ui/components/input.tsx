@@ -19,9 +19,13 @@ type Props = {
   // values
   value?: string,
   onChangeText?: (value: string) => void,
+  ref?: React.RefObject<TextInput | null>,
+  type?: "text" | "numeric" | "decimal" | "email",
 }
 
-export const Input = ({ style, elevated, placeholder, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
+export { TextInput } from "react-native";
+
+export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
   const color = elevated ? styles.neutralElevated : styles.neutral;
   const placeholderColor = theme.colors.neutral.muted;
 
@@ -57,6 +61,10 @@ export const Input = ({ style, elevated, placeholder, leftIcon, onLeftPress, onF
         {leftIcon}
       </ButtonIcon>}
       <TextInput
+        ref={ref}
+        inputMode={type === "numeric" ? "numeric" :
+          type === "decimal" ? "decimal" :
+            type === "email" ? "email" : "text"}
         placeholder={placeholder}
         placeholderTextColor={placeholderColor}
         onFocus={onFocus}
@@ -82,7 +90,7 @@ export const Input = ({ style, elevated, placeholder, leftIcon, onLeftPress, onF
       {rightIcon && <ButtonIcon
         variant={"neutral-subtle"}
         elevated={true}
-        composite
+        composite={!onRightPress}
         size="sm"
         onPress={onRightPress}
       >
