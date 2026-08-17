@@ -23,6 +23,9 @@ pnpm start         # Expo dev server
 pnpm test -- <file>  # single test file
 ```
 
+Use the `context-mode` plugin when available: any command whose output you will process rather
+than just glance at — a diff, a log, a test run — goes through it, not Bash.
+
 ## Before writing code
 
 - `docs/PRODUCT.md` — what the app is for, who it serves, what it refuses to be. Read it when a
@@ -103,19 +106,44 @@ small — most defects this catches are one-line changes.
 
 **Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C9 scripts + tests).
 
-**Step 2 — get the changed set.** `git diff --name-only` plus untracked files.
+**Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
+`git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the
+findings in Step 5. The reviewer does **not** need it from you — it runs the same commands itself.
 
-**Step 3 — spawn the reviewer. Every time.** A cold context catches what yours cannot: you know what
-you meant, so you read the diff as intent rather than as text. Spawn a **read-only** agent whose
-prompt carries the changed-file list, the `docs/adr/` records whose `applies_to` globs match them,
-and every table below as its criteria (see **Sub-agents** — it remembers nothing of this session).
-`pnpm verify` does not catch most of this; something has to actually read the diff.
+**Step 3 — spawn `architecture-reviewer`. Every time.** A cold context catches what yours cannot:
+you know what you meant, so you read the diff as intent rather than as text. It is defined in
+`.claude/agents/architecture-reviewer.md`, runs read-only on Sonnet, and establishes its own inputs
+— the changed set from `git`, the applicable ADRs from their `applies_to` frontmatter, the criteria
+from the tables in this file.
 
-**Step 4 — `/code-review` when the diff contains logic.** It hunts defects, which the tables below do
-not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Trigger is concrete —
+**Your prompt carries the intent, and nothing else:**
+
+- **what the change is for**, in two or three lines.
+- **what scope was deliberately left out** — placeholder data, a screen not yet wired to Convex, a
+  test deferred to the next slice. Absent scope reads as an omission to someone who was not there,
+  and you will get it back as a finding.
+- **anything that happened outside the diff** it would otherwise misread — a file moved rather than
+  rewritten, a rule you and the user agreed to break knowingly.
+
+**Do not list the changed files, and do not name the ADRs.** It is tempting: you already know both,
+and typing them looks like saving the reviewer a step. But a list you write is a filter you control,
+and you are the party under review — forget one untracked file and it is never checked; forget the
+one ADR your change happens to break and the review comes back clean on the rule you broke. Both
+failures are invisible in the output. The reviewer derives those from the repo so that no mistake of
+yours can narrow what it looks at. What you supply is what `git` cannot know: why.
+
+**Step 4 — `/code-review` when the diff contains logic.** It hunts defects, which Step 3 deliberately
+does not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Trigger is concrete —
 `convex/functions/`, `convex/router/` beyond a validator change, `src/modules/**/_hooks/`, or
 `shared/`. Skip it for pure `src/ui/` styling, docs, config and dependency bumps; a defect hunt on a
 stylesheet finds nothing and teaches you to skip the step that matters.
+
+**Both passes run on the same diff, and that is the point** — they are not redundant, they are split
+by question. Step 3 asks *does this obey the rules we wrote down*, and answers it from a table, which
+is why it can be a cheap model with no Bash. Step 4 asks *is this correct*, which needs a defect hunt
+and the depth to run one. Neither finds the other's issues. If you catch Step 3 reporting a race
+condition or Step 4 reporting a filename, the split has collapsed and the cheap pass has stopped
+being cheap.
 
 **Step 5 — verify every finding before relaying it.** Open the file each one names and confirm it. A
 reviewer that never saw the conversation also invents findings, and passing one on unchecked costs
@@ -289,6 +317,12 @@ prompt. Every spawn must therefore include:
 - **The commands** it may run (`pnpm verify`, `pnpm test -- <file>`).
 - **The output shape** you expect back (a list of `file:line` findings, a diff, a summary).
 - **Boundaries** — read-only vs may-edit, and which paths are off limits.
+
+**A spawn you make more than once becomes a definition in `.claude/agents/`.** Everything above then
+lives in the definition instead of the prompt — a stable prefix the model caches, rather than one you
+retype and drift from each time — and the definition pins the model and the tool list, so a
+table-checking pass is not paying for a reasoning model with a shell it does not need.
+`architecture-reviewer` is the one that exists; it is the shape to copy.
 
 Prefer read-only sub-agents for investigation and keep edits in the main thread, so changes stay
 reviewable in one place. When several sub-agents will edit, give each a disjoint set of files.
