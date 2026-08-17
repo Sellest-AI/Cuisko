@@ -14,17 +14,25 @@
  *
  * One ingredient moves through three states, in this order:
  *
- *     to buy  ──buy──▶  cellar  ──take out──▶  recently bought  ──put back──▶  to buy
- *                          └──undo, inside the window──▶ to buy
+ *     to buy  ──buy──▶  cellar  ──take out──▶  to buy, if a plate still wants it
+ *                                         └──────▶  recently bought, if none does
+ *                                                        └──put back──▶  to buy
  *
- * "Recently bought" is the end of that run, not a stage inside it: it holds what is neither owned
- * nor wanted. What is *missing* is never stored, only derived — `needed - owned` — which is what
- * makes the undo safe. Giving a receipt back decrements the cellar and the gap reopens on its
+ * "Recently bought" is the end of that run: it holds what the household has dealt in before, owns
+ * none of, *and* is not being asked for. What is *missing* is never stored, only derived —
+ * `needed - owned` — which is what makes the undo safe. Giving a receipt back decrements the cellar and the gap reopens on its
  * own, with no second number to keep in step.
  *
- * Taking stock out for good is the other half, and it discharges the lines as well: an ingredient
- * that has been cooked is no longer owned *and* no longer asked for, which is exactly what drops
- * it into memory instead of straight back onto the list.
+ * Taking stock out is the same move without the receipt: the cellar falls, no claim is touched,
+ * and the gap reopens by what left, up to what is still wanted. Food that is no longer in the
+ * house has to be bought again if
+ * a plate still wants it — so the list grows, and only an ingredient nothing is waiting for ends
+ * the run in memory.
+ *
+ * Settling a claim is a different gesture, and it belongs to the plate rather than the cellar: a
+ * dish that gets cooked takes its own lines with it (`dropMealLines`), because it knows which ones
+ * they are. Netting the two off here instead moved `needed` and `owned` by the same number, and
+ * `needed - owned` never budged.
  *
  * No React and no Jotai here; `atoms.ts` holds the state and the hooks call into this.
  */
@@ -32,7 +40,7 @@
 import { type Unit } from "@shared/ingredients";
 
 /** The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too. */
-export { formatQuantity, isUnit, unitLabel, type Unit } from "@shared/ingredients";
+export { formatQuantity, isUnit, UNITS, unitLabel, type Unit } from "@shared/ingredients";
 
 /** Which section a tap came from. Each one can only move stock its own way. */
 export const INTENTS = ["buy", "remove", "relist"] as const;
@@ -42,8 +50,13 @@ export const isIntent = (value: string | undefined): value is Intent =>
   value !== undefined && (INTENTS as readonly string[]).includes(value);
 
 /**
- * How long a purchase stays undoable. Inside it, emptying a cellar row puts the stock back on the
- * grocery list; past it, the same gesture means the food was used, and the row falls into memory.
+ * How long a purchase stays undoable.
+ *
+ * The window no longer decides where emptied stock goes — a plate still waiting for it puts it
+ * back on the list, and nothing waiting sends it to memory, on both sides of the window. What the
+ * window changes is the receipt behind it: inside, the purchase is still on the books, so the row
+ * is drawn as reversible and the sheet offers that exact amount back; outside, the row has settled
+ * and the sheet offers what is there.
  */
 export const UNDO_WINDOW_MS = 5 * 60 * 1000;
 
@@ -98,7 +111,11 @@ export type HistoryEntry = {
   id: string;
   ingredientId: string;
   unit: Unit;
-  /** The last amount bought — what the sheet offers first when putting it back on the list. */
+  /**
+   * How much this household deals in at a time — what the sheet offers first when putting it back
+   * on the list, and what the memory row shows. A purchase is the authority on it; an ingredient
+   * only ever emptied out is seeded from what the cellar held.
+   */
   amount: number;
   at: Date;
 };
@@ -264,8 +281,13 @@ export type StockRow = {
    * An ingredient usually holds one row, and that row keeps the bare `ingredient:unit` key
    * wherever it sits — so buying it moves the same mounted card from "To Buy" into the cellar and
    * React carries it there. A partly-owned ingredient holds two rows at once and they cannot both
-   * be that key, so the extra one is section-scoped: the card the shopper tapped keeps its
-   * identity, and the leftover is the one that fades.
+   * be that key, so the extra one is section-scoped.
+   *
+   * Only one of the two can follow the ingredient's whole cycle, and the bare key follows buying:
+   * a to-buy card carries into the cellar, and the leftover fades as the two rows merge. Emptying
+   * a partly-owned cellar row is the direction that loses out — `cellar:carrots:pcs` unmounts and
+   * the to-buy card grows instead. Nothing flies there, because there is no destination row: the
+   * amount merges into a card that was already on screen.
    */
   id: string;
   section: Section;
@@ -335,7 +357,14 @@ export function buildSections(snapshot: Snapshot): Sections {
 
     const stock = stockFor(snapshot, ref);
 
-    /** Neither owned nor wanted, but bought before: all that is left of it is the memory. */
+    /**
+     * Neither owned nor wanted, but bought before: all that is left of it is the memory.
+     *
+     * Gated on the gap being closed as well as the cellar being empty, because taking stock out
+     * reopens that gap: an ingredient a plate is still waiting for goes back on the list, and only
+     * one nothing is waiting for ends the run here. That is the whole difference between the bread
+     * and the carrots.
+     */
     const forgotten = stock.owned === 0 && stock.toBuy === 0 ? stock.lastBought : null;
 
     /** In priority order — the first one standing is the row that carries the ingredient's key. */
@@ -438,8 +467,10 @@ export const adjustCellar = (
 /**
  * Records that this household deals in this ingredient.
  *
- * `amount` is only overwritten by a purchase: what the memory is for is answering "how much do I
- * usually buy", and how much happened to be left when the jar ran out is not that.
+ * `amount` is only overwritten by a purchase — that is the one gesture that actually knows how much
+ * the household buys at a time, so nothing else may talk over it. A first touch has to write
+ * something regardless, and the caller picks what: an emptied cellar passes what it held, never
+ * what happened to leave it.
  *
  * Keyed by ref, for the same reason the cellar is.
  */
@@ -477,14 +508,36 @@ export const dropMealLines = (lines: GroceryLine[], mealId: string): GroceryLine
   lines.filter((line) => line.meal?.id !== mealId);
 
 /**
+ * The list without this ingredient at all, whoever asked for it.
+ *
+ * The shopper striking a row off by hand, and the bluntest of the three: it takes plates' claims
+ * with it, not just anything hand-added. That is the intent — the gesture means "I am not buying
+ * this", and a claim left standing would put the row straight back on the list — but it is worth
+ * being plain about the cost. The plates go on being cooked and the week stops shopping for them,
+ * and nothing rebuilds a meal-bound line, so this cannot be undone from inside the app.
+ *
+ * The narrower `dropMealLines` is what a plate leaving the week uses; this one is keyed by
+ * ingredient because that is all the tapped card knows.
+ */
+export const dropIngredientLines = (lines: GroceryLine[], ref: StockRef): GroceryLine[] =>
+  lines.filter((line) => !matchesRef(ref)(line));
+
+/**
  * Discharges `amount` of what was asked for, oldest claim first.
  *
- * Stock leaving the cellar for good has been used, so the claim on it is settled too — without
- * this the derived gap would reopen and the ingredient would bounce back onto the list instead of
- * falling into memory.
+ * **Nothing calls this yet, and that is deliberate — do not delete it.** It is here for cooking:
+ * the last step of a recipe will report what it actually used, settling those claims and taking
+ * the same amount out of the cellar. Emptying a cellar row by hand is a different statement — the
+ * food is no longer here, and a plate still waiting for it needs it bought again — so that path
+ * deliberately leaves claims standing, which is why the only caller it ever had was removed.
  *
- * Oldest first is a placeholder. The real discharge arrives from the plate being cooked, which
- * knows which lines are its own and does not have to guess — see `dropMealLines`.
+ * Reaching it from the recipe module goes through a groceries hook and `hooks.ts`; `_model/` is
+ * private and lint R8 blocks the direct import.
+ *
+ * The pair with `dropMealLines` is the difference between a plate that got cooked and one that
+ * left the week. Cooking discharges by ingredient, because that is what the step knows; a plate
+ * dropped from the week takes its own lines whole, having fed nobody. Oldest first is the
+ * placeholder half: until a step says which lines it drew on, the earliest claim is the guess.
  */
 export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number): GroceryLine[] => {
   const claimed = lines

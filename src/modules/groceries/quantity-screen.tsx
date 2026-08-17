@@ -1,12 +1,17 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useCallback, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { QuantityOption } from "@ui/cards/quantity-option";
+import { Trash2 } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
-import { isIntent, isUnit, unitLabel, type Intent, type Unit } from "./_model/model";
+import { useModalAction } from "~/modules/navigation/modal-action";
+import { formatQuantity, isIntent, isUnit, unitLabel, type Intent, type Unit } from "./_model/model";
 import { useQuantityPicker } from "./_hooks/useQuantityPicker";
+import { useRemoveItem } from "./_hooks/useRemoveItem";
+import { AmountInput } from "./quantity-screen.amount-input";
 
 const COLUMNS = 3;
 const GAP = theme.spacing[8];
@@ -24,9 +29,20 @@ type Props = {
   onClose: () => void;
 };
 
+/**
+ * Two units reach this sheet and they are not the same one.
+ *
+ * `rowUnit` is the card's, fixed the moment it was tapped, and it is what the row *is* — the trash
+ * action deletes by it. `entryUnit` is what the shopper is typing in, and it may wander: coming
+ * home with 500 g of something the plan asked for in pieces is an ordinary thing to do, and the
+ * tiles follow it there — though nothing converts between the two, so the plan's row goes on
+ * asking in pieces and the shopper ends up with a second row rather than a closed gap. Feeding
+ * the wandering unit to a destructive action is how a tap meant for the onions on the list took
+ * the soup's claim instead.
+ */
 const Picker = ({
   ingredientId,
-  unit,
+  unit: rowUnit,
   intent,
   onClose,
 }: {
@@ -36,21 +52,46 @@ const Picker = ({
   onClose: () => void;
 }) => {
   const { width } = useWindowDimensions();
-  const { ingredient, prompt, options, owned, submit } = useQuantityPicker({ ingredientId, unit, intent });
+  const [entryUnit, setEntryUnit] = useState<Unit>(rowUnit);
+
+  const { ingredient, prompt, options, owned, submit } = useQuantityPicker({
+    ingredientId,
+    unit: entryUnit,
+    intent,
+  });
+  const { remove } = useRemoveItem({ ingredientId, unit: rowUnit });
 
   const columns = Math.min(COLUMNS, options.length);
   const itemWidth = (width - GUTTER * 2 - GAP * (columns - 1)) / columns;
+
+  /** Stable, or `useModalAction`'s memo rebuilds and re-registers the action on every keystroke. */
+  const discard = useCallback(() => {
+    remove();
+    onClose();
+  }, [remove, onClose]);
+
+  /**
+   * Only a row on the list can be struck off it. There is nothing to delete in the cellar — stock
+   * leaves it by being taken out — and nothing in memory, which is derived and holds no row.
+   */
+  useModalAction(intent === "buy" ? { icon: Trash2, onPress: discard, variant: "danger" } : null);
 
   /**
    * One tap answers the question and leaves. Nothing to confirm: every amount on offer is
    * reversible from the card the sheet just came from.
    */
-  const choose = (amount: number) => {
-    submit(amount);
-    onClose();
-  };
+  const choose = useCallback(
+    (amount: number) => {
+      submit(amount);
+      onClose();
+    },
+    [submit, onClose],
+  );
 
-  const subtitle = [ingredient?.name, owned > 0 ? owned : undefined].filter(Boolean).join(" · ");
+  /** Carries its unit, because `owned` follows `entryUnit` — a bare number would change meaning. */
+  const subtitle = [ingredient?.name, owned > 0 ? formatQuantity(owned, entryUnit) : undefined]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <View style={styles.container}>
@@ -67,6 +108,11 @@ const Picker = ({
           <Text.Lg>{prompt}</Text.Lg>
         </View>
       </View>
+      <AmountInput
+        unit={entryUnit}
+        onUnitChange={intent === "remove" ? undefined : setEntryUnit}
+        onSubmit={choose}
+      />
       <View style={styles.grid}>
         {options.map((option) => (
           <QuantityOption

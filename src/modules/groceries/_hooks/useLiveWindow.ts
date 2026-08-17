@@ -5,10 +5,11 @@ import { UNDO_WINDOW_MS, type Receipt } from "../_model/model";
 /**
  * The clock the undo window is read against.
  *
- * A receipt going stale changes what is on screen — the row leaves "Recently Bought" and its
- * quantity settles into the cellar — but nothing tells React that a moment has passed. So this
- * re-renders on the only moments that matter: it sleeps until the next receipt expires, wakes,
- * and sleeps again. An interval would poll a value that changes at most once every five minutes.
+ * A receipt going stale changes what is on screen — the cellar row stops being undoable, so it is
+ * drawn as settled and the sheet stops offering the purchase back — but nothing tells React that a
+ * moment has passed. So this re-renders on the only moments that matter: it sleeps until the next
+ * receipt expires, wakes, and sleeps again. An interval would poll a value that changes at most
+ * once every five minutes.
  *
  * Returns a `Date` rather than a tick count so callers can pass it straight into a `Snapshot`.
  */

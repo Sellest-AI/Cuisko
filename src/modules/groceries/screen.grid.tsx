@@ -22,9 +22,9 @@ const HEADER_TRANSITION = LinearTransition.duration(200);
  *
  * Presentation only. What a tap in each one *does* is fixed by the model, not chosen here: a row
  * carries the intent of the section it sits in, so "Recently Bought" can only ever put something
- * back on the list and the cellar can only ever take stock out of it. What that second one means
- * is then decided by the clock — inside the undo window it gives a mistap back to the list, past
- * it the food was used — which is why the cellar needs no second row and no second gesture.
+ * back on the list and the cellar can only ever take stock out of it. Where that stock then goes
+ * is decided by the plan, not the clock — a plate still waiting for it puts it back on the list,
+ * and nothing waiting sends it to memory — which is why the cellar needs no second gesture.
  */
 const SECTIONS: {
   section: Section;

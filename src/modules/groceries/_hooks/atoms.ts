@@ -60,12 +60,16 @@ const LINES: GroceryLine[] = [
 ];
 
 /**
- * Carrots seed the case the whole model exists for: six are wanted, one is already owned, so the
- * list asks for five — and an undo must give back the five, never the one. Bread seeds the other
- * half: owned, claimed by no plate, and so visible nowhere but the cellar.
+ * Carrots seed the case the whole model exists for: six are wanted across two plates, two are
+ * already owned, so the list asks for four — and an undo must give back the four, never the two.
+ * Two owned rather than one so a partial removal is reachable by hand: take one out and a cellar
+ * row is still standing while the list has gone to five, which is this whole gesture made visible
+ * in one tap. Carrots never reach memory, and cannot — six are wanted, so the gap is open however
+ * empty the cellar gets. Bread is the ingredient that shows the other ending: owned, claimed by no
+ * plate, and so visible nowhere but the cellar until it is taken out and falls into memory.
  */
 const CELLAR: CellarEntry[] = [
-  { id: "cellar-1", ingredientId: "carrots", unit: "pcs", amount: 1, updatedAt: SEEDED_AT },
+  { id: "cellar-1", ingredientId: "carrots", unit: "pcs", amount: 2, updatedAt: SEEDED_AT },
   { id: "cellar-2", ingredientId: "parmesan", unit: "g", amount: 200, updatedAt: SEEDED_AT },
   { id: "cellar-3", ingredientId: "bread", unit: "pcs", amount: 1, updatedAt: SEEDED_AT },
 ];

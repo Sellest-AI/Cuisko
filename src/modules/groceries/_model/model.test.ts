@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adjustCellar,
   buildSections,
+  dropIngredientLines,
   dropMealLines,
   peelReceipts,
   reduceLines,
@@ -113,6 +114,23 @@ describe("what is neither owned nor wanted", () => {
     expect(amountsIn(relisted)).toEqual({ toBuy: [6], cellar: [], remembered: [] });
   });
 
+  /**
+   * The other half of the same rule, and the reason it is gated on the gap rather than the cellar
+   * alone. Asserted as a before/after because the number on its own proves nothing: what the fix
+   * changed is that the gap now MOVES when the cellar does. Discharging the claims alongside the
+   * stock — which is what `removeFromCellar` used to do — left both sides of this equal.
+   */
+  it("reopens the gap by what left the cellar", () => {
+    const emptied: Snapshot = {
+      ...base,
+      cellar: [],
+      history: [{ id: "h1", ...CARROTS, amount: 1, at: ago(1_000) }],
+    };
+
+    expect(amountsIn(base)).toMatchObject({ toBuy: [5], cellar: [1] });
+    expect(amountsIn(emptied)).toEqual({ toBuy: [6], cellar: [], remembered: [] });
+  });
+
   it("never appears for an ingredient that was never bought", () => {
     expect(amountsIn({ ...base, lines: [], cellar: [] })).toEqual({ toBuy: [], cellar: [], remembered: [] });
   });
@@ -189,11 +207,46 @@ describe("writing to a set", () => {
     ]);
   });
 
+  /**
+   * The branch every removal takes. A purchase is the only thing that may state how much this
+   * household buys at a time, so an emptied cellar must not talk over one that already exists —
+   * and when none does, the caller's seed stands as the first answer.
+   */
+  it("leaves a remembered amount alone when the write is not a purchase", () => {
+    const ref = { ingredientId: "butter", unit: "g" } as const;
+    const existing = [{ id: "history-1", ...ref, amount: 250, at: ago(60_000) }];
+
+    expect(
+      rememberStock(existing, { ref, amount: 125, at: NOW, id: "unused", overwriteAmount: false }),
+    ).toEqual([{ id: "history-1", ...ref, amount: 250, at: NOW }]);
+
+    expect(
+      rememberStock([], { ref, amount: 125, at: NOW, id: "seeded", overwriteAmount: false }),
+    ).toEqual([{ id: "seeded", ...ref, amount: 125, at: NOW }]);
+  });
+
   it("creates a row when the household has never owned this before", () => {
     const ref = { ingredientId: "garlic", unit: "pcs" } as const;
     const after = adjustCellar([], { ref, delta: 1, now: NOW, id: "fresh" });
 
     expect(after).toEqual([{ id: "fresh", ...ref, amount: 1, updatedAt: NOW }]);
+  });
+});
+
+describe("striking an ingredient off the list", () => {
+  const lines: GroceryLine[] = [
+    { id: "l1", ...CARROTS, meal: { id: "d1", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000) },
+    { id: "l2", ...CARROTS, meal: { id: "d2", title: "Soupe" }, amount: 4, createdAt: ago(30_000) },
+    { id: "l3", ingredientId: "onions", unit: "g", amount: 200, createdAt: ago(30_000) },
+  ];
+
+  /** Deliberate and lossy: the point of the gesture is that the list stops asking, full stop. */
+  it("takes every claim on it, plates included", () => {
+    expect(dropIngredientLines(lines, CARROTS).map((line) => line.id)).toEqual(["l3"]);
+  });
+
+  it("leaves a different unit of the same ingredient standing", () => {
+    expect(dropIngredientLines(lines, { ingredientId: "carrots", unit: "g" })).toEqual(lines);
   });
 });
 
