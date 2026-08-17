@@ -1,7 +1,7 @@
 import { Platform, Pressable, StyleSheet } from "react-native";
 
 import { ButtonIcon } from "@ui/button-icon";
-import { ArrowLeft, ForkKnife } from "@ui/icons";
+import { ArrowLeft, ForkKnife, Plus } from "@ui/icons";
 import { theme } from "theme";
 import { router, usePathname } from "expo-router";
 import { m, AnimatePresence } from "@ui/motion";
@@ -9,6 +9,8 @@ import { NAVIGATION_BAR_OFFSET } from "./constants";
 import { useRef, useState } from "react";
 import { NavigationBarInput } from "./navigation-bar.input";
 import { useNavigationBar } from "./hooks";
+import { ButtonPill } from "@ui/button-pill";
+import { useTranslations } from "translations";
 
 const INITIAL_DELAY = 50;
 
@@ -31,22 +33,25 @@ const sharedTransition = (width?: number) => ({
  * renders it is responsible for leaving room at the bottom of the scroll.
  */
 export const NavigationBar = () => {
+  const t = useTranslations("Navigation");
+
   const path = usePathname();
   const isHome = path.startsWith("/home");
   const isGroceries = path.startsWith("/groceries");
   const isAssistant = path.startsWith("/assistant");
+  const isRecipes = path.startsWith("/recipes");
   const isPlanning = path === "/planning";
 
-  const hasNavigationBar = isHome || isGroceries || isAssistant || isPlanning;
+  const hasNavigationBar = isHome || isGroceries || isAssistant || isPlanning || isRecipes;
 
   const [inputFocused, setInputFocused] = useState(false);
 
   const { reset } = useNavigationBar();
 
-  // Kept so focusing again cancels the reset the previous blur scheduled.
   const cancelResetRef = useRef(() => { });
   const onBlur = () => {
     setInputFocused(false);
+    // Store the reset function timeout to cancel it on focus
     cancelResetRef.current = reset({ delayed: true });
   }
 
@@ -82,18 +87,27 @@ export const NavigationBar = () => {
                   </ButtonIcon>
                 </m.View>}
             </AnimatePresence>
-            <NavigationBarInput
+            {!isRecipes && <NavigationBarInput
               focused={inputFocused}
               onFocus={() => { setInputFocused(true); cancelResetRef.current(); }}
               onBlur={() => onBlur()}
-            />
+            />}
+            {isRecipes && <ButtonPill
+              leftIcon={Plus}
+              onPress={() => console.log("Recipe imported")}
+              elevated
+              variant="secondary"
+              size="lg"
+            >
+              {t("import_recipe")}
+            </ButtonPill>}
             <AnimatePresence>
               {(isHome && !inputFocused) && <m.View {...sharedTransition(56)}>
                 <ButtonIcon
                   elevated
                   style={{ alignSelf: "auto" }}
                   variant="secondary"
-                  onPress={() => console.log("fork knife pressed")}
+                  onPress={() => router.push("/recipes")}
                   size="lg"
                 >
                   {ForkKnife}

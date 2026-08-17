@@ -5,6 +5,7 @@ import home from "./en/home.json";
 import navigation from "./en/navigation.json";
 import planning from "./en/planning.json";
 import recipe from "./en/recipe.json";
+import recipes from "./en/recipes.json";
 
 // Type the nested structure to match your i18n config
 type TranslationResources = {
@@ -15,6 +16,7 @@ type TranslationResources = {
   Navigation: typeof navigation;
   Planning: typeof planning;
   Recipe: typeof recipe;
+  Recipes: typeof recipes;
 };
 
 export type IntlMessages = TranslationResources;
