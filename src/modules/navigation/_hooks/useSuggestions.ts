@@ -1,81 +1,254 @@
 import { UNITS } from "@shared/ingredients";
-
-const DEFAULT_UNIT = "pcs";
-const DEFAULT_AMOUNT = 1;
+import { STOPWORDS } from "@shared/translations";
+import { distance } from "fastest-levenshtein";
 
 export type Unit = (typeof UNITS)[number];
 
+export type Suggestion = {
+  id: string;
+  name: string;
+  emoji: string;
+  /**
+   * The other ways to say it. Searched, never shown: the card draws `name`, so that "patates"
+   * and "pommes de terre" stay one ingredient on screen.
+   */
+  aliases?: string[];
+};
+
+const DEFAULT_UNIT = "pcs" as Unit;
+const DEFAULT_AMOUNT = 1;
+
+/** Minimum similarity (0-1) for Enter to auto-select a suggestion. */
+const AUTO_SELECT_THRESHOLD = 0.85;
+/** Minimum similarity for a typed word to "touch" a word of a suggestion. */
+const FUZZY_WORD_THRESHOLD = 0.75;
+/** Within this margin the top two candidates are too close to call, so neither is selected. */
+const AMBIGUITY_MARGIN = 0.05;
+/** Below this, the input is too short to decide anything. */
+const MIN_QUERY_LENGTH = 3;
+
+const GLOBAL_STOPWORDS = new Set([...STOPWORDS.en, ...STOPWORDS.fr]);
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Units sorted longest first: "kg" has to be tested before "g".
+const UNITS_PATTERN = [...UNITS]
+  .sort((a, b) => b.length - a.length)
+  .map(escapeRegExp)
+  .join("|");
+
 // 500g / 500 g / 1,5kg / 2 / fractions like 1/2
 const QUANTITY_RE = new RegExp(
-  `^(\\d+(?:[.,]\\d+)?(?:/\\d+)?)\\s*(${UNITS.join("|")})?$`,
+  `^(\\d+(?:[.,]\\d+)?(?:\\/\\d+)?)\\s*(${UNITS_PATTERN})?$`,
   "i"
 );
 
-const isUnit = (word?: string): word is (typeof UNITS)[number] =>
-  !!word && (UNITS as readonly string[]).includes(word);
+const isUnit = (word?: string): word is Unit =>
+  !!word && (UNITS as readonly string[]).some((u) => u.toLowerCase() === word.toLowerCase());
 
-const normalize = (word: string) => {
-  const clean = word.replace(/[.,\/#!$%^&*;:{}=\-_`~()]/g, "");
-  return clean.endsWith("s") ? clean.slice(0, -1) : clean;
+/* -------------------------------------------------------------------------- */
+/* Normalisation                                                              */
+/* -------------------------------------------------------------------------- */
+
+const stripAccents = (value: string) =>
+  value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+
+/** Lowercased and unpunctuated, but still accented — the form the stopword lists are written in. */
+const toComparable = (word: string) => word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+/**
+ * Tested before the accents come off, and never after: stripping them first turns "thé" into
+ * "the", hands a real ingredient to the English stopword list, and makes it unsearchable — its
+ * label normalises to the empty string, so nothing can ever match it.
+ */
+const isStopword = (word: string) => GLOBAL_STOPWORDS.has(toComparable(word));
+
+/**
+ * Applies the same normalisation to what is typed and to the labels it is matched against:
+ * lowercase, unaccented, unpunctuated, singular.
+ * The plural is only stripped from words longer than 3 letters, so "jus", "ris" and "des"
+ * survive intact.
+ */
+const normalizeWord = (word: string) => {
+  const clean = stripAccents(toComparable(word));
+  return clean.length > 3 && clean.endsWith("s") ? clean.slice(0, -1) : clean;
 };
 
-const FAKE_SUGGESTIONS = [
-  { id: "tomatoes", name: "Tomates", emoji: "🍅" },
-  { id: "cherry-tomatoes", name: "Tomates cerises", emoji: "🍅" },
-  { id: "tomato-sauce", name: "Sauce tomate", emoji: "🍶" },
-  { id: "tomato-soup", name: "Soupe de tomates", emoji: "🥣" },
-]
+const normalizeName = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter((word) => !isStopword(word))
+    .map(normalizeWord)
+    .filter(Boolean)
+    .join(" ");
 
-const toTokens = (text: string) => {
-  const splittedText = text.trim().toLowerCase().split(" ");
-  return splittedText.map((word) => {
-    // Remove any punctuation from the word
-    const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-    // Remove the plural form of the word if it ends with 's'
-    const singularWord = cleanWord.endsWith("s") ? cleanWord.slice(0, -1) : cleanWord;
-    return singularWord;
-  })
-    // Remove filler words that are too short to be meaningful
-    .filter((w) => w.length > 2 || !Number.isNaN(Number(w)));
-}
+/** Everything a suggestion can be found under: its name, then its synonyms. */
+const toLabels = (suggestion: Suggestion) =>
+  [suggestion.name, ...(suggestion.aliases ?? [])].map(normalizeName).filter(Boolean);
 
-const parseQuantity = (tokens: string[]): { amount: string | null, unit: Unit | null } => {
+/* -------------------------------------------------------------------------- */
+/* Quantity                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** "1,5" -> 1.5, "1/2" -> 0.5, "500" -> 500 */
+const parseAmount = (raw: string): number | null => {
+  const [numerator, denominator] = raw.replace(",", ".").split("/");
+  const value = Number(numerator);
+  if (Number.isNaN(value)) return null;
+  if (denominator === undefined) return value;
+
+  const divisor = Number(denominator);
+  return divisor ? value / divisor : null;
+};
+
+const parseQuantity = (
+  tokens: string[]
+): { amount: number | null; unit: Unit | null } => {
   for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]!;
-    const match = QUANTITY_RE.exec(token);
+    const match = QUANTITY_RE.exec(tokens[i]!);
     if (!match) continue;
 
-    const [, rawAmount, matchedUnit] = match;
-    if (matchedUnit) return { amount: rawAmount!, unit: matchedUnit as Unit };
+    const amount = parseAmount(match[1]!);
+    if (amount === null) continue;
+
+    const matchedUnit = match[2];
+    if (matchedUnit) return { amount, unit: matchedUnit.toLowerCase() as Unit };
 
     const next = tokens[i + 1];
-    if (isUnit(next)) return { amount: rawAmount!, unit: next };
+    if (isUnit(next)) return { amount, unit: next.toLowerCase() as Unit };
 
-    return { amount: rawAmount!, unit: DEFAULT_UNIT };
+    return { amount, unit: null };
   }
+
   return { amount: null, unit: null };
 };
 
+/**
+ * The tokens left once the quantity and its unit are taken out.
+ * Raw tokens on purpose, so that "1,5kg" and "1/2" are still recognisable to QUANTITY_RE.
+ */
 const toWords = (tokens: string[]) =>
-  tokens.filter((t) => !QUANTITY_RE.test(t) && !isUnit(t)).map(normalize).filter(Boolean);
+  tokens
+    .filter((token) => !QUANTITY_RE.test(token) && !isUnit(token))
+    .filter((token) => !isStopword(token))
+    .map(normalizeWord)
+    .filter((word) => word.length > 1);
+
+/* -------------------------------------------------------------------------- */
+/* Similarity                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** Normalised Levenshtein: 1 = identical, 0 = nothing in common. */
+const similarity = (a: string, b: string) => {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  return 1 - distance(a, b) / Math.max(a.length, b.length);
+};
+
+/**
+ * How well a label answers what was typed, which is what orders the list.
+ * A prefix scores 1 ("tomat" -> "tomate"), a containment 0.9, and anything else falls back to
+ * fuzzy similarity so a typo still finds its ingredient.
+ */
+const scoreLabel = (words: string[], label: string) => {
+  const labelWords = label.split(" ");
+
+  return words.reduce((total, word) => {
+    let best = 0;
+    for (const labelWord of labelWords) {
+      if (labelWord.startsWith(word)) {
+        best = 1;
+        break;
+      }
+      best = Math.max(best, labelWord.includes(word) ? 0.9 : similarity(word, labelWord));
+    }
+    return best >= FUZZY_WORD_THRESHOLD ? total + best : total;
+  }, 0);
+};
+
+/**
+ * A suggestion's best label for this input, and what it scored.
+ *
+ * The labels compete rather than merge: "chips de patates" must not score by taking "chips" from
+ * the name and "patate" from a synonym, which a single pooled word list would let it do.
+ * On a tie the shorter label wins — it is the one most likely typed, which is what makes "patate"
+ * mean pommes de terre rather than patates douces.
+ */
+const bestLabel = (words: string[], labels: string[]) =>
+  labels.reduce(
+    (best, label) => {
+      const score = scoreLabel(words, label);
+      const wins = score > best.score || (score === best.score && label.length < best.label.length);
+      return wins ? { score, label } : best;
+    },
+    { score: 0, label: labels[0] ?? "" }
+  );
+
+/* -------------------------------------------------------------------------- */
+/* Hook                                                                       */
+/* -------------------------------------------------------------------------- */
+
+const FAKE_SUGGESTIONS: Suggestion[] = [
+  { id: "tomatoes", name: "Tomates", emoji: "🍅" },
+  { id: "cherry-tomatoes", name: "Tomates cerises", emoji: "🍅" },
+  { id: "tomato-sauce", name: "Sauce tomate", emoji: "🍶", aliases: ["coulis de tomates"] },
+  { id: "tomato-soup", name: "Soupe de tomates", emoji: "🥣" },
+  { id: "potatoes", name: "Pommes de terre", emoji: "🥔", aliases: ["patates"] },
+  {
+    id: "potato-chips",
+    name: "Chips de pommes de terre",
+    emoji: "🍟",
+    aliases: ["chips de patates"],
+  },
+  { id: "sweet-potatoes", name: "Patates douces", emoji: "🍠" },
+  { id: "green-tea", name: "Thé vert", emoji: "🍵" },
+];
 
 export const useSuggestions = (text: string) => {
-  const tokens = toTokens(text);
+  const tokens = text.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const { amount, unit } = parseQuantity(tokens);
   const words = toWords(tokens);
 
-  const suggestions = FAKE_SUGGESTIONS.filter((s) =>
-    words.some((w) => s.name.toLowerCase().includes(w))
-  ).sort(
-    (a, b) =>
-      words.filter((w) => b.name.toLowerCase().includes(w)).length -
-      words.filter((w) => a.name.toLowerCase().includes(w)).length
-  );
+  // Labels normalised once, then reused for both the ranking and the match.
+  const entries = FAKE_SUGGESTIONS.map((suggestion) => ({
+    suggestion,
+    labels: toLabels(suggestion),
+  }));
+
+  const suggestions = entries
+    .map((entry) => ({ ...entry, ...bestLabel(words, entry.labels) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.label.length - b.label.length)
+    .map((entry) => entry.suggestion);
+
+  // Strict match: the whole input against a whole label. Comparing word by word would let
+  // "tomate" match "Tomates cerises".
+  const query = words.join(" ");
+  let matchingSuggestion: Suggestion | null = null;
+
+  if (query.length >= MIN_QUERY_LENGTH) {
+    const ranked = entries
+      .map((entry) => ({
+        suggestion: entry.suggestion,
+        score: Math.max(0, ...entry.labels.map((label) => similarity(query, label))),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    // The runner-up is weighed before the threshold is applied, never after: filtering first
+    // hides a near-tie behind the cut-off, and Enter then commits the very coin-flip the margin
+    // exists to refuse.
+    const [best, runnerUp] = ranked;
+    const isAmbiguous = !!runnerUp && best!.score - runnerUp.score < AMBIGUITY_MARGIN;
+
+    if (best && best.score >= AUTO_SELECT_THRESHOLD && !isAmbiguous)
+      matchingSuggestion = best.suggestion;
+  }
 
   return {
-    amount: Number(amount ?? DEFAULT_AMOUNT),
-    unit: unit || DEFAULT_UNIT,
+    amount: amount ?? DEFAULT_AMOUNT,
+    unit: unit ?? DEFAULT_UNIT,
     suggestions,
-    hasSuggestions: suggestions.length > 0
+    hasSuggestions: suggestions.length > 0,
+    matchingSuggestion,
   };
 };

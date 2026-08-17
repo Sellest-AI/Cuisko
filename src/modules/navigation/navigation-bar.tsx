@@ -6,8 +6,9 @@ import { theme } from "theme";
 import { router, usePathname } from "expo-router";
 import { m, AnimatePresence } from "@ui/motion";
 import { NAVIGATION_BAR_OFFSET } from "./constants";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavigationBarInput } from "./navigation-bar.input";
+import { useNavigationBar } from "./hooks";
 
 const INITIAL_DELAY = 50;
 
@@ -16,7 +17,7 @@ const sharedTransition = (width?: number) => ({
   animate: { opacity: 1, width, translateY: 0 },
   exit: { opacity: 0, width: width ? 0 : undefined, translateY: NAVIGATION_BAR_OFFSET },
   transition: { delay: INITIAL_DELAY + 50 },
-  exitTransition: { delay: 0, duration: 100 },
+  exitTransition: { delay: 0, duration: 150 },
 })
 
 /**
@@ -40,6 +41,15 @@ export const NavigationBar = () => {
 
   const [inputFocused, setInputFocused] = useState(false);
 
+  const { reset } = useNavigationBar();
+
+  // Kept so focusing again cancels the reset the previous blur scheduled.
+  const cancelResetRef = useRef(() => { });
+  const onBlur = () => {
+    setInputFocused(false);
+    cancelResetRef.current = reset({ delayed: true });
+  }
+
   return (
     <>
       {hasNavigationBar && inputFocused && Platform.OS !== "web" && (
@@ -48,7 +58,7 @@ export const NavigationBar = () => {
         // native onBlur before the press registers.
         <Pressable
           style={StyleSheet.absoluteFill}
-          onPress={() => setInputFocused(false)}
+          onPress={() => onBlur()}
         />
       )}
       <AnimatePresence>
@@ -74,8 +84,8 @@ export const NavigationBar = () => {
             </AnimatePresence>
             <NavigationBarInput
               focused={inputFocused}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
+              onFocus={() => { setInputFocused(true); cancelResetRef.current(); }}
+              onBlur={() => onBlur()}
             />
             <AnimatePresence>
               {(isHome && !inputFocused) && <m.View {...sharedTransition(56)}>
