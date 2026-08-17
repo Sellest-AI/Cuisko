@@ -89,6 +89,13 @@ const Picker = ({
   );
 
   /** Carries its unit, because `owned` follows `entryUnit` — a bare number would change meaning. */
+  /**
+   * A link can name an ingredient that does not exist, and the shape checks upstream cannot tell:
+   * they see a well-formed id. Submitting anyway writes a line the grid then drops on the floor —
+   * `buildSections` skips a ref with no ingredient — leaving state nothing on screen can reach.
+   */
+  if (!ingredient) return <Nothing />;
+
   const subtitle = [ingredient?.name, owned > 0 ? formatQuantity(owned, entryUnit) : undefined]
     .filter(Boolean)
     .join(" · ");
@@ -120,7 +127,7 @@ const Picker = ({
             amount={option.amount}
             unit={unitLabel(option.unit)}
             caption={option.caption}
-            type={intent === "remove" ? "undo" : "default"}
+            type={option.type}
             width={itemWidth - 1}
             onPress={() => choose(option.amount)}
           />
@@ -137,16 +144,16 @@ const Picker = ({
  * any screen. Its params are therefore untrusted — a deep link can carry anything — which is why
  * they are validated here before a hook reads them.
  */
+const Nothing = () => (
+  <View style={[styles.container, styles.empty]}>
+    <Text.Base color={theme.colors.muted}>Nothing to adjust.</Text.Base>
+  </View>
+);
+
 export const QuantityScreen = ({ params, onClose }: Props) => {
   const { ingredientId, unit, intent } = params;
 
-  if (!ingredientId || !isUnit(unit) || !isIntent(intent)) {
-    return (
-      <View style={[styles.container, styles.empty]}>
-        <Text.Base color={theme.colors.muted}>Nothing to adjust.</Text.Base>
-      </View>
-    );
-  }
+  if (!ingredientId || !isUnit(unit) || !isIntent(intent)) return <Nothing />;
 
   return <Picker ingredientId={ingredientId} unit={unit} intent={intent} onClose={onClose} />;
 };

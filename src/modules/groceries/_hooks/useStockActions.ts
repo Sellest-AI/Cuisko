@@ -1,18 +1,8 @@
-import { useAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { useCallback } from "react";
 
-import { cellarAtom, historyAtom, linesAtom, receiptsAtom } from "./atoms";
-import {
-  adjustCellar,
-  dropIngredientLines,
-  dropMealLines,
-  matchesRef,
-  peelReceipts,
-  rememberStock,
-  type CellarEntry,
-  type Intent,
-  type StockRef,
-} from "../_model/model";
+import { linesAtom, putInCellarAtom, takeFromCellarAtom } from "./atoms";
+import { dropIngredientLines, dropMealLines, type Intent, type StockRef } from "../_model/model";
 
 /**
  * Placeholder ids, until Convex issues them.
@@ -23,9 +13,6 @@ import {
  */
 const _id = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
-const _amountOwned = (entries: CellarEntry[], ref: StockRef) =>
-  entries.find(matchesRef(ref))?.amount ?? 0;
-
 /**
  * The three ways stock moves, one per section a tap can come from.
  *
@@ -33,66 +20,59 @@ const _amountOwned = (entries: CellarEntry[], ref: StockRef) =>
  * write without deriving the grid it is drawn over.
  */
 export const useStockActions = () => {
-  const [, setLines] = useAtom(linesAtom);
-  const [cellar, setCellar] = useAtom(cellarAtom);
-  const [receipts, setReceipts] = useAtom(receiptsAtom);
-  const [, setHistory] = useAtom(historyAtom);
+  /**
+   * Write handles only. Nothing here reads a set — the two write atoms do their own reading, and
+   * the line-only writes go through updaters — so subscribing would re-render every caller of this
+   * hook on every change to a value it never looks at.
+   */
+  const setLines = useSetAtom(linesAtom);
+  const putIn = useSetAtom(putInCellarAtom);
+  const takeOut = useSetAtom(takeFromCellarAtom);
 
-  /** Into the basket: the cellar grows, and the purchase is logged so it can be taken back. */
+  /**
+   * Into the basket: the cellar grows, the purchase is logged so it can be taken back, and
+   * anything the shopper had written down for themselves is struck off by it.
+   */
   const buy = useCallback(
-    (ref: StockRef, amount: number) => {
-      if (amount <= 0) return;
-
-      const at = new Date();
-
-      setCellar((entries) => adjustCellar(entries, { ref, delta: amount, now: at, id: _id("cellar") }));
-      setReceipts((current) => [...current, { id: _id("receipt"), ...ref, amount, at }]);
-      setHistory((entries) =>
-        rememberStock(entries, { ref, amount, at, id: _id("history"), overwriteAmount: true }),
-      );
-    },
-    [setCellar, setReceipts, setHistory],
+    (ref: StockRef, amount: number) =>
+      putIn(ref, amount, new Date(), {
+        cellar: _id("cellar"),
+        receipt: _id("receipt"),
+        history: _id("history"),
+      }),
+    [putIn],
   );
 
   /**
-   * Out of the cellar, and out of the house. One meaning, whatever the clock says.
+   * Out of the cellar, and out of the house. Where the stock goes is the same whatever the clock
+   * says; what the clock still governs is whether the trip that brought it is being unmade.
    *
    * Claims are left standing. The plates that wanted this ingredient still want it, and it is no
    * longer here — so the derived gap reopens by what left, up to what is still wanted, and the
    * list asks for it again.
-   * Discharging the claims instead made `needed` and `owned` fall by the same number, which left
-   * `needed - owned` untouched: taking the last carrots out changed nothing on screen, and the
+   * Discharging the claims instead made `claimed` and `owned` fall by the same number, which left
+   * `claimed - owned` untouched: taking the last carrots out changed nothing on screen, and the
    * shopper had no way to tell that from having lost them.
    *
    * Cooking is the gesture that settles a claim, and it is not this one — it arrives from the
    * plate, which knows which lines are its own instead of guessing (see `dropMealLines`).
    *
-   * The clock still decides one thing: a live receipt is peeled, so the purchase stops being
-   * offered back as an undo. It does not unwrite the memory — `buy` recorded the ingredient the
-   * moment it was tapped, and putting it back does not un-know it. Both halves reopen the same
-   * gap, so nothing here needs to know which half it was in.
+   * What the clock decides is what the peel gives back. A live receipt is unmade: the purchase
+   * stops being offered as an undo, and any line it struck off returns, because reversing a trip
+   * has to reverse all of it. A settled one is left alone — the shopper bought that food and is
+   * now using it, and their list is none of this gesture's business. The memory is untouched
+   * either way; `buy` recorded the ingredient when it was tapped, and putting it back does not
+   * un-know it.
+   *
+   * How much leaves, which receipts go and what the memory keeps are one decision over all three
+   * sets, so they are made together in `takeFromCellar` and written together by the atom. Three
+   * `set*` calls from here would each read the cellar as this render found it, and a second tap
+   * arriving before the re-render would undo the first.
    */
   const removeFromCellar = useCallback(
-    (ref: StockRef, amount: number) => {
-      const at = new Date();
-      const owned = _amountOwned(cellar, ref);
-      const taken = Math.min(amount, owned);
-
-      if (taken <= 0) return;
-
-      setCellar((entries) => adjustCellar(entries, { ref, delta: -taken, now: at, id: _id("cellar") }));
-      setReceipts(peelReceipts(receipts, ref, taken, at));
-      /**
-       * Seeded with what the cellar held, not with what left it. A purchase overwrites this and is
-       * the better answer; until one happens the closest thing to "how much do I buy at a time" is
-       * how much was in the house — taking one carrot out of two does not mean the household buys
-       * one carrot.
-       */
-      setHistory((entries) =>
-        rememberStock(entries, { ref, amount: owned, at, id: _id("history"), overwriteAmount: false }),
-      );
-    },
-    [cellar, receipts, setCellar, setReceipts, setHistory],
+    (ref: StockRef, amount: number) =>
+      takeOut(ref, amount, new Date(), { history: _id("history"), line: _id("line") }),
+    [takeOut],
   );
 
   /**

@@ -6,11 +6,15 @@ import {
   dropIngredientLines,
   dropMealLines,
   peelReceipts,
+  putInCellar,
   reduceLines,
   rememberStock,
   stockFor,
+  takeFromCellar,
   UNDO_WINDOW_MS,
+  type CellarEntry,
   type GroceryLine,
+  type HistoryEntry,
   type Receipt,
   type Snapshot,
 } from "./model";
@@ -36,7 +40,18 @@ const base: Snapshot = {
   now: NOW,
 };
 
-const bought = (amount: number, at: Date): Receipt => ({ id: `r-${at.getTime()}-${amount}`, ...CARROTS, amount, at });
+/**
+ * A purchase with no plate waiting on it, unless a caller says otherwise: whatever did not settle
+ * an own line is surplus, so the gap band is empty. That is the shape of nearly every fixture here.
+ */
+const bought = (amount: number, at: Date, settled = 0, surplus = amount - settled): Receipt => ({
+  id: `r-${at.getTime()}-${amount}`,
+  ...CARROTS,
+  amount,
+  at,
+  settled,
+  surplus,
+});
 
 const owning = (amount: number, receipts: Receipt[] = []): Snapshot => ({
   ...base,
@@ -57,7 +72,7 @@ const amountsIn = (snapshot: Snapshot) => {
 
 describe("the gap between what is wanted and what is owned", () => {
   it("asks only for what is missing", () => {
-    expect(carrots(base)).toMatchObject({ needed: 6, owned: 1, toBuy: 5 });
+    expect(carrots(base)).toMatchObject({ claimed: 6, wanted: 0, owned: 1, toBuy: 5 });
   });
 
   it("closes once the missing amount is bought", () => {
@@ -74,6 +89,93 @@ describe("the gap between what is wanted and what is owned", () => {
       cellar: [4],
       remembered: [],
     });
+  });
+});
+
+describe("asking for something outright", () => {
+  /** `base` holds one carrot in the cellar, so a netted line of 1 would show nothing. */
+  const asking = (amount: number, lines = base.lines) => ({
+    ...base,
+    lines: [...lines, { id: "own", ...CARROTS, amount, createdAt: ago(60_000) }],
+  });
+
+  it("is not netted against the cellar", () => {
+    expect(carrots(asking(1, []))).toMatchObject({ claimed: 0, wanted: 1, owned: 1, toBuy: 1 });
+  });
+
+  it("adds to whatever the plates are short of", () => {
+    expect(carrots(asking(2))).toMatchObject({ claimed: 6, wanted: 2, owned: 1, toBuy: 7 });
+  });
+
+  it("shows on the list rather than disappearing into the cellar", () => {
+    expect(amountsIn(asking(1, []))).toEqual({ toBuy: [1], cellar: [1], remembered: [] });
+  });
+});
+
+describe("stock arriving", () => {
+  const ids = { cellarId: "c", receiptId: "r", historyId: "h" };
+  const arriving = (amount: number) => ({ ref: CARROTS, amount, at: NOW, ...ids });
+
+  const sets = (lines: GroceryLine[], owned = 0) => ({
+    lines,
+    cellar: owned > 0 ? [{ id: "c1", ...CARROTS, amount: owned, updatedAt: ago(60_000) }] : [],
+    receipts: [],
+    history: [],
+  });
+
+  const OWN: GroceryLine = { id: "own", ...CARROTS, amount: 2, createdAt: ago(60_000) };
+  const PLATE: GroceryLine = base.lines[0]!;
+
+  it("moves nothing on a non-amount", () => {
+    expect(putInCellar(sets([OWN]), arriving(0))).toBeNull();
+  });
+
+  it("strikes off what the shopper asked for, and logs how much it settled", () => {
+    const after = putInCellar(sets([OWN]), arriving(2));
+
+    expect(after?.lines).toEqual([]);
+    expect(after?.receipts[0]).toMatchObject({ amount: 2, settled: 2 });
+  });
+
+  /**
+   * The distinction the whole split exists for. A plate's claim is answered by the cellar rising,
+   * so buying must not delete it — the line is what the week is still cooking from, and settling
+   * it here would leave a dish nothing is shopping for.
+   */
+  it("never settles a plate's claim", () => {
+    const after = putInCellar(sets([PLATE]), arriving(2));
+
+    expect(after?.lines).toEqual([PLATE]);
+    expect(after?.receipts[0]).toMatchObject({ settled: 0 });
+  });
+
+  it("settles the shopper's own line first and banks the rest", () => {
+    const after = putInCellar(sets([PLATE, OWN]), arriving(5));
+
+    expect(after?.lines).toEqual([PLATE]);
+    expect(after?.receipts[0]).toMatchObject({ amount: 5, settled: 2 });
+    expect(after?.cellar[0]?.amount).toBe(5);
+  });
+
+  /**
+   * The round trip a stored `settled` exists for. Buying deletes the line, so peeling the receipt
+   * has to put it back — otherwise undoing a mistap silently drops what the shopper wrote down.
+   */
+  it("gives the line back when the purchase is undone", () => {
+    const bought = putInCellar(sets([OWN]), arriving(2))!;
+
+    expect(carrots({ ...base, ...bought })).toMatchObject({ wanted: 0, toBuy: 0 });
+
+    const undone = takeFromCellar(bought, {
+      ref: CARROTS,
+      amount: 2,
+      at: NOW,
+      historyId: "h2",
+      lineId: "back",
+    });
+
+    expect(undone?.lines).toEqual([{ id: "back", ...CARROTS, amount: 2, createdAt: NOW }]);
+    expect(carrots({ ...base, ...undone! })).toMatchObject({ wanted: 2, toBuy: 2 });
   });
 });
 
@@ -233,6 +335,67 @@ describe("writing to a set", () => {
   });
 });
 
+describe("taking stock out of the cellar", () => {
+  const held = (amount: number, receipts: Receipt[] = [], lines: GroceryLine[] = []) => ({
+    lines,
+    cellar: [{ id: "c1", ...CARROTS, amount, updatedAt: ago(60_000) }],
+    receipts,
+    history: [],
+  });
+
+  const take = (amount: number) => ({
+    ref: CARROTS,
+    amount,
+    at: NOW,
+    historyId: "h",
+    lineId: "restored",
+  });
+
+  it("moves nothing when the cellar has none of it", () => {
+    expect(takeFromCellar(held(0), take(2))).toBeNull();
+    expect(takeFromCellar({ lines: [], cellar: [], receipts: [], history: [] }, take(2))).toBeNull();
+  });
+
+  it("caps what leaves at what is there", () => {
+    const after = takeFromCellar(held(1), take(6));
+
+    expect(after?.cellar[0]?.amount).toBe(0);
+  });
+
+  it("remembers what was held, not what left", () => {
+    const after = takeFromCellar(held(2), take(1));
+
+    expect(after?.history).toEqual([{ id: "h", ...CARROTS, amount: 2, at: NOW }]);
+  });
+
+  /**
+   * The quick-tap regression, and the reason this is one function over three sets rather than
+   * three writes. Feeding each result into the next is what a write atom's `get` guarantees;
+   * computing both from the same starting sets is what the hook used to do, and the second peel
+   * then overwrote the first — leaving a live receipt for stock the cellar no longer held.
+   */
+  it("composes when a second removal lands before anything re-reads", () => {
+    const start = held(4, [bought(4, ago(1_000))]);
+
+    const once = takeFromCellar(start, take(2));
+    const twice = takeFromCellar(once!, take(2));
+
+    expect(twice?.cellar[0]?.amount).toBe(0);
+    expect(twice?.receipts).toEqual([]);
+
+    /** What the bug produced: both peels computed from `start`, so the first one is lost. */
+    const raced = takeFromCellar(start, take(2));
+
+    expect(raced?.receipts.map((receipt) => receipt.amount)).toEqual([2]);
+  });
+
+  it("keeps a remembered purchase amount across later removals", () => {
+    const start = { ...held(4), history: [{ id: "h0", ...CARROTS, amount: 6, at: ago(60_000) }] };
+
+    expect(takeFromCellar(start, take(4))?.history[0]?.amount).toBe(6);
+  });
+});
+
 describe("striking an ingredient off the list", () => {
   const lines: GroceryLine[] = [
     { id: "l1", ...CARROTS, meal: { id: "d1", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000) },
@@ -247,6 +410,218 @@ describe("striking an ingredient off the list", () => {
 
   it("leaves a different unit of the same ingredient standing", () => {
     expect(dropIngredientLines(lines, { ingredientId: "carrots", unit: "g" })).toEqual(lines);
+  });
+});
+
+/**
+ * The invariant the sections are actually read against, exercised through the writes rather than
+ * through hand-built snapshots. Each case here is one that got past the tests once.
+ */
+describe("what a purchase does to the list", () => {
+  const PLATE = { id: "plate", ...CARROTS, meal: { id: "m", title: "M" }, amount: 8, createdAt: ago(60_000) };
+  const OWN = { id: "own", ...CARROTS, amount: 3, createdAt: ago(60_000) };
+
+  const start = (lines: GroceryLine[], owned = 0) => ({
+    lines,
+    cellar: owned > 0 ? [{ id: "c1", ...CARROTS, amount: owned, updatedAt: ago(60_000) }] : [],
+    receipts: [],
+    history: [],
+  });
+
+  const buy = (sets: ReturnType<typeof start>, amount: number) =>
+    putInCellar(sets, { ref: CARROTS, amount, at: NOW, cellarId: "c", receiptId: "r", historyId: "h" })!;
+
+  const listed = (sets: { lines: GroceryLine[]; cellar: CellarEntry[] }) =>
+    stockFor({ ...base, ...sets, receipts: [], history: [] }, CARROTS).toBuy;
+
+  /**
+   * Buying N takes exactly N off the list, whoever was asking. The plates' share is netted against
+   * the cellar and the shopper's own lines are deleted, and for a while both happened to the same
+   * units: 8 claimed plus 3 asked outright is a list of 11, and buying 3 took it to 5 — three
+   * bought, six gone. Nothing caught it because every test here asserted lines, receipts and cellar
+   * one at a time, and never the number the shopper actually reads.
+   */
+  it.each([
+    ["only plates are asking", [PLATE], 0, 3],
+    ["only the shopper is asking", [OWN], 0, 2],
+    ["both are asking, and the plates are short", [PLATE, OWN], 0, 3],
+    ["both are asking, and the plates are covered", [PLATE, OWN], 8, 2],
+    ["the purchase overshoots everything", [PLATE, OWN], 0, 11],
+  ])("falls by exactly what was bought when %s", (_case, lines, owned, amount) => {
+    const before = start(lines, owned);
+    const after = buy(before, amount);
+
+    expect(listed(before) - listed(after)).toBe(Math.min(amount, listed(before)));
+  });
+
+  it("never lets a purchase reach a plate's claim", () => {
+    const after = buy(start([PLATE, OWN]), 11);
+
+    expect(after.lines).toEqual([PLATE]);
+  });
+
+  /**
+   * The shopper's own line is only settled out of what is left once the plates are covered, so a
+   * purchase smaller than their shortfall leaves it standing. It is the same food either way — the
+   * carrots in the house will be eaten by the dish that wanted them.
+   */
+  it("leaves the shopper's line alone while the plates are still short", () => {
+    const after = buy(start([PLATE, OWN]), 3);
+
+    expect(after.lines).toEqual([PLATE, OWN]);
+    expect(after.receipts[0]).toMatchObject({ amount: 3, settled: 0, surplus: 0 });
+  });
+
+  it("splits a purchase across all three bands", () => {
+    const after = buy(start([PLATE, OWN]), 13);
+
+    expect(after.receipts[0]).toMatchObject({ amount: 13, settled: 3, surplus: 2 });
+  });
+
+  /**
+   * Giving stock back has to reopen what it closed. Peeling used to take the settled band as the
+   * bottom of the receipt, so handing back three of an eleven-carrot purchase left the cellar
+   * exactly covering the plates, restored no line, and lost the shopper's three without trace.
+   */
+  it("gives the shopper their line back when the stock goes back", () => {
+    const after = buy(start([PLATE, OWN]), 11);
+
+    expect(listed(after)).toBe(0);
+
+    const returned = takeFromCellar(after, {
+      ref: CARROTS,
+      amount: 3,
+      at: NOW,
+      historyId: "h2",
+      lineId: "back",
+    })!;
+
+    expect(returned.lines).toContainEqual({ id: "back", ...CARROTS, amount: 3, createdAt: NOW });
+    expect(listed(returned)).toBe(3);
+  });
+
+  it("hands surplus back before it touches what the shopper asked for", () => {
+    const after = buy(start([OWN]), 5);
+    const returned = takeFromCellar(after, {
+      ref: CARROTS,
+      amount: 2,
+      at: NOW,
+      historyId: "h2",
+      lineId: "back",
+    })!;
+
+    expect(returned.lines).toEqual([]);
+    expect(listed(returned)).toBe(0);
+  });
+
+  /**
+   * Restoring a line is the undo, and the undo is what the window is for. Inside it, putting stock
+   * back unmakes the purchase and the note comes with it; outside, the purchase stands and taking
+   * stock out is the shopper using what they bought.
+   */
+  it("only gives the line back while the purchase is still undoable", () => {
+    const after = buy(start([OWN]), 3);
+    const undo = (at: Date) =>
+      takeFromCellar(after, { ref: CARROTS, amount: 3, at, historyId: "h2", lineId: "back" })!;
+
+    expect(undo(NOW).lines).toHaveLength(1);
+    expect(undo(new Date(NOW.getTime() + UNDO_WINDOW_MS + 1_000)).lines).toHaveLength(0);
+  });
+
+  it("peels across two purchases, newest first, and adds up what they settled", () => {
+    const one = buy(start([OWN]), 2);
+    const two = putInCellar(one, {
+      ref: CARROTS,
+      amount: 1,
+      at: NOW,
+      cellarId: "c2",
+      receiptId: "r2",
+      historyId: "h2",
+    })!;
+
+    expect(two.receipts.map((receipt) => receipt.settled)).toEqual([2, 1]);
+    expect(peelReceipts(two.receipts, CARROTS, 3, NOW).restored).toBe(3);
+  });
+});
+
+describe("what the household is remembered as buying", () => {
+  const TOMATOES = { ingredientId: "tomatoes", unit: "g" } as const;
+  const BY_KILO = { ingredientId: "tomatoes", unit: "kg" } as const;
+
+  const remember = (ref: typeof TOMATOES | typeof BY_KILO, amount: number, bought: boolean) =>
+    (entries: HistoryEntry[]) =>
+      rememberStock(entries, { ref, amount, at: NOW, id: `h-${ref.unit}`, overwriteAmount: bought });
+
+  it("keeps one row per ingredient, whatever unit it was bought in", () => {
+    const after = remember(BY_KILO, 1, true)(remember(TOMATOES, 300, true)([]));
+
+    expect(after).toEqual([{ id: "h-g", ...BY_KILO, amount: 1, at: NOW }]);
+  });
+
+  /**
+   * The unit rides with the amount or not at all. A removal may not state how much the household
+   * buys, so it may not restate the unit either — "1" left over from a kilo, relabelled grams by
+   * a handful of tomatoes going out of the cellar, is a number nobody ever bought.
+   */
+  it("does not let a removal relabel a remembered purchase", () => {
+    const bought = remember(BY_KILO, 1, true)([]);
+    const after = remember(TOMATOES, 300, false)(bought);
+
+    expect(after).toEqual([{ id: "h-kg", ...BY_KILO, amount: 1, at: NOW }]);
+  });
+
+  /** The reason for all of it: two rows drew the same ingredient into memory twice. */
+  it("shows the ingredient in memory once", () => {
+    const sections = buildSections({
+      ingredients: [{ id: "tomatoes", name: "Tomates", emoji: "🍅" }],
+      lines: [],
+      cellar: [],
+      receipts: [
+        { id: "r1", ...TOMATOES, amount: 300, at: ago(UNDO_WINDOW_MS + 1_000), settled: 0, surplus: 300 },
+        { id: "r2", ...BY_KILO, amount: 1, at: ago(UNDO_WINDOW_MS + 1_000), settled: 0, surplus: 1 },
+      ],
+      history: remember(BY_KILO, 1, true)(remember(TOMATOES, 300, true)([])),
+      now: NOW,
+    });
+
+    expect(sections["recently-bought"].map((row) => [row.amount, row.unit])).toEqual([[1, "kg"]]);
+  });
+});
+
+describe("when a row was last touched", () => {
+  /**
+   * `touchedAt` seeded its reduce with `snapshot.now`, so it always answered `now` — nothing is
+   * ever touched in the future. Every row then shared an age of zero, which quietly retired the
+   * recency sort: both branches of the comparison were no-ops and rows came out in whatever order
+   * the key walk built them.
+   */
+  it("reports the newest thing that happened to it, not the clock", () => {
+    expect(carrots({ ...base, lines: [], history: [] }).touchedAt).toEqual(ago(60_000));
+  });
+
+  it("falls back to the clock only when nothing has happened to it at all", () => {
+    const untouched: Snapshot = { ...base, lines: [], cellar: [], receipts: [], history: [] };
+
+    expect(stockFor(untouched, CARROTS).touchedAt).toEqual(NOW);
+  });
+
+  it("orders the cellar by what was touched most recently", () => {
+    const sections = buildSections({
+      ingredients: [
+        { id: "carrots", name: "Carottes", emoji: "🥕" },
+        { id: "bread", name: "Pain", emoji: "🥖" },
+      ],
+      lines: [],
+      cellar: [
+        { id: "c1", ...CARROTS, amount: 1, updatedAt: ago(60_000) },
+        { id: "c2", ingredientId: "bread", unit: "pcs", amount: 1, updatedAt: ago(1_000) },
+      ],
+      receipts: [],
+      history: [],
+      now: NOW,
+    });
+
+    expect(sections.cellar.map((row) => row.ingredientId)).toEqual(["bread", "carrots"]);
   });
 });
 
@@ -280,25 +655,39 @@ describe("row identity across a change of section", () => {
 
 describe("peeling receipts", () => {
   it("takes the whole purchase back", () => {
-    expect(peelReceipts([bought(6, ago(1_000))], CARROTS, 6, NOW)).toEqual([]);
+    expect(peelReceipts([bought(6, ago(1_000))], CARROTS, 6, NOW).receipts).toEqual([]);
   });
 
   it("takes from the newest purchase first", () => {
     const older = bought(6, ago(120_000));
     const newer = bought(2, ago(1_000));
 
-    expect(peelReceipts([older, newer], CARROTS, 2, NOW)).toEqual([older]);
+    expect(peelReceipts([older, newer], CARROTS, 2, NOW).receipts).toEqual([older]);
   });
 
   it("stops at the live edge rather than reaching into settled stock", () => {
     const expired = bought(6, ago(UNDO_WINDOW_MS + 1_000));
     const live = bought(2, ago(1_000));
 
-    expect(peelReceipts([expired, live], CARROTS, 5, NOW)).toEqual([expired]);
+    expect(peelReceipts([expired, live], CARROTS, 5, NOW).receipts).toEqual([expired]);
   });
 
   it("leaves the rest of a partially undone purchase in place", () => {
-    expect(peelReceipts([bought(6, ago(1_000))], CARROTS, 2, NOW).map((r) => r.amount)).toEqual([4]);
+    expect(peelReceipts([bought(6, ago(1_000))], CARROTS, 2, NOW).receipts.map((r) => r.amount))
+      .toEqual([4]);
+  });
+
+  /**
+   * The settled units sit at the bottom of the receipt, so peeling eats the extras first. Six
+   * bought against a list asking for two: giving four back leaves the list clear, because the
+   * four returned were never on it. Only the fifth starts giving the asking back.
+   */
+  it("gives the list back only once the extras are gone", () => {
+    const purchase = [bought(6, ago(1_000), 2)];
+
+    expect(peelReceipts(purchase, CARROTS, 4, NOW).restored).toBe(0);
+    expect(peelReceipts(purchase, CARROTS, 5, NOW).restored).toBe(1);
+    expect(peelReceipts(purchase, CARROTS, 6, NOW).restored).toBe(2);
   });
 });
 

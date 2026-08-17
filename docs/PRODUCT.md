@@ -176,7 +176,11 @@ not a deviation — say so rather than silently working around it.
   product rests on. Its accuracy determines whether any suggestion is any good, which is why keeping
   it truthful without effort is the app's central design problem.
 - **The grocery list** *(la liste de courses)* — what is missing, derived from the gap between the
-  plan and the cellar. Shopping done well should empty the list and refill the cellar.
+  plan and the cellar, plus anything the shopper asked for outright. The plan's share is netted
+  against the cellar: a meal finds its ingredients at home and only the shortfall is worth a trip.
+  A line someone adds themselves is not netted — they knew what was in the kitchen when they wrote
+  it, so "buy bread" from someone who has a loaf means a second one. Shopping done well should
+  empty the list and refill the cellar.
 - **The planning** *(le planning)* — the week's meals, by day and by moment (lunch, dinner). Loose,
   reshuffleable, always reconcilable with the list.
 - **Recipes** — a set of ingredients and steps. Some are the user's own, some come from the

@@ -40,14 +40,9 @@ export const AmountInput = ({ unit, onUnitChange, onSubmit }: Props) => {
    * deeper, because every writer below silently no-ops on them and the sheet would close as if it
    * had committed something.
    *
-   * The comma is normalised first: `parseFloat("1,5")` is `1`, silently, and a shopper typing on a
-   * French keyboard would watch 1.5 kg go into the cellar as 1.
-   *
-   * A caveat this cannot fix from here: `type="number"` maps to `inputMode="numeric"` in
-   * `src/ui/components/input.tsx`, a digits-only keypad, so on mobile no decimal can be typed at
-   * all. That matters most for exactly this field — the `kg` and `l` ladders are fractional, so
-   * the amounts worth typing are the ones off them. It needs a `decimal` mode in the design
-   * system, which is not this module's to add.
+   * The comma is normalised first. `parseFloat("1,5")` is `1`, silently, and the keypad this field
+   * asks for offers whichever separator the locale uses — so a shopper typing on a French keyboard
+   * would otherwise watch 1.5 kg go into the cellar as 1.
    */
   const submit = useCallback(() => {
     const amount = parseFloat(text.replace(",", "."));
@@ -57,11 +52,13 @@ export const AmountInput = ({ unit, onUnitChange, onSubmit }: Props) => {
 
   return (
     <View style={styles.row}>
+      {/* `decimal`, not `numeric`: the kg and l ladders are fractional, so the amounts worth
+          typing here are exactly the ones a digits-only keypad cannot express. */}
       <Input
         rightIcon={Plus}
         style={styles.field}
         placeholder="Type your own amount"
-        type="number"
+        type="decimal"
         onRightPress={submit}
         onSubmit={submit}
         onChangeText={setText}
