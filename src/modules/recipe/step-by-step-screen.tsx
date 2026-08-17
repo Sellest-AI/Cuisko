@@ -34,6 +34,7 @@ const STEPS = [
   {
     duration: "5 minutes",
     instruction: "Cook down the tomatoes 🍅 and the carrots 🥕.",
+    hint: "Make sure to wash them before.",
     photo:
       "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
     hasVideo: true,
@@ -128,6 +129,7 @@ export const StepByStepScreen = ({ onClose }: Props) => {
               position={index + 1}
               duration={step.duration}
               instruction={step.instruction}
+              hint={step.hint}
               ingredients={step.ingredients}
               isLast={isLast}
             />
