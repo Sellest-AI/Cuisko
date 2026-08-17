@@ -37,7 +37,7 @@ export const CardRecipe = ({ style, imageSrc, title, subtitle, rating, views, on
           </Badge>
         )}
       </View>
-      <View style={{ paddingLeft: theme.spacing[12], gap: 2 }}>
+      <View style={{ paddingLeft: theme.spacing[8], gap: 2 }}>
         <Text.Base color={theme.colors.foreground} numberOfLines={1}>
           {title}
         </Text.Base>
@@ -53,12 +53,14 @@ const styles = StyleSheet.create({
   container: {
     maxWidth: 220,
     borderRadius: theme.radius.lg,
+    borderBottomLeftRadius: theme.radius.md,
+    borderBottomRightRadius: theme.radius.md,
     overflow: "hidden",
     backgroundColor: theme.colors.surface.elevatedSubtle,
     borderColor: theme.colors.border.default,
     borderWidth: 2,
     gap: theme.spacing[8],
-    padding: theme.spacing[6],
+    padding: theme.spacing[4],
     paddingBottom: theme.spacing[12],
     boxShadow: [
       {
