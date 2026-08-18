@@ -58,10 +58,10 @@ export const OverviewScreen = () => {
             </View>
           </View>
         </View>
+        <NutritionCard {...RECIPE.nutrition} />
         <View style={styles.tile}>
           <Timings timings={RECIPE.timings} />
         </View>
-        <NutritionCard {...RECIPE.nutrition} />
       </View>
       <View style={styles.section}>
         <GroceryRow title={t("Overview.utensils")} items={RECIPE.utensils} />
@@ -87,9 +87,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing[8],
   },
   tile: {
-    backgroundColor: theme.colors.primary.subtle,
-    padding: theme.spacing[16],
+    backgroundColor: theme.colors.surface.elevatedSubtle,
+    borderColor: theme.colors.border.default,
+    borderWidth: 2,
     borderRadius: theme.radius.md,
+    padding: theme.spacing[16],
     minHeight: 72,
     justifyContent: "center",
   },

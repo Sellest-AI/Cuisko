@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   action: {
     alignSelf: "center",
     marginTop: 40,
-    marginBottom: theme.spacing[16]
+    marginBottom: theme.spacing[16],
   },
   /** Two plates overlapping, so the row's left side reads as a pile rather than one icon. */
   actionArt: {
