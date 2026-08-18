@@ -46,8 +46,6 @@ type Props = {
    */
   badge?: ReactNode;
   onPress?: () => void;
-  /** Set by the grid that lays these out, so a row divides the width evenly. */
-  width?: number;
   style?: ViewStyle;
   imageStyle?: ComponentProps<typeof Image>["style"];
   elevated?: boolean;
@@ -71,7 +69,6 @@ export const CardChoice = ({
   badge,
   onPress,
   imageStyle,
-  width,
   style,
 }: Props) => {
   const { gradient, foreground, tick } = TONES[tone];
@@ -84,7 +81,6 @@ export const CardChoice = ({
         ...styles.container,
         ...(tone === "neutral" ? styles.resting : null),
         ...(selected ? styles.selected : null),
-        ...(width !== undefined ? { width } : null),
         ...styles.borderRadius,
         ...(elevated ? styles.shadow : null),
         ...style,

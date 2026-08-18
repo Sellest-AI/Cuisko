@@ -7,6 +7,7 @@ import { ArrowLeft, Play } from "@ui/icons";
 import { ButtonPill } from "@ui/button-pill";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { SafeAreaView } from "@ui/safe-area-view";
 
 type Props = {
   style?: ViewStyle,
@@ -25,24 +26,29 @@ export const ChromeNavigationBar = ({ style, onBack, onStepByStep }: Props) => {
       exit={{ opacity: 0, translateY: NAVIGATION_BAR_HEIGHT }}
       transition={{ type: "timing", duration: 300, delay: 300 }}
     >
-      {onBack && <ButtonIcon
-        elevated
-        variant="neutral-inverted"
-        size="md"
-        onPress={onBack}
-        style={styles.back}
+      <SafeAreaView
+        edges={{ bottom: "android", top: "off" }}
+        style={styles.flex}
       >
-        {ArrowLeft}
-      </ButtonIcon>}
-      <ButtonPill
-        elevated
-        variant="secondary"
-        size="lg"
-        onPress={onStepByStep}
-        leftIcon={Play}
-      >
-        {t("Chrome.start_cooking")}
-      </ButtonPill>
+        {onBack && <ButtonIcon
+          elevated
+          variant="neutral-inverted"
+          size="lg"
+          onPress={onBack}
+          style={styles.back}
+        >
+          {ArrowLeft}
+        </ButtonIcon>}
+        <ButtonPill
+          elevated
+          variant="secondary"
+          size="lg"
+          onPress={onStepByStep}
+          leftIcon={Play}
+        >
+          {t("Chrome.start_cooking")}
+        </ButtonPill>
+      </SafeAreaView>
     </m.View>
   )
 }
@@ -53,13 +59,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: NAVIGATION_BAR_HEIGHT,
+    paddingHorizontal: theme.spacing[16],
+    paddingBottom: theme.spacing[24],
+  },
+  flex: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing[16],
-    paddingHorizontal: theme.spacing[16],
-    paddingBottom: theme.spacing[24],
   },
   back: { alignSelf: "auto" },
 })

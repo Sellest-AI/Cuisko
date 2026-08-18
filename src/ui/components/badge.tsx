@@ -59,7 +59,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[4],
-    borderWidth: 2
+    overflow: "hidden",
+    borderWidth: 2,
   },
   neutral: {
     backgroundColor: theme.colors.surface.elevatedSubtle,

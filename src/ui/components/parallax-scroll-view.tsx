@@ -291,7 +291,7 @@ export const ParallaxScrollView = ({
           }}
           >
             <LinearGradient
-              colors={["transparent", colors.background]}
+              colors={[colors.transparent.light, colors.background]}
               style={{
                 height: 132,
               }}
@@ -304,13 +304,19 @@ export const ParallaxScrollView = ({
         {/* The bar itself. Above the content it pins over, so what scrolls under it stays under. */}
         <View style={{ zIndex: 2 }}>{stickyHeader}</View>
 
-        {/* Content with background */}
+        {/*
+          * Content with background.
+          *
+          * No `flex` here, deliberately. This is a direct child of the scroll content container,
+          * whose main axis is unbounded — there is no free space for `flexGrow` to hand out, so
+          * `flex: 1` leaves the view sitting on its `flexBasis` of 0 and the tab measures to zero
+          * height on iOS. It grows from its children instead.
+          */}
         <View
           key={locked ? "locked" : "unlocked"}
           style={{
             zIndex: 1,
             pointerEvents: "auto",
-            flex: 1,
             height: locked ?
               Dimensions.get("screen").height - headerHeight + contentNegativeSpace - bottom
               : undefined,

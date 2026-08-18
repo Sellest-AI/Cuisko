@@ -39,7 +39,7 @@ export const TunnelDiet = () => {
             key={diet.id}
             label={diet.label.slice(0, 8).trim().concat(diet.label.length > 8 ? "." : "")}
             imageSrc={TILE_IMAGE}
-            width={tileWidth - 1}
+            style={{ width: tileWidth - 1 }}
             selected={diets.includes(diet.id)}
             onPress={() => toggleDiet(diet.id)}
             imageStyle={{ maxWidth: "90%", maxHeight: 64 }}

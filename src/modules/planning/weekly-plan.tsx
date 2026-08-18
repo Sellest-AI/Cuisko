@@ -58,7 +58,7 @@ export const WeeklyPlan = () => {
             elevated
             variant="primary"
             onPress={toggleMealType}
-            rightContent={<ArrowLeftRightIcon size={TOGGLE_ICON_SIZE} />}
+            rightContent={<ArrowLeftRightIcon size={TOGGLE_ICON_SIZE} color={theme.colors.primary.foreground} />}
             style={styles.mealToggle}
           >
             {mealType === "lunch" ? t("Meal.lunch") : t("Meal.dinner")}
@@ -97,13 +97,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: theme.spacing[8],
+    gap: theme.spacing[12],
     marginTop: theme.spacing[24],
   },
   mealToggle: {
     minHeight: 0,
     paddingHorizontal: theme.spacing[12],
-    marginTop: 2,
+    marginTop: 1,
   },
   carousel: {
     marginTop: theme.spacing[28],

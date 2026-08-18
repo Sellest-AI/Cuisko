@@ -1,4 +1,6 @@
 import { Platform, Pressable, StyleSheet } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ButtonIcon } from "@ui/button-icon";
 import { ArrowLeft, ForkKnife, Plus } from "@ui/icons";
@@ -11,6 +13,7 @@ import { NavigationBarInput } from "./navigation-bar.input";
 import { useNavigationBar } from "./hooks";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
+import { SafeAreaView } from "~/ui/components/safe-area-view";
 
 const INITIAL_DELAY = 50;
 
@@ -36,7 +39,7 @@ export const NavigationBar = () => {
   const t = useTranslations("Navigation");
 
   const path = usePathname();
-  const isHome = path.startsWith("/home");
+  const isHome = path === "/";
   const isGroceries = path.startsWith("/groceries");
   const isAssistant = path.startsWith("/assistant");
   const isRecipes = path.startsWith("/recipes");
@@ -46,6 +49,7 @@ export const NavigationBar = () => {
 
   const [inputFocused, setInputFocused] = useState(false);
 
+  const insets = useSafeAreaInsets();
   const { reset } = useNavigationBar();
 
   const cancelResetRef = useRef(() => { });
@@ -66,71 +70,94 @@ export const NavigationBar = () => {
           onPress={() => onBlur()}
         />
       )}
-      <AnimatePresence>
-        {hasNavigationBar && (
-          <m.View
-            style={styles.container}
-            {...sharedTransition()}
-            transition={{ delay: INITIAL_DELAY }}
-          >
-            <AnimatePresence>
-              {(!isHome && !inputFocused && !isAssistant) &&
-                <m.View {...sharedTransition(44)}>
-                  <ButtonIcon
-                    elevated
-                    variant="neutral-inverted"
-                    onPress={() => router.canGoBack() ? router.back() : router.dismissTo("/home")}
-                    style={{ alignSelf: "auto" }}
-                    size="md"
-                  >
-                    {ArrowLeft}
-                  </ButtonIcon>
-                </m.View>}
-            </AnimatePresence>
-            {!isRecipes && <NavigationBarInput
-              focused={inputFocused}
-              onFocus={() => { setInputFocused(true); cancelResetRef.current(); }}
-              onBlur={() => onBlur()}
-            />}
-            {isRecipes && <ButtonPill
-              leftIcon={Plus}
-              onPress={() => console.log("Recipe imported")}
-              elevated
-              variant="secondary"
-              size="lg"
+      {/*
+        * `KeyboardProvider` only publishes where the keyboard is — something has to consume it.
+        * The bar is pinned to the bottom of the window, so without this it sits *under* the
+        * keyboard the moment its own input takes focus. The sticky view lifts it by the keyboard
+        * height, driven by the same frames as the system animation rather than by a JS listener.
+        *
+        * The bar is positioned here rather than on the animated child, so the lift applies to the
+        * whole bar and the child keeps its own enter/exit translateY unclaimed.
+        *
+        * `opened` gives back the home-indicator inset: the keyboard's height already spans it, so
+        * without it the gap above the keys is the inset plus the bar's own padding.
+        */}
+      <KeyboardStickyView
+        style={[styles.sticky, { pointerEvents: hasNavigationBar ? "auto" : "none" }]}
+        offset={{ closed: 0, opened: insets.bottom - Platform.select({ ios: 24, default: 4 }) }}
+      >
+        <AnimatePresence>
+          {hasNavigationBar && (
+            <m.View
+              style={styles.container}
+              {...sharedTransition()}
+              transition={{ delay: INITIAL_DELAY }}
             >
-              {t("import_recipe")}
-            </ButtonPill>}
-            <AnimatePresence>
-              {(isHome && !inputFocused) && <m.View {...sharedTransition(56)}>
-                <ButtonIcon
+              <SafeAreaView edges={{ bottom: "android", top: "off" }} style={styles.flex}>
+                <AnimatePresence>
+                  {(!isHome && !inputFocused && !isAssistant) &&
+                    <m.View {...sharedTransition(54)}>
+                      <ButtonIcon
+                        elevated
+                        variant="neutral-inverted"
+                        onPress={() => router.canGoBack() ? router.back() : router.dismissTo("/")}
+                        style={{ alignSelf: "auto" }}
+                        size="lg"
+                      >
+                        {ArrowLeft}
+                      </ButtonIcon>
+                    </m.View>}
+                </AnimatePresence>
+                {!isRecipes && <NavigationBarInput
+                  focused={inputFocused}
+                  onFocus={() => { setInputFocused(true); cancelResetRef.current(); }}
+                  onBlur={() => onBlur()}
+                />}
+                {isRecipes && <ButtonPill
+                  leftIcon={Plus}
+                  onPress={() => console.log("Recipe imported")}
                   elevated
-                  style={{ alignSelf: "auto" }}
                   variant="secondary"
-                  onPress={() => router.push("/recipes")}
                   size="lg"
                 >
-                  {ForkKnife}
-                </ButtonIcon>
-              </m.View>}
-            </AnimatePresence>
-          </m.View>
-        )}
-      </AnimatePresence>
+                  {t("import_recipe")}
+                </ButtonPill>}
+                <AnimatePresence>
+                  {(isHome && !inputFocused) && <m.View {...sharedTransition(56)}>
+                    <ButtonIcon
+                      elevated
+                      style={{ alignSelf: "auto" }}
+                      variant="secondary"
+                      onPress={() => router.push("/recipes")}
+                      size="lg"
+                    >
+                      {ForkKnife}
+                    </ButtonIcon>
+                  </m.View>}
+                </AnimatePresence>
+              </SafeAreaView>
+            </m.View>
+          )}
+        </AnimatePresence>
+      </KeyboardStickyView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  sticky: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+  },
+  flex: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: theme.spacing[16],
+  },
+  container: {
     paddingBottom: theme.spacing[24],
   },
 });

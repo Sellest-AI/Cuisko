@@ -1,8 +1,9 @@
 import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
+import { SafeAreaView, useSafeAreaInsets } from "@ui/safe-area-view";
 import { ActionRow } from "@ui/action-row";
 import { CalendarIcon, CalendarPlus, SlidersHorizontal } from "@ui/icons";
 import { Image } from "@ui/image";
@@ -50,6 +51,8 @@ export const PlanningScreen = ({ focusDate }: Props) => {
   const t = useTranslations("Planning");
   const { rows, initialIndex } = usePlanningList(focusDate);
 
+  const { top } = useSafeAreaInsets()
+
   return (
     <>
       <LinearGradient
@@ -63,7 +66,10 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         colors={[theme.colors.primary.base, theme.colors.neutral.subtle]}
         style={{ position: "absolute", bottom: -150, left: -150, opacity: 0.1 }}
       />
-      <View style={styles.header}>
+      <SafeAreaView
+        style={styles.header}
+        edges={{ top: "additive", bottom: "off" }}
+      >
         <View style={styles.title}>
           <CalendarIcon size={HEADER_ICON_SIZE} />
           <Text.H4>{t("Screen.title")}</Text.H4>
@@ -75,7 +81,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         >
           {t("Screen.preferences")}
         </Button>
-      </View>
+      </SafeAreaView>
       <FlashList
         data={rows}
         keyExtractor={(row) => row.id}
@@ -86,7 +92,9 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         initialScrollIndex={initialIndex - 1}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        style={{ marginTop: -60 }}
+        style={{
+          marginTop: -60 - top,
+        }}
         renderItem={({ item, index }) => {
           const isNextSameDay = rows[index + 1]?.date.getDate() === item.date.getDate();
           const isLast = index === rows.length - 1;
@@ -129,7 +137,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         }
       />
       <LinearGradient
-        colors={[theme.colors.neutral.subtle, "transparent"]}
+        colors={[theme.colors.neutral.subtle, theme.colors.transparent.light]}
         style={{
           pointerEvents: "none",
           position: "absolute",
@@ -154,7 +162,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingLeft: theme.spacing[24],
     paddingRight: theme.spacing[16],
-    paddingTop: theme.spacing[16],
+    paddingTop: Platform.select({ android: theme.spacing[8], default: theme.spacing[16] }),
     paddingBottom: theme.spacing[12],
     zIndex: 1,
   },
@@ -167,7 +175,11 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: NAVIGATION_BAR_OFFSET,
     paddingHorizontal: theme.spacing[12],
-    paddingTop: 72,
+    paddingTop: Platform.select({
+      android: 112,
+      ios: 128,
+      default: 72
+    }),
   },
   footer: {
     alignItems: "center",

@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { View, StyleSheet, ViewStyle, ScrollView } from "react-native";
 import { theme } from "theme";
 import { Text } from "@ui/text";
@@ -65,131 +64,125 @@ type Props = {
 
 export const AssistantScreen = ({ style }: Props) => {
   return (
-    <>
-      <LinearGradient
-        colors={[theme.colors.neutral.subtle, theme.colors.neutral.foreground]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 0, y: 0 }}
-      />
-      <ScrollView
-        style={{ marginTop: 4 }}
-        contentContainerStyle={styles.page}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <View style={styles.title}>
-            <SparklesIcon size={20} />
-            <Text.H4 color="inherit">Cuisko</Text.H4>
+    <ScrollView
+      style={[{ marginTop: 4 }, style]}
+      contentContainerStyle={styles.page}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.header}>
+        <View style={styles.title}>
+          <SparklesIcon size={20} />
+          <Text.H4 color="currentColor">Cuisko</Text.H4>
+        </View>
+      </View>
+      <View style={{
+        gap: theme.spacing[28],
+      }}>
+        <Message
+          from="user"
+          content="Hello Cuisko, can you help me find a recipe for dinner tonight?"
+          parsers={[foodParser]}
+          style={{ paddingRight: theme.spacing[16] }}
+        />
+        <Message
+          from="assistant"
+          content="Of course! What ingredients do you have on hand, or do you have a specific type of cuisine in mind?"
+          parsers={[foodParser]}
+          style={{ paddingLeft: theme.spacing[12] }}
+        >
+          <ButtonPill
+            onPress={() => console.log("Open Grocery List pressed")}
+            variant="secondary"
+            leftIcon={ForkKnife}
+            size="md"
+          >
+            Open Recipes
+          </ButtonPill>
+        </Message>
+        <Message
+          from="user"
+          content="I have chicken, 3 broccolis, and rice. I was thinking of something Asian-inspired."
+          parsers={[foodParser]}
+          style={{ paddingRight: theme.spacing[16] }}
+        />
+        <Message
+          from="assistant"
+          content="Great! How about a Chicken and Broccoli Stir-Fry with Rice? It's quick, easy, and delicious. Here are simple recipes:"
+          parsers={[foodParser]}
+          style={{ paddingLeft: theme.spacing[12] }}
+        >
+          <View style={{ flexDirection: "row", justifyContent: "flex-start", alignItems: "center", gap: theme.spacing[8] }}>
+            <Text.Lg color={theme.colors.foreground}>Recipes Found</Text.Lg>
+            <Text.Lg color={theme.colors.neutral.muted}>3</Text.Lg>
           </View>
-        </View>
-        <View style={{
-          gap: theme.spacing[28],
-        }}>
-          <Message
-            from="user"
-            content="Hello Cuisko, can you help me find a recipe for dinner tonight?"
-            parsers={[foodParser]}
-            style={{ paddingRight: theme.spacing[16] }}
-          />
-          <Message
-            from="assistant"
-            content="Of course! What ingredients do you have on hand, or do you have a specific type of cuisine in mind?"
-            parsers={[foodParser]}
-            style={{ paddingLeft: theme.spacing[12] }}
-          >
-            <ButtonPill
-              onPress={() => console.log("Open Grocery List pressed")}
-              variant="secondary"
-              leftIcon={ForkKnife}
-              size="md"
-            >
-              Open Recipes
-            </ButtonPill>
-          </Message>
-          <Message
-            from="user"
-            content="I have chicken, 3 broccolis, and rice. I was thinking of something Asian-inspired."
-            parsers={[foodParser]}
-            style={{ paddingRight: theme.spacing[16] }}
-          />
-          <Message
-            from="assistant"
-            content="Great! How about a Chicken and Broccoli Stir-Fry with Rice? It's quick, easy, and delicious. Here are simple recipes:"
-            parsers={[foodParser]}
-            style={{ paddingLeft: theme.spacing[12] }}
-          >
-            <View style={{ flexDirection: "row", justifyContent: "flex-start", alignItems: "center", gap: theme.spacing[8] }}>
-              <Text.Lg color={theme.colors.foreground}>Recipes Found</Text.Lg>
-              <Text.Lg color={theme.colors.neutral.muted}>3</Text.Lg>
-            </View>
-          </Message>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{
-              marginTop: -24,
-            }}
-            contentContainerStyle={{
-              gap: theme.spacing[12],
-              paddingVertical: theme.spacing[12],
-              paddingHorizontal: theme.spacing[28],
-            }}
-          >
-            {RECIPES.map((recipe) => (
-              <CardRecipe
-                key={recipe.title}
-                title={recipe.title}
-                subtitle={recipe.subtitle}
-                imageSrc={require("assets/placeholders/pizza-recipe.jpg")}
-                style={{ width: 220 }}
-              />
-            ))}
-          </ScrollView>
-          <Message
-            from="user"
-            content="That sounds perfect! Do you know how to make a pizza with tomato, cheese, and chicken?"
-            parsers={[foodParser]}
-            style={{
-              paddingRight: theme.spacing[16],
-              marginTop: -12
-            }}
-          >
-            <View style={{
-              alignSelf: "flex-end",
-              borderRadius: theme.radius.lg,
-              borderTopRightRadius: theme.radius.xs,
-              overflow: "hidden",
-              width: 200,
-              height: 200,
-              boxShadow: [
-                {
-                  offsetX: 2,
-                  offsetY: 6,
-                  blurRadius: 10,
-                  spreadDistance: 4,
-                  color: "rgba(0, 0, 0, 0.05)",
-                },
-              ],
-            }}>
-              <Image
-                style={{
-                  width: 200,
-                  height: 200,
+        </Message>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{
+            marginTop: -24,
+          }}
+          contentContainerStyle={{
+            gap: theme.spacing[12],
+            paddingVertical: theme.spacing[12],
+            paddingHorizontal: theme.spacing[28],
+          }}
+        >
+          {RECIPES.map((recipe) => (
+            <CardRecipe
+              key={recipe.title}
+              title={recipe.title}
+              subtitle={recipe.subtitle}
+              imageSrc={require("assets/placeholders/pizza-recipe.jpg")}
+              style={{ width: 220 }}
+            />
+          ))}
+        </ScrollView>
+        <Message
+          from="user"
+          content="That sounds perfect! Do you know how to make a pizza with tomato, cheese, and chicken?"
+          parsers={[foodParser]}
+          style={{
+            paddingRight: theme.spacing[16],
+            marginTop: -12
+          }}
+        >
+          <View style={{
+            alignSelf: "flex-end",
+            borderRadius: theme.radius.lg,
+            borderTopRightRadius: theme.radius.xs,
+            overflow: "hidden",
+            width: 200,
+            height: 200,
+            boxShadow: [
+              {
+                offsetX: 2,
+                offsetY: 6,
+                blurRadius: 10,
+                spreadDistance: 4,
+                color: "rgba(0, 0, 0, 0.05)",
+              },
+            ],
+          }}>
+            <Image
+              style={{
+                width: 200,
+                height: 200,
 
-                }}
-                source={require("assets/placeholders/pizza-recipe.jpg")}
-              />
-            </View>
-          </Message>
-        </View>
-      </ScrollView>
-    </>
+              }}
+              source={require("assets/placeholders/pizza-recipe.jpg")}
+            />
+          </View>
+        </Message>
+      </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  page: { paddingBottom: NAVIGATION_BAR_OFFSET },
+  page: {
+    paddingBottom: NAVIGATION_BAR_OFFSET,
+  },
   header: {
     padding: theme.spacing[24],
     paddingTop: theme.spacing[20],

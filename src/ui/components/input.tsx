@@ -84,7 +84,7 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
           theme.font.base,
           { outline: "none" },
           { color: color.color, position: "relative" },
-          { width: "100%" }
+          { width: "100%", flexShrink: 1 },
         ]}
       />
       {rightIcon && <ButtonIcon
@@ -111,6 +111,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: theme.spacing[12],
     minHeight: 36,
+    overflow: "hidden",
   },
   elevated: {
     boxShadow: [

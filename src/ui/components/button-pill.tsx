@@ -38,7 +38,7 @@ type LeftSide = {
   onLeftPress?: () => void;
   leftContent?: undefined
 } | {
-  leftContent?: ReactNode;
+  leftContent?: ReactNode | ((props: { color: string }) => ReactNode);
   onLeftPress?: undefined;
   leftIcon?: undefined
 };
@@ -48,7 +48,7 @@ type RightSide = {
   onRightPress?: () => void;
   rightContent?: undefined
 } | {
-  rightContent?: ReactNode;
+  rightContent?: ReactNode | ((props: { color: string }) => ReactNode);
   onRightPress?: undefined;
   rightIcon?: undefined
 };
@@ -149,7 +149,7 @@ export const ButtonPill = ({
           style={[styles.absolute, styles.borderRadius]}
         />}
         {leftContent && <View style={{ position: "relative" }}>
-          {leftContent}
+          {typeof leftContent === "function" ? leftContent({ color: color.color as string }) : leftContent}
         </View>}
         {leftIcon && <ButtonIcon
           variant={elevated ? `${variant}-subtle` : variant}
@@ -183,7 +183,7 @@ export const ButtonPill = ({
           {rightIcon}
         </ButtonIcon>}
         {rightContent && <View style={{ position: "relative" }}>
-          {rightContent}
+          {typeof rightContent === "function" ? rightContent({ color: color.color as string }) : rightContent}
         </View>}
       </ViewComponent>
     </Pressable>
@@ -192,6 +192,7 @@ export const ButtonPill = ({
 
 const styles = StyleSheet.create({
   base: {
+    overflow: "hidden",
     padding: theme.spacing[8],
     flexDirection: "row",
     alignItems: "center",

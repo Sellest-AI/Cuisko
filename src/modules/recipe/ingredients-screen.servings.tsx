@@ -23,7 +23,7 @@ export const Servings = ({ servings, onChange }: Props) => {
           style={styles.stepButton}
           iconSize={STEP_ICON_SIZE}
           variant="primary-subtle"
-          size="xs"
+          size="sm"
           disabled={servings <= MIN_SERVINGS}
           onPress={() => onChange(servings - 1)}
         >
@@ -34,7 +34,7 @@ export const Servings = ({ servings, onChange }: Props) => {
           style={styles.stepButton}
           iconSize={STEP_ICON_SIZE}
           variant="primary-subtle"
-          size="xs"
+          size="sm"
           onPress={() => onChange(servings + 1)}
         >
           {Plus}
@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing[12],
   },
-  stepButton: { padding: theme.spacing[4] },
+  stepButton: { padding: theme.spacing[6] },
 });

@@ -20,7 +20,7 @@ import { Image } from "../image";
  */
 
 /** Slow enough to read as a flight, tight enough not to feel like waiting. */
-const ITEM_TRANSITION = LinearTransition.springify().damping(14).stiffness(200);
+const ITEM_TRANSITION = LinearTransition.springify().damping(85).stiffness(700);
 
 /**
  * A card that appears or leaves is a card the list did not have before, not one that moved — a
@@ -55,7 +55,7 @@ type Props = {
 export const GroceryItem = ({ name, quantity, emoji, markerSrc, variant = "pending", width, onPress, style }: Props) => (
   <Animated.View layout={ITEM_TRANSITION} entering={ITEM_ENTERING} exiting={ITEM_EXITING} style={{ width }}>
     <Pressable
-      intensity={0.9}
+      intensity={0.95}
       onPress={() => {
         void Haptics.selectionAsync();
         onPress?.();

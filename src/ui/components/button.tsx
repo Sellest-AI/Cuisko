@@ -4,6 +4,8 @@ import { Icon, MorphIcon } from "./icons";
 import { ViewStyle, StyleSheet } from "react-native";
 import { theme } from "theme";
 
+type StyleExtended = ViewStyle & { color?: string } | undefined;
+
 type Props = {
   children: ReactNode;
   onPress: () => void;
@@ -11,7 +13,7 @@ type Props = {
   elevated?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleExtended | StyleExtended[];
   leftIcon?: Icon;
   rightIcon?: Icon;
 };
@@ -23,26 +25,30 @@ export const Button = ({
   elevated = false,
   isLoading = false,
   disabled = false,
-  style,
+  style: buttonStyle,
   leftIcon,
   rightIcon,
-}: Props) => <ButtonPill
-  onPress={onPress}
-  variant={variant}
-  elevated={elevated}
-  isLoading={isLoading}
-  disabled={disabled}
-  style={StyleSheet.flatten([styles.button, style])}
-  leftContent={leftIcon ? <MorphIcon icon={leftIcon} size={18} /> : undefined}
-  rightContent={rightIcon ? <MorphIcon icon={rightIcon} size={18} /> : undefined}
-  size="md"
->
+}: Props) => {
+  const style = StyleSheet.flatten(buttonStyle) as StyleExtended;
+
+  return <ButtonPill
+    onPress={onPress}
+    variant={variant}
+    elevated={elevated}
+    isLoading={isLoading}
+    disabled={disabled}
+    style={StyleSheet.flatten([styles.button, style])}
+    leftContent={leftIcon ? ({ color }) => <MorphIcon icon={leftIcon} size={18} color={color} /> : undefined}
+    rightContent={rightIcon ? ({ color }) => <MorphIcon icon={rightIcon} size={18} color={color} /> : undefined}
+    size="md"
+  >
     {children}
-  </ButtonPill>;
+  </ButtonPill>
+};
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: theme.spacing[6],
+    paddingVertical: theme.spacing[8],
     paddingHorizontal: theme.spacing[12],
     gap: theme.spacing[8],
   }

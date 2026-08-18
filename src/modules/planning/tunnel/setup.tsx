@@ -86,7 +86,7 @@ export const TunnelSetup = () => {
             key={utensil.id}
             label={utensil.label}
             imageSrc={TILE_IMAGE}
-            width={tileWidth - 1}
+            style={{ width: tileWidth - 1 }}
             selected={utensils.includes(utensil.id)}
             onPress={() => toggleUtensil(utensil.id)}
             elevated

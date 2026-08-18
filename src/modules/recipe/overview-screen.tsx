@@ -90,6 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary.subtle,
     padding: theme.spacing[16],
     borderRadius: theme.radius.md,
+    minHeight: 72,
+    justifyContent: "center",
   },
   chef: {
     flex: 1,

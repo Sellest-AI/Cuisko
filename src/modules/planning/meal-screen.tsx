@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 
 import { Badge } from "@ui/badge";
 import { CardChoice } from "@ui/cards/choice";
@@ -16,7 +16,7 @@ import { MEAL_STATUS } from "./_components/meal-status";
 import { SectionLabel } from "./_components/section-label";
 import { useMealEditor, type MealScope, type MealTarget } from "./_hooks/useMealEditor";
 import { MAX_SERVINGS, parseDateParam, parseMealSlot, type Recipe } from "./_model/model";
-import { LinearGradient } from "expo-linear-gradient";
+import { FlashList } from "@shopify/flash-list";
 
 const COLUMNS = 2;
 const GUTTER = theme.spacing[16];
@@ -79,10 +79,6 @@ const Editor = ({
   choose,
 }: EditorProps) => {
   const t = useTranslations("Planning");
-  const { width } = useWindowDimensions();
-
-  const tileWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
-
   /**
    * The dish on the plate when the sheet opened. Pinned rather than read live, so tapping a tile
    * does not reshuffle the grid under the finger that tapped it — on an empty slot there is
@@ -98,58 +94,59 @@ const Editor = ({
 
 
   return (
-    <>
-      <LinearGradient
-        colors={[theme.colors.neutral.subtle, theme.colors.neutral.foreground]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 0, y: 0 }}
+    <ScrollView
+      contentContainerStyle={styles.page}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <SectionLabel label={t("Tunnel.Meal.portions")} value={String(servings)} />
+      <StepSlider value={servings} max={MAX_SERVINGS} onChange={setServings} />
+      <SectionLabel
+        label={t(selectedRecipeId ? "Tunnel.Meal.change" : "Tunnel.Meal.pick")}
+        value={String(recipes.length)}
       />
-      <ScrollView
-        contentContainerStyle={styles.page}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <SectionLabel label={t("Tunnel.Meal.portions")} value={String(servings)} />
-        <StepSlider value={servings} max={MAX_SERVINGS} onChange={setServings} />
-        <SectionLabel
-          label={t(selectedRecipeId ? "Tunnel.Meal.change" : "Tunnel.Meal.pick")}
-          value={String(recipes.length)}
-        />
-        <Input
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t("Tunnel.Meal.search")}
-          rightIcon={Search}
-          style={styles.search}
-        />
-        {recipes.length === 0 ? (
-          <Text.Base color={theme.colors.muted}>{t("Tunnel.Meal.no_match")}</Text.Base>
-        ) : (
-          <View style={styles.grid}>
-            {ordered.map((recipe) => {
-              const selected = recipe.id === selectedRecipeId;
+      <Input
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t("Tunnel.Meal.search")}
+        rightIcon={Search}
+        style={styles.search}
+      />
+      {recipes.length === 0 ? (
+        <Text.Base color={theme.colors.muted}>{t("Tunnel.Meal.no_match")}</Text.Base>
+      ) : (
+        <FlashList
+          numColumns={COLUMNS}
+          data={ordered}
+          style={styles.grid}
+          scrollEnabled={false}
+          renderItem={({ item: recipe, index }) => {
+            const selected = recipe.id === selectedRecipeId;
 
-              return (
+            return (
+              <View style={{
+                paddingRight: index % COLUMNS === 0 ? GAP / 2 : 0,
+                paddingLeft: index % COLUMNS === 1 ? GAP / 2 : 0,
+                paddingBottom: GAP,
+              }}>
                 <CardChoice
                   key={recipe.id}
                   tone="neutral"
                   label={recipe.title}
                   imageSrc={recipe.imageSrc}
-                  width={tileWidth - 1}
                   selected={selected}
                   elevated={selected}
                   onPress={() => choose(recipe)}
                   imageStyle={{ height: TILE_IMAGE_HEIGHT }}
                   badge={<RecipeBadge recipe={recipe} selected={selected} />}
-                  style={{ padding: theme.spacing[12] }}
+                  style={{ padding: theme.spacing[12], width: "100%" }}
                 />
-              );
-            })}
-          </View>
-        )}
-      </ScrollView>
-    </>
+              </View>
+            );
+          }}
+        />
+      )}
+    </ScrollView>
   );
 };
 
@@ -237,7 +234,10 @@ export const MealScreen = ({ params, onClose }: Props) => {
 const styles = StyleSheet.create({
   page: {
     paddingTop: CHROME_HEIGHT,
-    paddingBottom: theme.spacing[32],
+    paddingBottom: Platform.select({
+      ios: theme.spacing[32],
+      default: theme.spacing[8],
+    }),
     paddingHorizontal: GUTTER,
   },
   empty: {
@@ -246,9 +246,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   search: { marginBottom: theme.spacing[12] },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: GAP,
-  },
+  grid: { width: "100%" }
 });

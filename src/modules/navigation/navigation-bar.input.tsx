@@ -85,9 +85,14 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
             value={value}
             style={{ paddingTop: theme.spacing[16] }}
             onSelect={(suggestion) => {
-              submitSuggestion(suggestion.id, suggestion.unit, suggestion.amount);
               setValue("");
               onBlur?.();
+              ref.current?.blur();
+
+              // Delay the submission to allow the blur animation to complete before navigating away.
+              setTimeout(() => {
+                submitSuggestion(suggestion.id, suggestion.unit, suggestion.amount);
+              }, 200);
             }}
           />
         </m.View>}
@@ -136,6 +141,7 @@ const styles = StyleSheet.create({
     left: -theme.spacing[6],
     right: -theme.spacing[6],
     paddingBottom: NAVIGATION_BAR_HEIGHT,
+    overflow: "hidden",
   },
   suggestionsContainerRadius: {
     borderRadius: theme.radius.lg,

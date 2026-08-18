@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: colors.border.default,
+    overflow: "hidden",
   },
   elevatedSubtle: {
     boxShadow: [

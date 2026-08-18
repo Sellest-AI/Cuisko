@@ -7,34 +7,44 @@ import { X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ModalActionButton } from "~/modules/navigation/modal-action";
+import { useModalSheetFrameHeight } from "~/modules/navigation/modal-sheet";
 
 export default function ModalsLayout() {
   const router = useRouter();
   const isFullScreen = Platform.OS === "web";
 
+  /**
+   * An explicit height, not `flex: 1`. The sheet is presented `fitToContents`, which lays this tree
+   * out with no bottom constraint so that the sheet can take its height from it — a flexed frame has
+   * nothing to resolve against and collapses to its own borders. A number measures either way.
+   */
+  const frameHeight = useModalSheetFrameHeight();
+
   return (
     <SafeAreaView
       edges={{ top: "off", bottom: "android" }}
       style={{
-        flex: 1,
+        flex: isFullScreen ? 1 : undefined,
         backgroundColor: theme.colors.background,
         overflow: "hidden",
       }}
     >
-      <View style={{
-        overflow: "hidden",
-        backgroundColor: theme.colors.background,
-        borderTopWidth: isFullScreen ? 0 : 2,
-        borderTopLeftRadius: isFullScreen ? 0 : 28,
-        borderTopRightRadius: isFullScreen ? 0 : 28,
-        borderBottomLeftRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
-        borderBottomRightRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
-        borderLeftWidth: Platform.OS === "ios" ? 2 : 0,
-        borderRightWidth: Platform.OS === "ios" ? 2 : 0,
-        borderBottomWidth: Platform.OS === "ios" ? 2 : 0,
-        borderColor: theme.colors.border.default,
-        flex: 1,
-      }}>
+      <View
+        style={{
+          height: isFullScreen ? undefined : frameHeight,
+          overflow: "hidden",
+          backgroundColor: theme.colors.background,
+          borderTopWidth: isFullScreen ? 0 : 2,
+          borderTopLeftRadius: isFullScreen ? 0 : 28,
+          borderTopRightRadius: isFullScreen ? 0 : 28,
+          borderBottomLeftRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
+          borderBottomRightRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
+          borderLeftWidth: Platform.OS === "ios" ? 2 : 0,
+          borderRightWidth: Platform.OS === "ios" ? 2 : 0,
+          borderBottomWidth: Platform.OS === "ios" ? 2 : 0,
+          borderColor: theme.colors.border.default,
+          flex: isFullScreen ? 1 : undefined,
+        }}>
         <View style={{
           height: 6,
           width: 86,
@@ -50,14 +60,14 @@ export default function ModalsLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: {
-              backgroundColor: "transparent",
+              backgroundColor: theme.colors.background,
               width: "100%",
             },
             animation: "slide_from_right",
           }}
         />
         <LinearGradient
-          colors={[theme.colors.background, "transparent"]}
+          colors={[theme.colors.background, theme.colors.transparent.light]}
           style={{
             pointerEvents: "none",
             position: "absolute",
@@ -86,6 +96,7 @@ export default function ModalsLayout() {
             position: "absolute",
             top: theme.spacing[16],
             right: theme.spacing[16],
+            alignSelf: "flex-end"
           }}
         />
       </View>

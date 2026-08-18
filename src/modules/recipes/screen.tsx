@@ -7,6 +7,7 @@ import { RadialGradient } from "@ui/radial-gradient";
 import { Input } from "@ui/input";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { FlashList } from "@shopify/flash-list";
+import { SafeAreaView } from "@ui/safe-area-view";
 import { CardRecipe } from "@ui/cards/recipe";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -55,10 +56,13 @@ export const RecipesScreen = ({ style }: Props) => {
         style={{ position: "absolute", top: 200, left: -100, opacity: 0.1 }}
       />
       <FlashList
-        data={RECIPES.toSorted((a, b) => a.title.localeCompare(b.title))}
+        data={[...RECIPES].sort((a, b) => a.title.localeCompare(b.title))}
         contentContainerStyle={[styles.container, style]}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <SafeAreaView
+            style={styles.header}
+            edges={{ top: "additive", bottom: "off" }}
+          >
             <View style={styles.titleRow}>
               <ForkKnifeIcon
                 size={24}
@@ -74,7 +78,7 @@ export const RecipesScreen = ({ style }: Props) => {
               style={styles.search}
             />
             <Text.Lg>{t("yours")}</Text.Lg>
-          </View>
+          </SafeAreaView>
         }
         keyExtractor={({ id }) => id}
         numColumns={2}
@@ -105,7 +109,7 @@ const styles = StyleSheet.create({
   container: {
     marginTop: theme.spacing[24],
     paddingHorizontal: theme.spacing[16],
-    paddingBottom: NAVIGATION_BAR_OFFSET
+    paddingBottom: NAVIGATION_BAR_OFFSET + theme.spacing[24]
   },
   titleRow: {
     flexDirection: "row",

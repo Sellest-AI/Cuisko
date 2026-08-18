@@ -4,6 +4,7 @@ import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
 import { ArrowLeft, ArrowRight, Icon, ListPlus, X } from "@ui/icons";
 import { Text } from "@ui/text";
+import { SafeAreaView } from "@ui/safe-area-view";
 import { m } from "@ui/motion";
 import { colors, theme } from "theme";
 
@@ -56,47 +57,52 @@ export const TunnelBar = ({
       exit={{ opacity: 0, translateY: NAVIGATION_BAR_HEIGHT }}
       transition={{ type: "timing", duration: 300, delay: 300 }}
     >
-      {onBack && <ButtonIcon
-        elevated
-        variant="neutral-inverted"
-        size="md"
-        onPress={onBack}
-        style={styles.back}
+      <SafeAreaView
+        style={styles.flex}
+        edges={{ bottom: "android", top: "off" }}
       >
-        {backIcon ?? (step === 1 ? X : ArrowLeft)}
-      </ButtonIcon>}
-      <ButtonPill
-        elevated
-        variant={variant}
-        size="lg"
-        onPress={onNext}
-        rightIcon={isLast ? ListPlus : nextIcon}
-        onRightPress={onNext}
-        leftContent={
-          isLast ? undefined : (
-            <Text.Base color={colors.primary.subtle} weight={600}>
-              {step}/{total}
-            </Text.Base>
-          )
-        }
-      >
-        <View style={styles.labels}>
-          <Text.Base
-            color={variant === "secondary" ? colors.secondary.foreground : colors.primary.foreground}
-            weight={700}
-          >
-            {label}
-          </Text.Base>
-          {sublabel && (
-            <Text.Sm
-              color={variant === "secondary" ? colors.secondary.subtle : colors.primary.subtle}
-              style={styles.sublabel}
+        {onBack && <ButtonIcon
+          elevated
+          variant="neutral-inverted"
+          size="lg"
+          onPress={onBack}
+          style={styles.back}
+        >
+          {backIcon ?? (step === 1 ? X : ArrowLeft)}
+        </ButtonIcon>}
+        <ButtonPill
+          elevated
+          variant={variant}
+          size="lg"
+          onPress={onNext}
+          rightIcon={isLast ? ListPlus : nextIcon}
+          onRightPress={onNext}
+          leftContent={
+            isLast ? undefined : (
+              <Text.Base color={colors.primary.subtle} weight={600}>
+                {step}/{total}
+              </Text.Base>
+            )
+          }
+        >
+          <View style={styles.labels}>
+            <Text.Base
+              color={variant === "secondary" ? colors.secondary.foreground : colors.primary.foreground}
+              weight={700}
             >
-              {sublabel}
-            </Text.Sm>
-          )}
-        </View>
-      </ButtonPill>
+              {label}
+            </Text.Base>
+            {sublabel && (
+              <Text.Sm
+                color={variant === "secondary" ? colors.secondary.subtle : colors.primary.subtle}
+                style={styles.sublabel}
+              >
+                {sublabel}
+              </Text.Sm>
+            )}
+          </View>
+        </ButtonPill>
+      </SafeAreaView>
     </m.View>
   );
 }
@@ -107,15 +113,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: NAVIGATION_BAR_HEIGHT,
+    paddingHorizontal: theme.spacing[16],
+    paddingBottom: theme.spacing[24],
+  },
+  flex: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing[16],
-    paddingHorizontal: theme.spacing[16],
-    paddingBottom: theme.spacing[24],
   },
   back: { alignSelf: "auto" },
-  labels: { flex: 1, marginRight: theme.spacing[6] },
+  labels: { flexShrink: 0, marginRight: theme.spacing[6] },
   sublabel: { marginTop: 1 },
 });

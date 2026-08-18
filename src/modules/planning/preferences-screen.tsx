@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { GroupSelect } from "@ui/group-select";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -19,9 +19,10 @@ const DIET_PREFERENCES = [
 
 type Props = {
   onClose: () => void;
+  onLayout: (event: LayoutChangeEvent) => void;
 };
 
-export const PreferencesScreen = ({ onClose }: Props) => {
+export const PreferencesScreen = ({ onClose, onLayout }: Props) => {
   const t = useTranslations("Planning");
 
   /**
@@ -47,6 +48,7 @@ export const PreferencesScreen = ({ onClose }: Props) => {
         end={{ x: 0, y: 0 }}
       />
       <View
+        onLayout={onLayout}
         style={styles.page}
       >
         <GroupSelect
@@ -65,8 +67,10 @@ export const PreferencesScreen = ({ onClose }: Props) => {
 }
 
 const styles = StyleSheet.create({
+  /** The sheet now ends where this column does, so the bottom padding is the sheet's own margin. */
   page: {
     paddingHorizontal: theme.spacing[16],
     paddingTop: 56,
+    paddingBottom: theme.spacing[24],
   }
 })

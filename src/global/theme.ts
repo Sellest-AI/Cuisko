@@ -124,6 +124,10 @@ const Texts = {
 
 export const theme = {
   colors: {
+    transparent: {
+      light: "rgba(255, 255, 255, 0)",
+      dark: "rgba(0, 0, 0, 0)",
+    },
     white: PALETTE.white,
     black: PALETTE.black,
     background: PALETTE.neutral[0],

@@ -1,5 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
+import { MODAL_MAX_DETENT } from "~/modules/navigation/constants";
+import { useDeclaredModalSheet } from "~/modules/navigation/modal-sheet";
 
 import { MealScreen } from "~/modules/planning/meal-screen";
 
@@ -24,6 +26,12 @@ export default function Meal() {
    * per render it would re-declare that action on every keystroke in the search box.
    */
   const close = useCallback(() => router.back(), [router]);
+
+  /**
+   * Declared, not measured: this screen is a search box over the whole catalogue, so its natural
+   * height is however many recipes exist. It takes the tallest sheet and scrolls inside it.
+   */
+  useDeclaredModalSheet(MODAL_MAX_DETENT);
 
   return <MealScreen params={params} onClose={close} />;
 }

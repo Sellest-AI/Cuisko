@@ -2,7 +2,7 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ConvexReactClient } from "convex/react";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "@ui/safe-area-view";
 import { AnimationProvider } from "./animation";
 
 import { convexAuthStorage } from "~/lib/convex/storage";

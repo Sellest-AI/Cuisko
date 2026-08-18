@@ -20,12 +20,11 @@ type Props = {
   caption?: string;
   /** The tile the sheet is proposing, as opposed to one of the alternatives beside it. */
   type?: "undo" | "default";
-  width?: number;
   onPress?: () => void;
   style?: ViewStyle;
 };
 
-export const QuantityOption = ({ amount, unit, caption, type, width, onPress, style }: Props) => {
+export const QuantityOption = ({ amount, unit, caption, type, onPress, style }: Props) => {
   const scheme = type === "undo" && caption ? styles.remove : (caption ? styles.selected : undefined);
 
   const mainTextColor = !caption ? theme.colors.neutral.base : (type === "undo" ?
@@ -44,7 +43,7 @@ export const QuantityOption = ({ amount, unit, caption, type, width, onPress, st
         void Haptics.selectionAsync();
         onPress?.();
       }}
-      style={{ ...styles.container, ...(scheme ? scheme : {}), width, ...style }}
+      style={{ ...styles.container, ...(scheme ? scheme : {}), ...style }}
     >
       <View style={styles.amount}>
         <Text.H4 color={mainTextColor}>{amount}</Text.H4>

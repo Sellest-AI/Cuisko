@@ -3,6 +3,7 @@ import { ReactNode, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 
 import { FileText, ForkKnife, ListOrdered } from "@ui/icons";
+import { m } from "@ui/motion";
 import { ParallaxScrollView } from "@ui/parallax-scroll-view";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -74,7 +75,14 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
          */
         stickyHeader={<View style={styles.ground}><RecipeTabs tabs={tabs} activeKey={active} /></View>}
       >
-        {children}
+        {/*
+          * The switch between tabs, which used to be the route navigator's to play. It lives here
+          * now that the layout hands over a plain `Slot` — keyed on the active tab, so arriving
+          * remounts rather than crossfading one tab's content into another's.
+          */}
+        <m.View key={active}>
+          {children}
+        </m.View>
       </ParallaxScrollView>
       <ChromeNavigationBar
         onBack={() => router.back()}

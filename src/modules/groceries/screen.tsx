@@ -6,6 +6,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { GroceryGrid } from "./screen.grid";
 
+import { SafeAreaView } from "@ui/safe-area-view";
 import { ReceiptTextIcon } from "@ui/icons";
 import { RadialGradient } from "@ui/radial-gradient";
 import { Select } from "@ui/select";
@@ -43,13 +44,16 @@ export const GroceryScreen = () => {
         style={{ position: "absolute", top: -150, left: -150, opacity: 0.1 }}
       />
       <ScrollView contentContainerStyle={styles.page}>
-        <View style={styles.header}>
+        <SafeAreaView
+          style={styles.header}
+          edges={{ top: "additive", bottom: "off" }}
+        >
           <View style={styles.title}>
             <ReceiptTextIcon size={24} />
             <Text.H4>{t("title")}</Text.H4>
           </View>
           <Select value={list} onChange={setList} options={LISTS} />
-        </View>
+        </SafeAreaView>
         <GroceryGrid />
       </ScrollView>
     </>

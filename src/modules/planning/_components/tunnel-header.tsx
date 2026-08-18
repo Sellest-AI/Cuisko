@@ -39,7 +39,7 @@ export const TunnelHeader = ({ title, subtitle, icon, tone = "onTint" }: Props) 
           <Image source={MASCOT} contentFit="contain" style={styles.mascot} />
           <Text.H4
             style={styles.title}
-            color={tone === "onTint" ? colors.primary.foreground : colors.foreground}
+            color={tone === "onTint" ? colors.primary.elevated : colors.foreground}
           >
             {title}
           </Text.H4>

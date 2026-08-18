@@ -6,6 +6,7 @@ import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
 import { DatabaseX, SkipBack, SkipForward } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
+import { SafeAreaView } from "@ui/safe-area-view";
 import { m } from "@ui/motion";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -96,56 +97,60 @@ export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, onHeigh
         colors={["transparent", "rgba(0, 0, 0, 0.1)"]}
         style={styles.fade}
       />
-      {isLast ? (
-        <>
-          <InfoBanner variant="secondary" title={t("Cooking.cellar_title")} icon={DatabaseX} style={styles.banner}>
-            {t("Cooking.cellar_body")}
-          </InfoBanner>
+      <SafeAreaView
+        edges={{ bottom: "android", top: "off" }}
+      >
+        {isLast ? (
+          <>
+            <InfoBanner variant="secondary" title={t("Cooking.cellar_title")} icon={DatabaseX} style={styles.banner}>
+              {t("Cooking.cellar_body")}
+            </InfoBanner>
+            <View style={styles.controls}>
+              <ButtonIcon
+                elevated
+                onPress={onPrevious}
+                variant="neutral-subtle"
+                style={styles.finish}
+                disabled={isFirst}
+                size="lg"
+              >
+                {SkipBack}
+              </ButtonIcon>
+              <UpdateCellarButton
+                style={styles.finish}
+                onPress={onFinish}
+              />
+            </View>
+          </>
+        ) : (
           <View style={styles.controls}>
-            <ButtonIcon
-              elevated
-              onPress={onPrevious}
-              variant="neutral-subtle"
-              style={styles.finish}
-              disabled={isFirst}
-              size="lg"
-            >
-              {SkipBack}
-            </ButtonIcon>
-            <UpdateCellarButton
-              style={styles.finish}
-              onPress={onFinish}
-            />
-          </View>
-        </>
-      ) : (
-        <View style={styles.controls}>
-          {/*
+            {/*
           * Present but inert on the first step rather than absent: the pair is how the bar reads
           * as a transport, and a Next that slid across the bar on step two would say the control
           * had changed rather than that a step had.
           */}
-          <ButtonPill
-            variant="neutral"
-            size="lg"
-            rightIcon={SkipBack}
-            onPress={onPrevious}
-            disabled={isFirst}
-            elevated
-          >
-            {t("Cooking.previous")}
-          </ButtonPill>
-          <ButtonPill
-            elevated
-            variant="secondary"
-            size="lg"
-            leftIcon={SkipForward}
-            onPress={onNext}
-          >
-            {t("Cooking.next")}
-          </ButtonPill>
-        </View>
-      )}
+            <ButtonPill
+              variant="neutral"
+              size="lg"
+              rightIcon={SkipBack}
+              onPress={onPrevious}
+              disabled={isFirst}
+              elevated
+            >
+              {t("Cooking.previous")}
+            </ButtonPill>
+            <ButtonPill
+              elevated
+              variant="secondary"
+              size="lg"
+              leftIcon={SkipForward}
+              onPress={onNext}
+            >
+              {t("Cooking.next")}
+            </ButtonPill>
+          </View>
+        )}
+      </SafeAreaView>
     </m.View>
   );
 }

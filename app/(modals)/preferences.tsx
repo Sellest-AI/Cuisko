@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
+import { useMeasuredModalSheet } from "~/modules/navigation/modal-sheet";
 import { PreferencesScreen } from "~/modules/planning/preferences-screen";
 
 export default function Preferences() {
@@ -11,5 +12,8 @@ export default function Preferences() {
    */
   const close = useCallback(() => router.back(), [router]);
 
-  return (<PreferencesScreen onClose={close} />)
+  /** Three options and a label: the sheet is cut to exactly this, so nothing here is flexed. */
+  const onLayout = useMeasuredModalSheet();
+
+  return (<PreferencesScreen onClose={close} onLayout={onLayout} />)
 }

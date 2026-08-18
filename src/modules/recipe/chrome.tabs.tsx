@@ -86,7 +86,9 @@ export const RecipeTabs = ({ tabs, activeKey }: Props) => {
             leftIcon={tab.icon}
             onPress={tab.onPress}
             variant="neutral"
-            style={tab.key === activeKey ? styles.tabActive : undefined}
+            style={[
+              tab.key === activeKey ? styles.tabActive : undefined,
+            ]}
           >
             {tab.label}
           </Button>
@@ -102,5 +104,8 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing[8],
     gap: theme.spacing[8],
   },
-  tabActive: { backgroundColor: theme.colors.neutral.elevated },
+  tabActive: {
+    backgroundColor: theme.colors.neutral.elevated,
+    color: theme.colors.neutral.base
+  },
 });

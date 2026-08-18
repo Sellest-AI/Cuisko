@@ -30,6 +30,10 @@ export const Suggestions = ({ value, style, onSelect }: Props) => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        // The suggestions only ever appear while the keyboard is up. Under the default "never",
+        // the first tap in here is spent dismissing the keyboard and never reaches a card, so
+        // picking a suggestion took two taps. "handled" lets the card's onPress claim the tap.
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           gap: theme.spacing[8],
           paddingHorizontal: SHARED_PADDING

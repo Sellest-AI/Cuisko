@@ -40,7 +40,7 @@ export const Select = <T extends string>({
 }: SelectProps<T>) => {
   const triggerRef = useRef<View>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   const selected = options.find((option) => option.value === value);
   const isOpen = anchor !== null;
@@ -61,6 +61,21 @@ export const Select = <T extends string>({
   /** Flip above the trigger only when below genuinely cannot hold the list and above can. */
   const spaceBelow = anchor ? windowHeight - (anchor.y + anchor.height) : 0;
   const dropsUp = anchor !== null && spaceBelow < MAX_HEIGHT && anchor.y > spaceBelow;
+
+  /**
+   * Centred on the trigger, then clamped into the window. Centring has to be computed from the
+   * width the popover actually renders at rather than from the trigger's: a trigger narrower than
+   * `MIN_WIDTH` gets a popover wider than itself, and offsetting by half the *trigger* leaves it
+   * off-centre by half the difference. The clamp is what a trigger near either edge needs — the
+   * centred position resolves outside the window there, and nothing else would pull it back.
+   */
+  const popoverWidth = anchor ? Math.max(anchor.width, MIN_WIDTH) : MIN_WIDTH;
+  const popoverLeft = anchor
+    ? Math.min(
+        Math.max(anchor.x + anchor.width / 2 - popoverWidth / 2, MARGIN),
+        Math.max(windowWidth - popoverWidth - MARGIN, MARGIN),
+      )
+    : 0;
 
   return (
     <>
@@ -89,9 +104,8 @@ export const Select = <T extends string>({
             style={[
               styles.popover,
               {
-                left: anchor.x,
-                minWidth: MIN_WIDTH,
-                maxWidth: anchor.width,
+                left: popoverLeft,
+                width: popoverWidth,
                 ...(dropsUp
                   ? { bottom: windowHeight - anchor.y + theme.spacing[8] }
                   : { top: anchor.y + anchor.height + theme.spacing[8] }),
@@ -144,6 +158,9 @@ type Anchor = { x: number; y: number; width: number; height: number };
  */
 const MAX_HEIGHT = 280;
 const MIN_WIDTH = 160;
+
+/** How close to the window's edge the popover may sit before the clamp pulls it back. */
+const MARGIN = theme.spacing[8];
 const CHECK_SIZE = 16;
 const CHECK_STROKE = 3;
 const ENTER_MS = 160;

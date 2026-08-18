@@ -1,6 +1,5 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { Dimensions, LayoutChangeEvent, Platform, StyleSheet, View } from "react-native";
 
 import { QuantityOption } from "@ui/cards/quantity-option";
 import { Trash2 } from "@ui/icons";
@@ -12,10 +11,12 @@ import { formatQuantity, isIntent, isUnit, unitLabel, type Intent, type Unit } f
 import { useQuantityPicker } from "./_hooks/useQuantityPicker";
 import { useRemoveItem } from "./_hooks/useRemoveItem";
 import { AmountInput } from "./quantity-screen.amount-input";
+import { MODAL_CHROME_OFFSET } from "../navigation/constants";
 
 const COLUMNS = 3;
 const GAP = theme.spacing[8];
 const GUTTER = theme.spacing[16];
+const SCREEN_WIDTH = Dimensions.get("window").width - GUTTER;
 
 type Params = {
   ingredientId?: string;
@@ -27,6 +28,7 @@ type Params = {
 type Props = {
   params: Params;
   onClose: () => void;
+  onLayout: (event: LayoutChangeEvent) => void;
 };
 
 /**
@@ -45,13 +47,14 @@ const Picker = ({
   unit: rowUnit,
   intent,
   onClose,
+  onLayout,
 }: {
   ingredientId: string;
   unit: Unit;
   intent: Intent;
   onClose: () => void;
+  onLayout: (event: LayoutChangeEvent) => void;
 }) => {
-  const { width } = useWindowDimensions();
   const [entryUnit, setEntryUnit] = useState<Unit>(rowUnit);
 
   const { ingredient, prompt, options, owned, submit } = useQuantityPicker({
@@ -60,9 +63,6 @@ const Picker = ({
     intent,
   });
   const { remove } = useRemoveItem({ ingredientId, unit: rowUnit });
-
-  const columns = Math.min(COLUMNS, options.length);
-  const itemWidth = (width - GUTTER * 2 - GAP * (columns - 1)) / columns;
 
   /** Stable, or `useModalAction`'s memo rebuilds and re-registers the action on every keystroke. */
   const discard = useCallback(() => {
@@ -101,13 +101,7 @@ const Picker = ({
     .join(" · ");
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.colors.neutral.subtle, theme.colors.neutral.foreground]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 0, y: 0 }}
-      />
+    <View onLayout={onLayout} style={styles.container}>
       <View style={styles.header}>
         <Text.H4 style={styles.emoji}>{ingredient?.emoji}</Text.H4>
         <View>
@@ -128,8 +122,8 @@ const Picker = ({
             unit={unitLabel(option.unit)}
             caption={option.caption}
             type={option.type}
-            width={itemWidth - 1}
             onPress={() => choose(option.amount)}
+            style={{ width: SCREEN_WIDTH / COLUMNS - GAP * 2 }}
           />
         ))}
       </View>
@@ -150,22 +144,28 @@ const Nothing = () => (
   </View>
 );
 
-export const QuantityScreen = ({ params, onClose }: Props) => {
+export const QuantityScreen = ({ params, onClose, onLayout }: Props) => {
   const { ingredientId, unit, intent } = params;
 
   if (!ingredientId || !isUnit(unit) || !isIntent(intent)) return <Nothing />;
 
-  return <Picker ingredientId={ingredientId} unit={unit} intent={intent} onClose={onClose} />;
+  return <Picker ingredientId={ingredientId} unit={unit} intent={intent} onClose={onClose} onLayout={onLayout} />;
 };
 
 const styles = StyleSheet.create({
+  /**
+   * Auto-height, and it has to stay that way: `useMeasuredModalSheet` measures this column to size
+   * the sheet, so a `flex: 1` here would report the sheet's own height back as the next detent. The
+   * old `justifyContent: "flex-end"` went with the flex — the column now ends where its content does.
+   */
   container: {
-    flex: 1,
-    justifyContent: "flex-end",
     alignItems: "center",
-    paddingHorizontal: theme.spacing[16],
+    paddingHorizontal: GUTTER,
+    paddingTop: MODAL_CHROME_OFFSET,
+    paddingBottom: Platform.select({ android: theme.spacing[24], default: theme.spacing[8] }),
   },
   empty: {
+    minHeight: 180,
     justifyContent: "center",
   },
   header: {
@@ -182,10 +182,10 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   grid: {
+    marginBottom: theme.spacing[8],
     flexDirection: "row",
-    justifyContent: "flex-start",
     flexWrap: "wrap",
     gap: GAP,
-    marginBottom: theme.spacing[24],
+    justifyContent: "center",
   },
 });
