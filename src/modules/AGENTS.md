@@ -36,11 +36,16 @@ through the door. Take the barrel when there is something to keep between siblin
 files are screens and privacy is not the question. Either way the call site is the folder —
 `~/modules/navigation/modal-sheet`, never a file inside it.
 
-⚠️ **A sub-module's privacy is reviewed, not enforced — at both of its edges.** Lint R8's glob is
-`~/modules/*/_hooks/**`, and `*` does not cross a slash, so it misses
-`~/modules/planning/tunnel/_hooks/**` entirely. A barrel has no lint behind it either: nothing stops
-`~/modules/navigation/modal-sheet/state`. The rules above hold all the same — they are just yours to
-catch in review rather than the linter's.
+**Lint R8 reaches a sub-module's underscore folders at any depth** — its glob is
+`~/modules/**/_hooks/**`, and `**` crosses slashes where the `*` it replaced did not. So
+`planning/tunnel/_hooks/` is as closed as `planning/_hooks/`, and stays closed however deep the
+folders go.
+
+⚠️ **A barrel is not.** Nothing stops `~/modules/navigation/modal-sheet/state` — the door is a
+convention, and `state.ts` is a normal module. Underscore folders are enforced; a barrel is yours to
+catch in review. If a sub-module's private piece is a component or a hook, put it in `_components/`
+or `_hooks/` and the linter guards it for you. `modal-sheet/state.ts` cannot use that: `_model/`
+takes no Jotai, and an atom is neither a component nor a hook.
 
 `_model/` is where the domain lives once it grows past a couple of pure functions used by one
 hook — types, invariants, derivations, all of it framework-free and unit-testable without

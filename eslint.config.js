@@ -163,8 +163,17 @@ module.exports = defineConfig([
             // written with the `~/modules/` alias. So banning the aliased form hits every
             // violation and no legitimate use — which is why this needs no exception for the
             // module that owns the folder.
+            //
+            // `**` and not `*`, because a sub-module's interior is as private as a module's
+            // and `*` does not cross a slash: the old glob matched `planning/_hooks/` and let
+            // `planning/tunnel/_hooks/` through, so every sub-module was documented as closed
+            // and enforced as open. `**` matches zero segments too, so depth one still hits.
             {
-              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**", "~/modules/*/_model/**"],
+              group: [
+                "~/modules/**/_hooks/**",
+                "~/modules/**/_components/**",
+                "~/modules/**/_model/**",
+              ],
               message:
                 "A module's _hooks/, _components/ and _model/ are private. Import the module's " +
                 "root, or re-export the hook from its hooks.ts.",
@@ -188,7 +197,11 @@ module.exports = defineConfig([
               message: "Import from ~/lib/convex/api instead.",
             },
             {
-              group: ["~/modules/*/_hooks/**", "~/modules/*/_components/**", "~/modules/*/_model/**"],
+              group: [
+                "~/modules/**/_hooks/**",
+                "~/modules/**/_components/**",
+                "~/modules/**/_model/**",
+              ],
               message:
                 "A module's _hooks/, _components/ and _model/ are private. A screen composes a " +
                 "module's public root — and never calls a hook directly (ADR 0006).",
