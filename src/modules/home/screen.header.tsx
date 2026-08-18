@@ -5,6 +5,7 @@ import { ButtonIcon } from "@ui/button-icon";
 import { Bell } from "@ui/icons";
 import { Select } from "@ui/select";
 import { theme } from "theme";
+import { router } from "expo-router";
 
 /** Placeholder until households arrive from Convex. */
 const HOUSEHOLDS = [{ label: "House", value: "house" }];
@@ -15,7 +16,10 @@ const AVATAR_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
 export const HomeHeader = () => (
   <View style={styles.container}>
     <View style={styles.identity}>
-      <Avatar source={AVATAR_PLACEHOLDER} />
+      <Avatar
+        source={AVATAR_PLACEHOLDER}
+        onPress={() => router.dismissTo("/auth")}
+      />
       <Select
         onChange={(value) => console.log(value)}
         options={HOUSEHOLDS}

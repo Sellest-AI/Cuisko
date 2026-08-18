@@ -1,22 +1,29 @@
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import { theme } from "theme";
 import { Image } from "./image";
 import { ComponentProps } from "react";
+import { Pressable } from "./pressable";
 
 type Props = {
   style?: ViewStyle,
-  source: ComponentProps<typeof Image>["source"]
+  source: ComponentProps<typeof Image>["source"],
+  onPress?: () => void,
 }
 
-export const Avatar = ({ source, style }: Props) => {
+export const Avatar = ({ source, style, onPress }: Props) => {
+  const Component = onPress ? Pressable : View;
+
   return (
-    <View style={[styles.container, style]}>
+    <Component
+      style={[styles.container, style]}
+      onPress={onPress}
+    >
       <Image
         source={source}
         style={styles.image}
         contentFit="cover"
       />
-    </View>
+    </Component>
   )
 }
 

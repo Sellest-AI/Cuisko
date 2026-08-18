@@ -12,25 +12,115 @@
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.cuisko.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to turn what you say into text, so you can ask about a recipe or an ingredient out loud.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone so you can talk to the assistant instead of typing."
       }
     },
     "android": {
       "package": "com.cuisko.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
       "output": "static",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-router",
-      "expo-image",
-      "expo-localization"
-    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      "expo-video",
+      "expo-localization",
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 176,
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF2ED",
+          "dark": {
+            "backgroundColor": "#FAF2ED"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#FF6B0F"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera so you can scan the food in your fridge and cupboards, photograph a recipe, and point at a product to ask about it."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone so you can talk to the assistant instead of typing.",
+          "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to turn what you say into text, so you can ask about a recipe or an ingredient out loud.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) access to your photo library so you can import photos of your groceries, your fridge or a recipe you want to keep.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera so you can scan the food in your fridge and cupboards, photograph a recipe, and point at a product to ask about it."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) access to your photo library so you can import photos of your groceries, your fridge or a recipe you want to keep.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save recipes and shopping lists to your camera roll.",
+          "isAccessMediaLocationEnabled": true,
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "20511c07-a23a-4beb-8c57-8cfe85c746e8"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/20511c07-a23a-4beb-8c57-8cfe85c746e8"
     }
   }
 }
