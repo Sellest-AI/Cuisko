@@ -94,11 +94,18 @@ export const ActionRow = ({
       </View>}
       <View style={[styles.rightContent, { alignItems: subtitle ? "flex-start" : "center" }]}>
         <MorphIcon color={color.subtle} icon={ContentIcon} />
-        <View>
-          <Text.Base color={color.content}>
+        <View style={{ flexShrink: 1 }}>
+          <Text.Base
+            color={color.content}
+            numberOfLines={1}
+          >
             {content}
           </Text.Base>
-          {subtitle && <Text.Sm style={{ marginTop: theme.spacing[2] }} color={color.subtle}>
+          {subtitle && <Text.Sm
+            numberOfLines={1}
+            style={{ marginTop: theme.spacing[2] }}
+            color={color.subtle}
+          >
             {subtitle}
           </Text.Sm>}
         </View>
@@ -127,6 +134,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignSelf: "flex-start",
     minWidth: MIN_WIDTH,
+    maxWidth: "100%",
     boxShadow: [
       {
         offsetX: 0,
@@ -141,6 +149,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: theme.spacing[12],
+    flexShrink: 1,
   },
   leftButton: {
     padding: theme.spacing[16],
