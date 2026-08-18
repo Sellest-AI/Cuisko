@@ -49,6 +49,7 @@
  */
 
 import { type Unit } from "@shared/ingredients";
+import type { TranslationKeys } from "translations";
 
 /** The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too. */
 export { formatQuantity, isUnit, UNITS, unitLabel, type Unit } from "@shared/ingredients";
@@ -279,7 +280,7 @@ export type QuantityOption = {
   amount: number;
   unit: Unit;
   /** Set on the first tile only — what makes it the answer rather than one choice among nine. */
-  caption?: string;
+  captionKey?: TranslationKeys<"Groceries">;
   /** Undo tiles are drawn apart: they take a purchase back rather than commit a new one. */
   type?: "undo" | "default";
 };
@@ -319,26 +320,26 @@ const OPTION_COUNT = 9;
  * the shopper no choice should not be asking the question at all.
  */
 export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent): QuantityOption[] => {
-  const proposed = (): { amount: number; caption: string; type: "undo" | "default" } => {
-    if (intent === "buy") return { amount: stock.toBuy, caption: "Needed", type: "default" };
+  const proposed = (): { amount: number; captionKey: TranslationKeys<"Groceries">; type: "undo" | "default" } => {
+    if (intent === "buy") return { amount: stock.toBuy, captionKey: "Quantity.Captions.needed", type: "default" };
     if (intent === "relist") {
-      return { amount: stock.lastBought?.amount ?? 0, caption: "Last time", type: "default" };
+      return { amount: stock.lastBought?.amount ?? 0, captionKey: "Quantity.Captions.last_time", type: "default" };
     }
 
     /** Inside the window the cellar row is still a purchase, so removing it is unmaking one. */
     return stock.lastPurchase
-      ? { amount: stock.lastPurchase.amount, caption: "Just added", type: "undo" }
-      : { amount: stock.owned, caption: "All of it", type: "default" };
+      ? { amount: stock.lastPurchase.amount, captionKey: "Quantity.Captions.just_added", type: "undo" }
+      : { amount: stock.owned, captionKey: "Quantity.Captions.all_of_it", type: "default" };
   };
 
-  const { amount, caption, type } = proposed();
+  const { amount, captionKey, type } = proposed();
   const ceiling = intent === "remove" ? stock.owned : null;
 
   const ladder = STEPS[unit]
     .filter((step) => step !== amount && (ceiling === null || step <= ceiling))
     .map((step): QuantityOption => ({ amount: step, unit }));
 
-  const suggestion: QuantityOption[] = amount > 0 ? [{ amount, unit, caption, type }] : [];
+  const suggestion: QuantityOption[] = amount > 0 ? [{ amount, unit, captionKey, type }] : [];
 
   return [...suggestion, ...ladder].slice(0, OPTION_COUNT);
 };

@@ -5,6 +5,7 @@ import { Plus } from "@ui/icons";
 import { Input } from "@ui/input";
 import { Select } from "@ui/select";
 import { theme } from "theme";
+import { useTranslations } from "translations";
 
 import { UNITS, unitLabel, type Unit } from "./_model/model";
 
@@ -31,6 +32,7 @@ type Props = {
  * learns the number, and only once it is worth acting on.
  */
 export const AmountInput = ({ unit, onUnitChange, onSubmit }: Props) => {
+  const t = useTranslations("Groceries");
   const [text, setText] = useState("");
 
   /**
@@ -57,7 +59,7 @@ export const AmountInput = ({ unit, onUnitChange, onSubmit }: Props) => {
       <Input
         rightIcon={Plus}
         style={styles.field}
-        placeholder="Type your own amount"
+        placeholder={t("Quantity.custom_amount")}
         type="decimal"
         onRightPress={submit}
         onSubmit={submit}

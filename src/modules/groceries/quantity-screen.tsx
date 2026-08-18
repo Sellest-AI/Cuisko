@@ -5,6 +5,7 @@ import { QuantityOption } from "@ui/cards/quantity-option";
 import { Trash2 } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
+import { useTranslations } from "translations";
 
 import { useModalAction } from "~/modules/navigation/modal-action";
 import { formatQuantity, isIntent, isUnit, unitLabel, type Intent, type Unit } from "./_model/model";
@@ -55,6 +56,7 @@ const Picker = ({
   onClose: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
 }) => {
+  const t = useTranslations("Groceries");
   const [entryUnit, setEntryUnit] = useState<Unit>(rowUnit);
 
   const { ingredient, prompt, options, owned, submit } = useQuantityPicker({
@@ -120,7 +122,7 @@ const Picker = ({
             key={`${option.amount}:${option.unit}`}
             amount={option.amount}
             unit={unitLabel(option.unit)}
-            caption={option.caption}
+            caption={option.captionKey ? t(option.captionKey) : undefined}
             type={option.type}
             onPress={() => choose(option.amount)}
             style={{ width: SCREEN_WIDTH / COLUMNS - GAP * 2 }}
@@ -138,11 +140,15 @@ const Picker = ({
  * any screen. Its params are therefore untrusted — a deep link can carry anything — which is why
  * they are validated here before a hook reads them.
  */
-const Nothing = () => (
-  <View style={[styles.container, styles.empty]}>
-    <Text.Base color={theme.colors.muted}>Nothing to adjust.</Text.Base>
-  </View>
-);
+const Nothing = () => {
+  const t = useTranslations("Groceries");
+
+  return (
+    <View style={[styles.container, styles.empty]}>
+      <Text.Base color={theme.colors.muted}>{t("Quantity.nothing_to_adjust")}</Text.Base>
+    </View>
+  );
+};
 
 export const QuantityScreen = ({ params, onClose, onLayout }: Props) => {
   const { ingredientId, unit, intent } = params;

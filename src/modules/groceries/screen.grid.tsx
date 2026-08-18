@@ -6,6 +6,7 @@ import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
 import { CheckIcon, IconComponent, PlusIcon } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
+import { useTranslations, type TranslationKeys } from "translations";
 
 import { formatQuantity, type Section, type StockRow } from "./_model/model";
 import { useGroceryList } from "./_hooks/useGroceryList";
@@ -28,15 +29,15 @@ const HEADER_TRANSITION = LinearTransition.duration(200);
  */
 const SECTIONS: {
   section: Section;
-  label: string;
+  labelKey: TranslationKeys<"Groceries">;
   icon?: IconComponent;
   color: string;
 }[] = [
-    { section: "to-buy", label: "To Buy", icon: PlusIcon, color: theme.colors.primary.base },
-    { section: "cellar", label: "Cellar", icon: CheckIcon, color: theme.colors.secondary.base },
+    { section: "to-buy", labelKey: "Sections.to_buy", icon: PlusIcon, color: theme.colors.primary.base },
+    { section: "cellar", labelKey: "Sections.cellar", icon: CheckIcon, color: theme.colors.secondary.base },
     {
       section: "recently-bought",
-      label: "Recently Bought",
+      labelKey: "Sections.recently_bought",
       color: theme.colors.neutral.muted,
     },
   ];
@@ -90,6 +91,7 @@ const SectionHeader = ({
 export const GroceryGrid = () => {
   const { width } = useWindowDimensions();
   const { sections, submit } = useGroceryList();
+  const t = useTranslations("Groceries");
   const router = useRouter();
 
   const itemWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
@@ -108,13 +110,13 @@ export const GroceryGrid = () => {
     });
   };
 
-  const rows: Row[] = SECTIONS.flatMap(({ section, label, icon, color }) => {
+  const rows: Row[] = SECTIONS.flatMap(({ section, labelKey, icon, color }) => {
     const items = sections[section];
 
     if (items.length === 0) return [];
 
     return [
-      { kind: "header" as const, id: `header:${section}`, label, icon, color },
+      { kind: "header" as const, id: `header:${section}`, label: t(labelKey), icon, color },
       ...items.map((stock): Row => ({ kind: "item" as const, stock })),
     ];
   });

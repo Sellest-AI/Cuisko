@@ -1,3 +1,23 @@
 {
-  "title": "Grocery List"
+  "title": "Grocery List",
+  "Sections": {
+    "to_buy": "To Buy",
+    "cellar": "Cellar",
+    "recently_bought": "Recently Bought"
+  },
+  "Quantity": {
+    "custom_amount": "Type your own amount",
+    "nothing_to_adjust": "Nothing to adjust.",
+    "Prompts": {
+      "buy": "How much did you add?",
+      "remove": "How much did you take out?",
+      "relist": "How much do you need?"
+    },
+    "Captions": {
+      "needed": "Needed",
+      "last_time": "Last time",
+      "just_added": "Just added",
+      "all_of_it": "All of it"
+    }
+  }
 }
