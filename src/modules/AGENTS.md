@@ -8,10 +8,10 @@ One folder per domain. It owns that domain's data and everything drawn with it.
     ├── weekly-plan.tsx     PUBLIC  — any module or route may import this
     ├── screen.tsx          PUBLIC
     ├── hooks.ts            PUBLIC  — the door: re-exports the hooks other modules may call
-    ├── tunnel/             PUBLIC  — a sub-domain: one flow, several screens of its own
+    ├── tunnel/             PUBLIC  — a sub-module: one flow, several screens of its own
     │   ├── chrome.tsx              the frame its routes mount into
     │   ├── setup.tsx, diet.tsx     one file per step
-    │   └── _components/, _hooks/   PRIVATE to the sub-domain, same rules one level down
+    │   └── _components/, _hooks/   PRIVATE to the sub-module, same rules one level down
     ├── _components/        PRIVATE — this module only, by relative path
     ├── _hooks/             PRIVATE — the ONLY place api.router.planning.* is referenced
     └── _model/             PRIVATE — framework-free domain types and pure functions; no React,
@@ -21,13 +21,26 @@ Root files are public. The underscore folders are the interior: reach them with 
 never with `~/modules/other/_hooks/useX`. Sharing a hook across modules is one line added to
 `hooks.ts` — a deliberate edit somebody reviews — not an import that walks past the underscore.
 
-**A named subfolder is a sub-domain, and carries the same shape as a module.** Reach for one when a
+**A named subfolder is a sub-module, and carries the same shape as a module.** Reach for one when a
 single flow owns several screens that belong together — a generation tunnel, an onboarding — rather
 than scattering them across the root, or claiming a parent that does not exist (`tunnel.setup.tsx`
-says there is a `tunnel.tsx` to read first). Its files are public to the module and to `app/`, and
-it may grow its own `_components/`, `_hooks/` and `_model/` on exactly the rules above, one level
-down. A single screen is not a sub-domain: that is `screen.tsx` at the root, with its parts in dot
-notation beside it.
+says there is a `tunnel.tsx` to read first). It may grow its own `_components/`, `_hooks/` and
+`_model/` on exactly the rules above, one level down. A single screen is not a sub-module: that is
+`screen.tsx` at the root, with its parts in dot notation beside it.
+
+**It comes in two shapes, and the difference is where the door is.** `tunnel/` is a flow: its root
+files are screens, each mounted by a route, and all of them public to the module and to `app/`.
+`modal-sheet/` is a unit of behaviour: several hooks over one piece of shared state, entered through
+an `index.ts` barrel that re-exports the hooks and nothing else, so the state has no route out
+through the door. Take the barrel when there is something to keep between siblings; skip it when the
+files are screens and privacy is not the question. Either way the call site is the folder —
+`~/modules/navigation/modal-sheet`, never a file inside it.
+
+⚠️ **A sub-module's privacy is reviewed, not enforced — at both of its edges.** Lint R8's glob is
+`~/modules/*/_hooks/**`, and `*` does not cross a slash, so it misses
+`~/modules/planning/tunnel/_hooks/**` entirely. A barrel has no lint behind it either: nothing stops
+`~/modules/navigation/modal-sheet/state`. The rules above hold all the same — they are just yours to
+catch in review rather than the linter's.
 
 `_model/` is where the domain lives once it grows past a couple of pure functions used by one
 hook — types, invariants, derivations, all of it framework-free and unit-testable without

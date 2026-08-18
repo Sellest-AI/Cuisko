@@ -77,6 +77,36 @@ broken import.
 Three, not two, because two files are still readable side by side in one directory listing; three of
 them start burying the neighbours.
 
+#### The same threshold applies to hooks — the folder becomes a sub-module 👁
+
+A hook file that grows a second and third export is the same situation as the component above, and
+gets the same answer: a folder named for what the hooks are *about*, entered through `index`. Inside
+it, one hook per file, each camelCase matching its export — so the rule in the table above holds
+literally, rather than acquiring an exception.
+
+```
+✅ modal-sheet/index.ts                    the barrel — the only door
+   modal-sheet/state.ts                    the atom the three share; NOT re-exported
+   modal-sheet/useMeasuredModalSheet.ts
+   modal-sheet/useDeclaredModalSheet.ts
+   modal-sheet/useModalSheetFrameHeight.ts
+❌ modal-sheet.tsx exporting all three, with the atom above them
+```
+
+**The barrel is the door, and the shared state is what it keeps out.** Several hooks over one atom,
+ref or context need somewhere to keep it; inside a folder that is `state.ts`, which `index.ts`
+deliberately does not re-export. Know the trade before you take it: in a flat file the atom is a
+module-scoped `const` that nothing can import, and splitting *forces* you to export it so the hook
+files can share it. What the barrel buys is the naming rule holding literally and each hook being
+findable by filename; what it costs is that the atom's privacy stops being a language guarantee and
+becomes a convention — a deep import of `modal-sheet/state` compiles, and no lint rule stops it. Take
+the folder at three hooks, as with components. Below that the flat file is genuinely stricter.
+
+**A sub-module carries the same shape as a module**, one level down — it may grow its own
+`_components/`, `_hooks/` and `_model/` on exactly the rules its parent follows. See
+[`src/modules/AGENTS.md`](../src/modules/AGENTS.md) for the full contract; `modal-sheet/` is the
+small end of it and `planning/tunnel/` the large.
+
 ### 1.2 Code
 
 | Kind                              | Convention                  | Example                 |
