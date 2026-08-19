@@ -24,8 +24,8 @@ export type CarouselMeal = {
 };
 
 /** Days shown either side of today. */
-const DAYS_BEFORE = 5;
-const DAYS_AFTER = 2;
+const DAYS_BEFORE = 3;
+const DAYS_AFTER = 3;
 
 /**
  * Placeholder: every past day reads as cooked and today as still open. Real status is per-day

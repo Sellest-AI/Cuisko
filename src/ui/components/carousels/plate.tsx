@@ -450,11 +450,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[16],
     paddingVertical: theme.spacing[6],
     borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.surface.elevated,
+    backgroundColor: theme.colors.surface.elevatedSubtle,
     borderWidth: 2,
     borderColor: theme.colors.border.default,
     textAlign: "center",
     alignItems: "center",
+    overflow: "hidden",
     boxShadow: [
       {
         offsetX: 0,

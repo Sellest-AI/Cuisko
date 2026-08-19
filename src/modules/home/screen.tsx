@@ -33,7 +33,7 @@ export const HomeScreen = () => (
       <RadialGradient
         size={340}
         colors={[theme.colors.primary.base, theme.colors.neutral.subtle]}
-        style={{ position: "absolute", top: 24, left: -32, opacity: 0.1 }}
+        style={{ position: "absolute", top: 220, left: -56, opacity: 0.1 }}
       />
       <HomeHeader />
       <WeeklyPlan />

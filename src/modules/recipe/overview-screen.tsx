@@ -66,7 +66,7 @@ export const OverviewScreen = () => {
       <View style={styles.section}>
         <GroceryRow title={t("Overview.utensils")} items={RECIPE.utensils} />
       </View>
-      <View style={styles.section}>
+      <View style={[styles.section, { marginBottom: theme.spacing[16] }]}>
         <GroceryRow
           title={t("Overview.ingredients")}
           items={RECIPE.ingredients}
@@ -78,7 +78,7 @@ export const OverviewScreen = () => {
 
 const styles = StyleSheet.create({
   facts: {
-    marginTop: theme.spacing[8],
+    marginTop: theme.spacing[4],
     paddingHorizontal: SCREEN_PADDING,
     gap: theme.spacing[8],
   },

@@ -44,13 +44,13 @@ const GLOW_SIZE = 400;
 const styles = StyleSheet.create({
   screen: {
     backgroundColor: theme.colors.background,
-    paddingTop: theme.spacing[12],
+    paddingTop: theme.spacing[20],
     paddingBottom: NAVIGATION_BAR_OFFSET,
   },
   glow: {
     position: "absolute",
     top: 0,
     left: -100,
-    opacity: 0.5,
+    opacity: 0.2,
   },
 });

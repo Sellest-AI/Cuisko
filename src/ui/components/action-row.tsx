@@ -29,13 +29,13 @@ type LeftContent = {
 const VARIANT_COLORS = {
   primary: {
     variant: "primary-subtle",
-    gradient: [colors.primary.base, colors.primary.elevated],
+    gradient: [colors.primary.base, colors.primary.base, colors.primary.elevated],
     content: colors.primary.foreground,
     subtle: colors.primary.subtle,
   },
   secondary: {
     variant: "secondary-subtle",
-    gradient: [colors.secondary.base, colors.secondary.elevated],
+    gradient: [colors.secondary.base, colors.secondary.base, colors.secondary.elevated],
     content: colors.secondary.foreground,
     subtle: colors.secondary.subtle,
   },

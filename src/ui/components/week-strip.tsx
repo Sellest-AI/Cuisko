@@ -1,8 +1,10 @@
 import { StyleSheet, View, ViewStyle } from "react-native";
 
-import { theme } from "theme";
+import { colors, theme } from "theme";
 
 import { DayMarker } from "./day-marker";
+import { Pressable } from "./pressable";
+import { PlusIcon } from "./icons";
 
 export type WeekDay = {
   date: Date;
@@ -19,6 +21,7 @@ type Props<T extends WeekDay> = {
    */
   selectedIndex?: number;
   onSelect?: (day: T) => void;
+  onAdd?: () => void;
   /** BCP 47 tag for the weekday initials — see `DayMarker`. */
   locale?: string;
   style?: ViewStyle;
@@ -34,6 +37,7 @@ export const WeekStrip = <T extends WeekDay>({
   days,
   selectedIndex,
   onSelect,
+  onAdd,
   locale,
   style,
 }: Props<T>) => (
@@ -49,6 +53,15 @@ export const WeekStrip = <T extends WeekDay>({
         style={index === 0 ? styles.edge : undefined}
       />
     ))}
+    {onAdd && (
+      <Pressable
+        key="add"
+        onPress={onAdd}
+        style={styles.add}
+      >
+        <PlusIcon size={18} color={colors.neutral.base} />
+      </Pressable>
+    )}
   </View>
 );
 
@@ -60,4 +73,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   edge: { opacity: EDGE_OPACITY },
+  add: {
+    paddingHorizontal: theme.spacing[8],
+    padding: theme.spacing[4],
+    borderRadius: theme.radius.full,
+    alignSelf: "stretch",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.neutral.elevated,
+    height: 70,
+  }
 });

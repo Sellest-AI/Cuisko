@@ -81,10 +81,9 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
         autoCapitalize="sentences"
         returnKeyType="search"
         style={[
+          styles.input,
           theme.font.base,
-          { outline: "none" },
-          { color: color.color, position: "relative" },
-          { width: "100%", flexShrink: 1 },
+          { color: color.color },
         ]}
       />
       {rightIcon && <ButtonIcon
@@ -123,6 +122,12 @@ const styles = StyleSheet.create({
         color: "rgba(0, 0, 0, 0.1)",
       },
     ],
+  },
+  input: {
+    position: "relative",
+    width: "100%",
+    flexShrink: 1,
+    outlineWidth: 0,
   },
   borders: {
     borderWidth: 2,

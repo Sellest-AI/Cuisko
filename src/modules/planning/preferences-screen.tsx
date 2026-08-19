@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { GroupSelect } from "@ui/group-select";
@@ -40,29 +39,21 @@ export const PreferencesScreen = ({ onClose, onLayout }: Props) => {
   );
 
   return (
-    <>
-      <LinearGradient
-        colors={[theme.colors.neutral.subtle, theme.colors.neutral.foreground]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 0, y: 0 }}
+    <View
+      onLayout={onLayout}
+      style={styles.page}
+    >
+      <GroupSelect
+        label={t("Preferences.question")}
+        onSelect={toggle}
+        items={DIET_PREFERENCES.map((preference) => ({
+          value: preference.value,
+          label: t(preference.key),
+          icon: preference.icon,
+          selected: selected.includes(preference.value),
+        }))}
       />
-      <View
-        onLayout={onLayout}
-        style={styles.page}
-      >
-        <GroupSelect
-          label={t("Preferences.question")}
-          onSelect={toggle}
-          items={DIET_PREFERENCES.map((preference) => ({
-            value: preference.value,
-            label: t(preference.key),
-            icon: preference.icon,
-            selected: selected.includes(preference.value),
-          }))}
-        />
-      </View>
-    </>
+    </View>
   )
 }
 

@@ -2,11 +2,14 @@ import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
+import { useState } from "react";
 
 import { SafeAreaView, useSafeAreaInsets } from "@ui/safe-area-view";
 import { ActionRow } from "@ui/action-row";
-import { CalendarIcon, CalendarPlus, SlidersHorizontal } from "@ui/icons";
+import { CalendarIcon, CalendarPlus, Loader, SlidersHorizontal } from "@ui/icons";
 import { Image } from "@ui/image";
+import { Button } from "@ui/button";
+import { AnimatePresence, m } from "@ui/motion";
 import { RadialGradient } from "@ui/radial-gradient";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -18,7 +21,6 @@ import { MEAL_IMAGE } from "./_hooks/placeholders";
 import { usePlanningList } from "./_hooks/usePlanningList";
 import { PlanningListRow } from "./_components/planning-row";
 import { toDateParam, type PlanningRow } from "./_model/model";
-import { Button } from "@ui/button";
 
 type Props = {
   /** The day to open on as `YYYY-MM-DD`, straight off the route — validated by the hook. */
@@ -52,6 +54,8 @@ export const PlanningScreen = ({ focusDate }: Props) => {
   const { rows, initialIndex } = usePlanningList(focusDate);
 
   const { top } = useSafeAreaInsets()
+
+  const [show, setShow] = useState(false);
 
   return (
     <>
@@ -92,8 +96,10 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         initialScrollIndex={initialIndex - 1}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        onLoad={() => requestAnimationFrame(() => setShow(true))}
         style={{
           marginTop: -60 - top,
+          opacity: show ? 1 : 0,
         }}
         renderItem={({ item, index }) => {
           const isNextSameDay = rows[index + 1]?.date.getDate() === item.date.getDate();
@@ -136,6 +142,19 @@ export const PlanningScreen = ({ focusDate }: Props) => {
           </View>
         }
       />
+      <AnimatePresence>
+        {!show && <m.View
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          exitTransition={{ duration: 200 }}
+          style={[
+            StyleSheet.absoluteFill,
+            { justifyContent: "center", alignItems: "center" },
+            { backgroundColor: theme.colors.background }
+          ]}>
+          <Loader color={theme.colors.primary.base} />
+        </m.View>}
+      </AnimatePresence>
       <LinearGradient
         colors={[theme.colors.neutral.subtle, theme.colors.transparent.light]}
         style={{
