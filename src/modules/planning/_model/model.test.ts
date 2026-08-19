@@ -234,8 +234,17 @@ describe("indexOfDate", () => {
     expect(indexOfDate(sparse, day(-1))).toBe(1);
   });
 
-  it("opens on the first row for a date past the end of the plan", () => {
-    expect(indexOfDate(rows, day(40))).toBe(0);
+  /**
+   * There is no row after the end, so the nearest one is the last. Falling back to the top is the
+   * same failure the sparse-day case rejects, at its worst — the user asked for the far end.
+   */
+  it("opens on the last row for a date past the end of the plan", () => {
+    expect(rows.length).toBeGreaterThan(1);
+    expect(indexOfDate(rows, day(40))).toBe(rows.length - 1);
+  });
+
+  it("opens on the first row when the plan has no rows at all", () => {
+    expect(indexOfDate([], day(0))).toBe(0);
   });
 
   it("opens on the first row for a date before the plan starts", () => {
