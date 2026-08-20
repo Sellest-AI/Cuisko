@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ViewStyle } from "react-native";
 
 import { ButtonIcon } from "@ui/button-icon";
 import { Minus, Plus } from "@ui/icons";
@@ -9,14 +9,15 @@ import { useTranslations } from "translations";
 type Props = {
   servings: number;
   onChange: (servings: number) => void;
+  style?: ViewStyle;
 };
 
 /** How many people the quantities below are scaled for. */
-export const Servings = ({ servings, onChange }: Props) => {
+export const Servings = ({ servings, onChange, style }: Props) => {
   const t = useTranslations("Recipe");
 
   return (
-    <View style={styles.servings}>
+    <View style={[styles.servings, style]}>
       <Text.Lg>{t("Ingredients.servings")}</Text.Lg>
       <View style={styles.stepper}>
         <ButtonIcon

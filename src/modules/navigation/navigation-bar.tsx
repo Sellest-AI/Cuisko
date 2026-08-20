@@ -115,7 +115,7 @@ export const NavigationBar = () => {
                 />}
                 {isRecipes && <ButtonPill
                   leftIcon={Plus}
-                  onPress={() => console.log("Recipe imported")}
+                  onPress={() => router.push("/recipe/new")}
                   elevated
                   variant="secondary"
                   size="lg"

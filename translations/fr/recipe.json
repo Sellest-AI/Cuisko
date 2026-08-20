@@ -29,6 +29,21 @@
   "Instructions": {
     "title": "Instructions"
   },
+  "Editor": {
+    "new_title": "Nouvelle recette",
+    "edit_title": "Modifier la recette",
+    "image": "Choisir une image",
+    "title": "Titre",
+    "title_placeholder": "Pâtes à la sauce au yaourt",
+    "description": "Description",
+    "optional": "(Facultatif)",
+    "description_placeholder": "Ajoute une description de ta recette",
+    "ingredients": "Ingrédients",
+    "ingredients_placeholder": "- 3 tomates\n- 2 œufs\n- 1 cuillère d'huile d'olive",
+    "instructions": "Instructions",
+    "instructions_placeholder": "Sauce\n- Mélange le yaourt avec les épices\n\nPâtes\n- Fais cuire les pâtes 10 minutes\n- Égoutte les pâtes et ajoute la sauce",
+    "save": "Enregistrer la recette"
+  },
   "Cooking": {
     "last_step": "Dernière étape",
     "step_ingredients": "Pour cette étape",
