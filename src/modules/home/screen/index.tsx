@@ -4,9 +4,9 @@ import { theme } from "theme";
 import { WeeklyPlan } from "~/modules/planning/weekly-plan";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
-import { HomeHeader } from "./screen.header";
-import { QuickAccess } from "./screen.quick-access";
-import { WeeklySpotlight } from "./screen.spotlight";
+import { HomeHeader } from "./header";
+import { QuickAccess } from "./quick-access";
+import { WeeklySpotlight } from "./spotlight";
 
 import { RadialGradient } from "@ui/radial-gradient";
 import { LinearGradient } from "expo-linear-gradient";

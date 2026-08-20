@@ -8,11 +8,11 @@ import { ParallaxScrollView } from "@ui/parallax-scroll-view";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { CONTENT_NEGATIVE_SPACE } from "./constants";
-import { RecipeHeader } from "./chrome.header";
-import { RecipeIntro } from "./chrome.intro";
-import { RecipeTabs, RecipeTab } from "./chrome.tabs";
-import { ChromeNavigationBar } from "./chrome.navigation-bar";
+import { CONTENT_NEGATIVE_SPACE } from "../constants";
+import { RecipeHeader } from "./header";
+import { RecipeIntro } from "./intro";
+import { RecipeTabs, RecipeTab } from "./tabs";
+import { ChromeNavigationBar } from "./navigation-bar";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const RECIPE = {

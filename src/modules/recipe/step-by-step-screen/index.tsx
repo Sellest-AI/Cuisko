@@ -11,11 +11,11 @@ import { theme } from "theme";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
-import { RecipeScreen } from "./_components/recipe-screen";
-import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "./constants";
-import { StepBar } from "./step-by-step-screen.bar";
-import { StepCard } from "./step-by-step-screen.card";
-import { StepMedia } from "./step-by-step-screen.media";
+import { RecipeScreen } from "../_components/recipe-screen";
+import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../constants";
+import { StepBar } from "./bar";
+import { StepCard } from "./card";
+import { StepMedia } from "./media";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const STEPS = [

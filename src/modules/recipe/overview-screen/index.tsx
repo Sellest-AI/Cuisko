@@ -5,12 +5,12 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { NutritionCard } from "./_components/nutrition-card";
-import { RecipeScreen } from "./_components/recipe-screen";
-import { SCREEN_PADDING } from "./constants";
-import { Difficulty } from "./overview-screen.difficulty";
-import { GroceryRow } from "./overview-screen.grocery-row";
-import { Timings } from "./overview-screen.timings";
+import { NutritionCard } from "../_components/nutrition-card";
+import { RecipeScreen } from "../_components/recipe-screen";
+import { SCREEN_PADDING } from "../constants";
+import { Difficulty } from "./difficulty";
+import { GroceryRow } from "./grocery-row";
+import { Timings } from "./timings";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const RECIPE = {
