@@ -64,7 +64,6 @@ export const AuthScreen = () => {
         <TextField
           editable={!isSubmitting}
           kind="email"
-          label="Email"
           onChangeText={setEmail}
           placeholder="you@example.com"
           value={email}
@@ -72,7 +71,6 @@ export const AuthScreen = () => {
         <TextField
           editable={!isSubmitting}
           isSecure
-          label="Password"
           onChangeText={setPassword}
           placeholder="At least 8 characters"
           value={password}

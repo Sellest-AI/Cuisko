@@ -1,21 +1,16 @@
-import { StyleSheet, Text, TextInput, TextStyle, View } from "react-native";
+import { StyleSheet, TextInput, TextStyle, View } from "react-native";
 
 import { theme } from "theme";
 
-/**
- * A visible label, or a placeholder standing in for one — never neither.
- *
- * The union is what enforces it: `accessibilityLabel` falls back to the placeholder, so making
- * both optional would let an input with no accessible name typecheck, and a screen reader would
- * announce it as nothing at all.
- */
-type Props = BaseProps & ({ label: string } | { placeholder: string });
-
-type BaseProps = {
-  label?: string;
+type Props = {
   value: string;
   onChangeText: (value: string) => void;
-  placeholder?: string;
+  /**
+   * Required, because it is also the accessible name: the field draws no label of its own, so
+   * `accessibilityLabel` has nothing else to fall back to and a screen reader would announce an
+   * optional one as nothing at all. A caller wanting a *visible* label draws it above the field.
+   */
+  placeholder: string;
   isSecure?: boolean;
   /** `email` turns off capitalisation and autocorrect, which otherwise mangle addresses. */
   kind?: "text" | "email";
@@ -25,7 +20,6 @@ type BaseProps = {
 };
 
 export const TextField = ({
-  label,
   value,
   onChangeText,
   placeholder,
@@ -34,33 +28,32 @@ export const TextField = ({
   editable = true,
   multiline = false,
   style,
-}: Props) => (
-  <View style={[styles.wrapper, !label && styles.shadow]}>
-    {label && <Text style={styles.label}>{label}</Text>}
-    <TextInput
-      accessibilityLabel={label ?? placeholder}
-      autoCapitalize={kind === "email" ? "none" : "sentences"}
-      autoCorrect={kind !== "email"}
-      editable={editable}
-      keyboardType={kind === "email" ? "email-address" : "default"}
-      multiline={multiline}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor={theme.colors.muted}
-      secureTextEntry={isSecure}
-      style={[styles.input, !editable && styles.inputDisabled, style]}
-      textContentType={kind === "email" ? "emailAddress" : isSecure ? "password" : "none"}
-      value={value}
-    />
-  </View>
-);
+}: Props) => {
+  const boxShadow = StyleSheet.flatten(style)?.boxShadow ?? styles.shadow.boxShadow;
+
+  return (
+    <View style={[styles.wrapper, { boxShadow }]}>
+      <TextInput
+        accessibilityLabel={placeholder}
+        autoCapitalize={kind === "email" ? "none" : "sentences"}
+        autoCorrect={kind !== "email"}
+        editable={editable}
+        keyboardType={kind === "email" ? "email-address" : "default"}
+        multiline={multiline}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={theme.colors.muted}
+        secureTextEntry={isSecure}
+        style={[styles.input, !editable && styles.inputDisabled, style]}
+        textContentType={kind === "email" ? "emailAddress" : isSecure ? "password" : "none"}
+        value={value}
+      />
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  wrapper: {
-    gap: theme.spacing[4],
-    borderRadius: theme.radius.sm,
-  },
-  label: { color: theme.colors.muted, fontSize: theme.font.sm.fontSize, fontWeight: "600" },
+  wrapper: { borderRadius: theme.radius.sm },
   shadow: {
     boxShadow: [
       {
