@@ -88,10 +88,13 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
     <View style={styles.root}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, chrome.tinted && ground]}>
         <LinearGradient
-          style={[StyleSheet.absoluteFill, { height: chrome.tinted ? "60%" : "100%" }]}
+          style={[
+            StyleSheet.absoluteFill,
+            { height: chrome.tinted ? "60%" : "100%" },
+          ]}
           colors={
             chrome.tinted
-              ? [colors.primary.elevated, colors.primary.elevated, colors.primary.subtle, colors.background]
+              ? [colors.primary.subtle, colors.primary.subtle, colors.primary.subtle, colors.background]
               : [colors.neutral.subtle, colors.background]
           }
           start={{ x: 0, y: 0 }}

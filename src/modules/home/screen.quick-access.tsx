@@ -25,7 +25,7 @@ export const QuickAccess = () => {
       </View>
       <View style={[styles.gutter, styles.rows]}>
         <ActionRow
-          variant="primary"
+          variant="secondary"
           onPress={() => router.push("/groceries")}
           content={t("QuickAccess.grocery_list")}
           contentIcon={ListPlus}
