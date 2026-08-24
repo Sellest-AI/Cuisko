@@ -11,54 +11,21 @@
  * by CHECK_ROOT (see `scripts/_lib.mjs`). The scripts end in `process.exit`, so there is no
  * importable surface to assert on — the exit code and the printed finding *are* the contract.
  */
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { afterEach, describe, expect, it } from "vitest";
 
-const SCRIPT = fileURLToPath(new URL("../c4-schema-invariants.mjs", import.meta.url));
+import { cleanupTrees, runCheck } from "./_harness";
 
 /** Every fixture needs one, because C4 parses the cascade registry before it reads any table. */
 const NO_CASCADE = "export const CASCADE = {};";
 
-const temporaryRoots: string[] = [];
+afterEach(cleanupTrees);
 
-afterEach(() => {
-  while (temporaryRoots.length > 0) {
-    rmSync(temporaryRoots.pop() as string, { recursive: true, force: true });
-  }
-});
-
-/**
- * Runs C4 against a one-off tree containing `schema` and `cascade`.
- *
- * Returns the exit code and the combined output rather than throwing, so a case can assert on a
- * failure as easily as on a pass — a non-zero exit is the expected result in most of them.
- */
-const runC4 = (schema: string, cascade: string = NO_CASCADE) => {
-  const root = mkdtempSync(path.join(tmpdir(), "cuisko-c4-"));
-  temporaryRoots.push(root);
-
-  mkdirSync(path.join(root, "convex", "schema"), { recursive: true });
-  mkdirSync(path.join(root, "convex", "functions"), { recursive: true });
-  writeFileSync(path.join(root, "convex", "schema", "fixture.ts"), schema);
-  writeFileSync(path.join(root, "convex", "functions", "cascade.ts"), cascade);
-
-  try {
-    const stdout = execFileSync(process.execPath, [SCRIPT], {
-      encoding: "utf8",
-      env: { ...process.env, CHECK_ROOT: root },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return { code: 0, output: stdout };
-  } catch (error) {
-    const failure = error as { status: number; stdout: string; stderr: string };
-    return { code: failure.status, output: `${failure.stdout}${failure.stderr}` };
-  }
-};
+/** Runs C4 against a one-off tree holding `schema` and `cascade`. */
+const runC4 = (schema: string, cascade: string = NO_CASCADE) =>
+  runCheck("c4-schema-invariants.mjs", {
+    "convex/schema/fixture.ts": schema,
+    "convex/functions/cascade.ts": cascade,
+  });
 
 const table = (name: string, fields: string, indexes = '.index("by_a", ["a"])') =>
   `import { defineTable } from "convex/server";
