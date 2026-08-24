@@ -12,6 +12,7 @@
     "ios": "expo run:ios",
     "build:dev": "eas build --profile development --platform all",
     "convex:dev": "npx convex dev",
+    "seed:ingredients": "npx convex run router/ingredients/seedCatalog:_internal",
     "typecheck": "tsc --noEmit && tsc --noEmit -p convex/tsconfig.json",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",

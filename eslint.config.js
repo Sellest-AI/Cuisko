@@ -117,6 +117,12 @@ module.exports = defineConfig([
                 "router/ never calls isAuthorized directly — use ownedQuery('<table>') / " +
                 "ownedMutation('<table>'), which apply it for you. Direct calls belong in functions/.",
             },
+            {
+              group: ["**/functions/households/isMember", "**/functions/households/isMember.js"],
+              message:
+                "router/ never calls isMember directly — use householdQuery, which applies it " +
+                "for you. Direct calls belong in functions/.",
+            },
           ],
         },
       ],

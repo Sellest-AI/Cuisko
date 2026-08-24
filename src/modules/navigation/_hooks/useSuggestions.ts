@@ -1,8 +1,12 @@
-import { UNITS } from "@shared/ingredients";
-import { STOPWORDS } from "@shared/translations";
+import { isUnit, NO_EMOJI, UNITS, type Unit } from "@shared/ingredients";
+import { foldAccents, STOPWORDS } from "@shared/translations";
 import { distance } from "fastest-levenshtein";
+import { useMemo } from "react";
 
-export type Unit = (typeof UNITS)[number];
+import { useDebounce } from "~/hooks/useDebounce";
+import { useLocale } from "~/hooks/useLocale";
+import { api } from "~/lib/convex/api";
+import { useQueryHeld } from "~/lib/convex/client";
 
 export type Suggestion = {
   id: string;
@@ -43,15 +47,9 @@ const QUANTITY_RE = new RegExp(
   "i"
 );
 
-const isUnit = (word?: string): word is Unit =>
-  !!word && (UNITS as readonly string[]).some((u) => u.toLowerCase() === word.toLowerCase());
-
 /* -------------------------------------------------------------------------- */
 /* Normalisation                                                              */
 /* -------------------------------------------------------------------------- */
-
-const stripAccents = (value: string) =>
-  value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
 
 /** Lowercased and unpunctuated, but still accented — the form the stopword lists are written in. */
 const toComparable = (word: string) => word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
@@ -70,7 +68,7 @@ const isStopword = (word: string) => GLOBAL_STOPWORDS.has(toComparable(word));
  * survive intact.
  */
 const normalizeWord = (word: string) => {
-  const clean = stripAccents(toComparable(word));
+  const clean = foldAccents(toComparable(word));
   return clean.length > 3 && clean.endsWith("s") ? clean.slice(0, -1) : clean;
 };
 
@@ -188,29 +186,40 @@ const bestLabel = (words: string[], labels: string[]) =>
 /* Hook                                                                       */
 /* -------------------------------------------------------------------------- */
 
-const FAKE_SUGGESTIONS: Suggestion[] = [
-  { id: "tomatoes", name: "Tomates", emoji: "🍅" },
-  { id: "cherry-tomatoes", name: "Tomates cerises", emoji: "🍅" },
-  { id: "tomato-sauce", name: "Sauce tomate", emoji: "🍶", aliases: ["coulis de tomates"] },
-  { id: "tomato-soup", name: "Soupe de tomates", emoji: "🥣" },
-  { id: "potatoes", name: "Pommes de terre", emoji: "🥔", aliases: ["patates"] },
-  {
-    id: "potato-chips",
-    name: "Chips de pommes de terre",
-    emoji: "🍟",
-    aliases: ["chips de patates"],
-  },
-  { id: "sweet-potatoes", name: "Patates douces", emoji: "🍠" },
-  { id: "green-tea", name: "Thé vert", emoji: "🍵" },
-];
+/** Below this the catalog is not asked at all — two letters cannot narrow ~200 rows usefully. */
+const MIN_SEARCH_LENGTH = 2;
 
-export const useSuggestions = (text: string) => {
+/**
+ * What the input means, before any catalog is consulted: how much, in what unit, and the words
+ * left over once those are taken out.
+ *
+ * Split out because the words are needed twice — once to ask the server, and once to rank what it
+ * sends back — and parsing the same text differently in those two places is how a suggestion list
+ * ends up ranking against something the shopper never typed.
+ */
+export const readInput = (text: string) => {
   const tokens = text.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const { amount, unit } = parseQuantity(tokens);
   const words = toWords(tokens);
 
+  return { amount, unit, words, query: words.join(" ") };
+};
+
+/**
+ * Orders a set of candidates against what was typed, and decides whether Enter may commit one.
+ *
+ * **The server narrows; this ranks.** A search index answers "which rows contain these terms",
+ * which is not the same question as "which one did they mean" — prefix beats containment beats a
+ * typo, the shorter label wins a tie, and a near-tie is refused outright. Keeping that here also
+ * keeps it testable against a fixture rather than against whatever the catalog happens to hold.
+ *
+ * Exported for that test. The hook below is the call site; nothing else should reach for this.
+ */
+export const rankSuggestions = (text: string, candidates: Suggestion[]) => {
+  const { amount, unit, words, query } = readInput(text);
+
   // Labels normalised once, then reused for both the ranking and the match.
-  const entries = FAKE_SUGGESTIONS.map((suggestion) => ({
+  const entries = candidates.map((suggestion) => ({
     suggestion,
     labels: toLabels(suggestion),
   }));
@@ -223,7 +232,6 @@ export const useSuggestions = (text: string) => {
 
   // Strict match: the whole input against a whole label. Comparing word by word would let
   // "tomate" match "Tomates cerises".
-  const query = words.join(" ");
   let matchingSuggestion: Suggestion | null = null;
 
   if (query.length >= MIN_QUERY_LENGTH) {
@@ -251,4 +259,48 @@ export const useSuggestions = (text: string) => {
     hasSuggestions: suggestions.length > 0,
     matchingSuggestion,
   };
+};
+
+/**
+ * What the navigation bar offers while someone types.
+ *
+ * The candidate set comes from the ingredient catalog, searched server-side in the caller's
+ * locale: the index matches a name or any of its synonyms, with or without accents, which is what
+ * makes "patates" reach pommes de terre without shipping ~200 rows to every device. The ordering
+ * is still decided here — see `rankSuggestions`.
+ *
+ * The search is `anon`: the catalog is reference data, so the bar suggests before sign-in.
+ */
+export const useSuggestions = (text: string) => {
+  const locale = useLocale();
+  const { query } = useMemo(() => readInput(text), [text]);
+
+  /**
+   * Two separate reasons the list must not flicker, and each needs its own fix.
+   *
+   * Debouncing stops a query per keystroke — the answer to "carro" is never the one the shopper
+   * wanted, and asking for it is work the server does and the screen throws away. But settling
+   * later does not stop the list emptying when the settled query finally changes, because the
+   * cache is keyed on the arguments and has no entry for the new ones yet. `useQueryHeld` is what
+   * keeps the previous matches on screen until the better ones arrive.
+   */
+  const settled = useDebounce(query);
+
+  const { data } = useQueryHeld(
+    api.router.ingredients.search.anon,
+    settled.length >= MIN_SEARCH_LENGTH ? { query: settled, locale } : "skip",
+  );
+
+  const candidates = useMemo(
+    (): Suggestion[] =>
+      (data ?? []).map((row) => ({
+        id: row._id,
+        name: row.name,
+        emoji: row.emoji ?? NO_EMOJI,
+        aliases: row.aliases,
+      })),
+    [data],
+  );
+
+  return rankSuggestions(text, candidates);
 };

@@ -19,7 +19,7 @@ const PROMPTS: Record<Intent, string> = {
  */
 export const useQuantityPicker = ({ ingredientId, unit, intent }: StockRef & { intent: Intent }) => {
   const snapshot = useSnapshot();
-  const { apply } = useStockActions();
+  const { apply, error } = useStockActions();
 
   const ingredient = snapshot.ingredients.find(({ id }) => id === ingredientId) ?? null;
 
@@ -33,5 +33,5 @@ export const useQuantityPicker = ({ ingredientId, unit, intent }: StockRef & { i
     [apply, intent, ingredientId, unit],
   );
 
-  return { ingredient, prompt: PROMPTS[intent], owned, options, submit };
+  return { ingredient, prompt: PROMPTS[intent], owned, options, submit, error };
 };

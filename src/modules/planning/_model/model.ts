@@ -2,10 +2,12 @@
  * The planning domain: what a planned week is made of, and the derivations drawn from it.
  *
  * Framework-free — no React, no Jotai, no Convex (see `src/modules/AGENTS.md`). The one component
- * import is a type, erased at build time, so this file still runs and tests without a provider tree.
+ * import is a type, erased at build time, so this file still runs and tests without a
+ * provider tree.
  */
 
 import type { Unit } from "@shared/ingredients";
+import { foldAccents } from "@shared/translations";
 
 import type { ImageProps } from "@ui/image";
 
@@ -375,10 +377,8 @@ export const replaceMeal = (
   recipe: Recipe,
 ): PlannedMeal[] => _replaceOne(meals, mealId, (meal) => _plated(meal, recipe));
 
-/** The marks `NFD` splits off an accented letter, leaving the plain letter behind. */
-const COMBINING_MARKS = /[\u0300-\u036f]/g;
-
-const _fold = (value: string) => value.normalize("NFD").replace(COMBINING_MARKS, "").toLowerCase();
+/** Case as well as accents — a recipe title is matched, not indexed, so nothing else reads it. */
+const _fold = (value: string) => foldAccents(value).toLowerCase();
 
 /**
  * Whether a title answers what was typed.

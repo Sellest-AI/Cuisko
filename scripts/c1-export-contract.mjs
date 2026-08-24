@@ -17,9 +17,37 @@ import { lineOf, listFiles, parse, relative, report, ROOT, ts } from "./_lib.mjs
 const GRAMMAR = /^(anon|authed|admin|server|_internal(_[a-z][a-zA-Z0-9]*)?)$/;
 
 const ALLOWED_BUILDERS = {
-  anon: ["publicQuery", "publicMutation", "publicAction"],
-  authed: ["authQuery", "authMutation", "authAction", "ownedQuery", "ownedMutation"],
-  admin: ["adminQuery", "adminMutation", "adminAction"],
+  anon: [
+    "publicQuery",
+    "publicMutation",
+    "publicAction",
+    "publicQueryI18n",
+    "publicMutationI18n",
+    "publicActionI18n",
+  ],
+  authed: [
+    "authQuery",
+    "authMutation",
+    "authAction",
+    "ownedQuery",
+    "ownedMutation",
+    "householdQuery",
+    "householdMutation",
+    "authQueryI18n",
+    "authMutationI18n",
+    "authActionI18n",
+    "ownedQueryI18n",
+    "ownedMutationI18n",
+    "householdQueryI18n",
+  ],
+  admin: [
+    "adminQuery",
+    "adminMutation",
+    "adminAction",
+    "adminQueryI18n",
+    "adminMutationI18n",
+    "adminActionI18n",
+  ],
   server: ["serverQuery", "serverMutation", "serverAction"],
   _internal: ["internalQuery", "internalMutation", "internalAction"],
 };

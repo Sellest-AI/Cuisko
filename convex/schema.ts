@@ -2,6 +2,9 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
 
 import { usersExtended } from "./schema/users";
+import { households, householdUsers } from "./schema/households";
+import { ingredients, allergens, ingredientAllergens } from "./schema/ingredients";
+import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
 
 /**
  * `authTables` (users, authAccounts, authSessions, …) are owned by @convex-dev/auth.
@@ -11,4 +14,12 @@ import { usersExtended } from "./schema/users";
 export default defineSchema({
   ...authTables,
   usersExtended,
+  households,
+  householdUsers,
+  ingredients,
+  allergens,
+  ingredientAllergens,
+  groceryListItems,
+  cellarItems,
+  recentlyUsedIngredients,
 });

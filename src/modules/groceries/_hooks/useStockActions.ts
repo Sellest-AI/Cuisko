@@ -1,91 +1,167 @@
 import { useSetAtom } from "jotai";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
-import { linesAtom, putInCellarAtom, takeFromCellarAtom } from "./atoms";
-import { dropIngredientLines, dropMealLines, type Intent, type StockRef } from "../_model/model";
+import { api, type Id } from "~/lib/convex/api";
+import { useMutation } from "~/lib/convex/client";
+import { useHousehold } from "~/modules/households/hooks";
+
+import { receiptsAtom } from "./atoms";
+import { matchesRef, peelReceipts, putInCellar, type Intent, type StockRef } from "../_model/model";
+import { useSnapshot } from "./useSnapshot";
 
 /**
- * Placeholder ids, until Convex issues them.
- *
- * Random rather than counted. A counter starting from zero mints `cellar-1` for the first row it
- * creates — which is already the seeded carrots row — and the duplicate stays invisible right up
- * until something updates one of them and silently hits the other too.
+ * The model keys stock by ingredient id and unit, and knows nothing about which table those ids
+ * came from — that is what lets `_model/` be tested without a database. Convex wants the branded
+ * type back at the seam, and this is the seam.
  */
-const _id = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+const _ingredient = (id: string) => id as Id<"ingredients">;
+
+/**
+ * Every write below is household-scoped, and there is no household until someone is signed in.
+ *
+ * Returning early is the only correct thing to do — there is nowhere to write — but doing it
+ * quietly means a tap that lands on a card and produces nothing at all, with no error, no log and
+ * no failed request to find. This says so once, where the next person to hit it is looking.
+ */
+const _scoped = (householdId: Id<"households"> | undefined, gesture: string) => {
+  if (householdId) return householdId;
+
+  if (__DEV__) {
+    console.warn(`[useStockActions] "${gesture}" dropped: no household. Is anyone signed in?`);
+  }
+
+  return null;
+};
 
 /**
  * The three ways stock moves, one per section a tap can come from.
  *
  * Separate from `useGroceryList` because the quantity modal is a route of its own: it needs to
  * write without deriving the grid it is drawn over.
+ *
+ * **Who decides what.** The list, the cellar and what the household has bought before are the
+ * server's — each mutation reads them fresh inside its own transaction, so two taps landing before
+ * a re-render both count, and a second device sees the result. What stays here is the receipt: the
+ * bands a purchase filled, which the server has no record of and could not re-derive, because
+ * buying *deletes* the lines it settles.
+ *
+ * Those bands are computed from the snapshot as this render found it. Two taps arriving inside one
+ * render therefore split the same starting list between them — the shelf still ends up right,
+ * because the server did that arithmetic, but the second receipt can misjudge how much of itself
+ * settled a line. The cost is bounded by what a receipt is for: an undo inside five minutes gives
+ * back slightly the wrong amount. The alternative — asking the server to hold receipts — is the
+ * `receipts` table this slice deliberately did not build.
  */
 export const useStockActions = () => {
-  /**
-   * Write handles only. Nothing here reads a set — the two write atoms do their own reading, and
-   * the line-only writes go through updaters — so subscribing would re-render every caller of this
-   * hook on every change to a value it never looks at.
-   */
-  const setLines = useSetAtom(linesAtom);
-  const putIn = useSetAtom(putInCellarAtom);
-  const takeOut = useSetAtom(takeFromCellarAtom);
+  const { householdId } = useHousehold();
+  const snapshot = useSnapshot();
+  const setReceipts = useSetAtom(receiptsAtom);
+  const [error, setError] = useState<Error | null>(null);
+
+  const { mutate: addToCellar } = useMutation(api.router.cellars.addToCellar.authed);
+  const { mutate: takeFromCellar } = useMutation(api.router.cellars.removeFromCellar.authed);
+  const { mutate: addToList } = useMutation(api.router.cellars.addToGroceryList.authed);
+  const { mutate: removeFromList } = useMutation(api.router.cellars.removeFromGroceryList.authed);
 
   /**
-   * Into the basket: the cellar grows, the purchase is logged so it can be taken back, and
-   * anything the shopper had written down for themselves is struck off by it.
+   * Into the basket: the cellar grows, anything the shopper had written down for themselves is
+   * struck off by it, and the purchase is logged so it can be taken back.
+   *
+   * The server does the first two. `putInCellar` is still what decides the third — it splits the
+   * purchase into the plates' gap, the shopper's own lines and whatever nobody asked for, and only
+   * its `receipts` are kept. The other three sets it computes are the server's answer to give.
    */
   const buy = useCallback(
-    (ref: StockRef, amount: number) =>
-      putIn(ref, amount, new Date(), {
-        cellar: _id("cellar"),
-        receipt: _id("receipt"),
-        history: _id("history"),
-      }),
-    [putIn],
-  );
+    async (ref: StockRef, amount: number) => {
+      const scope = _scoped(householdId, "buy");
+      if (!scope || amount <= 0) return;
 
-  /**
-   * Out of the cellar, and out of the house. Where the stock goes is the same whatever the clock
-   * says; what the clock still governs is whether the trip that brought it is being unmade.
-   *
-   * Claims are left standing. The plates that wanted this ingredient still want it, and it is no
-   * longer here — so the derived gap reopens by what left, up to what is still wanted, and the
-   * list asks for it again.
-   * Discharging the claims instead made `claimed` and `owned` fall by the same number, which left
-   * `claimed - owned` untouched: taking the last carrots out changed nothing on screen, and the
-   * shopper had no way to tell that from having lost them.
-   *
-   * Cooking is the gesture that settles a claim, and it is not this one — it arrives from the
-   * plate, which knows which lines are its own instead of guessing (see `dropMealLines`).
-   *
-   * What the clock decides is what the peel gives back. A live receipt is unmade: the purchase
-   * stops being offered as an undo, and any line it struck off returns, because reversing a trip
-   * has to reverse all of it. A settled one is left alone — the shopper bought that food and is
-   * now using it, and their list is none of this gesture's business. The memory is untouched
-   * either way; `buy` recorded the ingredient when it was tapped, and putting it back does not
-   * un-know it.
-   *
-   * How much leaves, which receipts go and what the memory keeps are one decision over all three
-   * sets, so they are made together in `takeFromCellar` and written together by the atom. Three
-   * `set*` calls from here would each read the cellar as this render found it, and a second tap
-   * arriving before the re-render would undo the first.
-   */
-  const removeFromCellar = useCallback(
-    (ref: StockRef, amount: number) =>
-      takeOut(ref, amount, new Date(), { history: _id("history"), line: _id("line") }),
-    [takeOut],
-  );
+      const at = new Date();
+      const next = putInCellar(snapshot, {
+        ref,
+        amount,
+        at,
+        // Ids the server mints for the rows it owns; only the receipt's is ours to keep.
+        cellarId: "",
+        receiptId: `receipt-${at.getTime()}-${ref.ingredientId}:${ref.unit}`,
+        historyId: "",
+      });
 
-  /**
-   * Back onto the list from memory, as a claim the shopper made rather than a plate. It carries
-   * no plate, so dropping a meal from the week can never take it away again.
-   */
-  const addToList = useCallback(
-    (ref: StockRef, amount: number) => {
-      if (amount <= 0) return;
+      /**
+       * The receipt is written only once the shelf actually moved. Writing it first and awaiting
+       * afterwards leaves a live receipt for a purchase that never happened when the mutation
+       * rejects — and the next removal peels it, sending back a `restoreToList` computed from a
+       * purchase the server never saw. The undo window is five minutes; a wrong line on the list
+       * outlives it.
+       */
+      await addToCellar({
+        householdId: scope,
+        ingredientId: _ingredient(ref.ingredientId),
+        unit: ref.unit,
+        quantity: amount,
+      });
 
-      setLines((current) => [...current, { id: _id("line"), ...ref, amount, createdAt: new Date() }]);
+      if (next) setReceipts(next.receipts);
     },
-    [setLines],
+    [householdId, snapshot, setReceipts, addToCellar],
+  );
+
+  /**
+   * Out of the cellar, and out of the house.
+   *
+   * Claims are left standing: the plates that wanted this ingredient still want it, and it is no
+   * longer here, so the derived gap reopens and the list asks again. Cooking is the gesture that
+   * settles a claim, and it is not this one.
+   *
+   * What the clock decides is what the peel gives back — and that number is the whole reason this
+   * hook exists. A live receipt is unmade, so any line the purchase struck off returns; a settled
+   * one is left alone, because the shopper bought that food and is now using it. The server cannot
+   * work that out, so it is told, as `restoreToList`, and it performs both writes in one
+   * transaction so an undo cannot half-apply.
+   */
+  const takeOut = useCallback(
+    async (ref: StockRef, amount: number) => {
+      const scope = _scoped(householdId, "remove");
+      if (!scope) return;
+
+      const owned = snapshot.cellar.find(matchesRef(ref))?.amount ?? 0;
+      const taken = Math.min(amount, owned);
+      if (taken <= 0) return;
+
+      const peeled = peelReceipts(snapshot.receipts, ref, taken, new Date());
+
+      // Same ordering rule as `buy`, failing the other way: peeling first and rejecting after
+      // consumes the receipt for an undo that never happened, and the undo is then simply gone.
+      await takeFromCellar({
+        householdId: scope,
+        ingredientId: _ingredient(ref.ingredientId),
+        unit: ref.unit,
+        quantity: taken,
+        restoreToList: peeled.restored,
+      });
+
+      setReceipts(peeled.receipts);
+    },
+    [householdId, snapshot.cellar, snapshot.receipts, setReceipts, takeFromCellar],
+  );
+
+  /**
+   * Back onto the list, as an instruction the shopper gave rather than a plate's claim — which is
+   * every line there is, until `groceryListItems` can name a meal.
+   */
+  const relist = useCallback(
+    async (ref: StockRef, amount: number) => {
+      const scope = _scoped(householdId, "relist");
+      if (!scope || amount <= 0) return;
+
+      await addToList({
+        householdId: scope,
+        ingredientId: _ingredient(ref.ingredientId),
+        unit: ref.unit,
+        quantity: amount,
+      });
+    },
+    [householdId, addToList],
   );
 
   /**
@@ -95,39 +171,62 @@ export const useStockActions = () => {
   const apply = useCallback(
     (intent: Intent, ref: StockRef, amount: number) => {
       if (intent === "buy") return buy(ref, amount);
-      if (intent === "remove") return removeFromCellar(ref, amount);
+      if (intent === "remove") return takeOut(ref, amount);
 
-      return addToList(ref, amount);
+      return relist(ref, amount);
     },
-    [buy, removeFromCellar, addToList],
+    [buy, takeOut, relist],
   );
 
   /**
    * Strike an ingredient off the list, leaving the cellar and its receipts alone.
    *
    * Nothing was bought and nothing was used, so no stock moves — this is the shopper overruling
-   * the list, not reporting on the house. Every claim goes with it, plates included, which is
-   * blunt and irreversible; `dropIngredientLines` says why it is still the right shape.
+   * the list, not reporting on the house. Every line for that ingredient and unit goes, which is
+   * blunt and irreversible, and deliberately so: a half-struck list is worse than an honest one.
    */
   const forceRemove = useCallback(
-    (ref: StockRef) => setLines((current) => dropIngredientLines(current, ref)),
-    [setLines],
+    async (ref: StockRef) => {
+      const scope = _scoped(householdId, "forceRemove");
+      if (!scope) return;
+
+      await removeFromList({
+        householdId: scope,
+        ingredientId: _ingredient(ref.ingredientId),
+        unit: ref.unit,
+      });
+    },
+    [householdId, removeFromList],
   );
 
   /**
-   * A plate left the week, so the list stops shopping for it.
+   * Every stock write goes out through here, so a rejected mutation lands somewhere.
    *
-   * The plan→groceries seam, and the reason a line carries the plate it came from: planning knows
-   * the plate id and nothing else about this module, so dropping a meal is one call rather than
-   * planning reaching in to work out which lines were its own.
-   *
-   * Only claims are taken. What the shopper already bought is in the cellar, which this does not
-   * touch — food in the house does not stop existing because a plan changed its mind.
+   * Screens wire these to `onPress`, which drops whatever the handler returns — so a rejecting
+   * promise becomes an unhandled rejection and the shopper is told nothing. Resolving instead and
+   * recording the failure is the smallest honest thing: the tap is already reflected on screen by
+   * Convex's own reactivity, or it is not, and `error` is what a screen reads to say so once there
+   * is somewhere to say it. It is not swallowed — it is held, and it is logged.
    */
-  const dropMeal = useCallback(
-    (mealId: string) => setLines((current) => dropMealLines(current, mealId)),
-    [setLines],
+  const guard = useCallback(
+    async (run: () => Promise<void>) => {
+      try {
+        setError(null);
+        await run();
+      } catch (cause) {
+        console.error("[groceries] stock write failed", cause);
+        setError(cause instanceof Error ? cause : new Error(String(cause)));
+      }
+    },
+    [],
   );
 
-  return { apply, dropMeal, forceRemove };
+  return {
+    apply: useCallback(
+      (intent: Intent, ref: StockRef, amount: number) => guard(() => apply(intent, ref, amount)),
+      [guard, apply],
+    ),
+    forceRemove: useCallback((ref: StockRef) => guard(() => forceRemove(ref)), [guard, forceRemove]),
+    error,
+  };
 };

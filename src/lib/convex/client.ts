@@ -1,8 +1,9 @@
 import { makeUseQueryWithStatus } from "convex-helpers/react";
 import { useQueries } from "convex-helpers/react/cache";
-import { useAction as useConvexAction, useMutation as useConvexMutation } from "convex/react";
+import type { FunctionReference } from "convex/server";
+import { useAction as useConvexAction, useMutation as useConvexMutation, type OptionalRestArgsOrSkip } from "convex/react";
 import { atom, useAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * Convex bindings, wrapped once so no call site hand-rolls loading state.
@@ -23,6 +24,34 @@ export { usePaginatedQuery as usePaginatedQueryCached } from "convex-helpers/rea
  * switch from re-fetching and flashing a spinner at content the user just looked at.
  */
 export const useQueryCached = makeUseQueryWithStatus(useQueries);
+
+/**
+ * `useQueryCached`, but the last result stays on screen while the next one loads.
+ *
+ * The cache behind `useQueryCached` is keyed on the arguments, so a query whose arguments change
+ * has no entry to serve and reports `undefined` until the round trip lands. For a query whose
+ * arguments change *as a consequence of what the user just did* — a search box, a list keyed on
+ * the ids currently rendered — that reads as the content vanishing and coming back.
+ *
+ * Holding the previous value is only honest when the next one is a refinement of it rather than a
+ * different subject. `isStale` says which is on screen, so a caller that must not show the old
+ * answer can still tell. A `"skip"`ped query holds nothing: skipping means there is no subject.
+ */
+export const useQueryHeld = <Query extends FunctionReference<"query">>(
+  query: Query,
+  ...args: OptionalRestArgsOrSkip<Query>
+) => {
+  const live = useQueryCached(query, ...args);
+  const held = useRef<Query["_returnType"] | undefined>(undefined);
+
+  // `"skip"` is not a slower answer, it is the absence of a question — there is nothing to hold.
+  if (args[0] === "skip") held.current = undefined;
+  else if (live.data !== undefined) held.current = live.data;
+
+  const data = live.data ?? held.current;
+
+  return { ...live, data, isStale: live.data === undefined && data !== undefined };
+};
 
 /**
  * Adds `{ isLoading, isSuccess, isError }` around a bare Convex call.

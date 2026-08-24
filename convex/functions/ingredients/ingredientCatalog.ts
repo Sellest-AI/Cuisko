@@ -1,0 +1,480 @@
+import type { Category } from "@convex/schema/ingredients";
+import type { Unit } from "@shared/ingredients";
+
+/**
+ * The starter ingredient catalog `seedIngredients.ts` writes to the database.
+ *
+ * Values are per 100g/100ml, compiled by hand from public nutrition references (USDA FoodData
+ * Central and CIQUAL) rather than fetched live — there is no single free API that returns clean
+ * generic-ingredient nutrition AND a matching French name, so a live fetch would still need this
+ * much curation on top. `defaultUnit`/`defaultQuantity` are a starting point for "how much of this
+ * does a household usually buy at once", not a measured fact — edit freely.
+ *
+ * One row per tuple keeps ~200 entries reviewable; `CATALOG` below is what the rest of the code
+ * actually consumes.
+ */
+type Row = readonly [
+  slug: string,
+  en: string,
+  fr: string,
+  category: Category,
+  unit: Unit,
+  quantity: number,
+  calories: number,
+  protein: number,
+  fat: number,
+  saturatedFat: number,
+  carbohydrates: number,
+  sugars: number,
+  fiber: number,
+  sodium: number,
+];
+
+export type CatalogEntry = {
+  slug: string;
+  en: string;
+  fr: string;
+  emoji: string;
+  aliases: { fr?: string[]; en?: string[] };
+  category: Category;
+  defaultUnit: Unit;
+  defaultQuantity: number;
+  nutrition: {
+    calories: number;
+    protein: number;
+    fat: number;
+    saturatedFat: number;
+    carbohydrates: number;
+    sugars: number;
+    fiber: number;
+    sodium: number;
+  };
+};
+
+// prettier-ignore
+const ROWS: Row[] = [
+  // ── Vegetables ──────────────────────────────────────────────────────────────────────────
+  ["onion", "Onion", "Oignon", "VEGETABLE", "pcs", 1, 40, 1.1, 0.1, 0, 9.3, 4.2, 1.7, 4],
+  ["carrot", "Carrot", "Carotte", "VEGETABLE", "g", 200, 41, 0.9, 0.2, 0, 10, 4.7, 2.8, 69],
+  ["potato", "Potato", "Pomme de terre", "VEGETABLE", "g", 500, 77, 2, 0.1, 0, 17, 0.8, 2.2, 6],
+  ["sweet-potato", "Sweet potato", "Patate douce", "VEGETABLE", "g", 300, 86, 1.6, 0.1, 0, 20, 4.2, 3, 55],
+  ["garlic", "Garlic", "Ail", "VEGETABLE", "pcs", 1, 149, 6.4, 0.5, 0.1, 33, 1, 2.1, 17],
+  ["tomato", "Tomato", "Tomate", "VEGETABLE", "pcs", 1, 18, 0.9, 0.2, 0, 3.9, 2.6, 1.2, 5],
+  ["cucumber", "Cucumber", "Concombre", "VEGETABLE", "pcs", 1, 15, 0.7, 0.1, 0, 3.6, 1.7, 0.5, 2],
+  ["bell-pepper-red", "Red bell pepper", "Poivron rouge", "VEGETABLE", "pcs", 1, 31, 1, 0.3, 0, 6, 4.2, 2.1, 4],
+  ["zucchini", "Zucchini", "Courgette", "VEGETABLE", "pcs", 1, 17, 1.2, 0.3, 0.1, 3.1, 2.5, 1, 8],
+  ["eggplant", "Eggplant", "Aubergine", "VEGETABLE", "pcs", 1, 25, 1, 0.2, 0, 6, 3.5, 3, 2],
+  ["broccoli", "Broccoli", "Brocoli", "VEGETABLE", "g", 300, 34, 2.8, 0.4, 0.1, 7, 1.7, 2.6, 33],
+  ["cauliflower", "Cauliflower", "Chou-fleur", "VEGETABLE", "g", 500, 25, 1.9, 0.3, 0.1, 5, 1.9, 2, 30],
+  ["spinach", "Spinach", "Épinard", "VEGETABLE", "g", 150, 23, 2.9, 0.4, 0.1, 3.6, 0.4, 2.2, 79],
+  ["lettuce-romaine", "Romaine lettuce", "Laitue romaine", "VEGETABLE", "pcs", 1, 17, 1.2, 0.3, 0, 3.3, 1.2, 2.1, 8],
+  ["cabbage", "Cabbage", "Chou blanc", "VEGETABLE", "pcs", 1, 25, 1.3, 0.1, 0, 5.8, 3.2, 2.5, 18],
+  ["red-cabbage", "Red cabbage", "Chou rouge", "VEGETABLE", "pcs", 1, 31, 1.4, 0.2, 0, 7.4, 3.8, 2.1, 27],
+  ["kale", "Kale", "Chou kale", "VEGETABLE", "g", 150, 49, 4.3, 0.9, 0.1, 9, 2.3, 3.6, 38],
+  ["celery", "Celery", "Céleri branche", "VEGETABLE", "g", 200, 16, 0.7, 0.2, 0, 3, 1.8, 1.6, 80],
+  ["leek", "Leek", "Poireau", "VEGETABLE", "pcs", 1, 61, 1.5, 0.3, 0, 14, 3.9, 1.8, 20],
+  ["mushroom", "Mushroom", "Champignon de Paris", "VEGETABLE", "g", 250, 22, 3.1, 0.3, 0, 3.3, 2, 1, 5],
+  ["pumpkin", "Pumpkin", "Potiron", "VEGETABLE", "g", 500, 26, 1, 0.1, 0.1, 6.5, 2.8, 0.5, 1],
+  ["butternut-squash", "Butternut squash", "Courge butternut", "VEGETABLE", "g", 500, 45, 1, 0.1, 0, 12, 2.2, 2, 4],
+  ["green-beans", "Green beans", "Haricots verts", "VEGETABLE", "g", 200, 31, 1.8, 0.2, 0, 7, 3.3, 3.4, 6],
+  ["peas", "Peas", "Petits pois", "VEGETABLE", "g", 200, 81, 5.4, 0.4, 0.1, 14, 5.7, 5.7, 5],
+  ["asparagus", "Asparagus", "Asperge", "VEGETABLE", "g", 200, 20, 2.2, 0.1, 0, 3.9, 1.9, 2.1, 2],
+  ["brussels-sprouts", "Brussels sprouts", "Choux de Bruxelles", "VEGETABLE", "g", 200, 43, 3.4, 0.3, 0.1, 9, 2.2, 3.8, 25],
+  ["beet", "Beet", "Betterave", "VEGETABLE", "pcs", 1, 43, 1.6, 0.2, 0, 10, 7, 2.8, 78],
+  ["radish", "Radish", "Radis", "VEGETABLE", "g", 150, 16, 0.7, 0.1, 0, 3.4, 1.9, 1.6, 39],
+  ["turnip", "Turnip", "Navet", "VEGETABLE", "pcs", 1, 28, 0.9, 0.1, 0, 6.4, 3.8, 1.8, 67],
+  ["fennel", "Fennel", "Fenouil", "VEGETABLE", "pcs", 1, 31, 1.2, 0.2, 0, 7.3, 3.9, 3.1, 52],
+  ["corn-sweet", "Sweet corn", "Maïs doux", "VEGETABLE", "g", 200, 86, 3.3, 1.4, 0.2, 19, 6.3, 2.7, 15],
+  ["artichoke", "Artichoke", "Artichaut", "VEGETABLE", "pcs", 1, 47, 3.3, 0.2, 0, 10.5, 1, 5.4, 94],
+  ["chard", "Swiss chard", "Blette", "VEGETABLE", "g", 200, 19, 1.8, 0.2, 0, 3.7, 1.1, 1.6, 213],
+  ["endive", "Endive", "Endive", "VEGETABLE", "pcs", 1, 17, 1.3, 0.2, 0, 3.4, 0.3, 3.1, 22],
+  ["shallot", "Shallot", "Échalote", "VEGETABLE", "pcs", 1, 72, 2.5, 0.1, 0, 16.8, 7.9, 3.2, 12],
+
+  // ── Fruits ──────────────────────────────────────────────────────────────────────────────
+  ["apple", "Apple", "Pomme", "FRUIT", "pcs", 1, 52, 0.3, 0.2, 0, 14, 10.4, 2.4, 1],
+  ["banana", "Banana", "Banane", "FRUIT", "pcs", 1, 89, 1.1, 0.3, 0.1, 23, 12, 2.6, 1],
+  ["orange", "Orange", "Orange", "FRUIT", "pcs", 1, 47, 0.9, 0.1, 0, 12, 9.4, 2.4, 0],
+  ["lemon", "Lemon", "Citron", "FRUIT", "pcs", 1, 29, 1.1, 0.3, 0, 9.3, 2.5, 2.8, 2],
+  ["lime", "Lime", "Citron vert", "FRUIT", "pcs", 1, 30, 0.7, 0.2, 0, 11, 1.7, 2.8, 2],
+  ["strawberry", "Strawberry", "Fraise", "FRUIT", "g", 250, 32, 0.7, 0.3, 0, 7.7, 4.9, 2, 1],
+  ["blueberry", "Blueberry", "Myrtille", "FRUIT", "g", 125, 57, 0.7, 0.3, 0, 14.5, 10, 2.4, 1],
+  ["raspberry", "Raspberry", "Framboise", "FRUIT", "g", 125, 52, 1.2, 0.7, 0, 12, 4.4, 6.5, 1],
+  ["blackberry", "Blackberry", "Mûre", "FRUIT", "g", 125, 43, 1.4, 0.5, 0, 10, 4.9, 5.3, 1],
+  ["grape", "Grape", "Raisin", "FRUIT", "g", 250, 69, 0.7, 0.2, 0.1, 18, 16, 0.9, 2],
+  ["watermelon", "Watermelon", "Pastèque", "FRUIT", "g", 500, 30, 0.6, 0.2, 0, 7.6, 6.2, 0.4, 1],
+  ["cantaloupe", "Cantaloupe", "Melon", "FRUIT", "pcs", 1, 34, 0.8, 0.2, 0, 8.2, 7.9, 0.9, 16],
+  ["pineapple", "Pineapple", "Ananas", "FRUIT", "pcs", 1, 50, 0.5, 0.1, 0, 13, 10, 1.4, 1],
+  ["mango", "Mango", "Mangue", "FRUIT", "pcs", 1, 60, 0.8, 0.4, 0.1, 15, 14, 1.6, 1],
+  ["kiwi", "Kiwi", "Kiwi", "FRUIT", "pcs", 1, 61, 1.1, 0.5, 0, 15, 9, 3, 3],
+  ["peach", "Peach", "Pêche", "FRUIT", "pcs", 1, 39, 0.9, 0.3, 0, 10, 8.4, 1.5, 0],
+  ["pear", "Pear", "Poire", "FRUIT", "pcs", 1, 57, 0.4, 0.1, 0, 15, 10, 3.1, 1],
+  ["plum", "Plum", "Prune", "FRUIT", "pcs", 1, 46, 0.7, 0.3, 0, 11, 9.9, 1.4, 0],
+  ["cherry", "Cherry", "Cerise", "FRUIT", "g", 200, 63, 1.1, 0.2, 0, 16, 13, 2.1, 0],
+  ["apricot", "Apricot", "Abricot", "FRUIT", "pcs", 1, 48, 1.4, 0.4, 0, 11, 9.2, 2, 1],
+  ["fig", "Fig", "Figue", "FRUIT", "pcs", 1, 74, 0.8, 0.3, 0.1, 19, 16, 2.9, 1],
+  ["pomegranate", "Pomegranate", "Grenade", "FRUIT", "pcs", 1, 83, 1.7, 1.2, 0.1, 19, 14, 4, 3],
+  ["grapefruit", "Grapefruit", "Pamplemousse", "FRUIT", "pcs", 1, 42, 0.8, 0.1, 0, 11, 7, 1.6, 0],
+  ["avocado", "Avocado", "Avocat", "FRUIT", "pcs", 1, 160, 2, 15, 2.1, 9, 0.7, 7, 7],
+  ["coconut-fresh", "Coconut", "Noix de coco", "FRUIT", "g", 200, 354, 3.3, 33, 29.7, 15, 6.2, 9, 20],
+
+  // ── Grains ──────────────────────────────────────────────────────────────────────────────
+  ["white-rice", "White rice", "Riz blanc", "GRAIN", "g", 500, 130, 2.7, 0.3, 0.1, 28, 0.1, 0.4, 1],
+  ["brown-rice", "Brown rice", "Riz complet", "GRAIN", "g", 500, 123, 2.6, 1, 0.2, 26, 0.4, 1.6, 4],
+  ["pasta-dry", "Pasta", "Pâtes", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
+  ["whole-wheat-pasta", "Whole wheat pasta", "Pâtes complètes", "GRAIN", "g", 500, 348, 14.6, 2.5, 0.5, 71, 3, 10.7, 7],
+  ["flour-all-purpose", "All-purpose flour", "Farine blanche", "GRAIN", "g", 1000, 364, 10.3, 1, 0.2, 76, 0.3, 2.7, 2],
+  ["whole-wheat-flour", "Whole wheat flour", "Farine complète", "GRAIN", "g", 1000, 340, 13.2, 2.5, 0.4, 72, 0.4, 10.7, 2],
+  ["oats", "Oats", "Flocons d'avoine", "GRAIN", "g", 500, 389, 16.9, 6.9, 1.2, 66, 0, 10.6, 2],
+  ["quinoa", "Quinoa", "Quinoa", "GRAIN", "g", 500, 368, 14.1, 6.1, 0.7, 64, 0, 7, 5],
+  ["couscous", "Couscous", "Semoule de couscous", "GRAIN", "g", 500, 376, 12.8, 0.6, 0.1, 77, 0, 5, 10],
+  ["bread-white", "White bread", "Pain blanc", "GRAIN", "g", 500, 265, 9, 3.2, 0.7, 49, 5, 2.7, 491],
+  ["bread-whole-wheat", "Whole wheat bread", "Pain complet", "GRAIN", "g", 500, 247, 13, 3.4, 0.6, 41, 6, 7, 400],
+  ["cornmeal", "Cornmeal", "Farine de maïs", "GRAIN", "g", 500, 370, 7, 3.4, 0.5, 79, 0.5, 7.3, 5],
+  ["barley", "Barley", "Orge", "GRAIN", "g", 500, 354, 12.5, 2.3, 0.5, 73, 0.8, 17.3, 9],
+  ["bulgur", "Bulgur", "Boulgour", "GRAIN", "g", 500, 342, 12.3, 1.3, 0.2, 76, 0.4, 18.3, 17],
+  ["breadcrumbs", "Breadcrumbs", "Chapelure", "GRAIN", "g", 250, 395, 13, 5.3, 1, 72, 6, 4.9, 732],
+  ["spaghetti", "Spaghetti", "Spaghetti", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
+  ["penne", "Penne", "Penne", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
+  ["lasagna-sheets", "Lasagna sheets", "Feuilles de lasagne", "GRAIN", "g", 500, 367, 13.5, 1.6, 0.3, 74, 3.2, 3.4, 8],
+  ["fresh-tagliatelle", "Fresh tagliatelle", "Tagliatelles fraîches", "GRAIN", "g", 250, 288, 11, 2.7, 0.7, 55, 2.2, 2.5, 20],
+  ["rice-noodles", "Rice noodles", "Nouilles de riz", "GRAIN", "g", 400, 364, 6, 0.6, 0.2, 82, 0.3, 1.6, 182],
+  ["egg-noodles", "Egg noodles", "Nouilles aux œufs", "GRAIN", "g", 400, 384, 14.2, 4.4, 1.1, 71, 1.9, 3.3, 21],
+  ["arborio-rice", "Arborio rice", "Riz arborio", "GRAIN", "g", 500, 349, 6.7, 0.6, 0.2, 77, 0.1, 1.4, 1],
+  ["basmati-rice", "Basmati rice", "Riz basmati", "GRAIN", "g", 500, 349, 8.1, 0.9, 0.2, 77, 0.1, 1.3, 2],
+  ["baguette", "Baguette", "Baguette", "GRAIN", "pcs", 1, 274, 9.3, 1.5, 0.3, 55, 2.6, 2.4, 578],
+  ["tortilla-wrap", "Tortilla wrap", "Tortilla", "GRAIN", "pcs", 8, 310, 8.3, 7.9, 3, 51, 2.4, 3, 636],
+  ["pizza-dough", "Pizza dough", "Pâte à pizza", "GRAIN", "pcs", 1, 265, 8.5, 3.5, 0.9, 49, 2.5, 2.1, 490],
+  ["puff-pastry", "Puff pastry", "Pâte feuilletée", "GRAIN", "pcs", 1, 383, 5.2, 25, 12.5, 34, 1, 1.2, 480],
+  ["shortcrust-pastry", "Shortcrust pastry", "Pâte brisée", "GRAIN", "pcs", 1, 397, 5.5, 22, 11, 44, 2, 1.5, 460],
+  ["polenta", "Polenta", "Polenta", "GRAIN", "g", 500, 358, 8.1, 1.6, 0.3, 79, 0.6, 3.9, 7],
+  ["cornstarch", "Cornstarch", "Maïzena", "GRAIN", "g", 250, 381, 0.3, 0.1, 0, 91, 0, 0.9, 9],
+  ["cereal-cornflakes", "Cornflakes", "Corn flakes", "GRAIN", "g", 500, 357, 7.5, 0.4, 0.1, 84, 8, 3, 729],
+  ["granola", "Granola", "Granola", "GRAIN", "g", 500, 471, 10, 20, 3.2, 61, 20, 7, 26],
+
+  // ── Meat ────────────────────────────────────────────────────────────────────────────────
+  ["chicken-breast", "Chicken breast", "Blanc de poulet", "MEAT", "g", 400, 165, 31, 3.6, 1, 0, 0, 0, 74],
+  ["chicken-thigh", "Chicken thigh", "Cuisse de poulet", "MEAT", "g", 400, 209, 26, 10.9, 3.1, 0, 0, 0, 90],
+  ["ground-beef-80-20", "Ground beef (80/20)", "Bœuf haché (80/20)", "MEAT", "g", 500, 254, 17, 20, 7.8, 0, 0, 0, 66],
+  ["beef-steak-sirloin", "Sirloin steak", "Bavette de bœuf", "MEAT", "g", 300, 183, 27, 7.4, 2.9, 0, 0, 0, 56],
+  ["pork-chop", "Pork chop", "Côte de porc", "MEAT", "g", 300, 231, 25, 14, 5, 0, 0, 0, 62],
+  ["pork-loin", "Pork loin", "Filet mignon de porc", "MEAT", "g", 400, 143, 26, 3.5, 1.2, 0, 0, 0, 54],
+  ["bacon", "Bacon", "Lard fumé", "MEAT", "g", 200, 541, 37, 42, 14, 1.4, 0, 0, 1717],
+  ["ham", "Ham", "Jambon", "MEAT", "g", 150, 145, 21, 5.5, 1.8, 1.5, 1.4, 0, 1203],
+  ["ground-turkey", "Ground turkey", "Dinde hachée", "MEAT", "g", 500, 189, 20, 12, 3.2, 0, 0, 0, 79],
+  ["turkey-breast", "Turkey breast", "Blanc de dinde", "MEAT", "g", 400, 135, 30, 1, 0.3, 0, 0, 0, 55],
+  ["lamb", "Lamb", "Agneau", "MEAT", "g", 400, 294, 25, 21, 9, 0, 0, 0, 72],
+  ["duck-breast", "Duck breast", "Magret de canard", "MEAT", "g", 300, 337, 19, 28, 9.7, 0, 0, 0, 74],
+  ["sausage-pork", "Pork sausage", "Saucisse de porc", "MEAT", "g", 300, 296, 12, 27, 9.5, 2, 0, 0, 850],
+  ["veal", "Veal", "Veau", "MEAT", "g", 400, 172, 26, 7, 2.7, 0, 0, 0, 88],
+  ["beef-ground-90-10", "Lean ground beef (90/10)", "Bœuf haché maigre (90/10)", "MEAT", "g", 500, 176, 20, 10, 4, 0, 0, 0, 66],
+  ["chicken-slices", "Sliced cooked chicken", "Blanc de poulet en tranches", "MEAT", "pcs", 4, 111, 21, 2.5, 0.7, 1.2, 0.6, 0, 900],
+  ["turkey-slices", "Sliced cooked turkey", "Blanc de dinde en tranches", "MEAT", "pcs", 4, 104, 19, 1.8, 0.5, 2.5, 1.3, 0, 1010],
+  ["prosciutto", "Prosciutto", "Jambon cru", "MEAT", "g", 100, 195, 27, 9, 3.2, 0.5, 0, 0, 2340],
+  ["salami", "Salami", "Saucisson sec", "MEAT", "g", 150, 407, 22, 34, 12.6, 2.4, 0.6, 0, 1740],
+  ["chorizo", "Chorizo", "Chorizo", "MEAT", "g", 150, 455, 24, 38, 14, 1.9, 0.5, 0, 1235],
+  ["merguez", "Merguez", "Merguez", "MEAT", "pcs", 6, 314, 15, 28, 11, 1, 0.5, 0, 900],
+  ["lardons", "Bacon lardons", "Lardons", "MEAT", "g", 200, 285, 16, 24, 9.5, 0.5, 0, 0, 1400],
+  ["chicken-wings", "Chicken wings", "Ailes de poulet", "MEAT", "g", 500, 203, 30, 8.1, 2.3, 0, 0, 0, 82],
+  ["rabbit", "Rabbit", "Lapin", "MEAT", "g", 500, 173, 33, 3.5, 1, 0, 0, 0, 47],
+  ["beef-roast", "Beef roast", "Rôti de bœuf", "MEAT", "g", 700, 195, 27, 9, 3.5, 0, 0, 0, 55],
+
+  // ── Seafood ─────────────────────────────────────────────────────────────────────────────
+  ["salmon", "Salmon", "Saumon", "SEAFOOD", "g", 300, 208, 20, 13, 3.1, 0, 0, 0, 59],
+  ["tuna-canned-water", "Canned tuna (in water)", "Thon en boîte (au naturel)", "SEAFOOD", "g", 150, 116, 26, 0.8, 0.2, 0, 0, 0, 247],
+  ["shrimp", "Shrimp", "Crevette", "SEAFOOD", "g", 300, 99, 24, 0.3, 0.1, 0.2, 0, 0, 111],
+  ["cod", "Cod", "Cabillaud", "SEAFOOD", "g", 300, 82, 18, 0.7, 0.1, 0, 0, 0, 54],
+  ["tilapia", "Tilapia", "Tilapia", "SEAFOOD", "g", 300, 96, 20, 1.7, 0.6, 0, 0, 0, 52],
+  ["sardines", "Sardines", "Sardines", "SEAFOOD", "g", 150, 208, 25, 11, 1.5, 0, 0, 0, 307],
+  ["mussels", "Mussels", "Moules", "SEAFOOD", "g", 500, 172, 24, 4.5, 0.9, 7.4, 0, 0, 369],
+  ["scallops", "Scallops", "Noix de Saint-Jacques", "SEAFOOD", "g", 200, 88, 16.8, 0.8, 0.1, 2.4, 0, 0, 392],
+  ["crab", "Crab", "Crabe", "SEAFOOD", "g", 200, 97, 19, 1.5, 0.2, 0, 0, 0, 293],
+  ["trout", "Trout", "Truite", "SEAFOOD", "g", 300, 148, 20, 6.6, 1.6, 0, 0, 0, 52],
+  ["mackerel", "Mackerel", "Maquereau", "SEAFOOD", "g", 300, 205, 19, 13.9, 3.3, 0, 0, 0, 90],
+  ["anchovy", "Anchovy", "Anchois", "SEAFOOD", "g", 50, 131, 20, 4.8, 1.3, 0, 0, 0, 3668],
+
+  // ── Dairy ───────────────────────────────────────────────────────────────────────────────
+  ["milk-whole", "Whole milk", "Lait entier", "DAIRY", "ml", 1000, 61, 3.2, 3.3, 1.9, 4.8, 5.1, 0, 43],
+  ["milk-skim", "Skim milk", "Lait écrémé", "DAIRY", "ml", 1000, 34, 3.4, 0.1, 0.1, 5, 5.1, 0, 42],
+  ["butter", "Butter", "Beurre", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 11],
+  ["cheddar-cheese", "Cheddar cheese", "Cheddar", "DAIRY", "g", 200, 403, 25, 33, 21, 1.3, 0.5, 0, 621],
+  ["mozzarella", "Mozzarella", "Mozzarella", "DAIRY", "g", 200, 280, 28, 17, 10, 3.1, 1, 0, 627],
+  ["parmesan", "Parmesan", "Parmesan", "DAIRY", "g", 100, 431, 38, 29, 19, 4.1, 0.9, 0, 1529],
+  ["cream-cheese", "Cream cheese", "Fromage à tartiner", "DAIRY", "g", 200, 342, 6, 34, 19, 4.1, 3.2, 0, 321],
+  ["plain-yogurt", "Plain yogurt", "Yaourt nature", "DAIRY", "g", 500, 61, 3.5, 3.3, 2.1, 4.7, 4.7, 0, 46],
+  ["greek-yogurt", "Greek yogurt", "Yaourt grec", "DAIRY", "g", 500, 59, 10, 0.4, 0.1, 3.6, 3.6, 0, 36],
+  ["heavy-cream", "Heavy cream", "Crème fraîche épaisse", "DAIRY", "ml", 250, 340, 2.8, 36, 23, 2.8, 2.9, 0, 38],
+  ["sour-cream", "Sour cream", "Crème aigre", "DAIRY", "g", 250, 198, 2.4, 19.7, 12.6, 4.6, 3.4, 0, 32],
+  ["cottage-cheese", "Cottage cheese", "Cottage cheese", "DAIRY", "g", 250, 98, 11, 4.3, 2.7, 3.4, 2.7, 0, 364],
+  ["feta", "Feta", "Feta", "DAIRY", "g", 200, 264, 14, 21, 15, 4.1, 4.1, 0, 917],
+  ["brie", "Brie", "Brie", "DAIRY", "g", 200, 334, 21, 28, 17.4, 0.5, 0.5, 0, 629],
+  ["ricotta", "Ricotta", "Ricotta", "DAIRY", "g", 250, 174, 11.3, 13, 8.3, 3, 0.3, 0, 84],
+  ["creme-fraiche", "Crème fraîche", "Crème fraîche", "DAIRY", "g", 200, 292, 2.2, 30, 20, 3, 3, 0, 40],
+  ["single-cream", "Single cream", "Crème liquide légère", "DAIRY", "ml", 250, 165, 2.9, 15, 9.8, 4, 4, 0, 45],
+  ["whipping-cream", "Whipping cream", "Crème à fouetter", "DAIRY", "ml", 250, 292, 2.2, 30, 19, 3.5, 3.5, 0, 38],
+  ["milk-semi-skimmed", "Semi-skimmed milk", "Lait demi-écrémé", "DAIRY", "ml", 1000, 46, 3.3, 1.6, 1, 4.8, 4.8, 0, 44],
+  ["condensed-milk", "Condensed milk", "Lait concentré sucré", "DAIRY", "g", 400, 321, 7.9, 8.7, 5.5, 54, 54, 0, 127],
+  ["evaporated-milk", "Evaporated milk", "Lait concentré non sucré", "DAIRY", "ml", 400, 135, 6.8, 7.6, 4.6, 10, 10, 0, 106],
+  ["butter-unsalted", "Unsalted butter", "Beurre doux", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 4],
+  ["gruyere", "Gruyère", "Gruyère", "DAIRY", "g", 200, 413, 30, 32, 18.9, 0.4, 0.3, 0, 336],
+  ["comte", "Comté", "Comté", "DAIRY", "g", 200, 417, 27, 34, 21, 1.3, 0.6, 0, 620],
+  ["goat-cheese", "Goat cheese", "Fromage de chèvre", "DAIRY", "g", 150, 364, 22, 30, 21, 2.5, 2.5, 0, 415],
+  ["blue-cheese", "Blue cheese", "Fromage bleu", "DAIRY", "g", 150, 353, 21, 29, 19, 2.3, 0.5, 0, 1395],
+  ["emmental", "Emmental", "Emmental", "DAIRY", "g", 200, 380, 28, 30, 18, 1.4, 0.5, 0, 200],
+  ["fromage-blanc", "Fromage blanc", "Fromage blanc", "DAIRY", "g", 500, 74, 8, 3.4, 2.2, 3.5, 3.5, 0, 45],
+  ["flavoured-yogurt", "Fruit yogurt", "Yaourt aux fruits", "DAIRY", "pcs", 8, 95, 3.5, 2.6, 1.7, 14.5, 14, 0.3, 50],
+  ["butter-salted", "Salted butter", "Beurre demi-sel", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 570],
+
+  // ── Eggs ────────────────────────────────────────────────────────────────────────────────
+  ["egg-whole", "Egg", "Œuf", "EGG", "pcs", 6, 155, 13, 11, 3.3, 1.1, 1.1, 0, 124],
+  ["egg-white", "Egg white", "Blanc d'œuf", "EGG", "g", 100, 52, 11, 0.2, 0, 0.7, 0.7, 0, 166],
+
+  // ── Legumes ─────────────────────────────────────────────────────────────────────────────
+  ["black-beans", "Black beans", "Haricots noirs", "LEGUME", "g", 400, 132, 8.9, 0.5, 0.1, 24, 0.3, 8.7, 1],
+  ["kidney-beans", "Kidney beans", "Haricots rouges", "LEGUME", "g", 400, 127, 8.7, 0.5, 0.1, 23, 0.3, 6.4, 1],
+  ["chickpeas", "Chickpeas", "Pois chiches", "LEGUME", "g", 400, 164, 8.9, 2.6, 0.3, 27, 4.8, 7.6, 7],
+  ["lentils-red", "Red lentils", "Lentilles corail", "LEGUME", "g", 400, 116, 9, 0.4, 0.1, 20, 1.8, 7.9, 2],
+  ["lentils-green", "Green lentils", "Lentilles vertes", "LEGUME", "g", 400, 116, 9, 0.4, 0.1, 20, 1.8, 7.9, 2],
+  ["white-beans-cannellini", "Cannellini beans", "Haricots blancs", "LEGUME", "g", 400, 139, 9.7, 0.4, 0.1, 25, 0.3, 6.3, 2],
+  ["pinto-beans", "Pinto beans", "Haricots pinto", "LEGUME", "g", 400, 143, 9, 0.7, 0.1, 26, 0.3, 9, 1],
+  ["split-peas", "Split peas", "Pois cassés", "LEGUME", "g", 400, 118, 8.3, 0.4, 0.1, 21, 3.8, 8.3, 2],
+  ["edamame", "Edamame", "Edamame", "LEGUME", "g", 300, 121, 11, 5, 0.6, 10, 2.2, 5.2, 6],
+  ["soybeans", "Soybeans", "Graines de soja", "LEGUME", "g", 300, 173, 16.6, 9, 1.3, 10, 3, 6, 15],
+
+  // ── Nuts ────────────────────────────────────────────────────────────────────────────────
+  ["almonds", "Almonds", "Amandes", "NUT", "g", 150, 579, 21, 50, 3.8, 22, 4.4, 12.5, 1],
+  ["walnuts", "Walnuts", "Noix", "NUT", "g", 150, 654, 15, 65, 6.1, 14, 2.6, 6.7, 2],
+  ["cashews", "Cashews", "Noix de cajou", "NUT", "g", 150, 553, 18, 44, 7.8, 30, 5.9, 3.3, 12],
+  ["pistachios", "Pistachios", "Pistaches", "NUT", "g", 150, 560, 20, 45, 5.6, 28, 7.7, 10.6, 1],
+  ["pecans", "Pecans", "Noix de pécan", "NUT", "g", 150, 691, 9.2, 72, 6.2, 14, 4, 9.6, 0],
+  ["peanuts", "Peanuts", "Cacahuètes", "NUT", "g", 150, 567, 26, 49, 6.3, 16, 4, 8.5, 18],
+  ["hazelnuts", "Hazelnuts", "Noisettes", "NUT", "g", 150, 628, 15, 61, 4.5, 17, 4.3, 9.7, 0],
+  ["macadamia", "Macadamia nuts", "Noix de macadamia", "NUT", "g", 150, 718, 7.9, 76, 12, 14, 4.6, 8.6, 5],
+  ["brazil-nuts", "Brazil nuts", "Noix du Brésil", "NUT", "g", 100, 659, 14, 67, 15.1, 12, 2.3, 7.5, 3],
+  ["pine-nuts", "Pine nuts", "Pignons de pin", "NUT", "g", 100, 673, 14, 68, 4.9, 13, 3.6, 3.7, 2],
+
+  // ── Seeds ───────────────────────────────────────────────────────────────────────────────
+  ["chia-seeds", "Chia seeds", "Graines de chia", "SEED", "g", 100, 486, 17, 31, 3.3, 42, 0, 34.4, 16],
+  ["flax-seeds", "Flax seeds", "Graines de lin", "SEED", "g", 100, 534, 18, 42, 3.7, 29, 1.6, 27.3, 30],
+  ["sunflower-seeds", "Sunflower seeds", "Graines de tournesol", "SEED", "g", 150, 584, 21, 51, 4.5, 20, 2.6, 8.6, 9],
+  ["pumpkin-seeds", "Pumpkin seeds", "Graines de courge", "SEED", "g", 150, 559, 30, 49, 8.7, 11, 1.4, 6, 7],
+  ["sesame-seeds", "Sesame seeds", "Graines de sésame", "SEED", "g", 100, 573, 18, 50, 7, 23, 0.3, 11.8, 11],
+  ["hemp-seeds", "Hemp seeds", "Graines de chanvre", "SEED", "g", 100, 553, 31, 49, 4.6, 8.7, 1.5, 4, 5],
+  ["poppy-seeds", "Poppy seeds", "Graines de pavot", "SEED", "g", 50, 525, 18, 42, 4.5, 28, 3, 20, 26],
+
+  // ── Herbs ───────────────────────────────────────────────────────────────────────────────
+  ["basil", "Basil", "Basilic", "HERB", "g", 30, 23, 3.2, 0.6, 0, 2.7, 0.3, 1.6, 4],
+  ["parsley", "Parsley", "Persil", "HERB", "g", 30, 36, 3, 0.8, 0.1, 6.3, 0.9, 3.3, 56],
+  ["cilantro", "Cilantro", "Coriandre fraîche", "HERB", "g", 30, 23, 2.1, 0.5, 0, 3.7, 0.9, 2.8, 46],
+  ["mint", "Mint", "Menthe", "HERB", "g", 20, 70, 3.8, 0.9, 0.2, 15, 0, 6.8, 31],
+  ["thyme", "Thyme", "Thym", "HERB", "g", 15, 101, 5.6, 1.7, 0.5, 24, 1.7, 14, 9],
+  ["rosemary", "Rosemary", "Romarin", "HERB", "g", 15, 131, 3.3, 5.9, 2.8, 20, 0, 14.1, 26],
+  ["oregano-fresh", "Fresh oregano", "Origan frais", "HERB", "g", 15, 265, 9, 4.3, 1.6, 69, 4.1, 42.5, 25],
+  ["dill", "Dill", "Aneth", "HERB", "g", 20, 43, 3.5, 1.1, 0, 7, 0, 2.1, 61],
+  ["chives", "Chives", "Ciboulette", "HERB", "g", 20, 30, 3.3, 0.7, 0.1, 4.4, 1.9, 2.5, 3],
+  ["sage", "Sage", "Sauge", "HERB", "g", 15, 315, 10.6, 12.8, 7, 61, 1.7, 40.3, 11],
+
+  // ── Spices ──────────────────────────────────────────────────────────────────────────────
+  ["black-pepper", "Black pepper", "Poivre noir", "SPICE", "g", 50, 251, 10.4, 3.3, 1.4, 64, 0.6, 25.3, 20],
+  ["cinnamon", "Cinnamon", "Cannelle", "SPICE", "g", 50, 247, 4, 1.2, 0.3, 81, 2.2, 53.1, 10],
+  ["cumin", "Cumin", "Cumin", "SPICE", "g", 50, 375, 17.8, 22.3, 1.5, 44, 2.3, 10.5, 168],
+  ["paprika", "Paprika", "Paprika", "SPICE", "g", 50, 282, 14.1, 13, 2.1, 54, 10.3, 34.9, 68],
+  ["turmeric", "Turmeric", "Curcuma", "SPICE", "g", 50, 312, 9.7, 3.3, 1.1, 65, 3.2, 21.1, 38],
+  ["ginger-ground", "Ground ginger", "Gingembre en poudre", "SPICE", "g", 50, 335, 9, 4.2, 1.1, 71, 3.4, 14.1, 27],
+  ["nutmeg", "Nutmeg", "Muscade", "SPICE", "g", 30, 525, 5.8, 36, 26, 49, 28, 20.8, 16],
+  ["chili-powder", "Chili powder", "Piment en poudre", "SPICE", "g", 50, 282, 13.5, 14.3, 2.6, 50, 7.2, 34.8, 1004],
+  ["cayenne-pepper", "Cayenne pepper", "Poivre de Cayenne", "SPICE", "g", 30, 318, 12, 17.3, 3.3, 57, 10.3, 27.2, 30],
+  ["coriander-ground", "Ground coriander", "Coriandre en poudre", "SPICE", "g", 30, 298, 12.4, 17.8, 1, 55, 0, 41.9, 35],
+  ["cloves", "Cloves", "Clou de girofle", "SPICE", "g", 20, 274, 6, 13, 4.1, 65, 2.4, 33.9, 277],
+  ["cardamom", "Cardamom", "Cardamome", "SPICE", "g", 20, 311, 10.8, 6.7, 0.5, 68, 0, 28, 18],
+  ["dried-oregano", "Dried oregano", "Origan séché", "SPICE", "g", 30, 265, 9, 4.3, 1.6, 69, 4.1, 42.5, 25],
+  ["dried-basil", "Dried basil", "Basilic séché", "SPICE", "g", 30, 233, 23, 4, 2, 50, 0, 37.7, 26],
+  ["bay-leaf", "Bay leaf", "Feuille de laurier", "SPICE", "g", 15, 313, 7.6, 8.4, 2.3, 75, 0, 26.3, 23],
+
+  // ── Oils ────────────────────────────────────────────────────────────────────────────────
+  ["olive-oil", "Olive oil", "Huile d'olive", "OIL", "ml", 500, 884, 0, 100, 13.8, 0, 0, 0, 2],
+  ["vegetable-oil", "Vegetable oil", "Huile végétale", "OIL", "ml", 1000, 884, 0, 100, 13, 0, 0, 0, 0],
+  ["coconut-oil", "Coconut oil", "Huile de coco", "OIL", "ml", 500, 862, 0, 100, 87, 0, 0, 0, 0],
+  ["sesame-oil", "Sesame oil", "Huile de sésame", "OIL", "ml", 250, 884, 0, 100, 14.2, 0, 0, 0, 0],
+  ["canola-oil", "Canola oil", "Huile de colza", "OIL", "ml", 1000, 884, 0, 100, 7.4, 0, 0, 0, 0],
+  ["sunflower-oil", "Sunflower oil", "Huile de tournesol", "OIL", "ml", 1000, 884, 0, 100, 10.3, 0, 0, 0, 0],
+
+  // ── Condiments ──────────────────────────────────────────────────────────────────────────
+  ["salt", "Salt", "Sel", "CONDIMENT", "g", 500, 0, 0, 0, 0, 0, 0, 0, 38758],
+  ["soy-sauce", "Soy sauce", "Sauce soja", "CONDIMENT", "ml", 250, 53, 8, 0.6, 0.1, 4.9, 0.4, 0.8, 5493],
+  ["ketchup", "Ketchup", "Ketchup", "CONDIMENT", "g", 500, 101, 1.2, 0.2, 0, 26, 21, 0.4, 1110],
+  ["mustard-yellow", "Yellow mustard", "Moutarde", "CONDIMENT", "g", 250, 66, 4.4, 4, 0.2, 5.8, 3, 3.3, 1135],
+  ["mayonnaise", "Mayonnaise", "Mayonnaise", "CONDIMENT", "g", 250, 680, 1, 75, 12, 1, 1, 0, 635],
+  ["vinegar-white", "White vinegar", "Vinaigre blanc", "CONDIMENT", "ml", 500, 18, 0, 0, 0, 0.4, 0.1, 0, 2],
+  ["balsamic-vinegar", "Balsamic vinegar", "Vinaigre balsamique", "CONDIMENT", "ml", 250, 88, 0.5, 0, 0, 17, 15, 0, 23],
+  ["hot-sauce", "Hot sauce", "Sauce piquante", "CONDIMENT", "ml", 150, 11, 0.5, 0.4, 0.1, 1.6, 0.8, 0.3, 2400],
+  ["worcestershire-sauce", "Worcestershire sauce", "Sauce Worcestershire", "CONDIMENT", "ml", 150, 78, 0, 0, 0, 19.5, 14, 0, 980],
+  ["tomato-paste", "Tomato paste", "Concentré de tomate", "CONDIMENT", "g", 140, 82, 4.3, 0.5, 0.1, 19, 12, 4.1, 59],
+
+  // ── Sweeteners ──────────────────────────────────────────────────────────────────────────
+  ["white-sugar", "White sugar", "Sucre blanc", "SWEETENER", "g", 1000, 387, 0, 0, 0, 100, 100, 0, 1],
+  ["brown-sugar", "Brown sugar", "Sucre roux", "SWEETENER", "g", 500, 380, 0, 0, 0, 98, 97, 0, 28],
+  ["honey", "Honey", "Miel", "SWEETENER", "g", 500, 304, 0.3, 0, 0, 82, 82, 0.2, 4],
+  ["maple-syrup", "Maple syrup", "Sirop d'érable", "SWEETENER", "ml", 250, 260, 0, 0, 0, 67, 60, 0, 12],
+  ["powdered-sugar", "Powdered sugar", "Sucre glace", "SWEETENER", "g", 500, 389, 0, 0, 0, 100, 100, 0, 2],
+  ["agave-syrup", "Agave syrup", "Sirop d'agave", "SWEETENER", "ml", 250, 310, 0, 0, 0, 76, 68, 0.2, 4],
+
+  // ── Other ───────────────────────────────────────────────────────────────────────────────
+  ["water", "Water", "Eau", "OTHER", "l", 1, 0, 0, 0, 0, 0, 0, 0, 0],
+  ["vegetable-broth", "Vegetable broth", "Bouillon de légumes", "OTHER", "l", 1, 5, 0.3, 0.1, 0, 0.7, 0.3, 0, 377],
+  ["chicken-broth", "Chicken broth", "Bouillon de poulet", "OTHER", "l", 1, 4, 0.6, 0.1, 0, 0.4, 0.2, 0, 343],
+  ["beef-broth", "Beef broth", "Bouillon de bœuf", "OTHER", "l", 1, 7, 1, 0.2, 0.1, 0.5, 0.2, 0, 356],
+  ["tofu-firm", "Firm tofu", "Tofu ferme", "OTHER", "g", 400, 144, 15.8, 8.7, 1.3, 4.3, 0.6, 2.3, 14],
+  ["tempeh", "Tempeh", "Tempeh", "OTHER", "g", 300, 192, 20.3, 10.8, 2.2, 7.6, 0, 0, 9],
+  ["seitan", "Seitan", "Seitan", "OTHER", "g", 300, 141, 25, 1.9, 0.3, 5.7, 0.4, 1.2, 340],
+  ["baking-powder", "Baking powder", "Levure chimique", "OTHER", "g", 100, 53, 0, 0, 0, 28, 0, 0.2, 10600],
+  ["baking-soda", "Baking soda", "Bicarbonate de soude", "OTHER", "g", 250, 0, 0, 0, 0, 0, 0, 0, 27360],
+  ["dry-yeast", "Dry yeast", "Levure de boulanger", "OTHER", "g", 50, 325, 40.4, 7.6, 1, 41, 0, 26.9, 51],
+  ["gelatin", "Gelatin", "Gélatine", "OTHER", "g", 50, 335, 85.6, 0.1, 0, 0, 0, 0, 196],
+  ["dark-chocolate", "Dark chocolate", "Chocolat noir", "OTHER", "g", 200, 546, 4.9, 31, 19, 61, 48, 7, 24],
+  ["milk-chocolate", "Milk chocolate", "Chocolat au lait", "OTHER", "g", 200, 535, 7.6, 30, 19, 59, 52, 3.4, 79],
+  ["cocoa-powder", "Cocoa powder", "Cacao en poudre", "OTHER", "g", 250, 228, 19.6, 13.7, 8.1, 58, 1.8, 37, 21],
+  ["vanilla-extract", "Vanilla extract", "Extrait de vanille", "OTHER", "ml", 50, 288, 0.1, 0.1, 0, 12.7, 12.7, 0, 9],
+  ["peanut-butter", "Peanut butter", "Beurre de cacahuète", "OTHER", "g", 350, 588, 25, 50, 10, 20, 9, 6, 17],
+  ["coconut-milk", "Coconut milk", "Lait de coco", "OTHER", "ml", 400, 230, 2.3, 24, 21, 5.5, 3.3, 2.2, 15],
+  ["almond-milk", "Almond milk", "Lait d'amande", "OTHER", "ml", 1000, 17, 0.6, 1.1, 0.1, 1.5, 1.5, 0.3, 72],
+  ["oat-milk", "Oat milk", "Boisson à l'avoine", "OTHER", "ml", 1000, 45, 1, 1.5, 0.2, 6.7, 4, 0.8, 42],
+  ["canned-tomatoes", "Canned chopped tomatoes", "Tomates concassées en conserve", "OTHER", "g", 400, 32, 1.6, 0.3, 0, 7.3, 4, 1.9, 186],
+  ["passata", "Tomato passata", "Coulis de tomate", "OTHER", "ml", 500, 33, 1.4, 0.2, 0, 6.5, 4.6, 1.3, 14],
+  ["olives-green", "Green olives", "Olives vertes", "OTHER", "g", 200, 145, 1, 15, 2, 3.8, 0.5, 3.3, 1556],
+  ["capers", "Capers", "Câpres", "OTHER", "g", 100, 23, 2.4, 0.9, 0.2, 4.9, 0.4, 3.2, 2964],
+  ["pickles", "Pickles", "Cornichons", "OTHER", "g", 200, 11, 0.3, 0.2, 0, 2.3, 1.1, 1.2, 1208],
+  ["white-wine", "White wine", "Vin blanc", "OTHER", "ml", 750, 82, 0.1, 0, 0, 2.6, 1, 0, 5],
+  ["red-wine", "Red wine", "Vin rouge", "OTHER", "ml", 750, 85, 0.1, 0, 0, 2.6, 0.6, 0, 4],
+  ["beer", "Beer", "Bière", "OTHER", "ml", 500, 43, 0.5, 0, 0, 3.6, 0, 0, 4],
+  ["coffee-ground", "Ground coffee", "Café moulu", "OTHER", "g", 250, 2, 0.1, 0, 0, 0, 0, 0, 2],
+  ["black-tea", "Black tea", "Thé noir", "OTHER", "g", 100, 1, 0, 0, 0, 0.3, 0, 0, 3],
+  ["orange-juice", "Orange juice", "Jus d'orange", "OTHER", "ml", 1000, 45, 0.7, 0.2, 0, 10.4, 8.4, 0.2, 1],
+  ["apple-juice", "Apple juice", "Jus de pomme", "OTHER", "ml", 1000, 46, 0.1, 0.1, 0, 11.3, 9.6, 0.2, 4],
+];
+
+/**
+ * The emoji a card draws, for the slugs that have one worth drawing.
+ *
+ * A map rather than two more columns on `Row`: the tuple is already fourteen wide and adding a
+ * fifteenth costs every one of the 266 rows a re-alignment, for a value most of them do not have a
+ * distinct one of. Coverage is meant to be partial — `CATEGORY_EMOJI` answers the rest — so the
+ * absence of a slug here is a decision that its category's icon is good enough, not an omission.
+ */
+const EMOJI: Record<string, string> = {
+  // Vegetables
+  onion: "🧅", shallot: "🧅", garlic: "🧄", carrot: "🥕", potato: "🥔", "sweet-potato": "🍠",
+  tomato: "🍅", eggplant: "🍆", zucchini: "🥒", cucumber: "🥒", "bell-pepper-red": "🫑",
+  broccoli: "🥦", cauliflower: "🥦", "corn-sweet": "🌽", mushroom: "🍄", pumpkin: "🎃",
+  "butternut-squash": "🎃", peas: "🫛", "green-beans": "🫛",
+  // Fruit
+  apple: "🍎", pear: "🍐", banana: "🍌", orange: "🍊", grapefruit: "🍊", lemon: "🍋",
+  lime: "🍋", grape: "🍇", strawberry: "🍓", blueberry: "🫐", blackberry: "🫐",
+  raspberry: "🫐", cherry: "🍒", peach: "🍑", apricot: "🍑", plum: "🍑", pineapple: "🍍",
+  mango: "🥭", kiwi: "🥝", avocado: "🥑", watermelon: "🍉", cantaloupe: "🍈",
+  "coconut-fresh": "🥥", pomegranate: "🍎",
+  // Meat
+  bacon: "🥓", lardons: "🥓", ham: "🍖", prosciutto: "🍖", salami: "🍖", lamb: "🍖",
+  rabbit: "🍖", "beef-steak-sirloin": "🥩", "beef-roast": "🥩", "beef-ground-90-10": "🥩",
+  "ground-beef-80-20": "🥩", veal: "🥩", "pork-chop": "🥩", "pork-loin": "🥩",
+  "chicken-breast": "🍗", "chicken-thigh": "🍗", "chicken-wings": "🍗", "chicken-slices": "🍗",
+  "turkey-breast": "🦃", "turkey-slices": "🦃", "ground-turkey": "🦃", "duck-breast": "🦆",
+  "sausage-pork": "🌭", merguez: "🌭", chorizo: "🌭",
+  // Seafood
+  shrimp: "🦐", crab: "🦀", mussels: "🦪", scallops: "🦪",
+  // Dairy and eggs
+  butter: "🧈", "butter-salted": "🧈", "butter-unsalted": "🧈",
+  "egg-whole": "🥚", "egg-white": "🥚",
+  // Grains
+  baguette: "🥖", "bread-white": "🍞", "bread-whole-wheat": "🍞", breadcrumbs: "🍞",
+  "tortilla-wrap": "🫓", "pizza-dough": "🍕", "pasta-dry": "🍝", spaghetti: "🍝", penne: "🍝",
+  "whole-wheat-pasta": "🍝", "fresh-tagliatelle": "🍝", "lasagna-sheets": "🍝",
+  "egg-noodles": "🍜", "rice-noodles": "🍜", "white-rice": "🍚", "brown-rice": "🍚",
+  "basmati-rice": "🍚", "arborio-rice": "🍚", granola: "🥣", "cereal-cornflakes": "🥣",
+  "puff-pastry": "🥐", "shortcrust-pastry": "🥐",
+  // Nuts and seeds
+  peanuts: "🥜",
+  // Sweeteners
+  honey: "🍯", "agave-syrup": "🍯", "maple-syrup": "🍁", "white-sugar": "🍬",
+  "brown-sugar": "🍬", "powdered-sugar": "🍬",
+  // Condiments
+  salt: "🧂", ketchup: "🍅", "tomato-paste": "🍅", mayonnaise: "🥚", "hot-sauce": "🌶️",
+  "soy-sauce": "🍶",
+  // Spices
+  "black-pepper": "🧂", paprika: "🌶️", "cayenne-pepper": "🌶️", "chili-powder": "🌶️",
+  "ginger-ground": "🫚", "bay-leaf": "🌿", "dried-basil": "🌿", "dried-oregano": "🌿",
+  // Oils
+  "olive-oil": "🫒", "coconut-oil": "🥥",
+  // Everything else
+  water: "💧", "coffee-ground": "☕", "black-tea": "🍵", "orange-juice": "🧃",
+  "apple-juice": "🧃", beer: "🍺", "white-wine": "🍷", "red-wine": "🍷",
+  "dark-chocolate": "🍫", "milk-chocolate": "🍫", "cocoa-powder": "🍫", "peanut-butter": "🥜",
+  "canned-tomatoes": "🥫", passata: "🥫", "coconut-milk": "🥥", "almond-milk": "🥛",
+  "oat-milk": "🥛", "olives-green": "🫒", capers: "🫒", pickles: "🥒", "tofu-firm": "🧆",
+  tempeh: "🧆", seitan: "🧆", "beef-broth": "🍲", "chicken-broth": "🍲",
+  "vegetable-broth": "🍲", "baking-powder": "🧂", "baking-soda": "🧂", "dry-yeast": "🍞",
+  gelatin: "🍮", "vanilla-extract": "🫙",
+};
+
+/** The fallback, so no row is ever emoji-less and no card ever draws a blank. */
+const CATEGORY_EMOJI: Record<Category, string> = {
+  VEGETABLE: "🥬", FRUIT: "🍎", GRAIN: "🌾", MEAT: "🍖", SEAFOOD: "🐟", DAIRY: "🧀",
+  EGG: "🥚", LEGUME: "🫘", NUT: "🌰", SEED: "🌱", HERB: "🌿", SPICE: "🧂", OIL: "🫗",
+  CONDIMENT: "🫙", SWEETENER: "🍯", OTHER: "🛒",
+};
+
+/**
+ * The other ways a household says an ingredient, for the slugs where it matters.
+ *
+ * Sparse on purpose, and French-leaning because that is what the app is used in. A synonym earns a
+ * place here when someone would plausibly type it into the navigation bar and otherwise find
+ * nothing — "patates", "coulis", "viande hachée" — not to record every dictionary variant.
+ *
+ * Accents are written naturally; `seedIngredients` indexes both the accented and unaccented form,
+ * so "creme" and "crème" both find it.
+ */
+const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
+  potato: { fr: ["patates"], en: ["spuds"] },
+  "sweet-potato": { fr: ["patate douce"] },
+  passata: { fr: ["coulis de tomate", "coulis"] },
+  "canned-tomatoes": { fr: ["tomates concassées", "tomates pelées"] },
+  "bell-pepper-red": { fr: ["poivron"] },
+  mushroom: { fr: ["champignons", "champignon de paris"] },
+  cilantro: { fr: ["coriandre"] },
+  "creme-fraiche": { fr: ["crème"] },
+  "heavy-cream": { fr: ["crème liquide", "crème entière"] },
+  "ground-beef-80-20": { fr: ["viande hachée", "steak haché"] },
+  "beef-ground-90-10": { fr: ["viande hachée maigre"] },
+  "chicken-breast": { fr: ["blanc de poulet", "escalope de poulet"] },
+  "egg-whole": { fr: ["oeufs", "œufs"] },
+  "pasta-dry": { fr: ["pâtes"] },
+  "white-rice": { fr: ["riz"] },
+  "flour-all-purpose": { fr: ["farine"] },
+  "white-sugar": { fr: ["sucre"] },
+  "olive-oil": { fr: ["huile d'olive", "huile"] },
+  "black-pepper": { fr: ["poivre"] },
+  "plain-yogurt": { fr: ["yaourt", "yaourts"] },
+  emmental: { fr: ["fromage râpé", "râpé"] },
+  baguette: { fr: ["pain"] },
+  "bread-white": { fr: ["pain de mie"] },
+  "tuna-canned-water": { fr: ["thon"] },
+  shrimp: { fr: ["crevettes", "gambas"] },
+  chickpeas: { fr: ["pois chiches"] },
+  lardons: { fr: ["lardon"] },
+};
+
+export const CATALOG: readonly CatalogEntry[] = ROWS.map(
+  ([
+    slug, en, fr, category, defaultUnit, defaultQuantity,
+    calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium,
+  ]) => ({
+    slug,
+    en,
+    fr,
+    emoji: EMOJI[slug] ?? CATEGORY_EMOJI[category],
+    aliases: ALIASES[slug] ?? {},
+    category,
+    defaultUnit,
+    defaultQuantity,
+    nutrition: { calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium },
+  }),
+);

@@ -145,9 +145,18 @@ const foreignKeyTarget = (node) => {
 
   const method = node.expression.name.text;
   if (method === "optional") return foreignKeyTarget(node.arguments[0]);
+
+  // An array of ids is still a foreign key, and the one shape S10 used to miss entirely: the
+  // unwrap stopped at v.optional, so v.array(v.id(...)) read as "not a reference" and neither the
+  // index nor the CASCADE entry was ever demanded.
+  if (method === "array") {
+    const inner = foreignKeyTarget(node.arguments[0]);
+    return inner && { ...inner, inArray: true };
+  }
+
   if (method !== "id") return null;
 
-  return stringLiteral(node.arguments[0]);
+  return { parent: stringLiteral(node.arguments[0]), inArray: false };
 };
 
 for (const [name, table] of tables) {
@@ -176,10 +185,27 @@ for (const [name, table] of tables) {
   for (const prop of table.fields?.properties ?? []) {
     if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.name)) continue;
 
-    const parent = foreignKeyTarget(prop.initializer);
-    if (!parent) continue;
+    const reference = foreignKeyTarget(prop.initializer);
+    if (!reference?.parent) continue;
 
+    const { parent, inArray } = reference;
     const field = prop.name.text;
+
+    // Convex has no indexable equality for array membership, so "which rows hold this id" can only
+    // be answered by a full scan — which S1 forbids. There is no index to demand and no cascade to
+    // write: the shape itself is the finding.
+    if (inArray) {
+      findings.push({
+        ...{ file: table.file, line: lineOf(table.source, prop) },
+        message: `S10 — "${name}.${field}" holds "${parent}" ids in an array, which cannot be cascaded.`,
+        fix:
+          `Replace it with a join table carrying one row per pair — ${name}${parent[0].toUpperCase()}${parent.slice(1)} ` +
+          `with .index("by_${field.replace(/Ids$/, "")}", ...) on each side — so deleting a ` +
+          `${parent} row is an indexed delete rather than a scan of "${name}".`,
+      });
+      continue;
+    }
+
     const suggested = `by_${field.replace(/Id$/, "")}`;
     const fkAt = { file: table.file, line: lineOf(table.source, prop) };
     const leading = table.indexes.find((i) => i.fields[0] === field);

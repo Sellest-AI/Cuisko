@@ -22,7 +22,26 @@ type CascadeRule = { table: TableNames; index: string; field: string };
  *    rows still have to go when an account is removed, which is why it appears here.
  */
 export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
-  users: [{ table: "usersExtended", index: "by_user", field: "userId" }],
+  users: [
+    { table: "usersExtended", index: "by_user", field: "userId" },
+    { table: "householdUsers", index: "by_user", field: "userId" },
+  ],
+  households: [
+    { table: "householdUsers", index: "by_household", field: "householdId" },
+    { table: "groceryListItems", index: "by_household", field: "householdId" },
+    { table: "cellarItems", index: "by_household", field: "householdId" },
+    { table: "recentlyUsedIngredients", index: "by_household", field: "householdId" },
+  ],
+  ingredients: [
+    { table: "groceryListItems", index: "by_ingredient", field: "ingredientId" },
+    { table: "cellarItems", index: "by_ingredient", field: "ingredientId" },
+    { table: "recentlyUsedIngredients", index: "by_ingredient", field: "ingredientId" },
+    { table: "ingredientAllergens", index: "by_ingredient", field: "ingredientId" },
+  ],
+  allergens: [
+    // The ingredient outlives its allergen: dropping "gluten" from the catalog leaves the flour.
+    { table: "ingredientAllergens", index: "by_allergen", field: "allergenId" },
+  ],
 };
 
 /**

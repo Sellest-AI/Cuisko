@@ -52,7 +52,9 @@ export const QuantityOption = ({ amount, unit, caption, type, onPress, style }: 
         </Text.Base>
       </View>
       {caption ? (
-        <Text.Sm color={captionTextColor}>{caption}</Text.Sm>
+        <Text.Sm color={captionTextColor} style={{ textAlign: "center" }}>
+          {caption}
+        </Text.Sm>
       ) : null}
     </Pressable>
   );
@@ -63,7 +65,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing[4],
-    paddingHorizontal: theme.spacing[24],
+    paddingHorizontal: theme.spacing[8],
     height: 70,
     borderRadius: theme.radius.md,
     borderWidth: 1.5,

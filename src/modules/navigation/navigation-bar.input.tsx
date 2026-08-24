@@ -8,7 +8,8 @@ import { NAVIGATION_BAR_HEIGHT } from "./constants";
 import { AnimatePresence, m } from "@ui/motion";
 import { BlurView } from "~/ui/components/blur-view";
 import { Suggestions } from "./_components/suggestions";
-import { Unit, useSuggestions } from "./_hooks/useSuggestions";
+import type { Unit } from "@shared/ingredients";
+import { useSuggestions } from "./_hooks/useSuggestions";
 import { useNavigationBar } from "./_hooks/useNavigationBar";
 import { useStockActions } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
@@ -47,7 +48,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
      * If the mode is "shopping-list", we want to "relist" it. Otherwise, we default to "relist".
      */
     const type = mode === "cellar" ? "buy" : mode === "shopping-list" ? "relist" : "relist";
-    apply(type, { ingredientId: suggestionId, unit: unit }, Number(amount));
+    // Deliberately not awaited: `apply` handles its own failure, and the bar closes on the
+    // gesture rather than on the write landing — Convex reflects the row when it does.
+    void apply(type, { ingredientId: suggestionId, unit: unit }, Number(amount));
     if (!pathname.startsWith("/groceries")) router.push("/groceries");
   }
 

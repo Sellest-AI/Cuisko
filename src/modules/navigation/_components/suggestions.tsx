@@ -4,7 +4,8 @@ import { theme } from "theme";
 import { Text } from "@ui/text";
 import { GroceryItem } from "@ui/cards/grocery-item";
 import { useTranslations } from "translations";
-import { Unit, useSuggestions } from "../_hooks/useSuggestions";
+import type { Unit } from "@shared/ingredients";
+import { useSuggestions } from "../_hooks/useSuggestions";
 
 const SHARED_PADDING = theme.spacing[16];
 

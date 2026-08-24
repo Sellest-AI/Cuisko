@@ -14,12 +14,12 @@ import { useStockActions } from "./useStockActions";
  * sheet and they are not the same thing; see `quantity-screen.tsx`.
  */
 export const useRemoveItem = ({ ingredientId, unit }: StockRef) => {
-  const { forceRemove } = useStockActions();
+  const { forceRemove, error } = useStockActions();
 
   const remove = useCallback(
     () => forceRemove({ ingredientId, unit }),
     [forceRemove, ingredientId, unit],
   );
 
-  return { remove };
+  return { remove, error };
 };

@@ -1,8 +1,6 @@
 import { useAtom, useAtomValue, type PrimitiveAtom } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 
-import { useStockActions } from "~/modules/groceries/hooks";
-
 import {
   addMeal,
   matchesQuery,
@@ -59,7 +57,6 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
   const [meals, setMeals] = useAtom(MEALS_ATOM[scope]);
   const people = useAtomValue(peopleAtom);
   const [query, setQuery] = useState("");
-  const { dropMeal } = useStockActions();
 
   /** The plate this sheet created, so a second tap edits it rather than making another. */
   const [createdId, setCreatedId] = useState<string>();
@@ -122,15 +119,21 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
       [meal, setMeals],
     ),
     /**
-     * The plate goes, and its claims on the grocery list go with it — otherwise the list keeps
-     * shopping for a meal nobody is cooking. Reached through the groceries module's public door,
-     * not its `_model/`, so the two domains stay separable (ADR 0006, lint R8).
+     * The plate goes — and, for now, only the plate.
+     *
+     * Its claims on the grocery list should go with it, or the list keeps shopping for a meal
+     * nobody is cooking. They cannot yet: `groceryListItems` has no meal column, so every line in
+     * the database reads as one the shopper wrote themselves, and there is nothing here that could
+     * tell a plate's claim from a deliberate instruction. Striking lines off by ingredient would
+     * take the shopper's own asking with them, which is the worse failure of the two.
+     *
+     * `dropMealLines` is still in `_model/` and still tested, waiting for that column — it is the
+     * reason a line was given a `meal` field before there was a table to put one in.
      */
     remove: useCallback(() => {
       if (!meal) return;
 
       setMeals((current) => removeMeal(current, meal.id));
-      dropMeal(meal.id);
-    }, [meal, setMeals, dropMeal]),
+    }, [meal, setMeals]),
   };
 };

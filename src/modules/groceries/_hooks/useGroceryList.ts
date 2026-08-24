@@ -16,7 +16,7 @@ import { useStockActions } from "./useStockActions";
  */
 export const useGroceryList = () => {
   const snapshot = useSnapshot();
-  const { apply } = useStockActions();
+  const { apply, error } = useStockActions();
 
   const sections = useMemo(() => buildSections(snapshot), [snapshot]);
 
@@ -26,5 +26,5 @@ export const useGroceryList = () => {
     [apply],
   );
 
-  return { sections, submit };
+  return { sections, submit, error };
 };

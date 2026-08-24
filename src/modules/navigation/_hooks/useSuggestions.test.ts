@@ -1,23 +1,39 @@
-/*
- * `useSuggestions` carries the hook naming its call site expects, but it holds no React state —
- * it is a pure function of the text typed. Calling it from a plain test helper is therefore safe,
- * which the rule cannot tell from the name alone. Scoped to this file rather than the shared
- * config, so it cannot quietly weaken the rule anywhere else.
- */
-/* eslint-disable react-hooks/rules-of-hooks */
 import { describe, expect, it } from "vitest";
 
-import { useSuggestions } from "./useSuggestions";
+import { rankSuggestions, type Suggestion } from "./useSuggestions";
 
 /**
- * `useSuggestions` is named for where it is called, but it holds no React state — it is a pure
- * function of the text typed, so it is unit-tested directly, with no provider tree.
+ * The ranking, tested against a fixture rather than against the catalog.
  *
- * It reads the placeholder catalogue it declares internally. When the catalogue arrives from
- * Convex these expectations move with it; what they pin is the matching, not the data.
+ * `useSuggestions` now asks Convex for its candidates, so the hook itself is a fetch and a call to
+ * this. What is worth pinning is the second half — which candidate a typed string means — and that
+ * is a pure function, so it needs no provider tree and no database.
+ *
+ * The fixture is the placeholder list this file used to reach for through the hook. Kept
+ * deliberately: it holds the near-collisions the thresholds exist for (patates vs. patates douces,
+ * a name against a synonym, thé against the English stopword list), which a sample of real catalog
+ * rows would not reliably contain.
  */
-const idsOf = (text: string) => useSuggestions(text).suggestions.map((s) => s.id);
-const matchOf = (text: string) => useSuggestions(text).matchingSuggestion?.id ?? null;
+const CATALOGUE: Suggestion[] = [
+  { id: "tomatoes", name: "Tomates", emoji: "🍅" },
+  { id: "cherry-tomatoes", name: "Tomates cerises", emoji: "🍅" },
+  { id: "tomato-sauce", name: "Sauce tomate", emoji: "🍶", aliases: ["coulis de tomates"] },
+  { id: "tomato-soup", name: "Soupe de tomates", emoji: "🥣" },
+  { id: "potatoes", name: "Pommes de terre", emoji: "🥔", aliases: ["patates"] },
+  {
+    id: "potato-chips",
+    name: "Chips de pommes de terre",
+    emoji: "🍟",
+    aliases: ["chips de patates"],
+  },
+  { id: "sweet-potatoes", name: "Patates douces", emoji: "🍠" },
+  { id: "green-tea", name: "Thé vert", emoji: "🍵" },
+];
+
+const rank = (text: string) => rankSuggestions(text, CATALOGUE);
+
+const idsOf = (text: string) => rank(text).suggestions.map((s) => s.id);
+const matchOf = (text: string) => rank(text).matchingSuggestion?.id ?? null;
 
 describe("stopwords", () => {
   it("keeps an accented word the English list would swallow once unaccented", () => {
@@ -58,7 +74,7 @@ describe("auto-selection", () => {
 
 describe("synonyms", () => {
   it("finds an ingredient by a name it does not display", () => {
-    const { matchingSuggestion } = useSuggestions("coulis de tomates");
+    const { matchingSuggestion } = rank("coulis de tomates");
 
     expect(matchingSuggestion?.id).toBe("tomato-sauce");
     // Searched, never shown: the card keeps the ingredient's own name.
@@ -74,7 +90,7 @@ describe("quantity", () => {
   it("takes the quantity out of what it matches on", () => {
     // Regression: leaving "500g" among the words matched "500g tomate" against "tomate" and
     // dropped the score below the threshold, so a quantity silently cost you the match.
-    expect(useSuggestions("500g tomates")).toMatchObject({
+    expect(rank("500g tomates")).toMatchObject({
       amount: 500,
       unit: "g",
     });
@@ -83,15 +99,15 @@ describe("quantity", () => {
   });
 
   it("reads a fraction as the number it is", () => {
-    expect(useSuggestions("1/2 kg patates")).toMatchObject({ amount: 0.5, unit: "kg" });
+    expect(rank("1/2 kg patates")).toMatchObject({ amount: 0.5, unit: "kg" });
     expect(matchOf("1/2 kg patates")).toBe("potatoes");
   });
 
   it("falls back to one piece when nothing is said", () => {
-    expect(useSuggestions("tomates")).toMatchObject({ amount: 1, unit: "pcs" });
+    expect(rank("tomates")).toMatchObject({ amount: 1, unit: "pcs" });
   });
 
   it("counts pieces when a bare number is given", () => {
-    expect(useSuggestions("2 patates douces")).toMatchObject({ amount: 2, unit: "pcs" });
+    expect(rank("2 patates douces")).toMatchObject({ amount: 2, unit: "pcs" });
   });
 });

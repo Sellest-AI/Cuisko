@@ -201,14 +201,24 @@ own modules belongs in the test that needs it, where a reader can see it.
 ^(anon|authed|admin|server|_internal(_[a-z][a-zA-Z0-9]*)?)$
 ```
 
-| Export             | Required builder                                                             | Callable by                              |
-| ------------------ | ---------------------------------------------------------------------------- | ---------------------------------------- |
-| `anon`             | `publicQuery` / `publicMutation` / `publicAction`                            | anyone, unauthenticated                  |
-| `authed`           | `authQuery` / `authMutation` / `authAction` / `ownedQuery` / `ownedMutation` | signed-in users                          |
-| `admin`            | `adminQuery` / `adminMutation` / `adminAction`                               | `role === 'ADMIN'`                       |
-| `server`           | `serverQuery` / `serverMutation` / `serverAction`                            | holders of `SERVER_PRIVATE_KEY`          |
-| `_internal`        | `internalQuery` / `internalMutation` / `internalAction`                      | Convex functions only                    |
-| `_internal_<verb>` | same                                                                         | Convex functions only — a **named step** |
+| Export             | Required builder                                                                                  | Callable by                              |
+| ------------------ | --------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `anon`             | `publicQuery` / `publicMutation` / `publicAction`                                                   | anyone, unauthenticated                  |
+| `authed`           | `authQuery` / `authMutation` / `authAction` / `ownedQuery` / `ownedMutation` / `householdQuery` / `householdMutation` | signed-in users               |
+| `admin`            | `adminQuery` / `adminMutation` / `adminAction`                                                      | `role === 'ADMIN'`                       |
+| `server`           | `serverQuery` / `serverMutation` / `serverAction`                                                   | holders of `SERVER_PRIVATE_KEY`          |
+| `_internal`        | `internalQuery` / `internalMutation` / `internalAction`                                             | Convex functions only                    |
+| `_internal_<verb>` | same                                                                                                 | Convex functions only — a **named step** |
+
+Most builders above have an `*I18n` sibling (`publicQueryI18n`, `authMutationI18n`,
+`ownedQueryI18n`, `householdQueryI18n`). `server*`, `internal*` and `householdMutationI18n` do
+not — the last simply because nothing has needed it yet; add it beside the others in
+`procedures.ts` and to `ALLOWED_BUILDERS.authed` in `scripts/c1-export-contract.mjs` when
+something does. **`scripts/c1-export-contract.mjs` is the authority on this list, not this
+table.** The plain builder takes no locale
+and exposes no `ctx.i18n`; the `I18n` variant adds a required `locale` arg and `ctx.i18n.resolve`
+for reading `Localized` fields. Use the plain one unless the handler actually reads translated
+content — most don't, and forcing a `locale` arg on them would be dead weight at every call site.
 
 **C1 verifies the name matches the builder on every commit. This is the single most valuable check in
 the repo.** The predecessor shipped `export const admin = authQuery({ args: { userId } })` twice, and
