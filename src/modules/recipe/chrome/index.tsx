@@ -8,11 +8,11 @@ import { ParallaxScrollView } from "@ui/parallax-scroll-view";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { CONTENT_NEGATIVE_SPACE } from "./constants";
-import { RecipeHeader } from "./chrome.header";
-import { RecipeIntro } from "./chrome.intro";
-import { RecipeTabs, RecipeTab } from "./chrome.tabs";
-import { ChromeNavigationBar } from "./chrome.navigation-bar";
+import { CONTENT_NEGATIVE_SPACE } from "../constants";
+import { RecipeHeader } from "./header";
+import { RecipeIntro } from "./intro";
+import { RecipeTabs, RecipeTab } from "./tabs";
+import { ChromeNavigationBar } from "./navigation-bar";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const RECIPE = {
@@ -73,7 +73,12 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
          * Pinned, because it is the only way between the three tabs: scrolled halfway down the
          * ingredients, a bar sitting at the top of the page is a scroll back up before it is a tap.
          */
-        stickyHeader={<View style={styles.ground}><RecipeTabs tabs={tabs} activeKey={active} /></View>}
+        stickyHeaderStyle={styles.ground}
+        stickyHeader={
+          <View>
+            <RecipeTabs tabs={tabs} activeKey={active} />
+            <View style={styles.border} />
+          </View>}
       >
         {/*
           * The switch between tabs, which used to be the route navigator's to play. It lives here
@@ -109,5 +114,13 @@ const styles = StyleSheet.create({
    * purpose — a translucent bar would show the intro sliding underneath it, and a bar in a
    * different colour would announce itself the moment it stuck.
    */
-  ground: { backgroundColor: theme.colors.neutral.subtle },
+  ground: {
+    backgroundColor: theme.colors.neutral.subtle,
+  },
+  border: {
+    height: 2,
+    width: "100%",
+    backgroundColor: theme.colors.background,
+    marginTop: theme.spacing[12],
+  },
 });

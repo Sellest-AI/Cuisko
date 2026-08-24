@@ -1,3 +1,3 @@
 export * from "./translations";
-export type { IntlMessages } from "./types";
+export type { IntlMessages, TranslationKeys } from "./types";
 

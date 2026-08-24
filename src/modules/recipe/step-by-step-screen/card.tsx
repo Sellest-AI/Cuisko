@@ -5,9 +5,9 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { IngredientGroup } from "./_components/ingredient-group";
-import { stepNumber } from "./_model/step";
-import { columnWidth } from "./constants";
+import { IngredientGroup } from "../_components/ingredient-group";
+import { stepNumber } from "../_model/step";
+import { columnWidth } from "../constants";
 
 type Props = {
   /** 1-based, because it is what the cook reads — the array index is the screen's business. */

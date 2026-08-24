@@ -5,12 +5,12 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { NutritionCard } from "./_components/nutrition-card";
-import { RecipeScreen } from "./_components/recipe-screen";
-import { SCREEN_PADDING } from "./constants";
-import { Difficulty } from "./overview-screen.difficulty";
-import { GroceryRow } from "./overview-screen.grocery-row";
-import { Timings } from "./overview-screen.timings";
+import { NutritionCard } from "../_components/nutrition-card";
+import { RecipeScreen } from "../_components/recipe-screen";
+import { SCREEN_PADDING } from "../constants";
+import { Difficulty } from "./difficulty";
+import { GroceryRow } from "./grocery-row";
+import { Timings } from "./timings";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const RECIPE = {
@@ -66,7 +66,7 @@ export const OverviewScreen = () => {
       <View style={styles.section}>
         <GroceryRow title={t("Overview.utensils")} items={RECIPE.utensils} />
       </View>
-      <View style={styles.section}>
+      <View style={[styles.section, { marginBottom: theme.spacing[16] }]}>
         <GroceryRow
           title={t("Overview.ingredients")}
           items={RECIPE.ingredients}
@@ -78,7 +78,7 @@ export const OverviewScreen = () => {
 
 const styles = StyleSheet.create({
   facts: {
-    marginTop: theme.spacing[8],
+    marginTop: theme.spacing[4],
     paddingHorizontal: SCREEN_PADDING,
     gap: theme.spacing[8],
   },

@@ -52,7 +52,7 @@ export const QuantityOption = ({ amount, unit, caption, type, onPress, style }: 
         </Text.Base>
       </View>
       {caption ? (
-        <Text.Sm color={captionTextColor} style={{ textAlign: "center" }}>
+        <Text.Sm color={captionTextColor} style={styles.textCenter} numberOfLines={2} ellipsizeMode="tail">
           {caption}
         </Text.Sm>
       ) : null}
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: theme.spacing[4],
     paddingHorizontal: theme.spacing[8],
+    minWidth: 70,
     height: 70,
     borderRadius: theme.radius.md,
     borderWidth: 1.5,
@@ -89,4 +90,7 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     gap: theme.spacing[6],
   },
+  textCenter: {
+    textAlign: "center",
+  }
 });

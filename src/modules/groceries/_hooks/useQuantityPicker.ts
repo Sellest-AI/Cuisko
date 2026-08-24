@@ -1,13 +1,15 @@
 import { useCallback, useMemo } from "react";
 
+import { useTranslations, type TranslationKeys } from "translations";
+
 import { quantityOptions, stockFor, type Intent, type StockRef } from "../_model/model";
 import { useSnapshot } from "./useSnapshot";
 import { useStockActions } from "./useStockActions";
 
-const PROMPTS: Record<Intent, string> = {
-  buy: "How much did you add?",
-  remove: "How much did you take out?",
-  relist: "How much do you need?",
+const PROMPTS: Record<Intent, TranslationKeys<"Groceries">> = {
+  buy: "Quantity.Prompts.buy",
+  remove: "Quantity.Prompts.remove",
+  relist: "Quantity.Prompts.relist",
 };
 
 /**
@@ -18,6 +20,7 @@ const PROMPTS: Record<Intent, string> = {
  * moved out — the wording, and where the answer goes.
  */
 export const useQuantityPicker = ({ ingredientId, unit, intent }: StockRef & { intent: Intent }) => {
+  const t = useTranslations("Groceries");
   const snapshot = useSnapshot();
   const { apply, error } = useStockActions();
 
@@ -33,5 +36,5 @@ export const useQuantityPicker = ({ ingredientId, unit, intent }: StockRef & { i
     [apply, intent, ingredientId, unit],
   );
 
-  return { ingredient, prompt: PROMPTS[intent], owned, options, submit, error };
+  return { ingredient, prompt: t(PROMPTS[intent]), owned, options, submit, error };
 };

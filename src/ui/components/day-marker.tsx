@@ -24,7 +24,8 @@ type Props = {
 
 const _statusColors = (selected: boolean) => ({
   empty: {
-    borderWidth: 0,
+    borderWidth: 2,
+    borderColor: colors.transparent.light,
     backgroundColor: selected ? colors.neutral.elevated : colors.neutral.subtle,
     icon: selected ? { backgroundColor: colors.neutral.subtle, color: colors.neutral.muted }
       : { backgroundColor: colors.neutral.elevated, color: colors.neutral.muted },
@@ -32,7 +33,8 @@ const _statusColors = (selected: boolean) => ({
     date: colors.neutral.base,
   },
   pending: {
-    borderWidth: 0,
+    borderWidth: 2,
+    borderColor: colors.transparent.light,
     backgroundColor: selected ? colors.primary.subtle : colors.neutral.subtle,
     icon: { backgroundColor: colors.primary.base, color: colors.primary.subtle },
     day: colors.primary.base,
@@ -40,6 +42,7 @@ const _statusColors = (selected: boolean) => ({
   },
   complete: {
     borderWidth: 2,
+    borderColor: selected ? colors.transparent.light : colors.border.default,
     backgroundColor: selected ? colors.secondary.subtle : colors.surface.elevatedSubtle,
     icon: selected ? { backgroundColor: colors.success.elevated, color: colors.success.foreground } :
       { backgroundColor: colors.success.subtle, color: colors.success.base },
@@ -113,7 +116,11 @@ export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style, onPres
       onPress={onPress}
       style={[
         styles.container,
-        { backgroundColor: color.backgroundColor, borderWidth: color.borderWidth },
+        {
+          backgroundColor: color.backgroundColor,
+          borderWidth: color.borderWidth,
+          borderColor: color.borderColor
+        },
         style,
       ]}
     >

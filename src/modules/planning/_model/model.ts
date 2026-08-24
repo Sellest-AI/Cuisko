@@ -280,14 +280,17 @@ export const buildRows = (
  * A day with nothing on it has no row of its own — the plan drops it — so the nearest row *after*
  * the date is the honest answer: asking for Wednesday and landing on Thursday is a day out, where
  * falling back to the top would land the user at the start of the week they scrolled away from.
+ *
+ * Past the last row there is no row after, so the nearest one is the last — the plan only runs to
+ * its horizon, and a date beyond it belongs at the end, not back at the top.
  */
 export const indexOfDate = (rows: PlanningRow[], date?: Date) => {
-  if (!date) return 0;
+  if (!date || rows.length === 0) return 0;
 
   const target = _startOfDay(date);
   const index = rows.findIndex((row) => _startOfDay(row.date) >= target);
 
-  return index === -1 ? 0 : index;
+  return index === -1 ? rows.length - 1 : index;
 };
 
 /**

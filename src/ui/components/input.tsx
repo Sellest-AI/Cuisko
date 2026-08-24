@@ -35,10 +35,12 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
 
   const ViewComponent = elevated ? BlurView : View;
 
+  const borderRadius = style?.borderRadius ?? styles.borders.borderRadius;
+
   return (
     <View style={[
       styles.container,
-      { borderRadius: theme.radius.full },
+      { borderRadius },
       { padding, paddingLeft, paddingRight },
       elevated && styles.elevated,
       style,
@@ -48,6 +50,7 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
         style={[
           StyleSheet.absoluteFill,
           styles.borders,
+          { borderRadius },
           color
         ]}
       />
@@ -81,10 +84,10 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
         autoCapitalize="sentences"
         returnKeyType="search"
         style={[
+          styles.input,
           theme.font.base,
-          { outline: "none" },
-          { color: color.color, position: "relative" },
-          { width: "100%", flexShrink: 1 },
+          { fontWeight: 400 },
+          { color: color.color },
         ]}
       />
       {rightIcon && <ButtonIcon
@@ -110,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: theme.spacing[12],
-    minHeight: 36,
+    minHeight: 56,
     overflow: "hidden",
   },
   elevated: {
@@ -123,6 +126,12 @@ const styles = StyleSheet.create({
         color: "rgba(0, 0, 0, 0.1)",
       },
     ],
+  },
+  input: {
+    position: "relative",
+    width: "100%",
+    flexShrink: 1,
+    outlineWidth: 0,
   },
   borders: {
     borderWidth: 2,

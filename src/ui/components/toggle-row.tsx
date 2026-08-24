@@ -38,7 +38,11 @@ export const ToggleRow = <T extends string>({ options, selected, onToggle, style
           key={option.id}
           intensity={0.97}
           onPress={() => onToggle(option.id)}
-          style={{ ...styles.segment, ...(isSelected ? styles.selected : null) }}
+          style={[
+            styles.segment,
+            isSelected && styles.selected,
+            !isSelected && styles.elevated,
+          ]}
         >
           {isSelected && <View style={{
             width: 20,
@@ -80,6 +84,17 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border.default,
   },
+  elevated: {
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: 6,
+        blurRadius: 24,
+        spreadDistance: 0,
+        color: "rgba(0, 0, 0, 0.07)",
+      },
+    ],
+  },
   segment: {
     flex: 1,
     height: TRACK_HEIGHT - theme.spacing[8],
@@ -88,7 +103,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: theme.spacing[8],
     borderRadius: theme.radius.full,
-    overflow: "hidden",
   },
   selected: {
     borderWidth: 2,

@@ -7,9 +7,10 @@ import { Providers } from "~/providers";
 /**
  * Root layout: the provider tree and the navigator. Nothing else belongs here.
  *
- * Only two routes are declared. Expo Router registers every other one on its own; these need a
- * line because presentation is a property of how the parent stack pushes a route, and nothing
- * inside `(modals)` — or inside the cooking screen — can ask to be presented over the app.
+ * Expo Router registers every route on its own; the ones named below need a line anyway, because
+ * presentation is a property of how the *parent* stack pushes a route. A screen cannot ask to be
+ * presented over the app from inside itself, so anything that covers the app — `(modals)`, the
+ * cooking screen, the editor — is spelled out here.
  */
 export default function RootLayout() {
   return (
@@ -59,6 +60,27 @@ export default function RootLayout() {
           */}
         <Stack.Screen
           name="recipe/step-by-step/[id]"
+          options={{
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom"
+          }}
+        />
+        {/*
+          * Writing a recipe covers the app for the same reason cooking does: it is a task with its
+          * own beginning and end, and a half-typed recipe is worth more than the page behind it.
+          *
+          * Declared here rather than under a `recipe/_layout.tsx`, because a layout on that segment
+          * would nest `step-by-step` inside it too and take that screen's presentation away.
+          */}
+        <Stack.Screen
+          name="recipe/new"
+          options={{
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom"
+          }}
+        />
+        <Stack.Screen
+          name="recipe/edit/[id]"
           options={{
             presentation: "fullScreenModal",
             animation: "slide_from_bottom"

@@ -1,3 +1,23 @@
 {
-  "title": "Liste de courses"
+  "title": "Liste de courses",
+  "Sections": {
+    "to_buy": "À acheter",
+    "cellar": "Le cellier",
+    "recently_bought": "Achetés récemment"
+  },
+  "Quantity": {
+    "custom_amount": "Entrez votre quantité",
+    "nothing_to_adjust": "Rien à ajuster.",
+    "Prompts": {
+      "buy": "Vous en avez ajouté combien ?",
+      "remove": "Vous en avez sorti combien ?",
+      "relist": "Il vous en faut combien ?"
+    },
+    "Captions": {
+      "needed": "Nécessaire",
+      "last_time": "La dernière fois",
+      "just_added": "Ajouté à l'instant",
+      "all_of_it": "Tout"
+    }
+  }
 }

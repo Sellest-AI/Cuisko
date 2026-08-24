@@ -81,6 +81,7 @@ export const WeeklyPlan = () => {
         locale={locale}
         selectedIndex={selectedDayIndex}
         onSelect={selectDay}
+        onAdd={() => selectDay(days[days.length - 1]!)}
       />
     </View>
   );
@@ -110,6 +111,6 @@ const styles = StyleSheet.create({
     minHeight: 188,
   },
   week: {
-    marginTop: theme.spacing[2],
+    marginTop: theme.spacing[6],
   },
 });

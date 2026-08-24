@@ -1,12 +1,12 @@
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { theme } from "theme";
 
 import { WeeklyPlan } from "~/modules/planning/weekly-plan";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
-import { HomeHeader } from "./screen.header";
-import { QuickAccess } from "./screen.quick-access";
-import { WeeklySpotlight } from "./screen.spotlight";
+import { HomeHeader } from "./header";
+import { QuickAccess } from "./quick-access";
+import { WeeklySpotlight } from "./spotlight";
 
 import { RadialGradient } from "@ui/radial-gradient";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,14 +29,18 @@ export const HomeScreen = () => (
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
     />
-    <ScrollView contentContainerStyle={styles.page}>
+    <ScrollView
+      contentContainerStyle={styles.page}
+      showsVerticalScrollIndicator={false}
+    >
       <RadialGradient
         size={340}
         colors={[theme.colors.primary.base, theme.colors.neutral.subtle]}
-        style={{ position: "absolute", top: 24, left: -32, opacity: 0.1 }}
+        style={{ position: "absolute", top: 220, left: -56, opacity: 0.1 }}
       />
       <HomeHeader />
       <WeeklyPlan />
+      <View style={styles.divider} />
       <QuickAccess />
       <WeeklySpotlight />
     </ScrollView>
@@ -46,4 +50,10 @@ export const HomeScreen = () => (
 const styles = StyleSheet.create({
   /** Clears the navigation bar, which floats over the page rather than sitting in it. */
   page: { paddingBottom: NAVIGATION_BAR_OFFSET },
+  divider: {
+    height: 2,
+    width: "100%",
+    backgroundColor: theme.colors.background,
+    marginTop: theme.spacing[28],
+  },
 });

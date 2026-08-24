@@ -35,6 +35,7 @@ type Props = {
   contentHeader?: ReactNode;
   /** A bar that scrolls up with `contentHeader` and then pins to the top of the viewport. */
   stickyHeader?: ReactNode;
+  stickyHeaderStyle?: ViewStyle;
   children: ReactNode;
   contentContainerStyle?: ViewStyle;
   showsVerticalScrollIndicator?: boolean;
@@ -59,6 +60,7 @@ export const ParallaxScrollView = ({
   headerBackground,
   contentHeader,
   stickyHeader,
+  stickyHeaderStyle,
   children,
   contentContainerStyle,
   showsVerticalScrollIndicator = false,
@@ -141,8 +143,39 @@ export const ParallaxScrollView = ({
     }]
   }));
 
-  const { bottom: _bottom } = useSafeAreaInsets();
+  const { bottom: _bottom, top } = useSafeAreaInsets();
   const bottom = Platform.OS === "android" ? _bottom : 0;
+
+  /**
+   * The bar pins once the scroll reaches its own offset in the content, so the status-bar inset is
+   * only needed from that point on — held open from the start it is a gap under a header that is
+   * still sitting mid-screen. It opens over the last `top` pixels before the bar pins, which lands
+   * it at full height exactly as the bar touches the top of the viewport.
+   *
+   * `marginBottom` cancels the padding it just added, so the bar grows without costing the content
+   * below a single pixel of flow. Without it the whole page below shifts down by `top` over the
+   * same `top` pixels of scroll — the content stops dead for the length of the reveal and then
+   * lurches back into motion. Cancelled, the two offsets sum to zero at every frame: the bar sits
+   * still at `top` from the moment the reveal starts until long after it has pinned.
+   *
+   * The offset is read off the bottom of the slot above rather than from the bar itself: the
+   * ScrollView wraps a sticky child in a view of its own, so the bar measures `y: 0` against that
+   * wrapper and never against the content. The slot above is an ordinary child, and its bottom
+   * edge is the same number.
+   */
+  const [stickyHeaderOffset, setStickyHeaderOffset] = useState(0);
+  const revealsInset = Boolean(stickyHeader) && top > 0 && stickyHeaderOffset > 0;
+  const stickyHeaderInsetStyle = useAnimatedStyle(() => {
+    const inset = revealsInset
+      ? interpolate(
+        scrollYReanimated.value,
+        [stickyHeaderOffset - top, stickyHeaderOffset],
+        [0, top],
+        "clamp"
+      )
+      : 0;
+    return { paddingTop: inset, marginBottom: -inset };
+  });
 
   // Scroll to top when scrollKey changes
   useEffect(() => {
@@ -275,6 +308,10 @@ export const ParallaxScrollView = ({
           * holds anything, so an empty slot still seats the content against the photo.
           */}
         <View
+          onLayout={(layout) => {
+            const { y, height } = layout.nativeEvent.layout;
+            setStickyHeaderOffset(y + height);
+          }}
           style={{
             zIndex: 1,
             marginTop: -contentNegativeSpace,
@@ -302,7 +339,17 @@ export const ParallaxScrollView = ({
         </View>
 
         {/* The bar itself. Above the content it pins over, so what scrolls under it stays under. */}
-        <View style={{ zIndex: 2 }}>{stickyHeader}</View>
+        <View style={{ zIndex: 2 }}>
+          {/*
+            * Inside the sticky child, never as the sticky child: the ScrollView freezes the props
+            * of the view it wraps a sticky header in, and a frozen animated style is one Reanimated
+            * can no longer write to. It carries `stickyHeaderStyle` so that the band the padding
+            * opens is painted by the caller's own background.
+            */}
+          <Reanimated.View style={[stickyHeaderStyle, stickyHeaderInsetStyle]}>
+            {stickyHeader}
+          </Reanimated.View>
+        </View>
 
         {/*
           * Content with background.
