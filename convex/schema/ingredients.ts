@@ -116,8 +116,8 @@ export const allergens = defineTable({
  * No `position`: an ingredient's allergens are a set, and nothing renders them in an order the
  * author chose.
  *
- * @immutable a pair is asserted or retracted, never edited — there is nothing on the row but the
- * two ids, so an `updatedAt` would record the moment of an insert and never change again.
+ * No `updatedAt` (S5b): a pair is asserted or retracted, never edited — there is nothing on the row
+ * but the two ids, so the field would record the moment of an insert and never change again.
  */
 export const ingredientAllergens = defineTable({
   ingredientId: v.id("ingredients"),

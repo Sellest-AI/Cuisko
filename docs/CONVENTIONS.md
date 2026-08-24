@@ -397,6 +397,7 @@ written straight into a component. Promote it in the commit that adds that lint 
 | S3  | **Never `.filter()` together with `.paginate()`** — put the predicate in the index        | 📐 C3 |
 | S4  | Never store `createdAt`; `_creationTime` already exists                                   | 👁    |
 | S5  | Mutable tables declare `updatedAt: v.number()`, or are marked `@immutable <reason>`       | 📐 C4 |
+| S5b | A join table **never** declares `updatedAt` — nothing on the row can change              | 📐 C4 |
 | S6  | Polymorphic refs use `v.union` of discriminated objects, never parallel optional FKs      | 👁    |
 | S7  | Every table has ≥1 index, or is marked `@singleton <reason>`                              | 📐 C4 |
 | S8  | Join tables carry `position: v.number()` when order is meaningful                         | 👁    |
@@ -407,6 +408,11 @@ written straight into a component. Promote it in the commit that adds that lint 
 The `@immutable` / `@singleton` markers go in the table's leading comment and must carry a reason.
 They are the sanctioned exemption, so an intentional exception is a visible declaration rather than
 a silent gap — C4 fails on an unmarked table.
+
+**S5b needs no marker: C4 derives it from the shape.** A table whose fields are two or more
+`v.id()` foreign keys — plus at most a `position` (S8) — is a join table, and its rows are
+asserted or retracted, never edited. An `updatedAt` there would record the moment of the insert and
+never change again, so C4 rejects the field rather than exempting the table.
 
 Rationale for S1/S3/S10: [ADR 0007](./adr/0007-every-query-uses-an-index.md).
 

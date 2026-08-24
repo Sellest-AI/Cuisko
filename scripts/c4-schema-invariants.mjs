@@ -6,7 +6,8 @@
  * key creates a delete obligation, and the index that satisfies it has to exist at the moment the
  * key is declared — otherwise you discover the gap when data starts leaking.
  *
- *   S5   every table declares `updatedAt`, or is marked `@immutable <reason>`
+ *   S5   every table declares `updatedAt`, or is marked `@immutable <reason>` — except a join
+ *        table, which must NOT declare one
  *   S7   every table has ≥1 index, or is marked `@singleton <reason>`
  *   S10  every `v.id(parent)` field has an index leading with that field, AND a CASCADE entry
  *        whose named index exists
@@ -159,6 +160,27 @@ const foreignKeyTarget = (node) => {
   return { parent: stringLiteral(node.arguments[0]), inArray: false };
 };
 
+/**
+ * A join table is nothing but its foreign keys: two or more `v.id()` fields, plus at most a
+ * `position` when order is meaningful (S8).
+ *
+ * The shape is what exempts it from S5, rather than an `@immutable` marker someone has to remember
+ * to write. Such a row is asserted or retracted — there is nothing on it to edit — so an
+ * `updatedAt` would record the moment of the insert and never change again, and every caller
+ * inserting the pair pays for a field that answers no question.
+ */
+const isJoinTable = (table) => {
+  const fields = (table.fields?.properties ?? []).filter(
+    (p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name),
+  );
+  const keys = fields.filter((p) => foreignKeyTarget(p.initializer)?.parent);
+
+  return (
+    keys.length >= 2 &&
+    fields.every((p) => keys.includes(p) || p.name.text === "position" || p.name.text === "updatedAt")
+  );
+};
+
 for (const [name, table] of tables) {
   const at = { file: table.file, line: table.line };
 
@@ -174,7 +196,17 @@ for (const [name, table] of tables) {
     .filter((p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name))
     .map((p) => p.name.text);
 
-  if (!fieldNames.includes("updatedAt") && !hasMarker(table, "@immutable")) {
+  if (isJoinTable(table)) {
+    if (fieldNames.includes("updatedAt")) {
+      findings.push({
+        ...at,
+        message: `S5 — join table "${name}" declares "updatedAt".`,
+        fix:
+          `Remove it. A row of "${name}" is nothing but its foreign keys, so it is inserted or ` +
+          "deleted and never edited — the field would hold the moment of the insert forever.",
+      });
+    }
+  } else if (!fieldNames.includes("updatedAt") && !hasMarker(table, "@immutable")) {
     findings.push({
       ...at,
       message: `S5 — table "${name}" has no "updatedAt".`,

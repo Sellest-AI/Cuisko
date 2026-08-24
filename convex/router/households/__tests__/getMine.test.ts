@@ -26,7 +26,7 @@ const addMember = (
   t: ReturnType<typeof convexTest>,
   householdId: Awaited<ReturnType<typeof seedHousehold>>,
   userId: Awaited<ReturnType<typeof seedUser>>,
-) => t.run((ctx) => ctx.db.insert("householdUsers", { householdId, userId, updatedAt: Date.now() }));
+) => t.run((ctx) => ctx.db.insert("householdUsers", { householdId, userId }));
 
 describe("router/households/getMine", () => {
   test("rejects an unauthenticated caller", async () => {

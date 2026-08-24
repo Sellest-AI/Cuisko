@@ -47,7 +47,8 @@ key, or you will discover the gap only when data starts leaking.
 
 ## Related schema rules
 
-C4 also enforces that every table declares `updatedAt` (S5) and carries at least one index (S7),
+C4 also enforces that every table declares `updatedAt` — and that a join table does not (S5, S5b)
+— and that every table carries at least one index (S7),
 with `@immutable <reason>` / `@singleton <reason>` in the table's leading comment as the sanctioned
 exemptions — so an intentional exception is a visible declaration rather than a silent gap.
 

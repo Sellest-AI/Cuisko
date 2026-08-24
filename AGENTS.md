@@ -184,7 +184,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 ### Schema (if `convex/schema/**` changed)
 
 - Every query path has an index; no `.filter()` with `.paginate()`.
-- Mutable table declares `updatedAt`; no hand-rolled `createdAt` (`_creationTime` exists).
+- Mutable table declares `updatedAt`; a join table never does; no hand-rolled `createdAt` (`_creationTime` exists).
 - Polymorphic refs are `v.union` of discriminated objects, not parallel optional FKs.
 - New foreign key ships with its cascade index **and** its `CASCADE` entry.
 - Join table carries `position` if order is meaningful.

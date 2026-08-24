@@ -20,7 +20,7 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
       inviteCode: "ABC123",
       updatedAt: Date.now(),
     });
-    await ctx.db.insert("householdUsers", { householdId, userId, updatedAt: Date.now() });
+    await ctx.db.insert("householdUsers", { householdId, userId });
 
     const ingredientId = await ctx.db.insert("ingredients", {
       name: { values: { en: "Egg" }, meta: {} },
