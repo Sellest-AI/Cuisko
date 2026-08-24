@@ -12,6 +12,7 @@ carries the command that proves it still holds.
 | [0005](./0005-env-validated-at-boot.md) | Environment is Zod-validated and throws at boot | `convex/env.ts`, `env.ts` | `pnpm test`, `pnpm typecheck` |
 | [0006](./0006-screens-never-fetch.md) | Screens never fetch; feature hooks own the data | `app/**`, `src/modules/**` | `pnpm lint` |
 | [0007](./0007-every-query-uses-an-index.md) | Every query reads an index; pagination never filters | `convex/**` | `pnpm check:queries`, `pnpm check:schema` |
+| [0008](./0008-tests-are-layered.md) | Tests are layered by runtime; every test file runs | `**/*.test.ts(x)`, `vitest.config.mts` | `pnpm check:tests`, `pnpm test` |
 
 `pnpm verify` runs all of them — on demand, in the pre-commit hook, and in CI.
 
@@ -19,7 +20,7 @@ carries the command that proves it still holds.
 
 ```markdown
 ---
-id: 0008
+id: 0009
 applies_to: ["convex/**/*.ts"]    # the ADR is relevant only to files matching these globs
 status: accepted                  # accepted | superseded | deprecated
 supersedes: []

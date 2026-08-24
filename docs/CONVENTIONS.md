@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C9)               |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C10)              |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept
@@ -41,6 +41,8 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
 | Convex step files                          | `<operation>.steps.ts`               | `createOne.steps.ts`                             | 👁             |
 | Companion types of one component           | `<name>.types.ts`                    | `select.types.ts`                                | 👁             |
+| Test of a `_model/` or hook file           | **co-located**, `<subject>.test.ts`  | `model.ts` → `model.test.ts`                     | 📐 C10        |
+| Test of anything else                      | `__tests__/<subject>.test.ts`        | `__tests__/getOne.test.ts`                       | 👁             |
 
 **The hook exception is deliberate, not an oversight.** The predecessor's docs said "kebab-case
 everywhere", its code used camelCase for all 19 hook files, and the two conventions coexisted in two
@@ -160,6 +162,34 @@ by_<field>[_and_<field>…]     fields in the same order as the index definition
 
 C3 asserts every index name matches its field list, and every search index is `search_<field>`.
 `userId` may read as `user` or `user_id`; `isPublic` as `public` or `is_public`.
+
+---
+
+### 1.5 Tests 📐 C10 · [ADR 0008](./adr/0008-tests-are-layered.md)
+
+**Two Vitest projects, because the code has two runtimes.** A test's location decides which one
+runs it, so location is not a matter of taste:
+
+| Project | Environment | Collects | For |
+| --- | --- | --- | --- |
+| `convex` | `edge-runtime` + `convex-test` | `convex/**`, `shared/**` | backend functions, and the rejection tests C5 requires |
+| `app` | `jsdom` + `react-native-web` | `src/**`, `app/**` | `_model/` logic, hooks mounted with `renderHook`, components rendered |
+
+A `.tsx` test only runs in the `app` project. Putting one under `convex/` does not fail — it is
+**silently never collected**, which is why C10 asks Vitest itself which files it claims and fails
+on any test file no project picked up.
+
+**Mandatory, everything else is judgement:**
+
+- every file in `src/modules/*/_model/` has a co-located test 📐 C10
+- every access-gated Convex export has a rejection test 📐 C5
+
+Coverage targets are not a rule ([§9](#9-rules-deliberately-not-made)). What replaces them is
+altitude: assert a domain rule against a plain object in `_model/`, and spend a mount only on what
+a mount can see — that a hook's write reaches the state its read subscribes to.
+
+`test/setup.dom.ts` carries the browser APIs jsdom omits, and nothing else. A fake for one of our
+own modules belongs in the test that needs it, where a reader can see it.
 
 ---
 
@@ -489,6 +519,12 @@ Does it run in BOTH Expo and Convex?                  → shared/   (no browser/
 Is it a table definition?                             → convex/schema/{domain}.ts
 
 Is it user-facing copy?                               → translations/   (en + fr, keys in sync)
+
+Is it a test?
+├─ Of a `_model/` file or a hook?                     → co-located, <subject>.test.ts
+├─ Of anything else?                                  → __tests__/<subject>.test.ts beside it
+└─ Which runner picks it up?                          → convex/** and shared/** → `convex` project
+                                                        src/** and app/**       → `app` project
 ```
 
 A directory is created the first time a file belongs in it — but the destination is decided here,
@@ -517,6 +553,13 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] Data access lives in the module's `_hooks/` 👁
 - [ ] UI props are structural types, not `Doc<'x'>` 🔬
 - [ ] Screen under ~120 lines 👁
+
+**Tests**
+
+- [ ] Every new `_model/` file has its co-located test 📐 C10
+- [ ] Every new gated Convex export has its rejection test 📐 C5
+- [ ] A hook whose write changes what a screen reads is mounted, not re-implemented 👁
+- [ ] No test file left where no project collects it 📐 C10
 
 **Always**
 
@@ -559,7 +602,7 @@ oversights:
 | Not a rule                          | Why                                                                                                                                                                      |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | "Never use `any`"                   | Sometimes correct at a vendor boundary. Enforce `noImplicitAny` (🔬) and review the rest — a new `any` needs a comment justifying it.                                     |
-| "100% test coverage"                | Coverage targets produce tests that assert nothing. The authorization suite (A6) is mandatory; the rest is judgement.                                                    |
+| "100% test coverage"                | Coverage targets produce tests that assert nothing. Two things are mandatory — the authorization suite (A6) and a test per `_model/` file (C10) — and the rest is judgement about altitude, not a number. See [ADR 0008](./adr/0008-tests-are-layered.md). |
 | "Every file needs a header comment" | Comment density should match the surrounding code. Noise ages badly.                                                                                                     |
 | "One export per file"               | The multi-access-level pattern is *better* than splitting: the shared handler is the point.                                                                              |
 | "No barrel files"                   | `functions/*/index.ts` barrels worked well in the predecessor (13/13 domains). Keep them; avoid deep re-export chains.                                                   |

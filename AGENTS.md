@@ -16,11 +16,13 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C9 + test — the pre-commit hook runs this and
+pnpm verify        # typecheck + lint + C1–C10 + test — the pre-commit hook runs this and
                    # refuses the commit if it fails. `--no-verify` bypasses it; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
 pnpm test -- <file>  # single test file
+pnpm test:app      # jsdom project only — components, hooks, _model/
+pnpm test:convex   # edge-runtime project only — Convex functions
 ```
 
 Use the `context-mode` plugin when available: any command whose output you will process rather
@@ -66,6 +68,8 @@ copy silently.
 | Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                   | 0007 |
 | Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`          | 0003 |
 | Never add a `v.id()` field without its cascade index **and** `CASCADE` entry           | 0007 |
+| Never leave a test file no Vitest project collects — a `.tsx` under `convex/` never runs | 0008 |
+| Never add a `_model/` file without its co-located test                                 | 0008 |
 | Never write an empty `catch {}`                                                        | —    |
 | Never commit secrets, force-push, or `git commit` unless asked                         | —    |
 | Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                 | —    |
@@ -104,7 +108,7 @@ root file. `_components/` and `_hooks/` are that module's interior, reached only
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C9 scripts + tests).
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C10 scripts + tests).
 
 **Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
 `git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the
@@ -335,6 +339,7 @@ result as if it had returned.
 - `pnpm verify` is green.
 - **Only when you are asked to commit**: The architecture review above ran and reported clean, or the user approved the exceptions.
 - Every new non-`anon` Convex export has a test asserting the wrong caller is rejected.
+- Every new `_model/` file has a co-located test, and no test file sits where nothing runs it (C10).
 - Any `docs/` page the change invalidated has been updated.
 - The slice's plan file is **deleted** — with any decision worth keeping promoted to an ADR or to
   `docs/CONVENTIONS.md` first. A plan that outlives its build is a specification nobody maintains,

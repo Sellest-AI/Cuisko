@@ -46,7 +46,7 @@ cuisko/
 │   ├── plans/            The slice in flight. Intent, not description — deleted when it lands.
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
-├── scripts/              C1–C9 architectural checks, plus dev-tooling shims.
+├── scripts/              C1–C10 architectural checks, plus dev-tooling shims.
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
@@ -325,7 +325,8 @@ domain. `useRecipes.ts` knows how to *fetch* a recipe; `_model/model.ts` knows w
 its types, its invariants, the functions that turn a raw snapshot into what a screen draws. Testing
 the second kind means asserting on a plain object; testing the first means mounting a provider tree
 to fake the query it wraps. Splitting them means the domain rules can be tested at the first kind of
-cost even while the domain has no backend yet — the placeholder in `_hooks/atoms.ts` and the real
+cost even while the domain has no backend yet — which is why a test beside a `_model/` file is the
+one test this project makes mandatory ([ADR 0008](./adr/0008-tests-are-layered.md)) — the placeholder in `_hooks/atoms.ts` and the real
 `_model/` functions built against it are already the shape the eventual Convex-backed version keeps.
 
 **Hooks reach the surface through `hooks.ts`, not by moving.** A hook stays in `_hooks/` beside its
@@ -482,6 +483,7 @@ contact with a growing codebase.
 | Committed `_generated` matches the tree | script C7 | `pnpm check:codegen` |
 | Locales carry identical key sets, and plural call sites pass a `count` | script C8 | `pnpm check:i18n` |
 | No import cycles, in either project | script C9 | `pnpm check:cycles` |
+| Every test file is collected by a runner; every `_model/` has a test | script C10 | `pnpm check:tests` |
 | Commit messages follow Conventional Commits | commitlint | `commit-msg` hook |
 | Branch names follow `<type>/<summary>` | `pre-commit` hook | `pre-commit` hook |
 | Ownership is checked | `ownedQuery`/`ownedMutation` type signatures | `pnpm typecheck` |
