@@ -23,6 +23,7 @@ pnpm start         # Expo dev server
 pnpm test -- <file>  # single test file
 pnpm test:app      # jsdom project only — components, hooks, _model/
 pnpm test:convex   # edge-runtime project only — Convex functions
+pnpm test:scripts  # node project only — the C1–C10 check scripts
 ```
 
 Use the `context-mode` plugin when available: any command whose output you will process rather

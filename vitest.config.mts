@@ -59,6 +59,19 @@ export default defineConfig({
           },
         },
       },
+      /**
+       * The C1-C10 scripts, which had no runner at all until this project existed.
+       *
+       * Plain node: these tests spawn the real script as a subprocess and assert its exit code, so
+       * nothing here needs a DOM, an alias or the Convex runtime.
+       */
+      {
+        test: {
+          name: "scripts",
+          environment: "node",
+          include: ["scripts/**/*.test.ts"],
+        },
+      },
       {
         resolve: {
           alias: aliases,

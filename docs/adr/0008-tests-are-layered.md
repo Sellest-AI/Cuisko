@@ -9,7 +9,10 @@ supersedes: []
 
 MUST: put a test in the project whose runtime its subject needs — `convex/**` and `shared/**` in
       the `convex` project (edge-runtime, `convex-test`); `src/**` and `app/**` in the `app`
-      project (jsdom + react-native-web).
+      project (jsdom + react-native-web); `scripts/**` in the `scripts` project (plain node).
+MUST: assert a C1-C10 check on the shape it REJECTS, not on this repo passing it. A check fails
+      open — break its predicate and it prints ✅ against everything — so a test that only runs it
+      against our own tree pins nothing.
 MUST: co-locate a `_model/` file's test beside it — `model.ts` → `model.test.ts`. Every file in
       `src/modules/*/_model/` has one; this is the one place a test is mandatory rather than
       judgement.
@@ -36,6 +39,13 @@ consequence of that line was invisible:
   seam [0006](./0006-screens-never-fetch.md) makes load-bearing: every screen's data reaches it
   through that folder. It was the least covered layer in the repo and the most depended upon.
 
+The `scripts` project came later, and for a different reason than the other two. The checks are
+the only code here that fails OPEN: a broken predicate does not error, it approves everything, and
+the repo goes green exactly as it does when the rule works. Nothing downstream can catch that —
+which is why the checks are worth testing even though they ship to no one. They run against a
+throwaway tree via `CHECK_ROOT` (`scripts/_lib.mjs`), since a check pointed at this repo can only
+ever confirm the absence of violations.
+
 Two runtimes is not a preference; it is what the code is. Convex functions run in a web runtime
 with no DOM and components need a DOM, so one project has to pick one of them and abandon the
 other. Splitting them is what makes the second half testable at all.
@@ -45,6 +55,7 @@ other. Splitting them is what makes the second half testable at all.
 | Layer | Runs in | Subject | Mandatory? |
 | --- | --- | --- | --- |
 | Model | either | `_model/` — types, invariants, pure derivation | Yes — C10 |
+| Check | `scripts` | a C1-C10 script still fails the shape it exists to reject | Judgement |
 | Contract | `convex` | a gated export turns the wrong caller away | Yes — C5 |
 | Wiring | `app` | a hook's write reaches the state its read subscribes to; a component's branches | Judgement |
 | Flow | not yet | a real build, on a device, end to end | See below |
@@ -74,7 +85,7 @@ Until then this ADR claims no flow coverage, which is the point of writing the g
 
 ```bash
 pnpm check:tests   # C10 — every test file is collected by a project; every _model/ has a test
-pnpm test          # both projects
+pnpm test          # all three projects
 ```
 
 ## See also

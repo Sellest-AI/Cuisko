@@ -4,7 +4,18 @@ import { fileURLToPath } from "node:url";
 
 import ts from "typescript";
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+/**
+ * The tree a check runs against — this repo, unless CHECK_ROOT overrides it.
+ *
+ * The override is what makes the checks testable. They are top-level side-effecting modules that
+ * end in `process.exit`, so a test cannot import one and inspect its findings; it has to run the
+ * real script and read the exit code. Without a way to aim it at a fixture, the only tree a check
+ * could ever run against is the repo itself — where the violations it looks for, by definition,
+ * do not exist.
+ */
+export const ROOT = process.env.CHECK_ROOT
+  ? path.resolve(process.env.CHECK_ROOT)
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const IGNORED_DIRS = new Set(["node_modules", "_generated", ".git", ".history", ".expo", "dist"]);
 

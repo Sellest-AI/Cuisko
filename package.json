@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:app": "vitest run --project app",
     "test:convex": "vitest run --project convex",
+    "test:scripts": "vitest run --project scripts",
     "test:watch": "vitest",
     "check:exports": "node scripts/c1-export-contract.mjs",
     "check:routers": "node scripts/c2-router-size.mjs",
