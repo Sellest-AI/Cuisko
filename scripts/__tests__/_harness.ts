@@ -61,7 +61,21 @@ export const runCheck = (script: string, tree: Tree): CheckResult => {
     return { code: 0, output: stdout };
   } catch (error) {
     const failure = error as { status: number; stdout: string; stderr: string };
-    return { code: failure.status, output: `${failure.stdout}${failure.stderr}` };
+    const output = `${failure.stdout}${failure.stderr}`;
+
+    /**
+     * A crash and a violation both exit 1, and telling them apart is not optional here.
+     *
+     * This was found the hard way: disabling C9's cycle guard did not make it stop reporting, it
+     * made it recurse until the stack overflowed — still exit 1, so two tests asserting only the
+     * exit code kept passing against a check that had stopped working entirely. Throwing means no
+     * test can ever pass on a crash, however loosely it asserts.
+     */
+    if (!output.includes("❌")) {
+      throw new Error(`${script} crashed instead of reporting findings:\n${output}`);
+    }
+
+    return { code: failure.status, output };
   }
 };
 

@@ -13,6 +13,9 @@ MUST: put a test in the project whose runtime its subject needs — `convex/**` 
 MUST: assert a C1-C10 check on the shape it REJECTS, not on this repo passing it. A check fails
       open — break its predicate and it prints ✅ against everything — so a test that only runs it
       against our own tree pins nothing.
+MUST: assert the finding text, not just the exit code. A crashing check also exits 1, so an
+      exit-code-only test passes against a check that has stopped working. `runCheck` throws on a
+      crash for this reason; the assertion is the second half of the guard.
 MUST: co-locate a `_model/` file's test beside it — `model.ts` → `model.test.ts`. Every file in
       `src/modules/*/_model/` has one; this is the one place a test is mandatory rather than
       judgement.
