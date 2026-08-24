@@ -481,6 +481,7 @@ contact with a growing codebase.
 | Docs point at things that exist | script C6 | `pnpm check:docs` |
 | Committed `_generated` matches the tree | script C7 | `pnpm check:codegen` |
 | Locales carry identical key sets, and plural call sites pass a `count` | script C8 | `pnpm check:i18n` |
+| No import cycles, in either project | script C9 | `pnpm check:cycles` |
 | Commit messages follow Conventional Commits | commitlint | `commit-msg` hook |
 | Branch names follow `<type>/<summary>` | `pre-commit` hook | `pre-commit` hook |
 | Ownership is checked | `ownedQuery`/`ownedMutation` type signatures | `pnpm typecheck` |
