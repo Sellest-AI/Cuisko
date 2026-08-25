@@ -75,14 +75,12 @@ export default function RootLayout() {
         <Stack.Screen
           name="recipe/new"
           options={{
-            presentation: "fullScreenModal",
             animation: "slide_from_bottom"
           }}
         />
         <Stack.Screen
           name="recipe/edit/[id]"
           options={{
-            presentation: "fullScreenModal",
             animation: "slide_from_bottom"
           }}
         />
