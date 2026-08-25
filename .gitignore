@@ -36,3 +36,7 @@ npm-debug.log*
 
 .history
 .vscode
+
+# Bake-off transcripts — minutes of real OpenRouter spend, worth keeping until the prompt they
+# indict is fixed and worth nothing after. `convex/agent/__bench__/transcript.ts` writes them.
+convex/agent/__bench__/runs/
