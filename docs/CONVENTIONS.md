@@ -416,6 +416,7 @@ written straight into a component. Promote it in the commit that adds that lint 
 | S9  | Concurrent counters use `@convex-dev/sharded-counter`                                     | 👁    |
 | S10 | A foreign key ships **together with** the index its cascade needs and its `CASCADE` entry | 📐 C4 |
 | S11 | Enums: `const X = [...] as const` → `v.union(...X.map(v.literal))` → `typeof X[number]`   | 👁    |
+| S12 | A field a model writes whose value is a locale-dependent word is a closed vocabulary (S11) | 👁    |
 
 The `@immutable` / `@singleton` markers go in the table's leading comment and must carry a reason.
 They are the sanctioned exemption, so an intentional exception is a visible declaration rather than
@@ -427,6 +428,7 @@ asserted or retracted, never edited. An `updatedAt` there would record the momen
 never change again, so C4 rejects the field rather than exempting the table.
 
 Rationale for S1/S3/S10: [ADR 0007](./adr/0007-every-query-uses-an-index.md).
+Rationale for S12: [ADR 0010](./adr/0010-a-model-returns-names-not-ids.md).
 
 **S3 is the one people get wrong.** Convex paginates the *index read*, then applies `.filter()` to
 the page — so a page of 24 can return 3 documents while reporting `isDone: false`, and infinite
@@ -734,6 +736,7 @@ would rot into a wish list, and a rule nobody intends to mechanise should say so
 | S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                             |
 | S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                          |
 | S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                             |
+| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.             |
 | A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                                 |
 | A7 — rate limiting                               | "Costs money" is not a static property.                                                                                                                              |
 | A8 — never return credentials                    | Would require taint tracking.                                                                                                                                        |
