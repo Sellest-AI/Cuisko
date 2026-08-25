@@ -6,6 +6,24 @@ import { defineConfig } from "vitest/config";
 const at = (relative: string) => fileURLToPath(new URL(relative, import.meta.url));
 
 /**
+ * What every project that runs automatically must refuse to collect.
+ *
+ * The top-level `exclude` does NOT reach into a project — a project either declares its own or
+ * collects whatever its `include` matches. So this is restated by each of the three automatic
+ * projects rather than set once above them, and `manual` is the one that leaves it out, since
+ * excluding `*.manual.test.ts` there would exclude that project from itself.
+ *
+ * A hand-run test claimed by an automatic project is a hand-run test billed on every commit.
+ */
+const AUTOMATIC_EXCLUDE = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/.expo/**",
+  "**/.history/**",
+  "**/*.manual.test.ts",
+] as const;
+
+/**
  * `.env.local`, as a plain object.
  *
  * Hand-rolled rather than Vite's `loadEnv`, which is not re-exported by `vitest/config` and lives
@@ -75,9 +93,9 @@ export default defineConfig({
           include: ["convex/**/*.test.ts", "shared/**/*.test.ts"],
           // `*.manual.test.ts` ends in `.test.ts` and lives under `convex/`, so this include claims
           // it unless it is named here — and a hand-run test claimed by the `convex` project is a
-          // hand-run test billed on every `pnpm verify`. A per-project `exclude` REPLACES the
-          // top-level one, so node_modules has to be restated.
-          exclude: ["**/node_modules/**", "**/*.manual.test.ts"],
+          // hand-run test billed on every `pnpm verify`. The top-level `exclude` does NOT reach
+          // into a project, so every project that can match one restates the pattern itself.
+          exclude: [...AUTOMATIC_EXCLUDE],
 
           // convex/env.ts throws on a missing key by design (P4), so the test run has to supply a
           // valid environment — the same contract a real deployment has to satisfy.
@@ -99,6 +117,7 @@ export default defineConfig({
           name: "scripts",
           environment: "node",
           include: ["scripts/**/*.test.ts"],
+          exclude: [...AUTOMATIC_EXCLUDE],
         },
       },
       /**
@@ -183,6 +202,7 @@ export default defineConfig({
           name: "app",
           environment: "jsdom",
           include: ["src/**/*.test.ts", "src/**/*.test.tsx", "app/**/*.test.ts", "app/**/*.test.tsx"],
+          exclude: [...AUTOMATIC_EXCLUDE],
           setupFiles: ["./test/setup.dom.ts"],
         },
       },
