@@ -25,6 +25,10 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
   users: [
     { table: "usersExtended", index: "by_user", field: "userId" },
     { table: "householdUsers", index: "by_user", field: "userId" },
+    { table: "recipeFavorites", index: "by_user", field: "userId" },
+    // The recipe goes with its author: `userId` is what makes it theirs, and a recipe left behind
+    // with a dangling one would show an empty chef on every screen that draws the credit.
+    { table: "recipes", index: "by_user", field: "userId" },
   ],
   households: [
     { table: "householdUsers", index: "by_household", field: "householdId" },
@@ -37,6 +41,11 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     { table: "cellarItems", index: "by_ingredient", field: "ingredientId" },
     { table: "recentlyUsedIngredients", index: "by_ingredient", field: "ingredientId" },
     { table: "ingredientAllergens", index: "by_ingredient", field: "ingredientId" },
+    { table: "recipeIngredients", index: "by_ingredient", field: "ingredientId" },
+  ],
+  recipes: [
+    { table: "recipeIngredients", index: "by_recipe", field: "recipeId" },
+    { table: "recipeFavorites", index: "by_recipe", field: "recipeId" },
   ],
   allergens: [
     // The ingredient outlives its allergen: dropping "gluten" from the catalog leaves the flour.

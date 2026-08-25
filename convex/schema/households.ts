@@ -1,12 +1,10 @@
-import { EQUIPMENTS } from "@shared/equipments";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-
-const vEquipments = v.union(...EQUIPMENTS.map(v.literal));
+import { vEquipments } from "./cellars";
 
 export const households = defineTable({
   name: v.string(),
-  equipments: v.array(vEquipments),
+  equipments: vEquipments,
   inviteCode: v.string(),
   updatedAt: v.number(), // S5
 }).index("by_invite_code", ["inviteCode"]);

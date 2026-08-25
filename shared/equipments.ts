@@ -13,3 +13,6 @@ export const EQUIPMENTS = [
   "waffle maker",
   "toaster"
 ] as const;
+
+/** The vocabulary as a type — what `vEquipments` validates and what a sanitized recipe carries. */
+export type Equipment = (typeof EQUIPMENTS)[number];
