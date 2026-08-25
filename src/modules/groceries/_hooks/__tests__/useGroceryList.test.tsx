@@ -3,9 +3,9 @@ import { getFunctionName } from "convex/server";
 import { Provider } from "jotai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useGroceryList } from "./useGroceryList";
-import { useStockActions } from "./useStockActions";
-import type { StockRow } from "../_model/model";
+import { useGroceryList } from "../useGroceryList";
+import { useStockActions } from "../useStockActions";
+import type { StockRow } from "../../_model/model";
 
 /**
  * The seam `_model/model.test.ts` cannot reach.

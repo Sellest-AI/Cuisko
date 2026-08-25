@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rankSuggestions, type Suggestion } from "./useSuggestions";
+import { rankSuggestions, type Suggestion } from "../useSuggestions";
 
 /**
  * The ranking, tested against a fixture rather than against the catalog.

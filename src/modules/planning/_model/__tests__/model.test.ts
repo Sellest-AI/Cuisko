@@ -24,7 +24,7 @@ import {
   type MealSlot,
   type PlannedMeal,
   type Recipe,
-} from "./model";
+} from "../model";
 
 const TODAY = new Date(2026, 7, 12);
 const day = (offset: number) => new Date(2026, 7, 12 + offset);

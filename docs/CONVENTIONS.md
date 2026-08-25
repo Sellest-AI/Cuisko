@@ -41,8 +41,7 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
 | Convex step files                          | `<operation>.steps.ts`               | `createOne.steps.ts`                             | 👁             |
 | Companion types of one component           | `<name>.types.ts`                    | `select.types.ts`                                | 👁             |
-| Test of a `_model/` or hook file           | **co-located**, `<subject>.test.ts`  | `model.ts` → `model.test.ts`                     | 📐 C10        |
-| Test of anything else                      | `__tests__/<subject>.test.ts`        | `__tests__/getOne.test.ts`                       | 👁             |
+| Test of anything, `_model/` included       | `__tests__/<subject>.test.ts`        | `step.ts` → `__tests__/step.test.ts`             | 📐 C10        |
 
 **The hook exception is deliberate, not an oversight.** The predecessor's docs said "kebab-case
 everywhere", its code used camelCase for all 19 hook files, and the two conventions coexisted in two
@@ -179,9 +178,22 @@ A `.tsx` test only runs in the `app` project. Putting one under `convex/` does n
 **silently never collected**, which is why C10 asks Vitest itself which files it claims and fails
 on any test file no project picked up.
 
+**Where the file goes — `__tests__/` beside the subject. No exceptions.** 📐 C10
+
+```
+convex/router/cellars/addToCellar.ts   → convex/router/cellars/__tests__/addToCellar.test.ts
+src/modules/recipe/_model/step.ts      → src/modules/recipe/_model/__tests__/step.test.ts
+shared/recipes.ts                      → shared/__tests__/recipes.test.ts
+```
+
+`_model/` and `_hooks/` co-located until C10 gained rule 3; they do not any more. The rule is
+mechanical on purpose — given a path there is exactly one legal place for its test, so a reviewer
+never needs an opinion, and neither "once the folder gets crowded" nor "except in `_model/`" is a
+thing anyone has to remember.
+
 **Mandatory, everything else is judgement:**
 
-- every file in `src/modules/*/_model/` has a co-located test 📐 C10
+- every file in `src/modules/*/_model/` has a test in that folder's `__tests__/` 📐 C10
 - every access-gated Convex export has a rejection test 📐 C5
 
 Coverage targets are not a rule ([§9](#9-rules-deliberately-not-made)). What replaces them is
@@ -536,11 +548,12 @@ Is it a table definition?                             → convex/schema/{domain}
 
 Is it user-facing copy?                               → translations/   (en + fr, keys in sync)
 
-Is it a test?
-├─ Of a `_model/` file or a hook?                     → co-located, <subject>.test.ts
-├─ Of anything else?                                  → __tests__/<subject>.test.ts beside it
+Is it a test?                                           📐 C10 · [ADR 0008](./adr/0008-tests-are-layered.md)
+├─ Where does it go?                                  → __tests__/<subject>.test.ts beside the
+│                                                       subject. Always — `_model/` included
 └─ Which runner picks it up?                          → convex/** and shared/** → `convex` project
                                                         src/** and app/**       → `app` project
+                                                        scripts/**              → `scripts` project
 ```
 
 A directory is created the first time a file belongs in it — but the destination is decided here,
@@ -572,7 +585,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 
 **Tests**
 
-- [ ] Every new `_model/` file has its co-located test 📐 C10
+- [ ] Every new `_model/` file has its test in `__tests__/` 📐 C10
 - [ ] Every new gated Convex export has its rejection test 📐 C5
 - [ ] A hook whose write changes what a screen reads is mounted, not re-implemented 👁
 - [ ] No test file left where no project collects it 📐 C10

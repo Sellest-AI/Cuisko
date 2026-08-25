@@ -16,9 +16,11 @@ MUST: assert a C1-C10 check on the shape it REJECTS, not on this repo passing it
 MUST: assert the finding text, not just the exit code. A crashing check also exits 1, so an
       exit-code-only test passes against a check that has stopped working. `runCheck` throws on a
       crash for this reason; the assertion is the second half of the guard.
-MUST: co-locate a `_model/` file's test beside it — `model.ts` → `model.test.ts`. Every file in
-      `src/modules/*/_model/` has one; this is the one place a test is mandatory rather than
-      judgement.
+MUST: put every test in a `__tests__/` folder beside its subject, with no exceptions —
+      `convex/router/cellars/addToCellar.ts` → `convex/router/cellars/__tests__/addToCellar.test.ts`.
+      C10 rejects a test file anywhere else. See "Where a test file sits" below.
+MUST: give every file in `src/modules/*/_model/` a test — in that folder's `__tests__/`. This is
+      the one place a test is mandatory rather than judgement 📐 C10.
 MUST: keep a rejection test for every access-gated Convex export ([0003](./0003-ownership-via-procedure.md), A6).
 MUST: exercise a hook by mounting it — `renderHook` with the module's own store — never by
       re-implementing what it composes.
@@ -69,6 +71,34 @@ tree ([ARCHITECTURE.md](../ARCHITECTURE.md)) — pushing that assertion up into 
 nothing and costs a mount. What a wiring test earns is the thing no lower layer can see: that the
 two halves are connected. `buildSections` being correct and `putInCellar` being correct says
 nothing about whether a tap reaches the atom the screen reads.
+
+## Where a test file sits
+
+`__tests__/` beside the subject. Everywhere, for everything, with no exception — given any path
+there is exactly one legal place for its test, computable from the path alone. C10 rule 3 enforces
+it, so this is checked rather than reviewed.
+
+**Why a folder rather than a sibling.** `convex/router/cellars/` holds seven operations and seven
+rejection tests. Co-located, the operations are buried among their tests and `ls` stops answering
+"what can this router do?" — the question the folder exists to answer. The effect scales with how
+well-tested a folder is, which means co-location penalises exactly the folders doing best.
+
+**Why `_model/` and `_hooks/` are not exceptions, though they were.** The argument for exempting
+them was that adjacency makes a missing `_model/` test visible at a glance. It does — but C10 makes
+that test *mandatory*, so the tree is not what has to make its absence visible; the check already
+does, and it does so whether the test is a sibling or one folder down. Once the check exists the
+exemption buys nothing and costs a rule with a branch in it, which is the kind the next author gets
+wrong in the direction of the exception.
+
+**Why not "use `__tests__/` once the folder gets crowded".** It cannot be checked, so it cannot be
+reviewed, and it makes every already-correct file ambiguous — a co-located test would no longer
+mean "follows the rule", it would mean "someone judged this folder small enough", which is not
+recoverable from the tree.
+
+**What this cost.** Five test files moved out of `_model/` and `_hooks/`, C10 gained a third rule,
+and this ADR reversed a MUST it had stated. Recorded rather than quietly rewritten, because the
+exemption was defensible and the reason it lost is the part worth keeping: a rule a script can
+check beats a rule that reads better.
 
 ## Not yet — flow tests
 

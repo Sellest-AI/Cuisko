@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { stepNumber } from "./step";
+import { stepNumber } from "../step";
 
 /**
  * Two screens read the same method and have to agree on what "step 3" means, so what is pinned

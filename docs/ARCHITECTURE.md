@@ -57,12 +57,12 @@ cuisko/
 
 ### Two runtimes, two TypeScript projects
 
-| | Root project | Convex project |
-| --- | --- | --- |
-| Config | [tsconfig.json](../tsconfig.json) | [convex/tsconfig.json](../convex/tsconfig.json) |
-| Covers | `app/`, `src/`, `shared/` | `convex/`, `shared/` |
-| Runtime | React Native (Hermes) / web | Convex's V8 edge runtime |
-| Excludes | `convex/` | `convex/_generated/` |
+|          | Root project                      | Convex project                                  |
+| -------- | --------------------------------- | ----------------------------------------------- |
+| Config   | [tsconfig.json](../tsconfig.json) | [convex/tsconfig.json](../convex/tsconfig.json) |
+| Covers   | `app/`, `src/`, `shared/`         | `convex/`, `shared/`                            |
+| Runtime  | React Native (Hermes) / web       | Convex's V8 edge runtime                        |
+| Excludes | `convex/`                         | `convex/_generated/`                            |
 
 The split is not cosmetic — the two runtimes have different globals. `shared/` is the only code
 compiled by both, which is why it may use neither browser APIs nor Node built-ins.
@@ -73,14 +73,14 @@ Every alias is unambiguous in both projects, deliberately: the predecessor's `@/
 the app and `convex/lib/` in the backend — the same prefix with two meanings depending on which
 config owned the file.
 
-| Alias | Root project | Convex project |
-| --- | --- | --- |
-| `~/*` | `src/*` | — |
-| `@ui/*` | `src/ui/components/*` | — |
-| `@ui/hooks/*`, `@ui/utils` | `src/ui/hooks/*`, `src/ui/utils` | — |
-| `theme`, `routes`, `env` | `src/global/theme.ts`, `src/global/routes.ts`, `env.ts` | — |
-| `@convex/*` | `convex/*` — resolution only, **not for application code** | `convex/*` |
-| `@shared/*` | `shared/*` | `shared/*` |
+| Alias                      | Root project                                               | Convex project |
+| -------------------------- | ---------------------------------------------------------- | -------------- |
+| `~/*`                      | `src/*`                                                    | —              |
+| `@ui/*`                    | `src/ui/components/*`                                      | —              |
+| `@ui/hooks/*`, `@ui/utils` | `src/ui/hooks/*`, `src/ui/utils`                           | —              |
+| `theme`, `routes`, `env`   | `src/global/theme.ts`, `src/global/routes.ts`, `env.ts`    | —              |
+| `@convex/*`                | `convex/*` — resolution only, **not for application code** | `convex/*`     |
+| `@shared/*`                | `shared/*`                                                 | `shared/*`     |
 
 `@convex/*` is declared in both projects, but only the backend may *use* it. The root project needs
 it because `src/lib/convex/api.ts` re-exports the generated API, whose type graph imports every
@@ -113,15 +113,15 @@ convex/
 
 ### Layer contracts
 
-| Layer | May do | May **not** do |
-| --- | --- | --- |
-| `router/` | validators, procedure wrappers, arg shaping, call `functions/` | loops, domain branching, domain-library imports, >80 lines |
-| `functions/` | touch `ctx.db`, domain logic, call `lib/` | be a registered Convex procedure |
-| `lib/` | vendor SDKs, pure helpers | touch `ctx.db` |
-| `agent/` | import `ai` / `@convex-dev/agent` | be imported by `src/` |
-| `http/` | define webhooks via `verifiedWebhook` | call `httpAction` directly |
-| `procedures.ts` | import `_generated/server` | import `_generated/api` — type cycle |
-| everything else | import `_generated/api` | import `_generated/server` |
+| Layer           | May do                                                         | May **not** do                                             |
+| --------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
+| `router/`       | validators, procedure wrappers, arg shaping, call `functions/` | loops, domain branching, domain-library imports, >80 lines |
+| `functions/`    | touch `ctx.db`, domain logic, call `lib/`                      | be a registered Convex procedure                           |
+| `lib/`          | vendor SDKs, pure helpers                                      | touch `ctx.db`                                             |
+| `agent/`        | import `ai` / `@convex-dev/agent`                              | be imported by `src/`                                      |
+| `http/`         | define webhooks via `verifiedWebhook`                          | call `httpAction` directly                                 |
+| `procedures.ts` | import `_generated/server`                                     | import `_generated/api` — type cycle                       |
+| everything else | import `_generated/api`                                        | import `_generated/server`                                 |
 
 `functions/` vs `lib/` is decidable, not a judgement call: **does it touch `ctx.db`?** Every domain
 in `functions/` carries an `index.ts` barrel, so imports read `from "@convex/functions/recipes"`.
@@ -152,13 +152,13 @@ convex/router/recipes/getOne.ts  →  export const authed  →  api.router.recip
 
 The export **name** encodes the access level, which is the only place it is visible at the call site.
 
-| Export | Required builder | Callable by |
-| --- | --- | --- |
-| `anon` | `publicQuery` / `publicMutation` / `publicAction` | anyone |
-| `authed` | `auth*` or `owned*` | signed-in users |
-| `admin` | `admin*` | `role === 'ADMIN'` |
-| `server` | `server*` | holders of `SERVER_PRIVATE_KEY` |
-| `_internal` / `_internal_<verb>` | `internal*` | other Convex functions only |
+| Export                           | Required builder                                  | Callable by                     |
+| -------------------------------- | ------------------------------------------------- | ------------------------------- |
+| `anon`                           | `publicQuery` / `publicMutation` / `publicAction` | anyone                          |
+| `authed`                         | `auth*` or `owned*`                               | signed-in users                 |
+| `admin`                          | `admin*`                                          | `role === 'ADMIN'`              |
+| `server`                         | `server*`                                         | holders of `SERVER_PRIVATE_KEY` |
+| `_internal` / `_internal_<verb>` | `internal*`                                       | other Convex functions only     |
 
 Script **C1** verifies the name matches the builder on every commit — the highest-value check in the
 repo. The predecessor shipped `export const admin = authQuery({ args: { userId } })` twice; both were
@@ -240,12 +240,12 @@ top-level exports for the markers its builders attach. An object wrapping them r
 which is why the grammar has an `_internal_<verb>` form rather than a namespace. Name steps by verb,
 never by number: `_internal_persist` survives refactoring, `_internal_step3` does not.
 
-| Need | Use |
-| --- | --- |
-| One follow-up after a write commits | `ctx.scheduler.runAfter(0, internal.…)` |
-| Recurring on a clock | `crons/` |
-| Multi-step, each step retried independently | `@convex-dev/workflow` |
-| Iterate a large table | `.paginate()` inside a workflow — **never `.collect()`** |
+| Need                                        | Use                                                      |
+| ------------------------------------------- | -------------------------------------------------------- |
+| One follow-up after a write commits         | `ctx.scheduler.runAfter(0, internal.…)`                  |
+| Recurring on a clock                        | `crons/`                                                 |
+| Multi-step, each step retried independently | `@convex-dev/workflow`                                   |
+| Iterate a large table                       | `.paginate()` inside a workflow — **never `.collect()`** |
 
 ### The AI boundary
 
@@ -254,8 +254,7 @@ endpoints are ordinary `router/` files that call into it — not a parallel tree
 predecessor meant two places to look for an endpoint for no benefit.
 
 Two patterns worth keeping: **semantic model tiers** (call sites ask for `models.vision.smart`, never
-a model string, so swapping providers is a one-file change) and **pricing co-located with the model**,
-so cost accounting has one source.
+a model string, so swapping providers is a one-file change).
 
 ---
 
@@ -325,8 +324,8 @@ domain. `useRecipes.ts` knows how to *fetch* a recipe; `_model/model.ts` knows w
 its types, its invariants, the functions that turn a raw snapshot into what a screen draws. Testing
 the second kind means asserting on a plain object; testing the first means mounting a provider tree
 to fake the query it wraps. Splitting them means the domain rules can be tested at the first kind of
-cost even while the domain has no backend yet — which is why a test beside a `_model/` file is the
-one test this project makes mandatory ([ADR 0008](./adr/0008-tests-are-layered.md)) — the placeholder in `_hooks/atoms.ts` and the real
+cost even while the domain has no backend yet — which is why a `_model/` file's test is the one
+test this project makes mandatory ([ADR 0008](./adr/0008-tests-are-layered.md)) — the placeholder in `_hooks/atoms.ts` and the real
 `_model/` functions built against it are already the shape the eventual Convex-backed version keeps.
 
 **Hooks reach the surface through `hooks.ts`, not by moving.** A hook stays in `_hooks/` beside its
@@ -416,12 +415,12 @@ and a stale refresh token silently restores the session on next launch.
 
 ### `app/` — screens
 
-| Allowed | Forbidden |
-| --- | --- |
-| `useLocalSearchParams` | `useQuery` / `useMutation` / `api` |
-| `<Stack.Screen options>` | domain logic, computation |
-| layout composition | more than ~120 lines |
-| one feature-hook call | |
+| Allowed                  | Forbidden                          |
+| ------------------------ | ---------------------------------- |
+| `useLocalSearchParams`   | `useQuery` / `useMutation` / `api` |
+| `<Stack.Screen options>` | domain logic, computation          |
+| layout composition       | more than ~120 lines               |
+| one feature-hook call    |                                    |
 
 ### `src/ui/` — the isolation that worked
 
@@ -447,12 +446,12 @@ layer does the adaptation ([ADR 0002](./adr/0002-ui-isolation.md)).
 
 ### State
 
-| Kind of state | Home |
-| --- | --- |
-| Server data | Convex `useQuery` — reactive, no cache layer needed |
-| Cross-screen ephemeral UI | Jotai atom **inside the module's `_hooks/`** |
-| Single-screen UI | `useState` |
-| Form drafts | local state, or a module atom if it survives navigation |
+| Kind of state             | Home                                                    |
+| ------------------------- | ------------------------------------------------------- |
+| Server data               | Convex `useQuery` — reactive, no cache layer needed     |
+| Cross-screen ephemeral UI | Jotai atom **inside the module's `_hooks/`**            |
+| Single-screen UI          | `useState`                                              |
+| Form drafts               | local state, or a module atom if it survives navigation |
 
 There is no Redux-style store and no client cache duplicating server state. That restraint is
 deliberate.
@@ -464,30 +463,30 @@ deliberate.
 Every boundary above maps to a mechanism. This table is why the layering is expected to survive
 contact with a growing codebase.
 
-| Boundary | Mechanism | Command |
-| --- | --- | --- |
-| `src/ui/` isolation | ESLint R1 | `pnpm lint` |
-| Only `procedures.ts` touches `_generated/server` | ESLint R2 + complete re-export surface | `pnpm lint` |
-| `procedures.ts` stays out of the api type cycle | ESLint R2b | `pnpm lint` |
-| Only `src/lib/convex/api.ts` reaches the generated API | ESLint R3 | `pnpm lint` |
-| Screens do not fetch | ESLint R4 | `pnpm lint` |
-| Webhooks are verified | ESLint R5 + `verifiedWebhook`'s required `verify` | `pnpm lint` |
-| No empty `catch` | ESLint R6 | `pnpm lint` |
-| Ownership is a capability, not a call | ESLint R7 | `pnpm lint` |
-| Export name matches its builder | script C1 | `pnpm check:exports` |
-| Routers stay thin | script C2 (≤80 lines) | `pnpm check:routers` |
-| Queries use indexes; no `filter`+`paginate` | script C3 | `pnpm check:queries` |
-| `updatedAt`, indexes, cascade completeness | script C4 | `pnpm check:schema` |
-| Gated exports have a rejection test | script C5 | `pnpm check:authtests` |
-| Docs point at things that exist | script C6 | `pnpm check:docs` |
-| Committed `_generated` matches the tree | script C7 | `pnpm check:codegen` |
-| Locales carry identical key sets, and plural call sites pass a `count` | script C8 | `pnpm check:i18n` |
-| No import cycles, in either project | script C9 | `pnpm check:cycles` |
-| Every test file is collected by a runner; every `_model/` has a test | script C10 | `pnpm check:tests` |
-| Commit messages follow Conventional Commits | commitlint | `commit-msg` hook |
-| Branch names follow `<type>/<summary>` | `pre-commit` hook | `pre-commit` hook |
-| Ownership is checked | `ownedQuery`/`ownedMutation` type signatures | `pnpm typecheck` |
-| Env is complete | Zod throw at module load | `pnpm test` |
+| Boundary                                                               | Mechanism                                         | Command                |
+| ---------------------------------------------------------------------- | ------------------------------------------------- | ---------------------- |
+| `src/ui/` isolation                                                    | ESLint R1                                         | `pnpm lint`            |
+| Only `procedures.ts` touches `_generated/server`                       | ESLint R2 + complete re-export surface            | `pnpm lint`            |
+| `procedures.ts` stays out of the api type cycle                        | ESLint R2b                                        | `pnpm lint`            |
+| Only `src/lib/convex/api.ts` reaches the generated API                 | ESLint R3                                         | `pnpm lint`            |
+| Screens do not fetch                                                   | ESLint R4                                         | `pnpm lint`            |
+| Webhooks are verified                                                  | ESLint R5 + `verifiedWebhook`'s required `verify` | `pnpm lint`            |
+| No empty `catch`                                                       | ESLint R6                                         | `pnpm lint`            |
+| Ownership is a capability, not a call                                  | ESLint R7                                         | `pnpm lint`            |
+| Export name matches its builder                                        | script C1                                         | `pnpm check:exports`   |
+| Routers stay thin                                                      | script C2 (≤80 lines)                             | `pnpm check:routers`   |
+| Queries use indexes; no `filter`+`paginate`                            | script C3                                         | `pnpm check:queries`   |
+| `updatedAt`, indexes, cascade completeness                             | script C4                                         | `pnpm check:schema`    |
+| Gated exports have a rejection test                                    | script C5                                         | `pnpm check:authtests` |
+| Docs point at things that exist                                        | script C6                                         | `pnpm check:docs`      |
+| Committed `_generated` matches the tree                                | script C7                                         | `pnpm check:codegen`   |
+| Locales carry identical key sets, and plural call sites pass a `count` | script C8                                         | `pnpm check:i18n`      |
+| No import cycles, in either project                                    | script C9                                         | `pnpm check:cycles`    |
+| Every test file is collected by a runner; every `_model/` has a test   | script C10                                        | `pnpm check:tests`     |
+| Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
+| Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
+| Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
+| Env is complete                                                        | Zod throw at module load                          | `pnpm test`            |
 
 `pnpm verify` runs all of it. It runs in **three** places, deliberately: on demand, in the
 [pre-commit hook](../.githooks/pre-commit) — so a failing commit cannot be created — and in CI on

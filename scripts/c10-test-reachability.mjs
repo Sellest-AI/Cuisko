@@ -13,6 +13,10 @@
  * Rule 2 is the one place a test is mandatory rather than judgement (ADR 0008): `_model/` is
  * framework-free domain logic, testable with a plain object and no provider tree, and it is what
  * the rest of the module is derived from. If anything is worth pinning, it is that.
+ *
+ * Rule 3 is placement, and it is here because placement is the one property a test cannot report
+ * on itself. A misplaced test still runs and still passes; what it costs is found later, by
+ * someone who looks beside a file, finds nothing, and writes the second copy.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -57,20 +61,49 @@ for (const file of testFilesOnDisk) {
   });
 }
 
-/* ── 2. Every _model/ file has a co-located test ───────────────────────────────────────── */
+/* ── 2. Every _model/ file has a test ──────────────────────────────────────────────────── */
 
 for (const file of listFiles(path.join(ROOT, "src", "modules"), ".ts")) {
-  if (!file.split(path.sep).includes("_model")) continue;
+  const segments = file.split(path.sep);
+  if (!segments.includes("_model")) continue;
   if (file.endsWith(".test.ts")) continue;
+  if (segments.includes("__tests__")) continue;
 
-  const test = file.replace(/\.ts$/, ".test.ts");
+  const test = path.join(
+    path.dirname(file),
+    "__tests__",
+    path.basename(file).replace(/\.ts$/, ".test.ts"),
+  );
   if (existsSync(test)) continue;
 
   findings.push({
     file: relative(file),
-    message: "Domain logic in _model/ with no co-located test.",
+    message: "Domain logic in _model/ with no test.",
     fix: `Write ${relative(test)}. _model/ is pure by construction — it needs no provider tree.`,
   });
 }
 
-report("C10 every test runs, and every _model/ has one", findings);
+/* ── 3. Every test sits in a __tests__/ folder ─────────────────────────────────────────── */
+
+/**
+ * One placement rule, no exceptions (ADR 0008). `_model/` and `_hooks/` used to co-locate, which
+ * meant a reviewer had to know which folder a path was in before knowing where its test belonged —
+ * and a rule with exceptions is one the next author gets wrong in the direction of the exception.
+ *
+ * Checked here rather than left to review because placement is invisible in a diff: a test in the
+ * wrong place still runs, still passes, and reads as correct until someone goes looking for it
+ * beside the file it covers and concludes there is none.
+ */
+for (const file of testFilesOnDisk) {
+  if (file.split("/").includes("__tests__")) continue;
+
+  findings.push({
+    file,
+    message: "Test file outside a __tests__/ folder.",
+    fix:
+      `Move it to ${path.posix.join(path.posix.dirname(file), "__tests__", path.posix.basename(file))} ` +
+      "and fix its relative imports. A folder holds all its tests in one place or none.",
+  });
+}
+
+report("C10 every test runs, sits in __tests__/, and every _model/ has one", findings);

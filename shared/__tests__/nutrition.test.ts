@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { computeNutriScore, type NutritionFacts } from "./nutrition";
+import { computeNutriScore, type NutritionFacts } from "../nutrition";
 
 const facts = (overrides: Partial<NutritionFacts> = {}): NutritionFacts => ({
   calories: 0,

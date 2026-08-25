@@ -17,7 +17,7 @@ import {
   type HistoryEntry,
   type Receipt,
   type Snapshot,
-} from "./model";
+} from "../model";
 
 const NOW = new Date("2026-08-10T12:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms);
