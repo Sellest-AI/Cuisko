@@ -201,9 +201,14 @@ const _userPrompt = ({ ingredients, instructions, outdated }: z.infer<typeof _in
 /**
  * A pile of free text into a complete recipe, in one model call and one language.
  *
- * Runs on a throwaway thread with `saveMessages: "none"` — `wrapAgent` creates and deletes it. This
- * is a transformation, not a conversation: nothing later needs to recall the paragraph the cook
- * pasted, and keeping it would make every subsequent turn in a real thread carry it as context.
+ * Nothing is written down: `saveMessages: "none"` is what keeps the exchange out of the thread.
+ * This is a transformation, not a conversation — nothing later needs to recall the paragraph the
+ * cook pasted, and keeping it would make every subsequent turn in a real thread carry it as
+ * context.
+ *
+ * `wrapAgent` supplies the thread. It only creates and deletes a throwaway one when the ctx has
+ * neither a threadId nor a userId; on the router path, which always carries a userId, there is no
+ * thread to clean up and `saveMessages` is doing all of the work.
  */
 export const sanitizeRecipe = createTool({
   description:

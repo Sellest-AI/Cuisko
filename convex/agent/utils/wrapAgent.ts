@@ -22,9 +22,17 @@ export const getThreadOpts = async (ctx: ToolCtx, agent: Agent) => {
 type GenerateTextParameters = Parameters<Agent["generateText"]> & { 0: ToolCtx };
 type GenerateObjectParameters = Parameters<Agent["generateObject"]> & { 0: ToolCtx };
 
+/**
+ * The two generation calls, each on a thread the caller does not have to own.
+ *
+ * Deliberately NOT typed as an `Agent`, and it does not spread one: spreading a class instance
+ * copies own properties only, so every prototype method would be missing from an object that
+ * claimed to have them — `wrapAgent(a).streamText(...)` would compile and then fail at run time
+ * with "not a function". Returning only what is actually wrapped turns that into a compile error
+ * at the call site. Anything else this needs later gets wrapped here, deliberately.
+ */
 export const wrapAgent = (agent: Agent) => {
   return {
-    ...agent,
     async generateText(...args: GenerateTextParameters) {
       const { threadOpts, deleteTmpThread } = await getThreadOpts(args[0], agent);
       try {
@@ -41,5 +49,5 @@ export const wrapAgent = (agent: Agent) => {
         await deleteTmpThread();
       }
     },
-  } as Agent;
+  };
 };
