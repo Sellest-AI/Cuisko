@@ -5,8 +5,21 @@ type ToolCtx = _ToolCtx;
 
 type Params<INPUT, OUTPUT, Ctx extends ToolCtx = ToolCtx> = Parameters<typeof _createTool<INPUT, OUTPUT, Ctx>>[0];
 
+/**
+ * A Convex tool that can also be called directly, as a function.
+ *
+ * The SDK's own `execute` takes `(input, options)` and reads the ctx off `this`, which the agent
+ * sets when the model picks the tool. That is the right shape for a tool and the wrong shape for a
+ * caller who already holds a ctx and simply wants the work done — most of ours are used both ways,
+ * and a recipe is sanitized by a router action long before any model chooses to sanitize one.
+ *
+ * So `run` is added ALONGSIDE `execute` rather than over it. Overwriting `execute` with the raw
+ * handler is the tempting version and it breaks silently: the moment the tool is listed in an
+ * agent's `tools`, the SDK calls `execute(input, options)`, the model's arguments arrive in the
+ * `ctx` slot, and nothing throws. Both call sites now stay correct at once.
+ */
 export type ToolExtended<INPUT, OUTPUT, Ctx extends ToolCtx = ToolCtx> = Tool<INPUT, OUTPUT> & {
-  execute: (
+  run: (
     ctx: Ctx,
     args: INPUT,
   ) => (OUTPUT | Promise<OUTPUT>);
@@ -17,7 +30,5 @@ export const createTool = <INPUT, OUTPUT, Ctx extends ToolCtx = ToolCtx>(
 ): ToolExtended<INPUT, OUTPUT, Ctx> => {
   const tool = _createTool<INPUT, OUTPUT, Ctx>(args);
 
-  (tool as any).execute = args.execute;
-
-  return tool as ToolExtended<INPUT, OUTPUT, Ctx>;
+  return Object.assign(tool, { run: args.execute }) as ToolExtended<INPUT, OUTPUT, Ctx>;
 };
