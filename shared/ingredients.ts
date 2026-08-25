@@ -49,3 +49,67 @@ export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
  */
 export const formatQuantity = (amount: number, unit: Unit) =>
   `${Number.isInteger(amount) ? amount : amount.toFixed(1)} ${unitLabel(unit)}`;
+
+/**
+ * What a catalog ingredient knows about its own weight — the two optional fields on the
+ * `ingredients` table, passed structurally so this file never has to reach for a `Doc`.
+ */
+export type GramWeights = {
+  /** Grams in one of them: 150 for an onion. */
+  gramsPerPiece?: number;
+  /** Density, in grams per millilitre: 0.91 for oil, 1.42 for honey. */
+  gramsPerMl?: number;
+};
+
+/** Grams in one of each mass unit. The only conversions that need nothing from the ingredient. */
+const GRAMS_PER_MASS_UNIT = {
+  g: 1,
+  mg: 0.001,
+  kg: 1000,
+  oz: 28.349523125,
+  lb: 453.59237,
+} as const satisfies Partial<Record<Unit, number>>;
+
+/**
+ * Millilitres in one of each volume unit.
+ *
+ * `cs` and `cc` are the French cuillère à soupe and cuillère à café, which are defined as 15 and
+ * 5 ml — not as the US tablespoon/teaspoon, which are 14.79 and 4.93. The difference is under a
+ * percent of a spoonful and nothing here would notice, but the number has to come from somewhere.
+ */
+const ML_PER_VOLUME_UNIT = {
+  ml: 1,
+  cl: 10,
+  l: 1000,
+  cs: 15,
+  cc: 5,
+} as const satisfies Partial<Record<Unit, number>>;
+
+/**
+ * A quantity in grams, or `undefined` when this ingredient does not know what it weighs.
+ *
+ * Every nutrition fact in the catalog is per 100g, so this is the gate every recipe line passes
+ * through before it can be counted. Returning `undefined` rather than guessing is the point: a
+ * caller that substituted 1 g/ml for a missing density would understate honey by 40% and report it
+ * with the same confidence as a line measured in grams.
+ *
+ * Units are matched by table rather than by falling through to `pcs`, so a unit added to `UNITS`
+ * and to neither table returns `undefined` instead of being silently weighed as a piece.
+ */
+export const toGrams = (quantity: number, unit: Unit, weights: GramWeights): number | undefined => {
+  if (unit in GRAMS_PER_MASS_UNIT) {
+    return quantity * GRAMS_PER_MASS_UNIT[unit as keyof typeof GRAMS_PER_MASS_UNIT];
+  }
+
+  if (unit in ML_PER_VOLUME_UNIT) {
+    if (weights.gramsPerMl === undefined) return undefined;
+    return quantity * ML_PER_VOLUME_UNIT[unit as keyof typeof ML_PER_VOLUME_UNIT] * weights.gramsPerMl;
+  }
+
+  if (unit === "pcs") {
+    if (weights.gramsPerPiece === undefined) return undefined;
+    return quantity * weights.gramsPerPiece;
+  }
+
+  return undefined;
+};

@@ -73,6 +73,10 @@ export const seedIngredients = async (ctx: MutationCtx) => {
       category: entry.category,
       defaultUnit: entry.defaultUnit,
       defaultQuantity: entry.defaultQuantity,
+      // Undefined for a row that has no such ratio, which is how `patch` drops one that was
+      // removed from the catalog — an omitted key would leave the old value in place instead.
+      gramsPerPiece: entry.gramsPerPiece,
+      gramsPerMl: entry.gramsPerMl,
       nutrition: entry.nutrition,
       nutriScore,
       updatedAt: Date.now(),

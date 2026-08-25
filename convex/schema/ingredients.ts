@@ -75,6 +75,27 @@ export const ingredients = defineTable({
   category: vCategory,
   defaultUnit: vUnit,
   defaultQuantity: v.number(),
+  /**
+   * What one of this ingredient weighs, for the units that do not carry a weight themselves.
+   *
+   * `nutrition` below is per 100g, so every quantity has to reach grams before it can be counted —
+   * and "2 onions" or "1 cs of oil" cannot get there on arithmetic alone. `gramsPerPiece` weighs a
+   * single one (150 for an onion); `gramsPerMl` is the density, and it is the difference between
+   * oil at 0.91 and honey at 1.42 — assuming 1.0 understates honey by 40%.
+   *
+   * Both stay optional permanently, and not merely until the catalog is reseeded: an ingredient
+   * carries the ratios for the units it is plausibly measured in, which is usually one of the two.
+   * A chicken has no `gramsPerMl` because nobody measures one in millilitres, and flour has no
+   * `gramsPerPiece` because there is no such thing as one flour. Absent here means "no such
+   * question", not "not filled in yet".
+   *
+   * What is not expressible as a validator, and belongs in the seed instead: an ingredient must
+   * carry the ratio for its own `defaultUnit`, or the unit it is most often written in is the one
+   * quantity nothing can weigh. A recipe with a line this cannot convert reports no nutrition at
+   * all rather than a partial total — a dish quietly missing its olive oil reads as a health food.
+   */
+  gramsPerPiece: v.optional(v.number()),
+  gramsPerMl: v.optional(v.number()),
   // All facts per 100g.
   nutrition: v.object({
     calories: v.number(),
