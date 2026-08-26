@@ -39,7 +39,7 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | Module components with **several** parents | `_components/`                       | `_components/recipe-form.tsx`                    | 👁             |
 | A module's public hooks                    | `hooks.ts` at the module root        | `export { useX } from "./_hooks/useX"`           | 🔒 R8          |
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
-| Convex step files                          | `<operation>.steps.ts`               | `createOne.steps.ts`                             | 👁             |
+| Convex Node-runtime half of an operation   | `<operation>Node.ts`                 | `importOneNode.ts`                               | 📐 C2         |
 | Companion types of one component           | `<name>.types.ts`                    | `select.types.ts`                                | 👁             |
 | Test of anything, `_model/` included       | `__tests__/<subject>.test.ts`        | `step.ts` → `__tests__/step.test.ts`             | 📐 C10        |
 
@@ -48,9 +48,12 @@ everywhere", its code used camelCase for all 19 hook files, and the two conventi
 different hook folders. Pick the greppable one: `useRecipes.ts` exporting `useRecipes` means the
 filename and the symbol match, so searching for either finds both. **Write it down, then never mix.**
 
-> Files with **multiple dots** (`*.test.ts`, `*.d.ts`, `*.steps.ts`) are skipped by Convex's bundler,
-> which is why test and ambient-type files can live inside `convex/` without being pushed to a
-> deployment.
+> Files with **multiple dots** (`*.test.ts`, `*.d.ts`, `*.config.ts`) are skipped by Convex's
+> bundler, which is why test and ambient-type files can live inside `convex/` without being pushed
+> to a deployment. The rule is `(base.match(/\./g) || []).length > 1` in `entryPoints()`
+> (`node_modules/convex/dist/cjs/bundler/index.js`), and it skips at `logVerbose` level — a
+> registered function in such a file is dropped **silently**, and only fails when something calls it.
+> `scripts/c7-generated-api.mjs` encodes the same list.
 
 #### A component becomes a folder at three files 👁
 
@@ -261,12 +264,41 @@ export const _internal_persist   = internalMutation({ … });
 `_internal_step3`, `_internal_step4` — and `_internal_step2` was missing, because a step was deleted
 and nothing was renumbered. `_internal_persist` survives refactoring; `_internal_step3` does not.
 
-**When the file exceeds 80 lines**, move the steps to a sibling:
+### 2.2 `<operation>Node.ts` — the runtime split, and the only reason to split 📐 C2
+
+A second file for one operation is justified by **`"use node"`, and by nothing else.**
+
+Convex decides the runtime **per module** — `determineEnvironment` in the bundler, called once per
+entry point — and the Node runtime hosts only actions. So an operation that needs a Node API *and*
+must persist what it produced cannot be one file.
+
+**The split is directional: the Node half is what moves out, and it holds nothing else.**
 
 ```
-router/recipes/importOne.ts          export const authed
-router/recipes/importOne.steps.ts    export const _internal_fetchPage, _internal_parse, …
+router/recipes/importOne.ts                    →  export const authed, _internal_persist
+router/recipes/importOneNode.ts   "use node"   →  export const _internal_parse
 ```
+
+`importOne.ts` stays in the isolate runtime and keeps the entry point and every mutation.
+`importOneNode.ts` carries the directive and only the actions that genuinely need Node. **The entry
+point never has to move** — an isolate action reaches a Node one through `ctx.runAction`, so the
+client-facing export stays with the rest of the operation, and the Node bundle stays as small as the
+one thing that forced it.
+
+Named for the runtime rather than for "the other steps", because the runtime is what a future reader
+must not undo. `importOneSteps.ts` invites being merged back; `importOneNode.ts` says why it cannot
+be.
+
+**One dot in the filename, deliberately.** `importOne.node.ts` has two, which is exactly what the
+note in §1 says the bundler drops. Those exports would never register, the module would be absent
+from `internal.router.recipes`, and nothing would say so until a call failed in production — C1, C2,
+C7 and `tsc` all stay green, because the generated API is derived from the same filtered tree.
+
+> ⚠️ **A router file over 80 lines is not a reason to make one.** That is domain logic sitting a
+> layer too high; it belongs in `functions/`, and a sibling file only moves the violation. C2 fails
+> a `*Node.ts` that does not declare `"use node"`, and fails an `<operation>.ts` that declares it
+> while a `*Node.ts` sibling exists — so the escape hatch cannot be borrowed for the line cap, and
+> the half that moved cannot quietly become the whole operation.
 
 ---
 

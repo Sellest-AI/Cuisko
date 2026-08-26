@@ -57,3 +57,87 @@ it("passes when convex/router does not exist yet", () => {
 
   expect(code).toBe(0);
 });
+
+/**
+ * The rest of the check, and the reason it was added: splitting an oversized router into a sibling
+ * satisfies the line cap and moves nothing. Only `"use node"` forces one operation across two
+ * modules, so only `"use node"` justifies a second file — and the split is directional. The entry
+ * point and the mutations stay in the isolate half; the Node half carries the directive and only
+ * what needs it.
+ */
+it("accepts the directional split", () => {
+  const { code } = runC2({
+    "importOne.ts": linesOf(10),
+    "importOneNode.ts": `"use node"\n${linesOf(10)}`,
+  });
+
+  expect(code).toBe(0);
+});
+
+it("rejects a node half that does not declare use node", () => {
+  const { code, output } = runC2({
+    "importOne.ts": linesOf(10),
+    "importOneNode.ts": linesOf(10),
+  });
+
+  expect(code).toBe(1);
+  expect(output).toContain("convex/router/importOneNode.ts");
+  expect(output).toContain('does not declare "use node"');
+});
+
+/** Both halves in Node means the split bought nothing — and a mutation cannot register there. */
+it("rejects use node on the isolate half when a node half exists", () => {
+  const { code, output } = runC2({
+    "importOne.ts": `"use node"\n${linesOf(10)}`,
+    "importOneNode.ts": `"use node"\n${linesOf(10)}`,
+  });
+
+  expect(code).toBe(1);
+  expect(output).toContain("both halves run in Node");
+});
+
+/** A whole operation that is one Node action is legitimately one file, under the plain name. */
+it("accepts a lone operation that runs entirely in node", () => {
+  const { code } = runC2({ "importOne.ts": `"use node"\n${linesOf(10)}` });
+
+  expect(code).toBe(0);
+});
+
+it("rejects a node half with no operation beside it", () => {
+  const { code, output } = runC2({ "importOneNode.ts": `"use node"\n${linesOf(10)}` });
+
+  expect(code).toBe(1);
+  expect(output).toContain("nothing was split");
+});
+
+/** "use node" in a comment is not the directive, and must not buy the exemption. */
+it("does not take use node from a comment", () => {
+  const { code } = runC2({
+    "importOne.ts": linesOf(10),
+    "importOneNode.ts": `// "use node" would go here\n${linesOf(10)}`,
+  });
+
+  expect(code).toBe(1);
+});
+
+/**
+ * The shape this convention used to name. Convex's bundler skips any basename with more than one
+ * dot — silently, at logVerbose level — so the exports never register and C1, C7 and `tsc` all stay
+ * green. The failure surfaces as a missing function in production, which is why C2 catches it here.
+ */
+it("rejects a filename whose extra dot would stop it being registered", () => {
+  const { code, output } = runC2({
+    "importOne.ts": linesOf(10),
+    "importOne.node.ts": `"use node"\n${linesOf(10)}`,
+  });
+
+  expect(code).toBe(1);
+  expect(output).toContain("convex/router/importOne.node.ts");
+  expect(output).toContain("nothing it exports is registered");
+});
+
+it("still exempts test files from the extra-dot rule", () => {
+  const { code } = runC2({ "__tests__/getOne.test.ts": linesOf(10) });
+
+  expect(code).toBe(0);
+});
