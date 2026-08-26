@@ -116,7 +116,11 @@ export async function retryPromise<T>(
     } catch (error) {
       lastError = error;
 
-      if (attempt === attempts || !shouldRetry(error)) break;
+      // A failure the caller declined to retry is not a retry failure — it is that failure, and
+      // wrapping it would bury the 401 under a message about ten attempts that never happened.
+      if (!shouldRetry(error)) throw error;
+
+      if (attempt === attempts) break;
 
       // Jittered, so a batch of calls failing together does not retry in lockstep.
       const delay = Math.floor(Math.random() * (350 - 150 + 1)) + 150;
