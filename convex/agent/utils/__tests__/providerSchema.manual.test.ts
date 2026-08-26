@@ -4,7 +4,7 @@
  * ⚠️ THIS COSTS MONEY — it calls OpenRouter for real and needs a real `OPENROUTER_API_KEY` in
  * `.env.local`:
  *
- *     pnpm test:manual                  # 2 calls per model. Every row should be green.
+ *     pnpm test:manual                  # 3 calls per model. Every row should be green.
  *     PROBE_WHY=1 pnpm test:manual      # the diagnostic run — see `DIAGNOSE` below.
  *
  * The default run never sends a schema it expects to be refused. Nothing here fails on purpose:
@@ -39,7 +39,8 @@
  */
 import { describe, it } from "vitest";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { Output, generateText, jsonSchema } from "ai";
+import { Output, generateText, jsonSchema, tool } from "ai";
+import * as z from "zod/v4";
 
 import { modelRecipeSchema } from "../../tools/sanitizeRecipe";
 import { providerSchema } from "../providerSchema";
@@ -81,6 +82,43 @@ const _call = async (model: string, schema: unknown, prompt: string): Promise<Ou
   } catch (error) {
     // The WHOLE message, not the first sixty characters — being unreadable in the bake-off table
     // is the reason this file exists.
+    return { accepted: false, message: error instanceof Error ? error.message : String(error) };
+  }
+};
+
+/**
+ * One call where the schema is a TOOL'S PARAMETERS rather than the output shape.
+ *
+ * A separate path, and the reason it needs its own probe: `providerSchema` never touches a tool's
+ * `inputSchema`. `createTool` hands it to the SDK as authored, so a keyword a provider refuses
+ * reaches it intact on the one path a model actually takes — the exact mirror of the output side,
+ * where every array is rebuilt and the keyword never leaves the process.
+ *
+ * `toolChoice: "required"` because a model that simply declines to call the tool would report as
+ * an accepted schema, which is the one answer this must not give by accident.
+ */
+const _callWithTool = async (
+  model: string,
+  inputSchema: z.ZodType,
+  prompt: string,
+): Promise<Outcome> => {
+  try {
+    const result = await generateText({
+      model: createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY! }).chat(model),
+      system: "Call the tool with what the user described. Nothing else.",
+      prompt,
+      tools: {
+        record: tool({
+          description: "Record the languages a recipe should be translated into.",
+          inputSchema: inputSchema as never,
+        }),
+      },
+      toolChoice: "required",
+      maxRetries: 0,
+    });
+
+    return { accepted: true, output: JSON.stringify(result.toolCalls[0]?.input ?? null) };
+  } catch (error) {
     return { accepted: false, message: error instanceof Error ? error.message : String(error) };
   }
 };
@@ -281,14 +319,56 @@ const NUMBER_SHAPES = Object.fromEntries(
 );
 
 /**
+ * Every way of constraining an ARRAY, and the reason this group was added.
+ *
+ * `providerSchema` rebuilds every array as `z.array(_strict(element))`, which silently drops
+ * `minItems`, `maxItems` and `uniqueItems` from what the model is shown — a `.min(2)` survives to
+ * the inbound parse and reaches no provider. That is either a rewrite doing its job or a
+ * constraint being thrown away for nothing, and the difference is measurable rather than
+ * arguable: OpenAI's structured output documents these four keywords as unsupported, which if
+ * true makes the drop the thing keeping the request legal.
+ *
+ * `contains` is here as the fourth documented-unsupported keyword even though nothing in this
+ * repo emits one — the question is what the provider does with the CLASS, and a keyword nobody
+ * uses is the cheapest way to ask without a row of ours depending on the answer.
+ */
+const ARRAY_SHAPES = Object.fromEntries(
+  Object.entries({
+    "array minItems": { type: "array", items: { type: "string" }, minItems: 2 },
+    "array maxItems": { type: "array", items: { type: "string" }, maxItems: 4 },
+    "array uniqueItems": { type: "array", items: { type: "string" }, uniqueItems: true },
+    "array contains": {
+      type: "array",
+      items: { type: "string" },
+      contains: { type: "string", enum: ["quick"] },
+    },
+    // The control, and what `providerSchema` actually emits: the constraint in prose, where a
+    // model reads it and no validator can refuse it.
+    "array, bare": {
+      type: "array",
+      items: { type: "string" },
+      description: "Two or more tags.",
+    },
+  }).map(([label, tags]) => [
+    label,
+    { type: "object", properties: { tags }, required: ["tags"], additionalProperties: false },
+  ]),
+);
+
+/**
  * The two sets share one request and one prompt. They are declared apart because they answer
  * different questions, not because they cost anything to send together: a refusal is diagnosed
  * shape by shape regardless, so splitting the request in advance would only buy a second bill.
  */
-const SHAPES: Record<string, Record<string, unknown>> = { ...NOTHING_SHAPES, ...NUMBER_SHAPES };
+const SHAPES: Record<string, Record<string, unknown>> = {
+  ...NOTHING_SHAPES,
+  ...NUMBER_SHAPES,
+  ...ARRAY_SHAPES,
+};
 
 /** Enough facts to fill any field in `SHAPES`, and nothing worth grading. */
-const PROMPT = `A dish called "toast": 3 minutes, difficulty 2 out of 5.`;
+const PROMPT =
+  `A dish called "toast": 3 minutes, difficulty 2 out of 5, tagged "quick" and "breakfast".`;
 
 describe("what providers accept", () => {
   it("every shape, one request", { timeout: 300_000 }, async () => {
@@ -323,6 +403,38 @@ describe("what providers accept", () => {
       if (DIAGNOSE) _report(model, "authored", await _call(model, modelRecipeSchema, prompt));
 
       _report(model, "providerSchema", await _call(model, providerSchema(modelRecipeSchema), prompt));
+    }
+
+    _summary();
+  });
+
+  /**
+   * `translateRecipe`'s own `locales: z.array(...).min(1)`, on the path it actually travels.
+   *
+   * The output side of that tool is safe by construction — `providerSchema` rebuilds the array and
+   * the `minItems` never leaves the process. Its INPUT schema is not rewritten by anything, so
+   * this is the one place a `.min()` in this repo reaches a provider, and the only way to know
+   * whether that is free is to send it.
+   *
+   * The bare row is the control. If both are accepted the `.min(1)` costs nothing and buys a real
+   * constraint; if only the bare one is, the `.min(1)` comes off and the handler's own guard is
+   * what enforces it — which it does regardless, since nothing parses `inputSchema` on the direct
+   * `run` path.
+   */
+  it("a tool's parameters, with and without an array constraint", { timeout: 300_000 }, async () => {
+    const prompt = "Translate it into French.";
+    const locales = z.array(z.enum(["en", "fr"])).describe("Target languages.");
+
+    for (const model of MODELS) {
+      console.log(`
+── ${model} ${"─".repeat(Math.max(0, 50 - model.length))}`);
+
+      _report(model, "tool array, bare", await _callWithTool(model, z.object({ locales }), prompt));
+      _report(
+        model,
+        "tool array minItems",
+        await _callWithTool(model, z.object({ locales: locales.min(1) }), prompt),
+      );
     }
 
     _summary();

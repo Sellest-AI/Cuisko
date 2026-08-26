@@ -15,6 +15,7 @@ import {
   num,
   round,
   signed,
+  spentOn,
   succeeded,
   tally,
   usd,
@@ -42,6 +43,26 @@ const _flags = (ok: Success[]) => {
   ];
 };
 
+/**
+ * The last thing printed, because it is the next thing to do.
+ *
+ * This table ranks the field; it cannot tell you whether the field itself is the problem. When
+ * every candidate scores badly, or the top two are separated by noise, the answer is not in these
+ * rows — it is in the prompt, the schema and the answers themselves, and those are on disk. The
+ * transcript is written to be handed over whole, which is a step nobody takes if they do not know
+ * the file is there, so the invitation goes where the disappointment happens.
+ */
+const _handOff = (transcript: string) => [
+  "",
+  `  full transcript, prompt and every answer included:  ${transcript}`,
+  "",
+  "  This ranking is one judge's opinion over a handful of runs — a shortlist, not a result. Hand",
+  "  that file to another model, in a fresh conversation, and ask it to re-rank the answers itself,",
+  "  say where it disagrees with the judge, and name what in the system prompt or the schema caused",
+  "  the failures it can see. That is the pass that improves the instructions; this one only tells",
+  "  you who is winning under the instructions you already have.",
+];
+
 export const table = (options: {
   title: string;
   judge: string;
@@ -51,8 +72,10 @@ export const table = (options: {
   entrants: Map<string, Entrant>;
   attempts: Map<string, Attempt[]>;
   judgeCost: number | undefined;
+  transcript: string;
 }) => {
-  const { title, judge, runs, candidates, verdict, entrants, attempts, judgeCost } = options;
+  const { title, judge, runs, candidates, verdict, entrants, attempts, judgeCost, transcript } =
+    options;
 
   const rows = [...verdict.rows].sort((a, b) => a.rank - b.rank);
   const scores = new Map(rows.map((row) => [row.label, row.score]));
@@ -122,14 +145,7 @@ export const table = (options: {
 
   // What the whole bake-off cost, judge included. It is the number you actually spent, and it is
   // the one you will want before deciding whether to run it again with a longer candidate list.
-  const generations = [...attempts.values()]
-    .flatMap((all) => succeeded(all))
-    .map((attempt) => attempt.cost)
-    .filter((cost) => cost !== undefined);
-
-  const spent = generations.reduce((total, cost) => total + cost, 0) + (judgeCost ?? 0);
-  const unreported =
-    [...attempts.values()].flat().filter((run) => run.ok).length - generations.length;
+  const { spent, generations, unreported } = spentOn(attempts, judgeCost);
 
   const text = [
     "",
@@ -140,14 +156,15 @@ export const table = (options: {
     ...(compared.length ? ["", "─".repeat(WIDTH), "  WORTH THE TOKENS?", ...compared] : []),
     "",
     "─".repeat(WIDTH),
-    `  total spent: ${usd(spent)}  (${generations.length} generations ` +
+    `  total spent: ${usd(spent)}  (${generations} generations ` +
       `${usd(spent - (judgeCost ?? 0))} + judge ${usd(judgeCost)})` +
       (unreported ? `  ·  ⚠ ${unreported} run(s) reported no cost, so this is a floor` : ""),
     "─".repeat(WIDTH),
     verdict.verdict.replace(/^/gm, "  "),
     "─".repeat(WIDTH),
+    ..._handOff(transcript),
     "",
   ].join("\n");
 
-  return { text, spent };
+  return text;
 };

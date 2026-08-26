@@ -16,7 +16,6 @@ import { retryPromise } from "@shared/helpers";
 import { createTool, parseModelOutput, providerSchema, wrapAgent } from "../utils";
 import { recipesAgent } from "../agents";
 import { sanitizeRecipePrompt } from "../config/prompts/sanitizeRecipe";
-import { models } from "../config";
 
 /**
  * A recipe in ONE language, with its ingredients unresolved.
@@ -172,6 +171,24 @@ const _inputSchema = z.object({
   locale: z
     .enum(SUPPORTED_LOCALES)
     .describe("The language every field of the result is written in."),
+  title: z
+    .string()
+    .optional()
+    .describe("The cook's own title for the dish, if they gave one. Use it as written rather than inventing one."),
+  description: z
+    .string()
+    .optional()
+    .describe(
+      "The cook's own description, if they gave one. Use it as written rather than inventing one.",
+    ),
+  servings: z
+    .number()
+    .optional()
+    .describe(
+      "How many people the cook says the quantities feed, when they said it outside the free " +
+      "text. Return it unchanged and read every quantity as written for it. Absent means they " +
+      "never said, and only then is the number yours to estimate.",
+    ),
   ingredients: z
     .array(z.string())
     .describe(`Free text, one ingredient line per entry — "200g de pâtes", "2 onions, chopped".`),
@@ -189,9 +206,15 @@ const _inputSchema = z.object({
  * What the model is shown. The already-sanitized recipe comes first when there is one, because it
  * is the thing being edited and the free text is the change to apply to it.
  */
-const _userPrompt = ({ ingredients, instructions, outdated }: z.infer<typeof _inputSchema>) =>
+const _userPrompt = (
+  { title, description, servings, ingredients, instructions, outdated }: z.infer<typeof _inputSchema>,
+) =>
   [
     outdated && `The recipe as it stands:\n${JSON.stringify(outdated, null, 2)}`,
+    title && `The cook's own title — use it as written (or improve it):\n${title}`,
+    description && `The cook's own description — use it as written (or improve it):\n${description}`,
+    servings !== undefined &&
+      `How many the cook says it feeds — return this number, do not re-estimate it:\n${servings}`,
     `Ingredients, as the cook wrote them:\n${ingredients.join("\n")}`,
     `Instructions, as the cook wrote them:\n${instructions}`,
   ]
@@ -222,7 +245,6 @@ export const sanitizeRecipe = createTool({
         ctx,
         {},
         {
-          providerOptions: models.recipes.providerOptions({ effort: "low" }),
           system: sanitizeRecipePrompt(args.locale),
           prompt: _userPrompt(args),
           schema: providerSchema(modelRecipeSchema),

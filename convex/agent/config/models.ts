@@ -19,9 +19,26 @@ const DEEPSEEK_V4_FLASH_0731_OPTIONS = {
   })
 }
 
-const HY3 = openrouter.chat("tencent/hy3");
-const HY3_OPTIONS = {
-  providerOptions: ({ effort }: { effort?: false | "low" | "high" }) => ({
+/**
+ * Not used for now. Was the previous model for recipes.
+ * A bit less accurate than OPENAI_GPT_5_6_LUNA. Faster than DEEPSEEK_V4_FLASH_0731.
+ *  */
+// const HY3 = openrouter.chat("tencent/hy3");
+// const HY3_OPTIONS = {
+//   providerOptions: ({ effort }: { effort?: false | "low" | "high" }) => ({
+//     openrouter: {
+//       reasoning: effort ? { enabled: true, effort } : { enabled: false },
+//       provider: {
+//         sort: "price",
+//         allow_fallbacks: true
+//       }
+//     }
+//   })
+// }
+
+const OPENAI_GPT_5_6_LUNA = openrouter.chat("openai/gpt-5.6-luna");
+const OPENAI_GPT_5_6_LUNA_OPTIONS = {
+  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
     openrouter: {
       reasoning: effort ? { enabled: true, effort } : { enabled: false },
       provider: {
@@ -38,7 +55,11 @@ export const models = {
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS
   },
   recipes: {
-    model: HY3,
-    ...HY3_OPTIONS
+    model: OPENAI_GPT_5_6_LUNA,
+    ...OPENAI_GPT_5_6_LUNA_OPTIONS
+  },
+  translator: {
+    model: DEEPSEEK_V4_FLASH_0731,
+    ...DEEPSEEK_V4_FLASH_0731_OPTIONS
   }
 }

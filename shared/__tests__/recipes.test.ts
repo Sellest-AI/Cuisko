@@ -25,7 +25,7 @@ describe("serializeInstructions", () => {
         { title: "Pasta", steps: ["Preheat the pot", "Put the pasta into the pot"] },
       ]),
     ).toBe(
-      ["Sauce", "- Mix the yogurt with the mustard", "", "Pasta", "- Preheat the pot", "- Put the pasta into the pot"].join(
+      ["## Sauce", "- Mix the yogurt with the mustard", "", "## Pasta", "- Preheat the pot", "- Put the pasta into the pot"].join(
         "\n",
       ),
     );
@@ -46,7 +46,7 @@ describe("serializeInstructions", () => {
   test("strips a step marker from a heading that would otherwise parse back as a step", () => {
     const text = serializeInstructions([{ title: "- Sauce", steps: ["Whisk"] }]);
 
-    expect(text).toBe("Sauce\n- Whisk");
+    expect(text).toBe("## Sauce\n- Whisk");
     expect(parseInstructions(text)).toEqual([{ title: "Sauce", steps: ["Whisk"] }]);
   });
 
@@ -113,10 +113,57 @@ describe("the round trip", () => {
     { name: "a step that itself starts with the step marker", groups: [{ steps: ["- Preheat"] }] },
     { name: "an accented heading", groups: [{ title: "Pâtes", steps: ["Cuire 8 minutes"] }] },
     { name: "a single step", groups: [{ steps: ["Serve"] }] },
+    // The case the heading marker exists for: unmarked, this heading is past
+    // LONG_STEP_THRESHOLD and comes back as a step, losing the title on the first translation.
+    {
+      name: "a heading long enough to look like a step",
+      groups: [{ title: "Pour la garniture et le montage", steps: ["Monter"] }],
+    },
+    {
+      name: "a heading that itself starts with the heading marker",
+      groups: [{ title: "## Sauce", steps: ["Whisk"] }],
+    },
   ] satisfies { name: string; groups: InstructionGroup[] }[])(
     "survives $name unchanged on a second pass",
     ({ groups }) => expectStableThroughText(groups),
   );
+
+  /**
+   * What a cook actually pastes: prose, no dashes, no headings. The length heuristic is the only
+   * thing standing between that and a recipe with no steps in it.
+   */
+  describe("free text as a cook writes it", () => {
+    test("reads an unprefixed sentence as a step, not as a heading", () => {
+      const groups = parseInstructions(
+        "Faire revenir les oignons dans le beurre pendant dix minutes.",
+      );
+
+      expect(groups).toEqual([
+        { steps: ["Faire revenir les oignons dans le beurre pendant dix minutes."] },
+      ]);
+    });
+
+    test("still reads a short unprefixed line as the heading it looks like", () => {
+      const groups = parseInstructions("Sauce\nMélanger le tout jusqu'à obtenir une crème lisse.");
+
+      expect(groups).toEqual([
+        { title: "Sauce", steps: ["Mélanger le tout jusqu'à obtenir une crème lisse."] },
+      ]);
+    });
+
+    test("groups a pasted block of sentences under the heading above it", () => {
+      const groups = parseInstructions(
+        [
+          "Sauce",
+          "Faire fondre le beurre dans une casserole à feu doux.",
+          "Ajouter la farine et fouetter sans cesser pendant deux minutes.",
+        ].join("\n"),
+      );
+
+      expect(groups).toEqual([{ title: "Sauce", steps: [expect.any(String), expect.any(String)] }]);
+      expect(groups[0]!.steps).toHaveLength(2);
+    });
+  });
 
   test("an empty recipe round-trips as empty rather than as one blank group", () => {
     expect(parseInstructions(serializeInstructions([]))).toEqual([]);

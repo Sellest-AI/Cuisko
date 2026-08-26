@@ -28,14 +28,14 @@ export const verdictSchema = z.object({
           .string()
           .describe(
             "One or two sentences, and they must be SPECIFIC: name the rule broken and the line " +
-              `that broke it, never "good structure" or "followed the prompt well".`,
+            `that broke it, never "good structure" or "followed the prompt well".`,
           ),
         consistency: z
           .string()
           .describe(
             "What changed between this candidate's runs, in one clause. A candidate that is " +
-              "excellent once and wrong twice is worse than one that is good three times — say " +
-              "which this is.",
+            "excellent once and wrong twice is worse than one that is good three times — say " +
+            "which this is.",
           ),
       }),
     )
@@ -44,7 +44,7 @@ export const verdictSchema = z.object({
     .string()
     .describe(
       "Two or three sentences: which one to ship, and the single most important reason. If none " +
-        "is good enough, say that instead — a bake-off is allowed to have no winner.",
+      "is good enough, say that instead — a bake-off is allowed to have no winner.",
     ),
 });
 
@@ -91,8 +91,8 @@ export const judgePrompt = (options: {
     `${candidates.length} candidates were given the same input and the same rules. Rank them.`,
     "",
     "Some candidates may be the same underlying model run at a different reasoning setting, which " +
-      "is why two of them can read almost identically. You are not told which, and you must not " +
-      "guess: judge only what is in front of you.",
+    "is why two of them can read almost identically. You are not told which, and you must not " +
+    "guess: judge only what is in front of you.",
     "",
     "# The rules they were given",
     "",
@@ -121,17 +121,17 @@ export const judgePrompt = (options: {
     ].map((criterion, index) => `${index + 1}. ${criterion}`),
     "",
     "A failed run counts against its candidate as heavily as a bad one — the tool cannot ship a " +
-      "model that throws.",
+    "model that throws.",
     // Only when there is something flagged. A paragraph about evidence that does not exist invites
     // the judge to go looking for it and to invent it when it finds nothing.
     ...(flagged
       ? [
-          "",
-          "Where a run is marked as flagged by automated checks, those findings were verified by " +
-            "code before you saw them. They are facts, not opinions: weigh them as hard evidence " +
-            "under the criteria above, do not argue with them, and do not credit a candidate for " +
-            "something a check has already contradicted.",
-        ]
+        "",
+        "Where a run is marked as flagged by automated checks, those findings were verified by " +
+        "code before you saw them. They are facts, not opinions: weigh them as hard evidence " +
+        "under the criteria above, do not argue with them, and do not credit a candidate for " +
+        "something a check has already contradicted.",
+      ]
       : []),
   ].join("\n");
 };
@@ -150,7 +150,7 @@ export const judge = async (model: Chat, prompt: string, provider?: ProviderRout
       "and you never praise a candidate for something every candidate did.",
     prompt,
     providerOptions: routing("high", provider),
-    maxRetries: 2,
+    maxRetries: 4,
   });
 
   return { verdict: result.output, cost: reportedCost(result.finalStep.providerMetadata) };

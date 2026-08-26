@@ -79,6 +79,30 @@ export const meanCost = (attempts: Success[]) => {
 };
 
 /**
+ * What the bake-off cost, judge included, and how much of it nobody reported.
+ *
+ * The total is needed twice and computed once. `bakeOff.ts` needs it before the table exists —
+ * the transcript is written first, so the table can close by pointing at it — and the table needs
+ * the same figure under the ranking. Two sums over the same attempts is two numbers that can
+ * disagree, and the one printed to the terminal is the one the reader would trust.
+ *
+ * `unreported` is what makes the total a floor rather than a price: runs that succeeded and told
+ * us nothing about what they billed.
+ */
+export const spentOn = (attempts: Map<string, Attempt[]>, judgeCost: number | undefined) => {
+  const all = [...attempts.values()].flat();
+  const reported = succeeded(all)
+    .map((attempt) => attempt.cost)
+    .filter((cost) => cost !== undefined);
+
+  return {
+    spent: reported.reduce((total, cost) => total + cost, 0) + (judgeCost ?? 0),
+    generations: reported.length,
+    unreported: all.filter((run) => run.ok).length - reported.length,
+  };
+};
+
+/**
  * USD at five decimals — these are fractions of a cent, and `toFixed(2)` would print every row as
  * "$0.00". `undefined` is "n/a", never "$0.00000": a cost nobody reported and a cost of nothing are
  * opposite facts.

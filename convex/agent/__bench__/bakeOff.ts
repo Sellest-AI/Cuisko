@@ -16,7 +16,7 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 import { transcript } from "./transcript";
-import { label as blindLabel, mode, num, say, secs, usd } from "./format";
+import { label as blindLabel, mode, num, say, secs, spentOn, usd } from "./format";
 import { judge as runJudge, judgePrompt } from "./judge";
 import { pool } from "./pool";
 import { attempt } from "./provider";
@@ -167,21 +167,11 @@ export const runBakeOff = async <Raw, Parsed>(
 
   say(`  judged in ${secs(Date.now() - judging).trim()} for ${usd(judgeCost)}.`);
 
-  const { text, spent } = table({
-    title,
-    judge,
-    runs,
-    candidates,
-    verdict,
-    entrants,
-    attempts,
-    judgeCost,
-  });
+  // The transcript is written BEFORE the table is printed, because the table ends by pointing at
+  // it: the table is read now and gone with the scrollback, and the file is what survives the run
+  // and what gets handed to whoever — or whatever — has to decide whether the prompt is the problem.
+  const { spent } = spentOn(attempts, judgeCost);
 
-  say(text);
-
-  // The table is read now and gone with the scrollback; the file is what survives the run and what
-  // gets handed to whoever — or whatever — has to decide whether the prompt is the problem.
   const path = transcript({
     title,
     judge,
@@ -195,8 +185,19 @@ export const runBakeOff = async <Raw, Parsed>(
     spent,
   });
 
-  say(`  full transcript, prompt included: ${path}`);
-  say("");
+  say(
+    table({
+      title,
+      judge,
+      runs,
+      candidates,
+      verdict,
+      entrants,
+      attempts,
+      judgeCost,
+      transcript: path,
+    }),
+  );
 
   const all = [...attempts.values()].flat();
 

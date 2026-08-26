@@ -122,6 +122,18 @@ const _strict = (schema: z.ZodType): z.ZodType => {
     }
 
     case "array":
+      // Rebuilding the array DROPS its own constraints — `minItems`, `maxItems`, `uniqueItems`,
+      // `contains` — and keeps only the element schema and the description. That is not an
+      // oversight to be fixed by copying the checks across: those four are documented by OpenAI as
+      // unsupported in strict structured output, and an unsupported keyword is refused rather than
+      // ignored, so carrying them over would take the whole request down for a bound the model was
+      // never going to be held to anyway.
+      //
+      // The bound is still enforced, on the way back, by the authored schema — the same bargain as
+      // `_range` above. What a caller must do is say it in `.describe()` as well, because prose is
+      // all the model gets: `modelTranslationsSchema` names its locales in the description for
+      // exactly this reason. `providerSchema.manual.test.ts` has the `array *` rows, and they are
+      // what to re-read before anyone decides these checks should be preserved here.
       return _keepDescription(schema, z.array(_strict(def.element!)));
 
     default: {

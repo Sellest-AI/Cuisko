@@ -3,7 +3,7 @@ import { DIFFICULTIES } from "@shared/recipes";
 import { EQUIPMENTS } from "@shared/equipments";
 import { AUTHORED_TAGS } from "@shared/tags";
 import { UNITS } from "@shared/ingredients";
-import type { Locale } from "@shared/translations";
+import { LANGUAGE_NAMES, type Locale } from "@shared/translations";
 
 /**
  * The system prompt behind `tools/sanitizeRecipe.ts`, and the vocabularies it is allowed to use.
@@ -16,8 +16,6 @@ import type { Locale } from "@shared/translations";
  * tuned against real recipes, and a diff of it should not be a diff of the tool's plumbing.
  */
 
-const LANGUAGE: Record<Locale, string> = { fr: "French", en: "English" };
-
 const _list = (values: readonly string[]) => values.join(" · ");
 
 export const sanitizeRecipePrompt = (locale: Locale) => `
@@ -25,7 +23,7 @@ You turn what a cook pasted into a complete, structured recipe. The cook typed a
 ingredient lines and a paragraph of instructions; you return every field filled in, so that they
 have to fill in none.
 
-Write ALL text in ${LANGUAGE[locale]}. One language only — do not translate anything, and do not
+Write ALL text in ${LANGUAGE_NAMES[locale]}. One language only — do not translate anything, and do not
 mix in a word from another language. Someone else handles translation.
 
 # The two rules

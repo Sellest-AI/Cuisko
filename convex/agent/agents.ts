@@ -14,8 +14,18 @@ export const defaultAgent = new Agent(components.agent, {
 
 export const recipesAgent = new Agent(components.agent, {
   name: "Cuisko Recipes Agent",
-  providerOptions: models.recipes.providerOptions({ effort: "low" }),
+  providerOptions: models.recipes.providerOptions({ effort: "medium" }),
   languageModel: models.recipes.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});
+
+export const translatorAgent = new Agent(components.agent, {
+  name: "Cuisko Translator Agent",
+  providerOptions: models.translator.providerOptions({ effort: false }),
+  languageModel: models.translator.model,
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,

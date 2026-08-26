@@ -41,6 +41,8 @@ const DEFAULT_ROUTING: ProviderRouting = {
  */
 const _reasoning = (effort: Effort) => {
   if (effort === false) return { enabled: false };
+  // Some models do not support reasoning overrides. `auto` is a hint to the provider to use its own default, which is usually high.
+  if (effort === "auto") return { enabled: true, effort: "high" };
 
   return typeof effort === "number"
     ? { enabled: true, max_tokens: effort }

@@ -1,11 +1,11 @@
 import { defineTable } from "convex/server";
-import { vLocalized } from "./i18n";
+import { vLocale, vLocalized } from "./i18n";
 import { v } from "convex/values";
 import { vUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
 import { CUISINES } from "@shared/cuisines";
-import { TAGS } from "@shared/tags";
+import { AUTHORED_TAGS, TAGS } from "@shared/tags";
 
 export const recipes = defineTable({
   title: vLocalized,
@@ -55,3 +55,57 @@ export const recipeFavorites = defineTable({
 })
   .index("by_user", ["userId"])
   .index("by_recipe", ["recipeId"]);
+
+/**
+ * Instruction groups as the agent hands them over, before `serializeInstructions` flattens them
+ * into the single string a `vLocalized` column can hold. The flat form is what the database
+ * stores; this is what crosses a function boundary on the way there and back.
+ */
+export const vInstructionGroups = v.array(
+  v.object({ title: v.optional(v.string()), steps: v.array(v.string()) }),
+);
+
+/**
+ * A recipe as `sanitizeRecipe` returns it: ONE language, every localized field a bare string, and
+ * every ingredient a name rather than a catalog id.
+ *
+ * It deliberately is not `recipes.validator`. The two differences are the whole of the slice —
+ * translation is a second agent that runs after the insert, and turning a name into a catalog row
+ * is `functions/ingredients/matchIngredients.ts`. Keeping the payload in this shape is what lets
+ * `saveRecipe` be the one place that knows how a generation becomes a document.
+ *
+ * `tags` is `AUTHORED_TAGS`, not `TAGS`: the computed half falls out of the ingredients, so a model
+ * cannot be the one to send it.
+ */
+export const vSanitizedRecipe = v.object({
+  title: v.string(),
+  description: v.string(),
+  servings: v.number(),
+  difficulty: v.union(...DIFFICULTY_LEVELS.map(v.literal)),
+  cuisine: v.union(...CUISINES.map(v.literal)),
+  tags: v.array(v.union(...AUTHORED_TAGS.map(v.literal))),
+  equipments: vEquipments,
+  timings: v.object({
+    preparation: v.optional(v.number()),
+    cooking: v.optional(v.number()),
+    resting: v.optional(v.number()),
+  }),
+  instructions: vInstructionGroups,
+  ingredients: v.array(v.object({ name: v.string(), quantity: v.number(), unit: vUnit })),
+});
+
+/**
+ * One recipe rendered into ONE language, carrying the locale it was rendered into.
+ *
+ * The locale travels with the recipe rather than beside it in a parallel array, for the reason
+ * `TranslatedRecipe` gives: the model returns languages in whatever order it worked through them,
+ * and a caller matching by index files a German recipe under `fr`.
+ */
+export const vTranslatedRecipe = v.object({
+  locale: vLocale,
+  recipe: v.object({
+    title: v.string(),
+    description: v.string(),
+    instructions: vInstructionGroups,
+  }),
+});

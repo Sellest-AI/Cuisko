@@ -68,6 +68,31 @@ export type InstructionGroup = { title?: string; steps: string[] };
 const STEP_PREFIX = "- ";
 
 /**
+ * What marks a line as a heading, on the way OUT only.
+ *
+ * `serializeInstructions` writes it so that its own output survives a re-parse: a heading of 30
+ * characters or more is indistinguishable from a step by length alone, and the translation path
+ * re-parses stored text on every pass. Without a marker, "Pour la garniture et le montage" comes
+ * back as a step the first time a recipe is translated, and the heading is gone for good.
+ *
+ * Cooks never type it, and they are not expected to — a bare line is still read as a heading when
+ * it is short enough to be one. This exists to disambiguate OUR text, not theirs.
+ */
+const TITLE_PREFIX = "## ";
+
+/**
+ * The length past which an unmarked line is read as a step rather than as a heading.
+ *
+ * A cook pasting a recipe writes prose, not markup: they do not prefix their steps with a dash,
+ * and they do not think of "Faire revenir les oignons dans le beurre" as anything but an
+ * instruction. Length is the only signal left, and it is a good one — a heading is a label
+ * ("Sauce", "Pour la pâte") and an instruction is a sentence. Guessing wrong in this direction is
+ * also the cheap one: a step misread as a heading vanishes from the recipe, while a heading
+ * misread as a step is still on the page.
+ */
+const LONG_STEP_THRESHOLD = 30;
+
+/**
  * Collapses anything that would change meaning when the text is re-parsed.
  *
  * Applied on the way *in* rather than on the way out, so that serializing an already-serialized
@@ -84,6 +109,9 @@ const _normalize = (value: string) => value.replace(/\s+/g, " ").trim();
 const _normalizeTitle = (title: string) => {
   let normalized = _normalize(title);
   while (normalized.startsWith(STEP_PREFIX)) normalized = normalized.slice(STEP_PREFIX.length);
+  // Likewise for the heading marker: a title already carrying one must not gain a second on the
+  // way out, or each round trip would add another.
+  while (normalized.startsWith(TITLE_PREFIX)) normalized = normalized.slice(TITLE_PREFIX.length);
 
   return normalized;
 };
@@ -103,7 +131,7 @@ export const serializeInstructions = (groups: InstructionGroup[]): string =>
       const title = group.title === undefined ? "" : _normalizeTitle(group.title);
       const lines = steps.map((step) => `${STEP_PREFIX}${step}`);
 
-      return title ? [title, ...lines].join("\n") : lines.join("\n");
+      return title ? [`${TITLE_PREFIX}${title}`, ...lines].join("\n") : lines.join("\n");
     })
     .filter(Boolean)
     .join("\n\n");
@@ -132,6 +160,14 @@ export const parseInstructions = (text: string): InstructionGroup[] => {
       continue;
     }
 
+    // A marked heading is a heading whatever its length — this is the branch that makes our own
+    // output round-trip, and it has to be tried before the length test below can misread it.
+    if (line.startsWith(TITLE_PREFIX)) {
+      current = { title: _normalizeTitle(line), steps: [] };
+      groups.push(current);
+      continue;
+    }
+
     if (line.startsWith(STEP_PREFIX)) {
       const step = _normalize(line.slice(STEP_PREFIX.length));
       if (!step) continue;
@@ -140,16 +176,33 @@ export const parseInstructions = (text: string): InstructionGroup[] => {
         current = { steps: [] };
         groups.push(current);
       }
+
       current.steps.push(step);
       continue;
     }
 
-    // Not a step, so it opens a group — even mid-block, where a heading follows steps directly.
-    current = { title: _normalizeTitle(line), steps: [] };
+    // Long unprefixed lines are treated as steps.
+    if (line.length >= LONG_STEP_THRESHOLD) {
+      const step = _normalize(line);
+
+      if (!step) continue;
+
+      if (!current) {
+        current = { steps: [] };
+        groups.push(current);
+      }
+
+      current.steps.push(step);
+      continue;
+    }
+
+    // Short non-step lines open a group heading.
+    current = {
+      title: _normalizeTitle(line),
+      steps: [],
+    };
     groups.push(current);
   }
 
-  // A heading whose steps never arrived. Dropped for the same reason `serializeInstructions` drops
-  // one: it has no representation in the text, so keeping it would not survive the next pass.
   return groups.filter((group) => group.steps.length > 0);
 };

@@ -15,11 +15,12 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   customAction,
   customCtx,
+  type Customization,
   customMutation,
   customQuery,
 } from "convex-helpers/server/customFunctions";
 import { type Auth, makeFunctionReference } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { ConvexError, type ObjectType, type PropertyValidators, v } from "convex/values";
 
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { action, type ActionCtx, type DatabaseReader, mutation, query } from "./_generated/server";
@@ -132,9 +133,39 @@ export const authQuery = customQuery(query, customCtx(requireUser));
 export const authMutation = customMutation(mutation, customCtx(requireUser));
 export const authAction = customAction(action, customCtx(requireUser));
 
-export const authQueryI18n = customQuery(queryWithI18n, customCtx(requireUser));
-export const authMutationI18n = customMutation(mutationWithI18n, customCtx(requireUser));
-export const authActionI18n = customAction(actionWithI18n, customCtx(requireUser));
+/**
+ * Folds a `locale` arg and `ctx.i18n` into an existing Mod, in the *same* customization layer.
+ * `customFunction` composition (`customQuery(queryWithI18n, customCtx(requireUser))`) loses the
+ * inner layer's ctx additions in the type — each `custom*` builder declares its `InputCtx` as
+ * the raw base ctx, not the enriched ctx of whatever builder it wraps — even though the runtime
+ * ctx spread still carries `i18n` through. One layer keeps every addition in the same `CustomCtx`
+ * so the type is right, and lets `ownedInput` / `householdInput` stay the single body they are.
+ */
+const withI18n = <
+  Ctx extends Record<string, any>,
+  ArgsValidator extends PropertyValidators,
+  MadeCtx extends Record<string, any>,
+>(
+  mod: Customization<Ctx, ArgsValidator, MadeCtx, Record<string, never>>,
+) => ({
+  args: { ...mod.args, locale: vLocale },
+  input: async (ctx: Ctx, { locale, ...rest }: ObjectType<ArgsValidator> & { locale: Locale }) => {
+    const inner = await mod.input(ctx, rest as unknown as ObjectType<ArgsValidator>, {});
+    return {
+      ctx: { ...inner.ctx, i18n: { locale, resolve: (field: Localized) => resolvei18n(field, locale) } },
+      args: {},
+    };
+  },
+});
+
+const identityInput = (resolveIdentity: typeof requireUser) => ({
+  args: {},
+  input: async (ctx: IdentityCtx) => ({ ctx: await resolveIdentity(ctx), args: {} }),
+});
+
+export const authQueryI18n = customQuery(query, withI18n(identityInput(requireUser)));
+export const authMutationI18n = customMutation(mutation, withI18n(identityInput(requireUser)));
+export const authActionI18n = customAction(action, withI18n(identityInput(requireUser)));
 
 /* ─── 4. Admin — one customization for all three, so they cannot drift ─────────────────── */
 
@@ -142,9 +173,9 @@ export const adminQuery = customQuery(query, customCtx(requireAdmin));
 export const adminMutation = customMutation(mutation, customCtx(requireAdmin));
 export const adminAction = customAction(action, customCtx(requireAdmin));
 
-export const adminQueryI18n = customQuery(queryWithI18n, customCtx(requireAdmin));
-export const adminMutationI18n = customMutation(mutationWithI18n, customCtx(requireAdmin));
-export const adminActionI18n = customAction(actionWithI18n, customCtx(requireAdmin));
+export const adminQueryI18n = customQuery(query, withI18n(identityInput(requireAdmin)));
+export const adminMutationI18n = customMutation(mutation, withI18n(identityInput(requireAdmin)));
+export const adminActionI18n = customAction(action, withI18n(identityInput(requireAdmin)));
 
 /* ─── 5. Server-to-server ──────────────────────────────────────────────────────────────── */
 
@@ -231,8 +262,9 @@ const ownedInput = <T extends OwnedTable>(table: T) => ({
 export const ownedQuery = <T extends OwnedTable>(table: T) => customQuery(query, ownedInput(table));
 export const ownedMutation = <T extends OwnedTable>(table: T) => customMutation(mutation, ownedInput(table));
 
-export const ownedQueryI18n = <T extends OwnedTable>(table: T) => customQuery(queryWithI18n, ownedInput(table));
-export const ownedMutationI18n = <T extends OwnedTable>(table: T) => customMutation(mutationWithI18n, ownedInput(table));
+export const ownedQueryI18n = <T extends OwnedTable>(table: T) => customQuery(query, withI18n(ownedInput(table)));
+export const ownedMutationI18n = <T extends OwnedTable>(table: T) =>
+  customMutation(mutation, withI18n(ownedInput(table)));
 
 /* ─── 7. ★ Household membership as a capability ────────────────────────────────────────────
  * Same guarantee as `ownedQuery`/`ownedMutation`, for a different shape: several tables are
@@ -252,6 +284,6 @@ const householdInput = {
 };
 
 export const householdQuery = customQuery(query, householdInput);
-export const householdQueryI18n = customQuery(queryWithI18n, householdInput);
+export const householdQueryI18n = customQuery(query, withI18n(householdInput));
 
 export const householdMutation = customMutation(mutation, householdInput);
