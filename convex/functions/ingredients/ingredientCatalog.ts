@@ -39,6 +39,8 @@ export type CatalogEntry = {
   category: Category;
   defaultUnit: Unit;
   defaultQuantity: number;
+  gramsPerPiece?: number;
+  gramsPerMl?: number;
   nutrition: {
     calories: number;
     protein: number;
@@ -462,6 +464,83 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   lardons: { fr: ["lardon"] },
 };
 
+/**
+ * What one of an ingredient weighs, in grams — for the 44 rows a household counts rather than
+ * weighs, plus the few written per piece in a recipe whatever the shop sells them by.
+ *
+ * Hand-compiled like the nutrition values above, for a medium specimen as sold: a whole raw item
+ * before trimming, since that is what someone holds when they write "2 onions". Sparse by nature,
+ * not by neglect — there is no such thing as one flour (see schema/ingredients.ts).
+ *
+ * `garlic` is a clove, as every recipe that ever called for one means. Worth writing down only
+ * because a shop sells it by the head and the two are ~17x apart, so whatever eventually turns a
+ * grocery line into grams should word its quantity in cloves rather than assume a bulb.
+ */
+const GRAMS_PER_PIECE: Record<string, number> = {
+  // Vegetables
+  onion: 150, garlic: 5, tomato: 120, cucumber: 300, "bell-pepper-red": 150, zucchini: 200,
+  eggplant: 300, "lettuce-romaine": 300, cabbage: 900, "red-cabbage": 900, leek: 150, beet: 100,
+  turnip: 120, fennel: 250, artichoke: 130, endive: 100, shallot: 30,
+  // Fruits
+  apple: 180, banana: 120, orange: 130, lemon: 100, lime: 65, cantaloupe: 550, pineapple: 900,
+  mango: 200, kiwi: 75, peach: 150, pear: 180, plum: 65, apricot: 40, fig: 50, pomegranate: 280,
+  grapefruit: 250, avocado: 200,
+  // Grains, meat, dairy, egg
+  baguette: 250, "tortilla-wrap": 60, "pizza-dough": 250, "puff-pastry": 230,
+  "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
+  "flavoured-yogurt": 125, "egg-whole": 50,
+  // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
+  "bay-leaf": 0.2,
+};
+
+/**
+ * Density in grams per millilitre, for anything that can be poured or spooned.
+ *
+ * Wider than the 34 rows whose `defaultUnit` is a volume, because the unit that breaks nutrition is
+ * the one a RECIPE uses, not the one a shop sells by: salt, flour, sugar and every spice are bought
+ * by weight and written by the spoonful. A line this cannot convert costs the whole recipe its
+ * nutrition, so the spoon-measured pantry is the half that matters most.
+ *
+ * The dry values are for the loose, unsifted, unpacked state a cook actually spoons — flour packs
+ * from 0.53 to 0.7 depending on how it is scooped, which is the built-in imprecision of measuring
+ * a solid by volume and not something a second decimal here would fix.
+ */
+const GRAMS_PER_ML: Record<string, number> = {
+  // Dairy
+  "milk-whole": 1.03, "milk-skim": 1.035, "milk-semi-skimmed": 1.03, "heavy-cream": 0.99,
+  "single-cream": 1.01, "whipping-cream": 0.99, "evaporated-milk": 1.07, "condensed-milk": 1.28,
+  "sour-cream": 0.98, "creme-fraiche": 0.98, "plain-yogurt": 1.03, "greek-yogurt": 1.05,
+  "fromage-blanc": 1.03, butter: 0.91, "butter-unsalted": 0.91, "butter-salted": 0.91,
+  // Oils
+  "olive-oil": 0.91, "vegetable-oil": 0.92, "coconut-oil": 0.92, "sesame-oil": 0.92,
+  "canola-oil": 0.92, "sunflower-oil": 0.92,
+  // Condiments
+  salt: 1.2, "soy-sauce": 1.15, "vinegar-white": 1.01, "balsamic-vinegar": 1.1, "hot-sauce": 1.05,
+  "worcestershire-sauce": 1.1, ketchup: 1.14, "mustard-yellow": 1.05, mayonnaise: 0.91,
+  "tomato-paste": 1.07, "peanut-butter": 1.08, capers: 0.85, "olives-green": 0.75,
+  // Sweeteners
+  "white-sugar": 0.85, "brown-sugar": 0.8, "powdered-sugar": 0.56, honey: 1.42,
+  "maple-syrup": 1.32, "agave-syrup": 1.37,
+  // Dry pantry, spooned
+  "flour-all-purpose": 0.53, "whole-wheat-flour": 0.55, cornstarch: 0.6, cornmeal: 0.65,
+  polenta: 0.65, breadcrumbs: 0.4, oats: 0.4, "cocoa-powder": 0.5, "baking-powder": 0.92,
+  "baking-soda": 1.2, "dry-yeast": 0.75, gelatin: 0.8,
+  // Seeds
+  "chia-seeds": 0.65, "flax-seeds": 0.6, "sesame-seeds": 0.6, "poppy-seeds": 0.6,
+  "sunflower-seeds": 0.55, "pumpkin-seeds": 0.55, "hemp-seeds": 0.5,
+  // Ground spices, and the two dried herbs that behave like them
+  "black-pepper": 0.45, cinnamon: 0.45, cumin: 0.45, paprika: 0.46, turmeric: 0.5,
+  "ginger-ground": 0.5, nutmeg: 0.5, "chili-powder": 0.5, "cayenne-pepper": 0.5,
+  "coriander-ground": 0.45, cloves: 0.5, cardamom: 0.45, "dried-oregano": 0.2, "dried-basil": 0.2,
+  // Fresh herbs, chopped — "1 cs of parsley". Light enough that the imprecision costs nothing.
+  basil: 0.25, parsley: 0.25, cilantro: 0.25, mint: 0.25, thyme: 0.3, rosemary: 0.3,
+  "oregano-fresh": 0.25, dill: 0.25, chives: 0.25, sage: 0.25,
+  // Liquids
+  water: 1, "vegetable-broth": 1, "chicken-broth": 1, "beef-broth": 1, "vanilla-extract": 0.88,
+  "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "white-wine": 0.99,
+  "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
+};
+
 export const CATALOG: readonly CatalogEntry[] = ROWS.map(
   ([
     slug, en, fr, category, defaultUnit, defaultQuantity,
@@ -475,6 +554,9 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     category,
     defaultUnit,
     defaultQuantity,
+    // Passed through even when absent, so the seed's `patch` clears a ratio a row used to carry.
+    gramsPerPiece: GRAMS_PER_PIECE[slug],
+    gramsPerMl: GRAMS_PER_ML[slug],
     nutrition: { calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium },
   }),
 );

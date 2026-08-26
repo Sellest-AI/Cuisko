@@ -115,3 +115,148 @@ export const computeNutriScore = (
 
   return { grade: gradeOf(points), points };
 };
+
+/**
+ * What the catalog knows about one ingredient, per 100g.
+ *
+ * The four optional ones are optional on the table too, and only the Nutri-Score needs them —
+ * a recipe still reports its macros without them, it just cannot be graded.
+ */
+export type IngredientFacts = {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbohydrates: number;
+  saturatedFat?: number;
+  sugars?: number;
+  fiber?: number;
+  sodium?: number;
+};
+
+/** One line of a recipe, already weighed by `toGrams` and already looked up in the catalog. */
+export type RecipeLine = {
+  facts: IngredientFacts;
+  /** `undefined` when the line's unit could not be converted — see `toGrams`. */
+  grams?: number;
+  /**
+   * Whether this line counts toward the fruit/vegetable/legume/nut share the score rewards.
+   *
+   * A boolean rather than the ingredient's category, because the category vocabulary lives in the
+   * schema and this file sits underneath it — `convex/` imports `shared/`, never the other way.
+   */
+  produce: boolean;
+};
+
+export type RecipeNutrition = {
+  /** What the whole recipe weighs. The denominator behind every per-100g figure below. */
+  grams: number;
+  /** Everything the recipe contains, across all of the servings it is written for. */
+  total: IngredientFacts;
+  /** `total` divided by the recipe's own servings — the figure a screen shows, times its stepper. */
+  perServing: IngredientFacts;
+  /** Absent unless every line carried all four of the optional facts. */
+  nutriScore?: NutriScore;
+};
+
+type WeighedLine = RecipeLine & { grams: number };
+
+const sumRequired = (lines: WeighedLine[], pick: (facts: IngredientFacts) => number) =>
+  lines.reduce((total, line) => total + pick(line.facts) * (line.grams / 100), 0);
+
+/** `undefined` as soon as one line omits the fact — a missing value is not a zero. */
+const sumOptional = (lines: WeighedLine[], pick: (facts: IngredientFacts) => number | undefined) => {
+  let total = 0;
+
+  for (const line of lines) {
+    const value = pick(line.facts);
+    if (value === undefined) return undefined;
+    total += value * (line.grams / 100);
+  }
+
+  return total;
+};
+
+const scale = (facts: IngredientFacts, factor: number): IngredientFacts => ({
+  calories: facts.calories * factor,
+  protein: facts.protein * factor,
+  fat: facts.fat * factor,
+  carbohydrates: facts.carbohydrates * factor,
+  ...(facts.saturatedFat !== undefined && { saturatedFat: facts.saturatedFat * factor }),
+  ...(facts.sugars !== undefined && { sugars: facts.sugars * factor }),
+  ...(facts.fiber !== undefined && { fiber: facts.fiber * factor }),
+  ...(facts.sodium !== undefined && { sodium: facts.sodium * factor }),
+});
+
+/**
+ * What a recipe adds up to, from its lines and the servings it was written for.
+ *
+ * All of it or none of it: one line that could not be weighed returns `undefined` rather than a
+ * total missing that ingredient. A partial figure is worse than no figure here, because nothing
+ * downstream can tell the two apart — a dish quietly missing its olive oil reads as a health food.
+ *
+ * The Nutri-Score degrades separately, because it fails for a different reason: the macros are
+ * there, but one ingredient never recorded its sodium, and treating that as zero would hand the
+ * dish full marks for the fact nobody measured.
+ */
+export const totalsOf = (lines: RecipeLine[], servings: number): RecipeNutrition | undefined => {
+  if (lines.length === 0 || servings <= 0) return undefined;
+  if (lines.some((line) => line.grams === undefined)) return undefined;
+
+  const weighed = lines as WeighedLine[];
+  const grams = weighed.reduce((total, line) => total + line.grams, 0);
+
+  // Everything below divides by it, and a recipe of nothing has no nutrition to report anyway.
+  if (grams <= 0) return undefined;
+
+  const saturatedFat = sumOptional(weighed, (facts) => facts.saturatedFat);
+  const sugars = sumOptional(weighed, (facts) => facts.sugars);
+  const fiber = sumOptional(weighed, (facts) => facts.fiber);
+  const sodium = sumOptional(weighed, (facts) => facts.sodium);
+
+  const total: IngredientFacts = {
+    calories: sumRequired(weighed, (facts) => facts.calories),
+    protein: sumRequired(weighed, (facts) => facts.protein),
+    fat: sumRequired(weighed, (facts) => facts.fat),
+    carbohydrates: sumRequired(weighed, (facts) => facts.carbohydrates),
+    ...(saturatedFat !== undefined && { saturatedFat }),
+    ...(sugars !== undefined && { sugars }),
+    ...(fiber !== undefined && { fiber }),
+    ...(sodium !== undefined && { sodium }),
+  };
+
+  const nutrition: RecipeNutrition = {
+    grams,
+    total,
+    perServing: scale(total, 1 / servings),
+  };
+
+  if (saturatedFat === undefined || sugars === undefined || fiber === undefined || sodium === undefined) {
+    return nutrition;
+  }
+
+  /**
+   * The score reads the finished dish as if it were a product on a shelf, so the facts are
+   * per 100g of the whole thing — not per serving, and never an average of the ingredients own
+   * grades, which would let a spoonful of oil weigh as much as half a kilo of carrots.
+   */
+  const ratio = 100 / grams;
+  const produceGrams = weighed
+    .filter((line) => line.produce)
+    .reduce((produce, line) => produce + line.grams, 0);
+
+  return {
+    ...nutrition,
+    nutriScore: computeNutriScore(
+      {
+        calories: total.calories * ratio,
+        protein: total.protein * ratio,
+        saturatedFat: saturatedFat * ratio,
+        carbohydrates: total.carbohydrates * ratio,
+        sugars: sugars * ratio,
+        fiber: fiber * ratio,
+        sodium: sodium * ratio,
+      },
+      (produceGrams / grams) * 100,
+    ),
+  };
+};

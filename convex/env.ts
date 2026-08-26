@@ -20,11 +20,13 @@ const schema = z.object({
   CONVEX_SITE_URL: z.url(),
   /** Authenticates `server` procedures. `npx convex env set SERVER_PRIVATE_KEY ...` */
   SERVER_PRIVATE_KEY: z.string().min(32),
+  OPENROUTER_API_KEY: z.string().min(32),
 });
 
 const parsed = schema.safeParse({
   SERVER_PRIVATE_KEY: process.env.SERVER_PRIVATE_KEY,
   CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
+  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
 });
 
 if (!parsed.success) {

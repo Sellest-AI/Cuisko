@@ -1,6 +1,9 @@
 import { v } from "convex/values";
 import { defineTable } from "convex/server";
 import { vUnit } from "./ingredients";
+import { EQUIPMENTS } from "@shared/equipments";
+
+export const vEquipments = v.array(v.union(...EQUIPMENTS.map(v.literal)));
 
 /** One list per household — a household splitting into several lists is a future migration. */
 export const groceryListItems = defineTable({

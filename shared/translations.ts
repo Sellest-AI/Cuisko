@@ -36,3 +36,13 @@ export const STOPWORDS: Record<Locale, Set<string>> = {
  * always wants; lowercasing is not always — call `.toLowerCase()` where it is.
  */
 export const foldAccents = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+
+/**
+ * What each locale is called, in English, for a model that is being told which language to write.
+ *
+ * A prompt says "French", never "fr": a two-letter code is a token a model has to resolve before it
+ * can obey the instruction, and the resolution is silent when it goes wrong. Here rather than in
+ * one of the two prompt files that need it, because they must agree — a locale added to
+ * `SUPPORTED_LOCALES` is a compile error in this record until it is named.
+ */
+export const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", fr: "French" };

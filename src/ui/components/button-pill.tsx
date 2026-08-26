@@ -123,7 +123,6 @@ export const ButtonPill = ({
   return (
     <Pressable
       style={{
-        alignSelf: "flex-start",
         ...styles.borderRadius,
         ...rest,
         opacity: containerOpacity,

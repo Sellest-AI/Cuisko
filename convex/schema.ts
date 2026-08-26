@@ -5,6 +5,7 @@ import { usersExtended } from "./schema/users";
 import { households, householdUsers } from "./schema/households";
 import { ingredients, allergens, ingredientAllergens } from "./schema/ingredients";
 import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
+import { recipeFavorites, recipeIngredients, recipes } from "./schema/recipes";
 
 /**
  * `authTables` (users, authAccounts, authSessions, …) are owned by @convex-dev/auth.
@@ -22,4 +23,7 @@ export default defineSchema({
   groceryListItems,
   cellarItems,
   recentlyUsedIngredients,
+  recipes,
+  recipeIngredients,
+  recipeFavorites,
 });

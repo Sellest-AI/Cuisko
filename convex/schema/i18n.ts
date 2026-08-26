@@ -1,4 +1,4 @@
-import { type Locale } from "@shared/translations";
+import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 import { v, type Infer, type Validator } from "convex/values";
 
 /**
@@ -11,6 +11,8 @@ import { v, type Infer, type Validator } from "convex/values";
  * compile. Re-exported under the shorter name because that is what this file's readers call it.
  */
 export { SUPPORTED_LOCALES as LOCALES, type Locale } from "@shared/translations";
+
+export const vLocale = v.union(...SUPPORTED_LOCALES.map(v.literal));
 
 /**
  * One optional value per locale — the shape every translated field has, whatever it carries.

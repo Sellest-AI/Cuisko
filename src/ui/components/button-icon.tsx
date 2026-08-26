@@ -90,7 +90,6 @@ export const ButtonIcon = ({
   return (
     <Pressable
       style={{
-        alignSelf: "flex-start",
         pointerEvents: composite ? "none" : "auto",
         ...outerStyle
       }}
