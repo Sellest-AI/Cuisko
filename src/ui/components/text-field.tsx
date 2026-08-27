@@ -96,7 +96,11 @@ const styles = StyleSheet.create({
    * line were in the middle of the paragraph. Prose starts at the top; `verticalAlign` is the
    * cross-platform name, `textAlignVertical` the one Android's older path still reads.
    */
-  multiline: { textAlignVertical: "top", verticalAlign: "top" },
+  multiline: {
+    textAlignVertical: "top",
+    verticalAlign: "top",
+    lineHeight: theme.font.base.lineHeight * 1.2,
+  },
   inputDisabled: { opacity: 0.6 },
   /** The field the keyboard is aimed at, since a placeholder alone never says "typing here". */
   inputFocused: { borderColor: theme.colors.primary.base },
