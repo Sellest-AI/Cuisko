@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, StyleSheet, ViewStyle, ScrollView } from "react-native";
+import { View, StyleSheet, ViewStyle } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 
 import { CircleAlert, ForkKnifeIcon } from "@ui/icons";
@@ -56,10 +57,20 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
 
   return (
     <>
-      <ScrollView
+      {/*
+        * Keyboard-aware rather than plain: the editor is four fields tall and the last two are the
+        * long ones, so on a phone the keyboard opens straight over the field it was opened from
+        * and the cook types blind. This scrolls the focused field back above the keys and pads the
+        * page by the keyboard's own height, so the last line of the instructions is still reachable
+        * while they are being written. `bottomOffset` is the clearance the floating actions need —
+        * without it the field stops under the save button instead of above it.
+        */}
+      <KeyboardAwareScrollView
         style={style}
         contentContainerStyle={styles.page}
         showsVerticalScrollIndicator={false}
+        bottomOffset={NAVIGATION_BAR_OFFSET}
+        keyboardShouldPersistTaps="handled"
       >
         <SafeAreaView edges={{ top: "additive", bottom: "off" }} style={styles.titleRow}>
           <ForkKnifeIcon size={TITLE_ICON_SIZE} color={colors.foreground} />
@@ -112,7 +123,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
           multiline
         />
         <SafeAreaView edges={{ top: "off", bottom: "additive" }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
       <EditorActions
         disabled={isCreating || !canSave}
         saveLabel={t("Editor.save")}

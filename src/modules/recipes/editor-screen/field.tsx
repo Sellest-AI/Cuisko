@@ -52,6 +52,7 @@ export const EditorField = ({
         onChangeText={onChangeText}
         placeholder={placeholder}
         style={styles.line}
+        highlightOnFocus
       />
     )}
   </View>
