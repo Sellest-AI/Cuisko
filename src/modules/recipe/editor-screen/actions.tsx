@@ -12,6 +12,7 @@ type Props = {
   saveLabel: string;
   onSave: () => void;
   onCancel: () => void;
+  disabled?: boolean;
 };
 
 /**
@@ -21,13 +22,13 @@ type Props = {
  * scrolled to is a recipe abandoned half-written. Pinned, both answers stay one tap away wherever
  * the page has been left.
  */
-export const EditorActions = ({ saveLabel, onSave, onCancel }: Props) => (
+export const EditorActions = ({ saveLabel, disabled, onSave, onCancel }: Props) => (
   <SafeAreaView edges={{ top: "off", bottom: "android" }} style={styles.bar}>
     <View style={styles.row}>
-      <ButtonIcon variant="neutral-inverted" elevated size="lg" onPress={onCancel}>
+      <ButtonIcon variant="neutral-inverted" elevated size="lg" onPress={onCancel} disabled={disabled}>
         {X}
       </ButtonIcon>
-      <ButtonPill elevated variant="secondary" rightIcon={Check} size="lg" onPress={onSave}>
+      <ButtonPill elevated variant="secondary" rightIcon={Check} size="lg" onPress={onSave} disabled={disabled}>
         {saveLabel}
       </ButtonPill>
     </View>

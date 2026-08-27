@@ -2,15 +2,19 @@ import { useState } from "react";
 import { View, StyleSheet, ViewStyle, ScrollView } from "react-native";
 import { router } from "expo-router";
 
-import { ForkKnifeIcon } from "@ui/icons";
+import { CircleAlert, ForkKnifeIcon } from "@ui/icons";
+import { InfoBanner } from "@ui/info-banner";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
+import { useCreateRecipe } from "~/modules/recipes/hooks";
+
 import { NAVIGATION_BAR_OFFSET } from "../../navigation/constants";
 import { SCREEN_PADDING } from "../constants";
 import { EditorActions } from "./actions";
+import { CreatingOverlay } from "./creating-overlay";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
 import { Servings } from "../ingredients-screen.servings";
@@ -29,8 +33,13 @@ type Props = {
  * Writing a recipe, or rewriting one.
  *
  * One screen for both, because the two differ only in what is already in the fields — asking for a
- * title twice, in two files, is how the two drift apart. The answers are held here and go nowhere
- * yet: persistence arrives with the module's hooks, and the form is what has to be right first.
+ * title twice, in two files, is how the two drift apart.
+ *
+ * Saving is `recipes/`, reached through that module's door: singular and plural are two modules
+ * today, so this is a cross-module call and `hooks.ts` is the only legal way to make it.
+ *
+ * Only the write is wired. `recipeId` still loads nothing, so opening this to edit an existing
+ * recipe shows an empty form — that arrives with `getOne`.
  */
 export const EditorScreen = ({ recipeId, style }: Props) => {
   const t = useTranslations("Recipe");
@@ -40,6 +49,8 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
   const [servings, setServings] = useState(DEFAULT_SERVINGS);
   const [ingredients, setIngredients] = useState("");
   const [instructions, setInstructions] = useState("");
+
+  const { create, isCreating, progress, phase, error } = useCreateRecipe();
 
   return (
     <>
@@ -52,6 +63,16 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
           <ForkKnifeIcon size={TITLE_ICON_SIZE} color={colors.foreground} />
           <Text.H4>{t(recipeId ? "Editor.edit_title" : "Editor.new_title")}</Text.H4>
         </SafeAreaView>
+        {error !== null && (
+          <InfoBanner
+            variant="warning"
+            icon={CircleAlert}
+            title={t("Creating.error_title")}
+            style={styles.error}
+          >
+            {t("Creating.error_body")}
+          </InfoBanner>
+        )}
         <ImagePicker label={t("Editor.image")} style={styles.image} />
         <EditorField
           label={t("Editor.title")}
@@ -90,10 +111,14 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         <SafeAreaView edges={{ top: "off", bottom: "additive" }} />
       </ScrollView>
       <EditorActions
+        disabled={isCreating}
         saveLabel={t("Editor.save")}
-        onSave={() => router.back()}
+        onSave={() =>
+          create({ title, description, servings, ingredients, instructions })
+        }
         onCancel={() => router.back()}
       />
+      {isCreating && <CreatingOverlay progress={progress} phase={phase} />}
     </>
   );
 };
@@ -117,6 +142,11 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[24],
     marginBottom: theme.spacing[32],
   },
+  /**
+   * Above the fields rather than beside the save button: the cook has been returned to a form they
+   * had already finished with, and the reason has to be where they land, not where they left.
+   */
+  error: { marginBottom: theme.spacing[20] },
   image: { marginBottom: theme.spacing[4] },
   field: { marginTop: theme.spacing[20] },
   /** Splits what the recipe *is* from what it is made of; a rule, not a section break. */

@@ -1,7 +1,7 @@
 import { View, StyleSheet, ViewStyle } from "react-native";
 import { colors, theme } from "theme";
 import { Text } from "@ui/text";
-import { ForkKnifeIcon, Search } from "@ui/icons";
+import { ForkKnife, ForkKnifeIcon, Search, X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { RadialGradient } from "@ui/radial-gradient";
 import { Input } from "@ui/input";
@@ -13,25 +13,14 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslations } from "translations";
 
-const CARD_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
+import { useRecipeList } from "./_hooks/useRecipeList";
+import { RecipesEmpty } from "./screen.empty";
 
-const RECIPES = [
-  { id: "pizza-atomica", title: "Pizza Atomica", subtitle: "Italian" },
-  { id: "asparagus-salad", title: "Asparagus Salad", subtitle: "Italian" },
-  { id: "pasta-carbonara", title: "Pasta Carbonara", subtitle: "Italian" },
-  { id: "lasagna", title: "Lasagna", subtitle: "Italian" },
-  { id: "risotto-milanese", title: "Risotto Milanese", subtitle: "Italian" },
-  { id: "margherita-pizza", title: "Margherita Pizza", subtitle: "Italian" },
-  { id: "pesto-pasta", title: "Pesto Pasta", subtitle: "Italian" },
-  { id: "chicken-parmesan", title: "Chicken Parmesan", subtitle: "Italian" },
-  { id: "bruschetta", title: "Bruschetta", subtitle: "Italian" },
-  { id: "minestrone", title: "Minestrone", subtitle: "Italian" },
-  { id: "gnocchi-tomato", title: "Gnocchi al Pomodoro", subtitle: "Italian" },
-  { id: "tiramisu", title: "Tiramisu", subtitle: "Italian" },
-  { id: "focaccia", title: "Focaccia", subtitle: "Italian" },
-  { id: "eggplant-parmigiana", title: "Eggplant Parmigiana", subtitle: "Italian" },
-  { id: "cacio-e-pepe", title: "Cacio e Pepe", subtitle: "Italian" },
-];
+/**
+ * Every card draws the same picture, because a recipe has no image field yet. When one lands it
+ * replaces this and nothing else on the screen moves.
+ */
+const CARD_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
 
 type Props = {
   style?: ViewStyle
@@ -41,6 +30,7 @@ export const RecipesScreen = ({ style }: Props) => {
   const t = useTranslations("Recipes");
 
   const [query, setQuery] = useState("");
+  const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
 
   return (
     <>
@@ -56,8 +46,31 @@ export const RecipesScreen = ({ style }: Props) => {
         style={{ position: "absolute", top: 200, left: -100, opacity: 0.1 }}
       />
       <FlashList
-        data={[...RECIPES].sort((a, b) => a.title.localeCompare(b.title))}
+        data={recipes}
+        onEndReached={hasMore ? loadMore : undefined}
+        onEndReachedThreshold={0.5}
+        /**
+         * Nothing while the first answer is in flight. An empty state shown for the half second
+         * before the recipes land tells a cook who has twenty that they have none.
+         */
+        ListEmptyComponent={
+          isLoading ? null : isSearching ? (
+            <RecipesEmpty
+              icon={Search}
+              title={t("no_matches_title")}
+              body={t("no_matches_body", { query })}
+            />
+          ) : (
+            <RecipesEmpty
+              icon={ForkKnife}
+              title={t("empty_title")}
+              body={t("empty_body")}
+            />
+          )
+        }
         contentContainerStyle={[styles.container, style]}
+        /** Dimmed while the matches on screen are the previous term's — see `isStale`. */
+        style={isStale ? styles.stale : undefined}
         ListHeaderComponent={
           <SafeAreaView
             style={styles.header}
@@ -74,10 +87,11 @@ export const RecipesScreen = ({ style }: Props) => {
               value={query}
               onChangeText={setQuery}
               placeholder={t("search_placeholder")}
-              rightIcon={Search}
+              rightIcon={query.length > 0 ? X : Search}
+              onRightPress={() => setQuery("")}
               style={styles.search}
             />
-            <Text.Lg>{t("yours")}</Text.Lg>
+            {recipes.length !== 0 && <Text.Lg>{t("yours")}</Text.Lg>}
           </SafeAreaView>
         }
         keyExtractor={({ id }) => id}
@@ -92,7 +106,7 @@ export const RecipesScreen = ({ style }: Props) => {
             }}>
               <CardRecipe
                 title={item.title}
-                subtitle={item.subtitle}
+                subtitle={t(`Cuisines.${item.cuisine}`)}
                 imageSrc={CARD_PLACEHOLDER}
                 style={{ width: "100%", marginBottom: COLUMN_GAP }}
                 onPress={() => router.push(`/recipe/${item.id}`)}
@@ -125,4 +139,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[24],
     width: "100%"
   },
+  /** Enough to read as "settling", not enough to make the cook wait to read what is there. */
+  stale: { opacity: 0.5 },
 })

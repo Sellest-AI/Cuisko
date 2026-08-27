@@ -44,6 +44,14 @@
     "instructions_placeholder": "Sauce\n- Mix the yogurt with the spices\n\nPasta\n- Boil the pasta for 10 minutes\n- Drain the pasta and add the sauce",
     "save": "Save recipe"
   },
+  "Creating": {
+    "reading": "Reading your recipe",
+    "matching": "Finding your ingredients",
+    "finishing": "Almost there",
+    "reassurance": "This can take up to a minute. We are polishing your recipe and tidying its steps.",
+    "error_title": "Your recipe was not saved",
+    "error_body": "Something went wrong while reading it. Everything you typed is still here — try saving again."
+  },
   "Cooking": {
     "last_step": "Last step",
     "step_ingredients": "For this step",
