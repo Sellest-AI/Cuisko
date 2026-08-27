@@ -52,6 +52,8 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
 
   const { create, isCreating, progress, phase, error } = useCreateRecipe();
 
+  const canSave = ingredients.trim().length > 10 && instructions.trim().length > 10;
+
   return (
     <>
       <ScrollView
@@ -112,7 +114,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         <SafeAreaView edges={{ top: "off", bottom: "additive" }} />
       </ScrollView>
       <EditorActions
-        disabled={isCreating}
+        disabled={isCreating || !canSave}
         saveLabel={t("Editor.save")}
         onSave={() =>
           create({ title, description, servings, ingredients, instructions })

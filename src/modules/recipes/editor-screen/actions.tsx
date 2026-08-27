@@ -2,6 +2,7 @@ import { View, StyleSheet } from "react-native";
 
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
+import { AnimatePresence, m } from "@ui/motion";
 import { Check, X } from "@ui/icons";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { theme } from "theme";
@@ -25,12 +26,24 @@ type Props = {
 export const EditorActions = ({ saveLabel, disabled, onSave, onCancel }: Props) => (
   <SafeAreaView edges={{ top: "off", bottom: "android" }} style={styles.bar}>
     <View style={styles.row}>
-      <ButtonIcon variant="neutral-inverted" elevated size="lg" onPress={onCancel} disabled={disabled}>
+      <ButtonIcon variant="neutral-inverted" elevated size="lg" onPress={onCancel}>
         {X}
       </ButtonIcon>
-      <ButtonPill elevated variant="secondary" rightIcon={Check} size="lg" onPress={onSave} disabled={disabled}>
-        {saveLabel}
-      </ButtonPill>
+      <AnimatePresence>
+        {!disabled && (
+          <m.View
+            from={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.4 }}
+            transition={{ duration: 200 }}
+            exitTransition={{ duration: 100 }}
+          >
+            <ButtonPill elevated variant="secondary" rightIcon={Check} size="lg" onPress={onSave} disabled={disabled}>
+              {saveLabel}
+            </ButtonPill>
+          </m.View>
+        )}
+      </AnimatePresence>
     </View>
   </SafeAreaView>
 );
