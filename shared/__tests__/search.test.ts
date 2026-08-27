@@ -18,6 +18,15 @@ describe("searchTextOf", () => {
     expect(text.split(" ")).toEqual(["crème", "creme"]);
   });
 
+  /**
+   * `œ` has no Unicode decomposition, so `NFD` alone leaves "bœuf" whole and the only spelling a
+   * phone keyboard offers reaches nothing. The expansion is the fold's, not this function's — the
+   * assertion is here because this is where the blob it writes is read.
+   */
+  test("expands the oe ligature so both spellings are indexed", () => {
+    expect(searchTextOf(["bœuf"]).split(" ")).toEqual(["bœuf", "boeuf"]);
+  });
+
   test("does not store an already-unaccented term twice", () => {
     expect(searchTextOf(["onion"])).toBe("onion");
   });
