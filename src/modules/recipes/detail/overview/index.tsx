@@ -48,10 +48,10 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
    * declares one timing still shows a total — and the total never disagrees with the parts.
    */
   const timings: Timing[] = [
+    { emoji: "🕑", minutes: recipe.minutes, label: t("Overview.total") },
     { emoji: "🍪", minutes: recipe.timings.preparation, label: t("Overview.preparation") },
     { emoji: "🔥", minutes: recipe.timings.cooking, label: t("Overview.cooking") },
     { emoji: "😴", minutes: recipe.timings.resting, label: t("Overview.resting") },
-    { emoji: "🕑", minutes: recipe.minutes, label: t("Overview.total") },
   ]
     .filter((timing) => timing.minutes !== undefined)
     .map(({ emoji, label, minutes }) => ({
@@ -99,8 +99,11 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           />
         )}
         {timings.length > 0 && (
-          <View style={styles.tile}>
-            <Timings timings={timings} />
+          <View style={[styles.tile, { paddingHorizontal: 0 }]}>
+            <Timings
+              style={{ paddingHorizontal: styles.tile.padding }}
+              timings={timings}
+            />
           </View>
         )}
       </View>

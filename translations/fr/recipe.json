@@ -53,14 +53,14 @@
     "edit_title": "Modifier la recette",
     "image": "Choisir une image",
     "title": "Titre",
-    "title_placeholder": "Pâtes à la sauce au yaourt",
+    "title_placeholder": "Poulet rôti au citron et au thym",
     "description": "Description",
     "optional": "(Facultatif)",
-    "description_placeholder": "Ajoute une description de ta recette",
+    "description_placeholder": "Un poulet du dimanche qui cuit tout seul : un plat, une heure au four.",
     "ingredients": "Ingrédients",
-    "ingredients_placeholder": "- 3 tomates\n- 2 œufs\n- 1 cuillère d'huile d'olive",
+    "ingredients_placeholder": "- 1 poulet entier\n- 1 citron\n- 4 branches de thym\n- 3 gousses d'ail\n- 2 cuillères d'huile d'olive",
     "instructions": "Instructions",
-    "instructions_placeholder": "Sauce\n- Mélange le yaourt avec les épices\n\nPâtes\n- Fais cuire les pâtes 10 minutes\n- Égoutte les pâtes et ajoute la sauce",
+    "instructions_placeholder": "Préparation\n- Préchauffe le four à 200 °C\n- Coupe le citron en deux et glisse-le dans le poulet avec le thym\n\nCuisson\n- Frotte le poulet avec l'huile, le sel et le poivre\n- Enfourne 1 h 15 en arrosant à mi-cuisson\n- Laisse reposer 10 minutes avant de découper",
     "save": "Enregistrer la recette"
   },
   "Creating": {

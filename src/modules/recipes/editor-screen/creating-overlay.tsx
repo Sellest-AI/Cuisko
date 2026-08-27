@@ -1,8 +1,9 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 
 import { BlurView } from "@ui/blur-view";
 import { ProgressRing } from "@ui/progress-ring";
 import { Text } from "@ui/text";
+import { m } from "@ui/motion";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
@@ -29,18 +30,32 @@ export const CreatingOverlay = ({ progress, phase }: Props) => {
   const t = useTranslations("Recipe");
 
   return (
-    <View style={styles.overlay}>
+    <m.View
+      style={styles.overlay}
+      from={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 300 }}
+    >
       <BlurView style={styles.scrim}>
-        <ProgressRing progress={progress}>
-          <Text.Lg color={colors.neutral.foreground} style={styles.phase}>
+        <ProgressRing
+          progress={progress}
+          size={256}
+        >
+          <Text.Lg
+            color={colors.neutral.base}
+            style={styles.phase}
+          >
             {t(`Creating.${phase}`)}
           </Text.Lg>
         </ProgressRing>
-        <Text.Base color={colors.neutral.elevated} style={styles.reassurance}>
+        <Text.Base
+          color={colors.neutral.muted}
+          style={styles.reassurance}
+        >
           {t("Creating.reassurance")}
         </Text.Base>
       </BlurView>
-    </View>
+    </m.View>
   );
 };
 
@@ -65,9 +80,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: theme.spacing[24],
+    gap: theme.spacing[32],
     paddingHorizontal: theme.spacing[32],
+    backgroundColor: colors.background,
   },
-  phase: { textAlign: "center" },
-  reassurance: { textAlign: "center", opacity: 0.7 },
+  phase: {
+    textAlign: "center"
+  },
+  reassurance: {
+    textAlign: "center",
+  },
 });

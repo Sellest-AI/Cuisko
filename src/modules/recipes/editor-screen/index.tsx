@@ -76,6 +76,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         <ImagePicker label={t("Editor.image")} style={styles.image} />
         <EditorField
           label={t("Editor.title")}
+          hint={t("Editor.optional")}
           value={title}
           onChangeText={setTitle}
           placeholder={t("Editor.title_placeholder")}

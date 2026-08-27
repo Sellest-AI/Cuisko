@@ -53,7 +53,7 @@ export const ProgressRing = ({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.border.default}
+          stroke={colors.neutral.subtle}
           strokeWidth={strokeWidth}
           fill="none"
         />

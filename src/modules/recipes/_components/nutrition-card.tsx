@@ -1,4 +1,4 @@
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle, ScrollView } from "react-native";
 
 import { SparklesIcon } from "@ui/icons";
 import { Text } from "@ui/text";
@@ -36,7 +36,7 @@ export const NutritionCard = ({ protein, fat, carbs, calories, scope, style }: P
 
   return (
     <View style={[styles.card, style]}>
-      <View style={styles.heading}>
+      <View style={[styles.heading, styles.paddingHorizontal]}>
         <View style={styles.title}>
           <Text.Lg>{t("Nutrition.title")}</Text.Lg>
           <Text.Sm color={theme.colors.neutral.muted}>{scope}</Text.Sm>
@@ -46,12 +46,16 @@ export const NutritionCard = ({ protein, fat, carbs, calories, scope, style }: P
           <Text.Sm color={theme.colors.primary.base}>{t("Nutrition.estimated")}</Text.Sm>
         </View>
       </View>
-      <View style={styles.stats}>
+      <ScrollView
+        contentContainerStyle={[styles.stats, styles.paddingHorizontal]}
+        showsHorizontalScrollIndicator={false}
+        horizontal
+      >
+        {calories !== undefined && <Stat label={t("Nutrition.calories")} value={`🔥 ${_kcal(calories)}`} />}
         {protein !== undefined && <Stat label={t("Nutrition.protein")} value={`🍗 ${_grams(protein)}`} />}
         {fat !== undefined && <Stat label={t("Nutrition.fat")} value={`🥑 ${_grams(fat)}`} />}
         {carbs !== undefined && <Stat label={t("Nutrition.carbs")} value={`🧅 ${_grams(carbs)}`} />}
-        {calories !== undefined && <Stat label={t("Nutrition.calories")} value={`🔥 ${_kcal(calories)}`} />}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -73,8 +77,11 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border.default,
     borderWidth: 2,
     borderRadius: theme.radius.md,
-    padding: theme.spacing[16],
+    paddingVertical: theme.spacing[16],
     gap: theme.spacing[12],
+  },
+  paddingHorizontal: {
+    paddingHorizontal: theme.spacing[16],
   },
   heading: {
     flexDirection: "row",
@@ -91,5 +98,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: theme.spacing[2],
+    gap: theme.spacing[28],
   },
 });
