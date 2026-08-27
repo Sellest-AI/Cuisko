@@ -5,10 +5,8 @@ import type { MutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
-import { facetsOf } from "@shared/tags";
 
-import { matchIngredients } from "../ingredients/matchIngredients";
-import { computeTags, type TaggableLine } from "./computeTags";
+import { deriveRecipeFields } from "./deriveRecipeFields";
 import { recipeSearchText } from "./recipeSearchText";
 
 type Args = {
@@ -31,34 +29,10 @@ const _machine = (locale: Locale, value: string): Localized =>
  * insert — deliberately out of this slice.
  */
 export const saveRecipe = async (ctx: MutationCtx, { userId, locale, recipe }: Args) => {
-  const matches = await matchIngredients(ctx, {
-    names: recipe.ingredients.map(({ name }) => name),
-    locale,
-  });
+  const { matches, tags, facets } = await deriveRecipeFields(ctx, { locale, recipe });
 
-  // Over every line the recipe has, matched or not — `computeTags` needs the unmatched ones to
-  // know it cannot answer. The links inserted below are the matched subset, which is a different
-  // question and deliberately a narrower one.
-  const computed = await computeTags(ctx, {
-    lines: recipe.ingredients.map((line, index) => {
-      const match = matches[index];
-      return {
-        ingredientId: match?.status === "matched" ? match.ingredientId : undefined,
-        quantity: line.quantity,
-        unit: line.unit,
-      };
-    }).filter((line): line is TaggableLine => line.ingredientId !== undefined),
-    lineCount: recipe.ingredients.length,
-    servings: recipe.servings,
-  });
-
-  const tags = [...recipe.tags, ...computed];
-
-  // The two derived fields are written HERE and only here, from the values one line above them.
-  // `facetsOf` is a projection of `tags` rather than a second derivation, so the boolean and the
-  // tag cannot disagree. `recipeSearchText` decides which terms a recipe contributes and reads the
-  // ingredient rows to get them; the blob itself is assembled by `searchTextOf`, the one serializer
-  // ADR 0011 governs.
+  // ADR 0011: the serializer is called HERE, where `search` is assigned, so C11 can verify this
+  // writer on its own rather than trust a bundle it cannot see into.
   const search = await recipeSearchText(ctx, {
     ingredientIds: matches.flatMap((match) =>
       match.status === "matched" ? [match.ingredientId] : [],
@@ -75,7 +49,7 @@ export const saveRecipe = async (ctx: MutationCtx, { userId, locale, recipe }: A
     equipments: recipe.equipments,
     difficulty: recipe.difficulty,
     tags,
-    ...facetsOf(tags),
+    ...facets,
     search,
     cuisine: recipe.cuisine,
     timings: recipe.timings,

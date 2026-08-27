@@ -73,7 +73,9 @@
   },
   "Cooking": {
     "last_step": "Dernière étape",
+    "prep_instruction": "Sors et mesure tout ce qu'il te faut avant de commencer.",
     "step_ingredients": "Pour cette étape",
+    "all_ingredients": "Prépare les ingrédients",
     "previous": "Précédent",
     "next": "Suivant",
     "update_cellar": "Mettre à jour ma cave",

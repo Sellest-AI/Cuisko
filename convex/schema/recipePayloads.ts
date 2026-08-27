@@ -29,6 +29,26 @@ export const vInstructionGroups = v.array(
 );
 
 /**
+ * The free text a cook's edit carries, as `updateOne` accepts it off the wire.
+ *
+ * Every field required, unlike `createOne`'s — a create may be handed a bare idea and let the agent
+ * name it, but an edit reopens a recipe that already has a title, so a missing one is a client bug
+ * rather than a blank to fill in. `assertFilledIn` is what refuses the whitespace-only version this
+ * validator cannot see.
+ *
+ * Kept here rather than in the router so that it and `RecipeEdit` — the TypeScript half, in
+ * `functions/recipes/recipeChangesOf.ts` — are the only two statements of this shape. They must
+ * agree; a third copy inside a router is the one that would drift unnoticed.
+ */
+export const vRecipeEdit = {
+  title: v.string(),
+  description: v.string(),
+  servings: v.number(),
+  ingredients: v.string(),
+  instructions: v.string(),
+};
+
+/**
  * A recipe as `sanitizeRecipe` returns it: ONE language, every localized field a bare string, and
  * every ingredient a name rather than a catalog id.
  *

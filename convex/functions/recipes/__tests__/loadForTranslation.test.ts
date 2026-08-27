@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
+import { hashText } from "@convex/lib/i18n";
 import type { Localized } from "@convex/schema/i18n";
 import { serializeInstructions } from "@shared/recipes";
 
@@ -16,13 +17,38 @@ let t: ReturnType<typeof convexTest>;
 
 const fr = (value: string): Localized => ({
   values: { fr: value },
-  meta: { fr: { status: "machine", sourceHash: "h" } },
+  meta: { fr: { status: "machine", sourceHash: hashText(value) } },
 });
 
 const INSTRUCTIONS = serializeInstructions([
   { title: "Base", steps: ["Émincer les oignons.", "Les faire suer."] },
   { steps: ["Servir."] },
 ]);
+
+/** A full French → English translation, every locale's `sourceHash` matching the French it came from. */
+const TRANSLATED = {
+  title: {
+    values: { fr: "Soupe à l'oignon", en: "Onion soup" },
+    meta: {
+      fr: { status: "machine" as const, sourceHash: hashText("Soupe à l'oignon") },
+      en: { status: "machine" as const, sourceHash: hashText("Soupe à l'oignon") },
+    },
+  },
+  description: {
+    values: { fr: "Une soupe d'hiver.", en: "A winter soup." },
+    meta: {
+      fr: { status: "machine" as const, sourceHash: hashText("Une soupe d'hiver.") },
+      en: { status: "machine" as const, sourceHash: hashText("Une soupe d'hiver.") },
+    },
+  },
+  instructions: {
+    values: { fr: INSTRUCTIONS, en: "## Base\n- Slice the onions.\n- Sweat them.\n\n- Serve." },
+    meta: {
+      fr: { status: "machine" as const, sourceHash: hashText(INSTRUCTIONS) },
+      en: { status: "machine" as const, sourceHash: hashText(INSTRUCTIONS) },
+    },
+  },
+};
 
 /**
  * One French recipe with two ingredients, deliberately linked out of order.
@@ -147,19 +173,35 @@ describe("functions/recipes/loadForTranslation", () => {
 
   test("reports nothing missing once every locale is translated", async () => {
     const { recipeId } = await seed();
+    await t.run((ctx) => ctx.db.patch(recipeId, TRANSLATED));
+
+    expect((await load(recipeId)).missingLocales).toEqual([]);
+  });
+
+  /**
+   * The case `hasTranslation` alone cannot see: `values.en` and its `meta` are exactly as a
+   * finished translation left them, and only the FRENCH title has moved since. Nothing about the
+   * English entry itself says it is wrong — its `sourceHash` is what proves it was made from a
+   * title that no longer exists.
+   */
+  test("reports a locale as missing again once the source it was translated from changes", async () => {
+    const { recipeId } = await seed();
+    await t.run((ctx) => ctx.db.patch(recipeId, TRANSLATED));
+
+    const editedTitle = "Soupe à l'oignon gratinée";
     await t.run((ctx) =>
       ctx.db.patch(recipeId, {
         title: {
-          values: { fr: "Soupe à l'oignon", en: "Onion soup" },
+          values: { fr: editedTitle, en: TRANSLATED.title.values.en },
           meta: {
-            fr: { status: "machine", sourceHash: "h" },
-            en: { status: "machine", sourceHash: "h" },
+            fr: { status: "edited", sourceHash: hashText(editedTitle) },
+            en: TRANSLATED.title.meta.en,
           },
         },
       }),
     );
 
-    expect((await load(recipeId)).missingLocales).toEqual([]);
+    expect((await load(recipeId)).missingLocales).toEqual(["en"]);
   });
 
   /** A run that failed left a value behind. Treating it as done is how a retry never happens. */
@@ -170,8 +212,8 @@ describe("functions/recipes/loadForTranslation", () => {
         title: {
           values: { fr: "Soupe à l'oignon", en: "" },
           meta: {
-            fr: { status: "machine", sourceHash: "h" },
-            en: { status: "failed", sourceHash: "h" },
+            fr: { status: "machine", sourceHash: hashText("Soupe à l'oignon") },
+            en: { status: "failed", sourceHash: hashText("Soupe à l'oignon") },
           },
         },
       }),

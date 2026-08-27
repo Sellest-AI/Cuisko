@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 
@@ -204,5 +204,50 @@ describe("router/recipes/getOne", () => {
 
     expect(recipe).not.toHaveProperty("search");
     expect(recipe).not.toHaveProperty("userId");
+  });
+
+  /**
+   * `_internal` deliberately does NOT check ownership — see the ⚠️ on the export, and ADR 0003
+   * §"Actions". These pin that as intended behaviour rather than an oversight: a reader who assumes
+   * an unchecked internal read must be a bug would otherwise "fix" it and break every system job
+   * that reads a recipe nobody asked for.
+   *
+   * Ownership for the one caller that does act for a cook is `updateOne`'s, and is tested there.
+   */
+  describe("_internal", () => {
+    test("reads a recipe without asking who is calling", async () => {
+      const ownerId = await seedUser("Franck");
+      const recipeId = await seedRecipe(ownerId);
+
+      const recipe = await t.query(internal.router.recipes.getOne._internal, {
+        id: recipeId,
+        locale: "en",
+      });
+
+      expect(recipe.title).toBe("Onion soup");
+    });
+
+    /** The one field `authed` withholds, and the reason a caller acting for a cook can compare it. */
+    test("carries the userId the client-facing export withholds", async () => {
+      const ownerId = await seedUser("Franck");
+      const recipeId = await seedRecipe(ownerId);
+
+      const recipe = await t.query(internal.router.recipes.getOne._internal, {
+        id: recipeId,
+        locale: "en",
+      });
+
+      expect(recipe.userId).toBe(ownerId);
+    });
+
+    test("reports a missing recipe rather than answering with nothing", async () => {
+      const userId = await seedUser("Franck");
+      const recipeId = await seedRecipe(userId);
+      await t.run((ctx) => ctx.db.delete(recipeId));
+
+      await expect(
+        t.query(internal.router.recipes.getOne._internal, { id: recipeId, locale: "en" }),
+      ).rejects.toThrow();
+    });
   });
 });

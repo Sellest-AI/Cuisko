@@ -1,8 +1,8 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { TranslatableRecipe } from "@convex/agent/tools/translateRecipe";
-import { hasTranslation, resolvei18n } from "@convex/lib/i18n";
-import { type Locale, LOCALES } from "@convex/schema/i18n";
+import { hashText, isTranslationOutdated, resolvei18n } from "@convex/lib/i18n";
+import { type Locale, type Localized, LOCALES } from "@convex/schema/i18n";
 import { parseInstructions } from "@shared/recipes";
 
 type Args = {
@@ -28,8 +28,16 @@ export type TranslationSource = {
  * `modelRecipeSchemaExtended`, where deleting those fields is what stopped two models rewriting a
  * step's amount to match the recipe's total.
  *
- * A language is missing when `hasTranslation` says so rather than when the value is absent, so a
- * run that previously failed is retried instead of being mistaken for one that succeeded.
+ * A language is missing when `isTranslationOutdated` says it is — which covers two different
+ * ways a locale can be owed a run: the value was never written (a run that previously failed is
+ * retried rather than mistaken for one that succeeded), or it was written once and the SOURCE has
+ * since changed under it. The second is what an edit produces: `updateRecipe` only ever rewrites
+ * the locale the cook edited in, so the other one keeps its old `values` and `meta` untouched and
+ * would read as done forever without the hash comparison.
+ *
+ * Checked across all three translated fields rather than `title` alone, because they are edited
+ * independently — a recipe whose method changed and whose title did not owes a retranslation for
+ * exactly one of the two reasons, and checking only `title` would miss the other.
  */
 export const loadForTranslation = async (
   ctx: QueryCtx,
@@ -38,6 +46,14 @@ export const loadForTranslation = async (
   const recipe = await ctx.db.get(recipeId);
   if (!recipe) throw new Error(`loadForTranslation: recipe ${recipeId} does not exist.`);
   if (!recipe.userId) throw new Error(`loadForTranslation: recipe ${recipeId} has no owner.`);
+
+  // Hashed once per field rather than once per (field, locale) pair — `LOCALES` is walked below
+  // once per field, and the source text does not change between those walks.
+  const translatedFields = [recipe.title, recipe.description, recipe.instructions].map(
+    (field): [Localized, string] => [field, hashText(resolvei18n(field, sourceLocale))],
+  );
+  const isOutdatedSomewhere = (locale: Locale) =>
+    translatedFields.some(([field, sourceHash]) => isTranslationOutdated(field, locale, sourceHash));
 
   const links = await ctx.db
     .query("recipeIngredients")
@@ -57,7 +73,7 @@ export const loadForTranslation = async (
 
   return {
     userId: recipe.userId,
-    missingLocales: LOCALES.filter((locale) => !hasTranslation(recipe.title, locale)),
+    missingLocales: LOCALES.filter((locale) => isOutdatedSomewhere(locale)),
     recipe: {
       title: resolvei18n(recipe.title, sourceLocale),
       description: resolvei18n(recipe.description, sourceLocale),

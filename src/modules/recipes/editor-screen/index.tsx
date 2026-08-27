@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, View, StyleSheet, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 
@@ -9,8 +9,13 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
+import { serializeInstructions } from "@shared/recipes";
+
+import type { Id } from "~/lib/convex/api";
 
 import { useCreateRecipe } from "../_hooks/useCreateRecipe";
+import { useRecipeDraft } from "../_hooks/useRecipeDraft";
+import { useUpdateRecipe } from "../_hooks/useUpdateRecipe";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { SCREEN_PADDING } from "../constants";
@@ -19,12 +24,12 @@ import { CreatingOverlay } from "./creating-overlay";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
 import { Servings } from "../_components/servings";
+import { serializeIngredients } from "@shared/ingredients";
 
 type Props = {
   /**
    * The recipe being rewritten, or nothing at all when one is being written from scratch. Its
-   * presence is what the screen words itself from; loading the recipe behind it lands with
-   * `_hooks/`.
+   * presence is what the screen words itself from, and what it loads its fields from.
    */
   recipeId?: string;
   style?: ViewStyle;
@@ -36,11 +41,14 @@ type Props = {
  * One screen for both, because the two differ only in what is already in the fields — asking for a
  * title twice, in two files, is how the two drift apart.
  *
- * Saving goes through `_hooks/useCreateRecipe`, a sibling: the editor and the writing live in one
- * module, so the call stays inside it.
+ * Saving goes through `_hooks/useCreateRecipe` for a new recipe and `_hooks/useUpdateRecipe` for
+ * an existing one — siblings, not a branch inside one hook, because the two write to different
+ * actions and navigate on success for different reasons. Both live beside the editor, in the same
+ * module.
  *
- * Only the write is wired. `recipeId` still loads nothing, so opening this to edit an existing
- * recipe shows an empty form — that arrives with `getOne`.
+ * `recipeId` also loads the recipe it names, through `_hooks/useRecipeDraft`, and seeds the fields
+ * once it arrives — deliberately not `useRecipe`, which scales its answer to a servings choice
+ * that has nothing to do with what this recipe is actually written for. See that hook for why.
  */
 export const EditorScreen = ({ recipeId, style }: Props) => {
   const t = useTranslations("Recipe");
@@ -51,9 +59,99 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
   const [ingredients, setIngredients] = useState("");
   const [instructions, setInstructions] = useState("");
 
-  const { create, isCreating, progress, phase, error } = useCreateRecipe();
+  const { recipe, isLoading } = useRecipeDraft(recipeId);
 
-  const canSave = ingredients.trim().length > 10 && instructions.trim().length > 10;
+  /**
+   * Seeded once per recipe rather than on every render: the fields are the cook's to type in from
+   * here on, and a `recipe` that merely happens to re-render — cache revalidation, a sibling
+   * screen touching the same query — must not overwrite text they have already started editing.
+   *
+   * The ref alone is not enough, which is why `isLoading` holds the form back below. It only guards
+   * renders AFTER the first seed; before it, the fields are empty, editable, and about to be
+   * overwritten the moment the query lands. Reaching the editor from the recipe page makes that
+   * window nearly nothing — the query is already warm — but a cold deep link or a refresh pays the
+   * full round trip, and anything typed into it would be silently discarded.
+   */
+  const seededFor = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!recipe || seededFor.current === recipeId) return;
+    seededFor.current = recipeId;
+
+    setTitle(recipe.title);
+    setDescription(recipe.description);
+    setServings(recipe.servings);
+    setIngredients(serializeIngredients(recipe.ingredients));
+    setInstructions(serializeInstructions(recipe.instructions));
+  }, [recipe, recipeId]);
+
+  const {
+    create,
+    isCreating,
+    progress: creatingProgress,
+    phase: creatingPhase,
+    error: creatingError,
+  } = useCreateRecipe();
+  const {
+    update,
+    isUpdating,
+    progress: updatingProgress,
+    phase: updatingPhase,
+    error: updatingError,
+  } = useUpdateRecipe();
+
+  const isSaving = recipeId ? isUpdating : isCreating;
+  const progress = recipeId ? updatingProgress : creatingProgress;
+  const phase = recipeId ? updatingPhase : creatingPhase;
+  const error = recipeId ? updatingError : creatingError;
+
+  const canSaveNew = ingredients.trim().length > 10 && instructions.trim().length > 10;
+
+  /**
+   * Valid, AND different from what the recipe already is — the second half is what stops a save
+   * with nothing to say: reopening a recipe and pressing save without touching a field should not
+   * read as an edit. Every field has to be independently valid rather than "at least one changed"
+   * alone, since a save that carries a blanked-out title is not a save with something to say either.
+   */
+  const isEdited =
+    title !== recipe?.title ||
+    description !== recipe?.description ||
+    ingredients !== serializeIngredients(recipe?.ingredients ?? []) ||
+    instructions !== serializeInstructions(recipe?.instructions ?? []) ||
+    servings !== recipe?.servings;
+
+  const canSaveExisting =
+    title.trim().length > 3 &&
+    description.trim().length > 3 &&
+    ingredients.trim().length > 10 &&
+    instructions.trim().length > 10 &&
+    isEdited;
+
+  const canSave = recipeId ? canSaveExisting : canSaveNew;
+
+  const onSave = () =>
+    recipeId
+      ? update({
+        recipeId: recipeId as Id<"recipes">,
+        title,
+        description,
+        servings,
+        ingredients,
+        instructions,
+      })
+      : create({ title, description, servings, ingredients, instructions });
+
+  /**
+   * Held back rather than rendered empty: see `seededFor` above. An empty editable form is
+   * indistinguishable from a recipe with nothing in it, and every keystroke typed into it is lost
+   * at seed time. Placed after every hook so the early return cannot change the hook order.
+   */
+  if (isLoading)
+    return (
+      <View style={[style, styles.loading]}>
+        <ActivityIndicator color={theme.colors.primary.base} />
+      </View>
+    );
 
   return (
     <>
@@ -89,7 +187,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         <ImagePicker label={t("Editor.image")} style={styles.image} />
         <EditorField
           label={t("Editor.title")}
-          hint={t("Editor.optional")}
+          hint={recipeId ? undefined : t("Editor.optional")}
           value={title}
           onChangeText={setTitle}
           placeholder={t("Editor.title_placeholder")}
@@ -97,7 +195,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         />
         <EditorField
           label={t("Editor.description")}
-          hint={t("Editor.optional")}
+          hint={recipeId ? undefined : t("Editor.optional")}
           value={description}
           onChangeText={setDescription}
           placeholder={t("Editor.description_placeholder")}
@@ -125,14 +223,12 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         <SafeAreaView edges={{ top: "off", bottom: "additive" }} />
       </KeyboardAwareScrollView>
       <EditorActions
-        disabled={isCreating || !canSave}
+        disabled={isSaving || !canSave}
         saveLabel={t("Editor.save")}
-        onSave={() =>
-          create({ title, description, servings, ingredients, instructions })
-        }
+        onSave={onSave}
         onCancel={() => router.back()}
       />
-      {isCreating && <CreatingOverlay progress={progress} phase={phase} />}
+      {isSaving && <CreatingOverlay progress={progress} phase={phase} />}
     </>
   );
 };
@@ -143,6 +239,11 @@ const DEFAULT_SERVINGS = 2;
 const TITLE_ICON_SIZE = 24;
 
 const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   /** Clears the actions, which float over the page rather than sitting at the end of it. */
   page: {
     paddingHorizontal: SCREEN_PADDING,

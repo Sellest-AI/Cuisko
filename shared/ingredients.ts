@@ -43,12 +43,30 @@ const UNIT_LABELS: Record<Unit, string> = {
 export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
 
 /**
+ * An amount and its unit, for a person READING a recipe. Lossy on purpose.
+ *
  * Placeholder formatting. Real copy normalises per ingredient — "4 yaourts", not "500 g of
  * yoghurt" — which needs the ingredient to carry its own preferred unit, and that is not
  * modelled yet. A fractional amount keeps one decimal so a halved recipe does not read `0.5000000001`.
+ *
+ * ⚠️ Never use this for text that will be read back and re-parsed — `exactQuantity` is that one.
+ *    Both the rounding and `unitLabel` (which spells `l` as `L`) are display decisions, and a round
+ *    trip through them turns a stored `0.25` into `0.3` permanently.
  */
 export const formatQuantity = (amount: number, unit: Unit) =>
   `${Number.isInteger(amount) ? amount : amount.toFixed(1)} ${unitLabel(unit)}`;
+
+/**
+ * The same pair, for text a MACHINE will read back — the editor's textarea, and the comparison that
+ * decides whether an edit touched the ingredients at all.
+ *
+ * Deliberately not `formatQuantity` with a flag. The two differ in both halves — the amount is
+ * rounded there and exact here, the unit is a label there and its stored code here — so a shared
+ * function would be two branches wearing one name, and the call site would still have to know which
+ * it wanted. Two names is the point: reusing the display formatter for data is the mistake this
+ * split exists to make visible, and it is the mistake `serializeIngredients` originally made.
+ */
+export const exactQuantity = (amount: number, unit: Unit) => `${amount} ${unit}`;
 
 /**
  * What a catalog ingredient knows about its own weight — the two optional fields on the
@@ -113,3 +131,19 @@ export const toGrams = (quantity: number, unit: Unit, weights: GramWeights): num
 
   return undefined;
 };
+
+/**
+ * A recipe's stored ingredients, back into the free-text lines the editor's textarea holds.
+ *
+ * The inverse of what `sanitizeRecipe` does to a cook's own text on the way in, and therefore
+ * `exactQuantity` rather than `formatQuantity`: this string is data on its way to being re-read, not
+ * copy on its way to being looked at. It seeds the editor AND is one side of `recipeChangesOf`'s
+ * comparison, so rounding here would mean a cook who edits the title of a recipe holding `0.25 tsp`
+ * hands back `0.3 tsp` and loses the quarter permanently, with nothing on screen to suggest it.
+ *
+ * Both sides of that comparison call this same function, so the editor and the change check can
+ * never disagree about how a line spells itself.
+ */
+type DraftIngredient = { name: string; quantity: number; unit: Unit };
+export const serializeIngredients = (ingredients: DraftIngredient[]): string =>
+  ingredients.map((line) => `${exactQuantity(line.quantity, line.unit)} ${line.name}`).join("\n");

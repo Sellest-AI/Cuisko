@@ -19,24 +19,34 @@ const one = (locale: "fr" | "en", value: string): Localized => ({
   meta: { [locale]: { status: "machine", sourceHash: hashText(value) } },
 });
 
-/** Both languages present, so `loadForTranslation` reports nothing missing. */
-const both = (fr: string, en: string): Localized => ({
-  values: { fr, en },
-  meta: {
-    fr: { status: "machine", sourceHash: hashText(fr) },
-    en: { status: "machine", sourceHash: hashText(en) },
-  },
-});
+/**
+ * Both languages present, so `loadForTranslation` reports nothing missing. Both `sourceHash`es are
+ * the FRENCH text's hash — that is the real invariant `saveTranslations.ts` keeps: every locale a
+ * translation run touches is stamped with the hash of the SOURCE it was made from, never its own.
+ */
+const both = (fr: string, en: string): Localized => {
+  const sourceHash = hashText(fr);
+  return {
+    values: { fr, en },
+    meta: {
+      fr: { status: "machine", sourceHash },
+      en: { status: "machine", sourceHash },
+    },
+  };
+};
 
-const seed = async (title: Localized) =>
+const seed = async (
+  title: Localized,
+  overrides: Partial<{ description: Localized; instructions: Localized }> = {},
+) =>
   t.run(async (ctx) => {
     const userId = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
 
     return ctx.db.insert("recipes", {
       userId,
       title,
-      description: one("fr", "Une soupe d'hiver."),
-      instructions: one("fr", "## Base\n- Émincer les oignons."),
+      description: overrides.description ?? one("fr", "Une soupe d'hiver."),
+      instructions: overrides.instructions ?? one("fr", "## Base\n- Émincer les oignons."),
       servings: 4,
       equipments: [],
       difficulty: 2,
@@ -67,7 +77,10 @@ describe("router/recipes/translateOne", () => {
    * (`loadForTranslation`, `saveTranslations`) rather than end to end here.
    */
   test("does nothing when the recipe is already in every language", async () => {
-    const recipeId = await seed(both("Soupe à l'oignon", "Onion soup"));
+    const recipeId = await seed(both("Soupe à l'oignon", "Onion soup"), {
+      description: both("Une soupe d'hiver.", "A winter soup."),
+      instructions: both("## Base\n- Émincer les oignons.", "## Base\n- Slice the onions."),
+    });
 
     // `null` and not `undefined`: the value crosses an action boundary, and Convex encodes an
     // absent return as null on the way back.

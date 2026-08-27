@@ -65,6 +65,39 @@ export const StepCard = ({ position, title, instruction, ingredients, isLast, hi
   );
 };
 
+type PrepCardProps = {
+  /** Every line the recipe calls for, so there is nothing left to fetch once cooking starts. */
+  ingredients: { emoji: string; name: string; quantity: string }[];
+};
+
+/**
+ * The session's own first page — mise en place before the method starts.
+ *
+ * A separate card rather than `StepCard` with `stepIngredients` set to everything: this page has
+ * no position to read aloud and nothing to do but gather, so borrowing the step layout would leave
+ * a numbered heading and a hint slot with nothing to put in them.
+ */
+export const PrepCard = ({ ingredients }: PrepCardProps) => {
+  const t = useTranslations("Recipe");
+  const { width } = useWindowDimensions();
+
+  return (
+    <View style={styles.card}>
+      <Text.H4 color={theme.colors.neutral.muted}>{t("Ingredients.title")}</Text.H4>
+      <Text.Body color={theme.colors.foreground} style={styles.instruction}>
+        {t("Cooking.prep_instruction")}
+      </Text.Body>
+      {ingredients.length > 0 && (
+        <IngredientGroup
+          title={t("Cooking.all_ingredients")}
+          items={ingredients}
+          itemWidth={columnWidth(width, COLUMNS)}
+        />
+      )}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   card: { gap: theme.spacing[20] },
   heading: {

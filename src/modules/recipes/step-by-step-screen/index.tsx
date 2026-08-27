@@ -19,7 +19,7 @@ import { flattenSteps } from "../_model/detail";
 import { ingredientsIn } from "../_model/quantities";
 import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../constants";
 import { StepBar } from "./bar";
-import { StepCard } from "./card";
+import { PrepCard, StepCard } from "./card";
 import { StepMedia } from "./media";
 
 /**
@@ -87,15 +87,22 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
    */
   const steps = flattenSteps(recipe?.instructions ?? []);
 
-  const step = steps[index];
-  const isLast = index === steps.length - 1;
+  /**
+   * Page 0 is mise en place, not a method step — the session's own invitation to get everything
+   * out before the first instruction. Every page after it is `steps[index - 1]`, so the two ends
+   * of the transport (`isFirst`, `isLast`) can clamp against one range instead of two.
+   */
+  const lastIndex = steps.length;
+  const step = index === 0 ? undefined : steps[index - 1];
+  const isFirst = index === 0;
+  const isLast = index === lastIndex;
 
   /**
    * Nothing to cook: still loading, refused, or a recipe whose method was never written down. The
    * exit has to stay reachable in all three, so this draws the screen with no step in it rather
    * than returning null and stranding a cook on a blank modal.
    */
-  if (!step) {
+  if (steps.length === 0) {
     return (
       <View style={styles.screen}>
         <SafeAreaView edges={{ bottom: "off" }} style={styles.exit} pointerEvents="box-none">
@@ -142,7 +149,14 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
             transition={{ type: "timing", duration: 220 }}
             style={{ marginTop: -CONTENT_NEGATIVE_SPACE / 2 }}
           >
-            <StepCard
+            {!step && <PrepCard
+              ingredients={ingredients.map((line) => ({
+                emoji: line.emoji,
+                name: line.name,
+                quantity: formatQuantity(line.quantity, line.unit),
+              }))}
+            />}
+            {step && <StepCard
               position={step.position}
               instruction={step.instruction}
               // TODO: add a hint to the step model, and pass it here.
@@ -160,7 +174,7 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
                 quantity: formatQuantity(mention.amount, mention.unit),
               }))}
               isLast={isLast}
-            />
+            />}
           </m.View>
         </RecipeScreen>
       </ParallaxScrollView>
@@ -196,10 +210,10 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
         </AnimatePresence>
       </SafeAreaView>
       <StepBar
-        isFirst={index === 0}
+        isFirst={isFirst}
         isLast={isLast}
         onPrevious={() => { setIndex((current) => Math.max(0, current - 1)); setPreviousIndex(index) }}
-        onNext={() => { setIndex((current) => Math.min(steps.length - 1, current + 1)); setPreviousIndex(index); }}
+        onNext={() => { setIndex((current) => Math.min(lastIndex, current + 1)); setPreviousIndex(index); }}
         /**
          * TODO: onFinish update the cellar
          */

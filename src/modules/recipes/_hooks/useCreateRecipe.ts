@@ -1,27 +1,19 @@
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { FunctionArgs } from "convex/server";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
-import { DEFAULT_ESTIMATE_MS, phaseAt, sweepFor } from "../_model/progress";
+import { DEFAULT_ESTIMATE_MS, phaseAt } from "../_model/progress";
+import { useProgressSweep } from "./useProgressSweep";
 
 /** Everything the editor collected. The locale is the hook's to add, not the screen's to know. */
 export type RecipeDraft = Omit<
   FunctionArgs<typeof api.router.recipes.createOne.authed>,
   "locale"
 >;
-
-/**
- * How often the sweep is recomputed.
- *
- * Not a frame rate: the curve crosses its whole range over tens of seconds, so ten steps a second
- * is already finer than the ring can show. Anything faster would be a timer waking the JS thread
- * sixty times a second to redraw an arc that moved a third of a pixel.
- */
-const TICK_MS = 100;
 
 /**
  * `idle` and `failed` both mean the editor is answerable again; they differ only in whether there
@@ -61,26 +53,8 @@ export const useCreateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimate
   const { action } = useAction(api.router.recipes.createOne.authed);
 
   const [status, setStatus] = useState<Status>("idle");
-  const [startedAt, setStartedAt] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    if (status !== "creating") return;
-
-    /**
-     * Fitted once per wait rather than per tick, and read from the clock rather than from the
-     * previous value: a counter incremented on each tick drifts with every frame the JS thread
-     * misses, and a backgrounded app misses all of them.
-     */
-    const sweep = sweepFor(estimateMs);
-    const tick = () => setProgress(sweep(Date.now() - startedAt));
-
-    tick();
-    const timer = setInterval(tick, TICK_MS);
-
-    return () => clearInterval(timer);
-  }, [status, startedAt, estimateMs]);
+  const { progress, setProgress, start } = useProgressSweep(status === "creating", estimateMs);
 
   const create = useCallback(
     async (draft: RecipeDraft) => {
@@ -96,8 +70,7 @@ export const useCreateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimate
       if (status === "creating") return;
 
       setError(null);
-      setProgress(0);
-      setStartedAt(Date.now());
+      start();
       setStatus("creating");
 
       try {
@@ -118,7 +91,7 @@ export const useCreateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimate
         setProgress(0);
       }
     },
-    [action, locale, status],
+    [action, locale, status, start, setProgress],
   );
 
   return {

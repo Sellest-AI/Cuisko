@@ -71,7 +71,9 @@
   },
   "Cooking": {
     "last_step": "Last step",
+    "prep_instruction": "Get everything measured out and within reach before you start.",
     "step_ingredients": "For this step",
+    "all_ingredients": "Prepare all ingredients",
     "previous": "Previous",
     "next": "Next",
     "update_cellar": "Update my cellar",
