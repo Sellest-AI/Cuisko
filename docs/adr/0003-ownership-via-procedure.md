@@ -62,6 +62,17 @@ that file is the type cycle [0001](./0001-convex-procedures-only.md) bans. The o
 *that* is a string-keyed `makeFunctionReference`, which breaks silently on a rename — in the one
 file where a silent break is an authorization hole.
 
+**First, check whether it has to be an action at all.** An `ownedMutation` that schedules an
+`internalAction` gets the guarantee back for free — the builder checks ownership, `ctx.doc` is the
+document, and the scheduled job needs no check of its own because it is already internal. Scheduling
+from a mutation is transactional: if the mutation commits, the job runs. Prefer that shape whenever
+the caller does not need the action's *result*, and reach for a bare action only when it does.
+
+The trade is where failure surfaces. An action that is awaited can throw, and the client catches it;
+a scheduled job fails with nobody listening, so the caller needs somewhere to read the outcome — a
+status on the row or a jobs table — or the user is told "saved" about work that did not happen. No
+such field exists on `recipes` today, which is why `updateOne` is still an action.
+
 So for a public action taking a document id:
 
 MUST: compare the owner in the handler, before anything is written or spent.
