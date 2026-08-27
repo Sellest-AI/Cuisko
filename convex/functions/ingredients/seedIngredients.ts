@@ -1,5 +1,5 @@
 import { searchTextOf } from "@shared/search";
-import type { Category } from "@convex/schema/ingredients";
+import type { Category } from "@shared/categories";
 import type { MutationCtx } from "@convex/procedures";
 import { hashText, setTranslation } from "@convex/lib/i18n";
 import { computeNutriScore } from "@shared/nutrition";

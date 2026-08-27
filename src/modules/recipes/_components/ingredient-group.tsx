@@ -6,7 +6,8 @@ import { theme } from "theme";
 
 type Props = {
   title: string;
-  items: { emoji: string; name: string; quantity: string }[];
+  titleSize?: "base" | "lg";
+  items: { emoji: string; name: string; quantity?: string }[];
   /** Measured by the screen, so every group's columns line up on one grid. */
   itemWidth: number;
 };
@@ -17,13 +18,17 @@ type Props = {
  * Shared by the ingredients tab and by a single step of the step-by-step, which is why it sits in
  * `_components/` rather than in dot notation beside either of them.
  */
-export const IngredientGroup = ({ title, items, itemWidth }: Props) => (
-  <View>
-    <Text.Base color={theme.colors.neutral.muted}>{title}</Text.Base>
+export const IngredientGroup = ({ titleSize, title, items, itemWidth }: Props) => {
+  const Title = titleSize === "lg" ? Text.Lg : Text.Base;
+
+  return (<View>
+    <Title color={titleSize === "lg" ? theme.colors.foreground : theme.colors.neutral.muted}>
+      {title}
+    </Title>
     <View style={styles.grid}>
       {items.map((item) => (
         <GroceryItem
-          key={item.name}
+          key={item.name + item.quantity}
           emoji={item.emoji}
           name={item.name}
           quantity={item.quantity}
@@ -33,8 +38,8 @@ export const IngredientGroup = ({ title, items, itemWidth }: Props) => (
         />
       ))}
     </View>
-  </View>
-);
+  </View>);
+}
 
 const styles = StyleSheet.create({
   grid: {

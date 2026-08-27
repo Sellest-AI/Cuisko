@@ -5,27 +5,8 @@ import { UNITS } from "@shared/ingredients";
 import { NUTRI_SCORE_GRADES } from "@shared/nutrition";
 import { DIETS } from "@shared/diets";
 import { ALLERGENS } from "@shared/allergens";
+import { CATEGORIES } from "@shared/categories";
 
-export const CATEGORIES = [
-  "VEGETABLE",
-  "FRUIT",
-  "GRAIN",
-  "MEAT",
-  "SEAFOOD",
-  "DAIRY",
-  "EGG",
-  "LEGUME",
-  "NUT",
-  "SEED",
-  "HERB",
-  "SPICE",
-  "OIL",
-  "CONDIMENT",
-  "SWEETENER",
-  "OTHER",
-] as const;
-
-export type Category = (typeof CATEGORIES)[number];
 const vCategory = v.union(...CATEGORIES.map(v.literal));
 
 /**

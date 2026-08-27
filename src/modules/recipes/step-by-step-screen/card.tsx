@@ -14,8 +14,8 @@ type Props = {
   position: number;
   /** The final step, badged so the cook sees the end coming before the bar changes shape. */
   isLast?: boolean;
-  /** Already written for display — "15 minutes". */
-  duration: string;
+  /** The title of the step. */
+  title?: string;
   instruction: string;
   /** What this step alone calls for, not the whole recipe. */
   ingredients: { emoji: string; name: string; quantity: string }[];
@@ -27,7 +27,7 @@ type Props = {
 const COLUMNS = 3;
 
 /** One step of the method, spelled out: what to do, how long it takes, what it takes. */
-export const StepCard = ({ position, duration, instruction, ingredients, isLast, hint }: Props) => {
+export const StepCard = ({ position, title, instruction, ingredients, isLast, hint }: Props) => {
   const t = useTranslations("Recipe");
   const { width } = useWindowDimensions();
 
@@ -40,14 +40,17 @@ export const StepCard = ({ position, duration, instruction, ingredients, isLast,
             {t("Cooking.last_step")}
           </Text.Base>}
         </Text.H4>
-        <Text.Base color={theme.colors.neutral.muted}>{duration}</Text.Base>
+        {title && <Text.Base color={theme.colors.neutral.muted}>{title}</Text.Base>}
       </View>
       <Text.Body color={theme.colors.foreground} style={styles.instruction}>
         {instruction}
       </Text.Body>
       {hint && <View style={styles.hint}>
         <SparklesIcon size={16} color={theme.colors.primary.base} />
-        <Text.Body color={theme.colors.primary.base} style={styles.instruction}>
+        <Text.Body
+          color={theme.colors.primary.base}
+          style={styles.instruction}
+        >
           {hint}
         </Text.Body>
       </View>}
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  instruction: { flexShrink: 1 },
+  instruction: { flexShrink: 1, width: "100%" },
   hint: {
     flexDirection: "row",
     justifyContent: "flex-start",

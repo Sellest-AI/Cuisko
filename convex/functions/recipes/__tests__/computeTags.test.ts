@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
 import type { Allergen } from "@shared/allergens";
-import type { Category } from "@convex/schema/ingredients";
+import type { Category } from "@shared/categories";
 import type { Diet } from "@shared/diets";
 
 import schema from "../../../schema";

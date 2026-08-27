@@ -23,5 +23,5 @@ export const Stat = ({ label, value, style }: Props) => (
 );
 
 const styles = StyleSheet.create({
-  stat: { gap: theme.spacing[4] },
+  stat: { gap: theme.spacing[6] },
 });

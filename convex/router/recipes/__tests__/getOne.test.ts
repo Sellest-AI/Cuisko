@@ -174,7 +174,13 @@ describe("router/recipes/getOne", () => {
       locale: "en",
     });
 
-    expect(english.ingredients).toEqual([
+    /**
+     * Naming and ordering only. The glyph and the category each line also carries are
+     * `loadRecipe`'s to get right, and are pinned in its own tests rather than here — this asserts
+     * what the ROUTER promises, which is that the caller's locale reaches the lines and that the
+     * recipe's own order survives the round trip.
+     */
+    expect(english.ingredients.map(({ name, quantity, unit }) => ({ name, quantity, unit }))).toEqual([
       { name: "Onion", quantity: 4, unit: "pcs" },
       { name: "Butter", quantity: 30, unit: "g" },
     ]);

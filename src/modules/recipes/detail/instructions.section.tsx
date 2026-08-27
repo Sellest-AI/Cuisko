@@ -6,7 +6,8 @@ import { theme } from "theme";
 import { stepNumber } from "../_model/step";
 
 type Props = {
-  title: string;
+  /** Absent for an ungrouped run of steps — a recipe that is simply five things to do in order. */
+  title?: string;
   steps: string[];
   /**
    * How many steps came before this section. Numbering runs across the whole method rather than
@@ -18,7 +19,7 @@ type Props = {
 /** One stage of the method — the sauce, the plating — as its numbered steps. */
 export const InstructionSection = ({ title, steps, offset }: Props) => (
   <View style={styles.section}>
-    <Text.Base color={theme.colors.neutral.muted}>{title}</Text.Base>
+    {title && <Text.Base color={theme.colors.neutral.muted}>{title}</Text.Base>}
     {steps.map((step, index) => (
       <View key={step + index} style={styles.step}>
         <Text.Lg color={theme.colors.neutral.muted}>{stepNumber(offset + index + 1)}</Text.Lg>

@@ -45,7 +45,13 @@ export const Servings = ({ servings, onChange, style }: Props) => {
   );
 };
 
-/** A recipe for nobody is not a recipe; the minus stops here rather than wrapping to zero. */
+/**
+ * What the minus greys out at.
+ *
+ * The floor itself is enforced by `useRecipe`'s setter, which is what stops a second stepper
+ * restating it. This one is presentation: the button has to look unavailable a tap *before* the
+ * clamp would silently swallow the press.
+ */
 const MIN_SERVINGS = 1;
 
 /** The stepper's discs are smaller than any `size` gives, so both dimensions are set by hand. */

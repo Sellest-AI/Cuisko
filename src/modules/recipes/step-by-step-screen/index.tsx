@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 
+import { formatQuantity } from "@shared/ingredients";
+
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
 import { Minus, Plus, X } from "@ui/icons";
@@ -12,53 +14,40 @@ import { theme } from "theme";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { RecipeScreen } from "../_components/recipe-screen";
+import { useRecipe } from "../_hooks/useRecipe";
+import { flattenSteps } from "../_model/detail";
+import { ingredientsIn } from "../_model/quantities";
 import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../constants";
 import { StepBar } from "./bar";
 import { StepCard } from "./card";
 import { StepMedia } from "./media";
 
-/** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
-const STEPS = [
+/**
+ * What a step looks like beyond its text and what it calls for, until a step is a row rather than
+ * a line.
+ *
+ * The instruction, the numbering and the ingredients are real: the first two come from the
+ * recipe's own method, and the third is read out of the step's own words by `ingredientsIn` —
+ * "Concassez 4 tomates" is the only place the schema records that this step uses tomatoes, since
+ * `recipeSteps` does not exist. What is left here is what no amount of reading can recover — a
+ * duration, a photo, a video are not written into the sentence.
+ *
+ * Cycled by position so consecutive steps do not all draw the same photo, which would read as the
+ * page having failed to advance.
+ */
+const PLACEHOLDER_STEP_CHROME = [
   {
-    duration: "15 minutes",
-    instruction: "Soften the onions and bacon in the pan, then drain them well.",
-    photo:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    ingredients: [
-      { emoji: "🧅", name: "Onions", quantity: "2 pcs" },
-      { emoji: "🥓", name: "Bacon", quantity: "200 g" },
-      { emoji: "🫒", name: "Oil", quantity: "1 tbsp" },
-      { emoji: "🧂", name: "Salt", quantity: "1 pinch" },
-    ],
+    photo: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
   },
   {
-    duration: "5 minutes",
-    instruction: "Cook down the tomatoes 🍅 and the carrots 🥕.",
-    hint: "Make sure to wash them before.",
-    photo:
-      "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
+    photo: "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
     hasVideo: true,
-    ingredients: [
-      { emoji: "🍅", name: "Tomatoes", quantity: "500 g" },
-      { emoji: "🥕", name: "Carrots", quantity: "300 g" },
-    ],
   },
   {
-    duration: "10 minutes",
-    instruction: "Roll out the dough, spread the sauce, then add the mozzarella.",
-    photo:
-      "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    ingredients: [
-      { emoji: "🧀", name: "Mozzarella", quantity: "150 g" },
-      { emoji: "🌿", name: "Basil", quantity: "6 leaves" },
-    ],
+    photo: "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
   },
   {
-    duration: "8 minutes",
-    instruction: "Bake at 250°C until the crust turns golden, then serve.",
-    photo:
-      "https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    ingredients: [],
+    photo: "https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
   },
 ];
 
@@ -66,6 +55,8 @@ const STEPS = [
 const MEDIA_RATIO = 0.4;
 
 type Props = {
+  /** The recipe to cook. The route's, like `onClose` — a screen cannot know what opened it. */
+  id?: string;
   /** The route's, because a screen cannot know what it was opened from. */
   onClose: () => void;
 };
@@ -81,16 +72,42 @@ type Props = {
  * everywhere else in the recipe: it drifts and scales under the content instead of scrolling off,
  * and a step whose ingredients run past the fold reads as one page rather than two panes.
  */
-export const StepByStepScreen = ({ onClose }: Props) => {
+export const StepByStepScreen = ({ id, onClose }: Props) => {
   const { height } = useWindowDimensions();
+  const { recipe, ingredients, servings, setServings } = useRecipe(id);
   const [index, setIndex] = useState(0);
   const [previousIndex, setPreviousIndex] = useState(0);
 
   /** The bar overlays the page; until it has been laid out, assume the height every other bar has. */
   const [barHeight, setBarHeight] = useState(NAVIGATION_BAR_OFFSET);
 
-  const step = STEPS[index]!;
-  const isLast = index === STEPS.length - 1;
+  /**
+   * The method as one unbroken run, because a cook at a hob is walking steps rather than reading
+   * groups — and `flattenSteps` is what keeps "step 3" meaning the same thing here as on the tab.
+   */
+  const steps = flattenSteps(recipe?.instructions ?? []);
+
+  const step = steps[index];
+  const isLast = index === steps.length - 1;
+
+  /**
+   * Nothing to cook: still loading, refused, or a recipe whose method was never written down. The
+   * exit has to stay reachable in all three, so this draws the screen with no step in it rather
+   * than returning null and stranding a cook on a blank modal.
+   */
+  if (!step) {
+    return (
+      <View style={styles.screen}>
+        <SafeAreaView edges={{ bottom: "off" }} style={styles.exit} pointerEvents="box-none">
+          <ButtonIcon elevated variant="neutral-inverted" size="md" onPress={onClose}>
+            {X}
+          </ButtonIcon>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  const chrome = PLACEHOLDER_STEP_CHROME[index % PLACEHOLDER_STEP_CHROME.length]!;
 
   return (
     <View style={styles.screen}>
@@ -100,9 +117,9 @@ export const StepByStepScreen = ({ onClose }: Props) => {
          * this, moving on from a scrolled step would drop you into the middle of the next one.
          */
         scrollKey={index}
-        headerBackgroundImage={step.photo}
+        headerBackgroundImage={chrome.photo}
         contentNegativeSpace={CONTENT_NEGATIVE_SPACE}
-        headerContent={<StepMedia hasVideo={step.hasVideo} height={height * MEDIA_RATIO} />}
+        headerContent={<StepMedia hasVideo={chrome.hasVideo} height={height * MEDIA_RATIO} />}
         contentHeader={<View style={styles.lip} />}
       >
         <RecipeScreen
@@ -126,11 +143,22 @@ export const StepByStepScreen = ({ onClose }: Props) => {
             style={{ marginTop: -CONTENT_NEGATIVE_SPACE / 2 }}
           >
             <StepCard
-              position={index + 1}
-              duration={step.duration}
+              position={step.position}
               instruction={step.instruction}
-              hint={step.hint}
-              ingredients={step.ingredients}
+              // TODO: add a hint to the step model, and pass it here.
+              // hint={step.title}
+              /** The group the step belongs to — "Sauce", "Plate" — when the method has any. */
+              title={step.title}
+              /**
+               * What this step alone calls for, read out of its own sentence. The instruction has
+               * already been scaled by `useRecipe`, so the amounts here are the ones the cook is
+               * being told to use rather than the ones the recipe was written with.
+               */
+              ingredients={ingredientsIn(step.instruction, ingredients).map((mention) => ({
+                emoji: mention.line.emoji,
+                name: mention.line.name,
+                quantity: formatQuantity(mention.amount, mention.unit),
+              }))}
               isLast={isLast}
             />
           </m.View>
@@ -157,13 +185,12 @@ export const StepByStepScreen = ({ onClose }: Props) => {
               variant="primary"
               leftIcon={Minus}
               rightIcon={Plus}
-              // Set the serving size
-              onLeftPress={() => { }}
-              onRightPress={() => { }}
+              onLeftPress={() => setServings(servings - 1)}
+              onRightPress={() => setServings(servings + 1)}
               onPress={() => null}
               size="sm"
             >
-              5
+              {String(servings)}
             </ButtonPill>
           </m.View>}
         </AnimatePresence>
@@ -172,10 +199,9 @@ export const StepByStepScreen = ({ onClose }: Props) => {
         isFirst={index === 0}
         isLast={isLast}
         onPrevious={() => { setIndex((current) => Math.max(0, current - 1)); setPreviousIndex(index) }}
-        onNext={() => { setIndex((current) => Math.min(STEPS.length - 1, current + 1)); setPreviousIndex(index); }}
+        onNext={() => { setIndex((current) => Math.min(steps.length - 1, current + 1)); setPreviousIndex(index); }}
         /**
-         * Placeholder: taking the ingredients back out of the cellar is a mutation, and this module
-         * has no `_hooks/` yet. Until it does, finishing only closes the session.
+         * TODO: onFinish update the cellar
          */
         onFinish={onClose}
         onHeight={setBarHeight}

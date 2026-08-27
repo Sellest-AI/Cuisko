@@ -1,6 +1,9 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { NO_EMOJI } from "@shared/ingredients";
+
+import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { loadRecipe } from "../loadRecipe";
 
@@ -9,9 +12,10 @@ const modules = import.meta.glob("/convex/**/*.*s");
 
 let t: ReturnType<typeof convexTest>;
 
-const seedRecipe = () =>
+const seedRecipe = ({ chef }: { chef?: string | null } = { chef: "Franck" }) =>
   t.run(async (ctx) => {
-    const userId = await ctx.db.insert("users", { name: "Franck" });
+    const userId =
+      chef === null ? undefined : await ctx.db.insert("users", chef ? { name: chef } : {});
 
     return ctx.db.insert("recipes", {
       title: { values: { en: "Onion soup" }, meta: {} },
@@ -31,6 +35,45 @@ const seedRecipe = () =>
       isGlutenFree: true,
       isDairyFree: false,
       isNutFree: true,
+      updatedAt: Date.now(),
+    });
+  });
+
+/**
+ * One line of the recipe, with the catalog row behind it.
+ *
+ * `gramsPerPiece` is what lets a `pcs` line reach grams, so it is the switch every nutrition test
+ * here flips: an ingredient without it is a line `toGrams` refuses, which is the case the refusals
+ * below are about.
+ */
+const seedLine = (
+  recipeId: Id<"recipes">,
+  ingredient: {
+    name: string;
+    category: "VEGETABLE" | "DAIRY";
+    emoji?: string;
+    gramsPerPiece?: number;
+  },
+  { position, quantity }: { position: number; quantity: number },
+) =>
+  t.run(async (ctx) => {
+    const ingredientId = await ctx.db.insert("ingredients", {
+      name: { values: { en: ingredient.name }, meta: {} },
+      category: ingredient.category,
+      defaultUnit: "pcs",
+      defaultQuantity: 1,
+      nutrition: { calories: 100, protein: 10, fat: 5, carbohydrates: 20 },
+      updatedAt: Date.now(),
+      ...(ingredient.emoji && { emoji: ingredient.emoji }),
+      ...(ingredient.gramsPerPiece !== undefined && { gramsPerPiece: ingredient.gramsPerPiece }),
+    });
+
+    await ctx.db.insert("recipeIngredients", {
+      recipeId,
+      ingredientId,
+      position,
+      quantity,
+      unit: "pcs",
       updatedAt: Date.now(),
     });
   });
@@ -101,5 +144,109 @@ describe("functions/recipes/loadRecipe", () => {
     const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
 
     expect(recipe.ingredients).toEqual([]);
+  });
+
+  /**
+   * The emoji column is still optional, on rows written before it existed. What is pinned is that
+   * the fallback happens here rather than on every screen that draws a tile — a line always has
+   * something to show.
+   */
+  test("falls back to the placeholder emoji when the catalog row carries none", async () => {
+    const recipeId = await seedRecipe();
+    await seedLine(recipeId, { name: "Onion", category: "VEGETABLE" }, { position: 0, quantity: 2 });
+    await seedLine(
+      recipeId,
+      { name: "Butter", category: "DAIRY", emoji: "🧈" },
+      { position: 1, quantity: 1 },
+    );
+
+    const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+    expect(recipe.ingredients.map((line) => line.emoji)).toEqual([NO_EMOJI, "🧈"]);
+  });
+
+  /** The stored key, not a heading — the screen groups by it and owns the words and the order. */
+  test("carries each line's category, in position order", async () => {
+    const recipeId = await seedRecipe();
+    await seedLine(recipeId, { name: "Butter", category: "DAIRY" }, { position: 1, quantity: 1 });
+    await seedLine(recipeId, { name: "Onion", category: "VEGETABLE" }, { position: 0, quantity: 2 });
+
+    const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+    expect(recipe.ingredients.map((line) => [line.name, line.category])).toEqual([
+      ["Onion", "VEGETABLE"],
+      ["Butter", "DAIRY"],
+    ]);
+  });
+
+  /**
+   * Both halves of the same promise: a recipe every line of which can be weighed reports its
+   * macros, and one with a single unweighable line reports none at all rather than a total that
+   * silently leaves that ingredient out.
+   */
+  test("totals the recipe only when every line can be weighed", async () => {
+    const weighable = await seedRecipe();
+    await seedLine(
+      weighable,
+      { name: "Onion", category: "VEGETABLE", gramsPerPiece: 100 },
+      { position: 0, quantity: 2 },
+    );
+
+    const totalled = await t.run((ctx) => loadRecipe(ctx, { recipe: weighable, locale: "en" }));
+
+    // 2 pieces × 100 g, at 100 kcal per 100 g, over the 4 servings the recipe is written for.
+    expect(totalled.nutrition?.grams).toBe(200);
+    expect(totalled.nutrition?.perServing.calories).toBe(50);
+
+    const partial = await seedRecipe();
+    await seedLine(
+      partial,
+      { name: "Onion", category: "VEGETABLE", gramsPerPiece: 100 },
+      { position: 0, quantity: 2 },
+    );
+    await seedLine(partial, { name: "Butter", category: "DAIRY" }, { position: 1, quantity: 1 });
+
+    const unweighable = await t.run((ctx) => loadRecipe(ctx, { recipe: partial, locale: "en" }));
+
+    expect(unweighable.nutrition).toBeUndefined();
+  });
+
+  /** A recipe with no lines has no nutrition to report, and zero is not the answer. */
+  test("reports no nutrition for a recipe with no lines", async () => {
+    const recipeId = await seedRecipe();
+
+    const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+    expect(recipe.nutrition).toBeUndefined();
+  });
+
+  /** The timings stay unsummed beside the total the card already carries. */
+  test("carries the timings breakdown as well as their sum", async () => {
+    const recipeId = await seedRecipe();
+
+    const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+    expect(recipe.timings).toEqual({ preparation: 15 });
+    expect(recipe.minutes).toBe(15);
+  });
+
+  /**
+   * Three ways to have no chef, and all of them are the same absence: the screen decides what an
+   * uncredited recipe looks like, so nothing here invents a name for it.
+   */
+  test("credits the owner, and nobody when there is no name to credit", async () => {
+    const named = await seedRecipe();
+    const nameless = await seedRecipe({ chef: undefined });
+    const ownerless = await seedRecipe({ chef: null });
+
+    const [withChef, withoutName, withoutOwner] = await t.run(async (ctx) => [
+      await loadRecipe(ctx, { recipe: named, locale: "en" }),
+      await loadRecipe(ctx, { recipe: nameless, locale: "en" }),
+      await loadRecipe(ctx, { recipe: ownerless, locale: "en" }),
+    ]);
+
+    expect(withChef.chef).toEqual({ name: "Franck" });
+    expect(withoutName.chef).toBeUndefined();
+    expect(withoutOwner.chef).toBeUndefined();
   });
 });

@@ -5,13 +5,25 @@
     "instructions": "Instructions"
   },
   "Chrome": {
-    "start_cooking": "Passer en cuisine"
+    "start_cooking": "Passer en cuisine",
+    "not_found_title": "Cette recette est introuvable",
+    "not_found_body": "Elle a peut-être été supprimée, ou elle appartient à quelqu'un d'autre.",
+    "not_found_action": "Retour à mes recettes"
   },
   "Overview": {
     "difficulty": "Difficulté",
     "chef": "Chef",
     "utensils": "Ustensiles",
-    "ingredients": "Ingrédients"
+    "ingredients": "Ingrédients",
+    "preparation": "Préparation",
+    "cooking": "Cuisson",
+    "total": "Total",
+    "minutes_one": "{{count}} min",
+    "minutes_many": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "no_utensils": "Rien de plus qu'une poêle et un couteau.",
+    "resting": "Repos",
+    "unknown_chef": "Un cuisinier Cuisko"
   },
   "Nutrition": {
     "title": "Nutrition",
@@ -19,15 +31,22 @@
     "protein": "Protéines",
     "fat": "Lipides",
     "carbs": "Glucides",
-    "calories": "Calories"
+    "calories": "Calories",
+    "per_serving": "Par portion",
+    "for_people_one": "Pour {{count}} personne",
+    "for_people_many": "Pour {{count}} personnes",
+    "for_people_other": "Pour {{count}} personnes"
   },
   "Ingredients": {
+    "title": "Ingrédients",
     "servings": "Portions",
     "add_to_list": "Ajouter à ma liste",
-    "add_to_list_subtitle": "Seulement ce qui manque dans ta cuisine"
+    "add_to_list_subtitle": "Seulement ce qui manque dans ta cuisine",
+    "empty": "Cette recette ne liste encore aucun ingrédient."
   },
   "Instructions": {
-    "title": "Instructions"
+    "title": "Instructions",
+    "empty": "Cette recette n'a pas encore d'étapes écrites."
   },
   "Editor": {
     "new_title": "Nouvelle recette",
@@ -61,5 +80,81 @@
     "update_cellar_pending": "Mettre à jour ma cave ({{seconds, number}})",
     "cellar_title": "Ta cave, mise à jour pour toi",
     "cellar_body": "Tout ce que cette recette a utilisé sort de ta cave, pour que ta prochaine liste ne demande que ce qui manque vraiment."
+  },
+  "Difficulties": {
+    "simple": "Très facile",
+    "easy": "Facile",
+    "medium": "Moyen",
+    "hard": "Difficile",
+    "advanced": "Expert"
+  },
+  "Categories": {
+    "VEGETABLE": "Légumes",
+    "FRUIT": "Fruits",
+    "GRAIN": "Céréales",
+    "MEAT": "Viandes",
+    "SEAFOOD": "Poissons",
+    "DAIRY": "Produits laitiers",
+    "EGG": "Œufs",
+    "LEGUME": "Légumineuses",
+    "NUT": "Fruits à coque",
+    "SEED": "Graines",
+    "HERB": "Herbes",
+    "SPICE": "Épices",
+    "OIL": "Huiles",
+    "CONDIMENT": "Condiments",
+    "SWEETENER": "Sucrants",
+    "OTHER": "Autres"
+  },
+  "Equipments": {
+    "oven": "Four",
+    "blender": "Blender",
+    "food processor": "Robot",
+    "mixer": "Batteur",
+    "stand mixer": "Robot pâtissier",
+    "microwave": "Micro-ondes",
+    "slow cooker": "Mijoteuse",
+    "pressure cooker": "Cocotte-minute",
+    "rice cooker": "Cuiseur à riz",
+    "air fryer": "Friteuse à air",
+    "grill": "Gril",
+    "waffle maker": "Gaufrier",
+    "toaster": "Grille-pain"
+  },
+  "Tags": {
+    "vegetarian": "Végétarien",
+    "vegan": "Végan",
+    "pescatarian": "Pescétarien",
+    "gluten-free": "Sans gluten connu",
+    "dairy-free": "Sans lait connu",
+    "nut-free": "Sans fruits à coque connus",
+    "high-protein": "Riche en protéines",
+    "low-carb": "Pauvre en glucides",
+    "low-calorie": "Léger",
+    "breakfast": "Petit-déjeuner",
+    "brunch": "Brunch",
+    "starter": "Entrée",
+    "main": "Plat",
+    "side": "Accompagnement",
+    "dessert": "Dessert",
+    "snack": "En-cas",
+    "drink": "Boisson",
+    "soup": "Soupe",
+    "salad": "Salade",
+    "sandwich": "Sandwich",
+    "pasta": "Pâtes",
+    "bowl": "Bowl",
+    "baking": "Pâtisserie",
+    "quick": "Rapide",
+    "one-pot": "Un seul plat",
+    "no-cook": "Sans cuisson",
+    "make-ahead": "À préparer à l'avance",
+    "batch-cooking": "Batch cooking",
+    "freezer-friendly": "Se congèle bien",
+    "budget": "Économique",
+    "comfort-food": "Réconfortant",
+    "festive": "Festif",
+    "kid-friendly": "Pour les enfants",
+    "spicy": "Épicé"
   }
 }

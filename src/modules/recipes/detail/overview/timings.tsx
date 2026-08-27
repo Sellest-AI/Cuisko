@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
-type Timing = {
+export type Timing = {
   emoji: string;
   label: string;
   value: string;

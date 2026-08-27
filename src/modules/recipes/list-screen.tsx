@@ -14,7 +14,7 @@ import { useState } from "react";
 import { useTranslations } from "translations";
 
 import { useRecipeList } from "./_hooks/useRecipeList";
-import { RecipesEmpty } from "./list-screen.empty";
+import { EmptyState } from "./_components/empty-state";
 
 /**
  * Every card draws the same picture, because a recipe has no image field yet. When one lands it
@@ -55,13 +55,13 @@ export const RecipesScreen = ({ style }: Props) => {
          */
         ListEmptyComponent={
           isLoading ? null : isSearching ? (
-            <RecipesEmpty
+            <EmptyState
               icon={Search}
               title={t("no_matches_title")}
               body={t("no_matches_body", { query })}
             />
           ) : (
-            <RecipesEmpty
+            <EmptyState
               icon={ForkKnife}
               title={t("empty_title")}
               body={t("empty_body")}

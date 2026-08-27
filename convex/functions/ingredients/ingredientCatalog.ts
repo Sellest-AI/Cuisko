@@ -1,4 +1,4 @@
-import type { Category } from "@convex/schema/ingredients";
+import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
 import { sortAllergens, type Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";

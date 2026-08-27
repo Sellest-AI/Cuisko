@@ -87,8 +87,29 @@ describe("parseInstructions", () => {
     ]);
   });
 
-  test("drops a heading whose steps never arrived", () => {
-    expect(parseInstructions("Sauce\n\nPasta\n- Boil")).toEqual([{ title: "Pasta", steps: ["Boil"] }]);
+  test("keeps a heading whose steps never arrived, as a step", () => {
+    // A real heading is never childless, so a title with nothing under it is a short instruction
+    // the length test misread. Keeping it costs the styling; dropping it cost the sentence.
+    expect(parseInstructions("Sauce\n\nPasta\n- Boil")).toEqual([
+      { steps: ["Sauce"] },
+      { title: "Pasta", steps: ["Boil"] },
+    ]);
+  });
+
+  test("reads a phrase-length heading as a heading, not as a step", () => {
+    // 30 characters exactly — under LONG_STEP_THRESHOLD, and the case the threshold was raised for.
+    // Below it, this became a step and dragged the step under it into the group above.
+    expect(parseInstructions("Champignons et oignons grelots\n- Émincer les champignons")).toEqual([
+      { title: "Champignons et oignons grelots", steps: ["Émincer les champignons"] },
+    ]);
+  });
+
+  test("never loses an instruction short enough to be mistaken for a heading", () => {
+    // The other side of the same trade: a lone step under the threshold has no steps to follow it,
+    // so it is the shape the old filter deleted outright.
+    expect(parseInstructions("Faire revenir les oignons")).toEqual([
+      { steps: ["Faire revenir les oignons"] },
+    ]);
   });
 
   test("opens a new group on a heading that follows steps directly, with no blank line", () => {

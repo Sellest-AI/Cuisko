@@ -176,7 +176,15 @@ const sumOptional = (lines: WeighedLine[], pick: (facts: IngredientFacts) => num
   return total;
 };
 
-const scale = (facts: IngredientFacts, factor: number): IngredientFacts => ({
+/**
+ * Every fact multiplied, the optional ones staying optional.
+ *
+ * Exported because the same operation is needed on the way back out: `totalsOf` divides a total
+ * into portions here, and a screen cooking for more people than the recipe was written for
+ * multiplies the total back up. Two copies of an eight-field multiply agree only until somebody
+ * adds a ninth fact to one of them.
+ */
+export const scaleFacts = (facts: IngredientFacts, factor: number): IngredientFacts => ({
   calories: facts.calories * factor,
   protein: facts.protein * factor,
   fat: facts.fat * factor,
@@ -227,7 +235,7 @@ export const totalsOf = (lines: RecipeLine[], servings: number): RecipeNutrition
   const nutrition: RecipeNutrition = {
     grams,
     total,
-    perServing: scale(total, 1 / servings),
+    perServing: scaleFacts(total, 1 / servings),
   };
 
   if (saturatedFat === undefined || sugars === undefined || fiber === undefined || sodium === undefined) {
