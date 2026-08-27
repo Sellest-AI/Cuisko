@@ -47,6 +47,7 @@ import type * as functions_ingredients_searchCatalog from "../functions/ingredie
 import type * as functions_ingredients_seedIngredients from "../functions/ingredients/seedIngredients.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
+import type * as functions_recipes_recipeSearchText from "../functions/recipes/recipeSearchText.js";
 import type * as functions_recipes_saveRecipe from "../functions/recipes/saveRecipe.js";
 import type * as functions_recipes_saveTranslations from "../functions/recipes/saveTranslations.js";
 import type * as functions_users_isAuthorized from "../functions/users/isAuthorized.js";
@@ -55,6 +56,7 @@ import type * as http from "../http.js";
 import type * as http_verified from "../http/verified.js";
 import type * as lib_i18n_index from "../lib/i18n/index.js";
 import type * as lib_secrets from "../lib/secrets.js";
+import type * as migrations from "../migrations.js";
 import type * as procedures from "../procedures.js";
 import type * as router_cellars_addToCellar from "../router/cellars/addToCellar.js";
 import type * as router_cellars_addToGroceryList from "../router/cellars/addToGroceryList.js";
@@ -76,6 +78,7 @@ import type * as schema_cellars from "../schema/cellars.js";
 import type * as schema_households from "../schema/households.js";
 import type * as schema_i18n from "../schema/i18n.js";
 import type * as schema_ingredients from "../schema/ingredients.js";
+import type * as schema_recipePayloads from "../schema/recipePayloads.js";
 import type * as schema_recipes from "../schema/recipes.js";
 import type * as schema_users from "../schema/users.js";
 
@@ -125,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/seedIngredients": typeof functions_ingredients_seedIngredients;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
+  "functions/recipes/recipeSearchText": typeof functions_recipes_recipeSearchText;
   "functions/recipes/saveRecipe": typeof functions_recipes_saveRecipe;
   "functions/recipes/saveTranslations": typeof functions_recipes_saveTranslations;
   "functions/users/isAuthorized": typeof functions_users_isAuthorized;
@@ -133,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "http/verified": typeof http_verified;
   "lib/i18n/index": typeof lib_i18n_index;
   "lib/secrets": typeof lib_secrets;
+  migrations: typeof migrations;
   procedures: typeof procedures;
   "router/cellars/addToCellar": typeof router_cellars_addToCellar;
   "router/cellars/addToGroceryList": typeof router_cellars_addToGroceryList;
@@ -154,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "schema/households": typeof schema_households;
   "schema/i18n": typeof schema_i18n;
   "schema/ingredients": typeof schema_ingredients;
+  "schema/recipePayloads": typeof schema_recipePayloads;
   "schema/recipes": typeof schema_recipes;
   "schema/users": typeof schema_users;
 }>;
@@ -186,4 +192,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
 };
