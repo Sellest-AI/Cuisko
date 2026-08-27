@@ -5,9 +5,11 @@ import type { MutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
+import { facetsOf } from "@shared/tags";
 
 import { matchIngredients } from "../ingredients/matchIngredients";
 import { computeTags, type TaggableLine } from "./computeTags";
+import { recipeSearchText } from "./recipeSearchText";
 
 type Args = {
   userId: Id<"users">;
@@ -50,6 +52,18 @@ export const saveRecipe = async (ctx: MutationCtx, { userId, locale, recipe }: A
     servings: recipe.servings,
   });
 
+  const tags = [...recipe.tags, ...computed];
+
+  // The two derived fields are written HERE and only here, from the values one line above them.
+  // `facetsOf` is a projection of `tags` rather than a second derivation, so the boolean and the
+  // tag cannot disagree; `recipeSearchText` is the sole assembler of the blob (ADR 0011).
+  const search = await recipeSearchText(ctx, {
+    ingredientIds: matches.flatMap((match) =>
+      match.status === "matched" ? [match.ingredientId] : [],
+    ),
+    names: recipe.ingredients.map((line) => line.name),
+  });
+
   const recipeId = await ctx.db.insert("recipes", {
     userId,
     title: _machine(locale, recipe.title),
@@ -58,7 +72,9 @@ export const saveRecipe = async (ctx: MutationCtx, { userId, locale, recipe }: A
     servings: recipe.servings,
     equipments: recipe.equipments,
     difficulty: recipe.difficulty,
-    tags: [...recipe.tags, ...computed],
+    tags,
+    ...facetsOf(tags),
+    search,
     cuisine: recipe.cuisine,
     timings: recipe.timings,
     updatedAt: Date.now(),

@@ -7,6 +7,7 @@ import { serializeInstructions } from "@shared/recipes";
 
 import schema from "../../../schema";
 import { loadForTranslation } from "../loadForTranslation";
+import { facetsOf } from "@shared/tags";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -57,6 +58,11 @@ const seed = async (overrides: { userId?: Id<"users"> | null } = {}) =>
       tags: ["soup"],
       cuisine: "french",
       timings: { preparation: 15 },
+      // Neither is what this file tests; both are here because the columns are required.
+      // `facetsOf` rather than six literals, so adding a facet does not mean editing three
+      // fixtures — and so a fixture can never claim one the tag list does not support.
+      search: { fr: "", en: "" },
+      ...facetsOf([]),
       updatedAt: Date.now(),
     });
 

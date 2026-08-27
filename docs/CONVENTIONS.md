@@ -39,9 +39,9 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | Module components with **several** parents | `_components/`                       | `_components/recipe-form.tsx`                    | 👁             |
 | A module's public hooks                    | `hooks.ts` at the module root        | `export { useX } from "./_hooks/useX"`           | 🔒 R8          |
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
-| Convex Node-runtime half of an operation   | `<operation>Node.ts`                 | `importOneNode.ts`                               | 📐 C2         |
+| Convex Node-runtime half of an operation   | `<operation>Node.ts`                 | `importOneNode.ts`                               | 📐 C2          |
 | Companion types of one component           | `<name>.types.ts`                    | `select.types.ts`                                | 👁             |
-| Test of anything, `_model/` included       | `__tests__/<subject>.test.ts`        | `step.ts` → `__tests__/step.test.ts`             | 📐 C10        |
+| Test of anything, `_model/` included       | `__tests__/<subject>.test.ts`        | `step.ts` → `__tests__/step.test.ts`             | 📐 C10         |
 
 **The hook exception is deliberate, not an oversight.** The predecessor's docs said "kebab-case
 everywhere", its code used camelCase for all 19 hook files, and the two conventions coexisted in two
@@ -172,10 +172,10 @@ C3 asserts every index name matches its field list, and every search index is `s
 **Two Vitest projects, because the code has two runtimes.** A test's location decides which one
 runs it, so location is not a matter of taste:
 
-| Project | Environment | Collects | For |
-| --- | --- | --- | --- |
-| `convex` | `edge-runtime` + `convex-test` | `convex/**`, `shared/**` | backend functions, and the rejection tests C5 requires |
-| `app` | `jsdom` + `react-native-web` | `src/**`, `app/**` | `_model/` logic, hooks mounted with `renderHook`, components rendered |
+| Project  | Environment                    | Collects                 | For                                                                   |
+| -------- | ------------------------------ | ------------------------ | --------------------------------------------------------------------- |
+| `convex` | `edge-runtime` + `convex-test` | `convex/**`, `shared/**` | backend functions, and the rejection tests C5 requires                |
+| `app`    | `jsdom` + `react-native-web`   | `src/**`, `app/**`       | `_model/` logic, hooks mounted with `renderHook`, components rendered |
 
 A `.tsx` test only runs in the `app` project. Putting one under `convex/` does not fail — it is
 **silently never collected**, which is why C10 asks Vitest itself which files it claims and fails
@@ -216,14 +216,14 @@ own modules belongs in the test that needs it, where a reader can see it.
 ^(anon|authed|admin|server|_internal(_[a-z][a-zA-Z0-9]*)?)$
 ```
 
-| Export             | Required builder                                                                                  | Callable by                              |
-| ------------------ | --------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `anon`             | `publicQuery` / `publicMutation` / `publicAction`                                                   | anyone, unauthenticated                  |
-| `authed`           | `authQuery` / `authMutation` / `authAction` / `ownedQuery` / `ownedMutation` / `householdQuery` / `householdMutation` | signed-in users               |
-| `admin`            | `adminQuery` / `adminMutation` / `adminAction`                                                      | `role === 'ADMIN'`                       |
-| `server`           | `serverQuery` / `serverMutation` / `serverAction`                                                   | holders of `SERVER_PRIVATE_KEY`          |
-| `_internal`        | `internalQuery` / `internalMutation` / `internalAction`                                             | Convex functions only                    |
-| `_internal_<verb>` | same                                                                                                 | Convex functions only — a **named step** |
+| Export             | Required builder                                                                                                      | Callable by                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `anon`             | `publicQuery` / `publicMutation` / `publicAction`                                                                     | anyone, unauthenticated                  |
+| `authed`           | `authQuery` / `authMutation` / `authAction` / `ownedQuery` / `ownedMutation` / `householdQuery` / `householdMutation` | signed-in users                          |
+| `admin`            | `adminQuery` / `adminMutation` / `adminAction`                                                                        | `role === 'ADMIN'`                       |
+| `server`           | `serverQuery` / `serverMutation` / `serverAction`                                                                     | holders of `SERVER_PRIVATE_KEY`          |
+| `_internal`        | `internalQuery` / `internalMutation` / `internalAction`                                                               | Convex functions only                    |
+| `_internal_<verb>` | same                                                                                                                  | Convex functions only — a **named step** |
 
 Most builders above have an `*I18n` sibling (`publicQueryI18n`, `authMutationI18n`,
 `ownedQueryI18n`, `householdQueryI18n`). `server*`, `internal*` and `householdMutationI18n` do
@@ -366,11 +366,11 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 **French and English are both first-class, from launch** — see
 [PRODUCT.md § Bilingual by nature](./PRODUCT.md).
 
-| Layer                  | Rule                                                                                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted. |
-| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                  |
-| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                           |
+| Layer                  | Rule                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted.  |
+| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                   |
+| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                            |
 | Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
 
 **Key naming.** Namespaces and groups are `PascalCase`; the text keys under them are `snake_case`.
@@ -434,21 +434,23 @@ written straight into a component. Promote it in the commit that adds that lint 
 
 ## 4. Schema rules
 
-| #   | Rule                                                                                      | Tag  |
-| --- | ----------------------------------------------------------------------------------------- | ---- |
-| S1  | Every `ctx.db.query()` is immediately followed by `.withIndex()` / `.withSearchIndex()`   | 📐 C3 |
-| S2  | Indexes named `by_<field>[_and_<field>]`                                                  | 📐 C3 |
-| S3  | **Never `.filter()` together with `.paginate()`** — put the predicate in the index        | 📐 C3 |
-| S4  | Never store `createdAt`; `_creationTime` already exists                                   | 👁    |
-| S5  | Mutable tables declare `updatedAt: v.number()`, or are marked `@immutable <reason>`       | 📐 C4 |
-| S5b | A join table **never** declares `updatedAt` — nothing on the row can change              | 📐 C4 |
-| S6  | Polymorphic refs use `v.union` of discriminated objects, never parallel optional FKs      | 👁    |
-| S7  | Every table has ≥1 index, or is marked `@singleton <reason>`                              | 📐 C4 |
-| S8  | Join tables carry `position: v.number()` when order is meaningful                         | 👁    |
-| S9  | Concurrent counters use `@convex-dev/sharded-counter`                                     | 👁    |
-| S10 | A foreign key ships **together with** the index its cascade needs and its `CASCADE` entry | 📐 C4 |
-| S11 | Enums: `const X = [...] as const` → `v.union(...X.map(v.literal))` → `typeof X[number]`   | 👁    |
-| S12 | A field a model writes whose value is a locale-dependent word is a closed vocabulary (S11) | 👁    |
+| #   | Rule                                                                                            | Tag  |
+| --- | ----------------------------------------------------------------------------------------------- | ---- |
+| S1  | Every `ctx.db.query()` is immediately followed by `.withIndex()` / `.withSearchIndex()`         | 📐 C3 |
+| S2  | Indexes named `by_<field>[_and_<field>]`                                                        | 📐 C3 |
+| S3  | **Never `.filter()` together with `.paginate()`** — put the predicate in the index              | 📐 C3 |
+| S4  | Never store `createdAt`; `_creationTime` already exists                                         | 👁    |
+| S5  | Mutable tables declare `updatedAt: v.number()`, or are marked `@immutable <reason>`             | 📐 C4 |
+| S5b | A join table **never** declares `updatedAt` — nothing on the row can change                     | 📐 C4 |
+| S6  | Polymorphic refs use `v.union` of discriminated objects, never parallel optional FKs            | 👁    |
+| S7  | Every table has ≥1 index, or is marked `@singleton <reason>`                                    | 📐 C4 |
+| S8  | Join tables carry `position: v.number()` when order is meaningful                               | 👁    |
+| S9  | Concurrent counters use `@convex-dev/sharded-counter`                                           | 👁    |
+| S10 | A foreign key ships **together with** the index its cascade needs and its `CASCADE` entry       | 📐 C4 |
+| S11 | Enums: `const X = [...] as const` → `v.union(...X.map(v.literal))` → `typeof X[number]`         | 👁    |
+| S12 | A field a model writes whose value is a locale-dependent word is a closed vocabulary (S11)      | 👁    |
+| S13 | A closed vocabulary fixed **outside** this app is `v.array` of literals on the row, not a table | 👁    |
+| S14 | A field whose emptiness is a CLAIM is optional, so `undefined` ≠ `[]` — never a second flag     | 👁    |
 
 The `@immutable` / `@singleton` markers go in the table's leading comment and must carry a reason.
 They are the sanctioned exemption, so an intentional exception is a visible declaration rather than
@@ -461,6 +463,60 @@ never change again, so C4 rejects the field rather than exempting the table.
 
 Rationale for S1/S3/S10: [ADR 0007](./adr/0007-every-query-uses-an-index.md).
 Rationale for S12: [ADR 0010](./adr/0010-a-model-returns-names-not-ids.md).
+Rationale for S15/S16: [ADR 0011](./adr/0011-derived-search-fields-have-one-writer.md).
+
+**S16 is the one with teeth.** A search expression matches ANY of its terms and ranks the rest, so
+`search("pepper vegan")` returns pork stews — lower down, but returned, and inside a 1024-result
+scan budget the rarer term dominates. Filtering afterwards removes what came back and cannot recover
+what did not, so the cook silently sees fewer recipes than exist. A `filterField` narrows candidates
+inside the scan and matches exactly. Convex documents relevance order as "subject to change", which
+settles it: a dietary guarantee cannot rest on a ranking the vendor may re-tune. Tokenization is the
+second half — `SimpleTokenizer` splits on punctuation, so `gluten-free` indexes as `gluten` + `free`
+and that `free` is shared with `nut-free` and `dairy-free`.
+
+**S13 — the test is who owns the list, not how many rows it has.** `ingredients.allergens` was
+first built as an `allergens` table plus an `ingredientAllergens` join, on the reasoning that an
+array of `v.id()` cannot be cascaded. True, and irrelevant: the fourteen allergens are fixed by EU
+regulation 1169/2011, so they are literals like `CATEGORIES` and `UNITS`, there is no table, and
+nothing needs cascading. A table buys a renameable, translatable row — worth it for data the app
+owns, never for a list someone else maintains. What it costs is a join table, two `CASCADE` entries
+and a read per lookup.
+
+**The reverse query is not lost, but it is not free either.** Convex has no indexable equality for
+array membership, so `allergens` alone cannot answer "every ingredient containing gluten". The
+answer is the pattern `search` on that same table already uses: serialize the array into a
+companion string and put a `searchIndex` over it. That is a genuine index, not a scan, and it is
+unusually well behaved here — the string holds only the fourteen vocabulary tokens and never free
+text, and those fourteen are far enough apart that typo tolerance cannot match one allergen to
+another, so the search is exact in practice.
+
+**Such a blob is ONE field, not one per locale** — the opposite of `search` beside it, and for the
+reason that distinguishes the two. `search` is per-locale because `name` and `aliases` are words a
+shopper TYPES, and "crème" and "cream" are different strings. A closed vocabulary is locale-free by
+construction (S11): the stored token is `milk`, the French word is a translation key, and the client
+sends the token because the user tapped a chip rather than typing. Packing both languages into one
+blob (`fr:lait en:milk`) is worse than either: a `searchField` is tokenized, so every row would
+share `fr` and `en` as very high-frequency terms and the ranking the index exists to provide is
+polluted by them.
+
+Its cost is the denormalization. A derived field is only correct while **every** writer recomputes
+it, and the writers are about to stop being just the seed: a cook's own ingredient, enriched from
+OpenFoodFacts or an LLM, writes this row too. A missed recompute has no symptom — the row is simply
+never found. So add the field when a screen actually asks the reverse question, write it through
+`serializeAllergens` so one function owns the format, and never let a caller build the string
+itself.
+
+```ts
+// ✅ the list is someone else's, and will never change under us
+allergens: v.optional(v.array(v.union(...ALLERGENS.map(v.literal))))
+```
+
+**S14 — `undefined` and `[]` are two answers, and collapsing them is how a false claim ships.** On a
+field whose emptiness asserts something — "carries no allergen", "has no restrictions" — absent must
+mean *nobody established this* and empty must mean *established, and there are none*. An array on
+the document says both for free. A join table cannot, which is what tempts a second
+`somethingCheckedAt` column beside it; two fields that must agree is a bug waiting for the one
+writer that forgets. Readers must refuse to answer on `undefined` rather than treating it as empty.
 
 **S3 is the one people get wrong.** Convex paginates the *index read*, then applies `.filter()` to
 the page — so a page of 24 can return 3 documents while reporting `isDone: false`, and infinite
@@ -579,6 +635,8 @@ Is it backend code?
 Does it run in BOTH Expo and Convex?                  → shared/   (no browser/Node APIs)
 
 Is it a table definition?                             → convex/schema/{domain}.ts
+└─ A payload shape built from that vocabulary,        → convex/schema/{domain}Payloads.ts
+   crossing a function boundary but never a row?
 
 Is it user-facing copy?                               → translations/   (en + fr, keys in sync)
 
@@ -662,13 +720,13 @@ If everything else is forgotten, these prevent every 🔴 and 🟠 finding in
 Written down so nobody re-litigates them, and so the omissions read as decisions rather than
 oversights:
 
-| Not a rule                          | Why                                                                                                                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "Never use `any`"                   | Sometimes correct at a vendor boundary. Enforce `noImplicitAny` (🔬) and review the rest — a new `any` needs a comment justifying it.                                     |
+| Not a rule                          | Why                                                                                                                                                                                                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Never use `any`"                   | Sometimes correct at a vendor boundary. Enforce `noImplicitAny` (🔬) and review the rest — a new `any` needs a comment justifying it.                                                                                                                       |
 | "100% test coverage"                | Coverage targets produce tests that assert nothing. Two things are mandatory — the authorization suite (A6) and a test per `_model/` file (C10) — and the rest is judgement about altitude, not a number. See [ADR 0008](./adr/0008-tests-are-layered.md). |
-| "Every file needs a header comment" | Comment density should match the surrounding code. Noise ages badly.                                                                                                     |
-| "One export per file"               | The multi-access-level pattern is *better* than splitting: the shared handler is the point.                                                                              |
-| "No barrel files"                   | `functions/*/index.ts` barrels worked well in the predecessor (13/13 domains). Keep them; avoid deep re-export chains.                                                   |
+| "Every file needs a header comment" | Comment density should match the surrounding code. Noise ages badly.                                                                                                                                                                                       |
+| "One export per file"               | The multi-access-level pattern is *better* than splitting: the shared handler is the point.                                                                                                                                                                |
+| "No barrel files"                   | `functions/*/index.ts` barrels worked well in the predecessor (13/13 domains). Keep them; avoid deep re-export chains.                                                                                                                                     |
 
 ---
 
@@ -760,23 +818,23 @@ the column: a ⏳ is the only thing in this section that is a backlog item, and 
 is settled. **Never add a ⏳ for a rule you simply have not got round to** — that is how this section
 would rot into a wish list, and a rule nobody intends to mechanise should say so plainly instead.
 
-| Rule                                             | Why no mechanism                                                                                                                                                     |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself.     |
-| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                          |
-| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                     |
-| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                             |
-| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                          |
-| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                             |
-| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.             |
-| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                                 |
-| A7 — rate limiting                               | "Costs money" is not a static property.                                                                                                                              |
-| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                        |
-| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                    |
-| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                         |
-| Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                     |
-| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).                |
-| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.              |
+| Rule                                             | Why no mechanism                                                                                                                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself. |
+| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                      |
+| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                 |
+| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                         |
+| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                      |
+| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                         |
+| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.         |
+| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                             |
+| A7 — rate limiting                               | "Costs money" is not a static property.                                                                                                                          |
+| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                    |
+| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                |
+| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                     |
+| Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                 |
+| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).            |
+| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.          |
 
 **The rule about this section: do not promote a tag before its mechanism exists.** A 👁 that claims
 to be 📐 is worse than no rule at all, because a green `pnpm verify` then certifies something nobody

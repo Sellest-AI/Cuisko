@@ -34,6 +34,11 @@ const seed = async () => {
         name: { values: { fr, en }, meta: {} },
         search: { fr, en },
         category: "OTHER",
+        // Classified, and classified as the permissive answer: a plant carrying no allergen.
+        // `computeTags` refuses to tag at all when a row carries neither field, so leaving them
+        // off would make every assertion below pass for the wrong reason.
+        diet: "vegan",
+        allergens: [],
         defaultUnit: "pcs",
         defaultQuantity: 1,
         nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
@@ -121,9 +126,9 @@ describe("functions/recipes/saveRecipe", () => {
 
   /**
    * `tags` is the one field that is NOT carried through untouched: what the model authored is kept
-   * whole, and the computed half is appended to it. The fixture catalog is `OTHER` throughout, so
-   * nothing in it contradicts a diet claim — which is what makes this an assertion about the
-   * appending, not about the tag rules. Those are `computeTags.test.ts`.
+   * whole, and the computed half is appended to it. Every fixture row is classified as a plant
+   * carrying nothing, so none of them contradicts a claim — which is what makes this an assertion
+   * about the appending, not about the tag rules. Those are `computeTags.test.ts`.
    */
   test("keeps the authored tags and appends the computed ones", async () => {
     const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
@@ -132,6 +137,56 @@ describe("functions/recipes/saveRecipe", () => {
 
     expect(row!.tags).toEqual(expect.arrayContaining(["soup", "comfort-food"]));
     expect(row!.tags).toEqual(expect.arrayContaining(["vegetarian", "vegan"]));
+    expect(row!.tags).toEqual(expect.arrayContaining(["gluten-free", "nut-free"]));
+  });
+
+  /**
+   * The facets are a projection of `tags`, so the assertion that matters is that the two AGREE —
+   * a boolean set true for a tag the recipe does not carry is a recipe surfacing in a filter that
+   * promises something about it.
+   */
+  test("writes the filter facets to match the tags it just computed", async () => {
+    const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.isVegan).toBe(row!.tags.includes("vegan"));
+    expect(row!.isVegetarian).toBe(row!.tags.includes("vegetarian"));
+    expect(row!.isGlutenFree).toBe(row!.tags.includes("gluten-free"));
+    expect(row!.isNutFree).toBe(row!.tags.includes("nut-free"));
+  });
+
+  /** No claim computed means no facet claimed — `false` is "not claimed", never "contains it". */
+  test("claims no facet when a line did not match the catalog", async () => {
+    const recipeId = await save([
+      { name: "oignon", quantity: 2, unit: "pcs" },
+      { name: "quelque chose d'inconnu", quantity: 1, unit: "pcs" },
+    ]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.isVegan).toBe(false);
+    expect(row!.isGlutenFree).toBe(false);
+  });
+
+  test("writes the ingredient search blob in both locales", async () => {
+    const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.search?.fr).toContain("oignon");
+    expect(row!.search?.en).toContain("onion");
+  });
+
+  /** The blob is what makes an unmatched line findable at all — see recipeSearchText.test.ts. */
+  test("keeps an unmatched line's raw name in the search blob", async () => {
+    const recipeId = await save([{ name: "nuoc-mâm", quantity: 1, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    // Tokenized, because that is what the index stores — see recipeSearchText.test.ts.
+    expect(row!.search?.fr).toContain("nuoc");
+    expect(row!.search?.fr).toContain("mâm");
   });
 
   /** An unmatched line is an unknown ingredient, so no diet claim can be made about the recipe. */

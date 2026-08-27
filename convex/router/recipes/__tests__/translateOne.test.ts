@@ -7,6 +7,7 @@ import type { Localized } from "@convex/schema/i18n";
 
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
+import { facetsOf } from "@shared/tags";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -42,6 +43,11 @@ const seed = async (title: Localized) =>
       tags: [],
       cuisine: "french",
       timings: {},
+      // Neither is what this file tests; both are here because the columns are required.
+      // `facetsOf` rather than six literals, so adding a facet does not mean editing three
+      // fixtures — and so a fixture can never claim one the tag list does not support.
+      search: { fr: "", en: "" },
+      ...facetsOf([]),
       updatedAt: 1,
     });
   });
