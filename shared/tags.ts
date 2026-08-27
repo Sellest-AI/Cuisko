@@ -1,3 +1,6 @@
+import { type Allergen } from "./allergens";
+import { type Diet, mostPermissiveDietOf } from "./diets";
+
 /**
  * The tag vocabulary — the facets a recipe can be filtered by.
  *
@@ -23,13 +26,15 @@
  * tag it cannot verify answers with the one that sounds right, and "gluten-free" sounding right is
  * how someone who filtered on it gets served soy sauce.
  *
- * ⚠️ **In practice only six of the nine are computed today**, by `computeTags`: the three diet
- * tags and the three nutrition ones. `gluten-free`, `dairy-free` and `nut-free` are still
- * unreachable — they need the `ingredientAllergens` join table, which the schema declares and
- * nothing yet writes. Deriving them from an empty table would mark every recipe free of
- * everything, which is the soy-sauce failure inverted and worse: a confident false negative on an
- * allergy. They stay absent until the catalog carries allergens, and absent must therefore be read
- * as "unknown", never as "contains it".
+ * All nine are computed by `computeTags`, each from a fact the seed catalog carries per row: the
+ * diet three from `ingredients.diet`, the free-from three from `ingredients.allergens`, the
+ * nutrition three from the macros.
+ *
+ * ⚠️ **Absent is "unknown", never "does not contain".** Six of the nine are claims of absence, and
+ * a claim of absence cannot be made from data nobody wrote. `computeTags` therefore emits NONE of
+ * a group rather than a partial answer whenever a line is unmatched, uncategorised or outside the
+ * catalog — see the refusals documented there. Anything rendering these must word them as "no
+ * known gluten", because that is the strongest thing the catalog can support.
  */
 export const COMPUTED_TAGS = [
   // Diet — what it contains, not what it is worth
@@ -97,50 +102,104 @@ export type ComputedTag = (typeof COMPUTED_TAGS)[number];
 export const isTag = (value: string): value is Tag => TAGS.some((tag) => tag === value);
 
 /**
- * What one ingredient line contributes to the diet question.
- *
- * Booleans rather than the ingredient's category, for the same reason `RecipeLine.produce` is a
- * boolean: the category vocabulary lives in the schema and this file sits underneath it.
- *
- * ⚠️ These say what an ingredient IS KNOWN to contain, and a `false` is therefore not proof of
- * absence — see `dietTagsOf`.
- */
-export type DietLine = {
-  /** Flesh of a land animal. */
-  meat: boolean;
-  /** Fish or shellfish. */
-  seafood: boolean;
-  /** Animal-derived without the animal — dairy, eggs, honey. */
-  fromAnimal: boolean;
-};
-
-/**
- * Which diets a recipe is SUITABLE FOR, from what its lines are known to contain.
+ * Which diets a recipe is SUITABLE FOR, from the diet of each of its lines.
  *
  * Suitability, not identity, so the set nests: a vegan dish is also vegetarian and also fine for a
  * pescatarian, and all three are written. That is what makes the filter a single `includes` — a
  * filter that had to know "pescatarian" also means "vegetarian OR vegan" is one someone gets
  * wrong once and nobody notices, because the failure is a recipe quietly missing from a list.
  *
- * ⚠️ **This is only as good as the flags it is handed.** Every one of these is a claim of ABSENCE,
- * and absence cannot be proven from a catalog that does not model it: fish sauce is a `CONDIMENT`
- * and honey is a `SWEETENER`, so a caller deriving these flags from `category` alone will call a
- * pad thai vegetarian. The caller is responsible for handing over flags it can actually stand
- * behind, and for refusing to compute at all when a line did not resolve — a missing line is an
- * unknown ingredient, and an unknown ingredient is not a vegetable.
+ * ⚠️ **This is only as good as the diets it is handed**, and every one of them is a claim of
+ * absence — see [`DIETS`](./diets.ts). The caller is responsible for handing over a diet per line
+ * that the catalog can actually stand behind, and for refusing to compute at all when a line did
+ * not resolve or carries no diet: an unknown ingredient is not a vegetable.
  */
-export const dietTagsOf = (lines: DietLine[]): ComputedTag[] => {
-  const meat = lines.some((line) => line.meat);
-  const seafood = lines.some((line) => line.seafood);
-  const fromAnimal = lines.some((line) => line.fromAnimal);
+export const dietTagsOf = (diets: readonly Diet[]): ComputedTag[] => {
+  switch (mostPermissiveDietOf(diets)) {
+    case "vegan":
+      return ["pescatarian", "vegetarian", "vegan"];
+    case "vegetarian":
+      return ["pescatarian", "vegetarian"];
+    case "pescatarian":
+      return ["pescatarian"];
+    case "omnivore":
+      return [];
+  }
+};
 
-  const tags: ComputedTag[] = [];
+/**
+ * Which allergen each free-from tag is a claim about.
+ *
+ * `nut-free` covers two, and they are genuinely two allergens rather than one written twice: a
+ * peanut is a legume, and someone allergic to tree nuts is routinely fine with it. The tag is
+ * still a single chip because nobody filtering a recipe list wants to tick both — so the tag is
+ * withheld if EITHER is present, which is the direction that errs toward the cook.
+ */
+const TAG_ALLERGENS: Record<"gluten-free" | "dairy-free" | "nut-free", readonly Allergen[]> = {
+  "gluten-free": ["gluten"],
+  "dairy-free": ["milk"],
+  "nut-free": ["nuts", "peanuts"],
+};
 
-  if (!meat) tags.push("pescatarian");
-  if (!meat && !seafood) tags.push("vegetarian");
-  if (!meat && !seafood && !fromAnimal) tags.push("vegan");
+/**
+ * The free-from tags, from every allergen the recipe's ingredients are KNOWN to carry.
+ *
+ * `present` must be the union over ALL of the recipe's lines, and the caller must be able to say
+ * that every one of them was actually classified. An empty list here means "nothing carries an
+ * allergen", and this returns all three tags for it — which is right when the lines came from the
+ * seed catalog and a confident false negative on an allergy when they did not. Deciding that is
+ * the caller's job, not this function's; `computeTags` does it by requiring every line to resolve
+ * to a catalog row whose `allergens` is not `undefined`, and emitting no free-from tag at all
+ * otherwise.
+ */
+export const allergenTagsOf = (present: readonly Allergen[]): ComputedTag[] =>
+  (Object.entries(TAG_ALLERGENS) as [ComputedTag, readonly Allergen[]][])
+    .filter(([, allergens]) => !allergens.some((allergen) => present.includes(allergen)))
+    .map(([tag]) => tag);
 
-  return tags;
+/**
+ * The tags that are also FILTER FACETS — a promise the app makes, rather than a word it suggests.
+ *
+ * These six are exactly the claims of absence. A cook who filters on one is being told something,
+ * not offered something, which is why they cannot be answered by a relevance ranking. See
+ * `facetsOf`.
+ */
+const FACET_TAGS = {
+  isVegan: "vegan",
+  isVegetarian: "vegetarian",
+  isPescatarian: "pescatarian",
+  isGlutenFree: "gluten-free",
+  isDairyFree: "dairy-free",
+  isNutFree: "nut-free",
+} as const satisfies Record<string, ComputedTag>;
+
+/** The six booleans a recipe row carries so a search index can filter on them exactly. */
+export type RecipeFacets = Record<keyof typeof FACET_TAGS, boolean>;
+
+/**
+ * The `tags` array projected onto the six booleans a `filterField` can match.
+ *
+ * **Why the duplication is deliberate.** `tags` already holds these, but Convex has no indexable
+ * equality for array membership, so the array can be rendered and cannot be filtered. The six
+ * booleans are the filterable projection of it — and they are computed HERE, from the finished tag
+ * list, so the two cannot disagree: there is no second derivation to keep in step, only a view of
+ * the first.
+ *
+ * **Why booleans and not one ordinal `dietRank`.** A `filterField` matches by equality and never by
+ * range, so `eq("dietRank", 0)` would find vegan recipes and miss them for a vegetarian filter.
+ * The nesting `dietTagsOf` already writes — a vegan recipe carries all three diet tags — is what
+ * makes one equality check per facet the correct and complete shape.
+ *
+ * ⚠️ A recipe whose tags could not be computed gets `false` everywhere, which is right: `false`
+ * means "not claimed", and an unclaimed recipe must not surface in a filter that promises the
+ * claim. It does NOT mean the recipe contains gluten.
+ */
+export const facetsOf = (tags: readonly Tag[]): RecipeFacets => {
+  const entries = Object.entries(FACET_TAGS) as [keyof RecipeFacets, ComputedTag][];
+
+  return Object.fromEntries(
+    entries.map(([facet, tag]) => [facet, tags.includes(tag)]),
+  ) as RecipeFacets;
 };
 
 /** Energy per gram, in kcal — the denominators behind every share below. */

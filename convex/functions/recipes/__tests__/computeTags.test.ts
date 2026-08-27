@@ -2,7 +2,9 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
+import type { Allergen } from "@shared/allergens";
 import type { Category } from "@convex/schema/ingredients";
+import type { Diet } from "@shared/diets";
 
 import schema from "../../../schema";
 import { computeTags, type TaggableLine } from "../computeTags";
@@ -13,7 +15,13 @@ const modules = import.meta.glob("/convex/**/*.*s");
 let t: ReturnType<typeof convexTest>;
 
 /**
- * One catalog row, with the two things the tags are decided from: a category and per-100g macros.
+ * One catalog row, with the facts the tags are decided from.
+ *
+ * `diet` and `allergens` default to the CLASSIFIED, permissive answer - a vegan ingredient
+ * carrying nothing - so a test that cares about one of them sets that one and nothing else. Both
+ * take `null` to mean UNCLASSIFIED, which is a different fixture from "classified as carrying
+ * nothing" and is the one the refusal tests need. `undefined` cannot say that: it is what the
+ * default fills in.
  *
  * `gramsPerPiece` is always set, so every fixture line can be weighed in `pcs` and the "could not
  * be weighed" path is something a test opts INTO rather than trips over.
@@ -24,12 +32,15 @@ const catalog = (
   // `null` and not `undefined`: an explicit `undefined` would take the default and silently give
   // the row a weight, which is the one thing the "cannot be weighed" test needs it not to have.
   gramsPerPiece: number | null = 100,
+  { diet = "vegan", allergens = [] }: { diet?: Diet | null; allergens?: Allergen[] | null } = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("ingredients", {
       name: { values: { fr: "x", en: "x" }, meta: {} },
       search: { fr: "x", en: "x" },
       category,
+      ...(diet !== null && { diet }),
+      ...(allergens !== null && { allergens }),
       defaultUnit: "pcs",
       defaultQuantity: 1,
       ...(gramsPerPiece !== null && { gramsPerPiece }),
@@ -79,8 +90,8 @@ describe("functions/recipes/computeTags", () => {
     });
   });
 
-  describe("diet tags, from the ingredient categories", () => {
-    test("calls an all-vegetable recipe suitable for all three diets", async () => {
+  describe("diet tags, from the ingredient rows", () => {
+    test("calls an all-plant recipe suitable for all three diets", async () => {
       const vegetable = await catalog("VEGETABLE", BLAND);
 
       expect(await compute([line(vegetable)])).toEqual(
@@ -88,9 +99,9 @@ describe("functions/recipes/computeTags", () => {
       );
     });
 
-    test("withholds vegan once dairy is in the list", async () => {
+    test("withholds vegan once a vegetarian line is in the list", async () => {
       const vegetable = await catalog("VEGETABLE", BLAND);
-      const cheese = await catalog("DAIRY", BLAND);
+      const cheese = await catalog("DAIRY", BLAND, 100, { diet: "vegetarian" });
 
       const tags = await compute([line(vegetable), line(cheese)]);
 
@@ -98,9 +109,9 @@ describe("functions/recipes/computeTags", () => {
       expect(tags).not.toContain("vegan");
     });
 
-    test("withholds vegetarian once seafood is in the list", async () => {
+    test("withholds vegetarian once a pescatarian line is in the list", async () => {
       const vegetable = await catalog("VEGETABLE", BLAND);
-      const fish = await catalog("SEAFOOD", BLAND);
+      const fish = await catalog("SEAFOOD", BLAND, 100, { diet: "pescatarian" });
 
       const tags = await compute([line(vegetable), line(fish)]);
 
@@ -108,14 +119,101 @@ describe("functions/recipes/computeTags", () => {
       expect(tags).not.toContain("vegetarian");
     });
 
-    test("claims no diet at all once meat is in the list", async () => {
-      const beef = await catalog("MEAT", BLAND);
+    test("claims no diet at all once an omnivore line is in the list", async () => {
+      const beef = await catalog("MEAT", BLAND, 100, { diet: "omnivore" });
 
       const tags = await compute([line(beef)]);
 
       expect(tags).not.toContain("pescatarian");
       expect(tags).not.toContain("vegetarian");
       expect(tags).not.toContain("vegan");
+    });
+
+    /**
+     * The bug this field exists to fix. Honey is a `SWEETENER`, fish sauce a `CONDIMENT` and
+     * gelatin an `OTHER` - a version reading `category` calls every one of them a plant, and a pad
+     * thai comes out vegetarian. The row's own `diet` is what settles it, and the category on each
+     * fixture here is deliberately the one that would have given the wrong answer.
+     */
+    test.each<[string, Category, Diet, string[]]>([
+      ["honey", "SWEETENER", "vegetarian", ["vegan"]],
+      ["fish sauce", "CONDIMENT", "pescatarian", ["vegan", "vegetarian"]],
+      ["gelatin", "OTHER", "omnivore", ["vegan", "vegetarian", "pescatarian"]],
+    ])("does not read %s as a plant because of its category", async (_, category, diet, denied) => {
+      const vegetable = await catalog("VEGETABLE", BLAND);
+      const suspect = await catalog(category, BLAND, 100, { diet });
+
+      const tags = await compute([line(vegetable), line(suspect)]);
+
+      for (const tag of denied) expect(tags).not.toContain(tag);
+    });
+
+    /** Unclassified is not permissive: one unknown line costs the whole recipe its diet tags. */
+    test("claims no diet when a row has never been classified", async () => {
+      const known = await catalog("VEGETABLE", BLAND);
+      const unknown = await catalog("VEGETABLE", BLAND, 100, { diet: null });
+
+      const tags = await compute([line(known), line(unknown)]);
+
+      expect(tags).not.toContain("pescatarian");
+      expect(tags).not.toContain("vegetarian");
+      expect(tags).not.toContain("vegan");
+      // The other groups do not depend on the diet, and degrade separately.
+      expect(tags).toContain("nut-free");
+    });
+  });
+
+  describe("free-from tags, from the ingredient allergens", () => {
+    test("awards all three to a recipe of rows classified as carrying nothing", async () => {
+      const clean = await catalog("VEGETABLE", BLAND);
+
+      expect(await compute([line(clean)])).toEqual(
+        expect.arrayContaining(["gluten-free", "dairy-free", "nut-free"]),
+      );
+    });
+
+    test.each<[Allergen, string]>([
+      ["gluten", "gluten-free"],
+      ["milk", "dairy-free"],
+      ["nuts", "nut-free"],
+      ["peanuts", "nut-free"],
+    ])("withholds the tag %s speaks to, and no other", async (allergen, denied) => {
+      const clean = await catalog("VEGETABLE", BLAND);
+      const carrier = await catalog("OTHER", BLAND, 100, { allergens: [allergen] });
+
+      const tags = await compute([line(clean), line(carrier)]);
+
+      expect(tags).not.toContain(denied);
+      for (const other of ["gluten-free", "dairy-free", "nut-free"].filter((t) => t !== denied)) {
+        expect(tags).toContain(other);
+      }
+    });
+
+    /** Ten of the fourteen have no tag reading them, and must not quietly suppress one. */
+    test("awards all three despite an allergen no tag is about", async () => {
+      const celery = await catalog("VEGETABLE", BLAND, 100, { allergens: ["celery", "sulphites"] });
+
+      expect(await compute([line(celery)])).toEqual(
+        expect.arrayContaining(["gluten-free", "dairy-free", "nut-free"]),
+      );
+    });
+
+    /**
+     * The distinction the field exists for: `[]` is "checked, carries none" and `undefined` is
+     * "nobody checked". Reading the second as the first is a confident `nut-free` on a recipe
+     * containing an ingredient nothing has ever classified.
+     */
+    test("claims nothing free-from when a row has never been classified", async () => {
+      const checked = await catalog("VEGETABLE", BLAND);
+      const unchecked = await catalog("OTHER", BLAND, 100, { allergens: null });
+
+      const tags = await compute([line(checked), line(unchecked)]);
+
+      expect(tags).not.toContain("gluten-free");
+      expect(tags).not.toContain("dairy-free");
+      expect(tags).not.toContain("nut-free");
+      // The diet answer does not depend on the allergens, and survives.
+      expect(tags).toContain("vegan");
     });
   });
 
@@ -159,6 +257,7 @@ describe("functions/recipes/computeTags", () => {
       const tags = await compute([line(unweighable)]);
 
       expect(tags).toContain("vegan");
+      expect(tags).toContain("nut-free");
       expect(tags).not.toContain("low-calorie");
       expect(tags).not.toContain("high-protein");
     });
