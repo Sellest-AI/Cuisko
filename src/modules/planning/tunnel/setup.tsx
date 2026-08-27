@@ -15,10 +15,10 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { MAX_DAYS, MEAL_SLOTS, type MealSlot } from "../_model/model";
 import { resetTunnelAtom } from "../_hooks/atoms";
 import { TILE_IMAGE, UTENSILS } from "../_hooks/placeholders";
-import { useTunnel } from "../_hooks/useTunnel";
-import { useTunnelScrollHandler } from "../_hooks/useTunnelScrollHandler";
+import { useTunnel } from "./_hooks/useTunnel";
+import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
 import { SectionLabel } from "../_components/section-label";
-import { TunnelHeader } from "../_components/tunnel-header";
+import { TunnelHeader } from "./_components/tunnel-header";
 
 const COLUMNS = 2;
 const GUTTER = theme.spacing[16];

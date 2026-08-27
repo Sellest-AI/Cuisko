@@ -3,7 +3,7 @@ import { defineSchema } from "convex/server";
 
 import { usersExtended } from "./schema/users";
 import { households, householdUsers } from "./schema/households";
-import { ingredients, allergens, ingredientAllergens } from "./schema/ingredients";
+import { ingredients } from "./schema/ingredients";
 import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
 import { recipeFavorites, recipeIngredients, recipes } from "./schema/recipes";
 
@@ -18,8 +18,6 @@ export default defineSchema({
   households,
   householdUsers,
   ingredients,
-  allergens,
-  ingredientAllergens,
   groceryListItems,
   cellarItems,
   recentlyUsedIngredients,

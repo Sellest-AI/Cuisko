@@ -4,7 +4,7 @@ import { sanitizeRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
 import { type ActionCtx, authActionI18n, internalAction, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
-import { vSanitizedRecipe } from "@convex/schema/recipes";
+import { vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { v } from "convex/values";
 
 type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };

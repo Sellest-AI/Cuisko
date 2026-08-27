@@ -5,13 +5,24 @@
     "instructions": "Instructions"
   },
   "Chrome": {
-    "start_cooking": "Start cooking"
+    "start_cooking": "Start cooking",
+    "not_found_title": "This recipe is not here",
+    "not_found_body": "It may have been deleted, or it belongs to another cook.",
+    "not_found_action": "Back to my recipes"
   },
   "Overview": {
     "difficulty": "Difficulty",
     "chef": "Chef",
     "utensils": "Utensils",
-    "ingredients": "Ingredients"
+    "ingredients": "Ingredients",
+    "preparation": "Prep",
+    "cooking": "Cook",
+    "total": "Total",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} mins",
+    "no_utensils": "Nothing but a pan and a knife.",
+    "resting": "Rest",
+    "unknown_chef": "A Cuisko cook"
   },
   "Nutrition": {
     "title": "Nutrition",
@@ -19,39 +30,131 @@
     "protein": "Protein",
     "fat": "Fat",
     "carbs": "Carbs",
-    "calories": "Calories"
+    "calories": "Calories",
+    "per_serving": "Per serving",
+    "for_people_one": "For {{count}} person",
+    "for_people_other": "For {{count}} people"
   },
   "Ingredients": {
+    "title": "Ingredients",
     "servings": "Servings",
     "add_to_list": "Add to my list",
-    "add_to_list_subtitle": "Only what your kitchen is missing"
+    "add_to_list_subtitle": "Only what your kitchen is missing",
+    "empty": "This recipe lists no ingredients yet."
   },
   "Instructions": {
-    "title": "Instructions"
+    "title": "Instructions",
+    "empty": "This recipe has no method written down yet."
   },
   "Editor": {
     "new_title": "New recipe",
     "edit_title": "Edit recipe",
     "image": "Choose an image",
     "title": "Title",
-    "title_placeholder": "Pasta with yogurt sauce",
+    "title_placeholder": "Lemon and thyme roast chicken",
     "description": "Description",
     "optional": "(Optional)",
-    "description_placeholder": "Add a description of your recipe",
+    "description_placeholder": "A Sunday chicken that cooks itself — one dish, one hour in the oven.",
     "ingredients": "Ingredients",
-    "ingredients_placeholder": "- 3 tomatoes\n- 2 eggs\n- 1 spoon of olive oil",
+    "ingredients_placeholder": "- 1 whole chicken\n- 1 lemon\n- 4 sprigs of thyme\n- 3 cloves of garlic\n- 2 spoons of olive oil",
     "instructions": "Instructions",
-    "instructions_placeholder": "Sauce\n- Mix the yogurt with the spices\n\nPasta\n- Boil the pasta for 10 minutes\n- Drain the pasta and add the sauce",
+    "instructions_placeholder": "Prep\n- Heat the oven to 200°C\n- Halve the lemon and slip it inside the chicken with the thyme\n\nRoast\n- Rub the chicken with the oil, salt and pepper\n- Roast for 1 hour 15, basting halfway through\n- Rest for 10 minutes before carving",
     "save": "Save recipe"
+  },
+  "Creating": {
+    "reading": "Reading your recipe",
+    "matching": "Finding your ingredients",
+    "finishing": "Almost there",
+    "reassurance": "This can take up to a minute. We are polishing your recipe and tidying its steps.",
+    "error_title": "Your recipe was not saved",
+    "error_body": "Something went wrong while reading it. Everything you typed is still here — try saving again."
   },
   "Cooking": {
     "last_step": "Last step",
+    "prep_instruction": "Get everything measured out and within reach before you start.",
     "step_ingredients": "For this step",
+    "all_ingredients": "Prepare all ingredients",
     "previous": "Previous",
     "next": "Next",
     "update_cellar": "Update my cellar",
     "update_cellar_pending": "Update my cellar ({{seconds, number}})",
     "cellar_title": "Your cellar, updated for you",
     "cellar_body": "Everything this recipe used comes out of your cellar, so your next list only asks for what is really missing."
+  },
+  "Difficulties": {
+    "simple": "Very easy",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "advanced": "Advanced"
+  },
+  "Categories": {
+    "VEGETABLE": "Vegetables",
+    "FRUIT": "Fruit",
+    "GRAIN": "Grains",
+    "MEAT": "Meat",
+    "SEAFOOD": "Seafood",
+    "DAIRY": "Dairy",
+    "EGG": "Eggs",
+    "LEGUME": "Pulses",
+    "NUT": "Nuts",
+    "SEED": "Seeds",
+    "HERB": "Herbs",
+    "SPICE": "Spices",
+    "OIL": "Oils",
+    "CONDIMENT": "Condiments",
+    "SWEETENER": "Sweeteners",
+    "OTHER": "Other"
+  },
+  "Equipments": {
+    "oven": "Oven",
+    "blender": "Blender",
+    "food processor": "Food processor",
+    "mixer": "Mixer",
+    "stand mixer": "Stand mixer",
+    "microwave": "Microwave",
+    "slow cooker": "Slow cooker",
+    "pressure cooker": "Pressure cooker",
+    "rice cooker": "Rice cooker",
+    "air fryer": "Air fryer",
+    "grill": "Grill",
+    "waffle maker": "Waffle maker",
+    "toaster": "Toaster"
+  },
+  "Tags": {
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "pescatarian": "Pescatarian",
+    "gluten-free": "No known gluten",
+    "dairy-free": "No known dairy",
+    "nut-free": "No known nuts",
+    "high-protein": "High protein",
+    "low-carb": "Low carb",
+    "low-calorie": "Light",
+    "breakfast": "Breakfast",
+    "brunch": "Brunch",
+    "starter": "Starter",
+    "main": "Main",
+    "side": "Side",
+    "dessert": "Dessert",
+    "snack": "Snack",
+    "drink": "Drink",
+    "soup": "Soup",
+    "salad": "Salad",
+    "sandwich": "Sandwich",
+    "pasta": "Pasta",
+    "bowl": "Bowl",
+    "baking": "Baking",
+    "quick": "Quick",
+    "one-pot": "One pot",
+    "no-cook": "No cooking",
+    "make-ahead": "Make ahead",
+    "batch-cooking": "Batch cooking",
+    "freezer-friendly": "Freezes well",
+    "budget": "Cheap",
+    "comfort-food": "Comfort food",
+    "festive": "Festive",
+    "kid-friendly": "Kid friendly",
+    "spicy": "Spicy"
   }
 }

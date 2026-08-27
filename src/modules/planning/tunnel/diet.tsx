@@ -8,9 +8,9 @@ import { useTranslations } from "translations";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { DIETS, TILE_IMAGE } from "../_hooks/placeholders";
-import { useTunnel } from "../_hooks/useTunnel";
-import { useTunnelScrollHandler } from "../_hooks/useTunnelScrollHandler";
-import { TunnelHeader } from "../_components/tunnel-header";
+import { useTunnel } from "./_hooks/useTunnel";
+import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
+import { TunnelHeader } from "./_components/tunnel-header";
 
 const COLUMNS = 3;
 const GUTTER = theme.spacing[16];

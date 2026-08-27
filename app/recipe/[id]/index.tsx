@@ -1,5 +1,8 @@
-import { OverviewScreen } from "~/modules/recipe/overview-screen";
+import { useLocalSearchParams } from "expo-router";
+import { OverviewScreen } from "~/modules/recipes/detail/overview";
 
 export default function Screen() {
-  return <OverviewScreen />;
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  return <OverviewScreen id={id} />;
 }

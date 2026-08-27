@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { StyleSheet, TextInput, TextStyle, View } from "react-native";
 
 import { theme } from "theme";
@@ -30,6 +31,7 @@ export const TextField = ({
   style,
 }: Props) => {
   const boxShadow = StyleSheet.flatten(style)?.boxShadow ?? styles.shadow.boxShadow;
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View style={[styles.wrapper, { boxShadow }]}>
@@ -40,11 +42,24 @@ export const TextField = ({
         editable={editable}
         keyboardType={kind === "email" ? "email-address" : "default"}
         multiline={multiline}
+        onBlur={() => setIsFocused(false)}
         onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.muted}
         secureTextEntry={isSecure}
-        style={[styles.input, !editable && styles.inputDisabled, style]}
+        style={[
+          styles.input,
+          multiline && styles.multiline,
+          !editable && styles.inputDisabled,
+          style,
+          /*
+           * After `style`, deliberately. Focus is a state, not something a caller can express as a
+           * static prop, so a caller's own border must not silently swallow the one affordance
+           * telling the cook which field the keyboard is typing into.
+           */
+          isFocused && styles.inputFocused,
+        ]}
         textContentType={kind === "email" ? "emailAddress" : isSecure ? "password" : "none"}
         value={value}
       />
@@ -75,5 +90,18 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: theme.spacing[12],
   },
+  /**
+   * Android centres a `TextInput`'s content vertically whatever its height, so a tall multiline
+   * field put the placeholder — and the caret behind it — halfway down the box, as if the first
+   * line were in the middle of the paragraph. Prose starts at the top; `verticalAlign` is the
+   * cross-platform name, `textAlignVertical` the one Android's older path still reads.
+   */
+  multiline: {
+    textAlignVertical: "top",
+    verticalAlign: "top",
+    lineHeight: theme.font.base.lineHeight * 1.2,
+  },
   inputDisabled: { opacity: 0.6 },
+  /** The field the keyboard is aimed at, since a placeholder alone never says "typing here". */
+  inputFocused: { borderColor: theme.colors.primary.base },
 });

@@ -3,27 +3,10 @@ import { v } from "convex/values";
 import { vLocalized, vLocalizedList, vLocalizedText } from "./i18n";
 import { UNITS } from "@shared/ingredients";
 import { NUTRI_SCORE_GRADES } from "@shared/nutrition";
+import { DIETS } from "@shared/diets";
+import { ALLERGENS } from "@shared/allergens";
+import { CATEGORIES } from "@shared/categories";
 
-export const CATEGORIES = [
-  "VEGETABLE",
-  "FRUIT",
-  "GRAIN",
-  "MEAT",
-  "SEAFOOD",
-  "DAIRY",
-  "EGG",
-  "LEGUME",
-  "NUT",
-  "SEED",
-  "HERB",
-  "SPICE",
-  "OIL",
-  "CONDIMENT",
-  "SWEETENER",
-  "OTHER",
-] as const;
-
-export type Category = (typeof CATEGORIES)[number];
 const vCategory = v.union(...CATEGORIES.map(v.literal));
 
 /**
@@ -33,6 +16,32 @@ const vCategory = v.union(...CATEGORIES.map(v.literal));
  */
 export const vUnit = v.union(...UNITS.map(v.literal));
 const vNutriScoreGrade = v.union(...NUTRI_SCORE_GRADES.map(v.literal));
+
+/**
+ * The strictest diet an ingredient is suitable for, as a validator.
+ *
+ * The vocabulary is `shared/`'s and not this file's, for the reason `vUnit` above is: `computeTags`
+ * reduces over these values and `shared/tags.ts` maps them to tags, so a second list written here
+ * would agree with that one only until somebody narrowed it.
+ */
+const vDiet = v.union(...DIETS.map(v.literal));
+
+/**
+ * The allergen vocabulary as a validator — the fourteen EU-regulated substances (@shared/allergens).
+ *
+ * Literals on the document rather than ids into an `allergens` table, which is what this used to
+ * be. The table existed so an allergen could be renamed and translated in one place; it cost a
+ * join table, two cascade rules and a read per ingredient per lookup, and it bought nothing the
+ * other closed vocabularies in this schema do not already get for free. `recipes.tags`,
+ * `CATEGORIES` and `UNITS` are all literal unions for the same reason: the list is fixed by
+ * something outside this app — here, EU regulation 1169/2011 — so an id adds indirection to a
+ * value that will never change.
+ *
+ * What is given up is a `by_allergen` lookup: Convex has no indexable equality for array
+ * membership, so "every ingredient containing gluten" is a scan. Nothing asks — the tags read the
+ * array forward, off a document already in hand.
+ */
+const vAllergen = v.union(...ALLERGENS.map(v.literal));
 
 /**
  * The other ways to say an ingredient — "patates" for pommes de terre.
@@ -73,6 +82,39 @@ export const ingredients = defineTable({
   aliases: v.optional(vAliases),
   search: v.optional(vSearchText),
   category: vCategory,
+  /**
+   * Which diet this ingredient is suitable for — the field the `vegan` / `vegetarian` /
+   * `pescatarian` tags are actually decided from.
+   *
+   * It exists because `category` cannot answer the question. A category proves what an ingredient
+   * IS and is silent on what it is not: fish sauce is a `CONDIMENT`, honey a `SWEETENER`, gelatin
+   * an `OTHER`, and a recipe tagged from categories alone calls a pad thai vegetarian. See
+   * @shared/diets.
+   *
+   * Optional because a row can exist before anything has classified it — an ingredient a cook
+   * imports themselves, before enrichment fills this in. **Absent means unknown, never
+   * permissive**: `computeTags` drops all three diet tags from any recipe with a line it cannot
+   * read this from, rather than assuming the plant answer. The seed always writes it, and throws
+   * on a catalog row whose category cannot decide and which declares nothing.
+   */
+  diet: v.optional(vDiet),
+  /**
+   * Every allergen this ingredient is known to carry, of the fourteen.
+   *
+   * **`undefined` and `[]` are different answers, and the difference is the whole field.**
+   * `undefined` is "nothing has classified this row" — a cook's own ingredient, before enrichment
+   * runs against it or after that failed. `[]` is "classified, and it carries none of the
+   * fourteen". They are the same shape and opposite meanings, and reading the first as the second
+   * is a confident `nut-free` on a recipe nobody checked.
+   *
+   * That distinction is why this is an array on the document and not rows in a join table: an
+   * absent join row and an empty one look identical from here, so the join-table version needed a
+   * second `allergensCheckedAt` column to carry what `undefined` says on its own.
+   *
+   * `computeTags` therefore withholds all three free-from tags from any recipe with one
+   * unclassified line, rather than answering from the lines that were.
+   */
+  allergens: v.optional(v.array(vAllergen)),
   defaultUnit: vUnit,
   defaultQuantity: v.number(),
   /**
@@ -118,32 +160,3 @@ export const ingredients = defineTable({
   // Over `search.*` rather than `name.values.*`, so a synonym finds its ingredient too.
   .searchIndex("search_en", { searchField: "search.en" })
   .searchIndex("search_fr", { searchField: "search.fr" });
-
-export const allergens = defineTable({
-  name: vLocalized,
-  updatedAt: v.number(), // S5
-})
-  .searchIndex("search_name_en", { searchField: "name.values.en" })
-  .searchIndex("search_name_fr", { searchField: "name.values.fr" });
-
-/**
- * Which ingredients carry which allergens.
- *
- * A join table rather than an `allergenIds` array on the ingredient, even though nothing queries
- * it in reverse today. An array of `v.id()` cannot be cascaded: Convex has no indexable equality
- * for array membership, so deleting an allergen would mean scanning every ingredient — which ADR
- * 0007 forbids, and rightly, since the catalog is the table most likely to grow.
- *
- * No `position`: an ingredient's allergens are a set, and nothing renders them in an order the
- * author chose.
- *
- * No `updatedAt` (S5b): a pair is asserted or retracted, never edited — there is nothing on the row
- * but the two ids, so the field would record the moment of an insert and never change again.
- */
-export const ingredientAllergens = defineTable({
-  ingredientId: v.id("ingredients"),
-  allergenId: v.id("allergens"),
-})
-  .index("by_ingredient", ["ingredientId"])
-  .index("by_allergen", ["allergenId"])
-  .index("by_ingredient_and_allergen", ["ingredientId", "allergenId"]);

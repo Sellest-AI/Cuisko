@@ -4,7 +4,7 @@ import { loadForTranslation } from "@convex/functions/recipes/loadForTranslation
 import { saveTranslations } from "@convex/functions/recipes/saveTranslations";
 import { internalAction, internalMutation, internalQuery } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
-import { vTranslatedRecipe } from "@convex/schema/recipes";
+import { vTranslatedRecipe } from "@convex/schema/recipePayloads";
 import { v } from "convex/values";
 
 /**

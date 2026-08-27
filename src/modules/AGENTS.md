@@ -21,12 +21,16 @@ Root files are public. The underscore folders are the interior: reach them with 
 never with `~/modules/other/_hooks/useX`. Sharing a hook across modules is one line added to
 `hooks.ts` — a deliberate edit somebody reviews — not an import that walks past the underscore.
 
-**A named subfolder is a sub-module, and carries the same shape as a module.** Reach for one when a
-single flow owns several screens that belong together — a generation tunnel, an onboarding — rather
-than scattering them across the root, or claiming a parent that does not exist (`tunnel.setup.tsx`
-says there is a `tunnel.tsx` to read first). It may grow its own `_components/`, `_hooks/` and
-`_model/` on exactly the rules above, one level down. A single screen is not a sub-module: that is
-`screen.tsx` at the root, with its parts in dot notation beside it.
+**A named subfolder holding several routed screens is a sub-module, and may carry the same shape as
+a module.** Reach for one when a single flow owns several screens that belong together — a
+generation tunnel, an onboarding — rather than scattering them across the root, or claiming a parent
+that does not exist (`tunnel.setup.tsx` says there is a `tunnel.tsx` to read first). It may grow its
+own `_components/`, `_hooks/` and `_model/` on exactly the rules above, one level down. A single
+screen is not a sub-module — but it may still be a folder. Under three files it stays a root file
+with its parts in dot notation beside it; at three it becomes a folder entered through `index`, on
+the same threshold as any other component (CONVENTIONS §1.1). That folder is not a sub-module:
+nothing inside it is routed on its own, which is the whole distinction. Its name is `screen.tsx`
+only when it is the module's one screen — a module with several names each of them for what it does.
 
 **It comes in two shapes, and the difference is where the door is.** `tunnel/` is a flow: its root
 files are screens, each mounted by a route, and all of them public to the module and to `app/`.
@@ -39,7 +43,9 @@ files are screens and privacy is not the question. Either way the call site is t
 **Lint R8 reaches a sub-module's underscore folders at any depth** — its glob is
 `~/modules/**/_hooks/**`, and `**` crosses slashes where the `*` it replaced did not. So
 `planning/tunnel/_hooks/` is as closed as `planning/_hooks/`, and stays closed however deep the
-folders go.
+folders go. The seal is directional: a sub-module may still reach its parent module's `_hooks/` and
+`_components/` by relative import — it is inside the boundary, not crossing it. Only the reverse is
+sealed, which is what makes moving a flow's own files down into it worth doing.
 
 ⚠️ **A barrel is not.** Nothing stops `~/modules/navigation/modal-sheet/state` — the door is a
 convention, and `state.ts` is a normal module. Underscore folders are enforced; a barrel is yours to

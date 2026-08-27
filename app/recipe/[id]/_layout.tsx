@@ -1,6 +1,6 @@
 import { Slot } from "expo-router";
 
-import { RecipeChrome } from "~/modules/recipe/chrome";
+import { RecipeChrome } from "~/modules/recipes/detail/chrome";
 
 /**
  * A recipe's three tabs. Routing and chrome placement only — what the chrome shows is the

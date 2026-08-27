@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, StyleSheet, ViewStyle, TextInput } from "react-native";
 import { theme } from "theme";
 import { ButtonIcon } from "./button-icon";
@@ -13,6 +14,12 @@ type Props = {
   onRightPress?: () => void,
   rightContent?: React.ReactNode,
   elevated?: boolean,
+  /**
+   * Opt-in, because the inputs differ in what focus means to them. A field on a form the cook is
+   * filling in wants to say which one the keyboard is aimed at; the navigation bar's input answers
+   * that with its own opening animation, and a second border would be noise on top of it.
+   */
+  highlightOnFocus?: boolean,
   onFocus?: () => void,
   onBlur?: () => void,
   onSubmit?: (value: string) => void,
@@ -25,8 +32,15 @@ type Props = {
 
 export { TextInput } from "react-native";
 
-export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
+export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
   const color = elevated ? styles.neutralElevated : styles.neutral;
+
+  /**
+   * Held here rather than derived from the caller's `onFocus` / `onBlur`, which are forwarded
+   * untouched: at least one caller only forwards blur on web, so a highlight driven by them would
+   * stay lit on a phone long after the field had let the keyboard go.
+   */
+  const [isFocused, setIsFocused] = useState(false);
   const placeholderColor = theme.colors.neutral.muted;
 
   const padding = elevated ? theme.spacing[8] : theme.spacing[4];
@@ -51,7 +65,8 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
           StyleSheet.absoluteFill,
           styles.borders,
           { borderRadius },
-          color
+          color,
+          highlightOnFocus && isFocused && styles.bordersFocused,
         ]}
       />
       {leftIcon && <ButtonIcon
@@ -70,8 +85,8 @@ export const Input = ({ type = "text", ref, style, elevated, placeholder, leftIc
             type === "email" ? "email" : "text"}
         placeholder={placeholder}
         placeholderTextColor={placeholderColor}
-        onFocus={onFocus}
-        onBlur={onBlur}
+        onFocus={() => { setIsFocused(true); onFocus?.(); }}
+        onBlur={() => { setIsFocused(false); onBlur?.(); }}
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={(e) => {
@@ -138,6 +153,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border.default,
     borderRadius: theme.radius.full,
   },
+  /** The field the keyboard is aimed at — the same cue `text-field` gives its multiline sibling. */
+  bordersFocused: { borderColor: theme.colors.primary.base },
   neutral: {
     backgroundColor: theme.colors.neutral.subtle,
     color: theme.colors.neutral.base,

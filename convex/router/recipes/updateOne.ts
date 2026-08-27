@@ -1,0 +1,74 @@
+import { internal } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { sanitizeRecipe } from "@convex/agent/tools/sanitizeRecipe";
+import { toModelRecipe } from "@convex/functions/recipes/toModelRecipe";
+import type { RecipeEdit } from "@convex/functions/recipes/recipeChangesOf";
+import { assertFilledIn, recipeChangesOf, reviseRecipe, sanitizeArgsOf } from "@convex/functions/recipes/recipeChangesOf";
+import { updateRecipe } from "@convex/functions/recipes/updateRecipe";
+import { type ActionCtx, authActionI18n, internalMutation } from "@convex/procedures";
+import { type Locale, vLocale } from "@convex/schema/i18n";
+import { vRecipeEdit, vSanitizedRecipe } from "@convex/schema/recipePayloads";
+import { ConvexError, v } from "convex/values";
+
+type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };
+
+type Args = RecipeEdit & { recipeId: Id<"recipes"> };
+
+/**
+ * Rewriting a recipe already in the table, from the cook's edited free text.
+ *
+ * Mirrors `createOne` in one respect and departs from it in another. `outdated` is the same idea:
+ * the model revises the row it is handed rather than generating one from nothing. But an edit that
+ * did not touch the ingredients has nothing for the agent to re-derive — difficulty, cuisine,
+ * timings and equipment all come from the ingredients — so `recipeChangesOf` decides whether to
+ * spend a model call at all. `updateRecipe` learns which branch ran through `analyzed`, because a
+ * field the model never saw is the cook's own words, not a machine's.
+ *
+ * ⚠️ The ownership check below is hand-written, and ADR 0003 §"Actions" is why it is allowed to be.
+ *    An action has `runQuery`, not `db`, so no `ownedAction` builder can exist to make it
+ *    unforgettable the way `ownedMutation` does for a mutation — `procedures.ts` cannot reach
+ *    `internal.*` to run the check itself without the import cycle ADR 0001 bans. Nothing detects
+ *    its absence, so deleting these two lines silently turns this into an IDOR: any signed-in cook
+ *    could rewrite any recipe by id. The rejection test in `__tests__/updateOne.test.ts` is the
+ *    only thing standing under it.
+ */
+const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
+  const locale = ctx.i18n.locale;
+  assertFilledIn(args);
+
+  const stored = await ctx.runQuery(internal.router.recipes.getOne._internal, { id: args.recipeId, locale });
+  if (stored.userId !== ctx.userId) throw new ConvexError({ code: "FORBIDDEN" });
+
+  const outdated = toModelRecipe(stored);
+
+  const { requiresNewAnalysis, requiresTranslation } = recipeChangesOf(args, outdated);
+
+  const analyzed = requiresNewAnalysis
+    ? await sanitizeRecipe.run(ctx, sanitizeArgsOf(args, outdated, locale))
+    : undefined;
+
+  await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {
+    recipeId: args.recipeId,
+    locale,
+    analyzed: requiresNewAnalysis,
+    recipe: reviseRecipe(args, outdated, analyzed),
+  });
+
+  if (requiresTranslation || analyzed !== undefined)
+    await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
+      recipeId: args.recipeId,
+      sourceLocale: locale,
+    });
+
+  return args.recipeId;
+};
+
+export const authed = authActionI18n({
+  args: { ...vRecipeEdit, recipeId: v.id("recipes") },
+  handler: (ctx, args): Promise<Id<"recipes">> => handler(ctx, args),
+});
+
+export const _internal_persist = internalMutation({
+  args: { recipeId: v.id("recipes"), locale: vLocale, recipe: vSanitizedRecipe, analyzed: v.boolean() },
+  handler: (ctx, args): Promise<Id<"recipes">> => updateRecipe(ctx, args),
+});

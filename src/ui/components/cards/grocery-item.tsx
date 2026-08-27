@@ -53,17 +53,27 @@ type Props = {
 };
 
 export const GroceryItem = ({ name, quantity, emoji, markerSrc, variant = "pending", width, onPress, style }: Props) => (
-  <Animated.View layout={ITEM_TRANSITION} entering={ITEM_ENTERING} exiting={ITEM_EXITING} style={{ width }}>
+  <Animated.View layout={ITEM_TRANSITION} entering={ITEM_ENTERING} exiting={ITEM_EXITING}
+    style={{ width }}>
     <Pressable
       intensity={0.95}
       onPress={() => {
         void Haptics.selectionAsync();
         onPress?.();
       }}
-      style={{ ...styles.container, ...styles[variant], ...style }}
+      style={{
+        ...styles.container,
+        ...styles[variant],
+        ...(quantity ? {} : styles.gapLarge),
+        ...style
+      }}
     >
       <Text.H4 style={styles.emoji}>{emoji}</Text.H4>
-      <Text.Base color={theme.colors.muted} numberOfLines={1}>
+      <Text.Base
+        color={theme.colors.muted}
+        numberOfLines={2}
+        style={{ textAlign: "center", textBalance: true }}
+      >
         {name}
       </Text.Base>
       {(quantity || markerSrc) && <View style={styles.quantity}>
@@ -88,7 +98,9 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, variant = "pendi
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing[6],
     paddingVertical: theme.spacing[12],
     paddingHorizontal: theme.spacing[8],
@@ -98,6 +110,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.neutral.elevated,
     backgroundColor: theme.colors.surface.elevatedSubtle,
     minWidth: 100
+  },
+  gapLarge: {
+    gap: theme.spacing[8]
   },
   ghost: {
     borderWidth: 0,

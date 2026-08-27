@@ -34,8 +34,30 @@ export const STOPWORDS: Record<Locale, Set<string>> = {
  *
  * Case is deliberately left alone. Folding accents is reversible information loss the caller
  * always wants; lowercasing is not always — call `.toLowerCase()` where it is.
+ *
+ * ⚠️ **The ligatures are expanded by hand, and no normalisation form would do it.** `œ` and `æ`
+ * carry NO decomposition mapping in Unicode — not canonical, not compatibility — because they are
+ * letters of the languages that use them rather than typographic ligatures like `ﬁ`. So `NFD`
+ * leaves "bœuf" whole, the blob stores it twice, and "boeuf" is a token no row carries: a cook
+ * typing the only spelling their keyboard offers finds nothing, with no error anywhere. That is
+ * the exact failure this function exists to prevent, so the pair is expanded before the fold.
  */
-export const foldAccents = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+const LIGATURES: Record<string, string> = { "œ": "oe", "Œ": "OE", "æ": "ae", "Æ": "AE" };
+
+/**
+ * Built FROM the map's own keys rather than written beside it, so the two cannot drift. A character
+ * class typed out by hand is one edit away from listing a ligature the map has no entry for, and
+ * the replacement for a missing entry is the string "undefined" — written into the blob, indexed,
+ * and visible nowhere. Deriving it makes that state unreachable; the `?? ligature` below is the
+ * total-function fallback that proves it to the compiler.
+ */
+const LIGATURE = new RegExp(`[${Object.keys(LIGATURES).join("")}]`, "gu");
+
+export const foldAccents = (value: string) =>
+  value
+    .replace(LIGATURE, (ligature) => LIGATURES[ligature] ?? ligature)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 
 /**
  * What each locale is called, in English, for a model that is being told which language to write.

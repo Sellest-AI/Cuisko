@@ -1,5 +1,7 @@
-import type { Category } from "@convex/schema/ingredients";
+import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
+import { sortAllergens, type Allergen } from "@shared/allergens";
+import type { Diet } from "@shared/diets";
 
 /**
  * The starter ingredient catalog `seedIngredients.ts` writes to the database.
@@ -37,6 +39,12 @@ export type CatalogEntry = {
   emoji: string;
   aliases: { fr?: string[]; en?: string[] };
   category: Category;
+  /**
+   * Absent when neither the category nor `DIET` could answer. `seedIngredients` throws on it
+   * rather than writing the row — see `DIET_BY_CATEGORY`.
+   */
+  diet?: Diet;
+  allergens: Allergen[];
   defaultUnit: Unit;
   defaultQuantity: number;
   gramsPerPiece?: number;
@@ -541,6 +549,166 @@ const GRAMS_PER_ML: Record<string, number> = {
   "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
 };
 
+/**
+ * -------------------------------------------------------------------------------------------
+ *  DIET AND ALLERGENS
+ * -------------------------------------------------------------------------------------------
+ *
+ * **What these two sections model, and what they deliberately do not.** They describe the GENERIC
+ * ingredient as it is normally sold - the thing a recipe means when it writes "parmesan" or "white
+ * wine". Processing aids that vary from producer to producer are out of scope and are not guessed
+ * at: the rennet in a hard cheese (calf in a PDO Parmigiano, microbial in most supermarket grated
+ * parmesan) and the fining agent in a wine or beer (isinglass, gelatin, or neither) cannot be read
+ * off a category or a name, so `parmesan` is `vegetarian` and `white-wine` is `vegan`.
+ *
+ * That is a real limitation and it is written down rather than papered over. Whoever wants to close
+ * it closes it by splitting the row - a `parmigiano-reggiano` distinct from `parmesan` - not by
+ * making this file hedge, because a hedge here silently strips `vegetarian` from every pasta dish
+ * in the catalog.
+ *
+ * Allergen coverage runs to the EU-14 as they would appear on the packet. It is deepest where a tag
+ * reads it (gluten, milk, nuts, peanuts) and thinnest where nothing does yet: cured meats commonly
+ * declare sulphites and are recorded as carrying none, which is fine for the tags that exist and is
+ * the first thing to fix if `sulphite-free` is ever wanted.
+ */
+
+/**
+ * The diet a category settles on its own; the exceptions are named in `DIET` below.
+ *
+ * `CONDIMENT`, `SWEETENER` and `OTHER` are **deliberately absent**, and their absence is the whole
+ * point of this map. Those three are where an ingredient's category tells you nothing about what it
+ * contains: fish sauce is a condiment, honey is a sweetener, gelatin and beef broth are "other".
+ * A default for them would be a permissive guess, and a permissive guess is what makes a pad thai
+ * vegetarian. So every row in one of those categories must declare itself in `DIET`, and
+ * `seedIngredients` throws naming the slug when one does not.
+ *
+ * The throw is the mechanism, not a nicety. A missing entry is otherwise invisible - the row seeds,
+ * the recipe tags, and nothing looks wrong until someone with a diet reads a label we wrote.
+ */
+const DIET_BY_CATEGORY: Partial<Record<Category, Diet>> = {
+  VEGETABLE: "vegan", FRUIT: "vegan", GRAIN: "vegan", LEGUME: "vegan", NUT: "vegan",
+  SEED: "vegan", HERB: "vegan", SPICE: "vegan", OIL: "vegan",
+  MEAT: "omnivore", SEAFOOD: "pescatarian", DAIRY: "vegetarian", EGG: "vegetarian",
+};
+
+/**
+ * The diet per slug - every row whose category has no default, plus the exceptions to the ones
+ * that do. Wins over `DIET_BY_CATEGORY`.
+ *
+ * The comment on each group is the reason that group is here rather than covered by a default.
+ */
+const DIET: Record<string, Diet> = {
+  // -- Grains that are not plants all the way down ------------------------------------------
+  // Egg in the pasta, butter in the pastry, honey in the granola.
+  "fresh-tagliatelle": "vegetarian", "egg-noodles": "vegetarian", "puff-pastry": "vegetarian",
+  "shortcrust-pastry": "vegetarian", granola: "vegetarian",
+
+  // -- Condiments: the category proves nothing -----------------------------------------------
+  // Worcestershire is anchovy and mayonnaise is egg; neither is legible from "CONDIMENT".
+  salt: "vegan", "soy-sauce": "vegan", ketchup: "vegan", "mustard-yellow": "vegan",
+  "vinegar-white": "vegan", "balsamic-vinegar": "vegan", "hot-sauce": "vegan",
+  "tomato-paste": "vegan", mayonnaise: "vegetarian", "worcestershire-sauce": "pescatarian",
+
+  // -- Sweeteners: honey is the whole reason this category has no default --------------------
+  "white-sugar": "vegan", "brown-sugar": "vegan", "powdered-sugar": "vegan",
+  "maple-syrup": "vegan", "agave-syrup": "vegan", honey: "vegetarian",
+
+  // -- Other: a bucket by definition, so every row states its own case -----------------------
+  water: "vegan", "vegetable-broth": "vegan", "tofu-firm": "vegan", tempeh: "vegan",
+  seitan: "vegan", "baking-powder": "vegan", "baking-soda": "vegan", "dry-yeast": "vegan",
+  "dark-chocolate": "vegan", "cocoa-powder": "vegan", "vanilla-extract": "vegan",
+  "peanut-butter": "vegan", "coconut-milk": "vegan", "almond-milk": "vegan", "oat-milk": "vegan",
+  "canned-tomatoes": "vegan", passata: "vegan", "olives-green": "vegan", capers: "vegan",
+  pickles: "vegan", "coffee-ground": "vegan", "black-tea": "vegan", "orange-juice": "vegan",
+  "apple-juice": "vegan", "white-wine": "vegan", "red-wine": "vegan", beer: "vegan",
+  "milk-chocolate": "vegetarian",
+  // Stock from an animal, and a setting agent made of its collagen. Both read as "OTHER".
+  "chicken-broth": "omnivore", "beef-broth": "omnivore", gelatin: "omnivore",
+};
+
+/**
+ * The only two categories that carry an allergen mechanically, with no exception in the catalog:
+ * every dairy row is milk, and both egg rows are eggs.
+ *
+ * Nothing else gets a baseline, and that is deliberate. `GRAIN` looks like it should - until rice,
+ * quinoa, polenta and cornstarch, which are four gluten-free rows in a category a rule would have
+ * called gluten. `NUT` looks like it should - until peanuts, which is a legume and a separate
+ * allergen, and the one row where the rule and the truth differ is the row someone reacts to. An
+ * implicit rule is how a confident false negative ships, so everything else is written out.
+ */
+const ALLERGENS_BY_CATEGORY: Partial<Record<Category, Allergen[]>> = {
+  DAIRY: ["milk"],
+  EGG: ["eggs"],
+};
+
+/**
+ * Every other ingredient that carries an allergen, named one at a time. Merged with the category
+ * baseline above rather than replacing it, so a dairy row here ADDS to `milk` instead of erasing it.
+ *
+ * A slug absent from this map carries no allergen - and because `seedIngredients` writes
+ * `allergens` on every row, `[]` included, that absence is a positive claim rather than a gap. It
+ * is the difference between the `[]` stored here and the `undefined` of a row nothing has
+ * classified, which is the only thing `computeTags` will refuse to answer from.
+ * Adding a row to `ROWS` without considering this map is therefore an assertion that it is free of
+ * all fourteen. That is the one thing to remember about this file.
+ */
+const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
+  // -- Cereals containing gluten -------------------------------------------------------------
+  // Wheat, barley and oats. Absent, and not by accident: rice, corn and quinoa in every form -
+  // white/brown/arborio/basmati rice, rice-noodles, cornmeal, polenta, cornstarch, quinoa.
+  // Oats are on the EU list in their own right, so `oats` and anything oat-based counts.
+  "pasta-dry": ["gluten"], "whole-wheat-pasta": ["gluten"], spaghetti: ["gluten"],
+  penne: ["gluten"], "lasagna-sheets": ["gluten"], couscous: ["gluten"], bulgur: ["gluten"],
+  barley: ["gluten"], oats: ["gluten"], granola: ["gluten"],
+  "flour-all-purpose": ["gluten"], "whole-wheat-flour": ["gluten"], breadcrumbs: ["gluten"],
+  "bread-white": ["gluten"], "bread-whole-wheat": ["gluten"], baguette: ["gluten"],
+  "tortilla-wrap": ["gluten"], "pizza-dough": ["gluten"],
+  // Barley malt extract is what keeps cornflakes off a gluten-free table, despite the corn.
+  "cereal-cornflakes": ["gluten"],
+  // Egg in the dough, butter in the pastry.
+  "fresh-tagliatelle": ["gluten", "eggs"], "egg-noodles": ["gluten", "eggs"],
+  "puff-pastry": ["gluten", "milk"], "shortcrust-pastry": ["gluten", "milk"],
+
+  // -- Fish, crustaceans and molluscs: three separate EU allergens, not one "seafood" --------
+  salmon: ["fish"], "tuna-canned-water": ["fish"], cod: ["fish"], tilapia: ["fish"],
+  sardines: ["fish"], trout: ["fish"], mackerel: ["fish"], anchovy: ["fish"],
+  shrimp: ["crustaceans"], crab: ["crustaceans"],
+  mussels: ["molluscs"], scallops: ["molluscs"],
+
+  // -- Tree nuts, and the rows that are not tree nuts ----------------------------------------
+  almonds: ["nuts"], walnuts: ["nuts"], cashews: ["nuts"], pistachios: ["nuts"],
+  pecans: ["nuts"], hazelnuts: ["nuts"], macadamia: ["nuts"], "brazil-nuts": ["nuts"],
+  "almond-milk": ["nuts"],
+  // A pine nut is a seed and is not on the EU-14, but it is sold, stored and reacted to as a nut.
+  // Listed, because the direction to be wrong in is the one that WITHHOLDS `nut-free`.
+  "pine-nuts": ["nuts"],
+  // A peanut is a legume. Its own allergen, and someone allergic to tree nuts is often fine with
+  // it - which is why `nut-free` withholds on either and the two are still recorded apart.
+  peanuts: ["peanuts"], "peanut-butter": ["peanuts"],
+  // Coconut is not an EU-14 nut: `coconut-fresh` and `coconut-milk` deliberately carry nothing.
+
+  // -- Soy, sesame, celery, mustard ----------------------------------------------------------
+  soybeans: ["soybeans"], edamame: ["soybeans"], "tofu-firm": ["soybeans"], tempeh: ["soybeans"],
+  "sesame-seeds": ["sesame"], "sesame-oil": ["sesame"],
+  celery: ["celery"],
+  // Stock, in a cube or a carton, is built on celery almost without exception.
+  "vegetable-broth": ["celery"], "chicken-broth": ["celery"], "beef-broth": ["celery"],
+  "mustard-yellow": ["mustard"],
+
+  // -- Everything else -----------------------------------------------------------------------
+  // Brewed from wheat, and fermented from soy.
+  "soy-sauce": ["gluten", "soybeans"],
+  // Anchovy, malt vinegar and soy - the sauce that is three allergens and reads as none.
+  "worcestershire-sauce": ["fish", "gluten", "soybeans"],
+  mayonnaise: ["eggs"],
+  seitan: ["gluten"], "oat-milk": ["gluten"],
+  // Lecithin in the chocolate, milk in the milk chocolate. Cocoa powder alone carries neither.
+  "dark-chocolate": ["soybeans"], "milk-chocolate": ["milk", "soybeans"],
+  // Preserved with sulphur dioxide, and declared as such on every bottle.
+  "white-wine": ["sulphites"], "red-wine": ["sulphites"], "balsamic-vinegar": ["sulphites"],
+  beer: ["gluten", "sulphites"],
+};
+
 export const CATALOG: readonly CatalogEntry[] = ROWS.map(
   ([
     slug, en, fr, category, defaultUnit, defaultQuantity,
@@ -552,6 +720,13 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     emoji: EMOJI[slug] ?? CATEGORY_EMOJI[category],
     aliases: ALIASES[slug] ?? {},
     category,
+    diet: DIET[slug] ?? DIET_BY_CATEGORY[category],
+    // Sorted and de-duplicated through the shared helper, so the stored column is canonical
+    // whatever order the two maps happened to contribute in.
+    allergens: sortAllergens([
+      ...(ALLERGENS_BY_CATEGORY[category] ?? []),
+      ...(ALLERGENS_BY_SLUG[slug] ?? []),
+    ]),
     defaultUnit,
     defaultQuantity,
     // Passed through even when absent, so the seed's `patch` clears a ratio a row used to carry.

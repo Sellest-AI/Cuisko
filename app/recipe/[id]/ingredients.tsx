@@ -1,5 +1,8 @@
-import { IngredientsScreen } from "~/modules/recipe/ingredients-screen";
+import { useLocalSearchParams } from "expo-router";
+import { IngredientsScreen } from "~/modules/recipes/detail/ingredients";
 
 export default function Screen() {
-  return <IngredientsScreen />;
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  return <IngredientsScreen id={id} />;
 }

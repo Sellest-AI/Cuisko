@@ -1,34 +1,43 @@
 import { describe, expect, test } from "vitest";
 
-import { COMPUTED_TAGS, dietTagsOf, nutritionTagsOf, type DietLine } from "../tags";
-
-const NEUTRAL: DietLine = { meat: false, seafood: false, fromAnimal: false };
-
-const line = (over: Partial<DietLine> = {}): DietLine => ({ ...NEUTRAL, ...over });
+import type { Diet } from "../diets";
+import { COMPUTED_TAGS, allergenTagsOf, dietTagsOf, facetsOf, nutritionTagsOf } from "../tags";
+import type { Tag } from "../tags";
 
 describe("dietTagsOf", () => {
   test("calls a recipe of plants all three, because the suitability nests", () => {
-    expect(dietTagsOf([line(), line()])).toEqual(["pescatarian", "vegetarian", "vegan"]);
+    expect(dietTagsOf(["vegan", "vegan"])).toEqual(["pescatarian", "vegetarian", "vegan"]);
   });
 
   test("drops vegan alone when a line is animal-derived but not flesh", () => {
-    expect(dietTagsOf([line(), line({ fromAnimal: true })])).toEqual([
-      "pescatarian",
-      "vegetarian",
-    ]);
+    expect(dietTagsOf(["vegan", "vegetarian"])).toEqual(["pescatarian", "vegetarian"]);
   });
 
   test("keeps only pescatarian when the recipe contains seafood", () => {
-    expect(dietTagsOf([line(), line({ seafood: true })])).toEqual(["pescatarian"]);
+    expect(dietTagsOf(["vegan", "pescatarian"])).toEqual(["pescatarian"]);
   });
 
   test("claims nothing for a recipe containing meat", () => {
-    expect(dietTagsOf([line(), line({ meat: true })])).toEqual([]);
+    expect(dietTagsOf(["vegan", "omnivore"])).toEqual([]);
   });
 
   /** Meat outranks everything: a surf-and-turf is not pescatarian. */
   test("claims nothing when meat and seafood appear together", () => {
-    expect(dietTagsOf([line({ meat: true }), line({ seafood: true })])).toEqual([]);
+    expect(dietTagsOf(["omnivore", "pescatarian"])).toEqual([]);
+  });
+
+  /** The whole point of the field: none of these three is legible from `category`. */
+  test.each<[string, Diet, string[]]>([
+    ["honey, a SWEETENER", "vegetarian", ["pescatarian", "vegetarian"]],
+    ["fish sauce, a CONDIMENT", "pescatarian", ["pescatarian"]],
+    ["gelatin, an OTHER", "omnivore", []],
+  ])("refuses the plant answer for %s", (_, diet, expected) => {
+    expect(dietTagsOf(["vegan", "vegan", diet])).toEqual(expected);
+  });
+
+  /** The order of the lines is not the answer — the answer is the maximum over them. */
+  test("does not depend on where the permissive line sits", () => {
+    expect(dietTagsOf(["omnivore", "vegan"])).toEqual(dietTagsOf(["vegan", "omnivore"]));
   });
 
   /**
@@ -40,7 +49,44 @@ describe("dietTagsOf", () => {
   });
 
   test("only ever answers with tags from the computed vocabulary", () => {
-    for (const tag of dietTagsOf([line()])) expect(COMPUTED_TAGS).toContain(tag);
+    for (const tag of dietTagsOf(["vegan"])) expect(COMPUTED_TAGS).toContain(tag);
+  });
+});
+
+describe("allergenTagsOf", () => {
+  test("awards all three when nothing is carried", () => {
+    expect(allergenTagsOf([])).toEqual(["gluten-free", "dairy-free", "nut-free"]);
+  });
+
+  test("withholds only the tag the allergen speaks to", () => {
+    expect(allergenTagsOf(["gluten"])).toEqual(["dairy-free", "nut-free"]);
+    expect(allergenTagsOf(["milk"])).toEqual(["gluten-free", "nut-free"]);
+  });
+
+  /** Two allergens, one tag: a peanut is a legume, and neither may pass as nut-free. */
+  test.each(["nuts", "peanuts"] as const)("withholds nut-free for %s alone", (allergen) => {
+    expect(allergenTagsOf([allergen])).not.toContain("nut-free");
+  });
+
+  test("withholds nut-free once for both together", () => {
+    expect(allergenTagsOf(["nuts", "peanuts"])).toEqual(["gluten-free", "dairy-free"]);
+  });
+
+  /** Ten of the fourteen have no tag reading them yet, and must not silently suppress one. */
+  test("ignores an allergen no tag is about", () => {
+    expect(allergenTagsOf(["celery", "sulphites", "mustard"])).toEqual([
+      "gluten-free",
+      "dairy-free",
+      "nut-free",
+    ]);
+  });
+
+  test("claims nothing when everything is carried", () => {
+    expect(allergenTagsOf(["gluten", "milk", "nuts", "peanuts"])).toEqual([]);
+  });
+
+  test("only ever answers with tags from the computed vocabulary", () => {
+    for (const tag of allergenTagsOf([])) expect(COMPUTED_TAGS).toContain(tag);
   });
 });
 
@@ -97,5 +143,54 @@ describe("nutritionTagsOf", () => {
       "low-carb",
       "low-calorie",
     ]);
+  });
+});
+
+describe("facetsOf", () => {
+  const ALL_FALSE = {
+    isVegan: false,
+    isVegetarian: false,
+    isPescatarian: false,
+    isGlutenFree: false,
+    isDairyFree: false,
+    isNutFree: false,
+  };
+
+  test("claims nothing for a recipe with no computed tags", () => {
+    expect(facetsOf(["main", "quick"])).toEqual(ALL_FALSE);
+  });
+
+  /**
+   * The projection must agree with the array it came from, tag for tag — that agreement is the
+   * whole reason the booleans are computed from the finished list rather than derived a second
+   * time from the ingredients.
+   */
+  test.each<[Tag, keyof typeof ALL_FALSE]>([
+    ["vegan", "isVegan"],
+    ["vegetarian", "isVegetarian"],
+    ["pescatarian", "isPescatarian"],
+    ["gluten-free", "isGlutenFree"],
+    ["dairy-free", "isDairyFree"],
+    ["nut-free", "isNutFree"],
+  ])("sets %s's facet and no other", (tag, facet) => {
+    expect(facetsOf([tag])).toEqual({ ...ALL_FALSE, [facet]: true });
+  });
+
+  /** The nesting survives the projection: a vegan recipe answers a vegetarian filter. */
+  test("carries all three diet facets for a recipe tagged vegan by dietTagsOf", () => {
+    const facets = facetsOf(dietTagsOf(["vegan"]));
+
+    expect(facets.isVegan).toBe(true);
+    expect(facets.isVegetarian).toBe(true);
+    expect(facets.isPescatarian).toBe(true);
+  });
+
+  test("ignores authored tags entirely", () => {
+    expect(facetsOf(["soup", "comfort-food", "festive"])).toEqual(ALL_FALSE);
+  });
+
+  /** `false` is "not claimed", never "contains it" — the filter simply does not surface the row. */
+  test("answers all false for no tags at all", () => {
+    expect(facetsOf([])).toEqual(ALL_FALSE);
   });
 });

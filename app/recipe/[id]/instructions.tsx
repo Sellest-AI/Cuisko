@@ -1,5 +1,9 @@
-import { InstructionsScreen } from "~/modules/recipe/instructions-screen";
+import { useLocalSearchParams } from "expo-router";
+
+import { InstructionsScreen } from "~/modules/recipes/detail/instructions";
 
 export default function Screen() {
-  return <InstructionsScreen />;
+  const { id } = useLocalSearchParams<{ id?: string }>();
+
+  return <InstructionsScreen id={id} />;
 }

@@ -44,6 +44,8 @@ export const vLocalizedText = perLocale(v.string());
 
 export type Meta = Infer<typeof meta>;
 export type Localized = Infer<typeof vLocalized>;
+/** A derived blob per locale — what a `searchIndex` reads. See @shared/search and ADR 0011. */
+export type LocalizedText = Infer<typeof vLocalizedText>;
 export type TranslationStatus = Meta["status"];
 
 type Check = Locale extends keyof Localized["values"]

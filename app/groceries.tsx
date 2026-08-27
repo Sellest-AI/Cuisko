@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { GroceryScreen } from "~/modules/groceries/screen";
+import { GroceryScreen } from "~/modules/groceries/list-screen";
 
 export default function Groceries() {
   return (

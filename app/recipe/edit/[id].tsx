@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 
-import { EditorScreen } from "~/modules/recipe/editor-screen";
+import { EditorScreen } from "~/modules/recipes/editor-screen";
 
 /**
  * Rewriting a recipe that already exists.

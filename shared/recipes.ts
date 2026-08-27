@@ -86,11 +86,18 @@ const TITLE_PREFIX = "## ";
  * A cook pasting a recipe writes prose, not markup: they do not prefix their steps with a dash,
  * and they do not think of "Faire revenir les oignons dans le beurre" as anything but an
  * instruction. Length is the only signal left, and it is a good one — a heading is a label
- * ("Sauce", "Pour la pâte") and an instruction is a sentence. Guessing wrong in this direction is
- * also the cheap one: a step misread as a heading vanishes from the recipe, while a heading
- * misread as a step is still on the page.
+ * ("Sauce", "Pour la pâte") and an instruction is a sentence.
+ *
+ * 35 rather than 30, because a real heading is often a phrase and not one word: "Champignons et
+ * oignons grelots" is 30 characters exactly, and at the old value it tipped over into being a step
+ * — losing its own line and pulling the steps under it into the group above.
+ *
+ * Moving it is only safe because guessing wrong no longer costs the text. A step misread as a
+ * heading used to vanish from the recipe; `parseInstructions` now hands a childless heading back as
+ * a step, so the worst either direction can do is style a line wrong. That is what lets this number
+ * be tuned for the common case rather than hedged against the destructive one.
  */
-const LONG_STEP_THRESHOLD = 30;
+const LONG_STEP_THRESHOLD = 35;
 
 /**
  * Collapses anything that would change meaning when the text is re-parsed.
@@ -204,5 +211,21 @@ export const parseInstructions = (text: string): InstructionGroup[] => {
     groups.push(current);
   }
 
-  return groups.filter((group) => group.steps.length > 0);
+  /**
+   * A heading with nothing under it is a line the length test misread, not a heading.
+   *
+   * A real heading is never childless — it is a label for the steps that follow, and a cook who
+   * writes one always writes those. So a title that ends up with no steps is a short instruction
+   * that fell under `LONG_STEP_THRESHOLD`, and it is kept as a step rather than dropped.
+   *
+   * This is what makes the length test safe to get wrong. Misjudging a step as a heading used to
+   * delete the sentence; now it costs only the styling, which is the cheap error the threshold's
+   * docblock argues for. Our own output never reaches here in that shape — `serializeInstructions`
+   * has already dropped empty groups — so this only ever rescues text a cook typed.
+   *
+   * An untitled group with no steps really is nothing, and goes.
+   */
+  return groups.flatMap((group) =>
+    group.steps.length > 0 ? [group] : group.title ? [{ steps: [group.title] }] : [],
+  );
 };

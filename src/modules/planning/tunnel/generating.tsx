@@ -8,7 +8,7 @@ import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
 import { generatedMeals, MASCOT, MEAL_IMAGE, TILE_IMAGE } from "../_hooks/placeholders";
-import { useTunnel } from "../_hooks/useTunnel";
+import { useTunnel } from "./_hooks/useTunnel";
 
 /** Dishes the fake generation reports, and how long each one takes to "cook". */
 const DISHES = 3;
