@@ -17,10 +17,10 @@ import {
   toDateParam,
   type PlanningRow,
 } from "../_model/model";
-import { useTunnel } from "../_hooks/useTunnel";
-import { useTunnelScrollHandler } from "../_hooks/useTunnelScrollHandler";
+import { useTunnel } from "./_hooks/useTunnel";
+import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
 import { PlanningListRow } from "../_components/planning-row";
-import { TunnelHeader } from "../_components/tunnel-header";
+import { TunnelHeader } from "./_components/tunnel-header";
 
 /** FlashList is generic; the animated wrapper needs a concrete props type to attach `onScroll`. */
 const AnimatedFlashList = Animated.createAnimatedComponent(

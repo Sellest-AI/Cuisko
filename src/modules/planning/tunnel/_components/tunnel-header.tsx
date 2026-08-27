@@ -5,7 +5,7 @@ import { IconComponent } from "@ui/icons";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 
-import { MASCOT } from "../_hooks/placeholders";
+import { MASCOT } from "../../_hooks/placeholders";
 
 type Props = {
   title: string;

@@ -2,8 +2,8 @@ import { useAtom } from "jotai";
 import { router, usePathname } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 
-import { MEAL_SLOTS, type MealSlot } from "../_model/model";
-import { daysAtom, dietsAtom, draftMealsAtom, noteAtom, peopleAtom, slotsAtom, utensilsAtom } from "./atoms";
+import { MEAL_SLOTS, type MealSlot } from "../../_model/model";
+import { daysAtom, dietsAtom, draftMealsAtom, noteAtom, peopleAtom, slotsAtom, utensilsAtom } from "../../_hooks/atoms";
 
 /**
  * The tunnel in order. The route *is* the step — deriving the number from the path rather than

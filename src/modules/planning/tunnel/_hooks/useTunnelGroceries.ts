@@ -1,8 +1,8 @@
 import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useMemo } from "react";
 
-import { groceriesFor } from "../_model/model";
-import { draftMealsAtom, ownedRowsAtom } from "./atoms";
+import { groceriesFor } from "../../_model/model";
+import { draftMealsAtom, ownedRowsAtom } from "../../_hooks/atoms";
 
 /**
  * The list the chosen meals imply, and which of its rows the kitchen already covers.

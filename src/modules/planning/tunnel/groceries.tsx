@@ -9,9 +9,9 @@ import { useTranslations } from "translations";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { type CategoryId } from "../_model/model";
-import { useTunnelGroceries } from "../_hooks/useTunnelGroceries";
-import { useTunnelScrollHandler } from "../_hooks/useTunnelScrollHandler";
-import { TunnelHeader } from "../_components/tunnel-header";
+import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
+import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
+import { TunnelHeader } from "./_components/tunnel-header";
 import { TunnelGroceryRow } from "./groceries.row";
 import { InfoBanner } from "@ui/info-banner";
 

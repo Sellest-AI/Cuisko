@@ -8,11 +8,11 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
-import { useTunnel, TUNNEL_STEPS } from "../_hooks/useTunnel";
-import { tunnelScrollY } from "../_hooks/useTunnelScrollHandler";
-import { useTunnelGroceries } from "../_hooks/useTunnelGroceries";
-import { StepProgress } from "../_components/step-progress";
-import { TunnelBar } from "../_components/tunnel-bar";
+import { useTunnel, TUNNEL_STEPS } from "./_hooks/useTunnel";
+import { tunnelScrollY } from "./_hooks/useTunnelScrollHandler";
+import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
+import { StepProgress } from "./_components/step-progress";
+import { TunnelBar } from "./_components/tunnel-bar";
 import { RadialGradient } from "@ui/radial-gradient";
 
 /**

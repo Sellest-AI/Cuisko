@@ -43,7 +43,9 @@ files are screens and privacy is not the question. Either way the call site is t
 **Lint R8 reaches a sub-module's underscore folders at any depth** — its glob is
 `~/modules/**/_hooks/**`, and `**` crosses slashes where the `*` it replaced did not. So
 `planning/tunnel/_hooks/` is as closed as `planning/_hooks/`, and stays closed however deep the
-folders go.
+folders go. The seal is directional: a sub-module may still reach its parent module's `_hooks/` and
+`_components/` by relative import — it is inside the boundary, not crossing it. Only the reverse is
+sealed, which is what makes moving a flow's own files down into it worth doing.
 
 ⚠️ **A barrel is not.** Nothing stops `~/modules/navigation/modal-sheet/state` — the door is a
 convention, and `state.ts` is a normal module. Underscore folders are enforced; a barrel is yours to
