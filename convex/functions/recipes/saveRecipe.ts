@@ -56,7 +56,9 @@ export const saveRecipe = async (ctx: MutationCtx, { userId, locale, recipe }: A
 
   // The two derived fields are written HERE and only here, from the values one line above them.
   // `facetsOf` is a projection of `tags` rather than a second derivation, so the boolean and the
-  // tag cannot disagree; `recipeSearchText` is the sole assembler of the blob (ADR 0011).
+  // tag cannot disagree. `recipeSearchText` decides which terms a recipe contributes and reads the
+  // ingredient rows to get them; the blob itself is assembled by `searchTextOf`, the one serializer
+  // ADR 0011 governs.
   const search = await recipeSearchText(ctx, {
     ingredientIds: matches.flatMap((match) =>
       match.status === "matched" ? [match.ingredientId] : [],

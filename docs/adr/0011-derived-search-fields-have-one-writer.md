@@ -19,8 +19,37 @@ supersedes: []
 - A CLOSED VOCABULARY MUST NOT be written into a `searchField`. It belongs in a `filterField`.
 - A value the app PROMISES the user — a diet, an allergen claim, ownership — MUST be a
   `filterField`, never a search term.
-- A derived search field SHOULD have exactly one writer. Where it has more, every writer MUST
-  recompute it in the same mutation that changes its source.
+- A table carrying a derived search field MUST be inserted from exactly one module, and that insert
+  MUST supply every derived field the table declares. The writer is whichever module that is — there
+  is no naming convention, because a name taken from the field stops working the moment a table has
+  two of them.
+- A mutation that changes a derived field's SOURCES MUST recompute it before it returns. A mutation
+  that changes anything else MUST NOT — recomputing a field whose inputs did not move is how a
+  second writer appears.
+
+**Which mutations that is, concretely.** The rule is about the sources, not about the table, so read
+it that way round:
+
+| Derived field                        | Its sources                              | So it is recomputed by                        |
+| ------------------------------------ | ---------------------------------------- | --------------------------------------------- |
+| `ingredients.search`                 | `name`, `aliases` on the same row        | the catalog seed                              |
+| `recipes.search`                     | the recipe's `recipeIngredients` rows    | whatever adds, removes or re-matches a line   |
+| `recipes.is*` facets                 | `recipes.tags`                           | the same, via `computeTags` then `facetsOf`   |
+
+A recipe's title, description and instructions are the sources of NOTHING here — the blob carries no
+authored text, by design. `saveTranslations` therefore patches a recipe and correctly recomputes
+nothing, and that is not an omission to be fixed. The mutation to be careful with is any future edit
+that touches a recipe's LINES.
+
+⚠️ **This rule is the one nothing enforces.** C11 gates inserts, which name their table as a
+literal; `ctx.db.patch(recipeId, …)` names no table at all, so attributing it needs the type checker
+rather than an AST walk. And `recipes.search` is derived from `recipeIngredients` — a *different*
+table — so even a complete gate on writes to `recipes` would not see the write that invalidates it.
+Until a check knows a derived field's source tables, this clause is upheld by review alone.
+
+Two places are known to break it today: `CASCADE` deletes a recipe's `recipeIngredients` rows when
+an ingredient is deleted and recomputes nothing, and the backfill migration projects facets from
+stored tags rather than recomputing them, which it documents and does deliberately.
 
 ## Why
 
