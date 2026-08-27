@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
-import { GroceryGrid } from "./screen.grid";
+import { GroceryGrid } from "./list-screen.grid";
 
 import { SafeAreaView } from "@ui/safe-area-view";
 import { ReceiptTextIcon } from "@ui/icons";
@@ -24,7 +24,7 @@ const LISTS = [
  * Groceries: what is missing, and what is already in the cellar.
  *
  * Composition only. The grid owns both sections because they animate between one another, and
- * that is only possible while they share a container (see `screen.grid.tsx`).
+ * that is only possible while they share a container (see `list-screen.grid.tsx`).
  */
 export const GroceryScreen = () => {
   const t = useTranslations("Groceries");

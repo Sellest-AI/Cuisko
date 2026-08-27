@@ -162,6 +162,7 @@ more trust than the whole review buys.
 | File name — components, screens | kebab-case (`recipe-card.tsx`, `saved-recipes.tsx`)                            |
 | File name — hooks, anywhere     | camelCase **matching the export** (`useRecipes.ts` → `useRecipes`)             |
 | File name — sub-components      | dot notation (`recipe-form.ingredients.tsx`)                                   |
+| File name — a module's screens  | one screen → `screen.tsx`; several → `<behaviour>-screen` (`list-screen.tsx`)  |
 | Component reaching 3 files      | folder + `index` — `select/index.tsx`, `index.ios.tsx`, `types.ts`             |
 | Router file names               | operation-based, not resource-based — `getOne.ts` ✅ / `getRecipe.ts` ❌         |
 | Components / types              | `PascalCase`, no `I` prefix                                                    |

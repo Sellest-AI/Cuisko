@@ -36,6 +36,7 @@ rule cites a command that does not exist. Rules that remain 👁 are listed with
 | `app/**` (routes)                          | **kebab-case**                       | `saved-recipes.tsx`                              | 🔒 Expo Router |
 | **Hook files, everywhere**                 | **camelCase, matching the export**   | `useRecipes.ts` exports `useRecipes`             | 👁             |
 | Sub-components of **one** parent           | **dot notation**                     | `recipe-form.tsx`, `recipe-form.ingredients.tsx` | 👁             |
+| A module's screens                         | **named for what they do**           | `list-screen.tsx`, `editor-screen/index.tsx`     | 👁             |
 | Module components with **several** parents | `_components/`                       | `_components/recipe-form.tsx`                    | 👁             |
 | A module's public hooks                    | `hooks.ts` at the module root        | `export { useX } from "./_hooks/useX"`           | 🔒 R8          |
 | Platform variants                          | `.native.ts` / `.web.ts` / `.ios.ts` | `download.web.ts`                                | 🔒 Metro       |
@@ -54,6 +55,27 @@ filename and the symbol match, so searching for either finds both. **Write it do
 > (`node_modules/convex/dist/cjs/bundler/index.js`), and it skips at `logVerbose` level — a
 > registered function in such a file is dropped **silently**, and only fails when something calls it.
 > `scripts/c7-generated-api.mjs` encodes the same list.
+
+#### A module names its screens for what they do 👁
+
+**One screen, and it is `screen.tsx`.** The module has nothing to disambiguate, and the name says
+the only true thing about it: this is the screen.
+
+**Several screens, and each is named for its behaviour** — `list-screen.tsx`, `editor-screen/`,
+`step-by-step-screen/`. Keeping one of them as the generic `screen.tsx` because it happens to sit
+behind the module's index route is what the rule exists to stop: in a module with four screens,
+`screen.tsx` no longer identifies one, and the reader has to open it to find out which.
+
+```
+✅ assistant/screen.tsx                    one screen — nothing to distinguish
+✅ recipes/list-screen.tsx                 four screens — each says which
+   recipes/editor-screen/index.tsx
+   recipes/step-by-step-screen/index.tsx
+❌ recipes/screen.tsx + recipes/editor-screen.tsx
+```
+
+The `-screen` suffix is what separates a screen from a component sitting beside it at the module
+root: `weekly-plan.tsx` is a component `home/` renders, `list-screen.tsx` is a route's destination.
 
 #### A component becomes a folder at three files 👁
 
