@@ -9,15 +9,15 @@ import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
-import { useCreateRecipe } from "~/modules/recipes/hooks";
+import { useCreateRecipe } from "../_hooks/useCreateRecipe";
 
-import { NAVIGATION_BAR_OFFSET } from "../../navigation/constants";
+import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { SCREEN_PADDING } from "../constants";
 import { EditorActions } from "./actions";
 import { CreatingOverlay } from "./creating-overlay";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
-import { Servings } from "../ingredients-screen.servings";
+import { Servings } from "../_components/servings";
 
 type Props = {
   /**
@@ -35,8 +35,8 @@ type Props = {
  * One screen for both, because the two differ only in what is already in the fields — asking for a
  * title twice, in two files, is how the two drift apart.
  *
- * Saving is `recipes/`, reached through that module's door: singular and plural are two modules
- * today, so this is a cross-module call and `hooks.ts` is the only legal way to make it.
+ * Saving goes through `_hooks/useCreateRecipe`, a sibling: the editor and the writing live in one
+ * module, so the call stays inside it.
  *
  * Only the write is wired. `recipeId` still loads nothing, so opening this to edit an existing
  * recipe shows an empty form — that arrives with `getOne`.

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 
-import { StepByStepScreen } from "~/modules/recipe/step-by-step-screen";
+import { StepByStepScreen } from "~/modules/recipes/step-by-step-screen";
 
 /**
  * Cooking one recipe, step by step.

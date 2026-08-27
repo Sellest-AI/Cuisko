@@ -5,9 +5,9 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { NutritionCard } from "../_components/nutrition-card";
-import { RecipeScreen } from "../_components/recipe-screen";
-import { SCREEN_PADDING } from "../constants";
+import { NutritionCard } from "../../_components/nutrition-card";
+import { RecipeScreen } from "../../_components/recipe-screen";
+import { SCREEN_PADDING } from "../../constants";
 import { Difficulty } from "./difficulty";
 import { GroceryRow } from "./grocery-row";
 import { Timings } from "./timings";

@@ -1,4 +1,4 @@
-import { EditorScreen } from "~/modules/recipe/editor-screen";
+import { EditorScreen } from "~/modules/recipes/editor-screen";
 
 /**
  * Writing a recipe from scratch.

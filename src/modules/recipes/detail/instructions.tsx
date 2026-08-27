@@ -4,9 +4,9 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { RecipeScreen } from "./_components/recipe-screen";
-import { SCREEN_PADDING } from "./constants";
-import { InstructionSection } from "./instructions-screen.section";
+import { RecipeScreen } from "../_components/recipe-screen";
+import { SCREEN_PADDING } from "../constants";
+import { InstructionSection } from "./instructions.section";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const SECTIONS = [

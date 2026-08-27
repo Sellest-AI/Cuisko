@@ -185,7 +185,7 @@ on any test file no project picked up.
 
 ```
 convex/router/cellars/addToCellar.ts   → convex/router/cellars/__tests__/addToCellar.test.ts
-src/modules/recipe/_model/step.ts      → src/modules/recipe/_model/__tests__/step.test.ts
+src/modules/recipes/_model/step.ts     → src/modules/recipes/_model/__tests__/step.test.ts
 shared/recipes.ts                      → shared/__tests__/recipes.test.ts
 ```
 

@@ -6,7 +6,7 @@ import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
-import { CreatingPhase } from "~/modules/recipes/hooks";
+import { CreatingPhase } from "../_model/progress";
 
 type Props = {
   /** 0 → 1, straight from the hook. The overlay counts nothing itself. */

@@ -7,11 +7,11 @@ import { Image } from "@ui/image";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { NutritionCard } from "./_components/nutrition-card";
-import { RecipeScreen } from "./_components/recipe-screen";
-import { columnWidth, SCREEN_PADDING } from "./constants";
-import { IngredientGroup } from "./_components/ingredient-group";
-import { Servings } from "./ingredients-screen.servings";
+import { NutritionCard } from "../_components/nutrition-card";
+import { RecipeScreen } from "../_components/recipe-screen";
+import { columnWidth, SCREEN_PADDING } from "../constants";
+import { IngredientGroup } from "../_components/ingredient-group";
+import { Servings } from "../_components/servings";
 
 /** Placeholder recipe, until `_hooks/` exists to fetch a real one. */
 const RECIPE = {

@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
-import { stepNumber } from "./_model/step";
+import { stepNumber } from "../_model/step";
 
 type Props = {
   title: string;

@@ -5,7 +5,7 @@ import { m } from "@ui/motion";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
-import { SCREEN_PADDING } from "../constants";
+import { SCREEN_PADDING } from "../../constants";
 
 type Props = {
   title: string;

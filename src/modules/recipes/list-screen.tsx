@@ -14,7 +14,7 @@ import { useState } from "react";
 import { useTranslations } from "translations";
 
 import { useRecipeList } from "./_hooks/useRecipeList";
-import { RecipesEmpty } from "./screen.empty";
+import { RecipesEmpty } from "./list-screen.empty";
 
 /**
  * Every card draws the same picture, because a recipe has no image field yet. When one lands it
