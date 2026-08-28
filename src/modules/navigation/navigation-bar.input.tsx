@@ -46,6 +46,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   const t = useTranslations("Navigation");
   const pathname = usePathname();
 
+  // The suggestions panel is laid out above the input and then pulled back down over it, so it
+  // needs the input's height. Measured rather than assumed: the row grows with the font scale.
+  const [inputHeight, setInputHeight] = useState(0);
   const [value, setValue] = useState("");
 
   const { hasSuggestions, matchingSuggestion, rest, unit, amount } = useSuggestions(value);
@@ -101,7 +104,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
             styles.suggestionsContainerRadius,
             styles.elevated,
             { transformOrigin: "bottom" },
-            focused && { left: 10, right: 10 }
+            // Tucks the panel back over the input it grew above, landing its bottom edge the same
+            // 6px below the bar the absolute version used to sit at.
+            { marginBottom: -(inputHeight + theme.spacing[6]) },
           ]}>
           <BlurView
             tint="light"
@@ -132,6 +137,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
         </m.View>}
       </AnimatePresence>
       <m.View
+        onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
         style={[
           styles.container,
           focused ? { maxWidth: "100%", width: "100%" } : { maxWidth: 242, width: "100%" },
@@ -186,11 +192,18 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
 const styles = StyleSheet.create({
   container: {
   },
+  /**
+   * In the layout flow, not absolutely positioned over it — the panel used to hang above the bar,
+   * outside the bounds of every ancestor up to the sticky view. Android does not dispatch a native
+   * touch to a view drawn outside its parent, so the horizontal ScrollView inside never saw a drag
+   * and the suggestions would not scroll; iOS hit-tests overflowing subviews and worked.
+   *
+   * Laid out above the input instead, the panel gives the whole chain the height it occupies, and a
+   * negative `marginBottom` at the call site puts it back where it was on screen. Geometry is
+   * unchanged on both platforms; only the bounds it lives in are.
+   */
   suggestionsContainer: {
-    position: "absolute",
-    bottom: -theme.spacing[6],
-    left: -theme.spacing[6],
-    right: -theme.spacing[6],
+    marginHorizontal: -theme.spacing[6],
     paddingBottom: NAVIGATION_BAR_HEIGHT,
     overflow: "hidden",
   },
