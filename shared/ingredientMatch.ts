@@ -46,6 +46,24 @@ export const CONFIDENT = 0.78;
 export const PLAUSIBLE = 0.4;
 
 /**
+ * The floor for "is this already in the catalog under some other spelling?", below `PLAUSIBLE`.
+ *
+ * A different question, deliberately answered more loosely. `PLAUSIBLE` guards a recipe line,
+ * where offering a cook a wrong row costs a tap. This one guards the decision to INVENT a catalog
+ * row, where being too strict costs a duplicate ingredient that never goes away — two `carotte`
+ * rows, one seeded and one created, splitting every grocery list and every nutrition total between
+ * them from then on. Asymmetric costs, so an asymmetric threshold.
+ *
+ * 0.3, and the room to put it there is measured, not guessed: the doc on `CONFIDENT` above records
+ * that an ingredient the catalog does not hold at all never passes **0.23**, and the best *wrong*
+ * row the catalog holds tops out at 0.70. 0.3 sits just above that noise floor, so a genuine miss
+ * still reads as a miss. Everything between here and `PLAUSIBLE` is handed to the step that can
+ * afford to look at it — the resolver, which has a taxonomy and two composition tables to check a
+ * near-miss against before it believes it.
+ */
+export const RESOLVABLE = 0.3;
+
+/**
  * How far ahead of the runner-up a confident row has to be before it is linked unasked.
  *
  * Two rows can both be exact: `Blanc de poulet` and `Blanc de poulet en tranches` normalize to the
@@ -101,9 +119,18 @@ const QUALIFIERS = new Set([
   "fresh", "freshly", "frozen", "dried", "chopped", "sliced", "diced", "minced", "grated",
   "shredded", "crushed", "peeled", "seeded", "softened", "melted", "sifted", "cooked", "raw",
   "thinly", "finely", "roughly", "large", "small", "medium", "ripe", "optional", "extra",
+  /**
+   * ⚠️ `hache` and `hachee` are NOT here, and their absence is the rule rather than an oversight.
+   *
+   * Mincing an onion does not change what a shopper buys, which is why `emince` is stripped two
+   * lines down. Mincing a cow does: `steak haché` and `steak` are two counters, two prices and two
+   * nutrition tables, and the same is true of `poudre d'amande` against `amande` — the ranker's
+   * own prompt calls that a non-match in so many words. Stripping the word made them one string,
+   * so the catalog scored them 1.0 and linked them without ever asking the ranker the question.
+   */
   // fr
   "frais", "fraiche", "fraiches", "surgele", "surgelee", "seche", "sechee", "emince", "emincee",
-  "hache", "hachee", "rape", "rapee", "coupe", "coupee", "pele", "pelee", "fondu", "fondue",
+  "rape", "rapee", "coupe", "coupee", "pele", "pelee", "fondu", "fondue",
   "ramolli", "ramollie", "tamise", "tamisee", "cuit", "cuite", "cru", "crue", "finement",
   "grossierement", "gros", "grosse", "petit", "petite", "moyen", "moyenne", "bio",
   /**
@@ -118,9 +145,58 @@ const QUALIFIERS = new Set([
 /** A quantity glued to the name — "200g", "2", "1/2". Never part of what the ingredient is. */
 const _isQuantity = (token: string) => /^\d/.test(token);
 
+/**
+ * A GRADE the shop prints — "5%", "80/20" — rewritten to one letter-leading token, `pct5`.
+ *
+ * The rewrite exists because every other rule in this file conspires to destroy it. `_fold` turns
+ * "%" into a space, `_isQuantity` drops anything starting with a digit, and between them
+ * "steak haché 5%" and "steak haché 20%" both reduce to the same two words and score **1.0** — an
+ * exact match, linked at `CONFIDENT` without the ranker ever being asked. Four times the fat, on
+ * somebody's shopping list, with no error anywhere.
+ *
+ * A number a shop prints is identity, not quantity: 5% and 20% mince, 70% and 85% chocolate, whole
+ * and semi-skimmed milk are different products on different shelves. So the grade survives folding
+ * as a word — `pct` leads, so `_isQuantity` cannot see a digit — and `_similarity` then refuses to
+ * find two of them merely similar.
+ *
+ * **A slash is a grade only when the fraction is improper**, which is what separates the two
+ * notations a kitchen uses for one character: recipes write proper fractions ("1/2 cup"), and
+ * butchers write improper ratios ("80/20", "95/5"). The catalog's own seeded mince is
+ * `Bœuf haché (80/20)`, so this is not a hypothetical form.
+ *
+ * A decimal keeps its fraction behind a `d` rather than a dot, which `_fold` would split in two:
+ * "lait 1,5%" is `pct1d5`, and must not collide with the `pct15` of a 15% cream.
+ */
+const _PERCENT = /(\d+)(?:[.,](\d+))?\s*%/g;
+const _RATIO = /(\d+)\s*\/\s*(\d+)/g;
+
+const _gradeToken = (whole: string, fraction?: string) =>
+  ` pct${whole}${fraction ? `d${fraction}` : ""} `;
+
+const _grades = (value: string) =>
+  value
+    .replace(_PERCENT, (_match, whole: string, fraction?: string) => _gradeToken(whole, fraction))
+    .replace(_RATIO, (match, left: string, right: string) =>
+      Number(left) > Number(right) ? _gradeToken(left) : match);
+
+/** A token `_grades` wrote. Nothing a shopper types reaches this shape by accident. */
+const _isGradeToken = (token: string) => /^pct\d/.test(token);
+
+/**
+ * Whether one raw word a shopper typed is a GRADE rather than a quantity — "5%", "80/20".
+ *
+ * Exported because the navigation bar has to answer the same question before this file ever sees
+ * the text, and answering it twice is how the two disagree: the bar strips what it reads as a
+ * quantity, so a grade it misreads is deleted before the resolver is even called — "boeuf haché
+ * 95/5" arrived as "boeuf haché", and the 95/5 was separately billed to the shopper as 19 pieces.
+ *
+ * Defined through `_grades` rather than beside it, so there is one rule and not two (ADR 0011).
+ */
+export const isGrade = (token: string): boolean => _isGradeToken(_grades(token).trim());
+
 /** Diacritics off, punctuation to spaces — "Pâtes (sèches)" and "pates seches" must agree. */
 const _fold = (value: string) =>
-  value
+  _grades(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
@@ -189,6 +265,10 @@ const _editDistance = (left: string, right: string): number => {
  */
 const _similarity = (left: string, right: string): number => {
   if (left === right) return 1;
+  // A grade is equal or it is different; there is no "nearly". Left to the edit distance below,
+  // `pct5` and `pct20` score 0.6 — over `TOKEN_MATCHED`, so the candidate would count the wrong
+  // grade as an accounted-for word and the pair would clear `CONFIDENT` on its other two.
+  if (_isGradeToken(left) || _isGradeToken(right)) return 0;
   if (left.length < 3 || right.length < 3) return 0;
 
   return 1 - _editDistance(left, right) / Math.max(left.length, right.length);
@@ -205,7 +285,28 @@ const _similarity = (left: string, right: string): number => {
  *
  * Empty when the name was only a quantity and qualifiers; the caller decides what that means.
  */
-export const searchTerms = (query: string): string => _tokenize(query).join(" ");
+export const searchTerms = (query: string): string =>
+  // The one place retrieval and ranking are deliberately asked different questions. A grade is
+  // identity to `scoreCandidate` and pure noise to an index that never stored the `%` — "pct5"
+  // matches no document, and asking for it can only dilute the terms that do.
+  _tokenize(query).filter((token) => !_isGradeToken(token)).join(" ");
+
+/**
+ * The grade tokens in a name — exactly what `searchTerms` throws away.
+ *
+ * The inverse of the filter above, and defined against the same tokenizer so the two cannot
+ * disagree about what a grade is. It exists because a grade can survive a *translation*: the
+ * resolver looks an unknown word up in a taxonomy filed under grade-free spellings, so "steak
+ * haché 5%" finds an entry named `steak haché` and the 5% is dropped on the way in. Re-searching
+ * the catalog with the bare spelling then links a shopper's 5% mince to the seeded `Bœuf haché
+ * (80/20)` — the exact confusion `_grades` exists to prevent, undone one step later.
+ *
+ * Returning tokens rather than the raw words is what makes them re-attachable: `pct5` is already
+ * folded, so appending it to a spelling survives `_fold` unchanged and reaches `scoreCandidate`
+ * as the identity it is.
+ */
+export const gradesIn = (query: string): string[] =>
+  _tokenize(query).filter(_isGradeToken);
 
 const _bestSimilarity = (token: string, against: string[]): number =>
   against.reduce((best, other) => Math.max(best, _similarity(token, other)), 0);

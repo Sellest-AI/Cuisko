@@ -1,4 +1,4 @@
-import { foldAccents } from "./translations";
+import { foldAccents, SUPPORTED_LOCALES, type Locale } from "./translations";
 
 /**
  * The separator every derived search blob uses.
@@ -76,8 +76,32 @@ export const searchTextOf = (terms: readonly string[]): string => {
 };
 
 /**
- * Composing one blob out of another needs no second function: a blob is tokens joined by
+ * The same blob for every locale at once — the shape a table's per-locale `searchField` column
+ * actually stores.
+ *
+ * Here rather than at the call site for two reasons, and the second is the one that matters.
+ *
+ * A blob assembled key by key is a blob that can be assembled for SOME keys: a row indexed in
+ * French and not English is invisible to an English shopper, who then has a duplicate created for
+ * them — which is the failure the ingredient resolver exists to prevent, arriving through the
+ * indexing door instead. Driving the keys off `SUPPORTED_LOCALES` makes "every locale" hold by
+ * construction, and makes a locale added to that list a compile error in every caller.
+ *
+ * And it keeps C11 able to see what it is checking. The check trusts a VALUE produced by a
+ * sanctioned builder; a blob accumulated into an empty object over a loop is untraceable, and C11
+ * distrusts it for the good reason that an empty object literal claims to be a blob and is not
+ * one. A single call it can follow is worth more than a loop it has to be taught to allow.
+ *
+ * Composing one blob out of ANOTHER needs no function at all: a blob is tokens joined by
  * `SEPARATOR`, and `tokensOf` splits on exactly that, so a whole blob handed back in yields its own
  * tokens de-duplicated against everything beside them. `recipeSearchText` builds a recipe's blob
  * out of its ingredients' that way.
  */
+export const searchTextByLocale = (
+  termsOf: (locale: Locale) => readonly string[],
+): Record<Locale, string> =>
+  // `fromEntries` widens the key back to `string`; the map above it is what makes the assertion
+  // true, and `SUPPORTED_LOCALES` is what makes it stay true when a locale is added.
+  Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [locale, searchTextOf(termsOf(locale))]),
+  ) as Record<Locale, string>;

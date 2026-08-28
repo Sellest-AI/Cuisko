@@ -273,6 +273,31 @@ describe("useStockActions", () => {
     expect(result.current.error?.message).toBe("the server said no");
   });
 
+  /**
+   * Holding the failure is not enough for every caller. `usePendingIngredients` has to decide
+   * whether to take its ghost down, and a promise that resolved identically either way told it the
+   * write had landed — so the card vanished on a rejected write and the shopper was left with no
+   * line, no ghost and nothing said. The outcome is returned as well as held.
+   */
+  it("says whether the write landed, not just that it finished", async () => {
+    state.groceryList = [line(4)];
+
+    const { result } = groceries();
+
+    let landed: boolean | undefined;
+    await act(async () => {
+      landed = await result.current.apply("buy", { ingredientId: CARROT, unit: "pcs" }, 4);
+    });
+    expect(landed).toBe(true);
+
+    state.rejectNext = true;
+    await act(async () => {
+      landed = await result.current.apply("buy", { ingredientId: CARROT, unit: "pcs" }, 4);
+    });
+    expect(landed).toBe(false);
+    expect(result.current.error).toBeInstanceOf(Error);
+  });
+
   it("strikes an ingredient off the list without touching the cellar", async () => {
     state.groceryList = [line(4)];
     state.cellar = [shelf(2)];

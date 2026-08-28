@@ -207,15 +207,22 @@ export const useStockActions = () => {
    * recording the failure is the smallest honest thing: the tap is already reflected on screen by
    * Convex's own reactivity, or it is not, and `error` is what a screen reads to say so once there
    * is somewhere to say it. It is not swallowed — it is held, and it is logged.
+   *
+   * **It reports whether the write landed**, because holding the failure is not enough for every
+   * caller. A screen reads `error` and says so in its own time; `usePendingIngredients` has to
+   * decide something else entirely — whether to take the ghost down — and a promise that resolves
+   * identically either way told it the write succeeded. So the outcome is returned as well as held.
    */
   const guard = useCallback(
-    async (run: () => Promise<void>) => {
+    async (run: () => Promise<void>): Promise<boolean> => {
       try {
         setError(null);
         await run();
+        return true;
       } catch (cause) {
         console.error("[groceries] stock write failed", cause);
         setError(cause instanceof Error ? cause : new Error(String(cause)));
+        return false;
       }
     },
     [],

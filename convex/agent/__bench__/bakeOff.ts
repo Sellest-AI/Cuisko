@@ -19,7 +19,7 @@ import { transcript } from "./transcript";
 import { label as blindLabel, mode, num, say, secs, spentOn, usd } from "./format";
 import { judge as runJudge, judgePrompt } from "./judge";
 import { pool } from "./pool";
-import { attempt } from "./provider";
+import { attempt, DEFAULT_JUDGE_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from "./provider";
 import { table } from "./table";
 import type { Attempt, BakeOff, BakeOffResult, Entrant } from "./types";
 
@@ -64,6 +64,8 @@ export const runBakeOff = async <Raw, Parsed>(
     judge = DEFAULTS.judge,
     runs = DEFAULTS.runs,
     maxConcurrency = DEFAULTS.maxConcurrency,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    judgeTimeoutMs = DEFAULT_JUDGE_TIMEOUT_MS,
   } = options;
 
   const openrouter = createOpenRouter({ apiKey: _openrouterKey() });
@@ -90,7 +92,8 @@ export const runBakeOff = async <Raw, Parsed>(
   say("");
   say(
     `  ${field.length} entrants × ${runs} runs = ${jobs.length} generations, ` +
-    `${maxConcurrency} at a time, then 1 judge call to ${judge}`,
+    `${maxConcurrency} at a time, ${Math.round(timeoutMs / 1000)}s each before it is ` +
+    `abandoned, then 1 judge call to ${judge} (${Math.round(judgeTimeoutMs / 1000)}s)`,
   );
   for (const [label, entrant] of entrants)
     say(`    ${label}  ${entrant.model}  ·  reasoning ${mode(entrant.effort)}`);
@@ -109,11 +112,12 @@ export const runBakeOff = async <Raw, Parsed>(
         prompt: input,
         answer,
         provider,
+        timeoutMs,
       }),
     }),
     ({ label, entrant, attempt: result }, completed, total) => {
       const outcome = result.ok
-        ? `ok   ${num(result.tokens).padStart(8)} tok  ${usd(result.cost).padStart(10)}` +
+        ? `ok   ${num(result.tokens).padStart(8)} tok  ${usd(result.cost).padStart(12)}` +
         // The flag count, not the flags: this line is one of thirty scrolling past, and the
         // messages themselves are read in the table once the run is over.
         (result.flags.length ? `  ${result.flags.length}⚑` : "")
@@ -163,7 +167,12 @@ export const runBakeOff = async <Raw, Parsed>(
   );
 
   const judging = Date.now();
-  const { verdict, cost: judgeCost } = await runJudge(openrouter.chat(judge), prompt, provider);
+  const { verdict, cost: judgeCost } = await runJudge(
+    openrouter.chat(judge),
+    prompt,
+    provider,
+    judgeTimeoutMs,
+  );
 
   say(`  judged in ${secs(Date.now() - judging).trim()} for ${usd(judgeCost)}.`);
 

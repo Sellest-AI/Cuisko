@@ -184,6 +184,28 @@ export type BakeOff<Raw, Parsed = Raw> = {
    * rate-limit failures that read like bad models. Raise it if your account is comfortable.
    */
   maxConcurrency?: number;
+
+  /**
+   * How long one generation may take before it is abandoned and scored as a failure.
+   *
+   * Defaults to five minutes. It is a cap on the whole attempt, retries included, and it applies
+   * to the judge call as well. Raise it for a task whose honest answer is long; lowering it is how
+   * you say "anything this slow is unshippable regardless of quality".
+   *
+   * There is no way to turn it off, and that is deliberate: a field of thirty-six calls where one
+   * model never answers is thirty-five results you never see.
+   */
+  timeoutMs?: number;
+
+  /**
+   * The same, for the judge. Defaults to ten minutes — twice an entrant's, and its own number
+   * rather than a multiple of `timeoutMs`.
+   *
+   * The judge reads every answer from every run in one prompt and always thinks at `high`, so it
+   * is legitimately the slowest call in the bake-off; a budget inherited from the entrants would
+   * abandon a judge that was working. Raise it when the field is large.
+   */
+  judgeTimeoutMs?: number;
 };
 
 /**

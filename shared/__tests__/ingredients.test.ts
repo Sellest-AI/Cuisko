@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { formatQuantity, toGrams, serializeIngredients } from "../ingredients";
+import { formatQuantity, pickQuantity, toGrams, serializeIngredients } from "../ingredients";
 
 describe("toGrams", () => {
   test("converts a mass unit without knowing anything about the ingredient", () => {
@@ -73,3 +73,35 @@ describe("serializeIngredients", () => {
   });
 });
 
+describe("pickQuantity", () => {
+  const GNOCCHI = { defaultQuantity: 500, defaultUnit: "g" as const };
+
+  test("takes both halves from the shopper when they typed both", () => {
+    expect(pickQuantity({ amount: 2, unit: "pcs" }, GNOCCHI)).toEqual({ amount: 2, unit: "pcs" });
+  });
+
+  test("takes both halves from the row when the shopper typed neither", () => {
+    expect(pickQuantity({ amount: null, unit: null }, GNOCCHI)).toEqual({ amount: 500, unit: "g" });
+  });
+
+  /**
+   * The bug this exists for. "2 gnocchis" parses to an amount with no unit, and filling the halves
+   * independently gave it the row's `g` — two GRAMS of a food sold in packets of 500.
+   */
+  test("does not pair a typed amount with the row's unit", () => {
+    expect(pickQuantity({ amount: 2, unit: null }, GNOCCHI)).toEqual({ amount: 500, unit: "g" });
+  });
+
+  test("does not pair a typed unit with the row's amount", () => {
+    expect(pickQuantity({ amount: null, unit: "pcs" }, GNOCCHI)).toEqual({ amount: 500, unit: "g" });
+  });
+
+  /** `0` is an amount the shopper gave, and `??` would have thrown it away. */
+  test("treats a typed zero as typed", () => {
+    expect(pickQuantity({ amount: 0, unit: "pcs" }, GNOCCHI)).toEqual({ amount: 0, unit: "pcs" });
+  });
+
+  test("reads undefined the same as null", () => {
+    expect(pickQuantity({ amount: undefined, unit: undefined }, GNOCCHI)).toEqual({ amount: 500, unit: "g" });
+  });
+});

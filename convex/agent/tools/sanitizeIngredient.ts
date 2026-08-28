@@ -1,0 +1,558 @@
+import * as z from "zod/v4";
+
+import type { Id } from "@convex/_generated/dataModel";
+import type { IngredientFacts } from "@convex/functions/ingredients/ingredientRow";
+import {
+  measuredOver,
+  NUTRITION_FIELDS,
+  type LookupHit,
+} from "@convex/functions/ingredients/lookup/lookupHit";
+import type { LocalizedList, TranslationStatus } from "@convex/schema/i18n";
+import { ALLERGENS, type Allergen } from "@shared/allergens";
+import { CATEGORIES } from "@shared/categories";
+import { DIETS } from "@shared/diets";
+import { retryPromise } from "@shared/helpers";
+import { INGREDIENT_SOURCES, toGrams, UNITS } from "@shared/ingredients";
+import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
+
+import { ingredientsAgent, rankerAgent } from "../agents";
+import { matchIngredientPrompt, sanitizeIngredientPrompt } from "../config/prompts/sanitizeIngredient";
+import { createTool, modelText, parseModelOutput, providerSchema, wrapAgent } from "../utils";
+
+/**
+ * What the agent made of a term the catalog could not resolve.
+ *
+ * Three arms rather than "facts or nothing", for the reason `ResolvedIngredient` has three: the
+ * caller does something different in each, and "we could not read that" and "that is a row you
+ * already have" are not the same answer with a field missing.
+ *
+ * `existing` is the ONE place an id crosses this boundary, and it is not an id a model produced —
+ * the model picks a POSITION in the candidate list it was handed, and the id is read out of that
+ * list here (ADR 0010). Every other arm returns names and vocabulary.
+ */
+export type SanitizedIngredient =
+  | { verdict: "existing"; ingredientId: Id<"ingredients">; name: string }
+  | { verdict: "new"; facts: IngredientFacts }
+  | { verdict: "refused"; reason: "not-food" | "not-an-ingredient" };
+
+/**
+ * One value per locale, keyed by the locale, built from `SUPPORTED_LOCALES` rather than written
+ * out — the same shape and the same reason as `translateRecipe`'s `_localizedName`: adding a
+ * language must not leave this one column short, and a `z.object` rather than a `z.record` because
+ * `providerSchema` walks objects and passes a record through un-rewritten.
+ */
+const _perLocale = <T extends z.ZodType>(value: T) =>
+  z.object(Object.fromEntries(SUPPORTED_LOCALES.map((locale) => [locale, value])) as {
+    [K in Locale]: T;
+  });
+
+/** The eight, all required. What the model is asked for; what survives is decided below. */
+const _nutritionSchema = z.object(
+  Object.fromEntries(NUTRITION_FIELDS.map((field) => [field, z.number().min(0)])) as {
+    [K in (typeof NUTRITION_FIELDS)[number]]: z.ZodNumber;
+  },
+);
+
+/**
+ * The fourteen, asked one at a time.
+ *
+ * **A checklist rather than an array, and that is the whole point.** `z.array(z.enum(ALLERGENS))`
+ * let a model emit two entries without ever visiting the other twelve, and nothing downstream could
+ * tell that apart from a completed walk — which is exactly the claim `IngredientFacts.allergens`
+ * documents itself as making. A model with no hidden scratchpad cannot walk fourteen items
+ * silently, so the walk is made STRUCTURAL: `providerSchema` marks every key required on the way
+ * out, so the model has to emit a decision per allergen, and emitting it is what performs it.
+ *
+ * Measured, not assumed: across a bake-off of eight models on worcestershire sauce, the array
+ * shape omitted `sulphites` in 13 of 21 completed runs and across six unrelated models — the
+ * signature of a specification defect rather than a weak field.
+ *
+ * `.nullable().optional()` per key, the same bargain the file makes everywhere: required OUTBOUND
+ * so the walk is forced, absentable INBOUND so a model writing `"yes"` instead of `true` costs one
+ * allergen rather than the whole row. Absent reads as false, which is what absent means here.
+ */
+const _allergenChecklist = z.object(
+  Object.fromEntries(
+    ALLERGENS.map((allergen) => [
+      allergen,
+      z.boolean().nullable().optional()
+        .describe(`true if this ingredient contains ${allergen}, false if it does not.`),
+    ]),
+  ) as { [K in Allergen]: z.ZodOptional<z.ZodNullable<z.ZodBoolean>> },
+);
+
+/** The checklist as the column stores it. Absent is false: an unanswered key is not a yes. */
+const _allergensOf = (checklist: z.infer<typeof _allergenChecklist>): Allergen[] =>
+  ALLERGENS.filter((allergen) => checklist[allergen] === true);
+
+/**
+ * The row as the model writes it — every field of `IngredientFacts` that is a judgement, and none
+ * that is a derivation.
+ *
+ * Built from the shared `as const` vocabularies throughout (ADR 0010): `category`, `diet`,
+ * `allergens` and `defaultUnit` are the four the column would reject a free string for, and
+ * `_factsCheck` below is what fails to compile the day one of them drifts.
+ *
+ * ⚠️ No `search`, no `nutriScore`, no `slug`. `search` and `nutriScore` are `ingredientRow`'s to
+ * derive and nobody else's (ADR 0011); `slug` is the seed's dedup key and a row grown from a
+ * shopper's typing has none.
+ *
+ * **Key order is load-bearing, so `madeFrom` is first.** Structured output is generated in the
+ * order the schema declares, so a field placed above `diet` and `allergens` is in context when
+ * they are decided and a field placed below them is not. `madeFrom` is not stored anywhere — it
+ * exists so that "anchovies, malt vinegar" is already written down by the time the model answers
+ * whether this is vegan, which is the one thing that makes a non-reasoning model answer it the way
+ * a reasoning one does. Reorder this object and that stops being true, silently.
+ */
+const _modelFactsSchema = z
+  .object({
+    madeFrom: z.string().describe(
+      "FIRST, before every field below: what this food is made of, as the label on the back " +
+      "would read it — the two or three that matter. \"anchovies, malt vinegar, tamarind\" for " +
+      "worcestershire sauce; \"carrot\" for a carrot. Not stored and never shown to anyone: it " +
+      "is here so the diet and allergen answers below are read off what is IN the food rather " +
+      "than guessed from its name.",
+    ),
+    names: _perLocale(z.string()).describe(
+      "What a shop or a recipe calls this food, in each language — singular, lowercase, no " +
+      "quantity, no brand, no preparation. Every language gets one: a row named in one language " +
+      "only is invisible to the other language's shopper, who then creates a second copy of it.",
+    ),
+    aliases: _perLocale(z.array(z.string())).describe(
+      "Per language, the other spellings someone would plausibly type looking for this — the " +
+      "regional word, the common misspelling, an irregular plural. NOT translations; those are " +
+      "the names. An empty list is a normal answer.",
+    ),
+    emoji: z.string().describe("One emoji character, the closest to this food. Never a letter."),
+    category: z.enum(CATEGORIES).describe("Exactly one — what it IS, i.e. the aisle it is in."),
+    diet: z.enum(DIETS).describe(
+      "Exactly one, and it is a claim of ABSENCE about this ingredient rather than about its " +
+      "aisle: honey, gelatin and fish sauce are not vegan however vegetable the aisle looks.",
+    ),
+    allergens: _allergenChecklist.describe(
+      "The regulated fourteen, answered one key at a time — true if this contains it, false if " +
+      "it does not. Every key is asked, so every key gets an answer; fourteen falses is the " +
+      "claim that you considered each and this carries none, which a screen prints " +
+      "\"gluten-free\" on. Read `madeFrom` back first: the missed ones arrive with how the food " +
+      "was made — barley malt vinegar is gluten, anything vinegared or bottled to keep is " +
+      "sulphites.",
+    ),
+    defaultUnit: z.enum(UNITS).describe(
+      `The unit a recipe writes this in. "cs" is a tablespoon, "cc" a teaspoon, "pcs" a ` +
+      "countable single thing. What a cook would write, not what converts most neatly.",
+    ),
+    defaultQuantity: z.number().positive().describe("How much one recipe line typically calls for."),
+    gramsPerPiece: z.number().positive().nullable().optional().describe(
+      "What ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove. Left out for " +
+      "anything there is no single one of (flour, oil, milk).",
+    ),
+    gramsPerMl: z.number().positive().nullable().optional().describe(
+      "The density — 0.91 for oil, 1.42 for honey. Left out for anything nobody measures by " +
+      "volume (a chicken, a carrot).",
+    ),
+    nutrition: _nutritionSchema.describe(
+      "Per 100g, for the raw ingredient as sold: calories in kcal, the rest in grams, and sodium " +
+      "in MILLIGRAMS — sodium, not salt, which is 2.5x more.",
+    ),
+  })
+  // **The weighability rule is NOT enforced here, and that is deliberate — see `_weighable`.** A
+  // `.refine()` on this object is fatal to the whole row rather than to the field that broke it:
+  // `facts` is `.nullable().optional()`, so `_clean` drops an object that fails validation and the
+  // caller gets "no usable row" instead of a row missing a density. Losing a correct diet, a
+  // correct allergen walk and eight correct nutrition figures because a model forgot `gramsPerMl`
+  // is the worst trade in this file, and it is the failure a bake-off measured a model dying on
+  // twice in three runs. The rule is still enforced — after the parse, where it can repair.
+  //
+  // **A name is required, so `parseModelOutput` hands back whatever word the model wrote there** —
+  // a required string is not a field it may drop, so "N/A" survives it as a valid string. That is
+  // the right default everywhere else and the wrong one here: a row named "N/A" in English is a row
+  // the English shopper never finds and immediately creates a second copy of, which is the whole
+  // failure this step exists to prevent. `modelText` is the same judgement the parser uses.
+  .refine((facts) => SUPPORTED_LOCALES.every((locale) => modelText(facts.names[locale])), {
+    error: "every language needs a real name, not a word meaning there is none",
+  });
+
+/**
+ * The whole answer: what it is, and the row if it is one.
+ *
+ * `facts` is nullable rather than a second call, because the model has to read the term to decide
+ * either question and reading it twice is a second bill for the same work. Nullable rather than
+ * required-and-ignored: a schema that demands a row for washing-up liquid gets one.
+ */
+export const modelIngredientSchema = z.object({
+  verdict: z.enum(["ingredient", "not-food", "not-an-ingredient"]).describe(
+    `"ingredient" for a food a shop sells. "not-food" for washing-up liquid, batteries, or an ` +
+    `illegible string. "not-an-ingredient" for a finished dish, a ready meal or a sentence.`,
+  ),
+  // `.nullable()` AND `.optional()`, which say two different things and both are needed here (see
+  // `providerSchema`): nullable is the model's permission to have no row, optional is this side's
+  // permission to read a missing key — and `parseModelOutput` OMITS a key it dropped rather than
+  // setting it to undefined, so nullable alone fails the parse on every refusal.
+  facts: _modelFactsSchema.nullable().optional()
+    .describe("The catalog row. null unless the verdict is \"ingredient\"."),
+});
+
+/**
+ * What the model may be told about a candidate. A name and a position, never the id — the id stays
+ * on this side of the boundary and is read back out of the list by the position it returns.
+ */
+const _candidateSchema = z.object({
+  id: z.string().describe("Supplied by the caller. Never something to generate."),
+  name: z.string(),
+});
+
+/**
+ * The evidence the three cheap steps of `resolveIngredient` already gathered, mirrored in zod.
+ *
+ * A mirror rather than the type itself because `createTool` needs a runtime schema, and
+ * `_evidenceCheck` below is what stops the mirror drifting: `LookupHit` gaining a field the tool
+ * never sees would otherwise be silent.
+ */
+const _hitSchema = z.object({
+  source: z.enum(INGREDIENT_SOURCES),
+  names: _perLocale(z.array(z.string()).optional()),
+  untagged: z.array(z.string()).optional(),
+  nutrition: z
+    .object(
+      Object.fromEntries(
+        NUTRITION_FIELDS.map((field) => [field, z.number().optional()]),
+      ) as { [K in (typeof NUTRITION_FIELDS)[number]]: z.ZodOptional<z.ZodNumber> },
+    )
+    .optional(),
+});
+
+const _inputSchema = z.object({
+  locale: z.enum(SUPPORTED_LOCALES).describe("The language the shopper typed in."),
+  text: z.string().describe("What the shopper typed, verbatim."),
+  candidates: z
+    .array(_candidateSchema)
+    .optional()
+    .describe("Catalog rows the widened search found and declined to link on its score alone."),
+  hits: z
+    .array(_hitSchema)
+    .optional()
+    .describe("What the taxonomy, CIQUAL and the two live APIs said about this term."),
+});
+
+/** Everything the tool is handed. Named because the two prompt builders below both take it. */
+export type SanitizeIngredientInput = z.infer<typeof _inputSchema>;
+
+/**
+ * What the ranker may answer, bounded by the list it was handed.
+ *
+ * A factory rather than a constant because the bound IS the list's length: an index the model
+ * invents fails the parse and is retried, rather than reading `undefined` out of the array and
+ * turning a hallucinated position into a silent "no match".
+ *
+ * Exported for the reason the prompts are — the bake-off that picks the ranker's model has to score
+ * the schema the tool actually sends, bound included, since that bound is most of what stops a
+ * cheap model here from being dangerous.
+ */
+export const matchIngredientSchema = (candidateCount: number) =>
+  z.object({
+    matchIndex: z.number().int().min(0).max(Math.max(candidateCount - 1, 0)).nullable().optional()
+      .describe("The position of the matching candidate. Left out when none matches."),
+    confidence: z.number().min(0).max(1).nullable().optional()
+      .describe("How sure you are, 0 to 1. Left out when nothing matches."),
+  });
+
+/** What the ranker is shown: the term, and the candidates by position. Never an id. */
+export const matchIngredientUserPrompt = (
+  { text, candidates = [] }: Pick<SanitizeIngredientInput, "text" | "candidates">,
+) =>
+  [
+    `The shopper typed:\n${text}`,
+    `Candidates:\n${candidates.map(({ name }, index) => `${index}. ${name}`).join("\n")}`,
+  ].join("\n\n");
+
+// The two compile-time assertions ADR 0010 asks for: the schema and the hand-written types drift
+// apart in silence otherwise — a vocabulary gains a value, a lookup gains a field, and the first
+// symptom is a row the column rejects at insert time.
+type _FactsCheck = z.infer<typeof _modelFactsSchema> extends Omit<
+  IngredientFacts,
+  "slug" | "names" | "aliases" | "allergens" | "gramsPerPiece" | "gramsPerMl"
+>
+  ? true
+  : never;
+// `allergens` leaves the check above because the model no longer writes the column's shape — it
+// answers a checklist that `_allergensOf` folds into one. So the thing to pin is that the checklist
+// asks about exactly the fourteen the column stores: a key in one and not the other is an allergen
+// silently never asked about, which is the failure the checklist exists to make impossible.
+type _AllergenCheck = keyof z.infer<typeof _allergenChecklist> extends Allergen
+  ? Allergen extends keyof z.infer<typeof _allergenChecklist>
+  ? true
+  : never
+  : never;
+type _EvidenceCheck = z.infer<typeof _hitSchema> extends LookupHit ? true : never;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _factsCheck: _FactsCheck = true;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _allergenCheck: _AllergenCheck = true;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _evidenceCheck: _EvidenceCheck = true;
+
+/** Every spelling a hit stated for one language, lowercased for comparison. */
+const _statedIn = (hits: readonly LookupHit[], locale: Locale) =>
+  hits.flatMap((hit) => hit.names[locale] ?? []);
+
+/**
+ * How a name in one language got there.
+ *
+ * `"edited"` for a name a SOURCE stated in that language, `"machine"` for one the model rendered,
+ * and the distinction is not cosmetic: `edited` is what forbids replacing a name later with a
+ * better translation, so claiming it for a spelling nobody authored freezes an invention. CIQUAL's
+ * French and USDA's English are authored; the language neither of them covered is not.
+ */
+const _statusOf = (name: string, stated: readonly string[]): TranslationStatus =>
+  stated.some((spelling) => spelling.toLowerCase() === name.toLowerCase()) ? "edited" : "machine";
+
+/**
+ * The name as the catalog writes it: lowercase, trimmed.
+ *
+ * **Enforced here rather than asked for, because the prompt asks for both.** It says the name is
+ * lowercase, and it says to prefer a source's stated spelling — and a food database states
+ * "Sauce Worcestershire", capitalised, because that is how a heading is written. The prompt now
+ * resolves that in prose too, but a rule a screen depends on should not be a rule a model can
+ * decline: five of eight models in a bake-off kept the capital, at every reasoning effort.
+ *
+ * It reaches the screen, which is why it matters at all — `searchTextOf` lowercases the search
+ * blob, so lookup was never affected, and `_statusOf` compares case-insensitively, so provenance
+ * is not either. What was affected is a shopping list reading "Sauce Worcestershire" beside
+ * "carotte".
+ */
+const _catalogName = (name: string) => name.trim().toLowerCase();
+
+/**
+ * The unit repaired to one the row can actually be weighed in, or `undefined` when it cannot be.
+ *
+ * Nutrition is stored per 100g, so a line whose unit cannot reach grams contributes NOTHING to a
+ * recipe's total — a dish quietly missing its olive oil reads as a health food, with no error
+ * anywhere. That rule has not changed; where it is applied has. It used to be a `.refine()` on the
+ * facts object, which discarded the ENTIRE row over one missing ratio (see the note there).
+ *
+ * A volume with no density is repairable and is repaired: water's 1.0 is wrong by at most a third
+ * for anything a recipe pours, against a row lost completely, and a spoonful of sauce weighed 15 g
+ * instead of 17 g is a rounding error next to an ingredient with no allergens recorded at all.
+ *
+ * `pcs` with no piece weight is NOT repairable — an onion is 150 g and a bay leaf is 0.1 g, and
+ * there is no default between them that is not an invention — so that one still fails, loudly and
+ * by name. Written through `toGrams` rather than a hand-listed set of volume units, so the rule and
+ * the conversion can never disagree about which unit needs which ratio.
+ */
+const _weighable = (facts: z.infer<typeof _modelFactsSchema>) => {
+  const ratios = {
+    gramsPerPiece: facts.gramsPerPiece ?? undefined,
+    gramsPerMl: facts.gramsPerMl ?? undefined,
+  };
+
+  if (toGrams(facts.defaultQuantity, facts.defaultUnit, ratios) !== undefined) return ratios;
+
+  const repaired = { ...ratios, gramsPerMl: 1 };
+
+  return toGrams(facts.defaultQuantity, facts.defaultUnit, repaired) === undefined
+    ? undefined
+    : repaired;
+};
+
+/**
+ * The model's answer as a `SanitizedIngredient`, with everything a lookup MEASURED laid back over
+ * the top of it.
+ *
+ * Pure, and separate from `execute` for that reason: this is the half of the tool that can be
+ * wrong in a way no schema catches, and it is testable with no model in the loop.
+ *
+ * Two merges happen here and they are the same bargain `measuredOver` documents — a modelled value
+ * survives only where nothing measured that field:
+ *
+ * - **nutrition**: `measuredOver`, in source-authority order.
+ * - **names**: the model's word wins, because a laboratory description ("carrot, raw, unpeeled")
+ *   is not what a shop calls it — but a name it took verbatim from a source is marked as authored,
+ *   and every spelling a source stated that it did NOT pick becomes an alias, so the row is still
+ *   findable under the dictionary's word.
+ */
+export const toSanitizedIngredient = (
+  raw: unknown,
+  hits: readonly LookupHit[] = [],
+): SanitizedIngredient => {
+  const answer = parseModelOutput(modelIngredientSchema, raw);
+
+  if (answer.verdict !== "ingredient") return { verdict: "refused", reason: answer.verdict };
+
+  // `facts` is absentable, so a row that failed one of the schema's own rules arrives as undefined
+  // rather than as a parse error — `_clean` drops it silently. Both mean the same thing to the
+  // caller (the model did not produce a usable row) and both are worth another attempt, which is
+  // what throwing buys. What the bare throw did NOT buy was any way to tell which rule broke, and
+  // an operator reading "no usable row" three times in a log cannot act on it. So the object is
+  // re-validated on the way to the error purely to name the field.
+  if (!answer.facts) {
+    const why = _modelFactsSchema.safeParse((raw as { facts?: unknown } | null)?.facts);
+
+    throw new Error(
+      `sanitizeIngredient: verdict was ingredient with no usable row — ${why.success ? "facts was missing entirely" : z.prettifyError(why.error)
+      }`,
+    );
+  }
+
+  const facts = answer.facts;
+
+  // Repaired rather than rejected: a missing density costs a row nothing now (see `_weighable`).
+  const ratios = _weighable(facts);
+
+  if (!ratios)
+    throw new Error(
+      `sanitizeIngredient: defaultUnit "${facts.defaultUnit}" needs a gramsPerPiece to weigh it, ` +
+      "and there is no default weight for one of something",
+    );
+
+  const names = Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => {
+      const name = _catalogName(facts.names[locale]);
+
+      return [locale, { value: name, status: _statusOf(name, _statedIn(hits, locale)) }];
+    }),
+  ) as IngredientFacts["names"];
+
+  const aliases = Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => {
+      const seen = new Set([_catalogName(facts.names[locale])]);
+      const kept: string[] = [];
+
+      // Model's own spellings first and FIRST-WINS on a duplicate, so the word it chose is the one
+      // stored — a source shouting "CARROTS" must not overwrite the alias the model wrote.
+      for (const alias of [...(facts.aliases[locale] ?? []), ..._statedIn(hits, locale)]) {
+        const spelling = alias.trim();
+        if (!spelling || seen.has(spelling.toLowerCase())) continue;
+
+        seen.add(spelling.toLowerCase());
+        kept.push(spelling);
+      }
+
+      return [locale, kept];
+    }),
+  ) as LocalizedList;
+
+  return {
+    verdict: "new",
+    facts: {
+      names,
+      aliases,
+      emoji: facts.emoji,
+      category: facts.category,
+      diet: facts.diet,
+      // The fourteen answers folded back into the list the column stores. `madeFrom` is dropped
+      // here and nowhere else: it exists to be in the model's context when it answered these two,
+      // and it has no meaning once they are answered.
+      allergens: _allergensOf(facts.allergens),
+      defaultUnit: facts.defaultUnit,
+      defaultQuantity: facts.defaultQuantity,
+      ...ratios,
+      nutrition: measuredOver(facts.nutrition, hits),
+    },
+  };
+};
+
+/**
+ * What the row-writing call is shown: the term, and everything the cheap steps already learned.
+ *
+ * Exported so the bake-off scores the prompt the tool actually sends. A copy kept in step by hand
+ * is a copy that drifts, and a bake-off measuring a prompt nothing ships answers nothing.
+ */
+export const sanitizeIngredientUserPrompt = ({ text, hits = [] }: SanitizeIngredientInput) =>
+  [
+    `The shopper typed:\n${text}`,
+    hits.length &&
+    `What other sources say about it — names to prefer, figures that will be kept over yours:\n${JSON.stringify(hits, null, 2)}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+/**
+ * Good enough to hand a shopper a row they did not ask for.
+ *
+ * Higher than the catalog's own `CONFIDENT`, and deliberately: the candidates reaching here are the
+ * ones `resolveIngredient` already declined to link on its score, so a model overruling that has to
+ * be sure rather than merely warmer than the search was. Below it the answer is "no match", and the
+ * cost of that is one generation — against a wrong link, which puts the wrong food on a shopping
+ * list and never announces itself.
+ *
+ * Exported because the ranker's bake-off has to flag an answer against the SAME bar the tool
+ * applies — a 0.8 written out a second time in a test is a bar that moves in one place only.
+ */
+export const MATCHED = 0.8;
+
+/**
+ * A term the catalog could not resolve, turned into an existing row, a new one, or an honest
+ * refusal — step 4 of `resolveIngredient`.
+ *
+ * **Two model calls, cheapest first, and the first may end it.** The ranker is asked whether one of
+ * the near-misses the catalog search already found is the same food; only if it is not does the
+ * expensive call invent a row. Splitting them is not just about cost: a model that has begun
+ * writing facts for a new ingredient will talk itself past a match that was sitting in the list.
+ *
+ * Nothing is written down — `saveMessages: "none"` on both, for the reason `sanitizeRecipe` gives:
+ * this is a transformation, not a conversation, and nothing later needs to recall the word a
+ * shopper typed into a search bar.
+ *
+ * ⚠️ **It writes no row.** It returns facts; `createIngredient` is what inserts one, through
+ * `ingredientRow` like every other writer (ADR 0011).
+ */
+export const sanitizeIngredient = createTool({
+  description:
+    "Decide what a shopper's unrecognised food term is: a catalog row that already exists under " +
+    "another spelling or another language, a new ingredient worth adding — with its names, " +
+    "vocabulary and per-100g nutrition — or something that is not an ingredient at all.",
+  inputSchema: _inputSchema,
+  execute: async (ctx, args): Promise<SanitizedIngredient> => {
+    const candidates = args.candidates ?? [];
+
+    if (candidates.length) {
+      const matchSchema = matchIngredientSchema(candidates.length);
+
+      const ranked = await retryPromise(() =>
+        wrapAgent(rankerAgent).generateObject(
+          ctx,
+          {},
+          {
+            system: matchIngredientPrompt(args.locale),
+            prompt: matchIngredientUserPrompt(args),
+            schema: providerSchema(matchSchema),
+            output: "object",
+            maxRetries: 2,
+          },
+          { storageOptions: { saveMessages: "none" } },
+        ), 2);
+
+      const match = parseModelOutput(matchSchema, ranked.object);
+      const candidate = match.matchIndex === undefined ? undefined : candidates[match.matchIndex];
+
+      if (candidate && (match.confidence ?? 0) >= MATCHED)
+        // The one cast in this file, and it is not a model's id: `candidate` came out of the list
+        // the caller passed in, so the string is an id the caller already held (ADR 0010).
+        return {
+          verdict: "existing",
+          ingredientId: candidate.id as Id<"ingredients">,
+          name: candidate.name,
+        };
+    }
+
+    const result = await retryPromise(() =>
+      wrapAgent(ingredientsAgent).generateObject(
+        ctx,
+        {},
+        {
+          system: sanitizeIngredientPrompt(args.locale),
+          prompt: sanitizeIngredientUserPrompt(args),
+          schema: providerSchema(modelIngredientSchema),
+          output: "object",
+          maxRetries: 3,
+        },
+        { storageOptions: { saveMessages: "none" } },
+      ), 2);
+
+    // `wrapAgent` erases the schema's type on the way through (it re-types the agent to call the
+    // wrapped methods), so the object arrives as JSON. Parsing here is what restores the contract
+    // `toSanitizedIngredient` pins — the model already generated against this schema, so it is a
+    // cast that cannot silently be wrong.
+    return toSanitizedIngredient(result.object, args.hits as LookupHit[] | undefined);
+  },
+});

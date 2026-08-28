@@ -1,3 +1,4 @@
+import { isGrade } from "@shared/ingredientMatch";
 import { isUnit, NO_EMOJI, UNITS, type Unit } from "@shared/ingredients";
 import { foldAccents, STOPWORDS } from "@shared/translations";
 import { distance } from "fastest-levenshtein";
@@ -13,14 +14,19 @@ export type Suggestion = {
   name: string;
   emoji: string;
   /**
+   * How this food is bought, straight off the catalog row — the unit a shop sells it in and how
+   * much of it a line means. Used whenever the shopper named neither, which is most of the time:
+   * "gnocchis" is a 500 g packet, and one piece of it is not a thing anybody buys.
+   */
+  defaultUnit: Unit;
+  defaultQuantity: number;
+  /**
    * The other ways to say it. Searched, never shown: the card draws `name`, so that "patates"
    * and "pommes de terre" stay one ingredient on screen.
    */
   aliases?: string[];
 };
 
-const DEFAULT_UNIT = "pcs" as Unit;
-const DEFAULT_AMOUNT = 1;
 
 /** Minimum similarity (0-1) for Enter to auto-select a suggestion. */
 const AUTO_SELECT_THRESHOLD = 0.85;
@@ -88,7 +94,7 @@ const toLabels = (suggestion: Suggestion) =>
 /* Quantity                                                                   */
 /* -------------------------------------------------------------------------- */
 
-/** "1,5" -> 1.5, "1/2" -> 0.5, "500" -> 500 */
+/** "1,5" -> 1.5, "1/2" -> 0.5, "500" -> 500, and "95/5" -> nothing at all. */
 const parseAmount = (raw: string): number | null => {
   const [numerator, denominator] = raw.replace(",", ".").split("/");
   const value = Number(numerator);
@@ -96,7 +102,31 @@ const parseAmount = (raw: string): number | null => {
   if (denominator === undefined) return value;
 
   const divisor = Number(denominator);
-  return divisor ? value / divisor : null;
+  if (!divisor) return null;
+
+  /**
+   * A slash is two different things in a kitchen, and only the PROPER fraction is an amount.
+   * Recipes write "1/2 citron"; a butcher writes "95/5" and means the lean-to-fat ratio. Dividing
+   * that one gave a shopper 19 pieces of mince, and — worse, because it was silent — deleted the
+   * grade from the words handed to the resolver, so the row it created could not carry it either.
+   *
+   * `isGrade` is the shared rule the matcher scores with, not a second copy of it (ADR 0011).
+   */
+  return value > divisor ? null : value / divisor;
+};
+
+/**
+ * Whether this token is an amount, which is strictly narrower than "looks like one".
+ *
+ * A predicate rather than the bare regex, because three call sites below used `QUANTITY_RE.test`
+ * and every one of them has to agree with what `parseAmount` will actually do. A token the regex
+ * matched and the parser then refused is a word, and must survive into `rest` — that is the whole
+ * bug: `rest` is what the resolver is asked about.
+ */
+const isQuantity = (token: string) => {
+  const match = QUANTITY_RE.exec(token);
+
+  return !!match && parseAmount(match[1]!) !== null;
 };
 
 const parseQuantity = (
@@ -127,7 +157,9 @@ const parseQuantity = (
  */
 const toWords = (tokens: string[]) =>
   tokens
-    .filter((token) => !QUANTITY_RE.test(token) && !isUnit(token))
+    // A grade goes out of the SEARCH words and stays in `rest`, which is the same split
+    // `searchTerms` makes on the server: "95/5" identifies the mince, and no index ever stored it.
+    .filter((token) => !isQuantity(token) && !isGrade(token) && !isUnit(token))
     .filter((token) => !isStopword(token))
     .map(normalizeWord)
     .filter((word) => word.length > 1);
@@ -202,7 +234,15 @@ export const readInput = (text: string) => {
   const { amount, unit } = parseQuantity(tokens);
   const words = toWords(tokens);
 
-  return { amount, unit, words, query: words.join(" ") };
+  /**
+   * The same input with only the shopping grammar taken out — still accented, still plural, still
+   * in the order it was typed. `query` is not a substitute: its normalisation is what lets a typo
+   * find a row we already hold, and it is exactly wrong for asking a dictionary about a word we do
+   * not, where "pommes de terre" must not arrive as "pomme terre".
+   */
+  const rest = tokens.filter((token) => !isQuantity(token) && !isUnit(token)).join(" ");
+
+  return { amount, unit, words, rest, query: words.join(" ") };
 };
 
 /**
@@ -216,7 +256,7 @@ export const readInput = (text: string) => {
  * Exported for that test. The hook below is the call site; nothing else should reach for this.
  */
 export const rankSuggestions = (text: string, candidates: Suggestion[]) => {
-  const { amount, unit, words, query } = readInput(text);
+  const { amount, unit, words, rest, query } = readInput(text);
 
   // Labels normalised once, then reused for both the ranking and the match.
   const entries = candidates.map((suggestion) => ({
@@ -253,8 +293,19 @@ export const rankSuggestions = (text: string, candidates: Suggestion[]) => {
   }
 
   return {
-    amount: amount ?? DEFAULT_AMOUNT,
-    unit: unit ?? DEFAULT_UNIT,
+    /**
+     * **Null when the shopper said nothing, and deliberately not filled in here.**
+     *
+     * This function is about a string, not about a food, so the only default available to it is
+     * one piece of whatever-it-is — which is how "gnocchis" became a single gnocchi. Left empty,
+     * the blank travels to the two places that DO know which row is meant: the card below picks
+     * the suggestion's own `defaultUnit`, and `usePendingIngredients` picks the resolved row's,
+     * seconds later, once there is a row at all.
+     */
+    amount,
+    unit,
+    /** What the resolver is asked about when nothing here matched. See `readInput`. */
+    rest,
     suggestions,
     hasSuggestions: suggestions.length > 0,
     matchingSuggestion,
@@ -298,6 +349,8 @@ export const useSuggestions = (text: string) => {
         name: row.name,
         emoji: row.emoji ?? NO_EMOJI,
         aliases: row.aliases,
+        defaultUnit: row.defaultUnit,
+        defaultQuantity: row.defaultQuantity,
       })),
     [data],
   );

@@ -1,0 +1,414 @@
+import { convexTest } from "convex-test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+
+import { api, internal } from "../../../_generated/api";
+import schema from "../../../schema";
+
+// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
+const modules = import.meta.glob("/convex/**/*.*s");
+
+/**
+ * The one model call this action can make, mocked so a test can assert on WHETHER it ran and on
+ * what the resolver does with each of its three verdicts — without waiting on, or paying for, a
+ * real model. The tool's own behaviour is `sanitizeIngredient`'s test's job; this file is about the
+ * wiring around it: that the cheap steps get there first, and that a `new` verdict becomes exactly
+ * one row.
+ */
+const sanitizeRun = vi.hoisted(() => vi.fn());
+
+vi.mock("@convex/agent/tools/sanitizeIngredient", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../agent/tools/sanitizeIngredient")>();
+  return { ...actual, sanitizeIngredient: { run: sanitizeRun } };
+});
+
+/** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
+const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
+
+/** A complete fact set, as the agent returns one for a food the catalog does not hold. */
+const RUTABAGA = {
+  names: {
+    fr: { value: "Rutabaga", status: "edited" as const },
+    en: { value: "Swede", status: "machine" as const },
+  },
+  emoji: "\u{1F954}",
+  aliases: { fr: ["chou-navet"], en: [] },
+  category: "VEGETABLE" as const,
+  diet: "vegan" as const,
+  allergens: [],
+  defaultUnit: "g" as const,
+  defaultQuantity: 200,
+  nutrition: {
+    calories: 36,
+    protein: 1.1,
+    fat: 0.2,
+    saturatedFat: 0,
+    carbohydrates: 8.1,
+    sugars: 4.5,
+    fiber: 2.3,
+    sodium: 12,
+  },
+};
+
+let t: ReturnType<typeof convexTest>;
+
+const seedCarrot = () =>
+  t.run((ctx) =>
+    ctx.db.insert("ingredients", {
+      slug: "carrot",
+      name: { values: { en: "Carrot", fr: "Carotte" }, meta: {} },
+      emoji: "🥕",
+      aliases: { fr: ["carottes"], en: ["carrots"] },
+      search: { en: "Carrot carrots", fr: "Carotte carottes" },
+      category: "VEGETABLE",
+      defaultUnit: "g",
+      defaultQuantity: 200,
+      nutrition: { calories: 41, protein: 0.9, fat: 0.2, carbohydrates: 10 },
+      source: "seed" as const,
+      updatedAt: Date.now(),
+    }),
+  );
+
+/** A whole identity: `loadUser` treats a `users` row with no `usersExtended` as a half-account. */
+const signIn = async () => {
+  const userId = await t.run(async (ctx) => {
+    const id = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
+    await ctx.db.insert("usersExtended", { userId: id, role: "USER", updatedAt: Date.now() });
+
+    return id;
+  });
+
+  return t.withIdentity(asUser(userId));
+};
+
+beforeEach(() => {
+  t = convexTest(schema, modules);
+  // Every test in this file must answer from the catalog or the shipped datasets. A test that
+  // reaches the network is a test that fails when somebody else's server is down, and this suite
+  // runs on every commit.
+  vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("no network in tests"))));
+  // Default verdict: nothing usable. A test that means to exercise the agent says so itself, so a
+  // test that forgot to cannot pass on a leftover answer from the one before it.
+  sanitizeRun.mockReset();
+  sanitizeRun.mockResolvedValue({ verdict: "refused", reason: "not-food" });
+});
+
+describe("router/ingredients/resolve", () => {
+  /**
+   * The gate. `authed` spends money on a miss — two outbound fetches today and a model call once
+   * the invention path lands — so the rejection has to happen in the procedure wrapper, before
+   * anything is spent.
+   */
+  test("rejects an unauthenticated caller", async () => {
+    await expect(t.action(api.router.ingredients.resolve.authed, { text: "carotte", locale: "fr" })).rejects.toThrow();
+  });
+
+  test("rejects an authenticated caller who is not a known user", async () => {
+    const ghost = await t.run((ctx) => ctx.db.insert("users", { name: "Ghost" }));
+    await t.run((ctx) => ctx.db.delete(ghost));
+
+    await expect(
+      t.withIdentity(asUser(ghost)).action(api.router.ingredients.resolve.authed, { text: "carotte", locale: "fr" }),
+    ).rejects.toThrow();
+  });
+
+  test("a name the catalog already holds is matched, and nothing is written", async () => {
+    const carrotId = await seedCarrot();
+    const before = await t.run((ctx) => ctx.db.query("ingredients").collect());
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "carotte",
+      locale: "fr",
+    });
+
+    expect(resolved).toEqual({
+      status: "matched",
+      ingredientId: carrotId,
+      name: "Carotte",
+      // The row's own answer to "how much of it", which the client has no other way to learn: the
+      // placeholder card goes up before there is a row to read it off.
+      defaultUnit: "g",
+      defaultQuantity: 200,
+    });
+    expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(before.length);
+  });
+
+  /**
+   * Problem 2 of the slice, end to end: the row is indexed under `search_en` and the caller's
+   * locale is French, so step 1 alone would have missed it — and inventing a second `carotte` is
+   * the failure that never goes away.
+   */
+  test("a name the catalog holds in the OTHER locale is matched, not invented", async () => {
+    const carrotId = await seedCarrot();
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "carrot",
+      locale: "fr",
+    });
+
+    expect(resolved).toEqual({
+      status: "matched",
+      ingredientId: carrotId,
+      name: "Carotte",
+      // The row's own answer to "how much of it", which the client has no other way to learn: the
+      // placeholder card goes up before there is a row to read it off.
+      defaultUnit: "g",
+      defaultQuantity: 200,
+    });
+  });
+
+  /**
+   * The taxonomy step, which is what makes the *previous* test survive a shopper who typed a word
+   * the catalog does not carry in either language. "eggplant" is not in this fixture's catalog and
+   * is not OFF's canonical English name either — it is a synonym of `en:aubergine`, whose French
+   * name is what the catalog would hold.
+   */
+  test("a synonym reaches the catalog row through the shipped taxonomy", async () => {
+    const aubergineId = await t.run((ctx) =>
+      ctx.db.insert("ingredients", {
+        slug: "eggplant",
+        name: { values: { fr: "Aubergine" }, meta: {} },
+        emoji: "🍆",
+        aliases: {},
+        // "eggplant" is in NEITHER index — the catalog only ever knew this row as "aubergine". So
+        // no amount of widening reaches it, and only the taxonomy's synonym list can.
+        search: { en: "Aubergine", fr: "Aubergine" },
+        category: "VEGETABLE",
+        defaultUnit: "pcs",
+        defaultQuantity: 1,
+        nutrition: { calories: 25, protein: 1, fat: 0.2, carbohydrates: 6 },
+        source: "seed" as const,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "eggplant",
+      locale: "fr",
+    });
+
+    expect(resolved).toMatchObject({ status: "matched", ingredientId: aubergineId });
+  });
+
+  /**
+   * `MARGIN`, on the resolver's own path. Two rows normalize to the same words and both score 1.0,
+   * so linking on the score alone hands the shopper whichever the search index returned first —
+   * raw chicken or deli slices, decided by insertion order. A tie is not a confident match: the
+   * term has to fall through to a step that can weigh it, and the agent is offered both.
+   */
+  test("two rows tied at the top are not linked unasked", async () => {
+    const seedChicken = (slug: string, fr: string) =>
+      t.run((ctx) =>
+        ctx.db.insert("ingredients", {
+          slug,
+          name: { values: { fr }, meta: {} },
+          emoji: "🍗",
+          aliases: {},
+          search: { en: fr, fr },
+          category: "MEAT",
+          defaultUnit: "g",
+          defaultQuantity: 150,
+          nutrition: { calories: 165, protein: 31, fat: 3.6, carbohydrates: 0 },
+          source: "seed" as const,
+          updatedAt: Date.now(),
+        }),
+      );
+
+    await seedChicken("chicken-breast", "Blanc de poulet");
+    await seedChicken("chicken-breast-slices", "Blanc de poulet en tranches");
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "blanc de poulet",
+      locale: "fr",
+    });
+
+    // Not linked on its own; the tie was handed on rather than guessed at.
+    expect(sanitizeRun).toHaveBeenCalled();
+    expect(resolved).toMatchObject({ status: "refused" });
+  });
+
+  /**
+   * The grade has to survive the taxonomy, which files its entries under grade-free spellings.
+   * `findInTaxonomy` looks "steak haché 5%" up through `searchTerms`, which strips `pct5`, and the
+   * entry it lands on is spelled `steak haché` — so re-searching the catalog with that bare
+   * spelling would link 5% mince to an 80/20 row at an exact-alias 0.9, undoing the refusal step 1
+   * had already made at 0.667. Four times the fat, on somebody's shopping list.
+   */
+  test("a grade the shopper typed is not lost when the taxonomy translates the food", async () => {
+    const mince = await t.run((ctx) =>
+      ctx.db.insert("ingredients", {
+        slug: "ground-beef",
+        name: { values: { fr: "Bœuf haché (80/20)" }, meta: {} },
+        emoji: "🥩",
+        aliases: { fr: ["steak haché"], en: [] },
+        search: { en: "Beef mince", fr: "Bœuf haché steak haché" },
+        category: "MEAT",
+        defaultUnit: "g",
+        defaultQuantity: 250,
+        nutrition: { calories: 254, protein: 17, fat: 20, carbohydrates: 0 },
+        source: "seed" as const,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "steak haché 5%",
+      locale: "fr",
+    });
+
+    // The 80/20 row is a different product, and must not be handed back as this one.
+    expect(resolved).not.toMatchObject({ status: "matched", ingredientId: mince });
+  });
+
+  /**
+   * The whole ordering, asserted from the cheap end: a term step 1 answers must not reach the step
+   * that spends money. Every step before the agent exists to make this true, and the only visible
+   * symptom of getting it wrong is a bill.
+   */
+  test("a term the catalog answers never reaches the agent", async () => {
+    await seedCarrot();
+
+    await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "carotte",
+      locale: "fr",
+    });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The refusal path, and the reason it is the agent's to decide rather than a step running out:
+   * nothing before this can tell a food we have never heard of from washing-up liquid. `fetch` is
+   * stubbed to reject for the whole file, so this is also the assertion that a third-party outage
+   * does not stop the term reaching the one step that can judge it.
+   */
+  test("a term no source can answer is put to the agent, and its refusal is passed through", async () => {
+    await seedCarrot();
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "liquide vaisselle",
+      locale: "fr",
+    });
+
+    expect(resolved).toEqual({ status: "refused", reason: "not-food" });
+    expect(sanitizeRun).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * Steps 4 and 5, and the only test in this file that writes a row. Exactly one, and the second
+   * identical call gets it back from step 1 — which is what makes the resolver's own defence
+   * against duplicates the thing that has to work, since `createIngredient` has no dedup key.
+   */
+  test("a genuine miss creates one row, and a second identical call matches it", async () => {
+    sanitizeRun.mockResolvedValue({ verdict: "new", facts: RUTABAGA });
+    const asShopper = await signIn();
+
+    const created = await asShopper.action(api.router.ingredients.resolve.authed, {
+      text: "rutabaga",
+      locale: "fr",
+    });
+
+    expect(created).toMatchObject({ status: "created", name: "Rutabaga", source: "agent" });
+
+    const again = await asShopper.action(api.router.ingredients.resolve.authed, {
+      text: "rutabaga",
+      locale: "fr",
+    });
+
+    expect(again).toMatchObject({ status: "matched", name: "Rutabaga" });
+    expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(1);
+    // Once for the create; the second call was answered by the catalog it had just grown.
+    expect(sanitizeRun).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * `source` records where the NUMBERS came from, not which step decided the category. A term the
+   * taxonomy knows and CIQUAL measured reaches the agent for its judgement, and the row it writes
+   * still wears the composition table's provenance — `provenanceOf`.
+   */
+  test("a row built on measured figures records the composition table, not the agent", async () => {
+    sanitizeRun.mockResolvedValue({
+      verdict: "new",
+      facts: {
+        ...RUTABAGA,
+        names: {
+          fr: { value: "Papaye", status: "edited" as const },
+          en: { value: "Papaya", status: "edited" as const },
+        },
+      },
+    });
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      // In the shipped taxonomy AND carrying a CIQUAL code the composition table measured, so
+      // step 2 gathers a figure-bearing hit on the way past. "rutabaga" above is in the taxonomy
+      // and NOT in CIQUAL, which is why that row is honestly `source: "agent"`.
+      text: "papaya",
+      locale: "en",
+    });
+
+    expect(sanitizeRun.mock.calls[0]?.[1]?.hits?.[0]).toMatchObject({ source: "foodComposition" });
+    expect(resolved).toMatchObject({ status: "created", source: "foodComposition" });
+  });
+
+  /**
+   * The candidates step 1 declined on its score alone are exactly the cases a threshold cannot
+   * settle, and a reader is better at them. That verdict writes nothing: the id came out of the
+   * list the resolver handed over (ADR 0010).
+   */
+  test("the agent picking a candidate is a match, and inserts nothing", async () => {
+    const carrotId = await seedCarrot();
+    sanitizeRun.mockResolvedValue({ verdict: "existing", ingredientId: carrotId, name: "Carotte" });
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "carottte rapee",
+      locale: "fr",
+    });
+
+    expect(resolved).toEqual({
+      status: "matched",
+      ingredientId: carrotId,
+      name: "Carotte",
+      // The row's own answer to "how much of it", which the client has no other way to learn: the
+      // placeholder card goes up before there is a row to read it off.
+      defaultUnit: "g",
+      defaultQuantity: 200,
+    });
+    expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(1);
+  });
+
+  /**
+   * A model that cannot answer must not be reported as a shopper who wrote nonsense: `unreadable`
+   * is "we read that and could make nothing of it". The client awaits this action and turns a
+   * throw into an error card, so the outage is visible without claiming a judgement was made.
+   */
+  test("a model that throws fails the resolve rather than refusing the term", async () => {
+    sanitizeRun.mockRejectedValue(new Error("provider is down"));
+
+    await expect(
+      (await signIn()).action(api.router.ingredients.resolve.authed, { text: "rutabaga", locale: "fr" }),
+    ).rejects.toThrow();
+
+    expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(0);
+  });
+
+  test("empty text is refused without asking anything", async () => {
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "   ",
+      locale: "fr",
+    });
+
+    expect(resolved).toEqual({ status: "refused", reason: "unreadable" });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(sanitizeRun).not.toHaveBeenCalled();
+  });
+
+  test("_internal_search widens across both locale indexes", async () => {
+    const carrotId = await seedCarrot();
+
+    const found = await t.query(internal.router.ingredients.resolve._internal_search, {
+      text: "carrot",
+      locale: "fr",
+    });
+
+    expect(found[0]?.ingredientId).toBe(carrotId);
+  });
+});

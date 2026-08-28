@@ -53,8 +53,9 @@ created from a thin source will later be corrected from a better one. Every one 
 legitimate write and none is going away.
 
 None of them may shape its own row. `ingredientRow` does — hand it facts, get back every field the
-table declares, `search` included — and every writer of the table composes it. Today that is the
-seed and the create; an update is the one this record anticipates and nothing has yet needed.
+table declares, `search` included — and every writer of the table composes it. Today that is two:
+`seedIngredients` and `createIngredient`, which is the create this record was amended for. An update
+that corrects a thin row from a better source is still anticipated.
 
 C11 enforces this clause with no change: it trusts a **value produced by** a module that imports the
 serializer, not a filename on a list. So `ingredientRow` earns that trust by importing

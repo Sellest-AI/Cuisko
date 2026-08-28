@@ -1,4 +1,24 @@
 /**
+ * Where a row's facts came from, and how much to trust them.
+ *
+ * Not a synonym for `slug`. The seed sets a slug and nothing else does, which distinguishes two
+ * cases when there are four — and the four are not equally trustworthy about `nutrition`, which
+ * this table requires and every screen draws a Nutri-Score from. `foodComposition` is a
+ * measurement somebody made; `agent` is a generation. Recording which lets a later screen say so,
+ * and lets us find and re-derive every invented row once a better lookup exists.
+ *
+ * `foodComposition` covers every measured composition table — CIQUAL and USDA FoodData Central
+ * both — because what a later reader needs to know is that a laboratory measured it, not which
+ * laboratory. `openFoodFacts` is separate because it is packaged products declared by their
+ * manufacturer, which is a weaker claim about a raw ingredient.
+ *
+ * Ordered from most to least trustworthy, deliberately — the resolver tries them in this order.
+ */
+export const INGREDIENT_SOURCES = ["seed", "foodComposition", "openFoodFacts", "agent"] as const;
+
+export type IngredientSource = (typeof INGREDIENT_SOURCES)[number];
+
+/**
  * The unit vocabulary, and how to write one down.
  *
  * Shared rather than owned by a module because two of them need it and neither may reach into the
@@ -67,6 +87,26 @@ export const formatQuantity = (amount: number, unit: Unit) =>
  * split exists to make visible, and it is the mistake `serializeIngredients` originally made.
  */
 export const exactQuantity = (amount: number, unit: Unit) => `${amount} ${unit}`;
+
+/**
+ * A quantity is a NUMBER AND ITS UNIT, and the two are answered together or not at all.
+ *
+ * The bar reads what the shopper typed and the row knows its own default, and filling the two
+ * halves independently mixes them: "2 gnocchis" parses to an amount with no unit, and taking the
+ * row's unit for the blank half turns two packets into two GRAMS — the row's default quantity was
+ * 500 of them. The shopper is billed for a quarter of a gnocchi and nothing on screen looks wrong.
+ *
+ * So a half-typed quantity is not half-honoured. Both halves come from the shopper when they gave
+ * both, and from the row otherwise. In practice the bar's parser emits them as a pair and the mixed
+ * case should not arise — this is what makes sure it cannot, rather than trusting that it does not.
+ */
+export const pickQuantity = (
+  typed: { amount: number | null | undefined; unit: Unit | null | undefined },
+  fallback: { defaultQuantity: number; defaultUnit: Unit },
+): { amount: number; unit: Unit } =>
+  typed.amount != null && typed.unit != null
+    ? { amount: typed.amount, unit: typed.unit }
+    : { amount: fallback.defaultQuantity, unit: fallback.defaultUnit };
 
 /**
  * What a catalog ingredient knows about its own weight — the two optional fields on the

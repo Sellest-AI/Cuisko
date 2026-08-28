@@ -19,5 +19,12 @@
       "just_added": "Just added",
       "all_of_it": "All of it"
     }
+  },
+  "Pending": {
+    "resolving": "Looking it up…",
+    "not_food": "Not a food",
+    "not_an_ingredient": "Not an ingredient",
+    "unreadable": "Couldn't read that",
+    "error": "Didn’t go through"
   }
 }

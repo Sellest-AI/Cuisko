@@ -103,6 +103,7 @@ export default defineConfig({
             CONVEX_SITE_URL: "https://cuisko-test.convex.site",
             SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
             OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
+            FDC_API_KEY: "test-fdc-api-key",
           },
         },
       },
@@ -170,7 +171,7 @@ export default defineConfig({
            */
           disableConsoleIntercept: true,
           /**
-           * The three placeholders are the Zod-validated contract of `convex/env.ts`, which loads
+           * The placeholders are the Zod-validated contract of `convex/env.ts`, which loads
            * transitively through the tool under test — it throws at import time without them, and
            * two of the three are irrelevant to a benchmark that never opens a Convex connection.
            *
@@ -183,6 +184,7 @@ export default defineConfig({
             CONVEX_SITE_URL: "https://cuisko-test.convex.site",
             SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
             OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
+            FDC_API_KEY: "test-fdc-api-key",
             ...dotEnvLocal(),
             ...(process.env.OPENROUTER_API_KEY ? { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY } : {}),
           },

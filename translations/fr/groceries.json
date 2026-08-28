@@ -19,5 +19,12 @@
       "just_added": "Ajouté à l'instant",
       "all_of_it": "Tout"
     }
+  },
+  "Pending": {
+    "resolving": "Recherche en cours…",
+    "not_food": "Pas un aliment",
+    "not_an_ingredient": "Pas un ingrédient",
+    "unreadable": "Mot non reconnu",
+    "error": "Échec de l’ajout"
   }
 }
