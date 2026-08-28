@@ -15,8 +15,7 @@ carries the command that proves it still holds.
 | [0008](./0008-tests-are-layered.md) | Tests are layered by runtime; every test file runs | `**/*.test.ts(x)`, `vitest.config.mts` | `pnpm check:tests`, `pnpm test` |
 | [0009](./0009-the-client-decides-an-undo.md) | Taking stock out is not an undo unless the client says so | `convex/**/cellars/**`, `src/modules/groceries/**` | `pnpm test` |
 | [0010](./0010-a-model-returns-names-not-ids.md) | A model returns names and vocabulary, never ids and never free text | `convex/agent/**`, `shared/ingredientMatch.ts` | `pnpm typecheck`, `pnpm test` |
-| [0011](./0011-derived-search-fields-have-one-writer.md) | A searchable blob has one serializer; a promise is a filter, not a search term | `convex/schema/**`, `convex/functions/**`, `shared/search.ts` | `pnpm check:search`, `pnpm test` |
-
+| [0011](./0011-derived-search-fields-have-one-sanitizer.md) | A searchable blob has one serializer; a promise is a filter, not a search term | `convex/schema/**`, `convex/functions/**`, `shared/search.ts` | `pnpm check:search`, `pnpm test` |
 `pnpm verify` runs all of them — on demand, in the pre-commit hook, and in CI.
 
 ## Format

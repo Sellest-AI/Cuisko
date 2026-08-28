@@ -15,19 +15,23 @@ import { rankSuggestions, type Suggestion } from "../useSuggestions";
  * rows would not reliably contain.
  */
 const CATALOGUE: Suggestion[] = [
-  { id: "tomatoes", name: "Tomates", emoji: "🍅" },
-  { id: "cherry-tomatoes", name: "Tomates cerises", emoji: "🍅" },
-  { id: "tomato-sauce", name: "Sauce tomate", emoji: "🍶", aliases: ["coulis de tomates"] },
-  { id: "tomato-soup", name: "Soupe de tomates", emoji: "🥣" },
-  { id: "potatoes", name: "Pommes de terre", emoji: "🥔", aliases: ["patates"] },
+  { id: "tomatoes", name: "Tomates", emoji: "🍅", defaultUnit: "pcs", defaultQuantity: 1 },
+  { id: "cherry-tomatoes", name: "Tomates cerises", emoji: "🍅", defaultUnit: "pcs", defaultQuantity: 1 },
+  { id: "tomato-sauce", name: "Sauce tomate", emoji: "🍶", aliases: ["coulis de tomates"], defaultUnit: "pcs", defaultQuantity: 1 },
+  { id: "tomato-soup", name: "Soupe de tomates", emoji: "🥣", defaultUnit: "pcs", defaultQuantity: 1 },
+  { id: "potatoes", name: "Pommes de terre", emoji: "🥔", aliases: ["patates"], defaultUnit: "pcs", defaultQuantity: 1 },
   {
     id: "potato-chips",
     name: "Chips de pommes de terre",
     emoji: "🍟",
     aliases: ["chips de patates"],
+    defaultUnit: "pcs",
+    defaultQuantity: 1,
   },
-  { id: "sweet-potatoes", name: "Patates douces", emoji: "🍠" },
-  { id: "green-tea", name: "Thé vert", emoji: "🍵" },
+  { id: "sweet-potatoes", name: "Patates douces", emoji: "🍠", defaultUnit: "pcs", defaultQuantity: 1 },
+  { id: "green-tea", name: "Thé vert", emoji: "🍵", defaultUnit: "pcs", defaultQuantity: 1 },
+  // The row this file's default-unit case is about: a packet, never a countable one of them.
+  { id: "gnocchi", name: "Gnocchis", emoji: "🥟", defaultUnit: "g", defaultQuantity: 500 },
 ];
 
 const rank = (text: string) => rankSuggestions(text, CATALOGUE);
@@ -103,11 +107,50 @@ describe("quantity", () => {
     expect(matchOf("1/2 kg patates")).toBe("potatoes");
   });
 
-  it("falls back to one piece when nothing is said", () => {
-    expect(rank("tomates")).toMatchObject({ amount: 1, unit: "pcs" });
+  /**
+   * Nothing said means nothing said, and the blank travels. Filling it here — with one piece of
+   * whatever-it-is — is what made "gnocchis" a single gnocchi: this function knows a string, not a
+   * food, so the two callers that DO know the row are the ones that answer.
+   */
+  it("leaves the quantity empty when nothing is said", () => {
+    expect(rank("tomates")).toMatchObject({ amount: null, unit: null });
   });
 
-  it("counts pieces when a bare number is given", () => {
-    expect(rank("2 patates douces")).toMatchObject({ amount: 2, unit: "pcs" });
+  it("keeps a bare number and still leaves the unit to the ingredient", () => {
+    expect(rank("2 patates douces")).toMatchObject({ amount: 2, unit: null });
+  });
+
+  /**
+   * The blank has to be fillable, which means the matched row has to arrive carrying the answer.
+   * Nobody buys one gnocchi: the catalog says 500 g, and this is what lets the caller say so.
+   */
+  it("hands the caller the row's own answer to fill the blank with", () => {
+    const { matchingSuggestion, amount, unit } = rank("gnocchis");
+
+    expect(amount).toBeNull();
+    expect(unit).toBeNull();
+    expect(matchingSuggestion).toMatchObject({ defaultUnit: "g", defaultQuantity: 500 });
+  });
+
+  /**
+   * A butcher's ratio is not a fraction, and reading it as one cost twice over: "boeuf haché 95/5"
+   * was billed as **19 pieces** of mince, and the 95/5 was stripped out of `rest` — so the term the
+   * resolver was asked about had lost the one thing that said which mince it was.
+   */
+  it("reads an improper fraction as a grade, not as an amount", () => {
+    expect(rank("boeuf hache 95/5")).toMatchObject({ amount: null, unit: null });
+    expect(rank("boeuf hache 80/20")).toMatchObject({ amount: null, unit: null });
+  });
+
+  it("keeps the grade in the words the resolver is asked about", () => {
+    expect(rank("boeuf hache 95/5").rest).toBe("boeuf hache 95/5");
+    expect(rank("boeuf haché 5%").rest).toBe("boeuf haché 5%");
+  });
+
+  it("keeps the grade out of the words the catalog is searched with", () => {
+    // A grade reaches the index as "955" once the slash is folded away, which matches nothing and
+    // dilutes the two terms that would have. Same split `searchTerms` makes on the server.
+    expect(rank("boeuf hache 95/5").suggestions).toEqual([]);
+    expect(matchOf("1/2 kg patates")).toBe("potatoes");
   });
 });

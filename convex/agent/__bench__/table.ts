@@ -137,7 +137,7 @@ export const table = (options: {
 
           return (
             `      ${mode(effort).padEnd(7)} ${String(score).padStart(4)}/10  ` +
-            `${num(tokens).padStart(8)} tok  ${usd(cost).padStart(10)}   ${delta}`
+            `${num(tokens).padStart(8)} tok  ${usd(cost).padStart(12)}   ${delta}`
           );
         }),
       ];

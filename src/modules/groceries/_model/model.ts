@@ -414,6 +414,119 @@ const _stockKeys = (snapshot: Snapshot): StockRef[] => {
 
 export type Sections = Record<Section, StockRow[]>;
 
+/* -------------------------------------------------------------------------- */
+/* Ghosts                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Why a ghost stopped resolving without becoming a grocery line.
+ *
+ * The first three are the server's judgement and are worth wording separately — "we do not carry
+ * dishwashing liquid" and "we could not read that" are different things to say. `error` is not one
+ * of them: it means the resolve never finished, which is our failure and not the shopper's word,
+ * and telling them their word was unreadable because a provider was down would be a lie the card
+ * has no way to take back.
+ */
+export type PendingFailure = "not-food" | "not-an-ingredient" | "unreadable" | "error";
+
+/**
+ * The two intents that can mint a ghost, and `remove` is deliberately not one of them.
+ *
+ * Taking stock out needs something to take it out of, and a word the catalog has never held has no
+ * stock behind it. So a ghost is always something arriving — the only question is which shelf.
+ */
+export type PendingIntent = Extract<Intent, "buy" | "relist">;
+
+/**
+ * An ingredient the catalog does not hold yet, drawn on the list before it exists.
+ *
+ * `id` is client-minted and never an `Id<"ingredients">`, deliberately: nothing has been written,
+ * so there is no document id to carry, and a shape that could hold one would invite a screen to
+ * pass it to a mutation. `name` is what the shopper typed, drawn verbatim — inventing a prettier
+ * label before the server has read the word would mean showing them something they did not write
+ * and then changing it under them.
+ *
+ * `unit` and `amount` ride along because they are the shopper's answer, not the resolver's: the
+ * action returns an id and nothing else, and the line still has to be added with the quantity they
+ * picked.
+ *
+ * It lives here rather than beside the atom that holds it for the reason every other type in this
+ * file does: `list-screen.grid.tsx` draws it and `usePendingIngredients` fills it, and a shape two
+ * layers share belongs to neither of them.
+ */
+export type PendingIngredient = {
+  id: string;
+  name: string;
+  unit?: Unit;
+  amount?: number;
+  /**
+   * Where this word is headed, decided by the bar's mode when it was typed and carried here so the
+   * card can be drawn there from the start. Spent again, unchanged, on the mutation that adds the
+   * real line once the id arrives.
+   */
+  intent: PendingIntent;
+  state: "resolving" | "failed";
+  reason?: PendingFailure;
+};
+
+/**
+ * What the grid draws: a real row, or a ghost still waiting on the server.
+ *
+ * A discriminated union rather than a ghost dressed up as a `StockRow`, because a ghost can answer
+ * almost none of that shape honestly — it has no `ingredientId`, no `intent`, and no quantity
+ * options, since there is nothing yet to move stock of. Filling those with placeholders would put
+ * a card on screen that the quantity sheet would happily open on and write nothing.
+ */
+export type GroceryRow =
+  | { kind: "stock"; stock: StockRow }
+  | { kind: "ghost"; ghost: PendingIngredient };
+
+/**
+ * Where a ghost waits: the section its own intent will put it in once it resolves.
+ *
+ * The inverse of `INTENT_FOR`, and not a duplicate of it — that one answers "what does tapping a
+ * card in this section do", which is a question about stock that already exists. This answers
+ * "where is this word going", and the two run in opposite directions: tapping a to-buy card *buys*
+ * it, while an intent to `buy` puts a word in the cellar.
+ *
+ * `relist` is the list and `buy` is the cellar, which is what makes a ghost appear under the
+ * heading the shopper aimed it at. Drawing every ghost in "to-buy" would be a card that materialises
+ * in the wrong section and then jumps to the right one — worse feedback than none, because the
+ * shopper has to watch it move to learn where it went.
+ */
+const SECTION_FOR: Record<PendingIntent, Section> = {
+  buy: "cellar",
+  relist: "to-buy",
+};
+
+/**
+ * One section's rows, ghosts folded in.
+ *
+ * **A ghost sits where it is headed**, per `SECTION_FOR` — the cellar when the shopper reached the
+ * bar from the cellar button, the list otherwise. Nothing is owned yet either way; what the card
+ * promises is the shelf, and that promise is kept by the same `intent` the mutation spends later.
+ *
+ * "Recently bought" never holds one. It is defined by exclusion — bought before, owned by nobody,
+ * wanted by nobody — and a word with no history cannot satisfy the first clause.
+ *
+ * **They lead their section**, ahead of the recency sort that orders everything else. A card the
+ * shopper is actively waiting on is the one they are looking for, and it would otherwise sort by
+ * an `updatedAt` it does not have.
+ */
+export const rowsOf = (
+  section: Section,
+  sections: Sections,
+  pending: PendingIngredient[],
+): GroceryRow[] => {
+  const stock = sections[section].map((row): GroceryRow => ({ kind: "stock", stock: row }));
+
+  const ghosts = pending
+    .filter((ghost) => SECTION_FOR[ghost.intent] === section)
+    .map((ghost): GroceryRow => ({ kind: "ghost", ghost }));
+
+  return [...ghosts, ...stock];
+};
+
 /**
  * The three sections, sorted and ready to render.
  *

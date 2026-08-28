@@ -485,7 +485,7 @@ never change again, so C4 rejects the field rather than exempting the table.
 
 Rationale for S1/S3/S10: [ADR 0007](./adr/0007-every-query-uses-an-index.md).
 Rationale for S12: [ADR 0010](./adr/0010-a-model-returns-names-not-ids.md).
-Rationale for S15/S16: [ADR 0011](./adr/0011-derived-search-fields-have-one-writer.md).
+Rationale for S15/S16: [ADR 0011](./adr/0011-derived-search-fields-have-one-sanitizer.md).
 
 **S16 is the one with teeth.** A search expression matches ANY of its terms and ranks the rest, so
 `search("pepper vegan")` returns pork stews — lower down, but returned, and inside a 1024-result

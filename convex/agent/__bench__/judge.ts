@@ -10,7 +10,7 @@
 import { generateText, Output } from "ai";
 import * as z from "zod/v4";
 
-import { reportedCost, routing, type Chat } from "./provider";
+import { DEFAULT_JUDGE_TIMEOUT_MS, reportedCost, routing, type Chat } from "./provider";
 import type { Attempt, ProviderRouting } from "./types";
 
 export const verdictSchema = z.object({
@@ -141,7 +141,12 @@ export const judgePrompt = (options: {
  * and the single most expensive call on a big field — which is why its cost comes back with it and
  * lands in the total.
  */
-export const judge = async (model: Chat, prompt: string, provider?: ProviderRouting) => {
+export const judge = async (
+  model: Chat,
+  prompt: string,
+  provider?: ProviderRouting,
+  timeoutMs: number = DEFAULT_JUDGE_TIMEOUT_MS,
+) => {
   const result = await generateText({
     model,
     output: Output.object({ schema: verdictSchema }),
@@ -151,6 +156,10 @@ export const judge = async (model: Chat, prompt: string, provider?: ProviderRout
     prompt,
     providerOptions: routing("high", provider),
     maxRetries: 4,
+    // Ten minutes by default, not an entrant's five — see `DEFAULT_JUDGE_TIMEOUT_MS` for why the
+    // budget is its own number. Bounded all the same: this is the last call of the run and every
+    // generation has already been paid for, so a judge that hangs holds the process open forever.
+    abortSignal: AbortSignal.timeout(timeoutMs),
   });
 
   return { verdict: result.output, cost: reportedCost(result.finalStep.providerMetadata) };

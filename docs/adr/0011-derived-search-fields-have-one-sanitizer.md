@@ -19,29 +19,56 @@ supersedes: []
 - A CLOSED VOCABULARY MUST NOT be written into a `searchField`. It belongs in a `filterField`.
 - A value the app PROMISES the user — a diet, an allergen claim, ownership — MUST be a
   `filterField`, never a search term.
-- A table carrying a derived search field MUST be inserted from exactly one module, and that insert
-  MUST supply every derived field the table declares. The writer is whichever module that is — there
-  is no naming convention, because a name taken from the field stops working the moment a table has
+- A table carrying a derived search field MUST have exactly one **row sanitizer** — one function
+  that produces every derived field the table declares, from the facts it is given. There is no
+  naming convention for it, because a name taken from the field stops working the moment a table has
   two of them.
-- A mutation that changes a derived field's SOURCES MUST recompute it before it returns. A mutation
-  that changes anything else MUST NOT — recomputing a field whose inputs did not move is how a
-  second writer appears.
+- Every function that writes such a table MUST compose that sanitizer. There may be as many writers
+  as the domain needs — a create and an update are both legitimate, and a seed beside them.
+- A write that changes ANY source of a derived field MUST recompute ALL of that table's derived
+  fields before it returns, through the sanitizer. Recomputing some and leaving the rest is the same
+  failure as recomputing none: the row is half-indexed under its old spelling, and nothing reports
+  it. A write that changes no source MUST NOT recompute — recomputing a field whose inputs did not
+  move is how a second writer appears.
+
+⚠️ **One sanitizer, any number of writers.** The two sanitizer clauses above replace a single one
+that said a table carrying a derived search field "MUST be inserted from exactly one module" — a
+description of the codebase at the time, mistaken for a rule. Several writers is the normal case: the ingredient
+catalog is seeded from the repo AND grown by cooks, and a row created from a thin source is later
+corrected from a better one. What there can only be one of is the function that shapes the row.
 
 **Which mutations that is, concretely.** The rule is about the sources, not about the table, so read
 it that way round:
 
 | Derived field                        | Its sources                              | So it is recomputed by                        |
 | ------------------------------------ | ---------------------------------------- | --------------------------------------------- |
-| `ingredients.search`                 | `name`, `aliases` on the same row        | the catalog seed                              |
+| `ingredients.search`                 | `name`, `aliases` on the same row        | every writer, via `convex/functions/ingredients/ingredientRow.ts` |
 | `recipes.search`                     | the recipe's `recipeIngredients` rows    | whatever adds, removes or re-matches a line   |
 | `recipes.is*` facets                 | `recipes.tags`                           | the same, via `computeTags` then `facetsOf`   |
+
+**`ingredients` is the table with several writers, and it is the reason this record was amended.**
+The catalog is seeded from `ingredientCatalog.ts` in the repo, and it is also grown by cooks: a
+shopper typing something the catalog does not hold gets that ingredient created for them. A row
+created from a thin source will later be corrected from a better one. Every one of those is a
+legitimate write and none is going away.
+
+None of them may shape its own row. `ingredientRow` does — hand it facts, get back every field the
+table declares, `search` included — and every writer of the table composes it. Today that is two:
+`seedIngredients` and `createIngredient`, which is the create this record was amended for. An update
+that corrects a thin row from a better source is still anticipated.
+
+C11 enforces this clause with no change: it trusts a **value produced by** a module that imports the
+serializer, not a filename on a list. So `ingredientRow` earns that trust by importing
+`@shared/search`, every writer composing it inherits it, and a writer that hand-rolls a blob instead
+still fails whatever else it imports. (The recomputation clause is the one C11 cannot see — see the
+warning below.)
 
 A recipe's title, description and instructions are the sources of NOTHING here — the blob carries no
 authored text, by design. `saveTranslations` therefore patches a recipe and correctly recomputes
 nothing, and that is not an omission to be fixed. The mutation to be careful with is any future edit
 that touches a recipe's LINES.
 
-⚠️ **This rule is the one nothing enforces.** C11 gates inserts, which name their table as a
+⚠️ **The recomputation clause is the one nothing enforces.** C11 gates inserts, which name their table as a
 literal; `ctx.db.patch(recipeId, …)` names no table at all, so attributing it needs the type checker
 rather than an AST walk. And `recipes.search` is derived from `recipeIngredients` — a *different*
 table — so even a complete gate on writes to `recipes` would not see the write that invalidates it.

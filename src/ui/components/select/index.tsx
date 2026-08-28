@@ -72,9 +72,9 @@ export const Select = <T extends string>({
   const popoverWidth = anchor ? Math.max(anchor.width, MIN_WIDTH) : MIN_WIDTH;
   const popoverLeft = anchor
     ? Math.min(
-        Math.max(anchor.x + anchor.width / 2 - popoverWidth / 2, MARGIN),
-        Math.max(windowWidth - popoverWidth - MARGIN, MARGIN),
-      )
+      Math.max(anchor.x + anchor.width / 2 - popoverWidth / 2, MARGIN),
+      Math.max(windowWidth - popoverWidth - MARGIN, MARGIN),
+    )
     : 0;
 
   return (
@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
   },
   popoverContent: {
     paddingVertical: theme.spacing[4],
+    maxHeight: 240
   },
   row: {
     alignSelf: "stretch",

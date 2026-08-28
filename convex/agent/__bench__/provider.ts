@@ -13,6 +13,34 @@ import type { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { providerSchema } from "../utils/providerSchema";
 import type { Answer, Attempt, Effort, ProviderRouting } from "./types";
 
+/**
+ * How long one generation may take before it is abandoned.
+ *
+ * A bake-off is a field, not a model: one entrant that never answers used to hold the pool slot
+ * open forever and take the other thirty-five calls — and the judge, and the transcript — down
+ * with it. A timeout turns that entrant into one FAIL row, which is the honest result anyway: a
+ * model that cannot answer in five minutes is not a model this tool can ship.
+ *
+ * Five minutes rather than something tighter because a high-effort reasoning entrant on a slow
+ * provider legitimately takes minutes, and a timeout that fires on a working model is a worse
+ * failure than the one it prevents.
+ */
+export const DEFAULT_TIMEOUT_MS = 300_000;
+
+/**
+ * The same, for the judge, and deliberately twice as long.
+ *
+ * The judge is not an entrant and its budget should not be read off one: it gets a single prompt
+ * containing every answer from every run — thirty-six of them on a field this size — and it always
+ * runs at `high` effort, because it is the one call whose own quality is not what is being
+ * measured. Holding it to an entrant's five minutes is the timeout firing on a working model,
+ * which is the failure the number exists to avoid.
+ *
+ * It is also the most expensive call to lose. Everything else has already been paid for by the
+ * time it starts, and it throwing takes the whole run with it.
+ */
+export const DEFAULT_JUDGE_TIMEOUT_MS = 600_000;
+
 export type Chat = ReturnType<ReturnType<typeof createOpenRouter>["chat"]>;
 
 /**
@@ -120,15 +148,22 @@ export const attempt = async <Raw, Parsed>(
     prompt: string;
     answer?: Answer<Raw, Parsed>;
     provider?: ProviderRouting;
+    timeoutMs?: number;
   },
 ): Promise<Attempt> => {
   const started = Date.now();
+  const timeoutMs = task.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  // One signal for the whole attempt, retries included — the budget is on the answer, not on each
+  // HTTP request, so two retries cannot quietly triple it. An aborted call is not retried: the
+  // signal is already spent by the time the SDK considers a second try.
+  const signal = AbortSignal.timeout(timeoutMs);
   const call = {
     model,
     system: task.system,
     prompt: task.prompt,
     providerOptions: routing(effort, task.provider),
     maxRetries: 2,
+    abortSignal: signal,
   };
 
   try {
@@ -161,7 +196,14 @@ export const attempt = async <Raw, Parsed>(
     return {
       ok: false,
       ms: Date.now() - started,
-      error: error instanceof Error ? error.message : String(error),
+      // The abort is checked on the signal rather than on the error, because what the SDK throws
+      // for a cancelled call varies by provider and version — and "timed out" read in a table is
+      // a different fact from whatever wrapper reached us.
+      error: signal.aborted
+        ? `timed out after ${Math.round(timeoutMs / 1000)}s`
+        : error instanceof Error
+          ? error.message
+          : String(error),
     };
   }
 };

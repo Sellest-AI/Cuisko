@@ -29,6 +29,22 @@ export type NutritionFacts = {
   sodium: number;
 };
 
+/**
+ * The complete per-100g fact set an `ingredients` row stores — `NutritionFacts` plus `fat`.
+ *
+ * `fat` is separate rather than folded into `NutritionFacts` because the Nutri-Score does not
+ * score it: the algorithm reads saturated fat, and total fat is there for the shopper, not for the
+ * grade. The two types keep that distinction visible at every call site.
+ *
+ * Here rather than beside either the catalog or the lookups because both produce it and neither
+ * owns it: `ingredientRow` requires this shape, `lookup/composition.ts` promises it, and a second
+ * declaration of the same eight fields is how one of them silently grows a ninth.
+ */
+export type IngredientNutrition = NutritionFacts & {
+  /** grams per 100g. Stored and shown; not a Nutri-Score input. */
+  fat: number;
+};
+
 export const NUTRI_SCORE_GRADES = ["A", "B", "C", "D", "E"] as const;
 export type NutriScoreGrade = (typeof NUTRI_SCORE_GRADES)[number];
 export type NutriScore = { grade: NutriScoreGrade; points: number };

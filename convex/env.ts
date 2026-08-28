@@ -21,12 +21,23 @@ const schema = z.object({
   /** Authenticates `server` procedures. `npx convex env set SERVER_PRIVATE_KEY ...` */
   SERVER_PRIVATE_KEY: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(32),
+  /**
+   * USDA FoodData Central, read by `functions/ingredients/lookup/foodDataCentral.ts` when a
+   * shopper types an ingredient the catalog and the two shipped datasets cannot name.
+   *
+   * Required, not optional. It is free and self-issued at `https://fdc.nal.usda.gov/api-key-signup`,
+   * so a deployment missing it is a deployment somebody forgot to configure — and the symptom of
+   * letting it through would be the long tail silently resolving one source short, which nothing
+   * would report. `npx convex env set FDC_API_KEY ...`
+   */
+  FDC_API_KEY: z.string().min(1),
 });
 
 const parsed = schema.safeParse({
   SERVER_PRIVATE_KEY: process.env.SERVER_PRIVATE_KEY,
   CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
   OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+  FDC_API_KEY: process.env.FDC_API_KEY,
 });
 
 if (!parsed.success) {

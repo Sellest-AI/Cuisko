@@ -22,6 +22,16 @@ export const recipesAgent = new Agent(components.agent, {
   // usageHandler,
 });
 
+export const ingredientsAgent = new Agent(components.agent, {
+  name: "Cuisko Ingredient Agent",
+  providerOptions: models.ingredients.providerOptions({ effort: false }),
+  languageModel: models.ingredients.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});
+
 export const translatorAgent = new Agent(components.agent, {
   name: "Cuisko Translator Agent",
   providerOptions: models.translator.providerOptions({ effort: false }),
@@ -31,3 +41,14 @@ export const translatorAgent = new Agent(components.agent, {
   maxSteps: 7,
   // usageHandler,
 });
+
+export const rankerAgent = new Agent(components.agent, {
+  name: "Cuisko Ranker Agent",
+  providerOptions: models.ranker.providerOptions({ effort: false }),
+  languageModel: models.ranker.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});
+

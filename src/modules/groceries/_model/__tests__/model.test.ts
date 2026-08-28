@@ -9,13 +9,17 @@ import {
   putInCellar,
   reduceLines,
   rememberStock,
+  rowsOf,
   stockFor,
   takeFromCellar,
   UNDO_WINDOW_MS,
   type CellarEntry,
   type GroceryLine,
   type HistoryEntry,
+  type PendingIngredient,
+  type PendingIntent,
   type Receipt,
+  type Section,
   type Snapshot,
 } from "../model";
 
@@ -732,5 +736,68 @@ describe("discharging claims", () => {
 
   it("leaves other ingredients alone", () => {
     expect(reduceLines(lines, { ingredientId: "onions", unit: "g" }, 500)).toEqual(lines);
+  });
+});
+
+describe("folding ghosts into a section", () => {
+  const ghost = (
+    id: string,
+    intent: PendingIntent,
+    state: PendingIngredient["state"] = "resolving",
+  ): PendingIngredient => ({ id, name: "yuzu", unit: "pcs", amount: 1, intent, state });
+
+  const sections = buildSections(base);
+  const ghostsIn = (section: Section, pending: PendingIngredient[]) =>
+    rowsOf(section, sections, pending).filter((row) => row.kind === "ghost");
+
+  /**
+   * The card has to appear under the heading the shopper aimed it at. Drawing every ghost in
+   * "to-buy" would put the cellar button's card in the wrong section and then move it once it
+   * resolved, which is worse than no feedback — the shopper has to watch it jump to learn where it
+   * went.
+   */
+  it("waits in the section its own intent will put it in", () => {
+    const pending = [ghost("g1", "relist"), ghost("g2", "buy")];
+
+    expect(ghostsIn("to-buy", pending).map((row) => row.ghost.id)).toEqual(["g1"]);
+    expect(ghostsIn("cellar", pending).map((row) => row.ghost.id)).toEqual(["g2"]);
+  });
+
+  /**
+   * "Recently bought" is defined by exclusion — bought before, owned by nobody, wanted by nobody —
+   * and a word with no history cannot satisfy the first clause.
+   */
+  it("never waits in recently-bought", () => {
+    const pending = [ghost("g1", "relist"), ghost("g2", "buy")];
+
+    expect(ghostsIn("recently-bought", pending)).toHaveLength(0);
+  });
+
+  /** The card being waited on is the one being looked for, and it has no `updatedAt` to sort by. */
+  it("leads its section, ahead of the rows that sort", () => {
+    const rows = rowsOf("to-buy", sections, [
+      ghost("g1", "relist"),
+      ghost("g2", "relist", "failed"),
+    ]);
+
+    expect(rows.map((row) => row.kind)).toEqual(["ghost", "ghost", "stock"]);
+  });
+
+  it("leaves a section untouched when nothing is pending", () => {
+    expect(rowsOf("to-buy", sections, [])).toHaveLength(sections["to-buy"].length);
+  });
+
+  /**
+   * The grid decides "draw a header" from this length, so a lone ghost has to make its section
+   * non-empty — otherwise the first unknown ingredient a shopper types draws a card with no
+   * heading over it. True of the cellar too, which is empty far more often than the list is.
+   */
+  it("makes an otherwise empty section non-empty", () => {
+    const bare = buildSections({ ...base, lines: [], cellar: [] });
+
+    expect(bare["to-buy"]).toHaveLength(0);
+    expect(bare.cellar).toHaveLength(0);
+    expect(rowsOf("to-buy", bare, [ghost("g1", "relist")])).toHaveLength(1);
+    expect(rowsOf("cellar", bare, [ghost("g2", "buy")])).toHaveLength(1);
   });
 });

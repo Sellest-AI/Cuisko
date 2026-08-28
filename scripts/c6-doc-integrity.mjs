@@ -33,7 +33,9 @@ const findings = [];
  * once the file lands, C6 fails until the entry is removed. So it can only ever shrink, and a
  * typo'd path is still caught because a typo is not in here.
  */
-const PLANNED = new Set(["src/global/routes.ts"]);
+const PLANNED = new Set([
+  "src/global/routes.ts",
+]);
 
 /* ── Which files to check ─────────────────────────────────────────────────────────────── */
 

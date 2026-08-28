@@ -1,13 +1,19 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { vLocalized, vLocalizedList, vLocalizedText } from "./i18n";
-import { UNITS } from "@shared/ingredients";
+import { INGREDIENT_SOURCES, UNITS } from "@shared/ingredients";
 import { NUTRI_SCORE_GRADES } from "@shared/nutrition";
 import { DIETS } from "@shared/diets";
 import { ALLERGENS } from "@shared/allergens";
 import { CATEGORIES } from "@shared/categories";
 
-const vCategory = v.union(...CATEGORIES.map(v.literal));
+/**
+ * The category vocabulary as a validator. Exported for the reason `vUnit` below is: a payload
+ * crossing a function boundary carries the same closed list this table stores, and a second
+ * `v.union(...CATEGORIES.map(...))` written beside a router agrees with this one only until
+ * somebody narrows one of them.
+ */
+export const vCategory = v.union(...CATEGORIES.map(v.literal));
 
 /**
  * The unit vocabulary as a validator, exported because every cellar table and every cellar
@@ -24,7 +30,7 @@ const vNutriScoreGrade = v.union(...NUTRI_SCORE_GRADES.map(v.literal));
  * reduces over these values and `shared/tags.ts` maps them to tags, so a second list written here
  * would agree with that one only until somebody narrowed it.
  */
-const vDiet = v.union(...DIETS.map(v.literal));
+export const vDiet = v.union(...DIETS.map(v.literal));
 
 /**
  * The allergen vocabulary as a validator — the fourteen EU-regulated substances (@shared/allergens).
@@ -41,7 +47,7 @@ const vDiet = v.union(...DIETS.map(v.literal));
  * membership, so "every ingredient containing gluten" is a scan. Nothing asks — the tags read the
  * array forward, off a document already in hand.
  */
-const vAllergen = v.union(...ALLERGENS.map(v.literal));
+export const vAllergen = v.union(...ALLERGENS.map(v.literal));
 
 /**
  * The other ways to say an ingredient — "patates" for pommes de terre.
@@ -61,11 +67,34 @@ const vAliases = vLocalizedList;
  * merged in the client. One blob per locale is one index and one query, and it is what makes
  * "patates" reach pommes de terre server-side.
  *
- * **Written only by `seedIngredients`**, from the two fields above. Anything that sets `name` or
+ * **Written only by `ingredientRow`**, from the two fields above, and composed by every writer of
+ * this table — the seed and `createIngredient` alike (ADR 0011). Anything that sets `name` or
  * `aliases` without recomputing this leaves the row findable under its old spelling and not its
  * new one — a drift with no symptom except a search that quietly misses.
  */
 const vSearchText = vLocalizedText;
+
+export const vIngredientSource = v.union(...INGREDIENT_SOURCES.map(v.literal));
+
+/**
+ * The eight nutrients, per 100g, as the COLUMN holds them.
+ *
+ * Four are optional and that is about history, not about sources: rows written before a nutrient
+ * was stored carry no value for it. A row written today has no such excuse, which is why the
+ * payload a writer hands over is a stricter shape built from this one — `vIngredientFacts` in
+ * `schema/ingredientPayloads.ts`. Extracted from the table so the two are one statement plus its
+ * difference, rather than two lists that agree until somebody adds a ninth nutrient.
+ */
+export const vIngredientNutrition = v.object({
+  calories: v.number(),
+  protein: v.number(),
+  fat: v.number(),
+  saturatedFat: v.optional(v.number()),
+  carbohydrates: v.number(),
+  sugars: v.optional(v.number()),
+  fiber: v.optional(v.number()),
+  sodium: v.optional(v.number()),
+});
 
 export const ingredients = defineTable({
   // Stable dedup key for the seed catalog (convex/functions/ingredients/ingredientCatalog.ts) —
@@ -82,6 +111,18 @@ export const ingredients = defineTable({
   aliases: v.optional(vAliases),
   search: v.optional(vSearchText),
   category: vCategory,
+
+  /**
+   * Which of the four sources this row's facts came from — see `INGREDIENT_SOURCES`.
+   *
+   * Optional only because rows written before this field existed do not carry one; every writer
+   * sets it (`ingredientRow.ts`), so `undefined` means "seeded before we recorded this" and not
+   * "unknown provenance". Slice 9 backfills those to `seed` and this becomes required.
+   *
+   * No index. Nothing queries by source — it is read off a document already in hand, by a screen
+   * deciding how loudly to caveat a Nutri-Score.
+   */
+  source: v.optional(vIngredientSource),
   /**
    * Which diet this ingredient is suitable for — the field the `vegan` / `vegetarian` /
    * `pescatarian` tags are actually decided from.
@@ -139,16 +180,7 @@ export const ingredients = defineTable({
   gramsPerPiece: v.optional(v.number()),
   gramsPerMl: v.optional(v.number()),
   // All facts per 100g.
-  nutrition: v.object({
-    calories: v.number(),
-    protein: v.number(),
-    fat: v.number(),
-    saturatedFat: v.optional(v.number()),
-    carbohydrates: v.number(),
-    sugars: v.optional(v.number()),
-    fiber: v.optional(v.number()),
-    sodium: v.optional(v.number()),
-  }),
+  nutrition: vIngredientNutrition,
   // Derived from `nutrition` by @shared/nutrition — absent until every field it needs is present.
   nutriScore: v.optional(v.object({
     grade: vNutriScoreGrade,

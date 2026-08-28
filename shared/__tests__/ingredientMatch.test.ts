@@ -2,10 +2,13 @@ import { describe, expect, test } from "vitest";
 
 import {
   CONFIDENT,
+  gradesIn,
   PLAUSIBLE,
+  RESOLVABLE,
   type Candidate,
   rankCandidates,
   scoreCandidate,
+  searchTerms,
 } from "../ingredientMatch";
 
 const candidate = (id: string, name: string, aliases?: string[]): Candidate => ({
@@ -19,6 +22,10 @@ const PASTA = candidate("pasta-dry", "Pâtes", ["pâtes sèches"]);
 const POTATO = candidate("potato", "Pommes de terre", ["patates"]);
 const CHIPS = candidate("chips", "Chips de patates");
 const TOMATO = candidate("tomato", "Tomate");
+
+/** The two graded rows this file's hardest case is about. `Bœuf haché (80/20)` is seeded. */
+const MINCE_20 = candidate("ground-beef-80-20", "Bœuf haché (80/20)", ["steak haché"]);
+const MINCE_5 = candidate("ground-beef-95-5", "Steak haché 5%");
 
 describe("scoreCandidate", () => {
   test("an exact name is 1, whatever the accents and the plural", () => {
@@ -58,6 +65,55 @@ describe("scoreCandidate", () => {
 
   test("a name made only of qualifiers still identifies itself", () => {
     expect(scoreCandidate("frais", candidate("fresh", "Frais"))).toBe(1);
+  });
+
+  /**
+   * The grade block. Every case here scored **1.0** before `_grades` existed — an exact match,
+   * linked without the ranker being asked — because "%" folded to a space and the digits behind it
+   * were read as a quantity. Two mince rows differ by nothing else, so nothing else could catch it.
+   */
+  test("two grades of the same food are not the same food", () => {
+    expect(scoreCandidate("steak haché 5%", MINCE_5)).toBe(1);
+    expect(scoreCandidate("steak haché 5%", candidate("x", "Steak haché 20%"))).toBeLessThan(
+      CONFIDENT,
+    );
+    expect(scoreCandidate("chocolat noir 70%", candidate("x", "Chocolat noir 85%"))).toBeLessThan(
+      CONFIDENT,
+    );
+  });
+
+  test("a graded food is not its ungraded row either", () => {
+    expect(scoreCandidate("steak haché 5%", candidate("x", "Steak haché"))).toBeLessThan(CONFIDENT);
+  });
+
+  test("a decimal grade does not collide with the whole number that spells it", () => {
+    expect(scoreCandidate("lait 1,5%", candidate("x", "Lait 15%"))).toBeLessThan(CONFIDENT);
+  });
+
+  test("a wrong grade is still a candidate worth asking a reader about", () => {
+    expect(scoreCandidate("steak haché 5%", candidate("x", "Steak haché 20%"))).toBeGreaterThan(
+      RESOLVABLE,
+    );
+  });
+
+  /**
+   * The two notations a kitchen writes with one character. A butcher's ratio is improper and is a
+   * grade; a recipe's fraction is proper and is a quantity, which is why "1/2 citron" is a lemon.
+   */
+  test("an improper fraction is a grade, a proper one is a quantity", () => {
+    expect(scoreCandidate("boeuf haché 95/5", MINCE_20)).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("1/2 citron", candidate("lemon", "Citron"))).toBe(1);
+  });
+
+  /**
+   * `haché` left `QUALIFIERS`, and this is the pair that sent it there: stripping it made minced
+   * beef and a steak one string. The alias hit below is the control — the fixture in
+   * `matchIngredients.test.ts` depends on it, and removing the word must not cost it.
+   */
+  test("mincing a cow makes a different product; mincing an onion does not", () => {
+    expect(scoreCandidate("steak haché", candidate("x", "Steak"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("viande hachée", candidate("x", "Viande hachée"))).toBe(1);
+    expect(scoreCandidate("3 oignons, émincés", candidate("onion", "Oignon"))).toBe(1);
   });
 
   test("an unrelated ingredient scores below PLAUSIBLE", () => {
@@ -105,5 +161,57 @@ describe("rankCandidates", () => {
       "first",
       "second",
     ]);
+  });
+});
+
+describe("searchTerms", () => {
+  test("drops the grade, which no index ever stored", () => {
+    expect(searchTerms("steak haché 5%")).toBe("steak hache");
+    expect(searchTerms("boeuf haché 95/5")).toBe("boeuf hache");
+  });
+
+  test("still drops quantities and qualifiers", () => {
+    expect(searchTerms("200g de pâtes")).toBe("pate");
+    expect(searchTerms("3 oignons, émincés")).toBe("oignon");
+  });
+});
+
+/**
+ * The inverse of `searchTerms`' grade filter. It exists because a grade can survive a translation:
+ * the resolver looks an unknown word up in a taxonomy filed under grade-free spellings, so the
+ * shopper's "5%" is dropped on the way in and has to be re-attached on the way out.
+ */
+describe("gradesIn", () => {
+  test("returns the grade tokens searchTerms throws away", () => {
+    expect(gradesIn("steak haché 5%")).toEqual(["pct5"]);
+    expect(searchTerms("steak haché 5%")).toBe("steak hache");
+  });
+
+  test("reads an improper ratio as a grade and a proper fraction as not one", () => {
+    expect(gradesIn("boeuf haché 80/20")).toEqual(["pct80"]);
+    expect(gradesIn("1/2 citron")).toEqual([]);
+  });
+
+  test("keeps a decimal grade distinct from the whole number it folds near", () => {
+    expect(gradesIn("lait 1,5%")).toEqual(["pct1d5"]);
+    expect(gradesIn("crème 15%")).toEqual(["pct15"]);
+  });
+
+  test("is empty for a name carrying no grade", () => {
+    expect(gradesIn("carotte")).toEqual([]);
+    expect(gradesIn("200g de pâtes")).toEqual([]);
+  });
+
+  /**
+   * Re-attaching a token has to survive folding, or the round trip it exists for does not work:
+   * the grade must stay invisible to retrieval and decisive in ranking, exactly as if the shopper
+   * had typed it against the row directly.
+   */
+  test("produces tokens that fold back to themselves", () => {
+    const regraded = `steak haché ${gradesIn("steak haché 5%").join(" ")}`;
+
+    expect(searchTerms(regraded)).toBe("steak hache");
+    expect(scoreCandidate(regraded, candidate("mince", "Bœuf haché (80/20)", ["steak haché"])))
+      .toBeLessThan(CONFIDENT);
   });
 });

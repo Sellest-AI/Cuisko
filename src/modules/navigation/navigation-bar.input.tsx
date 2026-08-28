@@ -8,13 +8,30 @@ import { NAVIGATION_BAR_HEIGHT } from "./constants";
 import { AnimatePresence, m } from "@ui/motion";
 import { BlurView } from "~/ui/components/blur-view";
 import { Suggestions } from "./_components/suggestions";
-import type { Unit } from "@shared/ingredients";
+import { pickQuantity, type Unit } from "@shared/ingredients";
 import { useSuggestions } from "./_hooks/useSuggestions";
 import { useNavigationBar } from "./_hooks/useNavigationBar";
-import { useStockActions } from "~/modules/groceries/hooks";
+import { useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
+import { readIntent } from "@shared/ingredientIntent";
+import type { AssistantMode } from "./_hooks/useNavigationBar";
 
 const MIC_ICON_SIZE = 20;
+
+/**
+ * What a submission does to stock, decided by the mode the bar is in.
+ *
+ * "cellar" means the shopper is telling us what they own, so it goes in. Every other mode — the
+ * list, a recipe, or no mode at all — means they are writing something down to buy.
+ *
+ * Named rather than inlined because two submissions now need it: an ingredient the catalog already
+ * holds, and one the resolver had to go and find. They must agree, or the same word typed twice
+ * lands in two different places depending on whether we happened to know it.
+ *
+ * The return type is inferred rather than imported: `Intent` lives in the groceries module's
+ * `_model/`, which is its interior (lint R8), and the literal union is what `apply` accepts.
+ */
+const _stockIntent = (mode: AssistantMode) => (mode === "cellar" ? ("buy" as const) : ("relist" as const));
 
 type Props = {
   style?: ViewStyle,
@@ -29,29 +46,46 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   const t = useTranslations("Navigation");
   const pathname = usePathname();
 
+  // The suggestions panel is laid out above the input and then pulled back down over it, so it
+  // needs the input's height. Measured rather than assumed: the row grows with the font scale.
+  const [inputHeight, setInputHeight] = useState(0);
   const [value, setValue] = useState("");
 
-  const { hasSuggestions, matchingSuggestion, unit, amount } = useSuggestions(value);
+  const { hasSuggestions, matchingSuggestion, rest, unit, amount } = useSuggestions(value);
   const showSuggestions = focused && hasSuggestions;
 
   const { apply } = useStockActions();
+  const { add: addUnknown } = usePendingIngredients();
 
   const { mode, setInputRef } = useNavigationBar();
   const ref = useRef<TextInput>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setInputRef(ref); }, []);
 
+  const showGroceries = () => {
+    if (!pathname.startsWith("/groceries")) router.push("/groceries");
+  }
+
   const submitSuggestion = (suggestionId: string, unit: Unit, amount: number) => {
-    /**
-     * The type of action to apply depends on the current mode of the navigation bar.
-     * If the mode is "cellar", we want to "buy" the ingredient.
-     * If the mode is "shopping-list", we want to "relist" it. Otherwise, we default to "relist".
-     */
-    const type = mode === "cellar" ? "buy" : mode === "shopping-list" ? "relist" : "relist";
     // Deliberately not awaited: `apply` handles its own failure, and the bar closes on the
     // gesture rather than on the write landing — Convex reflects the row when it does.
-    void apply(type, { ingredientId: suggestionId, unit: unit }, Number(amount));
-    if (!pathname.startsWith("/groceries")) router.push("/groceries");
+    void apply(_stockIntent(mode), { ingredientId: suggestionId, unit: unit }, Number(amount));
+    showGroceries();
+  }
+
+  /**
+   * A word the catalog does not hold, handed to the resolver with a placeholder standing in for it.
+   *
+   * Also not awaited, and for a stronger reason than above: the resolve can take seconds, and the
+   * bar has to close on the gesture. The ghost is what carries the wait — `usePendingIngredients`
+   * puts it up before the request goes out and owns everything that happens to it after.
+   *
+   * `rest` and not `value`: the resolver is asked about the food, with the quantity taken out, so
+   * "500g yuzu" does not go to a dictionary as "500g yuzu".
+   */
+  const submitUnknown = (text: string, unit: Unit | null, amount: number | null) => {
+    void addUnknown(text, _stockIntent(mode), unit, amount);
+    showGroceries();
   }
 
   return (
@@ -70,7 +104,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
             styles.suggestionsContainerRadius,
             styles.elevated,
             { transformOrigin: "bottom" },
-            focused && { left: 10, right: 10 }
+            // Tucks the panel back over the input it grew above, landing its bottom edge the same
+            // 6px below the bar the absolute version used to sit at.
+            { marginBottom: -(inputHeight + theme.spacing[6]) },
           ]}>
           <BlurView
             tint="light"
@@ -101,6 +137,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
         </m.View>}
       </AnimatePresence>
       <m.View
+        onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
         style={[
           styles.container,
           focused ? { maxWidth: "100%", width: "100%" } : { maxWidth: 242, width: "100%" },
@@ -114,9 +151,26 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           rightContent={<MicIcon size={MIC_ICON_SIZE} color={theme.colors.foreground} />}
           style={{ width: "100%" }}
           onSubmit={() => {
-            if (matchingSuggestion)
-              submitSuggestion(matchingSuggestion.id, unit, amount);
-            else
+            /**
+             * Three things Enter can mean, and they are no longer decided by whether the catalog
+             * happened to answer. `readIntent` owns the rules and their order — an explicit
+             * question beats a match, a match beats the sentence heuristic — so that "? tomate"
+             * asks about tomatoes instead of buying one, and a food we have never held reaches the
+             * resolver instead of the assistant's mockup.
+             */
+            const intent = readIntent(value, matchingSuggestion !== null);
+
+            // The row answers when the shopper did not, both halves together — an amount without
+            // its unit is not half a quantity. On the unknown branch there is no row yet, so the
+            // blank travels, and `usePendingIngredients` fills it the same way from what the
+            // resolver comes back with.
+            if (intent.kind === "ingredient" && matchingSuggestion) {
+              const quantity = pickQuantity({ amount, unit }, matchingSuggestion);
+              submitSuggestion(matchingSuggestion.id, quantity.unit, quantity.amount);
+            }
+            else if (intent.kind === "unknown" && rest)
+              submitUnknown(rest, unit, amount);
+            else if (intent.kind === "chat")
               router.push("/assistant");
 
             setValue("");
@@ -138,11 +192,18 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
 const styles = StyleSheet.create({
   container: {
   },
+  /**
+   * In the layout flow, not absolutely positioned over it — the panel used to hang above the bar,
+   * outside the bounds of every ancestor up to the sticky view. Android does not dispatch a native
+   * touch to a view drawn outside its parent, so the horizontal ScrollView inside never saw a drag
+   * and the suggestions would not scroll; iOS hit-tests overflowing subviews and worked.
+   *
+   * Laid out above the input instead, the panel gives the whole chain the height it occupies, and a
+   * negative `marginBottom` at the call site puts it back where it was on screen. Geometry is
+   * unchanged on both platforms; only the bounds it lives in are.
+   */
   suggestionsContainer: {
-    position: "absolute",
-    bottom: -theme.spacing[6],
-    left: -theme.spacing[6],
-    right: -theme.spacing[6],
+    marginHorizontal: -theme.spacing[6],
     paddingBottom: NAVIGATION_BAR_HEIGHT,
     overflow: "hidden",
   },

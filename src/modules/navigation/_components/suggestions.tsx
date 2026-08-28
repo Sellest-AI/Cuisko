@@ -4,7 +4,7 @@ import { theme } from "theme";
 import { Text } from "@ui/text";
 import { GroceryItem } from "@ui/cards/grocery-item";
 import { useTranslations } from "translations";
-import type { Unit } from "@shared/ingredients";
+import { pickQuantity, type Unit } from "@shared/ingredients";
 import { useSuggestions } from "../_hooks/useSuggestions";
 
 const SHARED_PADDING = theme.spacing[16];
@@ -41,17 +41,23 @@ export const Suggestions = ({ value, style, onSelect }: Props) => {
         }}
       >
         {suggestions.map((suggestion) => {
+          // What the shopper typed wins, both halves at once; the row answers when they gave
+          // neither. Read per card rather than once for the list: "2" against gnocchi and against a
+          // lemon is two packets and two lemons, and one shared unit for every row could only be
+          // right for one.
+          const { amount: quantity, unit: measure } = pickQuantity({ amount, unit }, suggestion);
+
           return (
             <GroceryItem
               key={suggestion.id}
               name={suggestion.name}
               emoji={suggestion.emoji}
               style={{ backgroundColor: theme.colors.surface.elevated }}
-              quantity={amount ? `${amount} ${unit}` : undefined}
+              quantity={`${quantity} ${measure}`}
               onPress={() => onSelect?.({
                 id: suggestion.id,
-                amount: amount,
-                unit: unit
+                amount: quantity,
+                unit: measure
               })}
             />
           )
