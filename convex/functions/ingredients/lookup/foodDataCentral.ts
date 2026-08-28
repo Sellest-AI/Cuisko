@@ -132,6 +132,12 @@ export const searchFoodDataCentral = async (text: string): Promise<LookupHit | u
   return {
     source: "foodComposition",
     names: { en: [...new Set(leading)] },
+    // A keyword search, so these names are evidence and never vocabulary — see `searched`.
+    searched: true,
     nutrition: best?.nutrition,
+    // Which of the five the figures belong to, stated rather than implied by being first in the
+    // list — USDA ran a keyword search, so this is the claim that has to be checkable. English for
+    // the same reason `names` is: this source publishes in one language.
+    measuredAs: best?.name ? [{ name: best.name, locale: "en" as const }] : [],
   };
 };

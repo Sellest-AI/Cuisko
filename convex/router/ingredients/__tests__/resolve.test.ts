@@ -276,6 +276,63 @@ describe("router/ingredients/resolve", () => {
   });
 
   /**
+   * A keyword search answers every term, including the ones it cannot answer.
+   *
+   * USDA matched the token `de` in `eau de fleur d'oranger` and returned `Pastry, Pastelitos de
+   * Guava` — a real food, and not this one. Spent on the catalog unchecked, that name was treated
+   * as another spelling of what the shopper typed, and it linked at 0.90 to the one row whose
+   * aliases happened to carry that exact string. In production that put 30g of pistachio paste on
+   * a grocery list: the placeholder vanished, no error was shown, and the agent never ran.
+   *
+   * The row here is seeded carrying that alias deliberately — it is what the catalog looked like,
+   * and a source's junk becoming a row's vocabulary is a separate defect with its own fix. This
+   * asserts the resolver no longer *acts* on it: the name is not about the term, so it is never
+   * spent on the catalog, and the word reaches the step that can read it.
+   */
+  test("a keyword hit that is not about the term never links, and the agent still runs", async () => {
+    await t.run((ctx) =>
+      ctx.db.insert("ingredients", {
+        name: { values: { en: "pistachio paste", fr: "pâte de pistache" }, meta: {} },
+        emoji: "🥜",
+        aliases: { en: ["Pastry, Pastelitos de Guava (guava pastries)"], fr: [] },
+        search: {
+          en: "pistachio paste pastry pastelitos de guava pastries",
+          fr: "pâte de pistache",
+        },
+        category: "OTHER",
+        defaultUnit: "g",
+        defaultQuantity: 30,
+        nutrition: { calories: 495, protein: 25, fat: 34, carbohydrates: 35 },
+        source: "openFoodFacts" as const,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        url.includes("nal.usda.gov")
+          ? Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                foods: [{ description: "Pastry, Pastelitos de Guava (guava pastries)" }],
+              }),
+          })
+          : Promise.reject(new Error("no network in tests")),
+      ),
+    );
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "eau de fleur d'oranger",
+      locale: "fr",
+    });
+
+    expect(resolved).toEqual({ status: "refused", reason: "not-food" });
+    expect(sanitizeRun).toHaveBeenCalledOnce();
+  });
+
+  /**
    * The refusal path, and the reason it is the agent's to decide rather than a step running out:
    * nothing before this can tell a food we have never heard of from washing-up liquid. `fetch` is
    * stubbed to reject for the whole file, so this is also the assertion that a third-party outage
@@ -299,7 +356,7 @@ describe("router/ingredients/resolve", () => {
    * against duplicates the thing that has to work, since `createIngredient` has no dedup key.
    */
   test("a genuine miss creates one row, and a second identical call matches it", async () => {
-    sanitizeRun.mockResolvedValue({ verdict: "new", facts: RUTABAGA });
+    sanitizeRun.mockResolvedValue({ verdict: "new", facts: RUTABAGA, source: "agent" });
     const asShopper = await signIn();
 
     const created = await asShopper.action(api.router.ingredients.resolve.authed, {
@@ -321,13 +378,19 @@ describe("router/ingredients/resolve", () => {
   });
 
   /**
-   * `source` records where the NUMBERS came from, not which step decided the category. A term the
-   * taxonomy knows and CIQUAL measured reaches the agent for its judgement, and the row it writes
-   * still wears the composition table's provenance — `provenanceOf`.
+   * `source` records where the NUMBERS came from, not which step decided the category — and the
+   * step that decides it is the tool, which is the only place that knows which hits actually
+   * contributed a figure (`measuredAboutIt`). So this asserts the two halves of the wiring the
+   * router still owns: that step 2 gathers a figure-bearing hit on the way past and HANDS it to
+   * the agent, and that the row records what came back rather than a second opinion computed here.
+   *
+   * The rule itself — measured figures win the provenance, figures measured on another food do not
+   * even reach it — is `toSanitizedIngredient`'s test, where no mock stands in for it.
    */
-  test("a row built on measured figures records the composition table, not the agent", async () => {
+  test("hands the measured hit to the agent, and records the provenance it answers with", async () => {
     sanitizeRun.mockResolvedValue({
       verdict: "new",
+      source: "foodComposition",
       facts: {
         ...RUTABAGA,
         names: {

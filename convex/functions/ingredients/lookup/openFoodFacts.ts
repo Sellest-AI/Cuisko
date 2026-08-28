@@ -167,5 +167,29 @@ export const searchOpenFoodFacts = async (text: string): Promise<LookupHit | und
   const spellings = _spellingsOf(best ? [best.product, ...products] : products);
   if (!_named(spellings)) return undefined;
 
-  return { source: "openFoodFacts", ...spellings, nutrition: best?.nutrition };
+  // Which product the figures belong to, stated rather than implied by leading the list — and
+  // carrying the language Open Food Facts labelled it with, since a spelling checked against the
+  // wrong language passes on coincidence (see `measuredAs`).
+  //
+  // EVERY title the jar carries, not the first one found. A product labelled in both languages was
+  // being judged on its French name alone, so an English label naming the food exactly could not
+  // save the figures — `measuredAboutIt` accepts the hit if any of these names the row's food. The
+  // bare `product_name` goes in without a locale, which is the honest answer for a field any
+  // contributor fills in whatever language they had.
+  const _measuredAs = (product: Product) => [
+    ...(product.product_name_fr ? [{ name: product.product_name_fr, locale: "fr" as const }] : []),
+    ...(product.product_name_en ? [{ name: product.product_name_en, locale: "en" as const }] : []),
+    ...(product.product_name ? [{ name: product.product_name }] : []),
+  ];
+
+  const measuredAs = best ? _measuredAs(best.product) : [];
+
+  // `searched`: a product search, so a jar's title never becomes another word for the food.
+  return {
+    source: "openFoodFacts",
+    ...spellings,
+    searched: true,
+    nutrition: best?.nutrition,
+    measuredAs,
+  };
 };

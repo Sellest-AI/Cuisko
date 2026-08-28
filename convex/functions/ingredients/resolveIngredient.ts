@@ -8,7 +8,7 @@ import type { IngredientSource, Unit } from "@shared/ingredients";
 
 import { compositionOf } from "./lookup/composition";
 import { searchFoodDataCentral } from "./lookup/foodDataCentral";
-import { provenanceOf, spellingsOfHit, type LookupHit } from "./lookup/lookupHit";
+import { aboutTheSameFood, spellingsOfHit, type LookupHit } from "./lookup/lookupHit";
 import { searchOpenFoodFacts } from "./lookup/openFoodFacts";
 import { findInTaxonomy, namesOf, spellingsOf } from "./lookup/taxonomy";
 import type { WidenedCandidate } from "./searchWidened";
@@ -207,6 +207,26 @@ const _fromDatasets = async (
  *
  * Like step 2, what comes back is first spent on the catalog: a product name is another spelling,
  * and a spelling is another chance the row already exists.
+ *
+ * **But only a name that is about the word the shopper typed.** Both sources here run a KEYWORD
+ * search and neither reports how well it matched, so a term they cannot answer still comes back
+ * full of foods — USDA matches the token `de` and returns `Pastry, Pastelitos de Guava` for
+ * `eau de fleur d'oranger`. Spent on the catalog unchecked, that name is treated as another
+ * spelling of the term, and it links to whatever row happens to hold it: it linked to
+ * `pâte de pistache`, whose aliases carried that exact string, at 0.90 against a 0.78 bar. The
+ * shopper saw their placeholder vanish and 30g of pistachio paste join a line already on the list
+ * — no error, nothing to dismiss, and the agent never ran.
+ *
+ * `aboutTheSameFood` is the same predicate `sanitizeIngredient` gates a source's vocabulary and
+ * its figures with, applied at the third site where a searched source's words are trusted.
+ *
+ * **The cost is step 3's cross-language bridge, and it is paid knowingly.** `Potato` is not
+ * string-similar to `Pomme de terre`, so this gate drops a correct foreign-language name as
+ * readily as a junk one. Measured over the seeded catalog, 132 of 532 cross-language lookups
+ * reach this step as their only chance — and of a 20-case sample, Open Food Facts resolved none
+ * of them, so the bridge being closed here is one that was not carrying traffic. What the gate
+ * drops is not lost but demoted to step 4, where a reader judges the word: that costs a model
+ * call and may invent a duplicate row, which is visible and fixable. A silent wrong link is not.
  */
 const _fromApis = async (
   ctx: ActionCtx,
@@ -216,6 +236,8 @@ const _fromApis = async (
   const hits = found.filter((hit): hit is LookupHit => hit !== undefined);
 
   for (const name of hits.flatMap(spellingsOfHit)) {
+    if (!aboutTheSameFood(name, text)) continue;
+
     const { resolved } = await _fromCatalog(ctx, { text: name, locale });
     if (resolved) return { resolved, hits };
   }
@@ -283,7 +305,11 @@ const _fromAgent = async (
   // Not `agent` by default: `measuredOver` has already laid every measured figure back over the
   // model's, so a row the taxonomy and CIQUAL answered for records the composition table that
   // supplied its numbers rather than the reader that supplied its category.
-  const source = provenanceOf(evidence.hits);
+  //
+  // Read off the sanitized answer rather than recomputed from `evidence.hits`, because the two
+  // disagree: a hit measured on another food contributes no figures to the row, and asking the raw
+  // list would stamp that source's authority on numbers it did not supply.
+  const source = sanitized.source;
 
   const ingredientId = await ctx.runMutation(
     internal.router.ingredients.resolve._internal_create,

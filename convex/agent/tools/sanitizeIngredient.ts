@@ -3,8 +3,10 @@ import * as z from "zod/v4";
 import type { Id } from "@convex/_generated/dataModel";
 import type { IngredientFacts } from "@convex/functions/ingredients/ingredientRow";
 import {
+  measuredAboutIt,
   measuredOver,
   NUTRITION_FIELDS,
+  provenanceOf,
   type LookupHit,
 } from "@convex/functions/ingredients/lookup/lookupHit";
 import type { LocalizedList, TranslationStatus } from "@convex/schema/i18n";
@@ -12,7 +14,7 @@ import { ALLERGENS, type Allergen } from "@shared/allergens";
 import { CATEGORIES } from "@shared/categories";
 import { DIETS } from "@shared/diets";
 import { retryPromise } from "@shared/helpers";
-import { INGREDIENT_SOURCES, toGrams, UNITS } from "@shared/ingredients";
+import { INGREDIENT_SOURCES, toGrams, UNITS, type IngredientSource } from "@shared/ingredients";
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
 import { ingredientsAgent, rankerAgent } from "../agents";
@@ -32,7 +34,17 @@ import { createTool, modelText, parseModelOutput, providerSchema, wrapAgent } fr
  */
 export type SanitizedIngredient =
   | { verdict: "existing"; ingredientId: Id<"ingredients">; name: string }
-  | { verdict: "new"; facts: IngredientFacts }
+  | {
+    verdict: "new";
+    facts: IngredientFacts;
+    /**
+     * Where the row's numbers came from, decided beside them rather than re-derived by the
+     * caller. It cannot be read off `hits`: a hit whose figures were measured on another food
+     * contributes none of them (`measuredAboutIt`), so a second `provenanceOf` over the raw list
+     * answers about evidence this row does not contain.
+     */
+    source: IngredientSource;
+  }
   | { verdict: "refused"; reason: "not-food" | "not-an-ingredient" };
 
 /**
@@ -212,6 +224,13 @@ const _hitSchema = z.object({
   source: z.enum(INGREDIENT_SOURCES),
   names: _perLocale(z.array(z.string()).optional()),
   untagged: z.array(z.string()).optional(),
+  searched: z.boolean().optional(),
+  // Not decoration: `_inputSchema` PARSES what the tool is handed, and zod drops what it does not
+  // declare. Omitted here, `measuredAs` would arrive as undefined however carefully the lookups
+  // filled it, and `measuredAboutIt` would read every hit as one its source vouched for.
+  measuredAs: z
+    .array(z.object({ name: z.string(), locale: z.enum(SUPPORTED_LOCALES).optional() }))
+    .optional(),
   nutrition: z
     .object(
       Object.fromEntries(
@@ -294,6 +313,36 @@ const _evidenceCheck: _EvidenceCheck = true;
 /** Every spelling a hit stated for one language, lowercased for comparison. */
 const _statedIn = (hits: readonly LookupHit[], locale: Locale) =>
   hits.flatMap((hit) => hit.names[locale] ?? []);
+
+/**
+ * The spellings worth STORING as another word for the food — the curated hits' only.
+ *
+ * **A rule about how a source found its answer, not about how good the source is.** A hit marked
+ * `searched` was handed the shopper's words and returned what ranked highest, and neither API is
+ * ranking by "is this the same food": Open Food Facts answered `crème de marrons` with `Yaourt
+ * brassé crème de marrons 2 x 160 g` — a yogurt — and `Clement Faugier - Vanilla Chestnut Spread,
+ * 17.5oz (500g)`, a brand and a package size. USDA answered `pâte de pistache` with `Pastry,
+ * Pastelitos de Guava (guava pastries)`. Stored as aliases these reach the search blob through
+ * `ingredientRow`, and the catalog starts answering "yaourt" with a jar of chestnut spread.
+ *
+ * **A score cannot separate them, which is why this is not another threshold.** The yogurt is a
+ * different food that CONTAINS this one, so it carries the name in full; the guava pastry rides in
+ * on `paste` resembling `pastry` at 0.667. Measured: the pastry scores 0.356 against `pistachio
+ * paste` and USDA's own correct `Nuts, pistachio nuts, raw` scores 0.400 — 0.044 apart, so any bar
+ * that excludes one excludes both.
+ *
+ * **The searching sources lose nothing they were doing well.** Their spellings are already spent
+ * where they pay: `_fromApis` re-searches the catalog with every one of them before a row is ever
+ * written, which is the job those files claim for them. This governs storage alone.
+ */
+const _vocabularyIn = (hits: readonly LookupHit[], locale: Locale) =>
+  _statedIn(hits.filter((hit) => !hit.searched), locale);
+
+/** The names the gates below score against, as `aboutTheSameFood` wants them. */
+const _namesByLocale = (facts: z.infer<typeof _modelFactsSchema>) =>
+  Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [locale, _catalogName(facts.names[locale])]),
+  ) as Record<Locale, string>;
 
 /**
  * How a name in one language got there.
@@ -404,22 +453,49 @@ export const toSanitizedIngredient = (
       "and there is no default weight for one of something",
     );
 
+  const byLocale = _namesByLocale(facts);
+
+  // Everything below reads THIS list rather than `hits`: figures measured on another food are
+  // dropped here, so neither `measuredOver` nor `provenanceOf` can be told about them.
+  const measured = measuredAboutIt(hits, byLocale);
+
   const names = Object.fromEntries(
     SUPPORTED_LOCALES.map((locale) => {
-      const name = _catalogName(facts.names[locale]);
+      const name = byLocale[locale];
 
+      // Every hit, Open Food Facts included — deliberately wider than `_vocabularyIn` below,
+      // because this asks a different question. Storing a product title as vocabulary is what
+      // that list refuses; a product title that matches the name EXACTLY is a person having
+      // written this food's name in this language, which is all `edited` claims.
       return [locale, { value: name, status: _statusOf(name, _statedIn(hits, locale)) }];
     }),
   ) as IngredientFacts["names"];
 
   const aliases = Object.fromEntries(
     SUPPORTED_LOCALES.map((locale) => {
-      const seen = new Set([_catalogName(facts.names[locale])]);
+      const name = byLocale[locale];
+      const seen = new Set([name]);
       const kept: string[] = [];
 
       // Model's own spellings first and FIRST-WINS on a duplicate, so the word it chose is the one
       // stored — a source shouting "CARROTS" must not overwrite the alias the model wrote.
-      for (const alias of [...(facts.aliases[locale] ?? []), ..._statedIn(hits, locale)]) {
+      //
+      // **Neither half is scored for resemblance, and that is not an oversight.** A synonym is a
+      // fact about language, not about spelling: `zucchini` scores 0.044 against `courgette`,
+      // `eggplant` 0.044 against `aubergine`, `arugula` 0.057 against `rocket`. Putting either
+      // list through `SAME_FOOD` deletes precisely the aliases that earn their keep — the whole
+      // point of storing a synonym is that somebody who types it does not type the name.
+      //
+      // What keeps junk out here is `_vocabularyIn`, which is a rule about how a source found its
+      // answer rather than about how the answer reads. A keyword search never contributes a word,
+      // so `Dulce de Leche` cannot arrive; what does arrive was filed under this food by hand, and
+      // a curated synonym that looks nothing like the name is the normal case, not the suspect one.
+      const offered = [
+        ...(facts.aliases[locale] ?? []),
+        ..._vocabularyIn(hits, locale),
+      ];
+
+      for (const alias of offered) {
         const spelling = alias.trim();
         if (!spelling || seen.has(spelling.toLowerCase())) continue;
 
@@ -446,8 +522,13 @@ export const toSanitizedIngredient = (
       defaultUnit: facts.defaultUnit,
       defaultQuantity: facts.defaultQuantity,
       ...ratios,
-      nutrition: measuredOver(facts.nutrition, hits),
+      nutrition: measuredOver(facts.nutrition, measured),
     },
+    // Decided here rather than by the caller, because it is a claim ABOUT the numbers above and
+    // has to be read off the same filtered list they were built from. Computed a second time from
+    // the raw hits, it stamped a laboratory's provenance on a row whose figures had just been
+    // dropped for belonging to another food (ADR 0011).
+    source: provenanceOf(measured),
   };
 };
 
