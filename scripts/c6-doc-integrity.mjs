@@ -33,7 +33,15 @@ const findings = [];
  * once the file lands, C6 fails until the entry is removed. So it can only ever shrink, and a
  * typo'd path is still caught because a typo is not in here.
  */
-const PLANNED = new Set(["src/global/routes.ts"]);
+const PLANNED = new Set([
+  "src/global/routes.ts",
+  // The unknown-ingredients slice. ADR 0011 names the row sanitizer that every writer of
+  // `ingredients.search` composes, and docs/plans/unknown-ingredients.md names the prune script —
+  // both ahead of the code, deliberately, because the rule had to be right before a second writer
+  // of that table existed. Rule 4 below deletes these entries the moment the files land.
+  "convex/functions/ingredients/ingredientRow.ts",
+  "scripts/build-ingredient-data.mjs",
+]);
 
 /* ── Which files to check ─────────────────────────────────────────────────────────────── */
 
