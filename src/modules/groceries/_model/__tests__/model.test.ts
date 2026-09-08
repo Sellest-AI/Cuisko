@@ -35,8 +35,8 @@ const CARROTS = { ingredientId: "carrots", unit: "pcs" } as const;
 const base: Snapshot = {
   ingredients: [{ id: "carrots", name: "Carottes", emoji: "🥕" }],
   lines: [
-    { id: "l1", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000) },
-    { id: "l2", ...CARROTS, meal: { id: "2026-01-07:lunch", title: "Soupe" }, amount: 4, createdAt: ago(60_000) },
+    { id: "l1", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) },
+    { id: "l2", ...CARROTS, meal: { id: "2026-01-07:lunch", title: "Soupe" }, amount: 4, createdAt: ago(60_000), updatedAt: ago(60_000) },
   ],
   cellar: [{ id: "c1", ...CARROTS, amount: 1, updatedAt: ago(60_000) }],
   receipts: [],
@@ -100,7 +100,7 @@ describe("asking for something outright", () => {
   /** `base` holds one carrot in the cellar, so a netted line of 1 would show nothing. */
   const asking = (amount: number, lines = base.lines) => ({
     ...base,
-    lines: [...lines, { id: "own", ...CARROTS, amount, createdAt: ago(60_000) }],
+    lines: [...lines, { id: "own", ...CARROTS, amount, createdAt: ago(60_000), updatedAt: ago(60_000) }],
   });
 
   it("is not netted against the cellar", () => {
@@ -127,7 +127,7 @@ describe("stock arriving", () => {
     history: [],
   });
 
-  const OWN: GroceryLine = { id: "own", ...CARROTS, amount: 2, createdAt: ago(60_000) };
+  const OWN: GroceryLine = { id: "own", ...CARROTS, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) };
   const PLATE: GroceryLine = base.lines[0]!;
 
   it("moves nothing on a non-amount", () => {
@@ -178,7 +178,7 @@ describe("stock arriving", () => {
       lineId: "back",
     });
 
-    expect(undone?.lines).toEqual([{ id: "back", ...CARROTS, amount: 2, createdAt: NOW }]);
+    expect(undone?.lines).toEqual([{ id: "back", ...CARROTS, amount: 2, createdAt: NOW, updatedAt: NOW }]);
     expect(carrots({ ...base, ...undone! })).toMatchObject({ wanted: 2, toBuy: 2 });
   });
 });
@@ -212,7 +212,7 @@ describe("what is neither owned nor wanted", () => {
   it("leaves memory the moment any of it is wanted again", () => {
     const relisted: Snapshot = {
       ...base,
-      lines: [{ id: "manual", ...CARROTS, amount: 6, createdAt: ago(1_000) }],
+      lines: [{ id: "manual", ...CARROTS, amount: 6, createdAt: ago(1_000), updatedAt: ago(1_000) }],
       cellar: [],
       history: [{ id: "h1", ...CARROTS, amount: 6, at: ago(2_000) }],
     };
@@ -402,9 +402,9 @@ describe("taking stock out of the cellar", () => {
 
 describe("striking an ingredient off the list", () => {
   const lines: GroceryLine[] = [
-    { id: "l1", ...CARROTS, meal: { id: "d1", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000) },
-    { id: "l2", ...CARROTS, meal: { id: "d2", title: "Soupe" }, amount: 4, createdAt: ago(30_000) },
-    { id: "l3", ingredientId: "onions", unit: "g", amount: 200, createdAt: ago(30_000) },
+    { id: "l1", ...CARROTS, meal: { id: "d1", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) },
+    { id: "l2", ...CARROTS, meal: { id: "d2", title: "Soupe" }, amount: 4, createdAt: ago(30_000), updatedAt: ago(30_000) },
+    { id: "l3", ingredientId: "onions", unit: "g", amount: 200, createdAt: ago(30_000), updatedAt: ago(30_000) },
   ];
 
   /** Deliberate and lossy: the point of the gesture is that the list stops asking, full stop. */
@@ -422,8 +422,8 @@ describe("striking an ingredient off the list", () => {
  * through hand-built snapshots. Each case here is one that got past the tests once.
  */
 describe("what a purchase does to the list", () => {
-  const PLATE = { id: "plate", ...CARROTS, meal: { id: "m", title: "M" }, amount: 8, createdAt: ago(60_000) };
-  const OWN = { id: "own", ...CARROTS, amount: 3, createdAt: ago(60_000) };
+  const PLATE = { id: "plate", ...CARROTS, meal: { id: "m", title: "M" }, amount: 8, createdAt: ago(60_000), updatedAt: ago(60_000) };
+  const OWN = { id: "own", ...CARROTS, amount: 3, createdAt: ago(60_000), updatedAt: ago(60_000) };
 
   const start = (lines: GroceryLine[], owned = 0) => ({
     lines,
@@ -500,7 +500,7 @@ describe("what a purchase does to the list", () => {
       lineId: "back",
     })!;
 
-    expect(returned.lines).toContainEqual({ id: "back", ...CARROTS, amount: 3, createdAt: NOW });
+    expect(returned.lines).toContainEqual({ id: "back", ...CARROTS, amount: 3, createdAt: NOW, updatedAt: NOW });
     expect(listed(returned)).toBe(3);
   });
 
@@ -627,6 +627,34 @@ describe("when a row was last touched", () => {
 
     expect(sections.cellar.map((row) => row.ingredientId)).toEqual(["bread", "carrots"]);
   });
+
+  /**
+   * A row just added, or bumped by a fresh quantity, has the smallest age in its section — so it
+   * has to sort first, the same place a ghost sits while it is still resolving. Sorting to-buy
+   * oldest-first used to send it to the opposite end, so the real row appeared to jump past every
+   * other card the moment its ghost resolved.
+   *
+   * Bread and carrots share a `createdAt` here and differ only in `updatedAt`, so this also pins
+   * that the sort reads the touch, not the creation — a merged repeat add moves only the former.
+   */
+  it("orders to-buy by what was touched most recently", () => {
+    const sections = buildSections({
+      ingredients: [
+        { id: "carrots", name: "Carottes", emoji: "🥕" },
+        { id: "bread", name: "Pain", emoji: "🥖" },
+      ],
+      lines: [
+        { id: "l1", ...CARROTS, amount: 1, createdAt: ago(60_000), updatedAt: ago(60_000) },
+        { id: "l2", ingredientId: "bread", unit: "pcs", amount: 1, createdAt: ago(60_000), updatedAt: ago(1_000) },
+      ],
+      cellar: [],
+      receipts: [],
+      history: [],
+      now: NOW,
+    });
+
+    expect(sections["to-buy"].map((row) => row.ingredientId)).toEqual(["bread", "carrots"]);
+  });
 });
 
 describe("row identity across a change of section", () => {
@@ -705,15 +733,15 @@ describe("dropping a plate's claims", () => {
   /** The reason lines key on the plate and not the dish: one swap must not empty the other day. */
   it("leaves another plate serving the same dish untouched", () => {
     const twice: GroceryLine[] = [
-      { id: "mon", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Soupe" }, amount: 2, createdAt: NOW },
-      { id: "fri", ...CARROTS, meal: { id: "2026-01-10:dinner", title: "Soupe" }, amount: 2, createdAt: NOW },
+      { id: "mon", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Soupe" }, amount: 2, createdAt: NOW, updatedAt: NOW },
+      { id: "fri", ...CARROTS, meal: { id: "2026-01-10:dinner", title: "Soupe" }, amount: 2, createdAt: NOW, updatedAt: NOW },
     ];
 
     expect(dropMealLines(twice, "2026-01-06:dinner").map((line) => line.id)).toEqual(["fri"]);
   });
 
   it("never touches a line the shopper added themselves", () => {
-    const byHand: GroceryLine[] = [{ id: "own", ...CARROTS, amount: 2, createdAt: NOW }];
+    const byHand: GroceryLine[] = [{ id: "own", ...CARROTS, amount: 2, createdAt: NOW, updatedAt: NOW }];
 
     expect(dropMealLines(byHand, "2026-01-06:dinner")).toEqual(byHand);
   });
@@ -723,19 +751,36 @@ describe("discharging claims", () => {
   const lines: GroceryLine[] = base.lines;
 
   it("settles the oldest claim first", () => {
-    expect(reduceLines(lines, CARROTS, 2).map((line) => line.id)).toEqual(["l2"]);
+    expect(reduceLines(lines, CARROTS, 2, NOW).map((line) => line.id)).toEqual(["l2"]);
   });
 
   it("carries over into the next claim", () => {
-    expect(reduceLines(lines, CARROTS, 3).map((line) => line.amount)).toEqual([3]);
+    expect(reduceLines(lines, CARROTS, 3, NOW).map((line) => line.amount)).toEqual([3]);
   });
 
   it("clears every claim when everything is used", () => {
-    expect(reduceLines(lines, CARROTS, 6)).toEqual([]);
+    expect(reduceLines(lines, CARROTS, 6, NOW)).toEqual([]);
   });
 
   it("leaves other ingredients alone", () => {
-    expect(reduceLines(lines, { ingredientId: "onions", unit: "g" }, 500)).toEqual(lines);
+    expect(reduceLines(lines, { ingredientId: "onions", unit: "g" }, 500, NOW)).toEqual(lines);
+  });
+
+  /**
+   * A partly drained line was written, so it has to read as touched. Cooking is the caller this
+   * is waiting for, and it writes neither a receipt nor a history entry — the two other things
+   * `touchedAt` folds in — so the line's own `updatedAt` is the only thing left to carry it.
+   */
+  it("counts a partial drain as a touch", () => {
+    const drained = reduceLines(lines, CARROTS, 3, NOW);
+
+    expect(drained.map((line) => line.updatedAt)).toEqual([NOW]);
+  });
+
+  it("leaves a claim it never reached untouched", () => {
+    const untouched = reduceLines(lines, { ingredientId: "onions", unit: "g" }, 500, NOW);
+
+    expect(untouched.map((line) => line.updatedAt)).toEqual(lines.map((line) => line.updatedAt));
   });
 });
 

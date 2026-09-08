@@ -101,8 +101,21 @@ export type GroceryLine = {
    * cooked. `title` rides along for display; nothing matches on it.
    */
   meal?: { id: string; title: string };
-  /** Becomes `_creationTime` once this is a table. */
+  /**
+   * When this line first came into existence. `_discharge` drains oldest-first by this — the FIFO
+   * order two plates' claims on the same ingredient settle in — so it has to stay a true creation
+   * time even across a later touch. `updatedAt` is the field that moves on a touch; this one never
+   * does. Becomes `_creationTime` once the caller is a table.
+   */
   createdAt: Date;
+  /**
+   * When this line was last written, including a merge that only bumped its quantity —
+   * `groceryListItems` merges a repeat add into the line that already carries this ingredient and
+   * unit rather than stacking a second one, so `createdAt` alone would miss it. This is what
+   * `stockFor`'s recency sort reads, so a quantity bump on an ingredient already on the list still
+   * brings its row to the front.
+   */
+  updatedAt: Date;
 };
 
 export type CellarEntry = {
@@ -258,7 +271,7 @@ export const stockFor = (snapshot: Snapshot, ref: StockRef): Stock => {
     lastBought: remembered ?? null,
     touchedAt: _newest(
       [
-        ...lines.map((line) => line.createdAt),
+        ...lines.map((line) => line.updatedAt),
         ...live.map((receipt) => receipt.at),
         ...(entry ? [entry.updatedAt] : []),
         ...(remembered ? [remembered.at] : []),
@@ -386,9 +399,10 @@ export type StockRow = {
  *
  * A list that reorders itself while it is being read is worse than one that is merely stale, so
  * a row only rides the recency sort while it is fresh; after that it settles into its name and
- * stays put. `asc` puts the newest first — a smaller age is a more recent touch.
+ * stays put. The newest touch sorts first — a smaller age is a more recent touch — so a row just
+ * added or bumped rises to the top of its section instead of settling wherever the key walk left it.
  */
-const _compare = (a: StockRow, b: StockRow, order: "asc" | "desc", now: Date) => {
+const _compare = (a: StockRow, b: StockRow, now: Date) => {
   const ageOf = (row: StockRow) => now.getTime() - row.updatedAt.getTime();
   const [aAge, bAge] = [ageOf(a), ageOf(b)];
 
@@ -396,7 +410,7 @@ const _compare = (a: StockRow, b: StockRow, order: "asc" | "desc", now: Date) =>
     return a.name.localeCompare(b.name);
   }
 
-  return order === "asc" ? aAge - bAge : bAge - aAge;
+  return aAge - bAge;
 };
 
 /** Every ingredient+unit pair mentioned anywhere in the snapshot, each once. */
@@ -583,13 +597,13 @@ export function buildSections(snapshot: Snapshot): Sections {
     });
   });
 
-  const section = (name: Section, order: "asc" | "desc") =>
-    rows.filter((row) => row.section === name).sort((a, b) => _compare(a, b, order, snapshot.now));
+  const section = (name: Section) =>
+    rows.filter((row) => row.section === name).sort((a, b) => _compare(a, b, snapshot.now));
 
   return {
-    "to-buy": section("to-buy", "desc"),
-    cellar: section("cellar", "asc"),
-    "recently-bought": section("recently-bought", "asc"),
+    "to-buy": section("to-buy"),
+    cellar: section("cellar"),
+    "recently-bought": section("recently-bought"),
   };
 }
 
@@ -768,7 +782,7 @@ export const putInCellar = (
   const surplus = amount - Math.min(amount, gap) - settled;
 
   return {
-    lines: settled > 0 ? reduceOwnLines(lines, ref, settled) : lines,
+    lines: settled > 0 ? reduceOwnLines(lines, ref, settled, at) : lines,
     cellar: adjustCellar(cellar, { ref, delta: amount, now: at, id: cellarId }),
     receipts: [...receipts, { id: receiptId, ...ref, amount, at, settled, surplus }],
     history: rememberStock(history, { ref, amount, at, id: historyId, overwriteAmount: true }),
@@ -814,7 +828,7 @@ export const takeFromCellar = (
      * to preserve, and merging it into an existing line would lose nothing but say less.
      */
     lines: peeled.restored > 0
-      ? [...lines, { id: lineId, ...ref, amount: peeled.restored, createdAt: at }]
+      ? [...lines, { id: lineId, ...ref, amount: peeled.restored, createdAt: at, updatedAt: at }]
       : lines,
     /** The id is dead weight here: a negative delta never creates a row, and `taken > 0` proves
      *  this one already exists. `adjustCellar` asks for it because adding is the other caller. */
@@ -864,9 +878,10 @@ const _discharge = (
   lines: GroceryLine[],
   eligible: (line: GroceryLine) => boolean,
   amount: number,
+  at: Date,
 ): GroceryLine[] => {
   const claims = lines
-    .map((line, at) => ({ line, at }))
+    .map((line, position) => ({ line, position }))
     .filter(({ line }) => eligible(line))
     .sort((a, b) => a.line.createdAt.getTime() - b.line.createdAt.getTime());
 
@@ -879,19 +894,24 @@ const _discharge = (
    */
   const drained = new Map<number, number>();
 
-  for (const { line, at } of claims) {
+  for (const { line, position } of claims) {
     if (remaining <= 0) break;
 
     const taken = Math.min(remaining, line.amount);
     remaining -= taken;
-    drained.set(at, line.amount - taken);
+    drained.set(position, line.amount - taken);
   }
 
   return lines
-    .map((line, at) => {
-      const left = drained.get(at);
+    .map((line, position) => {
+      const left = drained.get(position);
 
-      return left === undefined ? line : { ...line, amount: left };
+      /**
+       * A drained line is a written line: its quantity changed, so `updatedAt` moves with it or
+       * the row sorts as though nothing touched it. The purchase path hides this — `touchedAt`
+       * also folds in the receipt and the history entry — but cooking will write neither.
+       */
+      return left === undefined ? line : { ...line, amount: left, updatedAt: at };
     })
     .filter((line) => line.amount > 0);
 };
@@ -913,8 +933,8 @@ const _discharge = (
  * dropped from the week takes its own lines whole, having fed nobody. Oldest first is the
  * placeholder half: until a step says which lines it drew on, the earliest claim is the guess.
  */
-export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number): GroceryLine[] =>
-  _discharge(lines, matchesRef(ref), amount);
+export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number, at: Date): GroceryLine[] =>
+  _discharge(lines, matchesRef(ref), amount, at);
 
 /**
  * The same discharge, but only against what the shopper asked for themselves.
@@ -928,6 +948,6 @@ export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number)
  * Oldest first, and it never reaches a meal-bound line: buying bread cannot quietly settle the
  * ratatouille's claim on it, which would leave a dish being cooked with nothing shopping for it.
  */
-export const reduceOwnLines = (lines: GroceryLine[], ref: StockRef, amount: number): GroceryLine[] =>
-  _discharge(lines, (line) => matchesRef(ref)(line) && !line.meal, amount);
+export const reduceOwnLines = (lines: GroceryLine[], ref: StockRef, amount: number, at: Date): GroceryLine[] =>
+  _discharge(lines, (line) => matchesRef(ref)(line) && !line.meal, amount, at);
 

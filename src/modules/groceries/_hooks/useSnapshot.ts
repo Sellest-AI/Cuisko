@@ -18,8 +18,11 @@ import { useLiveWindow } from "./useLiveWindow";
  * household last dealt in it — and flattening that into one helper would hide the difference at
  * exactly the place a reader needs to see it.
  *
- * `_creationTime` is what a grocery line's `createdAt` was always going to be; the model has said
- * so since before there was a table.
+ * `createdAt` is `_creationTime`, same as ever. `updatedAt` is the field the model's recency sort
+ * actually reads, and it has to come from the row's own `updatedAt` rather than `_creationTime`:
+ * `addToGroceryList` merges a repeat add into the line that already carries this ingredient and
+ * unit instead of stacking a second one, so `_creationTime` stays fixed at the line's first write
+ * — reading it for recency left a card that just grew a fresh quantity looking untouched.
  */
 const _toLine = (row: Doc<"groceryListItems">): GroceryLine => ({
   id: row._id,
@@ -27,6 +30,7 @@ const _toLine = (row: Doc<"groceryListItems">): GroceryLine => ({
   amount: row.quantity,
   unit: row.unit,
   createdAt: new Date(row._creationTime),
+  updatedAt: new Date(row.updatedAt),
 });
 
 const _toCellarEntry = (row: Doc<"cellarItems">): CellarEntry => ({

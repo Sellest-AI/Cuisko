@@ -155,6 +155,26 @@ describe("useGroceryList", () => {
   });
 
   /**
+   * `addToGroceryList` merges a repeat add into the existing line rather than stacking a second
+   * one, so its `_creationTime` never moves — only `updatedAt` does. A mapping that read
+   * `_creationTime` for `createdAt` left a line that just grew a fresh quantity sorting as if
+   * nothing had touched it.
+   */
+  it("brings a line to the front of to-buy when a repeat add bumps its updatedAt", () => {
+    const older = { ...line(4), _id: "line-old", ingredientId: "leek-id", updatedAt: at - 60_000 };
+    const newer = { ...line(2), _id: "line-new", updatedAt: at };
+    state.groceryList = [older, newer];
+    state.ingredients = [
+      { _id: CARROT, name: "Carottes", emoji: "🥕" },
+      { _id: "leek-id", name: "Poireaux", emoji: "🥬" },
+    ];
+
+    const { result } = groceries();
+
+    expect(result.current.sections["to-buy"].map((row) => row.ingredientId)).toEqual([CARROT, "leek-id"]);
+  });
+
+  /**
    * The names arrive from a query keyed on the ids currently on screen, so every add and remove
    * re-keys it and puts it briefly back in flight. `buildSections` drops a row it cannot name, so
    * without holding the previous names the whole grid empties on each one — for a round trip, with
