@@ -50,6 +50,7 @@ const CANDIDATES: Candidate[] = [
   // { name: "tencent/hy3", modes: ["low"] },
   // { name: "google/gemini-3.7-flash", modes: ["low"] },
   { name: "openai/gpt-5.6-luna", modes: ["medium"] }, // BEST ONE !
+  // { name: "z-ai/glm-5.3-flash", modes: ["high", "max"] },
 ];
 
 /* ── The recipe ────────────────────────────────────────────────────────────────────────── */

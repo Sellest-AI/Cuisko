@@ -20,7 +20,7 @@ import type * as z from "zod/v4";
  * along. Mixing both in one `modes` list is legal and often what you want: `[false, "high", 2000]`
  * asks whether the budget or the label is what actually bought the quality.
  */
-export type Effort = false | "low" | "medium" | "high" | "auto" | number;
+export type Effort = false | "low" | "medium" | "high" | "auto" | "max" | number;
 
 /**
  * A model and the reasoning efforts to try it at.

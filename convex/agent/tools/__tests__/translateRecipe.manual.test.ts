@@ -50,7 +50,8 @@ import { translateRecipePrompt } from "../../config/prompts/translateRecipe";
  */
 const CANDIDATES: Candidate[] = [
   // { name: "nvidia/nemotron-3-super-120b-a12b:free", modes: [5000] },
-  { name: "deepseek/deepseek-v4-flash-0731", modes: [false] }, // BEST ONE
+  { name: "deepseek/deepseek-v4-flash-0731", modes: [false] }, // BEST ONE,
+  // { name: "z-ai/glm-5.3-flash", modes: ["low"] }, // COSTS TOO MUCH
   // { name: "qwen/qwen3.7-flash", modes: [false] },
 ];
 
