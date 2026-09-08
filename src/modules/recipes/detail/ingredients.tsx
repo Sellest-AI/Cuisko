@@ -46,6 +46,13 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
 
   const groups = groupByCategory(ingredients, MIN_GROUP_SIZE);
 
+  /**
+   * The front plate is drawn second and so sits on top; it takes the first image, and the back
+   * plate the second. With only one imaged ingredient that puts the real photo in front and the
+   * placeholder behind it, rather than the placeholder covering the one picture the recipe had.
+   */
+  const ingredientsWithImages = ingredients.filter((line) => line.imageUrl);
+
   return (
     <RecipeScreen style={styles.screen}>
       <Servings servings={servings} onChange={setServings} />
@@ -88,8 +95,16 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
         subtitle={t("Ingredients.add_to_list_subtitle")}
         leftContent={
           <View style={styles.actionArt}>
-            <Image source={INGREDIENT_IMAGE} style={[styles.actionIngredient, styles.actionIngredientBack]} contentFit="contain" />
-            <Image source={INGREDIENT_IMAGE} style={[styles.actionIngredient, styles.actionIngredientFront]} contentFit="contain" />
+            <Image
+              source={ingredientsWithImages[1]?.imageUrl ?? INGREDIENT_IMAGE}
+              style={[styles.actionIngredient, styles.actionIngredientBack]}
+              contentFit="contain"
+            />
+            <Image
+              source={ingredientsWithImages[0]?.imageUrl ?? INGREDIENT_IMAGE}
+              style={[styles.actionIngredient, styles.actionIngredientFront]}
+              contentFit="contain"
+            />
           </View>
         }
       />
