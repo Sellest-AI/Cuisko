@@ -497,3 +497,47 @@ export const parseMealSlot = (value?: string | string[]): MealSlot | undefined =
  * again by a screen that only knows the day and the meal it was for.
  */
 export const plateIdFor = (date: Date, slot: MealSlot) => `${toDateParam(date)}:${slot}`;
+
+/**
+ * How many tastes one step accepts.
+ *
+ * A ceiling rather than an open list because the answer is a steer, not a filter: a user who ticks
+ * everything has said nothing, and the generator would be weighing ten equal wishes against a week
+ * of fourteen plates. Four is the most that still reads as a preference.
+ *
+ * Allergies are deliberately not subject to it — an exclusion list has to be complete or it is
+ * worse than none at all.
+ */
+export const MAX_TASTES = 4;
+
+/**
+ * Turn an id on or off in a list of them, keeping the order they were picked in.
+ *
+ * Generic in the id so a caller holding a narrower one keeps it: the setup step's slots are
+ * `MealSlot`, and a `string` here would let a typo'd slot compile. Lives in the model rather than
+ * beside either caller because both the tunnel and the preferences sheet need it, and the second
+ * copy is where the two would drift.
+ */
+export const toggle = <T extends string>(list: readonly T[], id: T): T[] =>
+  list.includes(id) ? list.filter((entry) => entry !== id) : [...list, id];
+
+/**
+ * The same, under a ceiling: the pick that would overflow it is refused.
+ *
+ * Refusing rather than evicting the oldest: the rows past the ceiling are drawn disabled, so a
+ * press that silently swapped one out would be the grid contradicting itself. Turning a taste off
+ * is always allowed — that is how the user makes room for another.
+ */
+export const toggleTaste = (tastes: string[], id: string, max = MAX_TASTES): string[] =>
+  tastes.includes(id) || tastes.length < max ? toggle(tastes, id) : tastes;
+
+/**
+ * How long the user has to cook on an average evening this week.
+ *
+ * One answer, not several: these are nested — "under 20" is also under 30 — so a multi-select
+ * would let the user assert a range and its own contradiction at once. `any` is the default
+ * because a ceiling nobody asked for is a week of recipes quietly withheld.
+ */
+export const COOKING_TIMES = ["any", "20", "30", "60"] as const;
+
+export type CookingTime = (typeof COOKING_TIMES)[number];

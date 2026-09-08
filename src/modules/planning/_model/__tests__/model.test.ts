@@ -10,6 +10,7 @@ import {
   isSameDay,
   matchesQuery,
   MAX_SERVINGS,
+  MAX_TASTES,
   parseDateParam,
   parseMealSlot,
   planDates,
@@ -19,6 +20,8 @@ import {
   replaceMeal,
   setMealServings,
   toDateParam,
+  toggle,
+  toggleTaste,
   type DaySection,
   type MealIngredient,
   type MealSlot,
@@ -468,5 +471,55 @@ describe("plateIdFor", () => {
     expect(plateIdFor(day(1), "dinner")).toBe(plateIdFor(day(1), "dinner"));
     expect(plateIdFor(day(1), "dinner")).not.toBe(plateIdFor(day(1), "lunch"));
     expect(plateIdFor(day(1), "dinner")).not.toBe(plateIdFor(day(2), "dinner"));
+  });
+});
+
+describe("toggleTaste", () => {
+  it("adds a taste that is not picked yet, and keeps the order they were picked in", () => {
+    expect(toggleTaste([], "comfort")).toEqual(["comfort"]);
+    expect(toggleTaste(["comfort"], "spicy")).toEqual(["comfort", "spicy"]);
+  });
+
+  it("turns off a taste that is already picked", () => {
+    expect(toggleTaste(["comfort", "spicy"], "comfort")).toEqual(["spicy"]);
+  });
+
+  /** The rows past the ceiling are drawn disabled, so accepting this would contradict the grid. */
+  it("refuses a taste past the ceiling rather than evicting the oldest", () => {
+    const full = ["a", "b", "c", "d"];
+
+    expect(toggleTaste(full, "e")).toEqual(full);
+    expect(full).toHaveLength(MAX_TASTES);
+  });
+
+  /** Turning one off is how the user makes room — a full list that cannot shrink is a dead end. */
+  it("still turns a taste off when the list is full", () => {
+    expect(toggleTaste(["a", "b", "c", "d"], "b")).toEqual(["a", "c", "d"]);
+  });
+
+  /** Allergies pass their own ceiling: an exclusion list has to be able to be complete. */
+  it("honours a ceiling raised by the caller", () => {
+    expect(toggleTaste(["a", "b", "c", "d"], "e", 9)).toEqual(["a", "b", "c", "d", "e"]);
+  });
+});
+
+describe("toggle", () => {
+  it("adds an id that is absent and removes one that is present", () => {
+    expect(toggle([], "oven")).toEqual(["oven"]);
+    expect(toggle(["oven"], "blender")).toEqual(["oven", "blender"]);
+    expect(toggle(["oven", "blender"], "oven")).toEqual(["blender"]);
+  });
+
+  /** The list is rebuilt rather than spliced, so a caller holding the old one still sees it. */
+  it("leaves the list it was given alone", () => {
+    const utensils = ["oven"];
+
+    expect(toggle(utensils, "blender")).toEqual(["oven", "blender"]);
+    expect(utensils).toEqual(["oven"]);
+  });
+
+  /** No ceiling here: that is `toggleTaste`'s job, and the two are used on different questions. */
+  it("keeps adding past the taste ceiling", () => {
+    expect(toggle(["a", "b", "c", "d"], "e")).toHaveLength(5);
   });
 });

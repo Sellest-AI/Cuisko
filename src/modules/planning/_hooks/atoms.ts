@@ -2,7 +2,7 @@ import { atom } from "jotai";
 
 import type { Equipment } from "@shared/equipments";
 
-import { MAX_DAYS, MEAL_SLOTS, type MealSlot, type PlannedMeal } from "../_model/model";
+import { MAX_DAYS, MEAL_SLOTS, type CookingTime, type MealSlot, type PlannedMeal } from "../_model/model";
 import { PLACEHOLDER_MEALS } from "./placeholders";
 
 /**
@@ -39,6 +39,27 @@ export const equipmentsAtom = atom<Equipment[]>(["oven", "microwave"]);
 export const dietsAtom = atom<string[]>(["pescatarian"]);
 
 /**
+ * What must never reach the plate.
+ *
+ * Its own atom rather than more ids in `dietsAtom`, because the two carry different promises: the
+ * generator may bend a diet to serve a better week, and must never bend this. One array holding
+ * both would force every reader to know, id by id, which kind it was looking at.
+ */
+export const allergiesAtom = atom<string[]>([]);
+
+/**
+ * The craving this week is built around. Empty by default — a mood nobody asked for is a week
+ * steered somewhere the user never pointed.
+ */
+export const moodsAtom = atom<string[]>([]);
+
+/** The narrower asks, off the mood step so they do not compete with a plain craving for its four slots. */
+export const focusesAtom = atom<string[]>([]);
+
+/** How long there is to cook on an average evening. `any` until the user says otherwise. */
+export const cookingTimeAtom = atom<CookingTime>("any");
+
+/**
  * The week the app is actually keeping: what the planning screen lists and what a plate edited
  * from it changes.
  *
@@ -71,8 +92,18 @@ export const ownedRowsAtom = atom<string[]>([]);
  * These atoms are module-scoped, so they outlive the tunnel that filled them. Without this, a
  * second run opens on the previous week's meals with its "Got it" boxes already ticked — the user
  * asked for a new plan and got the old one back.
+ *
+ * The weekly answers go with them: a mood is what the user felt like last Sunday, so a second run
+ * that opens with it still ticked is steering this week by last week's craving — and the bar would
+ * read "Next step" on a step nobody had answered.
+ *
+ * The standing three stay. Diet, allergies and utensils are the kitchen's profile rather than this
+ * run's answers, and clearing them would make a user re-declare an allergy every single week.
  */
 export const resetTunnelAtom = atom(null, (_get, set) => {
   set(draftMealsAtom, []);
   set(ownedRowsAtom, []);
+  set(moodsAtom, []);
+  set(focusesAtom, []);
+  set(cookingTimeAtom, "any");
 });

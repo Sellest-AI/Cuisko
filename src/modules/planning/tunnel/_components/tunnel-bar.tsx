@@ -13,6 +13,7 @@ import { NAVIGATION_BAR_HEIGHT } from "~/modules/navigation/constants";
 type Props = {
   step: number;
   total: number;
+  showProgress?: boolean;
   /** Already translated — this component draws chrome, not copy. */
   label: string;
   /** Shown under the label on the last step, where the action is worth explaining. */
@@ -41,6 +42,7 @@ export const TunnelBar = ({
   label,
   sublabel,
   variant = "primary",
+  showProgress = true,
   onNext,
   onBack,
   backIcon,
@@ -77,13 +79,13 @@ export const TunnelBar = ({
           onPress={onNext}
           rightIcon={isLast ? ListPlus : nextIcon}
           onRightPress={onNext}
-          leftContent={
+          leftContent={showProgress && (
             isLast ? undefined : (
               <Text.Base color={colors.primary.subtle} weight={600}>
                 {step}/{total}
               </Text.Base>
             )
-          }
+          )}
         >
           <View style={styles.labels}>
             <Text.Base

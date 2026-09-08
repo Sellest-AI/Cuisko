@@ -13,10 +13,9 @@
     "import_receipt": "Import receipt"
   },
   "Preferences": {
-    "question": "What meals do you want to see?",
-    "high_protein": "High protein",
-    "high_calorie": "High calorie",
-    "low_carb": "Low carb"
+    "diet": "How you eat",
+    "allergies": "Never on your plate",
+    "utensils": "What you cook with"
   },
   "Meal": {
     "lunch": "Lunch",
@@ -33,15 +32,40 @@
   "Tunnel": {
     "next_step": "Next step",
     "Setup": {
-      "title": "How is your week looking?",
+      "title": "Who is eating this week?",
       "placeholder": "Craving pasta? Short on time? Tell me.",
       "people": "How many at the table?",
       "days": "How many days?",
       "meals": "Which meals?",
-      "equipments": "What is in your kitchen?"
+      "subtitle": "How many of you, over how many days, and which meals."
     },
     "Diet": {
-      "title": "How do you eat?"
+      "title": "How do you eat?",
+      "subtitle": "Your usual way of eating, not just this week."
+    },
+    "Allergies": {
+      "title": "Anything to keep off the plate?",
+      "subtitle": "Allergies and intolerances. These are never bent."
+    },
+    "Utensils": {
+      "title": "What can you cook with?",
+      "subtitle": "Only the equipment you actually have."
+    },
+    "Mood": {
+      "title": "What are you in the mood for?",
+      "subtitle": "Pick up to four. They will be mixed across the week."
+    },
+    "Focus": {
+      "title": "Anything to aim for?",
+      "subtitle": "Nutrition and practical goals. Most weeks need none of these."
+    },
+    "Time": {
+      "title": "How long have you got to cook?",
+      "subtitle": "On an average evening this week.",
+      "any": "No constraint",
+      "20": "Under 20 minutes",
+      "30": "Under 30 minutes",
+      "60": "Up to an hour"
     },
     "Generating": {
       "title": "Cooking up your week",
@@ -71,7 +95,8 @@
       "x_new_items_other": "{{count, number}} things to pick up",
       "have": "Got it",
       "need": "Need it"
-    }
+    },
+    "skip": "Skip this step"
   },
   "Categories": {
     "vegetables": "Vegetables",

@@ -12,7 +12,10 @@ export default function Preferences() {
    */
   const close = useCallback(() => router.back(), [router]);
 
-  /** Three options and a label: the sheet is cut to exactly this, so nothing here is flexed. */
+  /**
+   * The sheet is cut to the profile's own height. Three groups of chips vary enough between
+   * households that a fixed detent would leave a gap under one and clip another.
+   */
   const onLayout = useMeasuredModalSheet();
 
   return (<PreferencesScreen onClose={close} onLayout={onLayout} />)

@@ -18,13 +18,18 @@ import { RadialGradient } from "@ui/radial-gradient";
 /**
  * Per-step chrome, keyed by the step's own name.
  *
- * The questions run over an orange ground and the answers over cream: the first two steps ask the
- * user for something, the last two show what came back. `generating` wears neither bar, because
- * there is nothing to answer and nothing to go back to while it runs.
+ * The questions run over an orange ground and the answers over cream: every step up to `utensils`
+ * asks the user for something, the last two show what came back. `generating` wears neither bar,
+ * because there is nothing to answer and nothing to go back to while it runs.
  */
 const CHROME = {
   setup: { tinted: true, bar: true, progress: true },
   diet: { tinted: true, bar: true, progress: true },
+  allergies: { tinted: true, bar: true, progress: true },
+  mood: { tinted: true, bar: true, progress: true },
+  focus: { tinted: true, bar: true, progress: true },
+  time: { tinted: true, bar: true, progress: true },
+  utensils: { tinted: true, bar: true, progress: true },
   generating: { tinted: false, bar: false, progress: false },
   review: { tinted: false, bar: true, progress: true },
   groceries: { tinted: false, bar: true, progress: true },
@@ -55,7 +60,7 @@ const TUNNEL_THEME = {
  */
 export const TunnelChrome = ({ children }: { children: ReactNode }) => {
   const t = useTranslations("Planning");
-  const { step, total, next, back } = useTunnel();
+  const { step, total, next, back, skipping } = useTunnel();
   const { newItemCount } = useTunnelGroceries();
 
   /** `useTunnel` clamps an unrecognised path to the first step, so this index is always in range. */
@@ -126,7 +131,19 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
         <TunnelBar
           step={step}
           total={total}
-          label={isLast ? t("Tunnel.Groceries.save") : t("Tunnel.next_step")}
+          showProgress={false}
+          /**
+           * An optional step with nothing picked says so, rather than looking like one the user has
+           * failed to fill in. The label is the only affordance: a second button would make the bar
+           * answerable to every step that wants its own control.
+           */
+          label={
+            isLast
+              ? t("Tunnel.Groceries.save")
+              : skipping
+                ? t("Tunnel.skip")
+                : t("Tunnel.next_step")
+          }
           sublabel={isLast ? t("Tunnel.Groceries.x_new_items", { count: newItemCount }) : undefined}
           variant={isLast ? "secondary" : "primary"}
           onNext={next}

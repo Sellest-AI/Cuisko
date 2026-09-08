@@ -45,7 +45,7 @@ const _openPlate = (row: PlanningRow) =>
       params: { date: toDateParam(row.date), slot: row.slot, scope: "draft" },
     });
 
-/** Step 4 — what it picked, before the list is drawn from it. */
+/** What it picked, before the list is drawn from it. */
 export const TunnelReview = () => {
   const t = useTranslations("Planning");
   const { meals, slots, days } = useTunnel();

@@ -25,7 +25,7 @@ export {
   CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
   BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck,
   ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
-  FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image
+  FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
@@ -39,7 +39,7 @@ export {
   Smile as SmileIcon, Search as SearchIcon, Trash2 as Trash2Icon, MessageCircleWarning as MessageCircleWarningIcon,
   Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,
   Play as PlayIcon, Pause as PauseIcon, SkipBack as SkipBackIcon, SkipForward as SkipForwardIcon,
-  DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon
+  DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon
 } from "lucide-react-native";
 
 /** The renderer, re-exported so nothing outside this file has to know about morphicons. */

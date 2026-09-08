@@ -68,7 +68,7 @@ const DriftingPlate = memo(({ plate, image }: { plate: PlateSpot; image: (typeof
 DriftingPlate.displayName = "DriftingPlate";
 
 /**
- * Step 3 — the wait, made legible.
+ * The wait, made legible.
  *
  * A counter rather than a spinner: "2 of 3 dishes" says the work is finite and how far in it is,
  * where a spinner only says something is happening. The timer is fake, and the count is the shape

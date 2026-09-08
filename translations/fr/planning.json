@@ -13,10 +13,9 @@
     "import_receipt": "Ajouter un plat"
   },
   "Preferences": {
-    "question": "Quels repas veux-tu voir ?",
-    "high_protein": "Riche en protéines",
-    "high_calorie": "Riche en calories",
-    "low_carb": "Pauvre en glucides"
+    "diet": "Ta façon de manger",
+    "allergies": "Jamais dans ton assiette",
+    "utensils": "Avec quoi tu cuisines"
   },
   "Meal": {
     "lunch": "Déjeuner",
@@ -34,15 +33,40 @@
   "Tunnel": {
     "next_step": "Étape suivante",
     "Setup": {
-      "title": "Elle ressemble à quoi, ta semaine ?",
+      "title": "Qui mange cette semaine ?",
       "placeholder": "Envie de pâtes ? Peu de temps ? Dis-moi tout.",
       "people": "Vous êtes combien à table ?",
       "days": "Sur combien de jours ?",
       "meals": "Quels repas ?",
-      "equipments": "Qu'est-ce qu'il y a dans ta cuisine ?"
+      "subtitle": "Combien vous êtes, sur combien de jours, et quels repas."
     },
     "Diet": {
-      "title": "Tu manges comment ?"
+      "title": "Tu manges comment ?",
+      "subtitle": "Ta façon de manger habituelle, pas seulement cette semaine."
+    },
+    "Allergies": {
+      "title": "Il y a des choses à écarter ?",
+      "subtitle": "Allergies et intolérances. Elles ne sont jamais contournées."
+    },
+    "Utensils": {
+      "title": "Avec quoi tu peux cuisiner ?",
+      "subtitle": "Seulement le matériel que tu as vraiment."
+    },
+    "Mood": {
+      "title": "Tu as envie de quoi ?",
+      "subtitle": "Choisis-en jusqu'à quatre. Ils seront mélangés dans la semaine."
+    },
+    "Focus": {
+      "title": "Un objectif particulier ?",
+      "subtitle": "Nutrition et contraintes pratiques. La plupart des semaines n'en ont pas besoin."
+    },
+    "Time": {
+      "title": "Tu as combien de temps pour cuisiner ?",
+      "subtitle": "Sur une soirée moyenne cette semaine.",
+      "any": "Sans contrainte",
+      "20": "Moins de 20 minutes",
+      "30": "Moins de 30 minutes",
+      "60": "Jusqu'à une heure"
     },
     "Generating": {
       "title": "On mijote ta semaine",
@@ -73,7 +97,8 @@
       "x_new_items_other": "{{count, number}} choses à rapporter",
       "have": "J'en ai",
       "need": "Il m'en faut"
-    }
+    },
+    "skip": "Passer cette étape"
   },
   "Categories": {
     "vegetables": "Légumes",

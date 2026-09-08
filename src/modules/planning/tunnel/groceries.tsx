@@ -37,7 +37,7 @@ const CATEGORY_KEYS = {
  */
 const _isCategoryId = (id: string): id is CategoryId => id in CATEGORY_KEYS;
 
-/** Step 5 — what the week needs that the kitchen has not got. */
+/** What the week needs that the kitchen has not got. */
 export const TunnelGroceries = () => {
   const t = useTranslations("Planning");
   const { categories, meals, owned, toggleHave } = useTunnelGroceries();

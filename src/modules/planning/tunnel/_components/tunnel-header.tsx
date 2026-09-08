@@ -38,7 +38,7 @@ export const TunnelHeader = ({ title, subtitle, icon, tone = "onTint" }: Props) 
         <>
           <Image source={MASCOT} contentFit="contain" style={styles.mascot} />
           <Text.H4
-            style={styles.title}
+            style={{ ...styles.title, textBalance: true }}
             color={tone === "onTint" ? colors.primary.base : colors.foreground}
           >
             {title}
@@ -46,7 +46,10 @@ export const TunnelHeader = ({ title, subtitle, icon, tone = "onTint" }: Props) 
         </>
       )}
       {subtitle && (
-        <Text.Lg color={colors.muted} style={styles.subtitle}>
+        <Text.Lg
+          color={colors.muted}
+          style={{ ...styles.subtitle, textBalance: true }}
+        >
           {subtitle}
         </Text.Lg>
       )}
@@ -71,5 +74,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing[8],
   },
-  subtitle: { marginTop: theme.spacing[6], textAlign: "center" },
+  subtitle: {
+    marginTop: theme.spacing[8],
+    textAlign: "center",
+    maxWidth: 280,
+  },
 });
