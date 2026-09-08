@@ -222,7 +222,11 @@ export const compressImageAuto = async (image: Buffer | string, options?: Compre
 
   const toKb = (size: number) => Math.round(size / 1024);
 
-  const { width, height } = { width: metadata.width ?? 0, height: metadata.height ?? 0 }
+  const { width, height } = {
+    width: metadata.width ?? 0,
+    height: metadata.height ?? 0,
+  };
+
   const sizeKb = toKb(buffer.length);
   const dimensions = Math.max(width, height);
   const compression = getCompression(dimensions, sizeKb);
@@ -232,15 +236,28 @@ export const compressImageAuto = async (image: Buffer | string, options?: Compre
 
   if (!forceCompression) {
     const maxSizeKb = options?.maxSizeKb ?? compression.targetSizeKb;
-    if (sizeKb < maxSizeKb) {
+
+    // Normalize EXIF orientation even when no compression is necessary — the dimensions written to
+    // the row come from here, and an orientation-6 portrait reports them swapped.
+    //
+    // Guarded, because `.toBuffer()` always runs the pipeline and re-encodes at sharp's default
+    // quality, and this branch exists to hand back an image it was asked not to touch. Orientation
+    // 1, or none at all, is every image that never passed through a phone camera: `.rotate()` is a
+    // no-op on those, so the re-encode would be pure quality loss.
+    const needsRotation = (metadata.orientation ?? 1) > 1;
+    const normalizedBuffer = needsRotation ? await sharp(buffer).rotate().toBuffer() : buffer;
+    const normalizedMetadata = needsRotation ? await sharp(normalizedBuffer).metadata() : metadata;
+    const normalizedSizeKb = toKb(normalizedBuffer.length);
+
+    if (normalizedSizeKb < maxSizeKb) {
       return {
-        width: width,
-        height: height,
-        metadata: metadata,
-        buffer: buffer,
-        mimeType: `image/${metadata.format}`,
-        size: buffer.length,
-      }
+        width: normalizedMetadata.width ?? width,
+        height: normalizedMetadata.height ?? height,
+        metadata: normalizedMetadata,
+        buffer: normalizedBuffer,
+        mimeType: `image/${normalizedMetadata.format ?? metadata.format}`,
+        size: normalizedBuffer.length,
+      };
     }
   }
 
@@ -249,12 +266,15 @@ export const compressImageAuto = async (image: Buffer | string, options?: Compre
 
   let tries = 5;
   let compressionQuality = compression.initialQuality;
+
   while (tries > 0) {
-    if (toKb(compressedImage.buffer.length) < compression.targetSizeKb) return compressedImage;
+    if (toKb(compressedImage.buffer.length) < compression.targetSizeKb)
+      return compressedImage;
+
     compressionQuality = Math.max(1, compressionQuality - 3);
     compressedImage = await compressImage(buffer, { mimeType, quality: compressionQuality });
     tries--;
   }
 
   return compressedImage;
-}
+};
