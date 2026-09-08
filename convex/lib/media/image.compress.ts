@@ -184,8 +184,15 @@ export const compressImage = async (image: Buffer | string, options?: Options) =
 
   const { width, height } = { width: metadata.width ?? 0, height: metadata.height ?? 0 }
   const maxSideSize = options?.maxSideSize ?? Infinity;
+  // `fit: "inside"` caps the longest side whichever axis it turns out to be, so this never has to
+  // ask which one that is. Choosing the axis from `metadata` was wrong: the transformer opens with
+  // `.rotate()`, and an EXIF-orientation-6 portrait reports its dimensions swapped — `width >
+  // height` held for an image that came out 1440x1920, so the SHORT side was capped and the result
+  // was a 1920px "1440" rendition. `plannedImageSizes` matches on longest side, never saw its 1440,
+  // and re-rendered the step on every run. The guard below is orientation-safe already: `Math.max`
+  // of a swapped pair is the same number.
   if (Math.max(width, height) > maxSideSize) {
-    transformer.resize(width > height ? { width: maxSideSize } : { height: maxSideSize });
+    transformer = transformer.resize({ width: maxSideSize, height: maxSideSize, fit: "inside" });
   }
 
   const newBuffer = await transformer.toBuffer();
