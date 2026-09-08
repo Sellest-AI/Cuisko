@@ -39,6 +39,9 @@ export const images = defineTable({
   tags: IMAGE_TAGS,
   updatedAt: v.number(),
 }).index("by_hash_base64", ["hashBase64"])
+  // `key` is the bucket object this row describes, and one object has one row. Indexed so
+  // `saveImage` can be idempotent — see the note there for what the unconditional insert cost.
+  .index("by_key", ["key"])
 
 /**
  * A derived rendition of an image at one width and quality.
@@ -54,7 +57,8 @@ export const imageSizes = defineTable({
   height: v.number(),
   url: v.string(),
   size: v.number(),
-}).index("by_image_id", ["imageId"]);
+}).index("by_image_id", ["imageId"])
+  .index("by_key", ["key"]);
 
 export const imageObjects = defineTable({
   imageId: v.id("images"), // Reference to the Image

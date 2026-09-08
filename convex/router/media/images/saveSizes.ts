@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { saveImageSize } from "@convex/functions/media/saveImage";
 import { internalMutation, MutationCtx, serverMutation } from "@convex/procedures";
 import { Id } from "@convex/_generated/dataModel";
 
@@ -29,10 +30,7 @@ type ReturnType = Promise<{ size: number; _id: Id<"images"> }[]>
 const sharedHandler = async (ctx: MutationCtx, args: Args): ReturnType => {
   const images = await Promise.all(args.images.map(async (image) => {
     const sizes = image.sizes;
-    await Promise.all(sizes.map(async (size) => {
-      const imageId = await ctx.db.insert("imageSizes", { ...size, imageId: image.imageId });
-      return imageId;
-    }));
+    await Promise.all(sizes.map((size) => saveImageSize(ctx, { ...size, imageId: image.imageId })));
 
     return {
       size: sizes.reduce((acc, size) => acc + size.size, 0),
