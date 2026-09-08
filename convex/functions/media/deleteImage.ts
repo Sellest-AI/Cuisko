@@ -9,8 +9,8 @@ import { getImageWithObjects } from "./getImage";
  *
  * The bucket half lives in `deleteImageFiles.ts` and cannot be merged into this file. That one
  * reaches S3 through `lib/s3/node`, so it carries `"use node"`, and a `"use node"` module cannot
- * be imported by a mutation — which is exactly the constraint that split `deleteOne.ts` from
- * `deleteOneMutationInternal.ts` in the router. The concept is one; the runtime is two.
+ * be imported by a mutation — which is exactly the constraint that split
+ * `deleteOne.ts` from `deleteOneNode.ts` in the router. The concept is one; the runtime is two.
  */
 
 /**

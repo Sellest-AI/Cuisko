@@ -36,7 +36,7 @@ const ingredientRow = (imageId?: Id<"images">) => ({
  * forgets is invisible afterwards — an orphan reads exactly like a row nobody has queried yet.
  * These assert the fan-out rather than the happy path.
  */
-describe("router/media/images/deleteOneMutationInternal", () => {
+describe("router/media/images/deleteOne", () => {
   test("removes the image and its renditions", async () => {
     const t = convexTest(schema, modules);
 
@@ -49,7 +49,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
       return id;
     });
 
-    await t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, {
+    await t.mutation(internal.router.media.images.deleteOne._internal_persist, {
       imageId, deletedKeys: ["public/a.webp", "public/150.webp"],
     });
 
@@ -72,7 +72,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
       return { imageId, ingredientId };
     });
 
-    await t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, {
+    await t.mutation(internal.router.media.images.deleteOne._internal_persist, {
       imageId, deletedKeys: ["public/a.webp"],
     });
 
@@ -96,7 +96,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
       return { doomed, survivorId };
     });
 
-    await t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, {
+    await t.mutation(internal.router.media.images.deleteOne._internal_persist, {
       imageId: doomed, deletedKeys: ["public/a.webp"],
     });
 
@@ -122,7 +122,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
       return { base, cutout };
     });
 
-    await t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, {
+    await t.mutation(internal.router.media.images.deleteOne._internal_persist, {
       imageId: base, deletedKeys: ["public/base.webp", "public/cutout.webp"],
     });
 
@@ -143,7 +143,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
       return imageId;
     });
 
-    await t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, {
+    await t.mutation(internal.router.media.images.deleteOne._internal_persist, {
       imageId, deletedKeys: ["public/a.webp"],
     });
 
@@ -162,7 +162,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
     });
 
     await expect(
-      t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, { imageId, deletedKeys: [] }),
+      t.mutation(internal.router.media.images.deleteOne._internal_persist, { imageId, deletedKeys: [] }),
     ).resolves.toBeNull();
   });
 
@@ -179,7 +179,7 @@ describe("router/media/images/deleteOneMutationInternal", () => {
 
     await expect(
       // @ts-expect-error deletedKeys is required — omitting it is the mistake under test
-      t.mutation(internal.router.media.images.deleteOneMutationInternal._internal, { imageId }),
+      t.mutation(internal.router.media.images.deleteOne._internal_persist, { imageId }),
     ).rejects.toThrow();
 
     await t.run(async (ctx) => {

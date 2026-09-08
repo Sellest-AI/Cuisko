@@ -112,7 +112,7 @@ import type * as router_ingredients_resolve from "../router/ingredients/resolve.
 import type * as router_ingredients_search from "../router/ingredients/search.js";
 import type * as router_ingredients_seedCatalog from "../router/ingredients/seedCatalog.js";
 import type * as router_media_images_deleteOne from "../router/media/images/deleteOne.js";
-import type * as router_media_images_deleteOneMutationInternal from "../router/media/images/deleteOneMutationInternal.js";
+import type * as router_media_images_deleteOneNode from "../router/media/images/deleteOneNode.js";
 import type * as router_media_images_getMany from "../router/media/images/getMany.js";
 import type * as router_media_images_getOne from "../router/media/images/getOne.js";
 import type * as router_media_images_saveMany from "../router/media/images/saveMany.js";
@@ -249,7 +249,7 @@ declare const fullApi: ApiFromModules<{
   "router/ingredients/search": typeof router_ingredients_search;
   "router/ingredients/seedCatalog": typeof router_ingredients_seedCatalog;
   "router/media/images/deleteOne": typeof router_media_images_deleteOne;
-  "router/media/images/deleteOneMutationInternal": typeof router_media_images_deleteOneMutationInternal;
+  "router/media/images/deleteOneNode": typeof router_media_images_deleteOneNode;
   "router/media/images/getMany": typeof router_media_images_getMany;
   "router/media/images/getOne": typeof router_media_images_getOne;
   "router/media/images/saveMany": typeof router_media_images_saveMany;

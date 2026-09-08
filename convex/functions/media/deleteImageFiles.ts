@@ -17,7 +17,7 @@ import { notEmpty } from "@shared/helpers";
  * renditions of all of them.
  *
  * Returns the keys it removed, and the caller is expected to hand that list to
- * `deleteOneMutationInternal` — see the doc block there for why the list is an argument and not a
+ * `deleteOne._internal_persist` — see the doc block there for why the list is an argument and not a
  * comment. The renditions of an object used to be left in the bucket; only its original was
  * removed.
  */
