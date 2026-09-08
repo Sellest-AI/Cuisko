@@ -1,5 +1,7 @@
 import sharp from "sharp";
 
+import { imageBufferFromUrl } from "./image.buffer";
+
 const ALPHA_THRESHOLD = 5;
 const PERCENTAGE_THRESHOLD = 0.10;
 
@@ -16,7 +18,12 @@ type Response = {
 };
 
 export async function cropImageFromBuffer(input: Buffer | string): Promise<Response> {
-  const image = sharp(input);
+  // A string is a URL or a base64 blob, which is what every sibling helper in this folder means by
+  // one. Handing it to `sharp()` directly instead read it as a FILE PATH — the one interpretation
+  // no caller intends — and failed with ENOENT on a name that looks nothing like a path.
+  const source = typeof input === "string" ? await imageBufferFromUrl(input) : input;
+
+  const image = sharp(source);
   const { width: w = 0, height: h = 0 } = await image.metadata();
 
   // Extract raw RGBA pixel data. On its OWN sharp instance: `.raw()` mutates the pipeline it is
@@ -24,7 +31,7 @@ export async function cropImageFromBuffer(input: Buffer | string): Promise<Respo
   // mode — and the uncropped branch below, which returns `await image.toBuffer()`, then handed
   // back headerless RGBA bytes instead of an encoded image. The cropped branch hid it by calling
   // `.webp()`, which sets an output format again.
-  const { data } = await sharp(input)
+  const { data } = await sharp(source)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -76,7 +83,7 @@ export async function cropImageFromBuffer(input: Buffer | string): Promise<Respo
     finalWidth = newWidth;
     finalHeight = newHeight;
   } else {
-    buffer = input instanceof Buffer ? input : await image.toBuffer();
+    buffer = source;
   }
 
   const position = { left: finalLeft, top: finalTop, width: finalWidth, height: finalHeight };
