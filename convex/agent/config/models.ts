@@ -94,5 +94,9 @@ export const models = {
   ranker: {
     model: QWEN_3_7_FLASH,
     ...QWEN_3_7_FLASH_OPTIONS
+  },
+  prompterMini: {
+    model: QWEN_3_7_FLASH,
+    ...QWEN_3_7_FLASH_OPTIONS
   }
 }

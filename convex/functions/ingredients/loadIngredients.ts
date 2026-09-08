@@ -2,7 +2,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
-import { type CatalogIngredient, toCatalogIngredient } from "./catalogIngredient";
+import { type CatalogIngredient, loadCatalogIngredients } from "./catalogIngredient";
 
 type LoadCtx = Pick<QueryCtx, "db">;
 
@@ -21,5 +21,5 @@ export const loadIngredients = async (
 ): Promise<CatalogIngredient[]> => {
   const rows = await Promise.all(ids.map((id) => ctx.db.get(id)));
 
-  return rows.filter((row) => row !== null).map((row) => toCatalogIngredient(row, locale));
+  return loadCatalogIngredients(ctx, rows.filter((row) => row !== null), locale);
 };

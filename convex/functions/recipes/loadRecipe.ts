@@ -4,8 +4,9 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
+import { getImage } from "@convex/functions/media/getImage";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
-import { NO_EMOJI, toGrams, type Unit } from "@shared/ingredients";
+import { toGrams, type Unit } from "@shared/ingredients";
 import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
@@ -18,12 +19,22 @@ type RecipeIngredient = {
   name: string;
   quantity: number;
   unit: Unit;
-  /**
-   * Stands in for the produce photo a line will eventually draw. Never absent: the catalog column
-   * still is, on rows written before it existed, so the fallback is applied here rather than left
-   * to every screen that renders a tile.
-   */
+/** Stands in for the produce photo when `imageUrl` is absent, which is most of the catalog today. */
   emoji: string;
+  /**
+   * The produce photo the tile draws, when the catalog row has one — the thumbnail, and only it.
+   *
+   * Flattened to a URL here rather than sent as the whole image document, which is what the
+   * catalog does (`CatalogIngredient.image`). The difference is who the shape is for: a catalog
+   * row is handed to callers this function knows nothing about, so it ships every size and lets
+   * them choose. A recipe line is only ever drawn as one 48pt tile, and a recipe reaching twenty
+   * ingredients would otherwise carry twenty image documents of five sizes each to render twenty
+   * thumbnails — for the same reason `RecipeCard` stops the document travelling.
+   *
+   * Absent covers all three of "no photo yet", "the image row is gone" and "written before images
+   * existed"; the tile falls back to `emoji`, which is never absent.
+   */
+  imageUrl?: string;
   /**
    * Which aisle the line belongs to — sent as the stored key, not as a heading.
    *
@@ -126,13 +137,17 @@ const _linesOf = async (
          */
         if (!ingredient) return null;
 
+        /** Skipped entirely for a row with no photo, which is most of the catalog today. */
+        const image = ingredient.imageId ? await getImage(ctx, ingredient.imageId) : null;
+
         return {
           ingredient,
           line: {
             name: resolvei18n(ingredient.name, locale),
             quantity: row.quantity,
             unit: row.unit,
-            emoji: ingredient.emoji ?? NO_EMOJI,
+            emoji: ingredient.emoji,
+            imageUrl: image?.sizes.thumbnail.url,
             category: ingredient.category,
           },
         };

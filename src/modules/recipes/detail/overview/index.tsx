@@ -135,6 +135,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
             titleSize="lg"
             items={recipe.ingredients.map((ingredient) => ({
               emoji: ingredient.emoji,
+              imageUrl: ingredient.imageUrl,
               name: ingredient.name,
             }))}
             itemWidth={itemWidth}

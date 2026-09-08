@@ -34,6 +34,7 @@ const seed = async () => {
         name: { values: { fr, en }, meta: {} },
         search: { fr, en },
         category: "OTHER",
+        emoji: "🥕",
         // Classified, and classified as the permissive answer: a plant carrying no allergen.
         // `computeTags` refuses to tag at all when a row carries neither field, so leaving them
         // off would make every assertion below pass for the wrong reason.

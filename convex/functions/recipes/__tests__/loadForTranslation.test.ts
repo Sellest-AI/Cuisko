@@ -64,6 +64,7 @@ const seed = async (overrides: { userId?: Id<"users"> | null } = {}) =>
       ctx.db.insert("ingredients", {
         name: { values: { fr: frName, ...(en ? { en } : {}) }, meta: {} },
         category: "OTHER",
+        emoji: "🥕",
         defaultUnit: "pcs",
         defaultQuantity: 1,
         nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },

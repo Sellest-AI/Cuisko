@@ -1,4 +1,4 @@
-import { toCatalogIngredient } from "@convex/functions/ingredients/catalogIngredient";
+import { loadCatalogIngredient } from "@convex/functions/ingredients/catalogIngredient";
 import { publicQueryI18n } from "@convex/procedures";
 import { ConvexError, v } from "convex/values";
 
@@ -11,6 +11,6 @@ export const anon = publicQueryI18n({
     const ingredient = await ctx.db.get(id);
     if (!ingredient) throw new ConvexError({ code: "NOT_FOUND", message: "Ingredient not found" });
 
-    return toCatalogIngredient(ingredient, ctx.i18n.locale);
+    return loadCatalogIngredient(ctx, ingredient, ctx.i18n.locale);
   },
 });

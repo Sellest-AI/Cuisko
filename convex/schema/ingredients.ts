@@ -102,12 +102,12 @@ export const ingredients = defineTable({
   // across categories ("thyme" fresh vs. dried). Rows created outside the seed leave it unset.
   slug: v.optional(v.string()),
   name: vLocalized,
-  /**
-   * Stands in for the produce photo every card will eventually draw. Optional only until every
-   * seeded row has one — the seed always writes it, falling back to the category's emoji, so it is
-   * absent solely on rows created before this field existed. Flip to required once reseeded.
-   */
-  emoji: v.optional(v.string()),
+
+  // The emoji and image the catalog shows for this ingredient, and the image the app shows in a
+  // recipe line. The seed always writes an emoji, and the image is generated on first enrichment.
+  emoji: v.string(),
+  imageId: v.optional(v.id("images")),
+
   aliases: v.optional(vAliases),
   search: v.optional(vSearchText),
   category: vCategory,
@@ -189,6 +189,9 @@ export const ingredients = defineTable({
   updatedAt: v.number(), // S5
 })
   .index("by_slug", ["slug"])
+  // Answers "which ingredients point at this image", which is what detaches them when the image
+  // is deleted (CASCADE.images in functions/cascade.ts). Nothing reads it on a normal path.
+  .index("by_image", ["imageId"])
   // Over `search.*` rather than `name.values.*`, so a synonym finds its ingredient too.
   .searchIndex("search_en", { searchField: "search.en" })
   .searchIndex("search_fr", { searchField: "search.fr" });

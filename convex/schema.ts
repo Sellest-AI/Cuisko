@@ -6,6 +6,7 @@ import { households, householdUsers } from "./schema/households";
 import { ingredients } from "./schema/ingredients";
 import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
 import { recipeFavorites, recipeIngredients, recipes } from "./schema/recipes";
+import { imageSizes, imageObjects, images, userImages } from "./schema/media";
 
 /**
  * `authTables` (users, authAccounts, authSessions, …) are owned by @convex-dev/auth.
@@ -24,4 +25,8 @@ export default defineSchema({
   recipes,
   recipeIngredients,
   recipeFavorites,
+  images,
+  imageSizes,
+  imageObjects,
+  userImages,
 });

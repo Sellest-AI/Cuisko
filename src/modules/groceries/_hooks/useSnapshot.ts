@@ -1,4 +1,3 @@
-import { NO_EMOJI } from "@shared/ingredients";
 import { useAtomValue } from "jotai";
 import { useMemo } from "react";
 
@@ -100,7 +99,12 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
   return useMemo(
     () => ({
       ingredients: (ingredients.data ?? EMPTY).map(
-        (row): Ingredient => ({ id: row._id, name: row.name, emoji: row.emoji ?? NO_EMOJI }),
+        (row): Ingredient => ({
+          id: row._id,
+          name: row.name,
+          emoji: row.emoji,
+          imageUrl: row.image?.sizes.thumbnail.url
+        }),
       ),
       lines: (lines.data ?? EMPTY).map(_toLine),
       cellar: (cellar.data ?? EMPTY).map(_toCellarEntry),

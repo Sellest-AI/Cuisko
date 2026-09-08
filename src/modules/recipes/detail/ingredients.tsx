@@ -71,6 +71,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
             title={t(`Categories.${group.category}`)}
             items={group.lines.map((line) => ({
               emoji: line.emoji,
+              imageUrl: line.imageUrl,
               name: line.name,
               quantity: formatQuantity(line.quantity, line.unit),
             }))}

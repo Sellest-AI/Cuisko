@@ -77,6 +77,7 @@ type Props = {
   quantity?: string;
   /** Stand-in for the produce photo until real ones exist. */
   emoji: string;
+  imageUrl?: string;
   markerSrc?: string;
   variant?: GroceryItemVariant | "ghost";
   width?: number;
@@ -114,7 +115,7 @@ const usePulse = (active: boolean) => {
   return useAnimatedStyle(() => ({ opacity: opacity.value }));
 };
 
-export const GroceryItem = ({ name, quantity, emoji, markerSrc, variant = "pending", width, onPress, style }: Props) => {
+export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, variant = "pending", width, onPress, style }: Props) => {
   const pulse = usePulse(variant === "resolving");
 
   // Indexing first and concatenating after renders the string "undefined" for an empty name —
@@ -137,7 +138,12 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, variant = "pendi
           ...style
         }}
       >
-        <Text.H4 style={styles.emoji}>{emoji}</Text.H4>
+        {imageUrl && <Image
+          source={{ uri: imageUrl }}
+          style={styles.icon}
+          contentFit="contain"
+        />}
+        {!imageUrl && <Text.H4 style={styles.emoji}>{emoji}</Text.H4>}
         <Text.Base
           color={theme.colors.muted}
           numberOfLines={2}
@@ -239,6 +245,10 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 40,
     lineHeight: 48,
+  },
+  icon: {
+    width: 48,
+    height: 48,
   },
   quantity: {
     flexDirection: "row",

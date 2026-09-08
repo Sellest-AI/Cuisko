@@ -39,6 +39,7 @@ const catalog = (
       name: { values: { fr: "x", en: "x" }, meta: {} },
       search: { fr: "x", en: "x" },
       category,
+      emoji: "🥕",
       ...(diet !== null && { diet }),
       ...(allergens !== null && { allergens }),
       defaultUnit: "pcs",

@@ -3,6 +3,7 @@ import { Dimensions, LayoutChangeEvent, Platform, StyleSheet, View } from "react
 
 import { QuantityOption } from "@ui/cards/quantity-option";
 import { Trash2 } from "@ui/icons";
+import { Image } from "@ui/image";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -105,7 +106,8 @@ const Picker = ({
   return (
     <View onLayout={onLayout} style={styles.container}>
       <View style={styles.header}>
-        <Text.H4 style={styles.emoji}>{ingredient?.emoji}</Text.H4>
+        {ingredient?.imageUrl && <Image style={styles.icon} source={{ uri: ingredient?.imageUrl }} contentFit="contain" />}
+        {!ingredient?.imageUrl && <Text.H4 style={styles.emoji}>{ingredient?.emoji}</Text.H4>}
         <View>
           {subtitle && <Text.Sm color={theme.colors.muted}>{subtitle}</Text.Sm>}
           <Text.Lg>{prompt}</Text.Lg>
@@ -186,6 +188,10 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 28,
     lineHeight: 34,
+  },
+  icon: {
+    height: 34,
+    width: 34,
   },
   grid: {
     marginBottom: theme.spacing[8],

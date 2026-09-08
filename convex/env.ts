@@ -21,6 +21,8 @@ const schema = z.object({
   /** Authenticates `server` procedures. `npx convex env set SERVER_PRIVATE_KEY ...` */
   SERVER_PRIVATE_KEY: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(32),
+  REPLICATE_API_KEY: z.string().min(32),
+  RUNPOD_API_KEY: z.string().min(32),
   /**
    * USDA FoodData Central, read by `functions/ingredients/lookup/foodDataCentral.ts` when a
    * shopper types an ingredient the catalog and the two shipped datasets cannot name.
@@ -31,13 +33,25 @@ const schema = z.object({
    * would report. `npx convex env set FDC_API_KEY ...`
    */
   FDC_API_KEY: z.string().min(1),
+  // S3 Storage
+  S3_ENDPOINT: z.string().min(1),
+  S3_APP_KEY_ID: z.string().min(1),
+  S3_APP_KEY: z.string().min(1),
+  S3_DEFAULT_BUCKET: z.string().min(1),
 });
 
 const parsed = schema.safeParse({
   SERVER_PRIVATE_KEY: process.env.SERVER_PRIVATE_KEY,
   CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
+  RUNPOD_API_KEY: process.env.RUNPOD_API_KEY,
   OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+  REPLICATE_API_KEY: process.env.REPLICATE_API_KEY,
   FDC_API_KEY: process.env.FDC_API_KEY,
+  // S3 Storage
+  S3_ENDPOINT: process.env.S3_ENDPOINT,
+  S3_APP_KEY_ID: process.env.S3_APP_KEY_ID,
+  S3_APP_KEY: process.env.S3_APP_KEY,
+  S3_DEFAULT_BUCKET: process.env.S3_DEFAULT_BUCKET,
 });
 
 if (!parsed.success) {

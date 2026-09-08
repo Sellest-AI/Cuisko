@@ -1,7 +1,6 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { NO_EMOJI } from "@shared/ingredients";
 
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -51,20 +50,57 @@ const seedLine = (
   ingredient: {
     name: string;
     category: "VEGETABLE" | "DAIRY";
+    /** Defaulted, because only the emoji test cares which glyph a line carries. */
     emoji?: string;
     gramsPerPiece?: number;
+    /**
+     * A generated photo for this ingredient, with the renditions given. Only the image tests pass
+     * it — every other line here is a catalog row that has no photo yet, which is most of them.
+     */
+    image?: { url: string; renditions?: { url: string; px: number }[]; deleted?: boolean };
   },
   { position, quantity }: { position: number; quantity: number },
 ) =>
   t.run(async (ctx) => {
+    let imageId: Id<"images"> | undefined;
+    if (ingredient.image) {
+      imageId = await ctx.db.insert("images", {
+        hasAlpha: true,
+        key: `public/${ingredient.image.url}`,
+        url: ingredient.image.url,
+        width: 512,
+        height: 512,
+        size: 100_000,
+        mimeType: "image/webp",
+        tags: ["IMAGE", "OBJECT"],
+        updatedAt: Date.now(),
+      });
+
+      for (const rendition of ingredient.image.renditions ?? []) {
+        await ctx.db.insert("imageSizes", {
+          imageId,
+          quality: 40,
+          key: `public/${rendition.url}`,
+          url: rendition.url,
+          width: rendition.px,
+          height: rendition.px,
+          size: rendition.px * 10,
+        });
+      }
+
+      // Leaves the ingredient pointing at an id that resolves to nothing.
+      if (ingredient.image.deleted) await ctx.db.delete(imageId);
+    }
+
     const ingredientId = await ctx.db.insert("ingredients", {
       name: { values: { en: ingredient.name }, meta: {} },
       category: ingredient.category,
+      emoji: ingredient.emoji ?? "🥕",
       defaultUnit: "pcs",
       defaultQuantity: 1,
       nutrition: { calories: 100, protein: 10, fat: 5, carbohydrates: 20 },
       updatedAt: Date.now(),
-      ...(ingredient.emoji && { emoji: ingredient.emoji }),
+      ...(imageId !== undefined && { imageId }),
       ...(ingredient.gramsPerPiece !== undefined && { gramsPerPiece: ingredient.gramsPerPiece }),
     });
 
@@ -123,6 +159,7 @@ describe("functions/recipes/loadRecipe", () => {
       const ingredientId = await ctx.db.insert("ingredients", {
         name: { values: { en: "Onion" }, meta: {} },
         category: "VEGETABLE",
+        emoji: "🧅",
         defaultUnit: "pcs",
         defaultQuantity: 1,
         nutrition: { calories: 40, protein: 1, fat: 0, carbohydrates: 9 },
@@ -146,14 +183,14 @@ describe("functions/recipes/loadRecipe", () => {
     expect(recipe.ingredients).toEqual([]);
   });
 
-  /**
-   * The emoji column is still optional, on rows written before it existed. What is pinned is that
-   * the fallback happens here rather than on every screen that draws a tile — a line always has
-   * something to show.
-   */
-  test("falls back to the placeholder emoji when the catalog row carries none", async () => {
+  /** The tile's stand-in until a photo exists, carried through in the recipe's own order. */
+  test("carries each line's emoji, in position order", async () => {
     const recipeId = await seedRecipe();
-    await seedLine(recipeId, { name: "Onion", category: "VEGETABLE" }, { position: 0, quantity: 2 });
+    await seedLine(
+      recipeId,
+      { name: "Onion", category: "VEGETABLE", emoji: "🧅" },
+      { position: 0, quantity: 2 },
+    );
     await seedLine(
       recipeId,
       { name: "Butter", category: "DAIRY", emoji: "🧈" },
@@ -162,7 +199,92 @@ describe("functions/recipes/loadRecipe", () => {
 
     const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
 
-    expect(recipe.ingredients.map((line) => line.emoji)).toEqual([NO_EMOJI, "🧈"]);
+    expect(recipe.ingredients.map((line) => line.emoji)).toEqual(["🧅", "🧈"]);
+  });
+
+  /**
+   * A line carries the THUMBNAIL url and nothing else — not the image document the catalog hands
+   * out. A twenty-ingredient recipe would otherwise ship twenty documents of five sizes each to
+   * draw twenty 48pt tiles.
+   */
+  describe("the line's photo", () => {
+    test("carries the thumbnail url when the catalog row has a photo", async () => {
+      const recipeId = await seedRecipe();
+      await seedLine(
+        recipeId,
+        {
+          name: "Onion",
+          category: "VEGETABLE",
+          image: { url: "onion.webp", renditions: [{ url: "onion-150.webp", px: 150 }] },
+        },
+        { position: 0, quantity: 2 },
+      );
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.ingredients[0]?.imageUrl).toBe("onion-150.webp");
+    });
+
+    /** With no rendition small enough, the thumbnail slot falls back to the original. */
+    test("falls back to the original when there is no small rendition", async () => {
+      const recipeId = await seedRecipe();
+      await seedLine(
+        recipeId,
+        { name: "Onion", category: "VEGETABLE", image: { url: "onion.webp" } },
+        { position: 0, quantity: 2 },
+      );
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.ingredients[0]?.imageUrl).toBe("onion.webp");
+    });
+
+    test("leaves it absent for a row with no photo", async () => {
+      const recipeId = await seedRecipe();
+      await seedLine(recipeId, { name: "Onion", category: "VEGETABLE" }, { position: 0, quantity: 2 });
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.ingredients[0]?.imageUrl).toBeUndefined();
+      expect(recipe.ingredients[0]?.emoji).toBe("🥕"); // the tile still draws something
+    });
+
+    /** A pointer at a deleted image must read as "no photo", not crash the whole recipe. */
+    test("leaves it absent when the image row is gone", async () => {
+      const recipeId = await seedRecipe();
+      await seedLine(
+        recipeId,
+        {
+          name: "Onion",
+          category: "VEGETABLE",
+          image: { url: "onion.webp", deleted: true },
+        },
+        { position: 0, quantity: 2 },
+      );
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.ingredients).toHaveLength(1); // the line survives
+      expect(recipe.ingredients[0]?.imageUrl).toBeUndefined();
+    });
+
+    test("resolves a mix of photographed and bare lines, in position order", async () => {
+      const recipeId = await seedRecipe();
+      await seedLine(
+        recipeId,
+        {
+          name: "Onion",
+          category: "VEGETABLE",
+          image: { url: "onion.webp", renditions: [{ url: "onion-150.webp", px: 150 }] },
+        },
+        { position: 0, quantity: 2 },
+      );
+      await seedLine(recipeId, { name: "Butter", category: "DAIRY" }, { position: 1, quantity: 1 });
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.ingredients.map((line) => line.imageUrl)).toEqual(["onion-150.webp", undefined]);
+    });
   });
 
   /** The stored key, not a heading — the screen groups by it and owns the words and the order. */

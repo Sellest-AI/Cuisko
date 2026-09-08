@@ -1,0 +1,9 @@
+{
+  "node": {
+    "externalPackages": [
+      "sharp",
+      "expo-server-sdk",
+      "runpod-sdk"
+    ]
+  }
+}

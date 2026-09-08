@@ -490,6 +490,21 @@ describe("toSanitizedIngredient", () => {
     expect(() => toSanitizedIngredient({ verdict: "ingredient", facts: null })).toThrow();
   });
 
+  it("says the model wrote null rather than blaming a type mismatch on it", () => {
+    // `facts` is nullable OUTBOUND, so this is a shape the model is permitted to emit — and one it
+    // emits in production. Re-parsed against the non-nullable facts schema to name the broken
+    // field, it read back as `expected object, received null`, which names nothing an operator can
+    // act on and describes a rule this side invented rather than one the model broke.
+    expect(() => toSanitizedIngredient({ verdict: "ingredient", facts: null }))
+      .toThrow(/wrote null/);
+    expect(() => toSanitizedIngredient({ verdict: "ingredient", facts: null }))
+      .not.toThrow(/expected object/);
+
+    // A key the model dropped entirely is the other half of the same question, and it is a
+    // different sentence: nothing was written, so nothing was written wrongly.
+    expect(() => toSanitizedIngredient({ verdict: "ingredient" })).toThrow(/missing entirely/);
+  });
+
   it("never stores a name the model wrote as the word for having none", () => {
     const nameless = _answer({ facts: _facts({ names: { en: "N/A", fr: "carotte" } }) });
 

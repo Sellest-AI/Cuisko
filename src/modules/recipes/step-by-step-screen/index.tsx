@@ -152,6 +152,7 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
             {!step && <PrepCard
               ingredients={ingredients.map((line) => ({
                 emoji: line.emoji,
+                imageUrl: line.imageUrl,
                 name: line.name,
                 quantity: formatQuantity(line.quantity, line.unit),
               }))}
@@ -170,6 +171,7 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
                */
               ingredients={ingredientsIn(step.instruction, ingredients).map((mention) => ({
                 emoji: mention.line.emoji,
+                imageUrl: mention.line.imageUrl,
                 name: mention.line.name,
                 quantity: formatQuantity(mention.amount, mention.unit),
               }))}

@@ -81,6 +81,7 @@ export type Ingredient = {
   name: string;
   /** Stand-in for the produce photo until real ones exist. */
   emoji: string;
+  imageUrl?: string;
 };
 
 /** One claim on one ingredient. The unit is whoever asked for it, not normalised. */
@@ -365,6 +366,7 @@ export type StockRow = {
   ingredientId: string;
   name: string;
   emoji: string;
+  imageUrl?: string;
   amount: number;
   unit: Unit;
   /** A cellar row whose purchase is still reversible. Drawn as such, and tapped to undo. */
@@ -570,6 +572,7 @@ export function buildSections(snapshot: Snapshot): Sections {
         ingredientId: ref.ingredientId,
         name: ingredient.name,
         emoji: ingredient.emoji,
+        imageUrl: ingredient.imageUrl,
         amount,
         unit: ref.unit,
         undoable,

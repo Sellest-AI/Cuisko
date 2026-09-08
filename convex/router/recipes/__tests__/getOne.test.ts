@@ -54,6 +54,7 @@ const seedLines = (recipeId: Id<"recipes">) =>
     const onionId = await ctx.db.insert("ingredients", {
       name: { values: { en: "Onion", fr: "Oignon" }, meta: {} },
       category: "VEGETABLE",
+      emoji: "🧅",
       defaultUnit: "pcs",
       defaultQuantity: 1,
       nutrition: { calories: 40, protein: 1, fat: 0, carbohydrates: 9 },
@@ -62,6 +63,7 @@ const seedLines = (recipeId: Id<"recipes">) =>
     const butterId = await ctx.db.insert("ingredients", {
       name: { values: { en: "Butter", fr: "Beurre" }, meta: {} },
       category: "DAIRY",
+      emoji: "🧈",
       defaultUnit: "g",
       defaultQuantity: 10,
       nutrition: { calories: 717, protein: 1, fat: 81, carbohydrates: 0 },

@@ -1,5 +1,5 @@
 import { isGrade } from "@shared/ingredientMatch";
-import { isUnit, NO_EMOJI, UNITS, type Unit } from "@shared/ingredients";
+import { isUnit, UNITS, type Unit } from "@shared/ingredients";
 import { foldAccents, STOPWORDS } from "@shared/translations";
 import { distance } from "fastest-levenshtein";
 import { useMemo } from "react";
@@ -13,6 +13,7 @@ export type Suggestion = {
   id: string;
   name: string;
   emoji: string;
+  imageUrl?: string;
   /**
    * How this food is bought, straight off the catalog row — the unit a shop sells it in and how
    * much of it a line means. Used whenever the shopper named neither, which is most of the time:
@@ -347,7 +348,8 @@ export const useSuggestions = (text: string) => {
       (data ?? []).map((row) => ({
         id: row._id,
         name: row.name,
-        emoji: row.emoji ?? NO_EMOJI,
+        emoji: row.emoji,
+        imageUrl: row.image?.sizes.thumbnail?.url,
         aliases: row.aliases,
         defaultUnit: row.defaultUnit,
         defaultQuantity: row.defaultQuantity,

@@ -46,6 +46,34 @@ const dotEnvLocal = (): Record<string, string> => {
 };
 
 /**
+ * The environment `convex/env.ts` demands, as placeholders.
+ *
+ * `env.ts` is Zod-validated and throws at import time on a missing key (P4), and `procedures.ts`
+ * imports it — so every Convex test file dies at import if one var is absent, whether or not the
+ * test touches the service behind it. That is not a hypothetical: adding the Replicate, RunPod and
+ * S3 keys to `env.ts` took out 25 test files and 79 tests at once.
+ *
+ * Declared once and spread into both projects that need it, rather than written out twice, because
+ * the drift is the whole failure mode: two copies means the next key added to `env.ts` is
+ * remembered in one of them.
+ *
+ * Values only have to satisfy the schema's shape (`.min(32)` on the API keys) — nothing here
+ * reaches a real service, and a test that wants to must mock it.
+ */
+const CONVEX_TEST_ENV = {
+  CONVEX_SITE_URL: "https://cuisko-test.convex.site",
+  SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
+  OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
+  REPLICATE_API_KEY: "test-replicate-api-key-0123456789abcdef",
+  RUNPOD_API_KEY: "test-runpod-api-key-0123456789abcdef",
+  FDC_API_KEY: "test-fdc-api-key",
+  S3_ENDPOINT: "s3.test-region.example.com",
+  S3_APP_KEY_ID: "test-s3-app-key-id",
+  S3_APP_KEY: "test-s3-app-key",
+  S3_DEFAULT_BUCKET: "cuisko-test",
+} as const;
+
+/**
  * The `paths` block of tsconfig.json, restated for Vite.
  *
  * `tsc`, Metro and Convex's bundler each read a tsconfig; Vite reads none of them. An alias that
@@ -99,12 +127,7 @@ export default defineConfig({
 
           // convex/env.ts throws on a missing key by design (P4), so the test run has to supply a
           // valid environment — the same contract a real deployment has to satisfy.
-          env: {
-            CONVEX_SITE_URL: "https://cuisko-test.convex.site",
-            SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
-            OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
-            FDC_API_KEY: "test-fdc-api-key",
-          },
+          env: { ...CONVEX_TEST_ENV },
         },
       },
       /**
@@ -181,10 +204,7 @@ export default defineConfig({
            * times with an auth error that reads like nine bad models.
            */
           env: {
-            CONVEX_SITE_URL: "https://cuisko-test.convex.site",
-            SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
-            OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
-            FDC_API_KEY: "test-fdc-api-key",
+            ...CONVEX_TEST_ENV,
             ...dotEnvLocal(),
             ...(process.env.OPENROUTER_API_KEY ? { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY } : {}),
           },

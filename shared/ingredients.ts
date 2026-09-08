@@ -39,10 +39,13 @@ export const isUnit = (value: string | undefined): value is Unit =>
   value !== undefined && UNITS.some((unit) => unit === value.toLowerCase());
 
 /**
- * Drawn when a catalog row predates the `emoji` column. The seed always writes one, falling back
- * to the category's, so this is the placeholder for rows older than that field — not a normal
- * state. Shared because the grid and the search bar draw the same ingredient and must not
- * disagree about what a missing glyph looks like.
+ * Drawn for a tile that has no catalog row behind it to take a glyph from — a ghost line the
+ * shopper has typed while the lookup is still running.
+ *
+ * It used to stand in for a row written before `emoji` existed as well; the column is required
+ * now, so every catalog row carries its own and that second job is gone. Still shared rather than
+ * inlined at the one caller, because the grid and the search bar draw the same list and must not
+ * disagree about what an unresolved line looks like.
  */
 export const NO_EMOJI = "\u{1F37D}\u{FE0F}";
 

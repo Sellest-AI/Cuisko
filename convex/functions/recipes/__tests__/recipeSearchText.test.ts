@@ -27,6 +27,7 @@ const catalog = (search: { en: string; fr: string }) =>
       name: { values: { fr: search.fr, en: search.en }, meta: {} },
       search,
       category: "OTHER",
+      emoji: "🥕",
       diet: "vegan",
       allergens: [],
       defaultUnit: "pcs",

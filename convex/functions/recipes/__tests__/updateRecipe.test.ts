@@ -23,6 +23,7 @@ const seed = async () => {
       name: { values: { fr: "oignon", en: "onion" }, meta: {} },
       search: { fr: "oignon", en: "onion" },
       category: "OTHER",
+      emoji: "🧅",
       diet: "vegan",
       allergens: [],
       defaultUnit: "pcs",

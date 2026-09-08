@@ -9,6 +9,15 @@ import { IngredientGroup } from "../_components/ingredient-group";
 import { stepNumber } from "../_model/step";
 import { columnWidth } from "../constants";
 
+/**
+ * A line as either card draws it — the tile's photo when the catalog has one, its emoji otherwise.
+ *
+ * One type rather than the same three fields written at both cards: they hand it to the same
+ * `IngredientGroup`, so a field added for one and not the other is a tile that draws differently
+ * on the step page than on the mise en place above it.
+ */
+type StepIngredient = { emoji: string; name: string; quantity: string; imageUrl?: string };
+
 type Props = {
   /** 1-based, because it is what the cook reads — the array index is the screen's business. */
   position: number;
@@ -18,7 +27,7 @@ type Props = {
   title?: string;
   instruction: string;
   /** What this step alone calls for, not the whole recipe. */
-  ingredients: { emoji: string; name: string; quantity: string }[];
+  ingredients: StepIngredient[];
   /** Optional hint */
   hint?: string;
 };
@@ -67,7 +76,7 @@ export const StepCard = ({ position, title, instruction, ingredients, isLast, hi
 
 type PrepCardProps = {
   /** Every line the recipe calls for, so there is nothing left to fetch once cooking starts. */
-  ingredients: { emoji: string; name: string; quantity: string }[];
+  ingredients: StepIngredient[];
 };
 
 /**

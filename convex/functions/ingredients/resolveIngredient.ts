@@ -316,6 +316,12 @@ const _fromAgent = async (
     { facts: sanitized.facts, source },
   );
 
+  // Generate the image for the ingredient (ONLY if the ingredient was created, not if it was matched)
+  await ctx.scheduler.runAfter(0, internal.router.ingredients.generateImageNode._internal, {
+    ingredientId,
+    userId: ctx.userId,
+  });
+
   return {
     status: "created",
     ingredientId,

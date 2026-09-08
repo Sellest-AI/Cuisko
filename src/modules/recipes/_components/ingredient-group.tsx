@@ -7,7 +7,7 @@ import { theme } from "theme";
 type Props = {
   title: string;
   titleSize?: "base" | "lg";
-  items: { emoji: string; name: string; quantity?: string }[];
+  items: { emoji: string; name: string; quantity?: string; imageUrl?: string }[];
   /** Measured by the screen, so every group's columns line up on one grid. */
   itemWidth: number;
 };
@@ -30,6 +30,7 @@ export const IngredientGroup = ({ titleSize, title, items, itemWidth }: Props) =
         <GroceryItem
           key={item.name + item.quantity}
           emoji={item.emoji}
+          imageUrl={item.imageUrl}
           name={item.name}
           quantity={item.quantity}
           variant="ghost"

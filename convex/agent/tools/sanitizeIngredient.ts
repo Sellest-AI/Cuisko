@@ -433,13 +433,22 @@ export const toSanitizedIngredient = (
   // what throwing buys. What the bare throw did NOT buy was any way to tell which rule broke, and
   // an operator reading "no usable row" three times in a log cannot act on it. So the object is
   // re-validated on the way to the error purely to name the field.
+  //
+  // ⚠️ `null` is answered BEFORE the re-parse, because the re-parse cannot answer it. `facts` is
+  // nullable outbound — `providerSchema` requires the key and lets the model write null in it —
+  // so "ingredient, and no row" is a shape the model is permitted to emit and does emit. Fed to
+  // the non-nullable `_modelFactsSchema`, that reads back as `expected object, received null`,
+  // which names a type mismatch this side invented rather than anything the model got wrong.
   if (!answer.facts) {
-    const why = _modelFactsSchema.safeParse((raw as { facts?: unknown } | null)?.facts);
+    const written = (raw as { facts?: unknown } | null)?.facts;
+    const broke = written == null ? undefined : _modelFactsSchema.safeParse(written).error;
+    const why =
+      written === null ? "the model wrote null for facts while answering \"ingredient\""
+        : written === undefined ? "facts was missing entirely"
+          : broke ? z.prettifyError(broke)
+            : "the row parsed here but was dropped on the way in";
 
-    throw new Error(
-      `sanitizeIngredient: verdict was ingredient with no usable row — ${why.success ? "facts was missing entirely" : z.prettifyError(why.error)
-      }`,
-    );
+    throw new Error(`sanitizeIngredient: verdict was ingredient with no usable row — ${why}`);
   }
 
   const facts = answer.facts;
@@ -616,8 +625,15 @@ export const sanitizeIngredient = createTool({
         };
     }
 
-    const result = await retryPromise(() =>
-      wrapAgent(ingredientsAgent).generateObject(
+    // **The parse is INSIDE the retry, and that is the point of the closure.** `facts` is nullable
+    // outbound, so `{ verdict: "ingredient", facts: null }` satisfies the schema the model
+    // generated against — `maxRetries` never sees a failure, because by the provider's reckoning
+    // there wasn't one. The only place that shape is refused is `toSanitizedIngredient`, so
+    // leaving it outside spent one model call and gave the shopper an error card for a slip the
+    // next call would very likely not repeat. Nothing here is stateful: the pure half re-runs on
+    // a fresh answer, which is what an attempt is supposed to mean.
+    return await retryPromise(async () => {
+      const result = await wrapAgent(ingredientsAgent).generateObject(
         ctx,
         {},
         {
@@ -628,12 +644,13 @@ export const sanitizeIngredient = createTool({
           maxRetries: 3,
         },
         { storageOptions: { saveMessages: "none" } },
-      ), 2);
+      );
 
-    // `wrapAgent` erases the schema's type on the way through (it re-types the agent to call the
-    // wrapped methods), so the object arrives as JSON. Parsing here is what restores the contract
-    // `toSanitizedIngredient` pins — the model already generated against this schema, so it is a
-    // cast that cannot silently be wrong.
-    return toSanitizedIngredient(result.object, args.hits as LookupHit[] | undefined);
+      // `wrapAgent` erases the schema's type on the way through (it re-types the agent to call the
+      // wrapped methods), so the object arrives as JSON. Parsing here is what restores the contract
+      // `toSanitizedIngredient` pins — the model already generated against this schema, so it is a
+      // cast that cannot silently be wrong.
+      return toSanitizedIngredient(result.object, args.hits as LookupHit[] | undefined);
+    }, 2);
   },
 });

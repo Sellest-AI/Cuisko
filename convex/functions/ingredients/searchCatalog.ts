@@ -2,7 +2,7 @@ import type { Doc } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
-import { type CatalogIngredient, toCatalogIngredient } from "./catalogIngredient";
+import { type CatalogIngredient, loadCatalogIngredients } from "./catalogIngredient";
 
 type SearchCtx = Pick<QueryCtx, "db">;
 
@@ -54,5 +54,5 @@ export const searchCatalog = async (
 
   const rows = await _matchingRows(ctx, term, locale, limit);
 
-  return rows.map((row) => toCatalogIngredient(row, locale));
+  return loadCatalogIngredients(ctx, rows, locale);
 };

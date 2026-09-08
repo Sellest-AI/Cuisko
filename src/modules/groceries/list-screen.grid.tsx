@@ -205,6 +205,7 @@ export const GroceryGrid = () => {
             name={row.stock.name}
             quantity={quantity}
             emoji={row.stock.emoji}
+            imageUrl={row.stock.imageUrl}
             variant={variantFor(row.stock)}
             width={itemWidth - 1}
             onPress={() => tap(row.stock)}

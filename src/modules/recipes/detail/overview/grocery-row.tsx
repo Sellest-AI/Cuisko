@@ -10,7 +10,7 @@ type Props = {
   title: string;
   /** Right-hand note on the heading — Example: "For 2 people". */
   caption?: string;
-  items: { emoji: string; name: string }[];
+  items: { emoji: string; name: string, imageUrl?: string }[];
 };
 
 /**
@@ -27,7 +27,13 @@ export const GroceryRow = ({ title, caption, items }: Props) => (
     </View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {items.map((item) => (
-        <GroceryItem key={item.name} emoji={item.emoji} name={item.name} variant="ghost" />
+        <GroceryItem
+          key={item.name}
+          emoji={item.emoji}
+          imageUrl={item.imageUrl}
+          name={item.name}
+          variant="ghost"
+        />
       ))}
     </ScrollView>
   </View>

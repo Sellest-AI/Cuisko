@@ -52,6 +52,7 @@ export const Suggestions = ({ value, style, onSelect }: Props) => {
               key={suggestion.id}
               name={suggestion.name}
               emoji={suggestion.emoji}
+              imageUrl={suggestion.imageUrl}
               style={{ backgroundColor: theme.colors.surface.elevated }}
               quantity={`${quantity} ${measure}`}
               onPress={() => onSelect?.({

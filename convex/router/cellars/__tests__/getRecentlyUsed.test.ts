@@ -25,6 +25,7 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
     const ingredientId = await ctx.db.insert("ingredients", {
       name: { values: { en: "Egg" }, meta: {} },
       category: "EGG",
+      emoji: "🥚",
       defaultUnit: "pcs",
       defaultQuantity: 6,
       nutrition: { calories: 70, protein: 6, fat: 5, carbohydrates: 0 },

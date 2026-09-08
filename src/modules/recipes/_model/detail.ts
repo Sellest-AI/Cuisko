@@ -23,6 +23,7 @@ export type RecipeLine = {
   quantity: number;
   unit: Unit;
   emoji: string;
+  imageUrl?: string;
   category: Category;
 };
 

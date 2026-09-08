@@ -11,6 +11,8 @@ MUST: follow every `ctx.db.query()` immediately with `.withIndex()` or `.withSea
 MUST NOT: combine `.filter()` with `.paginate()`. Put the predicate in the index instead.
 MUST: name indexes `by_<field>[_and_<field>]`, fields in the same order as the definition.
 MUST: ship a new foreign key together with the index its cascade needs **and** its `CASCADE` entry.
+MUST: mark a `CASCADE` entry `onDelete: "detach"` when the dependent row outlives its parent, and
+make that field optional. The default is `"delete"`.
 MAY: use `.filter()` to narrow an already-indexed, already-small result set.
 
 ## Why
