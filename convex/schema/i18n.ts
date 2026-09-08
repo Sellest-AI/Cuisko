@@ -10,7 +10,7 @@ import { v, type Infer, type Validator } from "convex/values";
  * the client would send a locale the validator rejects — at runtime, with nothing failing to
  * compile. Re-exported under the shorter name because that is what this file's readers call it.
  */
-export { SUPPORTED_LOCALES as LOCALES, type Locale } from "@shared/translations";
+export { SUPPORTED_LOCALES as LOCALES, DEFAULT_LOCALE, type Locale } from "@shared/translations";
 
 export const vLocale = v.union(...SUPPORTED_LOCALES.map(v.literal));
 

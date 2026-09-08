@@ -11,7 +11,7 @@
 
 import { v } from "convex/values";
 
-import { everyLocale, vLocalizedList, vTranslationStatus } from "./i18n";
+import { everyLocale, vLocale, vLocalizedList, vTranslationStatus } from "./i18n";
 import {
   vAllergen,
   vCategory,
@@ -58,6 +58,8 @@ const vNutritionFacts = v.object({
 export const vIngredientFacts = v.object({
   slug: v.optional(v.string()),
   names: everyLocale(v.object({ value: v.string(), status: vTranslationStatus })),
+  /** The language the names were rendered from; `ingredientRow` falls back to `en` without it. */
+  sourceLocale: v.optional(vLocale),
   emoji: v.string(),
   aliases: vLocalizedList,
   category: vCategory,

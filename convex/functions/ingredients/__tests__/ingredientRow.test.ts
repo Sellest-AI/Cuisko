@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { hashText } from "@convex/lib/i18n";
 import { LOCALES } from "@convex/schema/i18n";
 import { computeNutriScore } from "@shared/nutrition";
 import { searchTextOf } from "@shared/search";
@@ -132,6 +133,98 @@ describe("functions/ingredients/ingredientRow", () => {
         expect(row.name.values[locale]).toBeTruthy();
       }
     }
+  });
+
+  /**
+   * `sourceHash` records the text a name was RENDERED FROM, so a later run can notice that text
+   * changed underneath it. Hashing each name against itself — which this file used to do — is the
+   * one shape `isTranslationOutdated` can never fire on: it compares a value to itself, so an
+   * ingredient re-translation pass would report every row up to date forever, with no symptom.
+   *
+   * The pivot is the language the shopper typed in, because that is the one the agent rendered the
+   * others from. A shopper typing `chocolat lindt` gets both names from the model — neither is
+   * `edited` — so nothing but this pivot records which way the derivation ran.
+   */
+  test("a rendered name is hashed against the language it was rendered from", () => {
+    const row = ingredientRow(
+      {
+        ...factsOf(CATALOG[0]!),
+        sourceLocale: "fr",
+        names: {
+          fr: { value: "chocolat lindt", status: "machine" },
+          en: { value: "lindt chocolate bar", status: "machine" },
+        },
+      },
+      "agent",
+    );
+
+    expect(row.name.meta.en?.sourceHash).toBe(hashText("chocolat lindt"));
+    expect(row.name.meta.fr?.sourceHash).toBe(hashText("chocolat lindt"));
+  });
+
+  /** Without a pivot — the seed's case — `en` is the fallback, and every locale still agrees. */
+  test("the pivot falls back to English when the writer has no locale to give", () => {
+    const row = ingredientRow(
+      {
+        ...factsOf(CATALOG[0]!),
+        names: {
+          fr: { value: "chocolat lindt", status: "machine" },
+          en: { value: "lindt chocolate bar", status: "machine" },
+        },
+      },
+      "agent",
+    );
+
+    expect(row.name.meta.fr?.sourceHash).toBe(hashText("lindt chocolate bar"));
+    expect(row.name.meta.en?.sourceHash).toBe(hashText("lindt chocolate bar"));
+  });
+
+  /**
+   * Hand-written text was derived from nothing, so it is hashed against itself — the same shape
+   * `isTranslationOutdated` documents for `edited`. This is what leaves `seedIngredients`, whose
+   * catalog names are `edited` in both languages, byte-identical to what it wrote before the pivot
+   * existed: a rule that changed the seed's rows would be a migration, not a fix.
+   */
+  test("an authored name is hashed against itself, never against the pivot", () => {
+    const row = ingredientRow(
+      {
+        ...factsOf(CATALOG[0]!),
+        names: {
+          fr: { value: "carotte", status: "edited" },
+          en: { value: "carrot", status: "edited" },
+        },
+      },
+      "agent",
+    );
+
+    expect(row.name.meta.fr?.sourceHash).toBe(hashText("carotte"));
+    expect(row.name.meta.en?.sourceHash).toBe(hashText("carrot"));
+  });
+
+  /**
+   * The CIQUAL row, and the case the pivot order exists for: a French name a source STATED beside
+   * an English one the model rendered from it. The shopper typed English, so `sourceLocale` says
+   * `en` — and it loses, because `edited` is the stronger claim about where a name came from.
+   *
+   * Pivoting on `en` here would hash the model's own English against itself and store nothing that
+   * could ever notice `carotte` changing underneath it. That failure is invisible: the row looks
+   * complete, and `isTranslationOutdated` simply never fires.
+   */
+  test("a name a source authored outranks the language the shopper typed in", () => {
+    const row = ingredientRow(
+      {
+        ...factsOf(CATALOG[0]!),
+        sourceLocale: "en",
+        names: {
+          fr: { value: "carotte", status: "edited" },
+          en: { value: "carrot", status: "machine" },
+        },
+      },
+      "agent",
+    );
+
+    expect(row.name.meta.en?.sourceHash).toBe(hashText("carotte"));
+    expect(row.name.meta.fr?.sourceHash).toBe(hashText("carotte"));
   });
 
   /**

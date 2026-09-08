@@ -2,6 +2,7 @@ import type { Doc } from "@convex/_generated/dataModel";
 import { hashText, setTranslations } from "@convex/lib/i18n";
 import {
   LOCALES,
+  DEFAULT_LOCALE,
   type Locale,
   type LocalizedList,
   type TranslationStatus,
@@ -56,6 +57,35 @@ export type IngredientFacts = {
    * too, at every writer, instead of quietly storing rows nobody can find in it.
    */
   names: Record<Locale, { value: string; status: TranslationStatus }>;
+  /**
+   * The language this row's names were DERIVED FROM.
+   *
+   * It decides the `sourceHash` every `machine` name is stored against, and the direction matters:
+   * the agent is handed one word in one language and renders the others from it, so a shopper
+   * typing `chocolat lindt` produces an authored-ish French and an English rendered out of it.
+   * Pivoting on the wrong language records the derivation backwards, and `edited` cannot save a
+   * row where the model invented both names — neither locale carries it.
+   *
+   * ⚠️ **It is the shopper's UI language, not the language of the words they typed.** Nothing
+   *    detects the latter — `resolve.authed` passes `ctx.i18n.locale`, and the agent tool has read
+   *    its own `locale` arg that way since it was written. The two part when somebody types across
+   *    languages: a French-UI shopper typing `chicken breast` pivots this row on `fr`, recording
+   *    the English as a rendering of the French the model made from it, which is backwards. The
+   *    proxy is accepted rather than unnoticed — it is right whenever the shopper types in the
+   *    language they read the app in, and closing the gap means detecting a language from one or
+   *    two words, which is its own slice. An authored name outranks this and repairs the case
+   *    anyway wherever a source stated a spelling.
+   *
+   * **Optional, and outranked by an authored name.** It is consulted only when NO locale is
+   * `edited` — where a source stated one of the names, that source's language is what the others
+   * were rendered from, whatever the shopper typed. See `pivot` below, which is where the order
+   * is decided and argued.
+   *
+   * So it is the answer for the row the model invented outright, and `seedIngredients` has nothing
+   * to pass: its names are hand-written in `ingredientCatalog.ts` and marked `edited` in both
+   * languages, which hashes each against itself and reads no pivot at all.
+   */
+  sourceLocale?: Locale;
   emoji: string;
   aliases: LocalizedList;
   category: Category;
@@ -113,6 +143,36 @@ const FRUIT_VEG_LEGUME_PERCENT: Partial<Record<Category, number>> = {
 export const ingredientRow = (facts: IngredientFacts, source: IngredientSource): IngredientRow => {
   const named = LOCALES.map((locale) => ({ locale, ...facts.names[locale] }));
 
+  const authored = named.filter(({ status }) => status === "edited");
+
+  /**
+   * The language the rendered names below are recorded as renderings OF.
+   *
+   * **An authored name outranks the shopper's, and that order is the whole point.** `edited` means
+   * a source STATED that spelling — CIQUAL's `carotte` — so the other locale was rendered from it
+   * whichever language the shopper was reading the app in. Taking `sourceLocale` first would pivot
+   * a CIQUAL row on the model's own English, hash it against itself, and leave nothing that can
+   * ever notice the French it came from changing.
+   *
+   * `sourceLocale` answers the row nothing authored, which is the common one: the model invents
+   * both names, and the shopper's language is the only evidence of which way that ran. It is a
+   * proxy and a lossy one — see the warning on `IngredientFacts.sourceLocale` — which is the
+   * second reason an authored name is preferred over it rather than the other way round.
+   *
+   * `DEFAULT_LOCALE` breaks a tie between two authored names and closes the type. Both are
+   * arbitrary and both are safe — a row with two authored names hashes each against itself below,
+   * so no pivot is read at all, and that is exactly `seedIngredients`.
+   */
+  const pivot =
+    authored.find(({ locale }) => locale === DEFAULT_LOCALE)?.locale ??
+    authored[0]?.locale ??
+    facts.sourceLocale ??
+    DEFAULT_LOCALE;
+
+  // Hashed once rather than once per locale — the same economy `saveTranslations` makes, and for
+  // the same reason: one source text covers every language rendered from it.
+  const sourceHash = hashText(facts.names[pivot].value);
+
   return {
     slug: facts.slug,
     name: setTranslations(
@@ -121,7 +181,13 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
         locale,
         value,
         status,
-        sourceHash: hashText(value),
+        // **An authored name is hashed against ITSELF, and only a rendered one against the source.**
+        // `sourceHash` answers "has the text this was derived from changed under it", and a name a
+        // person wrote was derived from nothing — see `isTranslationOutdated`, which returns false
+        // for `edited` before it reads this at all. Storing the pivot's hash on an authored name
+        // would record a derivation that never happened; storing its own keeps the row honest and
+        // leaves `seedIngredients`, whose names are `edited` in both languages, exactly as it was.
+        sourceHash: status === "edited" ? hashText(value) : sourceHash,
       })),
     ),
     emoji: facts.emoji,

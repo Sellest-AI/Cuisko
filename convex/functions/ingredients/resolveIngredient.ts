@@ -313,7 +313,11 @@ const _fromAgent = async (
 
   const ingredientId = await ctx.runMutation(
     internal.router.ingredients.resolve._internal_create,
-    { facts: sanitized.facts, source },
+    // Stamped here rather than inside the sanitizer, which is pure and locale-blind by design: the
+    // shopper's language is a fact about how this row came to be written, and this is the step that
+    // knows it. It decides which name the others are recorded as renderings of — see `sourceLocale`
+    // on `IngredientFacts`.
+    { facts: { ...sanitized.facts, sourceLocale: locale }, source },
   );
 
   // Generate the image for the ingredient (ONLY if the ingredient was created, not if it was matched)
