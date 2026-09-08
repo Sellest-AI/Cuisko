@@ -19,8 +19,12 @@ export async function cropImageFromBuffer(input: Buffer | string): Promise<Respo
   const image = sharp(input);
   const { width: w = 0, height: h = 0 } = await image.metadata();
 
-  // Extract raw RGBA pixel data
-  const { data } = await image
+  // Extract raw RGBA pixel data. On its OWN sharp instance: `.raw()` mutates the pipeline it is
+  // called on rather than returning a new one, so scanning through `image` left `image` in raw
+  // mode — and the uncropped branch below, which returns `await image.toBuffer()`, then handed
+  // back headerless RGBA bytes instead of an encoded image. The cropped branch hid it by calling
+  // `.webp()`, which sets an output format again.
+  const { data } = await sharp(input)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
