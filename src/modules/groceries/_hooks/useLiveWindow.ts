@@ -1,37 +1,45 @@
 import { useEffect, useState } from "react";
 
-import { UNDO_WINDOW_MS, type Receipt } from "../_model/model";
-
 /**
- * The clock the undo window is read against.
+ * The clock the screen's time-sensitive rules are read against.
  *
- * A receipt going stale changes what is on screen — the cellar row stops being undoable, so it is
- * drawn as settled and the sheet stops offering the purchase back — but nothing tells React that a
- * moment has passed. So this re-renders on the only moments that matter: it sleeps until the next
- * receipt expires, wakes, and sleeps again. An interval would poll a value that changes at most
- * once every five minutes.
+ * Two things on this screen change on their own: a receipt goes stale, so the cellar row stops
+ * being undoable and the sheet stops offering the purchase back; and a row finishes settling, so
+ * it leaves the recency sort and takes its alphabetical place. Neither is a state change anybody
+ * dispatches — a moment simply passes, and nothing tells React.
+ *
+ * So the caller hands over every moment it would want redrawing at, and this sleeps until the
+ * soonest one that is still ahead, wakes, and sleeps again. An interval would poll a value that
+ * usually does not change for minutes at a time.
+ *
+ * **Deadlines, not the things they belong to.** It used to take `Receipt[]` and derive the expiry
+ * itself, which quietly made undo the only rule that could move the clock: a shopper who added
+ * lines and bought nothing armed no timer at all, so `now` stayed at mount for the whole session
+ * and every age `_compare` measured against it was frozen. Rows never crossed the settling
+ * threshold, and a line added after mount reported a *negative* age — later than "now" — pinning
+ * it to the head of its section for good. A list of numbers has no such preference about which
+ * rule matters.
  *
  * Returns a `Date` rather than a tick count so callers can pass it straight into a `Snapshot`.
  */
-export const useLiveWindow = (receipts: Receipt[]) => {
+export const useLiveWindow = (deadlines: number[]) => {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const nextExpiry = receipts.reduce<number | null>((soonest, receipt) => {
-      const expiresAt = receipt.at.getTime() + UNDO_WINDOW_MS;
+    const soonest = deadlines.reduce<number | null>((earliest, deadline) => {
+      /** Already passed: this moment is in the clock we are holding, not ahead of it. */
+      if (deadline <= now.getTime()) return earliest;
 
-      if (expiresAt <= now.getTime()) return soonest;
-
-      return soonest === null || expiresAt < soonest ? expiresAt : soonest;
+      return earliest === null || deadline < earliest ? deadline : earliest;
     }, null);
 
-    /** Nothing live: the next change can only come from a purchase, which re-runs this anyway. */
-    if (nextExpiry === null) return;
+    /** Nothing ahead: the next change can only come from a write, which re-runs this anyway. */
+    if (soonest === null) return;
 
-    const timer = setTimeout(() => setNow(new Date()), Math.max(0, nextExpiry - Date.now()));
+    const timer = setTimeout(() => setNow(new Date()), Math.max(0, soonest - Date.now()));
 
     return () => clearTimeout(timer);
-  }, [receipts, now]);
+  }, [deadlines, now]);
 
   return now;
 };
