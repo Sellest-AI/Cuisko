@@ -46,7 +46,9 @@ cuisko/
 │   ├── plans/            The slice in flight. Intent, not description — deleted when it lands.
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
-├── scripts/              C1–C12 architectural checks, plus dev-tooling shims.
+├── scripts/              Everything run outside the app.
+│   ├── checks/          C1–C12 architectural checks + the `_lib.mjs` they share.
+│   └── images/          Hand-run asset preparation (compress, sanitize).
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.

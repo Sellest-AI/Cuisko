@@ -33,7 +33,7 @@ type NestedKeyOf<ObjectType extends object> = {
 /**
  * The CLDR categories i18next appends to a plural key, one per form.
  *
- * Kept in step with PLURAL_CATEGORIES in scripts/c8-i18n-parity.mjs: this type decides which keys
+ * Kept in step with PLURAL_CATEGORIES in scripts/checks/c8-i18n-parity.mjs: this type decides which keys
  * a call site may name, that check decides which keys a locale must carry, and a disagreement
  * between them is a key the compiler offers and nothing polices.
  */

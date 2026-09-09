@@ -120,7 +120,7 @@ const vocabularyEntries = () => {
       findings.push({
         file: source,
         message: `Does not exist — C12 reads ${constant} from this file for Vocabulary.${block}.`,
-        fix: `Restore it, or point the ${block} row of VOCABULARIES in scripts/c12-vocabulary-coverage.mjs at its new home.`,
+        fix: `Restore it, or point the ${block} row of VOCABULARIES in scripts/checks/c12-vocabulary-coverage.mjs at its new home.`,
       });
       continue;
     }
@@ -135,7 +135,7 @@ const vocabularyEntries = () => {
         fix:
           `C12 reads \`${constant} = [<string>, …] as const\`, following one level of spread into ` +
           "other constants in the same file. Keep it in that shape, or teach " +
-          "scripts/c12-vocabulary-coverage.mjs the new one.",
+          "scripts/checks/c12-vocabulary-coverage.mjs the new one.",
       });
       continue;
     }
@@ -153,7 +153,7 @@ if (!existsSync(LOCALES_SOURCE)) {
     {
       file: relative(LOCALES_SOURCE),
       message: "Does not exist — C12 reads SUPPORTED_LOCALES from this file.",
-      fix: "Restore it, or point LOCALES_SOURCE in scripts/c12-vocabulary-coverage.mjs at its new home.",
+      fix: "Restore it, or point LOCALES_SOURCE in scripts/checks/c12-vocabulary-coverage.mjs at its new home.",
     },
   ]);
 }
@@ -165,7 +165,7 @@ if (!supportedLocales || supportedLocales.length === 0) {
     {
       file: relative(LOCALES_SOURCE),
       message: "Could not read SUPPORTED_LOCALES as a list of string literals.",
-      fix: "Keep it a plain array of literals, or teach scripts/c12-vocabulary-coverage.mjs the new shape.",
+      fix: "Keep it a plain array of literals, or teach scripts/checks/c12-vocabulary-coverage.mjs the new shape.",
     },
   ]);
 }
@@ -175,7 +175,7 @@ if (!existsSync(TYPES_SOURCE)) {
     {
       file: relative(TYPES_SOURCE),
       message: `Does not exist — C12 reads which file the ${NAMESPACE} namespace is bound to from it.`,
-      fix: "Restore it, or point TYPES_SOURCE in scripts/c12-vocabulary-coverage.mjs at its new home.",
+      fix: "Restore it, or point TYPES_SOURCE in scripts/checks/c12-vocabulary-coverage.mjs at its new home.",
     },
   ]);
 }
@@ -277,7 +277,7 @@ for (const locale of supportedLocales) {
       message: `"${block}" is not claimed by any row of VOCABULARIES, so nothing checks it.`,
       fix:
         `Add a row naming the shared list "${block}" holds the words for to VOCABULARIES in ` +
-        "scripts/c12-vocabulary-coverage.mjs, or move the block to a namespace of its own — " +
+        "scripts/checks/c12-vocabulary-coverage.mjs, or move the block to a namespace of its own — " +
         "this file is for vocabularies declared in shared/.",
     });
   }

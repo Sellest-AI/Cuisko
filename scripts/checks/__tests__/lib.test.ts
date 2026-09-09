@@ -1,7 +1,8 @@
 /**
- * `_lib.mjs` — the shared floor under C1-C10.
+ * `_lib.mjs` — the shared floor under C1-C12.
  *
- * This is the highest-leverage file in `scripts/`, and the one whose failure is hardest to see.
+ * This is the highest-leverage file in `scripts/checks/`, and the one whose failure is hardest
+ * to see.
  * Every check reaches the files it inspects through `listFiles`. If one directory silently stopped
  * being descended into — one bad entry in IGNORED_DIRS, one wrong `endsWith` — all ten checks would
  * inspect less, find nothing, and print ten green check marks. There is no downstream signal for
@@ -162,8 +163,8 @@ describe("report", () => {
   });
 
   it("exits 1 when there are findings, so the commit is actually refused", () => {
-    // The single most important line in scripts/. If report stopped exiting non-zero, every check
-    // would keep printing its findings and `pnpm verify` would pass anyway.
+    // The single most important line in scripts/checks/. If report stopped exiting non-zero,
+    // every check would keep printing its findings and `pnpm verify` would pass anyway.
     const { code, output } = inNode(
       'probe.report("C0 something wrong", [{ file: "a.ts", line: 7, message: "boom", fix: "do it" }]);',
     );

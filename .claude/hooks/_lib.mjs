@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Derived from this file, never from `cwd` — the same reason `scripts/_lib.mjs` does it. */
+/** Derived from this file, never from `cwd` — the same reason `scripts/checks/_lib.mjs` does it. */
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**

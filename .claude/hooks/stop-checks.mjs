@@ -28,6 +28,18 @@ import { changedFiles, ROOT } from "./_lib.mjs";
 const STAMP = path.join(ROOT, "node_modules", ".cache", "cuisko-stop-checks.json");
 
 /**
+ * Where the check scripts live, named once because it is read twice — to run a check, and to
+ * stamp its mtime.
+ *
+ * Those two uses fail differently when this is wrong, which is why they must not drift apart.
+ * Running a missing script throws, and the catch below reports the crash as an architectural
+ * violation — loud, and misleading. Stamping a missing script does NOT throw: `mtimeOf` returns
+ * "absent", the signature silently becomes a constant, and the cache invalidation this hook
+ * depends on stops working with nothing printed either way.
+ */
+const CHECKS_DIR = path.join(ROOT, "scripts", "checks");
+
+/**
  * Which check answers for which part of the tree.
  *
  * These triggers are deliberately **conservative supersets** of what each script actually reads.
@@ -91,7 +103,7 @@ const mtimeOf = (absolute) => {
  * PLANNED set — leaves the stale verdict cached until some unrelated file happens to change.
  */
 const signature = [
-  ...needed.map((check) => `${check.script}:${mtimeOf(path.join(ROOT, "scripts", check.script))}`),
+  ...needed.map((check) => `${check.script}:${mtimeOf(path.join(CHECKS_DIR, check.script))}`),
   ...changed
     .filter((f) => needed.some((check) => check.when(f)))
     .sort()
@@ -117,7 +129,7 @@ for (const check of needed) {
     // process.execPath, not "node": spawning off PATH can resolve to a different runtime under a
     // version manager, or to nothing. If it resolved to nothing, every check would throw ENOENT and
     // be reported as failed — five architectural violations announced when zero checks ran.
-    execFileSync(process.execPath, [path.join(ROOT, "scripts", check.script)], {
+    execFileSync(process.execPath, [path.join(CHECKS_DIR, check.script)], {
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],

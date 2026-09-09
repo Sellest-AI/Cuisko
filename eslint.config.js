@@ -22,7 +22,7 @@ module.exports = defineConfig([
   // Path aliases are resolved by tsc and Metro, not by eslint-plugin-import. Without a
   // resolver these rules only produce false positives.
   //
-  // Import CYCLES are checked by C9 (scripts/c9-import-cycles.mjs), not by `import/no-cycle`.
+  // Import CYCLES are checked by C9 (scripts/checks/c9-import-cycles.mjs), not by `import/no-cycle`.
   // The plugin rule works, but it resolves every node_modules specifier to classify it as
   // external, which measured 4s -> 20s on `pnpm lint` and 16s -> 32s on `pnpm verify` — a tax
   // paid on every commit to look for cycles through react-native that this repo could not fix
@@ -268,7 +268,7 @@ module.exports = defineConfig([
     rules: {
       // `avoidEscape` lets a string that CONTAINS a double quote keep its single ones. Without it
       // the rule's own fixer rewrites `'v.id("users")'` as `"v.id(\"users\")"`, which is the shape
-      // most of the C1–C10 tests are made of: their fixtures are source code, and their assertions
+      // most of the C1–C12 tests are made of: their fixtures are source code, and their assertions
       // quote the messages the checks print. Escaping all of it costs readability on every line and
       // buys nothing — the rule still forbids single quotes anywhere they are merely a preference.
       quotes: ["error", "double", { allowTemplateLiterals: true, avoidEscape: true }],

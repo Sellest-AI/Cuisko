@@ -54,7 +54,7 @@ filename and the symbol match, so searching for either finds both. **Write it do
 > to a deployment. The rule is `(base.match(/\./g) || []).length > 1` in `entryPoints()`
 > (`node_modules/convex/dist/cjs/bundler/index.js`), and it skips at `logVerbose` level — a
 > registered function in such a file is dropped **silently**, and only fails when something calls it.
-> `scripts/c7-generated-api.mjs` encodes the same list.
+> `scripts/checks/c7-generated-api.mjs` encodes the same list.
 
 #### A module names its screens for what they do 👁
 
@@ -250,8 +250,8 @@ own modules belongs in the test that needs it, where a reader can see it.
 Most builders above have an `*I18n` sibling (`publicQueryI18n`, `authMutationI18n`,
 `ownedQueryI18n`, `householdQueryI18n`). `server*`, `internal*` and `householdMutationI18n` do
 not — the last simply because nothing has needed it yet; add it beside the others in
-`procedures.ts` and to `ALLOWED_BUILDERS.authed` in `scripts/c1-export-contract.mjs` when
-something does. **`scripts/c1-export-contract.mjs` is the authority on this list, not this
+`procedures.ts` and to `ALLOWED_BUILDERS.authed` in `scripts/checks/c1-export-contract.mjs` when
+something does. **`scripts/checks/c1-export-contract.mjs` is the authority on this list, not this
 table.** The plain builder takes no locale
 and exposes no `ctx.i18n`; the `I18n` variant adds a required `locale` arg and `ctx.i18n.resolve`
 for reading `Localized` fields. Use the plain one unless the handler actually reads translated
