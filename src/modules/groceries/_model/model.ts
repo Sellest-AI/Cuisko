@@ -73,8 +73,14 @@ export const isIntent = (value: string | undefined): value is Intent =>
  */
 export const UNDO_WINDOW_MS = 5 * 60 * 1000;
 
-/** Rows stop reordering by recency this long after their last touch, and go alphabetical. */
-const ALPHABETICAL_ORDERING_DELAY_MS = 30 * 1000;
+/**
+ * Rows stop reordering by recency this long after their last touch, and go alphabetical.
+ *
+ * Exported because a threshold nothing wakes up for is a threshold that is never crossed: the
+ * clock `_compare` reads is state, and `useLiveWindow` has to be told to advance it at this
+ * distance from each touch. The two would otherwise agree only by coincidence.
+ */
+export const ALPHABETICAL_ORDERING_DELAY_MS = 30 * 1000;
 
 export type Ingredient = {
   id: string;

@@ -7,7 +7,15 @@ import { useQueryCached, useQueryHeld } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 import { receiptsAtom } from "./atoms";
-import type { CellarEntry, GroceryLine, HistoryEntry, Ingredient, Snapshot } from "../_model/model";
+import {
+  ALPHABETICAL_ORDERING_DELAY_MS,
+  UNDO_WINDOW_MS,
+  type CellarEntry,
+  type GroceryLine,
+  type HistoryEntry,
+  type Ingredient,
+  type Snapshot,
+} from "../_model/model";
 import { useLiveWindow } from "./useLiveWindow";
 
 /**
@@ -57,7 +65,7 @@ const EMPTY: never[] = [];
  *
  * Three of the sets are the household's, and come from Convex. The fourth is `receipts`, which is
  * this session's alone (see `atoms.ts`). The clock is nobody's: each caller keeps its own and
- * wakes itself at the next expiry, so the grid and the quantity modal stay correct independently
+ * wakes itself at the next deadline, so the grid and the quantity modal stay correct independently
  * rather than in step.
  *
  * **Names arrive separately, and by id.** The three household tables store `ingredientId` and
@@ -98,7 +106,26 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
   );
 
   const receipts = useAtomValue(receiptsAtom);
-  const now = useLiveWindow(receipts);
+
+  /**
+   * Every moment this screen would want redrawing at: when each receipt stops being undoable, and
+   * when each touched row finishes settling and goes alphabetical.
+   *
+   * The rows are read straight off the query data rather than off the mapped `Snapshot` below,
+   * because the mapping lives in the memo this clock is an input to — asking it for `now` would
+   * be a cycle. `updatedAt` is the same field `_toLine` and `_toCellarEntry` carry through.
+   */
+  const deadlines = useMemo(
+    () => [
+      ...receipts.map((receipt) => receipt.at.getTime() + UNDO_WINDOW_MS),
+      ...[...(lines.data ?? EMPTY), ...(cellar.data ?? EMPTY), ...(history.data ?? EMPTY)].map(
+        (row) => row.updatedAt + ALPHABETICAL_ORDERING_DELAY_MS,
+      ),
+    ],
+    [receipts, lines.data, cellar.data, history.data],
+  );
+
+  const now = useLiveWindow(deadlines);
 
   return useMemo(
     () => ({
