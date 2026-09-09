@@ -123,14 +123,36 @@ describe("nutritionTagsOf", () => {
     );
   });
 
-  test("calls a serving low-calorie at or under 400 kcal", () => {
-    expect(nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 80 })).toContain(
+  test("calls a serving low-calorie at or under 500 kcal", () => {
+    expect(nutritionTagsOf({ calories: 500, protein: 5, carbohydrates: 80 })).toContain(
       "low-calorie",
     );
-    expect(nutritionTagsOf({ calories: 401, protein: 5, carbohydrates: 80 })).not.toContain(
+    expect(nutritionTagsOf({ calories: 501, protein: 5, carbohydrates: 80 })).not.toContain(
       "low-calorie",
     );
   });
+
+  test("calls a serving high-calorie at or over 850 kcal", () => {
+    expect(nutritionTagsOf({ calories: 850, protein: 10, carbohydrates: 200 })).toContain(
+      "high-calorie",
+    );
+    expect(nutritionTagsOf({ calories: 849, protein: 10, carbohydrates: 200 })).not.toContain(
+      "high-calorie",
+    );
+  });
+
+  /**
+   * The 350 kcal between the two thresholds is what makes this arithmetic rather than a rule
+   * somebody has to remember, so it is pinned across the whole range rather than at the boundary:
+   * a threshold edited into an overlap fails here, in the file that documents why it must not.
+   */
+  test.each([0, 1, 500, 501, 849, 850, 1200, 5000])(
+    "never awards both calorie tags, at %i kcal",
+    (calories) => {
+      const tags = nutritionTagsOf({ calories, protein: 10, carbohydrates: 40 });
+      expect(tags.includes("low-calorie") && tags.includes("high-calorie")).toBe(false);
+    },
+  );
 
   /** A share of zero is a division by zero, not a health claim. */
   test("answers nothing for a serving with no calories", () => {

@@ -40,3 +40,25 @@ export const mostPermissiveDietOf = (diets: readonly Diet[]): Diet =>
     (widest, diet) => (DIETS.indexOf(diet) > DIETS.indexOf(widest) ? diet : widest),
     "vegan",
   );
+
+/**
+ * The strictest diet among `diets` — what a table of exactly these eaters can all share.
+ *
+ * The mirror of [`mostPermissiveDietOf`](#mostPermissiveDietOf): the minimum over the same
+ * ordering rather than the maximum. One vegan at the table makes the meal vegan, because a shared
+ * dish has one diet and the only one everybody can eat is the strictest anyone holds.
+ *
+ * An empty list is `omnivore` — the identity for a minimum, and the opposite end from the other
+ * function's `vegan` for the same reason. Nobody at the table constrains nothing.
+ *
+ * ⚠️ **These two run in opposite directions over the same vocabulary, and the names describe the
+ * value each returns rather than who it serves.** `mostPermissiveDietOf` answers *what is this
+ * dish*, from its ingredient lines; this one answers *what can this table eat*, from its people.
+ * Handing a list of ingredient diets to this one yields the diet of the single strictest line —
+ * a dish of chicken and rice reported as vegan.
+ */
+export const strictestDietOf = (diets: readonly Diet[]): Diet =>
+  diets.reduce<Diet>(
+    (strictest, diet) => (DIETS.indexOf(diet) < DIETS.indexOf(strictest) ? diet : strictest),
+    "omnivore",
+  );

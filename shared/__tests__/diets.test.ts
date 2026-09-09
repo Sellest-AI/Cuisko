@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { DIETS, type Diet, mostPermissiveDietOf } from "../diets";
+import { DIETS, type Diet, mostPermissiveDietOf, strictestDietOf } from "../diets";
 
 describe("the vocabulary", () => {
   /**
@@ -40,5 +40,44 @@ describe("mostPermissiveDietOf", () => {
    */
   test("treats no lines as containing nothing", () => {
     expect(mostPermissiveDietOf([])).toBe("vegan");
+  });
+});
+
+describe("strictestDietOf", () => {
+  test.each(DIETS)("answers %s for a table of only that", (diet) => {
+    expect(strictestDietOf([diet, diet])).toBe(diet);
+  });
+
+  test("answers the strictest value present", () => {
+    expect(strictestDietOf(["vegetarian", "omnivore"])).toBe("vegetarian");
+    expect(strictestDietOf(["pescatarian", "vegetarian"])).toBe("vegetarian");
+    expect(strictestDietOf(["vegan", "vegetarian", "omnivore"])).toBe("vegan");
+  });
+
+  /** A minimum, not a vote: one vegan settles the table however many omnivores surround them. */
+  test("lets a single vegan decide against any number of omnivores", () => {
+    expect(strictestDietOf(["omnivore", "omnivore", "omnivore", "vegan"])).toBe("vegan");
+  });
+
+  test("does not depend on the order of the members", () => {
+    const members: Diet[] = ["pescatarian", "omnivore", "vegetarian"];
+    expect(strictestDietOf(members)).toBe(strictestDietOf([...members].reverse()));
+  });
+
+  /**
+   * The two agree on a singleton and disagree on everything else — which is the whole point of
+   * having both, and the property that breaks first if either reduce is written the wrong way
+   * round.
+   */
+  test.each(DIETS)("agrees with mostPermissiveDietOf on a single %s", (diet) => {
+    expect(strictestDietOf([diet])).toBe(mostPermissiveDietOf([diet]));
+  });
+
+  /**
+   * The identity for a minimum, and the opposite end from `mostPermissiveDietOf`'s `vegan` for
+   * exactly the same reason: nobody at the table constrains nothing.
+   */
+  test("treats no members as constraining nothing", () => {
+    expect(strictestDietOf([])).toBe("omnivore");
   });
 });

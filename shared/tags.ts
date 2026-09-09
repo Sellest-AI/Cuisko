@@ -26,11 +26,11 @@ import { type Diet, mostPermissiveDietOf } from "./diets";
  * tag it cannot verify answers with the one that sounds right, and "gluten-free" sounding right is
  * how someone who filtered on it gets served soy sauce.
  *
- * All nine are computed by `computeTags`, each from a fact the seed catalog carries per row: the
+ * All ten are computed by `computeTags`, each from a fact the seed catalog carries per row: the
  * diet three from `ingredients.diet`, the free-from three from `ingredients.allergens`, the
- * nutrition three from the macros.
+ * nutrition four from the macros.
  *
- * ⚠️ **Absent is "unknown", never "does not contain".** Six of the nine are claims of absence, and
+ * ⚠️ **Absent is "unknown", never "does not contain".** Six of the ten are claims of absence, and
  * a claim of absence cannot be made from data nobody wrote. `computeTags` therefore emits NONE of
  * a group rather than a partial answer whenever a line is unmatched, uncategorised or outside the
  * catalog — see the refusals documented there. Anything rendering these must word them as "no
@@ -47,6 +47,7 @@ export const COMPUTED_TAGS = [
   "high-protein",
   "low-carb",
   "low-calorie",
+  "high-calorie",
 ] as const;
 
 /**
@@ -211,12 +212,22 @@ const KCAL_PER_G_CARB = 4;
  * a 200 kcal side and a 900 kcal main are both "high-protein" on the same terms.
  *
  * `high-protein` is the EU nutrition claim — at least 20% of energy from protein. `low-carb` has
- * no legal definition; 26% is the figure the diet literature converges on. `low-calorie` is the
- * one that cannot be a share, since it is a statement about the portion itself.
+ * no legal definition; 26% is the figure the diet literature converges on. The two calorie tags
+ * are the ones that cannot be shares, since they are statements about the portion itself.
+ *
+ * Neither calorie figure has a legal definition either, so both are working thresholds rather than
+ * regulated claims. 850 kcal reserves `high-calorie` for a portion that is plainly substantial
+ * rather than merely above average, and the 350 kcal of daylight between the two is what makes
+ * them mutually exclusive by arithmetic rather than by a rule somebody has to remember.
+ *
+ * ⚠️ `high-calorie` is a FILTER someone chose, never a verdict on what they cooked — see
+ * [`NUTRITION_PREFERENCES`](./preferences.ts). Someone eating to gain weight is served by it
+ * exactly as much as someone eating to lose is served by its opposite.
  */
 const HIGH_PROTEIN_ENERGY_SHARE = 0.2;
 const LOW_CARB_ENERGY_SHARE = 0.26;
-const LOW_CALORIE_KCAL_PER_SERVING = 400;
+const LOW_CALORIE_KCAL_PER_SERVING = 500;
+const HIGH_CALORIE_KCAL_PER_SERVING = 850;
 
 /** The three facts the nutrition tags are decided from, for ONE serving. */
 export type ServingFacts = {
@@ -249,6 +260,7 @@ export const nutritionTagsOf = ({ calories, protein, carbohydrates }: ServingFac
   }
 
   if (calories <= LOW_CALORIE_KCAL_PER_SERVING) tags.push("low-calorie");
+  if (calories >= HIGH_CALORIE_KCAL_PER_SERVING) tags.push("high-calorie");
 
   return tags;
 };
