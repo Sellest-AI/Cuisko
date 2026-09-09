@@ -61,7 +61,14 @@ module.exports = defineConfig([
                 "src/ui/ must not know the backend exists. Declare a structural prop type instead.",
             },
             {
-              group: ["~/modules/*", "~/providers/*", "~/hooks/*", "translations", "translations/*"],
+              group: [
+                "~/lib/*",
+                "~/modules/*",
+                "~/providers/*",
+                "~/hooks/*",
+                "translations",
+                "translations/*",
+              ],
               message: "src/ui/ must not depend on application layers.",
             },
           ],
