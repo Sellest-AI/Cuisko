@@ -42,6 +42,7 @@ import type * as functions_cellars_removeFromGroceryList from "../functions/cell
 import type * as functions_cellars_removeFromRecentlyUsed from "../functions/cellars/removeFromRecentlyUsed.js";
 import type * as functions_households_getForUser from "../functions/households/getForUser.js";
 import type * as functions_households_isMember from "../functions/households/isMember.js";
+import type * as functions_households_saveDefaults from "../functions/households/saveDefaults.js";
 import type * as functions_ingredients_catalogIngredient from "../functions/ingredients/catalogIngredient.js";
 import type * as functions_ingredients_createIngredient from "../functions/ingredients/createIngredient.js";
 import type * as functions_ingredients_ingredientCatalog from "../functions/ingredients/ingredientCatalog.js";
@@ -69,6 +70,7 @@ import type * as functions_media_saveImage from "../functions/media/saveImage.js
 import type * as functions_media_uploadImage from "../functions/media/uploadImage.js";
 import type * as functions_media_uploadImageSizes from "../functions/media/uploadImageSizes.js";
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
+import type * as functions_preferences_getPlanningSeed from "../functions/preferences/getPlanningSeed.js";
 import type * as functions_preferences_save from "../functions/preferences/save.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
@@ -106,6 +108,7 @@ import type * as router_cellars_getRecentlyUsed from "../router/cellars/getRecen
 import type * as router_cellars_removeFromCellar from "../router/cellars/removeFromCellar.js";
 import type * as router_cellars_removeFromGroceryList from "../router/cellars/removeFromGroceryList.js";
 import type * as router_households_getMine from "../router/households/getMine.js";
+import type * as router_households_saveDefaults from "../router/households/saveDefaults.js";
 import type * as router_ingredients_generateImage from "../router/ingredients/generateImage.js";
 import type * as router_ingredients_generateImageNode from "../router/ingredients/generateImageNode.js";
 import type * as router_ingredients_getIngredient from "../router/ingredients/getIngredient.js";
@@ -123,6 +126,7 @@ import type * as router_media_images_uploadMany from "../router/media/images/upl
 import type * as router_media_images_uploadOne from "../router/media/images/uploadOne.js";
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
 import type * as router_preferences_getMine from "../router/preferences/getMine.js";
+import type * as router_preferences_getPlanningSeed from "../router/preferences/getPlanningSeed.js";
 import type * as router_preferences_save from "../router/preferences/save.js";
 import type * as router_recipes_createOne from "../router/recipes/createOne.js";
 import type * as router_recipes_getAll from "../router/recipes/getAll.js";
@@ -184,6 +188,7 @@ declare const fullApi: ApiFromModules<{
   "functions/cellars/removeFromRecentlyUsed": typeof functions_cellars_removeFromRecentlyUsed;
   "functions/households/getForUser": typeof functions_households_getForUser;
   "functions/households/isMember": typeof functions_households_isMember;
+  "functions/households/saveDefaults": typeof functions_households_saveDefaults;
   "functions/ingredients/catalogIngredient": typeof functions_ingredients_catalogIngredient;
   "functions/ingredients/createIngredient": typeof functions_ingredients_createIngredient;
   "functions/ingredients/ingredientCatalog": typeof functions_ingredients_ingredientCatalog;
@@ -211,6 +216,7 @@ declare const fullApi: ApiFromModules<{
   "functions/media/uploadImage": typeof functions_media_uploadImage;
   "functions/media/uploadImageSizes": typeof functions_media_uploadImageSizes;
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;
+  "functions/preferences/getPlanningSeed": typeof functions_preferences_getPlanningSeed;
   "functions/preferences/save": typeof functions_preferences_save;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
@@ -248,6 +254,7 @@ declare const fullApi: ApiFromModules<{
   "router/cellars/removeFromCellar": typeof router_cellars_removeFromCellar;
   "router/cellars/removeFromGroceryList": typeof router_cellars_removeFromGroceryList;
   "router/households/getMine": typeof router_households_getMine;
+  "router/households/saveDefaults": typeof router_households_saveDefaults;
   "router/ingredients/generateImage": typeof router_ingredients_generateImage;
   "router/ingredients/generateImageNode": typeof router_ingredients_generateImageNode;
   "router/ingredients/getIngredient": typeof router_ingredients_getIngredient;
@@ -265,6 +272,7 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadOne": typeof router_media_images_uploadOne;
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
   "router/preferences/getMine": typeof router_preferences_getMine;
+  "router/preferences/getPlanningSeed": typeof router_preferences_getPlanningSeed;
   "router/preferences/save": typeof router_preferences_save;
   "router/recipes/createOne": typeof router_recipes_createOne;
   "router/recipes/getAll": typeof router_recipes_getAll;

@@ -11,6 +11,13 @@ type Props = {
     value: string,
     label: string,
     icon?: Icon | string,
+    /**
+     * A word under the label, for a chip whose meaning depends on where it came from.
+     *
+     * Structural, like everything else here: the caller decides what it says, and `@ui` never
+     * learns that this one happens to carry a constraint's provenance (ADR 0002).
+     */
+    caption?: string,
     selected?: boolean,
   }[]
   /**
@@ -54,9 +61,16 @@ export const GroupSelect = ({ style, items, label, onSelect }: Props) => {
                 size={16}
                 color={iconColor}
               />}
-              <Text.Base color={textColor}>
-                {item.label}
-              </Text.Base>
+              <View style={styles.chipLabel}>
+                <Text.Base color={textColor}>
+                  {item.label}
+                </Text.Base>
+                {item.caption && (
+                  <Text.Sm color={theme.colors.neutral.elevated}>
+                    {item.caption}
+                  </Text.Sm>
+                )}
+              </View>
             </Pressable>)
         })}
       </View>
@@ -78,6 +92,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: theme.spacing[12],
     flexWrap: "wrap",
+  },
+  /** A column, so a captioned chip grows downward rather than pushing its neighbours off the row. */
+  chipLabel: {
+    alignItems: "flex-start",
   },
   button: {
     paddingVertical: theme.spacing[8],

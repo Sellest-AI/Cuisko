@@ -36,6 +36,8 @@ const NUTRIENT_IDS = {
   sugars: 2000,
   fiber: 1079,
   sodium: 1093,
+  /** "Iron, Fe". Not a Nutri-Score input; it decides the `iron-rich` tag. */
+  iron: 1089,
 } as const satisfies Record<keyof IngredientNutrition, number>;
 
 /**
@@ -52,6 +54,7 @@ const UNITS = {
   sugars: "G",
   fiber: "G",
   sodium: "MG",
+  iron: "MG",
 } as const satisfies Record<keyof IngredientNutrition, string>;
 
 type FoodNutrient = { nutrientId?: number; value?: number; unitName?: string };
@@ -111,7 +114,7 @@ export const searchFoodDataCentral = async (text: string): Promise<LookupHit | u
 
   if (!named.length) return undefined;
 
-  // The food that measured the MOST of the eight wins, and its own name leads the list — the
+  // The food that measured the MOST of the nine wins, and its own name leads the list — the
   // caller re-searches the catalog in order, so the name the nutrition belongs to has to be the
   // one it tries first. Most rather than first-complete because a partial table is now kept, and
   // a food measured on seven fields is a better answer than one measured on two.

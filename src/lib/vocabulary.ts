@@ -33,7 +33,7 @@ export const TAG_EMOJI: Record<Tag, string> = {
   "high-protein": "💪",
   "low-carb": "🍞",
   "low-calorie": "🪶",
-  "high-calorie": "🔋",
+  "high-calorie": "🍔",
   // Course
   breakfast: "🥐",
   brunch: "🍳",
@@ -58,11 +58,21 @@ export const TAG_EMOJI: Record<Tag, string> = {
   "batch-cooking": "📦",
   "freezer-friendly": "🧊",
   budget: "💸",
+  "few-ingredients": "🧾",
   // Occasion
-  "comfort-food": "🫂",
+  "comfort-food": "🍕",
   festive: "🎉",
   "kid-friendly": "🧒",
   spicy: "🌶️",
+  // Character
+  "veggie-forward": "🥦",
+  /** 🌿 rather than the 🥗 the old mood list used: `salad` and `starter` already hold that one. */
+  fresh: "🌿",
+  "world-flavours": "🌍",
+  "gut-friendly": "🫧",
+  "high-fibre": "🫘",
+  "iron-rich": "🥩",
+  "fussy-eater": "🙃",
 };
 
 export const EQUIPMENT_EMOJI: Record<Equipment, string> = {

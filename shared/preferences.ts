@@ -1,5 +1,7 @@
 import { type Allergen } from "./allergens";
 import { type Diet } from "./diets";
+import { type Equipment } from "./equipments";
+import { type MealSlot } from "./mealSlots";
 import { type ComputedTag } from "./tags";
 
 /**
@@ -15,6 +17,12 @@ import { type ComputedTag } from "./tags";
  * `avoids` on the same row. Offering them here would be the same question asked twice, in a
  * vocabulary that aggregates differently — see the plan's aggregation table.
  *
+ * `high-fibre` and `iron-rich` are the two most recently added, and they arrived from the opposite
+ * direction to the rest: they were cravings on the tunnel's old focus list, asserted by whoever
+ * wrote the recipe. They are measured now — fibre against the EU claim, iron against 30% of its
+ * NRV (see `nutritionTagsOf`) — which is what made them fit to be sought rather than merely wished
+ * for. A preference is only honest if something can check it.
+ *
  * ⚠️ **These are desires, not verdicts.** PRODUCT.md's first anti-goal is that the app is not a
  * calorie policeman, and `high-calorie` is the clearest evidence this set is not a ladder from bad
  * to good: it serves someone eating to gain weight exactly as `low-calorie` serves someone eating
@@ -22,8 +30,10 @@ import { type ComputedTag } from "./tags";
  */
 export const NUTRITION_PREFERENCES = [
   "high-protein",
-  "low-carb",
   "low-calorie",
+  "low-carb",
+  "high-fibre",
+  "iron-rich",
   "high-calorie",
 ] as const satisfies readonly ComputedTag[];
 
@@ -64,4 +74,42 @@ export type PreferenceValues = {
   diet: Diet;
   avoids: Allergen[];
   seeks: NutritionPreference[];
+};
+
+/**
+ * The set of constraints a table of eaters imposes between them.
+ *
+ * `avoids` is the union over the members and `diet` the strictest of theirs — see the aggregation
+ * table in the plan, and `strictestDietOf` for why the two run in opposite directions. `seeks` is
+ * deliberately absent: high-protein and low-calorie are not compatible wishes, so there is no
+ * honest way to add two people's together.
+ */
+export type AggregatedConstraints = {
+  diet: Diet;
+  avoids: Allergen[];
+};
+
+/**
+ * Everything the planning tunnel needs to open already answered.
+ *
+ * Three parts rather than one merged answer, because the screen has to say where each constraint
+ * came from: what the caller ticks is written back to their own row, and what they inherit is
+ * shown, applied, removable for the week, and never folded into "mine". A seed that had already
+ * merged the two would make that distinction unrecoverable on the client.
+ *
+ * ⚠️ **`others` is a union, never a list of people.** It carries no name and no id, which is the
+ * whole difference between reporting what a household cannot eat and reporting who cannot eat it.
+ * An allergen is health data, and a member's identity is not the tunnel's to hand out.
+ */
+export type PlanningSeed = {
+  /** The caller's own saved answers, or the defaults when they have never answered. */
+  mine: PreferenceValues;
+  /** Every OTHER member's constraints, already aggregated. Read-only in the tunnel. */
+  others: AggregatedConstraints;
+  household: {
+    equipments?: Equipment[];
+    defaultPeople?: number;
+    defaultSlots?: MealSlot[];
+    defaultDays?: number;
+  };
 };

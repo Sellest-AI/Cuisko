@@ -10,12 +10,20 @@
  * about to be deleted, and another module binding to it would be building against a shape with a
  * known expiry date.
  *
- * Diet, mood, focus and allergy labels are English here rather than in `translations/`. They are
- * catalogue data a real backend will serve already translated, not interface copy — so a key per
- * row would be a table to delete rather than a table to keep. The cooking-time options are the
- * exception and live in `translations/`: those four are a question the app asks in its own words,
- * not rows a backend will ever hand back. The utensil list that used to sit beside them is gone:
- * the kitchen now draws @shared/equipments, the same vocabulary a recipe declares.
+ * The utensil, diet and allergy lists that used to sit here are gone. The kitchen draws
+ * @shared/equipments and the diet step draws @shared/diets and @shared/allergens — the same
+ * vocabularies a recipe declares and a member's preferences are stored in, each with its word in
+ * `Vocabulary.*` and its glyph in `~/lib/vocabulary`.
+ *
+ * The mood and focus lists are gone too, and they were the worst of the three: their ids were
+ * invented here — `"one-pan"` against the vocabulary's `"one-pot"`, `"comfort"` against
+ * `"comfort-food"` — and three of them (`high-protein`, `low-carb`, `low-calorie`) asked the same
+ * question `@shared/preferences` already stored, in a second vocabulary that aggregates
+ * differently. The mood step now draws @shared/tastes, a subset of the tags a recipe actually
+ * carries, and the focus step asks about `seeks` instead.
+ *
+ * The cooking-time options are in `translations/` — those four are a question the app asks in its
+ * own words, not rows a backend will ever hand back.
  */
 
 import type { Unit } from "@shared/ingredients";
@@ -234,96 +242,6 @@ export const RECIPE_CATALOGUE: Recipe[] = [
   ...CATALOGUE_TITLES.map((title, index) =>
     _recipe(`catalogue${index}`, _dishAt(index), index + ROTATION.length, title)),
 ];
-
-/**
- * How the household chooses to eat.
- *
- * Eating styles only. `gluten-free` and `lactose-free` used to sit here and now live in
- * `ALLERGIES`, because the two lists are not the same promise: a diet is a preference the
- * generator may bend — a pescatarian handed a vegetable curry has been served well — while an
- * allergy is an exclusion it must never violate. Held in one list, nothing downstream could tell
- * "I would rather not" from "this would send me to hospital".
- */
-export const DIETS = [
-  { id: "meat", label: "Meat", emoji: "🥩" },
-  { id: "pescatarian", label: "Pescatarian", emoji: "🐟" },
-  { id: "vegetarian", label: "Vegetarian", emoji: "🥕" },
-  { id: "vegan", label: "Vegan", emoji: "🌱" },
-  { id: "halal", label: "Halal", emoji: "☪️" },
-  { id: "kosher", label: "Kosher", emoji: "✡️" },
-] as const satisfies readonly TasteOption[];
-
-/**
- * One pickable row: an id to store, a word to read, and a glyph to find it by.
- *
- * Every catalogue the user chooses from has this shape, so the tunnel's rows, the tunnel's tiles
- * and the preferences sheet's chips all draw from the same kind of thing. The emoji is not
- * decoration — several of these steps ask about an idea rather than a dish, and there is no
- * photograph of "gut friendly".
- */
-type TasteOption = { id: string; label: string; emoji: string };
-
-/**
- * The craving the week is built around — what the user is in the mood for, not what they can eat.
- *
- * No batch-cooking entry: cooking once for three days means recipes that know about each other,
- * and nothing in the plan links two plates yet. Offering it would be promising a week the
- * generator cannot assemble. No "quick and easy" either — how long the user has is a ceiling with
- * a real number behind it, and it gets its own step rather than competing for one of four slots.
- */
-export const MOODS = [
-  { id: "high-protein", label: "High protein", emoji: "💪" },
-  { id: "budget", label: "Budget friendly", emoji: "💶" },
-  { id: "veggie-forward", label: "Veggie-forward", emoji: "🥦" },
-  { id: "spicy", label: "Something spicy", emoji: "🌶️" },
-  { id: "world-flavours", label: "World flavours", emoji: "🌍" },
-  { id: "comfort", label: "Comfort food", emoji: "🍔" },
-  { id: "light-fresh", label: "Light and fresh", emoji: "🥗" },
-  { id: "one-pan", label: "One-pan meals", emoji: "🍳" },
-  { id: "soups-stews", label: "Soups and stews", emoji: "🍲" },
-  { id: "kid-friendly", label: "Kid friendly", emoji: "🧒" },
-] as const satisfies readonly TasteOption[];
-
-/**
- * The narrower asks, kept off the mood step on purpose.
- *
- * These are specific enough that most weeks want none of them, and mixed into `MOODS` they would
- * compete for the same four slots as a plain craving — a user picking "high fibre" would be
- * spending a quarter of their steer on it. Its own step, skipped by everyone it does not concern.
- */
-export const FOCUSES = [
-  { id: "few-ingredients", label: "Few ingredients", emoji: "🧾" },
-  { id: "low-calorie", label: "Low calorie", emoji: "🪶" },
-  { id: "low-carb", label: "Low carb", emoji: "🥑" },
-  { id: "high-fibre", label: "High fibre", emoji: "🌾" },
-  { id: "iron-rich", label: "Iron rich", emoji: "🥩" },
-  { id: "gut-friendly", label: "Gut friendly", emoji: "🫧" },
-  { id: "freezer-friendly", label: "Freezer friendly", emoji: "🧊" },
-  { id: "fussy-eater", label: "Fussy-eater proof", emoji: "🙃" },
-] as const satisfies readonly TasteOption[];
-
-/**
- * What must never reach the plate.
- *
- * The fourteen the EU requires a label to declare, minus the ones a French week never meets. Not
- * capped like the tastes above: someone avoiding gluten, nuts, shellfish and sesame at once is
- * exactly the user this list exists for, and a ceiling would hand them a plan built around an
- * exclusion it had quietly dropped.
- */
-export const ALLERGIES = [
-  { id: "gluten", label: "Gluten", emoji: "🌾" },
-  { id: "lactose", label: "Lactose", emoji: "🥛" },
-  { id: "nuts", label: "Tree nuts", emoji: "🌰" },
-  { id: "peanuts", label: "Peanuts", emoji: "🥜" },
-  { id: "shellfish", label: "Shellfish", emoji: "🦐" },
-  { id: "fish", label: "Fish", emoji: "🐟" },
-  { id: "eggs", label: "Eggs", emoji: "🥚" },
-  { id: "soy", label: "Soy", emoji: "🫘" },
-  { id: "sesame", label: "Sesame", emoji: "🌱" },
-  { id: "celery", label: "Celery", emoji: "🥬" },
-  { id: "mustard", label: "Mustard", emoji: "🫙" },
-  { id: "sulphites", label: "Sulphites", emoji: "🍷" },
-] as const satisfies readonly TasteOption[];
 
 /** One image for every tile until real produce photography exists. */
 export const TILE_IMAGE = DISH;

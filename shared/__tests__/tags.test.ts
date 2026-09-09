@@ -142,6 +142,51 @@ describe("nutritionTagsOf", () => {
   });
 
   /**
+   * EU Regulation 1924/2006 allows "high fibre" at 3g per 100 kcal, which is the limb used — the
+   * per-100g limb needs a figure for what the dish weighs, and `ServingFacts` does not carry one.
+   */
+  test("calls a serving high-fibre at or over 3g per 100 kcal", () => {
+    // 12g over 400 kcal = 3g/100kcal exactly. The claim is "at least", so the boundary counts.
+    expect(nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 50, fiber: 12 })).toContain(
+      "high-fibre",
+    );
+    expect(
+      nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 50, fiber: 11.9 }),
+    ).not.toContain("high-fibre");
+  });
+
+  /** 30% of the 14mg NRV in Annex XIII, per serving. */
+  test("calls a serving iron-rich at or over 4.2mg", () => {
+    expect(nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 50, iron: 4.2 })).toContain(
+      "iron-rich",
+    );
+    expect(nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 50, iron: 4.19 })).not.toContain(
+      "iron-rich",
+    );
+  });
+
+  /**
+   * The refusal that matters more than either threshold, and the reason both facts are optional all
+   * the way from `IngredientFacts` to here: a recipe whose fibre nobody measured is not a recipe
+   * without fibre. Reading `undefined` as zero would turn "we did not look" into a claim, which is
+   * the failure `allergenTagsOf` exists to avoid on the other half of the vocabulary.
+   */
+  test("withholds both rather than reading an unmeasured fact as zero", () => {
+    const unmeasured = nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 50 });
+
+    expect(unmeasured).not.toContain("high-fibre");
+    expect(unmeasured).not.toContain("iron-rich");
+  });
+
+  /** Zero measured IS a claim, and the opposite one — it must not be confused with absence above. */
+  test("reads a measured zero as measured, not as unknown", () => {
+    const tags = nutritionTagsOf({ calories: 400, protein: 5, carbohydrates: 50, fiber: 0, iron: 0 });
+
+    expect(tags).not.toContain("high-fibre");
+    expect(tags).not.toContain("iron-rich");
+  });
+
+  /**
    * The 350 kcal between the two thresholds is what makes this arithmetic rather than a rule
    * somebody has to remember, so it is pinned across the whole range rather than at the boundary:
    * a threshold edited into an overlap fails here, in the file that documents why it must not.

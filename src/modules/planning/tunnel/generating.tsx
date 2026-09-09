@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Image } from "@ui/image";
@@ -76,7 +76,7 @@ DriftingPlate.displayName = "DriftingPlate";
  */
 export const TunnelGenerating = () => {
   const t = useTranslations("Planning");
-  const { next, setMeals, days, slots } = useTunnel();
+  const { next, setMeals, days, slots, commitPreferences } = useTunnel();
   const [cooked, setCooked] = useState(0);
 
   /** Stops once the last dish lands, rather than ticking on against a value that cannot move. */
@@ -88,16 +88,52 @@ export const TunnelGenerating = () => {
     return () => clearInterval(timer);
   }, [cooked]);
 
+  /**
+   * Everything the full count triggers, behind a ref so that only the count can trigger it.
+   *
+   * `commitPreferences` closes over the planning seed, and the two writes it makes invalidate the very
+   * query that seed is read from — so an effect depending on it directly re-runs the moment its own
+   * round trip lands. That regenerates the week under a user already looking at it, and re-arms the
+   * advance below: by then `next` reads a `stepRef` pointing at review, and the tunnel walks itself
+   * one screen further. Same failure `stepRef` exists to stop (see `useTunnel`), reached through the
+   * dependency array instead of through `next`.
+   *
+   * A ref rather than a `useCallback` with fewer deps: the effect wants the freshest values, it just
+   * must never treat their arrival as a reason to run twice.
+   */
+  const finish = useRef(() => {});
+
+  useEffect(() => {
+    finish.current = () => {
+      setMeals(generatedMeals(new Date(), days, slots));
+
+      /**
+       * Where the run leaves something behind: the caller's own constraints and the household's
+       * kitchen and plan defaults, written once, here, rather than per step — a tunnel abandoned
+       * halfway has asserted nothing.
+       *
+       * **It moves inside the generate mutation when that exists**, which is one round trip and
+       * atomic with the generation. Until then the generation is fake and these two writes are the
+       * only real thing the tunnel does, so they sit beside it rather than inside it.
+       */
+      commitPreferences();
+    };
+  }, [setMeals, days, slots, commitPreferences]);
+
+  /**
+   * Runs exactly once, on the dish that completes the count: `cooked` only ever climbs to `DISHES`
+   * and stops there, and `next` is referentially stable by construction.
+   */
   useEffect(() => {
     if (cooked < DISHES) return;
 
-    setMeals(generatedMeals(new Date(), days, slots));
+    finish.current();
 
     /** A beat on the full count, so the last dish is seen landing rather than skipped past. */
     const timer = setTimeout(next, DISH_MS);
 
     return () => clearTimeout(timer);
-  }, [cooked, next, setMeals, days, slots]);
+  }, [cooked, next]);
 
   return (
     <View style={styles.page}>

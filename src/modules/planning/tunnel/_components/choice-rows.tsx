@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { RowCardChoice } from "@ui/cards/row-choice";
 import { theme } from "theme";
 
-/** What a row needs to draw itself. Structural, so `placeholders` and a future query both satisfy it. */
+/** What a row needs to draw itself. Structural, so `optionsOf` and a future query both satisfy it. */
 type Option<T extends string> = { id: T; label: string; emoji: string };
 
 /**
@@ -26,7 +26,7 @@ type Props<T extends string> = {
 };
 
 /**
- * The list the tunnel's idea-shaped steps are answered from: moods, focuses, allergies.
+ * The list the tunnel's idea-shaped steps are answered from: moods, seeks, allergies.
  *
  * One component rather than three near-identical screens. What actually differs between those
  * steps is their question, their catalogue and their ceiling — all three of which are arguments —

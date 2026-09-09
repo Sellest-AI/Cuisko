@@ -93,17 +93,22 @@ not inventing them.
 - difficulty: 1 to 5, where 1 is ${DIFFICULTIES[0]} and 5 is ${DIFFICULTIES[4]}.
 - cuisine: exactly one of: ${_list(CUISINES)}. Use "other" only when none fits — never as a default.
 - tags: available: ${_list(AUTHORED_TAGS)}.
-  Walk that list group by group — course, form, effort, occasion — and ask of each what is TRUE of
-  this recipe, then write it. Leaving out a true tag is the same error as inventing a false one,
-  and it is the one you will actually make: the tags dropped first are the ones that sound like a
-  warning or like work. Chilli, harissa or gochujang is "spicy". A marinade or a dough resting
-  overnight is "make-ahead". A tag is a fact, not a compliment, so an unflattering one is as
+  Walk that list group by group — course, form, effort, occasion, character — and ask of each what
+  is TRUE of this recipe, then write it. Leaving out a true tag is the same error as inventing a
+  false one, and it is the one you will actually make: the tags dropped first are the ones that
+  sound like a warning or like work. Chilli, harissa or gochujang is "spicy". A marinade or a dough
+  resting overnight is "make-ahead". A tag is a fact, not a compliment, so an unflattering one is as
   required as a flattering one — and a fact is not a wish either: do not tag "quick" a recipe that
   takes an hour.
-  Diet is deliberately absent from that list, and it is not an oversight: whether a recipe is
-  vegetarian, gluten-free or high in protein is decided by the ingredients you return, so it is
-  computed from them after you answer rather than guessed here. Return the ingredients accurately
-  and the diet tags take care of themselves.
+  The character group asks what the dish is LIKE, which no single ingredient decides: "fresh" is
+  raw, crisp or bright rather than merely light; "veggie-forward" is a dish vegetables carry rather
+  than garnish; "world-flavours" is a cuisine most Western kitchens meet as a departure;
+  "fussy-eater" is plain enough for a child who rejects sauces; "gut-friendly" is fermented,
+  cultured or built on pulses and wholegrains.
+  Diet and nutrition are deliberately absent from that list, and it is not an oversight: whether a
+  recipe is vegetarian, gluten-free, high in protein, high in fibre or rich in iron is decided by
+  the ingredients you return, so all of it is computed from them after you answer rather than
+  guessed here. Return the ingredients accurately and those tags take care of themselves.
 - equipments: from: ${_list(EQUIPMENTS)}. Every appliance the recipe can be made with, the
   alternatives its own steps offer included — "6 hours in the slow cooker, or the same covered in
   the oven" carries both, because the cook needs any ONE of them and a household owning either can

@@ -1,14 +1,14 @@
-import { LayoutChangeEvent, ScrollView, StyleSheet, View } from "react-native";
-
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { GroupSelect } from "@ui/group-select";
-import { theme } from "theme";
+import { Text } from "@ui/text";
+import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
-import { EQUIPMENTS, type Equipment } from "@shared/equipments";
+import { NUTRITION_PREFERENCES, type NutritionPreference } from "@shared/preferences";
 
-import { EQUIPMENT_EMOJI } from "~/lib/vocabulary";
+import { TAG_EMOJI } from "~/lib/vocabulary";
 
-import { ALLERGIES, DIETS } from "./_hooks/placeholders";
+import { resolveSeeks } from "./_model/preferences";
 import { usePreferences } from "./_hooks/usePreferences";
 
 type Props = {
@@ -17,73 +17,55 @@ type Props = {
 };
 
 /**
- * The kitchen's standing profile: how the household eats, what it must never be served, and what
- * it can cook with.
+ * The tastes the plan is generated against — the `seeks` half of a person's preferences.
  *
- * These three and not the tunnel's other questions, because only these three are still true next
- * week. Mood, focus and cooking time are answers to "this week" — a standing copy of them here
- * would be a second source contradicting whatever the last run collected, with nothing to say
- * which was the real one.
+ * Deliberately not where a diet or an allergen is answered: those aggregate across a household and
+ * belong to the tunnel's constraint list, which can show whose they are. These four do not
+ * aggregate at all — high-protein and low-calorie are not compatible wishes — so they are the
+ * caller's alone, and this screen is the only place that asks.
  *
- * The same atoms the tunnel's steps write, so this sheet and the tunnel are two doors onto one
- * fact rather than two facts (`usePreferences`).
+ * ⚠️ **They are desires, not verdicts.** PRODUCT.md's first anti-goal is that the app is not a
+ * calorie policeman, and `high-calorie` is here for someone eating to gain weight exactly as
+ * `low-calorie` is for someone eating to lose. Nothing may render one of these back at the cook as
+ * a judgement on what they made.
  */
 export const PreferencesScreen = ({ onLayout }: Props) => {
   const t = useTranslations("Planning");
-  /** The kitchen's words belong to the vocabulary, not to whichever screen draws it. */
+  /** The words for a tag belong to the vocabulary, not to whichever screen draws it. */
   const tVocabulary = useTranslations("Vocabulary");
-  const { diets, allergies, equipments, toggleDiet, toggleAllergy, toggleEquipment } = usePreferences();
-
-  /** The chips are drawn from the catalogue and marked from the answer, so the two cannot disagree. */
-  const chips = (options: readonly { id: string; label: string; emoji: string }[], selected: string[]) =>
-    options.map((option) => ({
-      value: option.id,
-      label: option.label,
-      icon: option.emoji,
-      selected: selected.includes(option.id),
-    }));
+  const { preferences, isLoading, save } = usePreferences();
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <View onLayout={onLayout} style={styles.page}>
+    <View onLayout={onLayout} style={styles.page}>
+      {isLoading || !preferences ? (
+        /**
+         * A word rather than chips: the sheet is measured to its content, so drawing an unticked
+         * row and then correcting it would resize the sheet under the user's thumb.
+         */
+        <Text.Base color={colors.muted}>{t("Preferences.loading")}</Text.Base>
+      ) : (
         <GroupSelect
-          label={t("Preferences.diet")}
-          onSelect={toggleDiet}
-          items={chips(DIETS, diets)}
-        />
-        <GroupSelect
-          label={t("Preferences.allergies")}
-          onSelect={toggleAllergy}
-          items={chips(ALLERGIES, allergies)}
-        />
-        <GroupSelect
-          label={t("Preferences.utensils")}
-          onSelect={(value) => toggleEquipment(value as Equipment)}
-          items={EQUIPMENTS.map((equipment) => ({
-            value: equipment,
-            label: tVocabulary(`Equipments.${equipment}`),
-            icon: EQUIPMENT_EMOJI[equipment],
-            selected: equipments.includes(equipment),
+          label={t("Preferences.question")}
+          onSelect={(value) =>
+            save({ ...preferences, seeks: resolveSeeks(preferences.seeks, value as NutritionPreference) })
+          }
+          items={NUTRITION_PREFERENCES.map((preference) => ({
+            value: preference,
+            label: tVocabulary(`Tags.${preference}`),
+            icon: TAG_EMOJI[preference],
+            selected: preferences.seeks.includes(preference),
           }))}
         />
-      </View>
-    </ScrollView>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  /**
-   * `onLayout` sits on this inner column, not on the `ScrollView` around it.
-   *
-   * The sheet sizes itself to whatever reports its height, and a scroller's own height is the one
-   * the sheet just gave it — measuring there is a loop that never sees the chips. Measured from the
-   * content, a short profile gets a sheet cut to it, and one past `MODAL_MAX_DETENT` gets a sheet
-   * clamped to the cap with the scroller taking up the remainder.
-   */
+  /** The sheet now ends where this column does, so the bottom padding is the sheet's own margin. */
   page: {
     paddingHorizontal: theme.spacing[16],
     paddingTop: 56,
     paddingBottom: theme.spacing[24],
-    gap: theme.spacing[24],
   },
 });

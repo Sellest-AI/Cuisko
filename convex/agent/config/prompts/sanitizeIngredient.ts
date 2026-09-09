@@ -212,8 +212,9 @@ Not translations — those are the names above. Three or four is plenty; an empt
 
 # nutrition, per 100g
 
-All eight, as a laboratory would report them for the raw ingredient as sold: calories in kcal,
-protein / fat / saturatedFat / carbohydrates / sugars / fiber in grams, sodium in MILLIGRAMS.
+All nine, as a laboratory would report them for the raw ingredient as sold: calories in kcal,
+protein / fat / saturatedFat / carbohydrates / sugars / fiber in grams, sodium and iron in
+MILLIGRAMS.
 
 Sodium is the one people get wrong twice over: it is milligrams, not grams, and it is sodium, not
 salt — salt is 2.5x sodium, so 1 g of salt per 100 g is 400, not 1000 and not 1.
@@ -231,6 +232,17 @@ this ladder before you write the number:
 Anything you write above 2000 is a claim that this food is saltier than ketchup by a factor, and
 almost nothing is. If your number is up there and the food is not a cured, dried or fermented
 thing, you have written the SALT figure, or you are a decimal place out.
+
+Iron is milligrams for the same reason and gets mistaken the same way, so it has a ladder too:
+
+- milk, white rice, most fruit: under 0.5. Milk is 0.05.
+- a green vegetable, an egg, bread: 1 to 3. Spinach is 2.7.
+- red meat and cooked pulses: 2 to 4. Beef is 2.6, lentils 3.3.
+- tofu, liver, dark chocolate, a fortified cereal: 5 to 12.
+- a dried spice or a seaweed, which nobody eats 100 g of: up to 40.
+
+Almost every food in a kitchen is under 10. A figure in the hundreds is a microgram value, and a
+figure under 0.01 on a plant or a meat is a gram value — both are the decimal place, not the food.
 
 You may be shown figures a food composition table or a product label actually measured. Those are
 kept and yours are discarded for those fields, so do not try to match them — answer every field

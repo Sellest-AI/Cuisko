@@ -13,9 +13,8 @@
     "import_receipt": "Import receipt"
   },
   "Preferences": {
-    "diet": "How you eat",
-    "allergies": "Never on your plate",
-    "utensils": "What you cook with"
+    "question": "What meals do you want to see?",
+    "loading": "Reading your tastes…"
   },
   "Meal": {
     "lunch": "Lunch",
@@ -33,6 +32,7 @@
     "next_step": "Next step",
     "Setup": {
       "title": "Who is eating this week?",
+      "loading": "Looking up your kitchen…",
       "placeholder": "Craving pasta? Short on time? Tell me.",
       "people": "How many at the table?",
       "days": "How many days?",
@@ -41,7 +41,12 @@
     },
     "Diet": {
       "title": "How do you eat?",
-      "subtitle": "Your usual way of eating, not just this week."
+      "subtitle": "Your usual way of eating, not just this week.",
+      "loading": "Reading how your household eats…",
+      "diets": "Diets",
+      "avoids": "Ingredients to leave out",
+      "from_you": "you",
+      "from_household": "someone in your household"
     },
     "Allergies": {
       "title": "Anything to keep off the plate?",
@@ -56,16 +61,17 @@
       "subtitle": "Pick up to four. They will be mixed across the week."
     },
     "Focus": {
-      "title": "Anything to aim for?",
-      "subtitle": "Nutrition and practical goals. Most weeks need none of these."
+      "title": "Anything you are aiming for?",
+      "subtitle": "Saved to your preferences, so we only ask once.",
+      "loading": "Reading what you are aiming for…"
     },
     "Time": {
-      "title": "How long have you got to cook?",
-      "subtitle": "On an average evening this week.",
-      "any": "No constraint",
       "20": "Under 20 minutes",
       "30": "Under 30 minutes",
-      "60": "Up to an hour"
+      "60": "Up to an hour",
+      "title": "How long have you got to cook?",
+      "subtitle": "On an average evening this week.",
+      "any": "No constraint"
     },
     "Generating": {
       "title": "Cooking up your week",

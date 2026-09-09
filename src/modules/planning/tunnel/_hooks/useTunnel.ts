@@ -2,18 +2,36 @@ import { useAtom } from "jotai";
 import { router, usePathname } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 
+import type { Equipment } from "@shared/equipments";
+import type { NutritionPreference } from "@shared/preferences";
+import type { Taste } from "@shared/tastes";
+
+import { api } from "~/lib/convex/api";
+import { useMutation } from "~/lib/convex/client";
+
 import { MEAL_SLOTS, toggle, toggleTaste, type MealSlot } from "../../_model/model";
 import {
+  constraintsOf,
+  isDietConstraint,
+  mineOf,
+  toggleConstraint as toggleIn,
+  type ConstraintValue,
+} from "../../_model/constraints";
+import { resolveSeeks } from "../../_model/preferences";
+import {
+  constraintsAtom,
   cookingTimeAtom,
   daysAtom,
   draftMealsAtom,
-  focusesAtom,
+  equipmentsAtom,
+  isSetupSeededAtom,
   moodsAtom,
   noteAtom,
   peopleAtom,
+  seeksAtom,
   slotsAtom,
 } from "../../_hooks/atoms";
-import { usePreferences } from "../../_hooks/usePreferences";
+import { usePlanningSeed } from "./usePlanningSeed";
 
 /**
  * The tunnel in order. The route *is* the step — deriving the number from the path rather than
@@ -39,21 +57,82 @@ const routeFor = (step: TunnelStep) => `/planning/new/${step}` as const;
 
 export const useTunnel = () => {
   const path = usePathname();
-  /**
-   * The standing three come from `usePreferences` rather than from atoms read again here: the
-   * preferences sheet edits the same answers, and two hooks toggling one atom is two places for
-   * the rule to drift. The tunnel's own steps keep calling these off `useTunnel`, so its surface
-   * is unchanged.
-   */
-  const { diets, allergies, equipments, toggleDiet, toggleAllergy, toggleEquipment } = usePreferences();
   const [people, setPeople] = useAtom(peopleAtom);
   const [days, setDays] = useAtom(daysAtom);
   const [slots, setSlots] = useAtom(slotsAtom);
   const [note, setNote] = useAtom(noteAtom);
   const [moods, setMoods] = useAtom(moodsAtom);
-  const [focuses, setFocuses] = useAtom(focusesAtom);
+  const [seeks, setSeeks] = useAtom(seeksAtom);
   const [cookingTime, setCookingTime] = useAtom(cookingTimeAtom);
+  const [equipments, setEquipments] = useAtom(equipmentsAtom);
+  const [constraints, setConstraints] = useAtom(constraintsAtom);
+  const [isSetupSeeded, setSetupSeeded] = useAtom(isSetupSeededAtom);
   const [meals, setMeals] = useAtom(draftMealsAtom);
+
+  const { seed, householdId, isLoading: isSeedLoading } = usePlanningSeed();
+
+  const { mutate: savePreferences } = useMutation(api.router.preferences.save.authed);
+  const { mutate: saveDefaults } = useMutation(api.router.households.saveDefaults.authed);
+
+  /**
+   * The constraint list, seeded once per run from what the household already said.
+   *
+   * Guarded on `null` rather than on emptiness: seeding a second time would discard whatever the
+   * user has ticked since, and every re-render of a step that reads this hook re-runs the effect.
+   * `resetTunnelAtom` puts it back to `null` when the setup step opens, which is what makes the
+   * *next* run re-read rather than reuse.
+   */
+  useEffect(() => {
+    if (!seed || constraints !== null) return;
+
+    setConstraints(constraintsOf(seed.mine, seed.others));
+  }, [seed, constraints, setConstraints]);
+
+  /**
+   * The focus step's answer, seeded once per run from the caller's own saved `seeks`.
+   *
+   * `null` and not emptiness is the guard, for the reason the constraint list above gives: every
+   * step reads this hook, so the effect re-runs on each of them, and a second seeding would put
+   * the saved answer back over a chip the user just unticked. `resetTunnelAtom` returns it to
+   * `null` so the next run re-reads rather than reuses.
+   *
+   * ⚠️ **`seed.mine.seeks` alone — never the household's.** `seeks` is the one field
+   * `getPlanningSeed` refuses to aggregate: high-protein and low-calorie are not compatible
+   * wishes, so there is no honest way to add two people's together. Whatever this step shows is
+   * the caller's own and is written back to their own row.
+   */
+  useEffect(() => {
+    if (!seed || seeks !== null) return;
+
+    setSeeks(seed.mine.seeks);
+  }, [seed, seeks, setSeeks]);
+
+  /**
+   * The setup step's four answers, seeded once per run from what the household last said.
+   *
+   * ⚠️ **Each field is seeded only if it was answered, and `undefined` is what "unanswered" means.**
+   * An absent column leaves the atom on `TUNNEL_OFFERS`, which is the tunnel's opening bid; a
+   * column holding `[]` is an answer and overrides it. A household that unticked every appliance
+   * gets an empty kitchen back, and one that has never run the tunnel gets the offer — the
+   * distinction the optional columns exist for, and the reason `?? TUNNEL_OFFERS.x` is NOT what
+   * this does.
+   *
+   * The one exception is an empty `defaultSlots`. `slotsAtom` documents that it never empties, and
+   * the setup step's `toggleSlot` upholds it, so `[]` can only arrive from a client that predates
+   * that rule; taking it would leave the generating step sizing a week out of no plates at all.
+   */
+  useEffect(() => {
+    if (!seed || isSetupSeeded) return;
+
+    const { equipments: kitchen, defaultPeople, defaultSlots, defaultDays } = seed.household;
+
+    if (kitchen) setEquipments(kitchen);
+    if (defaultPeople !== undefined) setPeople(defaultPeople);
+    if (defaultDays !== undefined) setDays(defaultDays);
+    if (defaultSlots?.length) setSlots(defaultSlots);
+
+    setSetupSeeded(true);
+  }, [seed, isSetupSeeded, setSetupSeeded, setEquipments, setPeople, setDays, setSlots]);
 
   const index = TUNNEL_STEPS.findIndex((step) => path.endsWith(`/${step}`));
   const step = index === -1 ? 0 : index;
@@ -94,14 +173,68 @@ export const useTunnel = () => {
    * Here rather than in the bar that draws the label, because which steps are optional is a fact
    * about the tunnel and belongs beside the list that defines it — the bar draws chrome, and would
    * otherwise be branching on step names to decide a product question.
+   *
+   * The allergy step reads the constraint list rather than an answer of its own: an exclusion the
+   * caller inherited is one the step is no longer waiting for, so a household that already avoids
+   * gluten does not offer to skip a question it has answered.
    */
-  const optional: Partial<Record<TunnelStep, string[]>> = {
-    allergies,
+  const optional: Partial<Record<TunnelStep, unknown[]>> = {
+    allergies: (constraints ?? []).filter(
+      (constraint) => constraint.active && !isDietConstraint(constraint.value),
+    ),
     mood: moods,
-    focus: focuses,
+    focus: seeks ?? [],
   };
 
   const awaiting = optional[TUNNEL_STEPS[step]!];
+
+  /**
+   * What the run leaves behind, written from the generating step at the end of the tunnel rather
+   * than per step: a tunnel abandoned halfway has asserted nothing.
+   *
+   * Two writes because they have two owners — an allergy follows the person, an oven stays in the
+   * kitchen. **Both fold into the generate mutation when that lands**, which is one round trip and
+   * atomic with the generation; the logic is already in `convex/functions/`, so that move does not
+   * reach back into this file beyond the two calls below.
+   *
+   * ⚠️ **`mineOf` and not the visible list.** What the caller ticked is theirs; what they inherited
+   * is applied to the week, shown as a housemate's, and never written back as their own answer —
+   * see the toggle table in `_model/constraints.ts`. `seeks` comes from the focus step, which asks
+   * the caller directly and inherits nothing, so it needs no such filter.
+   *
+   * **The moods do not come here at all**, and that is the line this slice drew: a taste steers
+   * this week and `resetTunnelAtom` clears it, while a seek describes how the caller eats and
+   * survives the run. They used to be the same question — `high-protein` was a mood *and* a stored
+   * preference — which meant one wish was persisted or discarded depending on which step it was
+   * ticked in. See @shared/tastes.
+   *
+   * Nothing is written before the seed lands: `constraints` and `seeks` are both still `null`
+   * then, and saving either would clear a row the user has not been shown yet.
+   */
+  const commitPreferences = useCallback(() => {
+    if (!seed || !constraints || !seeks) return;
+
+    const failed = (gesture: string) => (error: unknown) => {
+      /**
+       * Reported rather than surfaced: the plan the user is about to see is not wrong because the
+       * preference write failed, and a modal over the generating step would be. It becomes a real
+       * failure path the day this folds into the generate mutation and the two share a fate.
+       */
+      if (__DEV__) console.warn(`[useTunnel] ${gesture} failed`, error);
+    };
+
+    void savePreferences({ ...mineOf(constraints), seeks }).catch(failed("save"));
+
+    if (householdId) {
+      void saveDefaults({
+        householdId,
+        equipments,
+        defaultPeople: people,
+        defaultSlots: slots,
+        defaultDays: days,
+      }).catch(failed("saveDefaults"));
+    }
+  }, [seed, constraints, seeks, householdId, savePreferences, saveDefaults, equipments, people, slots, days]);
 
   return {
     step: step + 1,
@@ -111,12 +244,14 @@ export const useTunnel = () => {
     slots,
     note,
     equipments,
-    diets,
-    allergies,
     moods,
-    focuses,
+    /** Empty until the seed lands, which `isSeedLoading` is how the focus step tells apart from "none". */
+    seeks: seeks ?? [],
     cookingTime,
+    /** Empty until the seed lands, which `isSeedLoading` is how a screen tells apart from "nothing". */
+    constraints: constraints ?? [],
     meals,
+    isSeedLoading,
     /**
      * Whether the step on screen is one the user may leave unanswered, and has. The bar reads it to
      * offer "Skip" instead of "Next step", so an optional step says so rather than looking like one
@@ -130,6 +265,7 @@ export const useTunnel = () => {
     setNote,
     setMeals,
     setCookingTime,
+    commitPreferences,
     /**
      * Never empties: a plan with no meal in it is not a plan, so turning the last slot off is a
      * no-op rather than a state the generating step would have to defend against. Re-sorted into
@@ -146,16 +282,32 @@ export const useTunnel = () => {
         }),
       [setSlots],
     ),
-    toggleEquipment,
-    toggleDiet,
-    toggleAllergy,
+    toggleEquipment: useCallback(
+      (equipment: Equipment) => setEquipments((current) => toggle(current, equipment)),
+      [setEquipments],
+    ),
     toggleMood: useCallback(
-      (id: string) => setMoods((current) => toggleTaste(current, id)),
+      (taste: Taste) => setMoods((current) => toggleTaste(current, taste)),
       [setMoods],
     ),
-    toggleFocus: useCallback(
-      (id: string) => setFocuses((current) => toggleTaste(current, id)),
-      [setFocuses],
+    /**
+     * The exclusive pair is resolved by `resolveSeeks`, not here: `low-calorie` and `high-calorie`
+     * cannot both be sought, the validator accepts the pair on purpose, and `_model/preferences.ts`
+     * is the single enforcement point in the system. This screen and the preferences sheet call
+     * the same function so the two cannot disagree.
+     *
+     * A no-op before the seed lands, so a tick cannot be taken and then overwritten by the seed.
+     */
+    toggleSeek: useCallback(
+      (preference: NutritionPreference) =>
+        setSeeks((current) => (current === null ? current : resolveSeeks(current, preference))),
+      [setSeeks],
+    ),
+    /** A no-op before the seed lands, so a tick cannot be taken and then overwritten by the seed. */
+    toggleConstraint: useCallback(
+      (value: ConstraintValue) =>
+        setConstraints((current) => (current === null ? current : toggleIn(current, value))),
+      [setConstraints],
     ),
   };
 };

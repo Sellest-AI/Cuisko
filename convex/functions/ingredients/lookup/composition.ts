@@ -11,7 +11,7 @@ import { COMPOSITION } from "./data/composition";
  * taxonomy row and nowhere else, and a caller passing a bare string would be a caller that had to
  * know that. Roughly one food in seven has one — the taxonomy is a naming corpus first.
  *
- * Every food in the generated table carries all eight fields. One CIQUAL left unmeasured on any
+ * Every food in the generated table carries all eight required fields. One CIQUAL left unmeasured on any
  * of them was dropped by the build script rather than written with a zero — see the note on
  * `cellValue` there for why that distinction is load-bearing.
  *

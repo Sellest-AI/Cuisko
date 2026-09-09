@@ -77,13 +77,16 @@ const vSearchText = vLocalizedText;
 export const vIngredientSource = v.union(...INGREDIENT_SOURCES.map(v.literal));
 
 /**
- * The eight nutrients, per 100g, as the COLUMN holds them.
+ * The nine nutrients, per 100g, as the COLUMN holds them.
  *
- * Four are optional and that is about history, not about sources: rows written before a nutrient
- * was stored carry no value for it. A row written today has no such excuse, which is why the
- * payload a writer hands over is a stricter shape built from this one — `vIngredientFacts` in
- * `schema/ingredientPayloads.ts`. Extracted from the table so the two are one statement plus its
- * difference, rather than two lists that agree until somebody adds a ninth nutrient.
+ * Five are optional, for two different reasons. Four are about history, not about sources: rows
+ * written before a nutrient was stored carry no value for it, and a row written today has no such
+ * excuse — which is why the payload a writer hands over restates those four as required
+ * (`vIngredientFacts` in `schema/ingredientPayloads.ts`). `iron` is the fifth and is optional all
+ * the way down, because the SOURCE may genuinely not know it.
+ *
+ * Extracted from the table so the two are one statement plus its difference, rather than two lists
+ * that agree until somebody adds a tenth nutrient.
  */
 export const vIngredientNutrition = v.object({
   calories: v.number(),
@@ -94,6 +97,13 @@ export const vIngredientNutrition = v.object({
   sugars: v.optional(v.number()),
   fiber: v.optional(v.number()),
   sodium: v.optional(v.number()),
+  /**
+   * mg per 100g. Optional for a reason the other four are not: the SOURCE may not know it. CIQUAL
+   * leaves iron unmeasured on 27 of the 491 catalog foods, and `vNutritionFacts` therefore leaves
+   * it optional too rather than promoting it the way it promotes the Nutri-Score inputs — a writer
+   * who does not know a food's iron must be able to say so.
+   */
+  iron: v.optional(v.number()),
 });
 
 export const ingredients = defineTable({

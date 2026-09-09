@@ -26,11 +26,11 @@ import { type Diet, mostPermissiveDietOf } from "./diets";
  * tag it cannot verify answers with the one that sounds right, and "gluten-free" sounding right is
  * how someone who filtered on it gets served soy sauce.
  *
- * All ten are computed by `computeTags`, each from a fact the seed catalog carries per row: the
+ * All twelve are computed by `computeTags`, each from a fact the seed catalog carries per row: the
  * diet three from `ingredients.diet`, the free-from three from `ingredients.allergens`, the
- * nutrition four from the macros.
+ * nutrition six from the macros and minerals.
  *
- * ⚠️ **Absent is "unknown", never "does not contain".** Six of the ten are claims of absence, and
+ * ⚠️ **Absent is "unknown", never "does not contain".** Six of the twelve are claims of absence, and
  * a claim of absence cannot be made from data nobody wrote. `computeTags` therefore emits NONE of
  * a group rather than a partial answer whenever a line is unmatched, uncategorised or outside the
  * catalog — see the refusals documented there. Anything rendering these must word them as "no
@@ -48,6 +48,8 @@ export const COMPUTED_TAGS = [
   "low-carb",
   "low-calorie",
   "high-calorie",
+  "high-fibre",
+  "iron-rich",
 ] as const;
 
 /**
@@ -56,6 +58,18 @@ export const COMPUTED_TAGS = [
  * Nothing in the rows says a recipe is a starter rather than a main, festive rather than everyday,
  * or worth cooking a double batch of. These are read off the recipe as a whole, which is why they
  * are the ones the model writes.
+ *
+ * ⚠️ **The Character group is the weakest part of this list, and knowingly so.** Those five are
+ * what the planning tunnel's mood step steers a week by (see [`TASTES`](./tastes.ts)), and a steer
+ * with no tag behind it filters on nothing — so they are here rather than nowhere. They are the
+ * ones to look at first if a tag ever reads as a claim the model cannot support: "gut-friendly"
+ * has nothing behind it but the model's judgement, where "spicy" two lines up is decidable from
+ * the ingredient list anyone can read.
+ *
+ * `high-fibre` and `iron-rich` were briefly in this group and have moved to
+ * [`COMPUTED_TAGS`](#COMPUTED_TAGS), which is where a nutrition claim belongs: both are now
+ * measured from the catalog rather than asserted by a model, against the thresholds EU Regulation
+ * 1924/2006 sets for them.
  */
 export const AUTHORED_TAGS = [
   // Course — where it lands in a meal
@@ -82,11 +96,18 @@ export const AUTHORED_TAGS = [
   "batch-cooking",
   "freezer-friendly",
   "budget",
+  "few-ingredients",
   // Occasion
   "comfort-food",
   "festive",
   "kid-friendly",
   "spicy",
+  // Character — what the dish is like as a whole, which no single row decides
+  "veggie-forward",
+  "fresh",
+  "world-flavours",
+  "gut-friendly",
+  "fussy-eater",
 ] as const;
 
 /** The full vocabulary — what the column validates against and what a filter chip row is drawn from. */
@@ -229,11 +250,43 @@ const LOW_CARB_ENERGY_SHARE = 0.26;
 const LOW_CALORIE_KCAL_PER_SERVING = 500;
 const HIGH_CALORIE_KCAL_PER_SERVING = 850;
 
-/** The three facts the nutrition tags are decided from, for ONE serving. */
+/**
+ * The two regulated claims in this file, and the only thresholds here that are not our own judgement.
+ *
+ * `high-fibre` is EU Regulation 1924/2006, which allows the claim at 6 g per 100 g **or** 3 g per
+ * 100 kcal. The energy limb is the one used, for the same reason `high-protein` is an energy share
+ * rather than a gram count: it does not track portion size, and it needs no figure for what the
+ * finished dish weighs — which `ServingFacts` deliberately does not carry.
+ *
+ * `iron-rich` is the same regulation's "high in" tier for a mineral: 30% of the nutrient reference
+ * value, and the NRV for iron in Annex XIII is 14 mg. Per SERVING rather than per 100 g, because a
+ * plate of food is eaten as a portion and 30% of a day's iron in one meal is the claim worth
+ * making. That is a stricter reading than the per-100-g form would be for a light dish and a more
+ * generous one for a heavy dish, and it is the reading a cook would recognise.
+ *
+ * ⚠️ Both are claims about what the catalog MEASURED. Neither is emitted from a total that could
+ * not be worked out — see `nutritionTagsOf`.
+ */
+const HIGH_FIBRE_G_PER_100_KCAL = 3;
+const IRON_NRV_MG = 14;
+const HIGH_MINERAL_NRV_SHARE = 0.3;
+const IRON_RICH_MG_PER_SERVING = IRON_NRV_MG * HIGH_MINERAL_NRV_SHARE;
+
+/**
+ * The facts the nutrition tags are decided from, for ONE serving.
+ *
+ * `fiber` and `iron` are optional because the catalog genuinely may not know them — `sumOptional`
+ * returns `undefined` for a recipe where one line omitted the fact, and that has to survive as far
+ * as here so the tag is withheld rather than decided from a partial total.
+ */
 export type ServingFacts = {
   calories: number;
   protein: number;
   carbohydrates: number;
+  /** grams. Absent when any line's fibre was unknown. */
+  fiber?: number;
+  /** milligrams. Absent when any line's iron was unknown. */
+  iron?: number;
 };
 
 /**
@@ -246,7 +299,9 @@ export type ServingFacts = {
  * Zero calories yields nothing rather than dividing by it: a recipe of water and salt is not
  * high-protein, and it is not the interesting case either.
  */
-export const nutritionTagsOf = ({ calories, protein, carbohydrates }: ServingFacts): ComputedTag[] => {
+export const nutritionTagsOf = (
+  { calories, protein, carbohydrates, fiber, iron }: ServingFacts,
+): ComputedTag[] => {
   const tags: ComputedTag[] = [];
 
   if (calories <= 0) return tags;
@@ -261,6 +316,17 @@ export const nutritionTagsOf = ({ calories, protein, carbohydrates }: ServingFac
 
   if (calories <= LOW_CALORIE_KCAL_PER_SERVING) tags.push("low-calorie");
   if (calories >= HIGH_CALORIE_KCAL_PER_SERVING) tags.push("high-calorie");
+
+  /**
+   * Both are withheld on `undefined` rather than read as zero, which is the same refusal the
+   * free-from tags make: a recipe whose fibre nobody measured is not a recipe without fibre, and a
+   * claim of "high in" is exactly the claim that cannot be made from data nobody wrote.
+   */
+  if (fiber !== undefined && (fiber / calories) * 100 >= HIGH_FIBRE_G_PER_100_KCAL) {
+    tags.push("high-fibre");
+  }
+
+  if (iron !== undefined && iron >= IRON_RICH_MG_PER_SERVING) tags.push("iron-rich");
 
   return tags;
 };

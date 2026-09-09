@@ -77,13 +77,16 @@ export const modelRecipeSchema = z.object({
   cuisine: z.enum(CUISINES)
     .describe(`Exactly one. "other" only when none fits — never as a default.`),
   tags: z.array(z.enum(AUTHORED_TAGS)).describe(
-    "Walk the list group by group — course, form, effort, occasion — and ask of each what is " +
-    "TRUE of this recipe, then write it. Omitting a true tag is the same error as inventing a " +
-    `false one. A tag is a fact, not a compliment, so an unflattering one is as required as a ` +
-    `flattering one: chilli, harissa or gochujang is "spicy"; a marinade or a dough resting ` +
-    `overnight is "make-ahead". And a fact is not a wish — no "quick" on an hour. Diet is not ` +
-    "yours to answer: it is computed from the ingredients you return, which is why no diet tag " +
-    "is in this list.",
+    "Walk the list group by group — course, form, effort, occasion, character — and ask of each " +
+    "what is TRUE of this recipe, then write it. Omitting a true tag is the same error as " +
+    `inventing a false one. A tag is a fact, not a compliment, so an unflattering one is as ` +
+    `required as a flattering one: chilli, harissa or gochujang is "spicy"; a marinade or a dough ` +
+    `resting overnight is "make-ahead". And a fact is not a wish — no "quick" on an hour. The ` +
+    `character group asks what the dish is LIKE: "fresh" is raw, crisp or bright rather than ` +
+    `merely light, and "veggie-forward" is a dish vegetables carry rather than garnish. Diet and ` +
+    "nutrition are not yours to answer: vegetarian, gluten-free, high-protein, high-fibre and " +
+    "iron-rich are all computed from the ingredients you return, which is why none of them is in " +
+    "this list.",
   ),
   equipments: z.array(z.enum(EQUIPMENTS)).describe(
     "Every appliance the recipe can be made with, the alternatives its own steps offer " +

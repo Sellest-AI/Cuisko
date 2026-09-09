@@ -17,7 +17,7 @@
  * Pruned to `en`/`fr`, which are the locales this app has.
  *
  * **Nutrition** — CIQUAL 2020 (ANSES), the French reference composition table, joined to the
- * taxonomy by the `ciqual_food_code` the taxonomy already carries. Pruned to the eight fields
+ * taxonomy by the `ciqual_food_code` the taxonomy already carries. Pruned to the nine fields
  * `schema/ingredients.ts` declares, out of the 67 CIQUAL publishes.
  *
  * ⚠️ **CIQUAL is read from the Open Food Facts mirror, not from ANSES.** ANSES publishes it as a
@@ -49,7 +49,7 @@ const OUT = path.join(ROOT, "convex", "functions", "ingredients", "lookup", "dat
 const LOCALES = ["en", "fr"];
 
 /**
- * The CIQUAL columns the eight fields of `nutrition` are read from, by header name rather than by
+ * The CIQUAL columns the REQUIRED fields of `nutrition` are read from, by header name rather than by
  * position — the release adds columns between versions and a position silently reads the wrong
  * nutrient.
  *
@@ -69,6 +69,21 @@ const NUTRIENT_COLUMNS = {
   sugars: "Sucres (g/100 g)",
   fiber: "Fibres alimentaires (g/100 g)",
   sodium: "Sodium (mg/100 g)",
+};
+
+/**
+ * Nutrients written when CIQUAL measured them and left off the row when it did not.
+ *
+ * The all-or-none rule below is right for the eight above — every one of them feeds either a macro
+ * a screen shows or a Nutri-Score input, so a hole in any of them makes the row unusable. It would
+ * be the wrong rule here. CIQUAL leaves iron unmeasured on 27 of the 491 foods the taxonomy
+ * reaches, and demanding it would drop those foods entirely: they would lose their macros, their
+ * grade and every nutrition tag they currently earn, to gain one mineral. Absent is "unknown" on
+ * exactly one field instead, which `IngredientFacts` types as optional and `sumOptional` refuses a
+ * total for — so `iron-rich` is withheld rather than guessed, and nothing else is affected.
+ */
+const OPTIONAL_NUTRIENT_COLUMNS = {
+  iron: "Fer (mg/100 g)",
 };
 
 const fetchText = async (url) => {
@@ -146,9 +161,14 @@ const buildComposition = (csv, codes) => {
     field,
     indexOf(name),
   ]);
+  const optionalIndexes = Object.entries(OPTIONAL_NUTRIENT_COLUMNS).map(([field, name]) => [
+    field,
+    indexOf(name),
+  ]);
 
   const composition = {};
   let incomplete = 0;
+  const unmeasuredOptional = {};
 
   for (const row of rows) {
     const cells = row.split("\t");
@@ -165,10 +185,19 @@ const buildComposition = (csv, codes) => {
       continue;
     }
 
+    // The optional ones are appended only when measured — the food is kept either way, and an
+    // absent key is what tells the tag layer "unknown" rather than "none". See the note above.
+    for (const [field, index] of optionalIndexes) {
+      const value = cellValue(cells[index]);
+
+      if (value === undefined) unmeasuredOptional[field] = (unmeasuredOptional[field] ?? 0) + 1;
+      else facts[field] = value;
+    }
+
     composition[code] = facts;
   }
 
-  return { composition, incomplete };
+  return { composition, incomplete, unmeasuredOptional };
 };
 
 const HEADER = (source) => `/**
@@ -204,7 +233,7 @@ const main = async () => {
 
   const entries = buildTaxonomy(taxonomyJson);
   const codes = new Set(entries.map((entry) => entry.ciqualCode).filter(Boolean));
-  const { composition, incomplete } = buildComposition(ciqualCsv, codes);
+  const { composition, incomplete, unmeasuredOptional } = buildComposition(ciqualCsv, codes);
 
   const files = [
     ["taxonomy.ts", taxonomyFile(entries)],
@@ -216,9 +245,18 @@ const main = async () => {
     console.log(`${name.padEnd(16)} ${(contents.length / 1024).toFixed(0)} KB`);
   }
 
+  const kept = Object.keys(composition).length;
+
   console.log(
     `\ntaxonomy     ${entries.length} foods, ${codes.size} carrying a CIQUAL code\n` +
-      `composition  ${Object.keys(composition).length} kept, ${incomplete} dropped for an unmeasured field`,
+      `composition  ${kept} kept, ${incomplete} dropped for an unmeasured required field\n` +
+      Object.entries(OPTIONAL_NUTRIENT_COLUMNS)
+        .map(([field]) => {
+          const missing = unmeasuredOptional[field] ?? 0;
+
+          return `  ${field.padEnd(11)}${kept - missing}/${kept} measured, ${missing} left absent`;
+        })
+        .join("\n"),
   );
 };
 

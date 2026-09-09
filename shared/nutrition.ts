@@ -43,6 +43,16 @@ export type NutritionFacts = {
 export type IngredientNutrition = NutritionFacts & {
   /** grams per 100g. Stored and shown; not a Nutri-Score input. */
   fat: number;
+  /**
+   * milligrams per 100g. Optional, and the only fact here that is — see `NUTRIENT_COLUMNS` in
+   * `scripts/build-ingredient-data.mjs`: CIQUAL leaves iron unmeasured on 27 of the 491 foods the
+   * catalog reaches, and dropping those foods entirely to keep the shape uniform would cost them
+   * their macros, their Nutri-Score and their nutrition tags to gain one mineral.
+   *
+   * Not on `NutritionFacts` for the reason `fat` is not: the Nutri-Score does not read it. It is
+   * here to decide the `iron-rich` tag, and for nothing else.
+   */
+  iron?: number;
 };
 
 export const NUTRI_SCORE_GRADES = ["A", "B", "C", "D", "E"] as const;
@@ -135,8 +145,12 @@ export const computeNutriScore = (
 /**
  * What the catalog knows about one ingredient, per 100g.
  *
- * The four optional ones are optional on the table too, and only the Nutri-Score needs them —
- * a recipe still reports its macros without them, it just cannot be graded.
+ * The optional ones are optional on the table too. Four of them are the Nutri-Score's inputs — a
+ * recipe still reports its macros without them, it just cannot be graded — and `iron` is optional
+ * for a different reason: the source leaves it unmeasured on a handful of foods (see
+ * `IngredientNutrition`). Both absences behave the same way downstream, because `sumOptional`
+ * refuses a total as soon as one line omits the fact, and a tag that cannot be decided is withheld
+ * rather than guessed.
  */
 export type IngredientFacts = {
   calories: number;
@@ -147,6 +161,8 @@ export type IngredientFacts = {
   sugars?: number;
   fiber?: number;
   sodium?: number;
+  /** milligrams per 100g. Decides `iron-rich`; not a Nutri-Score input. */
+  iron?: number;
 };
 
 /** One line of a recipe, already weighed by `toGrams` and already looked up in the catalog. */
@@ -209,6 +225,7 @@ export const scaleFacts = (facts: IngredientFacts, factor: number): IngredientFa
   ...(facts.sugars !== undefined && { sugars: facts.sugars * factor }),
   ...(facts.fiber !== undefined && { fiber: facts.fiber * factor }),
   ...(facts.sodium !== undefined && { sodium: facts.sodium * factor }),
+  ...(facts.iron !== undefined && { iron: facts.iron * factor }),
 });
 
 /**
@@ -236,6 +253,8 @@ export const totalsOf = (lines: RecipeLine[], servings: number): RecipeNutrition
   const sugars = sumOptional(weighed, (facts) => facts.sugars);
   const fiber = sumOptional(weighed, (facts) => facts.fiber);
   const sodium = sumOptional(weighed, (facts) => facts.sodium);
+  /** Not part of the Nutri-Score guard below: the score does not read iron, so its absence must not cost a grade. */
+  const iron = sumOptional(weighed, (facts) => facts.iron);
 
   const total: IngredientFacts = {
     calories: sumRequired(weighed, (facts) => facts.calories),
@@ -246,6 +265,7 @@ export const totalsOf = (lines: RecipeLine[], servings: number): RecipeNutrition
     ...(sugars !== undefined && { sugars }),
     ...(fiber !== undefined && { fiber }),
     ...(sodium !== undefined && { sodium }),
+    ...(iron !== undefined && { iron }),
   };
 
   const nutrition: RecipeNutrition = {

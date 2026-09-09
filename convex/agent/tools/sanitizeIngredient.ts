@@ -58,7 +58,7 @@ const _perLocale = <T extends z.ZodType>(value: T) =>
     [K in Locale]: T;
   });
 
-/** The eight, all required. What the model is asked for; what survives is decided below. */
+/** The nine, all required. What the model is asked for; what survives is decided below. */
 const _nutritionSchema = z.object(
   Object.fromEntries(NUTRITION_FIELDS.map((field) => [field, z.number().min(0)])) as {
     [K in (typeof NUTRITION_FIELDS)[number]]: z.ZodNumber;

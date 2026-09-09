@@ -1,48 +1,79 @@
-import { useAtom } from "jotai";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
-import type { Equipment } from "@shared/equipments";
+import type { PreferenceValues } from "@shared/preferences";
 
-import { toggle } from "../_model/model";
-import { allergiesAtom, dietsAtom, equipmentsAtom } from "./atoms";
+import { api } from "~/lib/convex/api";
+import { useAuthenticated } from "~/lib/convex/auth";
+import { useMutation, useQueryCached } from "~/lib/convex/client";
 
 /**
- * The standing answers: what the household eats, what it must never eat, and what it can cook with.
+ * What a user who has never answered reads as.
  *
- * These three are the kitchen's profile rather than this week's mood — a vegetarian is vegetarian
- * next week too, and an air fryer does not leave the counter between runs. That is what makes them
- * worth a screen of their own outside the tunnel, and what makes the mood, focus and time steps
- * *not* belong here: those are answers to "this week", and a standing copy of them would be a
- * second source contradicting the one the tunnel just collected.
+ * The same three values `getPlanningSeed` uses for an absent row, and deliberately so: a screen
+ * that opened on something else would show the user an answer they never gave, and then write it
+ * back the first time they touched anything else on the page.
+ */
+const UNANSWERED: PreferenceValues = { diet: "omnivore", avoids: [], seeks: [] };
+
+/**
+ * The caller's own preferences, and the one way a screen changes them.
  *
- * The same atoms the tunnel's steps write, deliberately. The preferences sheet and the tunnel are
- * two doors onto one fact, so editing a diet here changes the step the next run opens with; held
- * separately the two would drift, and nothing would say which was the real answer.
+ * ⚠️ **`save` replaces the whole row.** `diet` and `avoids` are not editable from the preferences
+ * screen — the tunnel's constraint list owns them — so a caller that sends only `seeks` would
+ * silently clear somebody's gluten. Both are read here and passed straight back, which is the
+ * same pass-through the tunnel does in the other direction for `seeks`. There is one write path
+ * per table by design; the price of that is that every writer sends the whole answer.
  *
- * Still atoms rather than a Convex query: nothing persists them across a restart yet, and the swap
- * to `api.router.planning.*` lands in this file alone (ADR 0006).
+ * The local draft is what makes a chip respond to a tap rather than to a round trip. The query
+ * stays the source of truth until the first local write, after which the draft leads and the
+ * server confirms — so a change made on another device lands only on the next mount. That is the
+ * right trade for a sheet somebody has open for four seconds; a longer-lived screen would want the
+ * query to win.
  */
 export const usePreferences = () => {
-  const [diets, setDiets] = useAtom(dietsAtom);
-  const [allergies, setAllergies] = useAtom(allergiesAtom);
-  const [equipments, setEquipments] = useAtom(equipmentsAtom);
+  const { isAuthenticated, isAuthenticating } = useAuthenticated();
+  const [draft, setDraft] = useState<PreferenceValues | null>(null);
+
+  /** `'skip'` is Convex's idiom for "not yet" — the hook call stays unconditional, the query unsent. */
+  const { data, isPending } = useQueryCached(
+    api.router.preferences.getMine.authed,
+    isAuthenticated ? {} : "skip",
+  );
+
+  const { mutate, isLoading: isSaving } = useMutation(api.router.preferences.save.authed);
+
+  const isLoading = isAuthenticating || (isAuthenticated && isPending);
+
+  /**
+   * `null` from the query is an answer — nobody has ever asked — and reads as `UNANSWERED`.
+   * `undefined` is the absence of an answer, and stays `undefined` so the screen can wait.
+   */
+  const answered = data
+    ? { diet: data.diet, avoids: data.avoids, seeks: data.seeks }
+    : data === null
+      ? UNANSWERED
+      : undefined;
+
+  const save = useCallback(
+    (values: PreferenceValues) => {
+      setDraft(values);
+
+      void mutate(values).catch((error: unknown) => {
+        /**
+         * Reported rather than surfaced, and the draft is deliberately not rolled back: the sheet
+         * has no error surface, and snapping a chip the user just tapped back to where it was is
+         * a worse lie than showing their answer until the next mount re-reads the row.
+         */
+        if (__DEV__) console.warn("[usePreferences] save failed", error);
+      });
+    },
+    [mutate],
+  );
 
   return {
-    diets,
-    allergies,
-    equipments,
-    toggleDiet: useCallback((id: string) => setDiets((current) => toggle(current, id)), [setDiets]),
-    /**
-     * Uncapped, unlike the tunnel's tastes: an exclusion list that stops accepting entries hands
-     * the user a week built around an allergy the app quietly dropped.
-     */
-    toggleAllergy: useCallback(
-      (id: string) => setAllergies((current) => toggle(current, id)),
-      [setAllergies],
-    ),
-    toggleEquipment: useCallback(
-      (equipment: Equipment) => setEquipments((current) => toggle(current, equipment)),
-      [setEquipments],
-    ),
+    preferences: draft ?? answered,
+    isLoading,
+    isSaving,
+    save,
   };
 };

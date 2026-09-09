@@ -4,8 +4,9 @@ import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 
 import { StepSlider } from "@ui/step-slider";
+import { Text } from "@ui/text";
 import { TextField } from "@ui/text-field";
-import { theme } from "theme";
+import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
@@ -36,7 +37,8 @@ const SLOTS = {
 /** What this week is, who is eating, and what the kitchen can do. */
 export const TunnelSetup = () => {
   const t = useTranslations("Planning");
-  const { note, setNote, people, setPeople, days, setDays, slots, toggleSlot } = useTunnel();
+  const { note, setNote, people, setPeople, days, setDays, slots, toggleSlot, isSeedLoading } =
+    useTunnel();
   const resetTunnel = useSetAtom(resetTunnelAtom);
   const onScroll = useTunnelScrollHandler();
 
@@ -54,27 +56,41 @@ export const TunnelSetup = () => {
       showsVerticalScrollIndicator={false}
     >
       <TunnelHeader title={t("Tunnel.Setup.title")} subtitle={t("Tunnel.Setup.subtitle")} />
-      <TextField
-        multiline
-        value={note}
-        onChangeText={setNote}
-        placeholder={t("Tunnel.Setup.placeholder")}
-        style={styles.note}
-      />
-      <SectionLabel label={t("Tunnel.Setup.meals")} />
-      <ChoiceRows
-        options={MEAL_SLOTS.map((slot) => ({
-          id: slot,
-          label: t(SLOTS[slot].key),
-          emoji: SLOTS[slot].emoji,
-        }))}
-        selected={slots}
-        onToggle={toggleSlot}
-      />
-      <SectionLabel label={t("Tunnel.Setup.people")} value={String(people)} />
-      <StepSlider value={people} max={MAX_PEOPLE} onChange={setPeople} style={styles.slider} />
-      <SectionLabel label={t("Tunnel.Setup.days")} value={String(days)} />
-      <StepSlider value={days} max={MAX_DAYS} onChange={setDays} style={styles.slider} />
+      {isSeedLoading ? (
+        /**
+         * The form waits for the seed rather than opening on the offer and correcting itself.
+         *
+         * These answers are prefilled from the household, and a seed landing a moment after the
+         * screen did would move a slider the user had already dragged — silently, and then write
+         * that value back at the end of the tunnel. A short wait is the honest version of "opens
+         * already knowing how the household eats"; the diet step waits for the same reason.
+         */
+        <Text.Base color={colors.muted}>{t("Tunnel.Setup.loading")}</Text.Base>
+      ) : (
+        <>
+          <TextField
+            multiline
+            value={note}
+            onChangeText={setNote}
+            placeholder={t("Tunnel.Setup.placeholder")}
+            style={styles.note}
+          />
+          <SectionLabel label={t("Tunnel.Setup.meals")} />
+          <ChoiceRows
+            options={MEAL_SLOTS.map((slot) => ({
+              id: slot,
+              label: t(SLOTS[slot].key),
+              emoji: SLOTS[slot].emoji,
+            }))}
+            selected={slots}
+            onToggle={toggleSlot}
+          />
+          <SectionLabel label={t("Tunnel.Setup.people")} value={String(people)} />
+          <StepSlider value={people} max={MAX_PEOPLE} onChange={setPeople} style={styles.slider} />
+          <SectionLabel label={t("Tunnel.Setup.days")} value={String(days)} />
+          <StepSlider value={days} max={MAX_DAYS} onChange={setDays} style={styles.slider} />
+        </>
+      )}
     </Animated.ScrollView>
   );
 };

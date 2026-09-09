@@ -43,6 +43,7 @@ const _facts = (overrides: Record<string, unknown> = {}) => ({
     sugars: 4.7,
     fiber: 2.8,
     sodium: 69,
+    iron: 0.3,
   },
   ...overrides,
 });

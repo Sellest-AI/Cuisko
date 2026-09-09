@@ -138,4 +138,35 @@ describe("totalsOf", () => {
     expect(totalsOf([], 4)).toBeUndefined();
     expect(totalsOf(DISH, 0)).toBeUndefined();
   });
+
+  /**
+   * Iron behaves like the four Nutri-Score inputs on the way through — summed by weight, divided
+   * into servings — and unlike them in one way that matters: the score does not read it, so a
+   * recipe whose iron is unknown must still be graded. Both halves are pinned here because the two
+   * are one `if` apart in `totalsOf`.
+   */
+  test("sums iron by weight and divides it into servings", () => {
+    const beef = ingredient({ calories: 198, protein: 25.5, carbohydrates: 0, sugars: 0, fiber: 0, sodium: 58, iron: 2.55 });
+    const nutrition = totalsOf([{ facts: beef, grams: 400, produce: false }], 2)!;
+
+    // 2.55mg per 100g × 400g = 10.2mg, halved into two servings.
+    expect(nutrition.total.iron).toBeCloseTo(10.2);
+    expect(nutrition.perServing.iron).toBeCloseTo(5.1);
+  });
+
+  test("drops iron but keeps the grade when one line never recorded it", () => {
+    const withIron = { ...CARROT, iron: 0.3 };
+    const nutrition = totalsOf(
+      [
+        { facts: withIron, grams: 500, produce: true },
+        // CIQUAL leaves iron unmeasured on 27 of the catalog's foods; this is one of them.
+        { facts: ONION, grams: 300, produce: true },
+      ],
+      2,
+    )!;
+
+    expect(nutrition.total.iron).toBeUndefined();
+    // The score reads seven facts and iron is not among them, so it survives the hole.
+    expect(nutrition.nutriScore).toBeDefined();
+  });
 });

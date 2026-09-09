@@ -148,7 +148,7 @@ export const searchOpenFoodFacts = async (text: string): Promise<LookupHit | und
     return undefined;
   }
 
-  // The product that declared the MOST of the eight wins, and its own names lead the list — the
+  // The product that declared the MOST of the nine wins, and its own names lead the list — the
   // caller re-searches the catalog in order, so the names the nutrition belongs to have to be the
   // ones it tries first. Most rather than first-complete because a partial table is now kept: a
   // product declaring seven fields is a better answer than one declaring two, and under the old

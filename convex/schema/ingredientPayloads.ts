@@ -21,14 +21,19 @@ import {
 } from "./ingredients";
 
 /**
- * The eight nutrients as a WRITER must supply them — every one required, unlike the column.
+ * The nutrients as a WRITER must supply them — the Nutri-Score inputs required, unlike the column.
  *
- * Built from the column's validator with the four it leaves optional re-stated as required, so the
- * field list is written once and the difference is the only thing this statement says. That
- * difference is `IngredientNutrition`, which is total: `computeNutriScore` reads all eight together,
- * so a row created with a missing one gets a grade computed from a gap. A source that measured
- * seven is not a problem here — the agent fills the eighth and `measuredOver` puts the seven
- * measurements back on top before any of this is reached.
+ * Built from the column's validator with the four Nutri-Score inputs it leaves optional re-stated as
+ * required, so the field list is written once and the difference is the only thing this statement
+ * says. That difference is what `computeNutriScore` needs: it reads its seven facts together, so a
+ * row created with a missing one gets a grade computed from a gap. A source that measured six is
+ * not a problem here — the agent fills the seventh and `measuredOver` puts the six measurements
+ * back on top before any of this is reached.
+ *
+ * ⚠️ **`iron` is the one field this does NOT promote.** It is optional on the column because the
+ * source may not know it, and no amount of asking a writer makes CIQUAL's 27 unmeasured foods
+ * measured. The Nutri-Score does not read it, so nothing here degrades when it is absent — the
+ * `iron-rich` tag is simply withheld (`nutritionTagsOf`).
  */
 const vNutritionFacts = v.object({
   ...vIngredientNutrition.fields,

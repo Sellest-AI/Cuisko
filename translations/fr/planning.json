@@ -13,9 +13,8 @@
     "import_receipt": "Ajouter un plat"
   },
   "Preferences": {
-    "diet": "Ta façon de manger",
-    "allergies": "Jamais dans ton assiette",
-    "utensils": "Avec quoi tu cuisines"
+    "question": "Quels repas veux-tu voir ?",
+    "loading": "Je relis tes goûts…"
   },
   "Meal": {
     "lunch": "Déjeuner",
@@ -34,6 +33,7 @@
     "next_step": "Étape suivante",
     "Setup": {
       "title": "Qui mange cette semaine ?",
+      "loading": "Je regarde ta cuisine…",
       "placeholder": "Envie de pâtes ? Peu de temps ? Dis-moi tout.",
       "people": "Vous êtes combien à table ?",
       "days": "Sur combien de jours ?",
@@ -42,7 +42,12 @@
     },
     "Diet": {
       "title": "Tu manges comment ?",
-      "subtitle": "Ta façon de manger habituelle, pas seulement cette semaine."
+      "subtitle": "Ta façon de manger habituelle, pas seulement cette semaine.",
+      "loading": "Je regarde comment ton foyer mange…",
+      "diets": "Régimes",
+      "avoids": "Ingrédients à écarter",
+      "from_you": "toi",
+      "from_household": "quelqu'un de ton foyer"
     },
     "Allergies": {
       "title": "Il y a des choses à écarter ?",
@@ -58,15 +63,16 @@
     },
     "Focus": {
       "title": "Un objectif particulier ?",
-      "subtitle": "Nutrition et contraintes pratiques. La plupart des semaines n'en ont pas besoin."
+      "subtitle": "Enregistré dans vos préférences, on ne le demande qu'une fois.",
+      "loading": "Je relis tes objectifs…"
     },
     "Time": {
-      "title": "Tu as combien de temps pour cuisiner ?",
-      "subtitle": "Sur une soirée moyenne cette semaine.",
-      "any": "Sans contrainte",
       "20": "Moins de 20 minutes",
       "30": "Moins de 30 minutes",
-      "60": "Jusqu'à une heure"
+      "60": "Jusqu'à une heure",
+      "title": "Tu as combien de temps pour cuisiner ?",
+      "subtitle": "Sur une soirée moyenne cette semaine.",
+      "any": "Sans contrainte"
     },
     "Generating": {
       "title": "On mijote ta semaine",

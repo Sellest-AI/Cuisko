@@ -27,7 +27,7 @@ import type { IngredientNutrition } from "@shared/nutrition";
  *
  * `nutrition` is PARTIAL, and optional on top of that. The naming corpora and the composition
  * tables are different corpora — roughly one food in seven the taxonomy can name is one CIQUAL has
- * measured — and a source that publishes seven of the eight fields has still told us seven true
+ * measured — and a source that publishes eight of the nine fields has still told us eight true
  * things. The agent fills what is left, and what was measured wins over what was modelled
  * (`measuredOver`).
  */
@@ -113,11 +113,17 @@ export const spellingsOfHit = (hit: LookupHit): string[] => [
 ];
 
 /**
- * The eight nutrients, as a list rather than as `Object.keys` of something.
+ * The nine nutrients, as a list rather than as `Object.keys` of something.
  *
  * Exported because the agent that fills the gaps has to ask for exactly these — a second literal
  * list over in `agent/tools/sanitizeIngredient.ts` would typecheck against this one only for as
  * long as the two happened to agree.
+ *
+ * ⚠️ **A field missing from this list is silently dropped, not caught.** `satisfies` constrains
+ * what may be IN the list, never that everything is — so a tenth nutrient added to
+ * `IngredientNutrition` and forgotten here would be read by no source and reach no row, with
+ * nothing failing to compile. That is not hypothetical: `iron` was added to the type, to CIQUAL
+ * and to USDA, and every figure was still being discarded here until the list was updated too.
  */
 export const NUTRITION_FIELDS = [
   "calories",
@@ -128,9 +134,10 @@ export const NUTRITION_FIELDS = [
   "sugars",
   "fiber",
   "sodium",
+  "iron",
 ] as const satisfies readonly (keyof IngredientNutrition)[];
 
-/** What a source actually measured — any subset of the eight, and never a fabricated zero. */
+/** What a source actually measured — any subset of the nine, and never a fabricated zero. */
 export type MeasuredNutrition = Partial<IngredientNutrition>;
 
 /**
@@ -221,8 +228,10 @@ export const measuredAboutIt = (
  * kept and the agent fills the hole — with `measuredOver` putting the measurements back on top, so
  * a modelled number can only ever occupy a field nobody measured.
  *
- * Written against the field list rather than `Object.values` so that adding a ninth nutrient to
- * `IngredientNutrition` fails to compile here instead of being silently unchecked.
+ * Written against `NUTRITION_FIELDS` rather than `Object.keys(facts)` so that a source handing over
+ * a key nobody declared cannot smuggle it into a row. Note what that does NOT buy: a nutrient added
+ * to `IngredientNutrition` and left out of that list is dropped here in silence — see the warning
+ * on it.
  */
 export const measuredNutrition = (
   facts: Partial<Record<keyof IngredientNutrition, number>>,
@@ -237,7 +246,7 @@ export const measuredNutrition = (
   return Object.keys(measured).length ? measured : undefined;
 };
 
-/** How many of the eight a source put a number on — how a lookup picks between its own results. */
+/** How many of the nine a source put a number on — how a lookup picks between its own results. */
 export const measuredCount = (nutrition: MeasuredNutrition | undefined): number =>
   nutrition ? NUTRITION_FIELDS.filter((field) => nutrition[field] !== undefined).length : 0;
 

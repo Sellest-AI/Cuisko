@@ -7,6 +7,7 @@
  */
 
 import type { Unit } from "@shared/ingredients";
+import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, type MealSlot } from "@shared/mealSlots";
 import { foldAccents } from "@shared/translations";
 
 import type { ImageProps } from "@ui/image";
@@ -14,7 +15,12 @@ import type { ImageProps } from "@ui/image";
 /** Whatever `@ui/image` accepts, named here so `_model/` depends on no component. */
 export type ImageSource = ImageProps["source"];
 
-export type MealSlot = "lunch" | "dinner";
+/**
+ * Re-exported rather than declared: the slots are a shared vocabulary now, because the household's
+ * `defaultSlots` column is validated against the same list (`@shared/mealSlots`). Every planning
+ * caller keeps importing it from here, where the rest of the domain lives.
+ */
+export type { MealSlot };
 
 /**
  * Where a meal has got to. `empty` is not a failure state — a day nobody cooked is empty, and
@@ -109,7 +115,7 @@ export type GroceryCategory = { id: string; rows: GroceryRow[] };
  * Exported because the setup step offers the same list to choose from: a second copy there would
  * be free to drift, and the day a third slot exists the two would disagree about what a day is.
  */
-export const MEAL_SLOTS: MealSlot[] = ["lunch", "dinner"];
+export const MEAL_SLOTS: MealSlot[] = [...MEAL_SLOT_VOCABULARY];
 
 /** A week. Past that the plan is guessing at a shop that has not happened yet. */
 export const MAX_DAYS = 7;
@@ -528,7 +534,7 @@ export const toggle = <T extends string>(list: readonly T[], id: T): T[] =>
  * press that silently swapped one out would be the grid contradicting itself. Turning a taste off
  * is always allowed — that is how the user makes room for another.
  */
-export const toggleTaste = (tastes: string[], id: string, max = MAX_TASTES): string[] =>
+export const toggleTaste = <T extends string>(tastes: T[], id: T, max = MAX_TASTES): T[] =>
   tastes.includes(id) || tastes.length < max ? toggle(tastes, id) : tastes;
 
 /**
