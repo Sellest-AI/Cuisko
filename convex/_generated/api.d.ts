@@ -68,6 +68,8 @@ import type * as functions_media_sanitizeImage from "../functions/media/sanitize
 import type * as functions_media_saveImage from "../functions/media/saveImage.js";
 import type * as functions_media_uploadImage from "../functions/media/uploadImage.js";
 import type * as functions_media_uploadImageSizes from "../functions/media/uploadImageSizes.js";
+import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
+import type * as functions_preferences_save from "../functions/preferences/save.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
 import type * as functions_recipes_listForUser from "../functions/recipes/listForUser.js";
@@ -120,6 +122,8 @@ import type * as router_media_images_saveSizes from "../router/media/images/save
 import type * as router_media_images_uploadMany from "../router/media/images/uploadMany.js";
 import type * as router_media_images_uploadOne from "../router/media/images/uploadOne.js";
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
+import type * as router_preferences_getMine from "../router/preferences/getMine.js";
+import type * as router_preferences_save from "../router/preferences/save.js";
 import type * as router_recipes_createOne from "../router/recipes/createOne.js";
 import type * as router_recipes_getAll from "../router/recipes/getAll.js";
 import type * as router_recipes_getOne from "../router/recipes/getOne.js";
@@ -134,6 +138,7 @@ import type * as schema_i18n from "../schema/i18n.js";
 import type * as schema_ingredientPayloads from "../schema/ingredientPayloads.js";
 import type * as schema_ingredients from "../schema/ingredients.js";
 import type * as schema_media from "../schema/media.js";
+import type * as schema_preferences from "../schema/preferences.js";
 import type * as schema_recipePayloads from "../schema/recipePayloads.js";
 import type * as schema_recipes from "../schema/recipes.js";
 import type * as schema_users from "../schema/users.js";
@@ -205,6 +210,8 @@ declare const fullApi: ApiFromModules<{
   "functions/media/saveImage": typeof functions_media_saveImage;
   "functions/media/uploadImage": typeof functions_media_uploadImage;
   "functions/media/uploadImageSizes": typeof functions_media_uploadImageSizes;
+  "functions/preferences/getForUser": typeof functions_preferences_getForUser;
+  "functions/preferences/save": typeof functions_preferences_save;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
   "functions/recipes/listForUser": typeof functions_recipes_listForUser;
@@ -257,6 +264,8 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadMany": typeof router_media_images_uploadMany;
   "router/media/images/uploadOne": typeof router_media_images_uploadOne;
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
+  "router/preferences/getMine": typeof router_preferences_getMine;
+  "router/preferences/save": typeof router_preferences_save;
   "router/recipes/createOne": typeof router_recipes_createOne;
   "router/recipes/getAll": typeof router_recipes_getAll;
   "router/recipes/getOne": typeof router_recipes_getOne;
@@ -271,6 +280,7 @@ declare const fullApi: ApiFromModules<{
   "schema/ingredientPayloads": typeof schema_ingredientPayloads;
   "schema/ingredients": typeof schema_ingredients;
   "schema/media": typeof schema_media;
+  "schema/preferences": typeof schema_preferences;
   "schema/recipePayloads": typeof schema_recipePayloads;
   "schema/recipes": typeof schema_recipes;
   "schema/users": typeof schema_users;

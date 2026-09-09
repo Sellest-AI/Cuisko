@@ -2,6 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
 
 import { usersExtended } from "./schema/users";
+import { userPreferences } from "./schema/preferences";
 import { households, householdUsers } from "./schema/households";
 import { ingredients } from "./schema/ingredients";
 import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
@@ -16,6 +17,7 @@ import { imageSizes, imageObjects, images, userImages } from "./schema/media";
 export default defineSchema({
   ...authTables,
   usersExtended,
+  userPreferences,
   households,
   householdUsers,
   ingredients,

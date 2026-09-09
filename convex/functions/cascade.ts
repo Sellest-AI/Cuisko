@@ -38,6 +38,8 @@ type CascadeRule = {
 export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
   users: [
     { table: "usersExtended", index: "by_user", field: "userId" },
+    // Deleted, not detached: preferences have no meaning without the person they describe.
+    { table: "userPreferences", index: "by_user", field: "userId" },
     { table: "householdUsers", index: "by_user", field: "userId" },
     { table: "recipeFavorites", index: "by_user", field: "userId" },
     // The recipe goes with its author: `userId` is what makes it theirs, and a recipe left behind
