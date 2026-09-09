@@ -9,6 +9,7 @@ import { TextField } from "@ui/text-field";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
+import { CUISKO } from "~/lib/mascots";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { MAX_DAYS, MEAL_SLOTS, type MealSlot } from "../_model/model";
@@ -55,7 +56,11 @@ export const TunnelSetup = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Setup.title")} subtitle={t("Tunnel.Setup.subtitle")} />
+      <TunnelHeader
+        title={t("Tunnel.Setup.title")}
+        subtitle={t("Tunnel.Setup.subtitle")}
+        mascot={CUISKO.calendar}
+      />
       {isSeedLoading ? (
         /**
          * The form waits for the seed rather than opening on the offer and correcting itself.

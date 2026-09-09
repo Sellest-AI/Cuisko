@@ -246,6 +246,3 @@ export const RECIPE_CATALOGUE: Recipe[] = [
 /** One image for every tile until real produce photography exists. */
 export const TILE_IMAGE = DISH;
 export const MEAL_IMAGE = PLATE;
-
-/** Cuisko itself. A plate stands in until the mascot artwork is in the repo. */
-export const MASCOT = PLATE;

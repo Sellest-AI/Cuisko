@@ -1,15 +1,28 @@
 import { StyleSheet, View } from "react-native";
 
-import { Image } from "@ui/image";
+import { RadialGradient } from "@ui/radial-gradient";
+import { Image, type ImageProps } from "@ui/image";
 import { IconComponent } from "@ui/icons";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 
-import { MASCOT } from "../../_hooks/placeholders";
+import { CUISKO } from "~/lib/mascots";
 
 type Props = {
   title: string;
   subtitle?: string;
+  /**
+   * Which Cuisko asks this one — `CUISKO.calendar`, `CUISKO.forbidden`.
+   *
+   * Defaults to `CUISKO.idle`, the pose that is holding nothing: a step that has not chosen a
+   * face still gets Cuisko rather than a 148px hole, and the empty hands say nothing the step
+   * has not earned.
+   *
+   * Passed in rather than picked here from the step's name, so the header stays a header: the
+   * step owns the question and the face that asks it, and a mapping living in this file would be
+   * a second place to edit every time a step is added, renamed or reordered.
+   */
+  mascot?: ImageProps["source"];
   /** Replaces the mascot on the steps that report rather than ask. */
   icon?: IconComponent;
   tone?: "onTint" | "onLight";
@@ -21,10 +34,11 @@ const ICON_SIZE = 24;
 /**
  * The question at the top of a tunnel step, and whoever is asking it.
  *
- * The mascot leads the two steps that ask the user for something, and steps back on the two that
- * show what came back — those open with the thing itself, which is the answer they came for.
+ * Cuisko leads every step that asks the user for something, and steps back on the ones that report
+ * what came back — those open with an icon and the thing itself, which is the answer they came for.
+ * Which pose asks which question is the step's own decision; see `mascot` below.
  */
-export const TunnelHeader = ({ title, subtitle, icon, tone = "onTint" }: Props) => {
+export const TunnelHeader = ({ title, subtitle, mascot = CUISKO.idle, icon, tone = "onTint" }: Props) => {
   const Icon = icon;
 
   return (
@@ -36,7 +50,17 @@ export const TunnelHeader = ({ title, subtitle, icon, tone = "onTint" }: Props) 
         </View>
       ) : (
         <>
-          <Image source={MASCOT} contentFit="contain" style={styles.mascot} />
+          <RadialGradient
+            colors={["rgb(0, 0, 0)", theme.colors.primary.subtle]}
+            size={MASCOT_SIZE * 1.1}
+            style={{
+              position: "absolute",
+              top: MASCOT_SIZE / 2.4,
+              transform: [{ scaleY: 1 / 4 }],
+              opacity: 0.2
+            }}
+          />
+          <Image source={mascot} contentFit="contain" style={styles.mascot} />
           <Text.H4
             style={{ ...styles.title, textBalance: true }}
             color={tone === "onTint" ? colors.primary.base : colors.foreground}

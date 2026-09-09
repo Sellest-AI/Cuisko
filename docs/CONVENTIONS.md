@@ -381,6 +381,26 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 **Only `src/lib/convex/api.ts` may import `convex/_generated`.** 🔒 R3
 
+**A bundled image is a static `import`, never a `require()`.** 👁
+
+```ts
+// ✅ resolves under Metro AND under Vitest
+import saucepan from "assets/images/cuisko/cuisko-saucepan.webp";
+
+// ❌ typechecks, ships, and takes down every test that reaches this module
+const saucepan = require("assets/images/cuisko/cuisko-saucepan.webp");
+```
+
+`require()` is Node's CJS resolver under Vitest, and it reads neither the `paths` block in
+`tsconfig.json` nor the alias list in `vitest.config.mts`. So a `require()`d asset does not fail
+where it is written — it fails in every test that transitively imports that module, with
+`Cannot find module` naming a file the test never mentions. Expo types `require()` as `any`, which
+is why nothing catches it earlier.
+
+A static import needs the declarations in `assets/images.d.ts`, which type an asset as
+`number | string` because the two bundlers disagree and both are right: Metro resolves one to a
+numeric registry id, Vite to a URL string. `expo-image` accepts either.
+
 ---
 
 ### 3.3 Language 👁

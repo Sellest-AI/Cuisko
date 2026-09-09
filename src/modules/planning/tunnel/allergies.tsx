@@ -7,6 +7,7 @@ import { useTranslations } from "translations";
 
 import type { Allergen } from "@shared/allergens";
 
+import { CUISKO } from "~/lib/mascots";
 import { ALLERGEN_EMOJI } from "~/lib/vocabulary";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
@@ -51,7 +52,11 @@ export const TunnelAllergies = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Allergies.title")} subtitle={t("Tunnel.Allergies.subtitle")} />
+      <TunnelHeader
+        title={t("Tunnel.Allergies.title")}
+        subtitle={t("Tunnel.Allergies.subtitle")}
+        mascot={CUISKO.forbidden}
+      />
       {isSeedLoading ? (
         /**
          * A word rather than a row list: the list is seeded once from what the household already

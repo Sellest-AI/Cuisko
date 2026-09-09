@@ -9,6 +9,7 @@ import { useTranslations } from "translations";
 
 import type { Diet } from "@shared/diets";
 
+import { CUISKO } from "~/lib/mascots";
 import { DIET_EMOJI } from "~/lib/vocabulary";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
@@ -72,7 +73,10 @@ export const TunnelDiet = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Diet.title")} />
+      <TunnelHeader
+        title={t("Tunnel.Diet.title")}
+        mascot={CUISKO.fish}
+      />
       {isSeedLoading ? (
         /**
          * A word rather than a chip row: the list is seeded once from what the household already

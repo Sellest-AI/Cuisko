@@ -201,6 +201,9 @@ importers:
       convex-test:
         specifier: ^0.0.55
         version: 0.0.55(convex@1.43.0(react@19.2.3))
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       eas-cli:
         specifier: ^22.0.0
         version: 22.0.0(@types/node@26.1.2)(supports-color@8.1.1)(typescript@6.0.3)
@@ -3370,6 +3373,10 @@ packages:
 
   dotenv@16.4.7:
     resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
+    engines: {node: '>=12'}
+
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
 
   dtrace-provider@0.8.8:
@@ -10466,6 +10473,8 @@ snapshots:
   dotenv@16.3.1: {}
 
   dotenv@16.4.7: {}
+
+  dotenv@17.4.2: {}
 
   dtrace-provider@0.8.8:
     dependencies:

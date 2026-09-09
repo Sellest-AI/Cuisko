@@ -5,7 +5,7 @@ import { DIETS } from "@shared/diets";
 import { EQUIPMENTS } from "@shared/equipments";
 import { TAGS } from "@shared/tags";
 
-import { ALLERGEN_EMOJI, DIET_EMOJI, EQUIPMENT_EMOJI, TAG_EMOJI } from "../vocabulary";
+import { ALLERGEN_EMOJI, DIET_EMOJI, EQUIPMENT_EMOJI, EQUIPMENT_IMAGE, TAG_EMOJI } from "../vocabulary";
 
 /**
  * The `Record<Tag, string>` annotation already makes a missing glyph a compile error. What it
@@ -21,5 +21,20 @@ describe("vocabulary glyphs", () => {
   ] as const)("%s map the vocabulary exactly, with nothing blank", (_name, vocabulary, emoji) => {
     expect(Object.keys(emoji).sort()).toEqual([...vocabulary].sort());
     expect(Object.values(emoji).filter((glyph) => glyph.trim() === "")).toEqual([]);
+  });
+});
+
+/**
+ * The pictures get their own block rather than a row in the table above: their values are bundler
+ * handles, not strings, so "nothing blank" is a different assertion — under Vitest an unresolved
+ * asset is `undefined`, which is exactly what a tile would draw nothing for.
+ */
+describe("equipment pictures", () => {
+  test("map the vocabulary exactly", () => {
+    expect(Object.keys(EQUIPMENT_IMAGE).sort()).toEqual([...EQUIPMENTS].sort());
+  });
+
+  test("every appliance resolves to something the bundler produced", () => {
+    expect(Object.entries(EQUIPMENT_IMAGE).filter(([, source]) => !source)).toEqual([]);
   });
 });

@@ -8,6 +8,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { TASTES } from "@shared/tastes";
 
+import { CUISKO } from "~/lib/mascots";
 import { TAG_EMOJI } from "~/lib/vocabulary";
 
 import { MAX_TASTES } from "../_model/model";
@@ -50,7 +51,11 @@ export const TunnelMood = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Mood.title")} subtitle={t("Tunnel.Mood.subtitle")} />
+      <TunnelHeader
+        title={t("Tunnel.Mood.title")}
+        subtitle={t("Tunnel.Mood.subtitle")}
+        mascot={CUISKO["food-pile"]}
+      />
       <ChoiceRows options={options} selected={moods} onToggle={toggleMood} max={MAX_TASTES} />
     </Animated.ScrollView>
   );

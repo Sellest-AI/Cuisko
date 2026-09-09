@@ -1,5 +1,6 @@
 /**
- * A glyph for each value of the `shared/` vocabularies the app draws as chips and tiles.
+ * A glyph — and, where one has been drawn, a picture — for each value of the `shared/`
+ * vocabularies the app draws as chips and tiles.
  *
  * In `src/lib/` rather than inside a module because they are drawn in more than one place — the
  * recipe page chips a dish's tags and equipments, the planning tunnel tiles the kitchen's and
@@ -15,6 +16,22 @@
  * vocabulary with no glyph here is a compile error, not a chip with a blank in front of it. The
  * matching translation is caught by C12 rather than by the compiler, since JSON has no such type.
  */
+
+import type { ImageProps } from "expo-image";
+
+import oven from "assets/images/equipments/oven.webp";
+import blender from "assets/images/equipments/blender.webp";
+import foodProcessor from "assets/images/equipments/food-processor.webp";
+import mixer from "assets/images/equipments/mixer.webp";
+import standMixer from "assets/images/equipments/stand-mixer.webp";
+import microwave from "assets/images/equipments/microwave.webp";
+import slowCooker from "assets/images/equipments/slow-cooker.webp";
+import pressureCooker from "assets/images/equipments/pressure-cooker.webp";
+import riceCooker from "assets/images/equipments/rice-cooker.webp";
+import airFryer from "assets/images/equipments/air-fryer.webp";
+import grill from "assets/images/equipments/grill.webp";
+import waffleMaker from "assets/images/equipments/waffle-maker.webp";
+import toaster from "assets/images/equipments/toaster.webp";
 
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
@@ -89,6 +106,36 @@ export const EQUIPMENT_EMOJI: Record<Equipment, string> = {
   grill: "🍢",
   "waffle maker": "🧇",
   toaster: "🍞",
+};
+
+/**
+ * A photograph of each appliance, which is what a tile draws when it has one.
+ *
+ * The glyphs above stay, and are not dead: `EQUIPMENT_EMOJI` is what a tile falls back to, and it
+ * is the map C12's contract and the compiler's totality check are written against. Several of them
+ * were approximations that a picture simply answers better — 📻 for a microwave, 🍟 for an air
+ * fryer — which is the whole reason this map exists rather than a thirteenth round of glyph
+ * hunting.
+ *
+ * Total for the same reason the glyph map is: an appliance added to `@shared/equipments` with no
+ * picture is a compile error here, not a tile that quietly falls back to an emoji nobody chose.
+ * That is a stronger contract than the fallback needs, and deliberately so — the fallback exists
+ * for a render that has no picture *yet*, not as somewhere an entry can come to rest.
+ */
+export const EQUIPMENT_IMAGE: Record<Equipment, ImageProps["source"]> = {
+  oven,
+  blender,
+  "food processor": foodProcessor,
+  mixer,
+  "stand mixer": standMixer,
+  microwave,
+  "slow cooker": slowCooker,
+  "pressure cooker": pressureCooker,
+  "rice cooker": riceCooker,
+  "air fryer": airFryer,
+  grill,
+  "waffle maker": waffleMaker,
+  toaster,
 };
 
 export const DIET_EMOJI: Record<Diet, string> = {

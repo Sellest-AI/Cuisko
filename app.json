@@ -4,6 +4,7 @@
     "slug": "cuisko",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icons/icon.png",
     "scheme": "cuisko",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -39,7 +40,8 @@
     },
     "web": {
       "output": "static",
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/icons/favicon.png"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -62,7 +64,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/icons/splash-icon.png",
           "imageWidth": 176,
           "resizeMode": "contain",
           "backgroundColor": "#FAF2ED",
@@ -74,7 +76,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/notification-icon.png",
+          "icon": "./assets/icons/notification-icon.png",
           "color": "#FF6B0F"
         }
       ],
