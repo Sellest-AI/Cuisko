@@ -7,7 +7,8 @@ import { useTranslations } from "translations";
 
 import { EQUIPMENTS } from "@shared/equipments";
 
-import { EQUIPMENT_EMOJI } from "~/lib/vocabulary";
+import { CUISKO } from "~/lib/mascots";
+import { EQUIPMENT_EMOJI, EQUIPMENT_IMAGE } from "~/lib/vocabulary";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { useTunnel } from "./_hooks/useTunnel";
@@ -36,12 +37,17 @@ export const TunnelUtensils = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Utensils.title")} subtitle={t("Tunnel.Utensils.subtitle")} />
+      <TunnelHeader
+        title={t("Tunnel.Utensils.title")}
+        subtitle={t("Tunnel.Utensils.subtitle")}
+        mascot={CUISKO.saucepan}
+      />
       <View style={styles.grid}>
         {EQUIPMENTS.map((equipment) => (
           <CardChoice
             key={equipment}
             label={tVocabulary(`Equipments.${equipment}`)}
+            imageSrc={EQUIPMENT_IMAGE[equipment]}
             emoji={EQUIPMENT_EMOJI[equipment]}
             style={{ width: tileWidth - 1 }}
             selected={equipments.includes(equipment)}

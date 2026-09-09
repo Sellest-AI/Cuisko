@@ -59,7 +59,7 @@ type Props = {
   elevated?: boolean;
 };
 
-const IMAGE_HEIGHT = 96;
+const IMAGE_HEIGHT = 88;
 
 /**
  * A picture (or a glyph) and a word, picked or not — the tile the tunnel's grids are built from.
@@ -104,13 +104,15 @@ export const CardChoice = ({
           styles.borderRadius,
         ]}
       />}
-      {!imageSrc && emoji ? (
-        <View style={[styles.image, styles.emojiBox]}>
-          <Text.H4 style={styles.emoji}>{emoji}</Text.H4>
-        </View>
-      ) : (
-        <Image source={imageSrc} contentFit="contain" style={[styles.image, imageStyle]} />
-      )}
+      <View style={styles.imageContainer}>
+        {!imageSrc && emoji ? (
+          <View style={[styles.image, styles.emojiBox]}>
+            <Text.H4 style={styles.emoji}>{emoji}</Text.H4>
+          </View>
+        ) : (
+          <Image source={imageSrc} contentFit="contain" style={[styles.image, imageStyle, { marginTop: theme.spacing[4] }]} />
+        )}
+      </View>
       <View style={styles.labelRow}>
         <Text.Base
           color={selected ? foreground : colors.muted}
@@ -133,9 +135,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border.default,
     backgroundColor: colors.surface.elevated,
     padding: theme.spacing[8],
+    paddingHorizontal: theme.spacing[16],
     paddingBottom: theme.spacing[12],
     gap: theme.spacing[8],
     alignItems: "center",
+    justifyContent: "space-between",
     overflow: "hidden",
   },
   shadow: {
@@ -162,6 +166,12 @@ const styles = StyleSheet.create({
   },
   borderRadius: {
     borderRadius: theme.radius.md,
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%"
   },
   image: {
     width: "100%",

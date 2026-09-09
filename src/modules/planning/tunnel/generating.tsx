@@ -1,13 +1,17 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { RadialGradient } from "@ui/radial-gradient";
 import { Image } from "@ui/image";
+import { Video } from "@ui/video";
 import { m } from "@ui/motion";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
-import { generatedMeals, MASCOT, MEAL_IMAGE, TILE_IMAGE } from "../_hooks/placeholders";
+import { CUISKO, CUISKO_VIDEO } from "~/lib/mascots";
+
+import { generatedMeals, MEAL_IMAGE, TILE_IMAGE } from "../_hooks/placeholders";
 import { useTunnel } from "./_hooks/useTunnel";
 
 /** Dishes the fake generation reports, and how long each one takes to "cook". */
@@ -25,7 +29,7 @@ const DRIFTING_PLATES = [
 ] as const;
 
 const PLATE_IMAGES = [MEAL_IMAGE, TILE_IMAGE];
-const MASCOT_SIZE = 140;
+const MASCOT_SIZE = 256;
 const DRIFT = 12;
 const DRIFT_MS = 800;
 const FADE_MS = 400;
@@ -101,7 +105,7 @@ export const TunnelGenerating = () => {
    * A ref rather than a `useCallback` with fewer deps: the effect wants the freshest values, it just
    * must never treat their arrival as a reason to run twice.
    */
-  const finish = useRef(() => {});
+  const finish = useRef(() => { });
 
   useEffect(() => {
     finish.current = () => {
@@ -141,7 +145,28 @@ export const TunnelGenerating = () => {
         <DriftingPlate key={index} plate={plate} image={PLATE_IMAGES[index % PLATE_IMAGES.length]} />
       ))}
       <View style={styles.centre}>
-        <Image source={MASCOT} contentFit="contain" style={styles.mascot} />
+        <View style={{ height: MASCOT_SIZE * 0.8, justifyContent: "flex-end", alignItems: "center" }}>
+          <RadialGradient
+            colors={["rgb(0, 0, 0)", theme.colors.background]}
+            size={MASCOT_SIZE * 0.8}
+            style={{
+              position: "absolute",
+              bottom: -MASCOT_SIZE / 2.8,
+              transform: [{ scaleY: 1 / 4 }],
+              opacity: 0.2
+            }}
+          />
+          {/*
+            * Cuisko stirs for real where the platform can decode the loop, and holds the same pose
+            * as a still where it cannot. The still is the identical frame rather than a different
+            * picture, so the screen reads the same either way — one version simply moves.
+            */}
+          {CUISKO_VIDEO.stockpot ? (
+            <Video source={CUISKO_VIDEO.stockpot} contentFit="contain" style={styles.mascot} />
+          ) : (
+            <Image source={CUISKO.stockpot} contentFit="contain" style={styles.mascot} />
+          )}
+        </View>
         <Text.H4 style={styles.title}>{t("Tunnel.Generating.title")}</Text.H4>
         <Text.Lg color={colors.muted} style={styles.subtitle}>
           {t("Tunnel.Generating.subtitle")}
@@ -190,8 +215,8 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing[4],
     borderRadius: theme.radius.full,
     borderWidth: 2,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.elevated,
+    borderColor: colors.primary.elevated,
+    backgroundColor: colors.primary.subtle,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

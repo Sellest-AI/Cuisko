@@ -16,7 +16,7 @@ import Animated, {
 import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { theme } from "theme";
-import { Image } from "../image";
+import { Image, type ImageProps } from "../image";
 
 /**
  * One line of a grocery list — something to buy, or something already owned.
@@ -78,6 +78,15 @@ type Props = {
   /** Stand-in for the produce photo until real ones exist. */
   emoji: string;
   imageUrl?: string;
+  /**
+   * A picture that shipped with the app, where `imageUrl` is one the backend resolved.
+   *
+   * Two props rather than one widened `imageUrl` because they are two different things: a bundled
+   * asset is a module handle, a URL is a string that may 404, and the ingredient rows that use the
+   * second have nothing to do with the appliance tiles that use the first. Collapsing them would
+   * leave a prop whose name is a lie in half its call sites.
+   */
+  imageSrc?: ImageProps["source"];
   markerSrc?: string;
   variant?: GroceryItemVariant | "ghost";
   width?: number;
@@ -115,8 +124,11 @@ const usePulse = (active: boolean) => {
   return useAnimatedStyle(() => ({ opacity: opacity.value }));
 };
 
-export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, variant = "pending", width, onPress, style }: Props) => {
+export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", width, onPress, style }: Props) => {
   const pulse = usePulse(variant === "resolving");
+
+  /** A bundled picture wins over a fetched one, and either wins over the glyph standing in. */
+  const picture = imageSrc ?? (imageUrl ? { uri: imageUrl } : undefined);
 
   // Indexing first and concatenating after renders the string "undefined" for an empty name —
   // `undefined + ""`. A card with no name is a card with no name, not a card announcing one.
@@ -138,12 +150,12 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, varian
           ...style
         }}
       >
-        {imageUrl && <Image
-          source={{ uri: imageUrl }}
+        {picture && <Image
+          source={picture}
           style={styles.icon}
           contentFit="contain"
         />}
-        {!imageUrl && <Text.H4 style={styles.emoji}>{emoji}</Text.H4>}
+        {!picture && <Text.H4 style={styles.emoji}>{emoji}</Text.H4>}
         <Text.Base
           color={theme.colors.muted}
           numberOfLines={2}

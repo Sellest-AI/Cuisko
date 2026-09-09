@@ -9,6 +9,7 @@ import { NUTRITION_PREFERENCES } from "@shared/preferences";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
+import { CUISKO } from "~/lib/mascots";
 import { TAG_EMOJI } from "~/lib/vocabulary";
 
 import { optionsOf } from "../_model/options";
@@ -61,7 +62,11 @@ export const TunnelFocus = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Focus.title")} subtitle={t("Tunnel.Focus.subtitle")} />
+      <TunnelHeader
+        title={t("Tunnel.Focus.title")}
+        subtitle={t("Tunnel.Focus.subtitle")}
+        mascot={CUISKO.barbell}
+      />
       {isSeedLoading ? (
         /**
          * A word rather than a row list: `seeks` is seeded once from what the caller last saved, and

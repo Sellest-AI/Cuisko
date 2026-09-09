@@ -5,6 +5,7 @@ import { RowCardChoice } from "@ui/cards/row-choice";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import { CUISKO } from "~/lib/mascots";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { COOKING_TIMES, type CookingTime } from "../_model/model";
@@ -47,7 +48,11 @@ export const TunnelTime = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader title={t("Tunnel.Time.title")} subtitle={t("Tunnel.Time.subtitle")} />
+      <TunnelHeader
+        title={t("Tunnel.Time.title")}
+        subtitle={t("Tunnel.Time.subtitle")}
+        mascot={CUISKO.stopwatch}
+      />
       <View style={styles.list}>
         {COOKING_TIMES.map((option) => (
           <RowCardChoice

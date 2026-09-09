@@ -1,6 +1,7 @@
 import { View, StyleSheet, ScrollView } from "react-native";
 
 import { GroceryItem } from "@ui/cards/grocery-item";
+import type { ImageProps } from "@ui/image";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
@@ -10,7 +11,7 @@ type Props = {
   title: string;
   /** Right-hand note on the heading — Example: "For 2 people". */
   caption?: string;
-  items: { emoji: string; name: string, imageUrl?: string }[];
+  items: { emoji: string; name: string; imageUrl?: string; imageSrc?: ImageProps["source"] }[];
 };
 
 /**
@@ -31,6 +32,7 @@ export const GroceryRow = ({ title, caption, items }: Props) => (
           key={item.name}
           emoji={item.emoji}
           imageUrl={item.imageUrl}
+          imageSrc={item.imageSrc}
           name={item.name}
           variant="ghost"
         />
