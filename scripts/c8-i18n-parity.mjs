@@ -52,7 +52,18 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { listFiles, lineOf, parse, relative, report, ROOT, ts } from "./_lib.mjs";
+import {
+  declaredConstants,
+  listFiles,
+  lineOf,
+  namespaceFiles,
+  relative,
+  report,
+  ROOT,
+  stringArray,
+  stringLiteral,
+  ts,
+} from "./_lib.mjs";
 
 const findings = [];
 
@@ -61,42 +72,11 @@ const TRANSLATIONS_DIR = path.join(ROOT, "translations");
 
 /* ── The locale constants, read from the source of truth ──────────────────────────────── */
 
-/**
- * Read out of `shared/translations.ts` rather than restated here, because a copy is the very drift
- * this check exists to catch: a hardcoded ["en", "fr"] would still pass on the day someone adds
- * "es" to the constant and no directory to go with it — the check would certify the gap it missed.
+/*
+ * The constants come out of `shared/translations.ts` rather than being restated here, because a
+ * copy is the very drift this check exists to catch — see `declaredConstants` in _lib.mjs, which
+ * C12 reads the `shared/` vocabularies with for the same reason.
  */
-const declaredConstants = () => {
-  const source = parse(LOCALES_SOURCE);
-  const out = new Map();
-
-  for (const statement of source.statements) {
-    if (!ts.isVariableStatement(statement)) continue;
-    for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) continue;
-      out.set(declaration.name.text, declaration.initializer);
-    }
-  }
-
-  return out;
-};
-
-/** `["en"] as const` and `(["en"])` are both that array — unwrap to whatever it actually is. */
-const unwrap = (node) =>
-  ts.isAsExpression(node) || ts.isParenthesizedExpression(node) ? unwrap(node.expression) : node;
-
-const stringLiteral = (node) => {
-  const inner = node && unwrap(node);
-  return inner && ts.isStringLiteral(inner) ? inner.text : null;
-};
-
-const stringArray = (node) => {
-  const inner = node && unwrap(node);
-  if (!inner || !ts.isArrayLiteralExpression(inner)) return null;
-
-  const values = inner.elements.map(stringLiteral);
-  return values.every((value) => value !== null) ? values : null;
-};
 
 // `parse()` reads the file straight off disk, so a moved or renamed shared/translations.ts throws
 // an ENOENT stack trace — burying the fail-closed report written for exactly this situation.
@@ -110,7 +90,7 @@ if (!existsSync(LOCALES_SOURCE)) {
   ]);
 }
 
-const constants = declaredConstants();
+const constants = declaredConstants(LOCALES_SOURCE);
 const defaultLocale = stringLiteral(constants.get("DEFAULT_LOCALE"));
 const supportedLocales = stringArray(constants.get("SUPPORTED_LOCALES"));
 
@@ -585,49 +565,6 @@ for (const namespace of referenceNamespaces) {
 const TYPES_SOURCE = path.join(TRANSLATIONS_DIR, "types.ts");
 
 /**
- * Namespace name -> namespace file, read out of `translations/types.ts`.
- *
- * That file is where a namespace name is actually bound to a locale file:
- *
- *     import home from "./en/home.json";
- *     type TranslationResources = { Home: typeof home; … }
- *
- * Deriving the pair instead — capitalise the filename — would be a second copy of that binding,
- * and would certify nothing the day a namespace is registered under a name that is not its
- * filename. Same argument as reading SUPPORTED_LOCALES rather than restating it.
- */
-const namespaceFiles = () => {
-  const source = parse(TYPES_SOURCE);
-  const fileOfBinding = new Map();
-  const out = new Map();
-
-  for (const statement of source.statements) {
-    if (ts.isImportDeclaration(statement)) {
-      const binding = statement.importClause?.name?.text;
-      const specifier = ts.isStringLiteral(statement.moduleSpecifier)
-        ? statement.moduleSpecifier.text
-        : null;
-
-      if (binding && specifier) fileOfBinding.set(binding, path.basename(specifier));
-      continue;
-    }
-
-    if (!ts.isTypeAliasDeclaration(statement)) continue;
-    if (statement.name.text !== "TranslationResources") continue;
-    if (!ts.isTypeLiteralNode(statement.type)) continue;
-
-    for (const member of statement.type.members) {
-      if (!ts.isPropertySignature(member) || !member.type) continue;
-      if (!ts.isTypeQueryNode(member.type) || !ts.isIdentifier(member.type.exprName)) continue;
-
-      out.set(member.name.getText(source), fileOfBinding.get(member.type.exprName.text));
-    }
-  }
-
-  return out;
-};
-
-/**
  * `parse()` in _lib reads every file as ScriptKind.TS, which turns the first `<View>` of a .tsx
  * file into a malformed type assertion and loses the tree below it. Call sites live inside JSX,
  * so this one picks the kind from the extension.
@@ -648,7 +585,7 @@ if (existsSync(TYPES_SOURCE)) {
   // Every plural family, spelled the way a call site spells it: `Namespace.base`.
   const pluralKeys = new Set();
 
-  for (const [namespace, file] of namespaceFiles()) {
+  for (const [namespace, file] of namespaceFiles(TYPES_SOURCE)) {
     for (const base of familiesByFile.get(file) ?? []) pluralKeys.add(`${namespace}.${base}`);
   }
 

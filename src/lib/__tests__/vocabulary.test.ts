@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 
+import { ALLERGENS } from "@shared/allergens";
+import { DIETS } from "@shared/diets";
 import { EQUIPMENTS } from "@shared/equipments";
 import { TAGS } from "@shared/tags";
 
-import { EQUIPMENT_EMOJI, TAG_EMOJI } from "../vocabulary";
+import { ALLERGEN_EMOJI, DIET_EMOJI, EQUIPMENT_EMOJI, TAG_EMOJI } from "../vocabulary";
 
 /**
  * The `Record<Tag, string>` annotation already makes a missing glyph a compile error. What it
@@ -14,6 +16,8 @@ describe("vocabulary glyphs", () => {
   test.each([
     ["tags", TAGS, TAG_EMOJI],
     ["equipments", EQUIPMENTS, EQUIPMENT_EMOJI],
+    ["diets", DIETS, DIET_EMOJI],
+    ["allergens", ALLERGENS, ALLERGEN_EMOJI],
   ] as const)("%s map the vocabulary exactly, with nothing blank", (_name, vocabulary, emoji) => {
     expect(Object.keys(emoji).sort()).toEqual([...vocabulary].sort());
     expect(Object.values(emoji).filter((glyph) => glyph.trim() === "")).toEqual([]);

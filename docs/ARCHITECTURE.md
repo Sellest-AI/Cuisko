@@ -46,7 +46,7 @@ cuisko/
 │   ├── plans/            The slice in flight. Intent, not description — deleted when it lands.
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
-├── scripts/              C1–C10 architectural checks, plus dev-tooling shims.
+├── scripts/              C1–C12 architectural checks, plus dev-tooling shims.
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
@@ -483,6 +483,8 @@ contact with a growing codebase.
 | Locales carry identical key sets, and plural call sites pass a `count` | script C8                                         | `pnpm check:i18n`      |
 | No import cycles, in either project                                    | script C9                                         | `pnpm check:cycles`    |
 | Every test file is collected by a runner; every `_model/` has a test   | script C10                                        | `pnpm check:tests`     |
+| Derived search fields are built by one serializer                      | script C11                                        | `pnpm check:search`    |
+| Every shared vocabulary entry has a word in every locale               | script C12                                        | `pnpm check:vocabulary` |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |

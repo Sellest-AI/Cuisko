@@ -33,7 +33,8 @@
     "check:cycles": "node scripts/c9-import-cycles.mjs",
     "check:tests": "node scripts/c10-test-reachability.mjs",
     "check:search": "node scripts/c11-derived-search-fields.mjs",
-    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search",
+    "check:vocabulary": "node scripts/c12-vocabulary-coverage.mjs",
+    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary",
     "verify": "pnpm typecheck && pnpm lint && pnpm check && pnpm test",
     "prepare": "git config core.hooksPath .githooks"
   },

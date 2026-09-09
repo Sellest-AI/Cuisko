@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C10)              |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C12)              |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept
@@ -390,7 +390,7 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 | Layer                  | Rule                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted.  |
+| `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted. The words for a `shared/` vocabulary live in `Vocabulary.*`, one key per entry 📐 C12. |
 | `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                   |
 | `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                            |
 | Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |

@@ -1,18 +1,23 @@
 /**
- * A glyph for each value of the two `shared/` vocabularies the app draws as chips and tiles.
+ * A glyph for each value of the `shared/` vocabularies the app draws as chips and tiles.
  *
- * In `src/lib/` rather than inside a module because both are drawn in more than one place — the
- * recipe page chips a dish's tags and equipments, the planning tunnel tiles the kitchen's — and a
- * glyph belongs to the vocabulary, not to whichever module reached for it first.
+ * In `src/lib/` rather than inside a module because they are drawn in more than one place — the
+ * recipe page chips a dish's tags and equipments, the planning tunnel tiles the kitchen's and
+ * chips the household's constraints — and a glyph belongs to the vocabulary, not to whichever
+ * module reached for it first.
  *
  * Here rather than in a translation file because a glyph is not a translation: 🥬 is 🥬 in every
  * language, and putting it in both locale files would be one string to keep in step per language
- * per tag. The word beside it comes from `Recipe.Tags.*` and `Recipe.Equipments.*`.
+ * per entry. The word beside it comes from the `Vocabulary.*` namespace, which is laid out to
+ * match this file block for block.
  *
- * `Record<Tag, string>` and `Record<Equipment, string>` rather than a partial map: a tag added to
- * @shared/tags with no glyph here is a compile error, not a chip with a blank in front of it.
+ * A total `Record` rather than a partial map, for every one of them: an entry added to a shared
+ * vocabulary with no glyph here is a compile error, not a chip with a blank in front of it. The
+ * matching translation is caught by C12 rather than by the compiler, since JSON has no such type.
  */
 
+import type { Allergen } from "@shared/allergens";
+import type { Diet } from "@shared/diets";
 import type { Equipment } from "@shared/equipments";
 import type { Tag } from "@shared/tags";
 
@@ -28,6 +33,7 @@ export const TAG_EMOJI: Record<Tag, string> = {
   "high-protein": "💪",
   "low-carb": "🍞",
   "low-calorie": "🪶",
+  "high-calorie": "🔋",
   // Course
   breakfast: "🥐",
   brunch: "🍳",
@@ -73,4 +79,33 @@ export const EQUIPMENT_EMOJI: Record<Equipment, string> = {
   grill: "🍢",
   "waffle maker": "🧇",
   toaster: "🍞",
+};
+
+export const DIET_EMOJI: Record<Diet, string> = {
+  vegan: "🌱",
+  vegetarian: "🥬",
+  pescatarian: "🐟",
+  omnivore: "🍖",
+};
+
+/**
+ * The regulated fourteen. Several are approximations — there is no celery and no sulphite emoji —
+ * and that is acceptable here in a way it would not be in the label: the glyph decorates a chip
+ * whose word is the actual claim, never replaces it. Nothing may render one of these alone.
+ */
+export const ALLERGEN_EMOJI: Record<Allergen, string> = {
+  gluten: "🌾",
+  crustaceans: "🦐",
+  eggs: "🥚",
+  fish: "🐟",
+  peanuts: "🥜",
+  soybeans: "🫘",
+  milk: "🥛",
+  nuts: "🌰",
+  celery: "🥬",
+  mustard: "🥫",
+  sesame: "🥯",
+  sulphites: "🍷",
+  lupin: "🌼",
+  molluscs: "🦪",
 };

@@ -48,9 +48,12 @@ export type CheckResult = { code: number; output: string };
  *
  * Returns the exit code rather than throwing, because a non-zero exit is the expected result in
  * most cases — a check that never fails is the thing these tests exist to detect.
+ *
+ * `at` runs the check against a tree that already exists — this repo, in practice — instead of
+ * building one. `tree` is ignored then: the point of that call is that nothing was arranged.
  */
-export const runCheck = (script: string, tree: Tree): CheckResult => {
-  const root = makeTree(tree);
+export const runCheck = (script: string, tree: Tree, at?: string): CheckResult => {
+  const root = at ?? makeTree(tree);
 
   try {
     const stdout = execFileSync(process.execPath, [path.join(SCRIPTS, script)], {

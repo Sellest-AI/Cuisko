@@ -51,6 +51,103 @@ export const parse = (file) =>
 export const lineOf = (source, node) =>
   source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
+/* ── Reading a declared constant out of a source file ─────────────────────────────────── */
+
+/**
+ * Top-level `const` name -> its initializer node, for every declaration in `file`.
+ *
+ * Shared by the checks that measure the repo against a vocabulary declared in TypeScript — C8
+ * against `SUPPORTED_LOCALES`, C12 against the `shared/` lists. Every one of them reads the real
+ * declaration rather than restating it, because a restated copy is the exact drift they exist to
+ * catch: a hardcoded list still passes on the day someone adds an entry the check never hears
+ * about, certifying the gap it missed.
+ */
+export const declaredConstants = (file) => {
+  const source = parse(file);
+  const out = new Map();
+
+  for (const statement of source.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) continue;
+      out.set(declaration.name.text, declaration.initializer);
+    }
+  }
+
+  return out;
+};
+
+/** `["en"] as const` and `(["en"])` are both that array — unwrap to whatever it actually is. */
+const unwrap = (node) =>
+  ts.isAsExpression(node) || ts.isParenthesizedExpression(node) ? unwrap(node.expression) : node;
+
+/** The text of a string literal node, or `null` for anything else — including a missing node. */
+export const stringLiteral = (node) => {
+  const inner = node && unwrap(node);
+  return inner && ts.isStringLiteral(inner) ? inner.text : null;
+};
+
+/**
+ * An array literal of string literals as a plain array, or `null`.
+ *
+ * `null` for a partially dynamic array rather than the strings it happens to contain: a caller
+ * that cannot read the whole list must fail closed, since checking a subset it silently derived
+ * would report a green tick over the entries it could not see.
+ */
+export const stringArray = (node) => {
+  const inner = node && unwrap(node);
+  if (!inner || !ts.isArrayLiteralExpression(inner)) return null;
+
+  const values = inner.elements.map(stringLiteral);
+  return values.every((value) => value !== null) ? values : null;
+};
+
+/**
+ * Namespace name -> the locale file it is bound to, read out of `translations/types.ts`.
+ *
+ * That file is where a namespace name is actually bound to a locale file:
+ *
+ *     import home from "./en/home.json";
+ *     type TranslationResources = { Home: typeof home; … }
+ *
+ * Deriving the pair instead — capitalise the filename — would be a second copy of that binding,
+ * and would certify nothing the day a namespace is registered under a name that is not its
+ * filename. Same argument as `declaredConstants`.
+ *
+ * Read by C8, which compares every namespace's keys across locales, and by C12, which compares one
+ * namespace's keys against the `shared/` vocabularies they are the words for.
+ */
+export const namespaceFiles = (typesSource) => {
+  const source = parse(typesSource);
+  const fileOfBinding = new Map();
+  const out = new Map();
+
+  for (const statement of source.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      const binding = statement.importClause?.name?.text;
+      const specifier = ts.isStringLiteral(statement.moduleSpecifier)
+        ? statement.moduleSpecifier.text
+        : null;
+
+      if (binding && specifier) fileOfBinding.set(binding, path.basename(specifier));
+      continue;
+    }
+
+    if (!ts.isTypeAliasDeclaration(statement)) continue;
+    if (statement.name.text !== "TranslationResources") continue;
+    if (!ts.isTypeLiteralNode(statement.type)) continue;
+
+    for (const member of statement.type.members) {
+      if (!ts.isPropertySignature(member) || !member.type) continue;
+      if (!ts.isTypeQueryNode(member.type) || !ts.isIdentifier(member.type.exprName)) continue;
+
+      out.set(member.name.getText(source), fileOfBinding.get(member.type.exprName.text));
+    }
+  }
+
+  return out;
+};
+
 /**
  * Prints findings and exits non-zero if there are any. Every check reports through here so the
  * output shape is identical across C1–C3.

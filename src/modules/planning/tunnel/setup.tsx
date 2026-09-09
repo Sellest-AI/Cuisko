@@ -39,12 +39,8 @@ const SLOT_LABELS = { lunch: "Meal.lunch", dinner: "Meal.dinner" } as const sati
 /** Step 1 — what this week is, who is eating, and what the kitchen can do. */
 export const TunnelSetup = () => {
   const t = useTranslations("Planning");
-  /**
-   * The kitchen's words come from the recipe namespace, because the vocabulary is one and the
-   * words for it already live there. They move to a namespace of their own — `Vocabulary.*`,
-   * shared by both — with the rest of the shared vocabularies; this call is the placeholder for it.
-   */
-  const tEquipment = useTranslations("Recipe");
+  /** The kitchen's words belong to the vocabulary, not to whichever screen draws it. */
+  const tVocabulary = useTranslations("Vocabulary");
   const { width } = useWindowDimensions();
   const { note, setNote, people, setPeople, days, setDays, slots, toggleSlot, equipments, toggleEquipment } =
     useTunnel();
@@ -92,7 +88,7 @@ export const TunnelSetup = () => {
         {EQUIPMENTS.map((equipment) => (
           <CardChoice
             key={equipment}
-            label={tEquipment(`Equipments.${equipment}`)}
+            label={tVocabulary(`Equipments.${equipment}`)}
             emoji={EQUIPMENT_EMOJI[equipment]}
             style={{ width: tileWidth - 1 }}
             selected={equipments.includes(equipment)}

@@ -28,6 +28,8 @@ type Props = {
 
 export const RecipesScreen = ({ style }: Props) => {
   const t = useTranslations("Recipes");
+  /** A cuisine is a shared vocabulary, so its words live with the rest of them. */
+  const tVocabulary = useTranslations("Vocabulary");
 
   const [query, setQuery] = useState("");
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
@@ -106,7 +108,7 @@ export const RecipesScreen = ({ style }: Props) => {
             }}>
               <CardRecipe
                 title={item.title}
-                subtitle={t(`Cuisines.${item.cuisine}`)}
+                subtitle={tVocabulary(`Cuisines.${item.cuisine}`)}
                 imageSrc={CARD_PLACEHOLDER}
                 style={{ width: "100%", marginBottom: COLUMN_GAP }}
                 onPress={() => router.push(`/recipe/${item.id}`)}

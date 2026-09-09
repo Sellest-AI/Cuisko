@@ -39,7 +39,7 @@ const VISIBLE_TAGS = 3;
  * second reader of one cache entry for data its parent had in hand.
  */
 export const RecipeHeader = ({ recipeId, tags }: Props) => {
-  const t = useTranslations("Recipe");
+  const t = useTranslations("Vocabulary");
 
   return (
     <View style={styles.header}>

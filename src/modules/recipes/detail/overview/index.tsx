@@ -30,6 +30,8 @@ const COLUMNS = 3;
 /** Everything about the recipe that is not a list of things to buy or a list of things to do. */
 export const OverviewScreen = ({ id }: { id?: string }) => {
   const t = useTranslations("Recipe");
+  /** The kitchen's words belong to the vocabulary, not to the page that happens to list them. */
+  const tVocabulary = useTranslations("Vocabulary");
   const { recipe } = useRecipe(id);
 
   /** Three even columns inside the gutter, so a name has room to sit on one line. */
@@ -113,7 +115,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
             title={t("Overview.utensils")}
             items={recipe.equipments.map((equipment) => ({
               emoji: EQUIPMENT_EMOJI[equipment],
-              name: t(`Equipments.${equipment}`),
+              name: tVocabulary(`Equipments.${equipment}`),
             }))}
           />
         </View>

@@ -13,6 +13,7 @@ import enNavigation from "./en/navigation.json";
 import enPlanning from "./en/planning.json";
 import enRecipe from "./en/recipe.json";
 import enRecipes from "./en/recipes.json";
+import enVocabulary from "./en/vocabulary.json";
 import frAuth from "./fr/auth.json";
 import frCommon from "./fr/common.json";
 import frGroceries from "./fr/groceries.json";
@@ -21,6 +22,7 @@ import frNavigation from "./fr/navigation.json";
 import frPlanning from "./fr/planning.json";
 import frRecipe from "./fr/recipe.json";
 import frRecipes from "./fr/recipes.json";
+import frVocabulary from "./fr/vocabulary.json";
 
 // Import the type to use in this file
 import type { IntlMessages, TranslationKeys } from "./types";
@@ -53,6 +55,7 @@ i18n.use(initReactI18next).init({
         Planning: enPlanning,
         Recipe: enRecipe,
         Recipes: enRecipes,
+        Vocabulary: enVocabulary,
       },
     },
     fr: {
@@ -65,6 +68,7 @@ i18n.use(initReactI18next).init({
         Planning: frPlanning,
         Recipe: frRecipe,
         Recipes: frRecipes,
+        Vocabulary: frVocabulary,
       },
     },
   },

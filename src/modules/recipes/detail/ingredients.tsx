@@ -19,6 +19,8 @@ import { groupByCategory } from "../_model/detail";
 /** What the recipe needs, scaled to the number of people it is being cooked for. */
 export const IngredientsScreen = ({ id }: { id?: string }) => {
   const t = useTranslations("Recipe");
+  /** An ingredient category is a shared vocabulary, so its words live with the rest of them. */
+  const tVocabulary = useTranslations("Vocabulary");
   const { width } = useWindowDimensions();
 
   /** Already scaled — the hook owns that, so no screen can draw a list for the wrong count. */
@@ -75,7 +77,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
       {groups.map((group) => (
         <View key={group.category} style={styles.group}>
           <IngredientGroup
-            title={t(`Categories.${group.category}`)}
+            title={tVocabulary(`Categories.${group.category}`)}
             items={group.lines.map((line) => ({
               emoji: line.emoji,
               imageUrl: line.imageUrl,
