@@ -8,7 +8,7 @@
  * reject".
  *
  * Each case runs the real script the way `pnpm verify` runs it, against a throwaway tree aimed at
- * by CHECK_ROOT (see `scripts/_lib.mjs`). The scripts end in `process.exit`, so there is no
+ * by CHECK_ROOT (see `scripts/checks/_lib.mjs`). The scripts end in `process.exit`, so there is no
  * importable surface to assert on — the exit code and the printed finding *are* the contract.
  */
 import { afterEach, describe, expect, it } from "vitest";

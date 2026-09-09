@@ -81,7 +81,9 @@ describe("a fully translated vocabulary", () => {
    * passes in the lab and fails in the repo is one somebody disables on a Friday.
    */
   it("passes on this repo as it stands", () => {
-    const root = fileURLToPath(new URL("../..", import.meta.url));
+    // Three levels: __tests__/ -> checks/ -> scripts/ -> the repo. Aimed one level short, the
+    // check runs against a tree with no shared/ or translations/ and reports nothing to find.
+    const root = fileURLToPath(new URL("../../..", import.meta.url));
     expect(passed(runCheck(SCRIPT, { ".keep": "" }, root))).toBe(true);
   });
 });

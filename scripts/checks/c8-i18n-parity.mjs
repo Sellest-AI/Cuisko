@@ -85,7 +85,7 @@ if (!existsSync(LOCALES_SOURCE)) {
     {
       file: relative(LOCALES_SOURCE),
       message: "Does not exist — C8 reads DEFAULT_LOCALE and SUPPORTED_LOCALES from this file.",
-      fix: "Restore it, or point LOCALES_SOURCE in scripts/c8-i18n-parity.mjs at its new home.",
+      fix: "Restore it, or point LOCALES_SOURCE in scripts/checks/c8-i18n-parity.mjs at its new home.",
     },
   ]);
 }
@@ -105,7 +105,7 @@ if (!defaultLocale || !supportedLocales) {
       message: `Could not read ${defaultLocale ? "SUPPORTED_LOCALES" : "DEFAULT_LOCALE"} as a literal.`,
       fix:
         "C8 parses this file for `DEFAULT_LOCALE = <string>` and `SUPPORTED_LOCALES = [<string>, …]`. " +
-        "Keep both as plain literals, or teach scripts/c8-i18n-parity.mjs the new shape.",
+        "Keep both as plain literals, or teach scripts/checks/c8-i18n-parity.mjs the new shape.",
     },
   ]);
 }

@@ -6,7 +6,7 @@
  * are top-level side-effecting modules ending in `process.exit`, so there is nothing to import and
  * assert on — the exit code and the finding text are the whole contract.
  *
- * `CHECK_ROOT` is what aims them (see `scripts/_lib.mjs`). Without it a check can only ever run
+ * `CHECK_ROOT` is what aims them (see `scripts/checks/_lib.mjs`). Without it a check can only ever run
  * against this repo, where the violations it hunts do not exist by definition.
  */
 import { execFileSync } from "node:child_process";
@@ -44,7 +44,7 @@ export const cleanupTrees = () => {
 export type CheckResult = { code: number; output: string };
 
 /**
- * Runs `script` (a bare filename in `scripts/`) against `tree`.
+ * Runs `script` (a bare filename in `scripts/checks/`) against `tree`.
  *
  * Returns the exit code rather than throwing, because a non-zero exit is the expected result in
  * most cases — a check that never fails is the thing these tests exist to detect.

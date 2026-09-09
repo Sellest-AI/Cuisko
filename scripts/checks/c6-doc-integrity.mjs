@@ -181,7 +181,7 @@ for (const doc of docs) {
       message: `Doc references \`${target}\`, which does not exist.`,
       fix:
         "Correct the path, or — if the spec names it deliberately before it is built — add it to " +
-        "PLANNED in scripts/c6-doc-integrity.mjs.",
+        "PLANNED in scripts/checks/c6-doc-integrity.mjs.",
     });
   }
 }
@@ -192,7 +192,7 @@ for (const planned of PLANNED) {
   if (!existsSync(path.join(ROOT, planned))) continue;
 
   findings.push({
-    file: "scripts/c6-doc-integrity.mjs",
+    file: "scripts/checks/c6-doc-integrity.mjs",
     message: `"${planned}" now exists but is still listed as PLANNED.`,
     fix: "Remove it from PLANNED — it is a real path now, and should be checked like one.",
   });

@@ -35,8 +35,16 @@
  */
 import { writeFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { ROOT } from "./_lib.mjs";
+/**
+ * The repo root, derived from this file rather than from `cwd` — the generator writes into
+ * `convex/`, and a run started from anywhere but the root would otherwise scatter output.
+ *
+ * Computed here rather than imported from `checks/_lib.mjs`: that library is the checks'
+ * interior, and this is a hand-run tool that happens to need one line of it.
+ */
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const TAXONOMY_URL = "https://static.openfoodfacts.org/data/taxonomies/ingredients.full.json";
 
