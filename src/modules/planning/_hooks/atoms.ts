@@ -1,5 +1,7 @@
 import { atom } from "jotai";
 
+import type { Equipment } from "@shared/equipments";
+
 import { MAX_DAYS, MEAL_SLOTS, type MealSlot, type PlannedMeal } from "../_model/model";
 import { PLACEHOLDER_MEALS } from "./placeholders";
 
@@ -25,7 +27,14 @@ export const slotsAtom = atom<MealSlot[]>([...MEAL_SLOTS]);
 
 export const noteAtom = atom("");
 
-export const utensilsAtom = atom<string[]>(["oven", "microwave"]);
+/**
+ * What the kitchen can do, in @shared/equipments' own words.
+ *
+ * `Equipment[]` rather than `string[]`: the ids used to be a hand-copied list of their own, and a
+ * `string` is what let `"airfryer"` sit beside the vocabulary's `"air fryer"` without the compiler
+ * having anything to say about it.
+ */
+export const equipmentsAtom = atom<Equipment[]>(["oven", "microwave"]);
 
 export const dietsAtom = atom<string[]>(["pescatarian"]);
 

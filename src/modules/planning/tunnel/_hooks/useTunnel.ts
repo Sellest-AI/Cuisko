@@ -2,8 +2,10 @@ import { useAtom } from "jotai";
 import { router, usePathname } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 
+import type { Equipment } from "@shared/equipments";
+
 import { MEAL_SLOTS, type MealSlot } from "../../_model/model";
-import { daysAtom, dietsAtom, draftMealsAtom, noteAtom, peopleAtom, slotsAtom, utensilsAtom } from "../../_hooks/atoms";
+import { daysAtom, dietsAtom, draftMealsAtom, equipmentsAtom, noteAtom, peopleAtom, slotsAtom } from "../../_hooks/atoms";
 
 /**
  * The tunnel in order. The route *is* the step — deriving the number from the path rather than
@@ -25,7 +27,7 @@ export const useTunnel = () => {
   const [days, setDays] = useAtom(daysAtom);
   const [slots, setSlots] = useAtom(slotsAtom);
   const [note, setNote] = useAtom(noteAtom);
-  const [utensils, setUtensils] = useAtom(utensilsAtom);
+  const [equipments, setEquipments] = useAtom(equipmentsAtom);
   const [diets, setDiets] = useAtom(dietsAtom);
   const [meals, setMeals] = useAtom(draftMealsAtom);
 
@@ -69,7 +71,7 @@ export const useTunnel = () => {
     days,
     slots,
     note,
-    utensils,
+    equipments,
     diets,
     meals,
     next,
@@ -94,9 +96,9 @@ export const useTunnel = () => {
         }),
       [setSlots],
     ),
-    toggleUtensil: useCallback(
-      (id: string) => setUtensils((current) => toggle(current, id)),
-      [setUtensils],
+    toggleEquipment: useCallback(
+      (equipment: Equipment) => setEquipments((current) => toggle(current, equipment)),
+      [setEquipments],
     ),
     toggleDiet: useCallback(
       (id: string) => setDiets((current) => toggle(current, id)),

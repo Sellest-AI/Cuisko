@@ -9,7 +9,7 @@ import { useTranslations } from "translations";
 import type { Tag } from "@shared/tags";
 
 import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
-import { TAG_EMOJI } from "../../_model/vocabulary";
+import { TAG_EMOJI } from "~/lib/vocabulary";
 
 type Props = {
   /** The recipe the pencil opens. Absent only before the route parameter has arrived. */

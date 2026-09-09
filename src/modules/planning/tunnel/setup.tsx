@@ -10,11 +10,13 @@ import { ToggleRow } from "@ui/toggle-row";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import { EQUIPMENTS } from "@shared/equipments";
+
+import { EQUIPMENT_EMOJI } from "~/lib/vocabulary";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { MAX_DAYS, MEAL_SLOTS, type MealSlot } from "../_model/model";
 import { resetTunnelAtom } from "../_hooks/atoms";
-import { TILE_IMAGE, UTENSILS } from "../_hooks/placeholders";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
 import { SectionLabel } from "../_components/section-label";
@@ -37,8 +39,14 @@ const SLOT_LABELS = { lunch: "Meal.lunch", dinner: "Meal.dinner" } as const sati
 /** Step 1 — what this week is, who is eating, and what the kitchen can do. */
 export const TunnelSetup = () => {
   const t = useTranslations("Planning");
+  /**
+   * The kitchen's words come from the recipe namespace, because the vocabulary is one and the
+   * words for it already live there. They move to a namespace of their own — `Vocabulary.*`,
+   * shared by both — with the rest of the shared vocabularies; this call is the placeholder for it.
+   */
+  const tEquipment = useTranslations("Recipe");
   const { width } = useWindowDimensions();
-  const { note, setNote, people, setPeople, days, setDays, slots, toggleSlot, utensils, toggleUtensil } =
+  const { note, setNote, people, setPeople, days, setDays, slots, toggleSlot, equipments, toggleEquipment } =
     useTunnel();
   const resetTunnel = useSetAtom(resetTunnelAtom);
   const onScroll = useTunnelScrollHandler();
@@ -77,18 +85,18 @@ export const TunnelSetup = () => {
         onToggle={toggleSlot}
       />
       <SectionLabel
-        label={t("Tunnel.Setup.utensils")}
-        value={`${utensils.length}/${UTENSILS.length}`}
+        label={t("Tunnel.Setup.equipments")}
+        value={`${equipments.length}/${EQUIPMENTS.length}`}
       />
       <View style={styles.grid}>
-        {UTENSILS.map((utensil) => (
+        {EQUIPMENTS.map((equipment) => (
           <CardChoice
-            key={utensil.id}
-            label={utensil.label}
-            imageSrc={TILE_IMAGE}
+            key={equipment}
+            label={tEquipment(`Equipments.${equipment}`)}
+            emoji={EQUIPMENT_EMOJI[equipment]}
             style={{ width: tileWidth - 1 }}
-            selected={utensils.includes(utensil.id)}
-            onPress={() => toggleUtensil(utensil.id)}
+            selected={equipments.includes(equipment)}
+            onPress={() => toggleEquipment(equipment)}
             elevated
           />
         ))}

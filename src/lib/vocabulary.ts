@@ -1,5 +1,9 @@
 /**
- * A glyph for each value of the two vocabularies a recipe page draws as chips.
+ * A glyph for each value of the two `shared/` vocabularies the app draws as chips and tiles.
+ *
+ * In `src/lib/` rather than inside a module because both are drawn in more than one place — the
+ * recipe page chips a dish's tags and equipments, the planning tunnel tiles the kitchen's — and a
+ * glyph belongs to the vocabulary, not to whichever module reached for it first.
  *
  * Here rather than in a translation file because a glyph is not a translation: 🥬 is 🥬 in every
  * language, and putting it in both locale files would be one string to keep in step per language

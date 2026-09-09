@@ -2,7 +2,7 @@
 
 This folder must not know the backend exists.
 
-NEVER import: `convex`, `~/lib/convex/*`, `~/modules/*`, `~/providers/*`, `translations`, `~/hooks/*`.
+NEVER import: `convex`, `~/lib/*`, `~/modules/*`, `~/providers/*`, `translations`, `~/hooks/*`.
 ALLOWED: `react`, `react-native`, `@ui/*`, `@ui/utils`, `@ui/hooks/*`, `theme`, and presentation libraries.
 
 Props are STRUCTURAL types, never `Doc<'x'>` or `Id<'x'>`:

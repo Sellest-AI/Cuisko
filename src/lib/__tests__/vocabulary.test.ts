@@ -10,7 +10,7 @@ import { EQUIPMENT_EMOJI, TAG_EMOJI } from "../vocabulary";
  * cannot catch is the two ways a map can be complete and still wrong: an empty string, and a key
  * that outlived its removal from the vocabulary.
  */
-describe("recipe vocabulary glyphs", () => {
+describe("vocabulary glyphs", () => {
   test.each([
     ["tags", TAGS, TAG_EMOJI],
     ["equipments", EQUIPMENTS, EQUIPMENT_EMOJI],

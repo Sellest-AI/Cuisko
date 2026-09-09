@@ -10,7 +10,7 @@ import { NutritionCard } from "../../_components/nutrition-card";
 import { RecipeScreen } from "../../_components/recipe-screen";
 import { columnWidth, SCREEN_PADDING } from "../../constants";
 import { useRecipe } from "../../_hooks/useRecipe";
-import { EQUIPMENT_EMOJI } from "../../_model/vocabulary";
+import { EQUIPMENT_EMOJI } from "~/lib/vocabulary";
 import { Difficulty } from "./difficulty";
 import { GroceryRow } from "./grocery-row";
 import { Timings, type Timing } from "./timings";

@@ -11,7 +11,7 @@ import { ComponentProps, ReactNode } from "react";
 /**
  * What a picked tile is filled with, and what an unpicked one looks like beside it.
  *
- * `primary` is a preference being switched on — the tunnel's utensil and diet grids, where orange
+ * `primary` is a preference being switched on — the tunnel's kitchen and diet grids, where orange
  * is the app saying "yes, that one". `neutral` is a tile that is already the case: the dish
  * currently on the plate in the swap sheet. Orange there would read as a choice being made, when
  * the state it marks is the one the user is deciding whether to leave alone — so it takes the dark
@@ -36,6 +36,14 @@ const TONES = {
 type Props = {
   label: string;
   imageSrc?: ImageProps["source"];
+  /**
+   * Drawn in the picture's place when there is no picture — the tunnel's kitchen grid, where the
+   * thing being tiled is a vocabulary value rather than something that was photographed.
+   *
+   * `imageSrc` wins when both are given: a real picture is always the better tile, and the glyph is
+   * what a value falls back to rather than a decoration sitting beside one.
+   */
+  emoji?: string;
   selected?: boolean;
   tone?: Tone;
   /**
@@ -54,7 +62,7 @@ type Props = {
 const IMAGE_HEIGHT = 96;
 
 /**
- * A picture and a word, picked or not — the tile the tunnel's grids are built from.
+ * A picture (or a glyph) and a word, picked or not — the tile the tunnel's grids are built from.
  *
  * Selection is carried by the whole tile rather than by a checkbox in its corner: these grids are
  * answered at a glance and with a thumb, and a tile that fills is readable at arm's length where a
@@ -63,6 +71,7 @@ const IMAGE_HEIGHT = 96;
 export const CardChoice = ({
   label,
   imageSrc,
+  emoji,
   selected = false,
   tone = "primary",
   elevated = false,
@@ -95,7 +104,13 @@ export const CardChoice = ({
           styles.borderRadius,
         ]}
       />}
-      <Image source={imageSrc} contentFit="contain" style={[styles.image, imageStyle]} />
+      {!imageSrc && emoji ? (
+        <View style={[styles.image, styles.emojiBox]}>
+          <Text.H4 style={styles.emoji}>{emoji}</Text.H4>
+        </View>
+      ) : (
+        <Image source={imageSrc} contentFit="contain" style={[styles.image, imageStyle]} />
+      )}
       <View style={styles.labelRow}>
         <Text.Base
           color={selected ? foreground : colors.muted}
@@ -151,6 +166,15 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: IMAGE_HEIGHT,
+  },
+  emojiBox: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  /** Overrides the H4 metrics — an emoji standing in for a picture needs the room a heading does not. */
+  emoji: {
+    fontSize: 44,
+    lineHeight: 52,
   },
   labelRow: {
     flexDirection: "row",

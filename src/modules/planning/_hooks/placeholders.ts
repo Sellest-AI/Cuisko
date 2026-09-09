@@ -1,5 +1,5 @@
 /**
- * Every plate, ingredient and utensil this slice draws, invented here.
+ * Every plate and ingredient this slice draws, invented here.
  *
  * Hardcoded on purpose: the interface comes first, so the screens are built against the shape they
  * will keep, and swapping in `api.router.planning.*` later touches the hooks in this folder alone
@@ -10,9 +10,10 @@
  * about to be deleted, and another module binding to it would be building against a shape with a
  * known expiry date.
  *
- * Utensil and diet labels are English here rather than in `translations/`. They are catalogue data
- * a real backend will serve already translated, not interface copy — so a key per row would be a
- * table to delete rather than a table to keep.
+ * Diet labels are English here rather than in `translations/`. They are catalogue data a real
+ * backend will serve already translated, not interface copy — so a key per row would be a table to
+ * delete rather than a table to keep. The utensil list that used to sit beside them is gone: the
+ * kitchen now draws @shared/equipments, the same vocabulary a recipe declares.
  */
 
 import type { Unit } from "@shared/ingredients";
@@ -232,25 +233,14 @@ export const RECIPE_CATALOGUE: Recipe[] = [
     _recipe(`catalogue${index}`, _dishAt(index), index + ROTATION.length, title)),
 ];
 
-export const UTENSILS = [
-  { id: "oven", label: "Oven" },
-  { id: "microwave", label: "Microwave" },
-  { id: "blender", label: "Blender" },
-  { id: "airfryer", label: "Air fryer" },
-  { id: "pressure-cooker", label: "Pressure cooker" },
-  { id: "food-processor", label: "Food processor" },
-] as const;
-
 export const DIETS = [
-  { id: "meat", label: "Meat" },
+  { id: "no-preference", label: "No preference" },
   { id: "pescatarian", label: "Pescatarian" },
   { id: "eggs", label: "Eggs" },
   { id: "vegetarian", label: "Vegetarian" },
   { id: "vegan", label: "Vegan" },
   { id: "gluten-free", label: "Gluten free" },
   { id: "lactose-free", label: "Lactose free" },
-  { id: "halal", label: "Halal" },
-  { id: "no-preference", label: "No preference" },
 ] as const;
 
 /** One image for every tile until real produce photography exists. */
