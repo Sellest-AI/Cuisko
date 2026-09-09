@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
@@ -79,6 +79,35 @@ const signIn = async () => {
 
   return t.withIdentity(asUser(userId));
 };
+
+/**
+ * The module graph this file exercises, imported before anything is timed.
+ *
+ * `import.meta.glob` hands convex-test LAZY loaders, so the graph a function reaches is transformed
+ * and instantiated on the first call that needs it — and billed to whichever test made that call.
+ * Here that was the first test in the file, whose own subject is an authorization rejection that
+ * should cost microseconds. It was paying ~970ms to pull in resolve.ts and everything beneath it,
+ * data/taxonomy.ts (820KB of generated literals) included, against Vitest's default 5s timeout.
+ *
+ * Idle, that passes. Under a full `pnpm verify` it has twice run out and refused a commit touching
+ * no Convex file at all, naming a test with nothing wrong with it — and the margin erodes as the
+ * suite grows, since more files means more contention for the same workers.
+ *
+ * Importing the router module here pulls that graph transitively, inside a hook, off every test's
+ * clock: the first test drops from ~970ms to ~5ms and the file's total is unchanged. Nothing is
+ * asserted, because nothing needs to be — the point is only that the work is already done.
+ *
+ * Deliberately narrow. Warming the whole glob instead measured FOUR times slower, because each of
+ * the 50 test files that globs convex/ would then import the entire backend rather than the part
+ * it uses.
+ */
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/router/ingredients/resolve"))
+      .map(([, load]) => load()),
+  ),
+);
 
 beforeEach(() => {
   t = convexTest(schema, modules);
