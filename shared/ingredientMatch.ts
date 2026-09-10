@@ -8,7 +8,7 @@
  * total and its grocery line, with no error anywhere. A number is what lets a caller refuse.
  *
  * Pure and shared rather than living beside the query, so it can be tuned against the real catalog
- * with no LLM and no database in the loop — see `convex/functions/ingredients/matchIngredients.ts`
+ * with no LLM and no database in the loop — see `convex/functions/ingredients/resolveIngredient.ts`
  * for the caller that turns these numbers into a decision.
  */
 
@@ -19,7 +19,11 @@ export type Candidate = { id: string; name: string; aliases?: string[] };
  * At or above this, the name is linked to the row without asking anyone.
  *
  * 0.78, measured against the seeded catalog rather than guessed — the fixture is
- * `convex/functions/ingredients/__tests__/matchIngredients.test.ts`, and the numbers it pins are:
+ * `convex/functions/ingredients/__tests__/linkableThreshold.test.ts`, which seeds the REAL catalog
+ * and pushes realistic recipe lines through `searchWidened`. (`shared/__tests__/ingredientMatch.test.ts`
+ * tests this file's scoring against hand-written candidates, which is a different question: it
+ * cannot tell you whether 0.78 still separates the rows the catalog actually holds.) The numbers
+ * the fixture pins are:
  *
  * - every correct match of a realistic recipe line lands at **0.9 or above** — a quantity and a
  *   preparation qualifier are stripped before scoring, so those lines score as the bare name does
@@ -307,6 +311,56 @@ export const searchTerms = (query: string): string =>
  */
 export const gradesIn = (query: string): string[] =>
   _tokenize(query).filter(_isGradeToken);
+
+/**
+ * Preparations the SHOP did, as opposed to the ones the cook does.
+ *
+ * A deliberately tiny subset of `QUALIFIERS`, and the line between them is who performed the verb.
+ * Cooking beef is something the cook does after buying it, so `raw beef` and `cooked beef` are one
+ * shopping decision and must fold together — which is why `cuit` and `cru` stay qualifiers. Drying
+ * a tomato is something the shop did before selling it: `tomates` and `tomates séchées` are two
+ * products, two shelves, two prices, and roughly ten times apart on every nutrition figure.
+ *
+ * **`frozen` is NOT here, and that is a decision, not an omission.** Frozen peas are peas: you cook
+ * them the same and they count the same. Only drying concentrates a food enough to make it a
+ * different ingredient. `frozen` and `surgelé` are already `QUALIFIERS`, so leaving them off this
+ * list is all it takes — they fold away like any other preparation.
+ *
+ * ⚠️ **`en conserve` is a known gap, not a decision.** Tinned tomatoes are tomatoes by the same
+ *    argument as frozen peas, but `conserve` was never a `QUALIFIER`, so it survives as an
+ *    identifying word and `tomates en conserve` gets its own walk today. Fixing it means adding the
+ *    word to `QUALIFIERS`, which changes `searchTerms` — and that builds the taxonomy index keys,
+ *    the widened catalog query and the client's suggestions, so it is a retrieval change and not a
+ *    fold change. It does not belong here, and it costs one redundant walk rather than wrong data.
+ *
+ * **`fresh` is not here either, because it is the default state.** Dropping it from both sides
+ * leaves `coriander` against `dried coriander`, which is already the distinction we want; listing
+ * it would instead split `fresh tomatoes` from `tomatoes`, which are the same thing.
+ *
+ * Both gendered forms, like `QUALIFIERS` — `_singularize` runs once, so `séchées` arrives as
+ * `sechee` and `séchés` as `seche`.
+ */
+const PRESERVATION = new Set(["dried", "seche", "sechee"]);
+
+/**
+ * The preservation words in a name — read BEFORE `QUALIFIERS` strips them.
+ *
+ * Not built on `_tokenize`, and it cannot be: `_tokenize` returns the identifying tokens, which is
+ * exactly the list these words have already been removed from. So this re-walks the raw fold, and
+ * takes the same quantity filter and the same singularizer so it cannot disagree with the tokens
+ * it will be appended to.
+ *
+ * Exported for `foldedIngredientName`, which is the only caller and the only place the distinction
+ * matters: retrieval may ignore how a food was preserved, because the catalog is searched widened
+ * and the ranker weighs the rest of the name. Identity may not — folding `tomates` and `tomates
+ * séchées` to one key resolves one of them and silently links the other to it.
+ */
+export const preservationIn = (query: string): string[] =>
+  _fold(query)
+    .split(" ")
+    .filter((token) => token && !_isQuantity(token))
+    .map(_singularize)
+    .filter((token) => PRESERVATION.has(token));
 
 const _bestSimilarity = (token: string, against: string[]): number =>
   against.reduce((best, other) => Math.max(best, _similarity(token, other)), 0);

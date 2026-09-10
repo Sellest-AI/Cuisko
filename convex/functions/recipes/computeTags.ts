@@ -8,8 +8,8 @@ import { allergenTagsOf, type ComputedTag, dietTagsOf, nutritionTagsOf } from "@
 /**
  * One recipe line, already matched to a catalog row.
  *
- * The id and not the document, because the caller that has these has just run `matchIngredients`
- * and holds ids — loading the rows is this file's job, and doing it here is what keeps the reads
+ * The id and not the document, because the caller that has these is holding the links its action
+ * just resolved — loading the rows is this file's job, and doing it here is what keeps the reads
  * batched instead of one per line at the call site.
  */
 export type TaggableLine = {

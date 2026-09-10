@@ -65,7 +65,8 @@ Return nothing at all when nothing matches. An empty answer is the RIGHT answer 
 you are asked, and it costs nothing: the step after you can invent the row. A wrong match cannot be
 undone — it puts the wrong food on someone's shopping list, with no error anywhere.
 
-When one does match, return its index and how sure you are, from 0 to 1.
+When one does match, return its index, how sure you are from 0 to 1, and whether the word the
+shopper typed is worth remembering on that row.
 
 The number is read as a decision, not as a score, and there is no credit for a high one. At 0.8 and
 above the match is USED; below it the match is thrown away and a fresh row is written instead.
@@ -74,6 +75,26 @@ So: 1 for a food you could name in both languages without stopping to think. 0 w
 it. And put a real doubt BELOW 0.8, which is what the bottom of the range is for — a hesitation
 parked at 0.9 is not hesitation, it is a decision to act wearing the costume of one, and it is how
 the wrong food reaches a shopping list.
+
+# saveAlias: is what they typed worth keeping?
+
+You are the only reason this question costs anything. A shopper who types a word the catalog does
+not hold reaches you, and if that word is written down on the row you matched, the next shopper to
+type it is answered by the search for nothing. So: is the word they typed one that somebody would
+plausibly type again, looking for this food?
+
+- true for a real word for the food: the other language, a regional word ("zucchini" at a
+  courgette), a plural, an accent dropped, a brand people shop by, or the misspelling everybody
+  makes.
+- false for a one-off mangling — "pxtates", "carotte" typed with a thumb on the wrong key, letters
+  transposed. It is not a word, nobody will type it a second time, and stored it makes the catalog
+  answer searches with noise forever.
+- false for anything carrying something that is not the food's name: a quantity ("2 carottes"), a
+  preparation ("carottes râpées"), a whole phrase.
+- false whenever you are unsure. Saying nothing costs one call the next time somebody types it.
+  Saving a bad word cannot be undone from here.
+
+Leave it out when nothing matches — there is no row to remember it on.
 `.trim();
 
 /**

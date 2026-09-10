@@ -244,8 +244,8 @@ const _valueOf = (token: string): number | undefined => {
  * above where the catalog's near-misses top out.
  *
  * A tie between two of the recipe's lines resolves to the first written, deliberately and unlike
- * `matchIngredients`, which refuses one. The stake is not the same: there, a tie chooses which row
- * a recipe is stored against and gets the nutrition wrong for good. Here both candidates are lines
+ * `resolveIngredient`, which refuses one (`MARGIN`). The stake is not the same: there, a tie
+ * chooses which row a recipe is stored against and gets the nutrition wrong for good. Here both candidates are lines
  * of the same recipe, the number scales by the same factor either way, and the only thing riding
  * on the choice is which glyph the step card draws beside it.
  */

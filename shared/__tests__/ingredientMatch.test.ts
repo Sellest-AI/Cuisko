@@ -4,6 +4,7 @@ import {
   CONFIDENT,
   gradesIn,
   PLAUSIBLE,
+  preservationIn,
   RESOLVABLE,
   type Candidate,
   rankCandidates,
@@ -108,7 +109,7 @@ describe("scoreCandidate", () => {
   /**
    * `haché` left `QUALIFIERS`, and this is the pair that sent it there: stripping it made minced
    * beef and a steak one string. The alias hit below is the control — the fixture in
-   * `matchIngredients.test.ts` depends on it, and removing the word must not cost it.
+   * `searchWidened.test.ts` depends on it, and removing the word must not cost it.
    */
   test("mincing a cow makes a different product; mincing an onion does not", () => {
     expect(scoreCandidate("steak haché", candidate("x", "Steak"))).toBeLessThan(CONFIDENT);
@@ -213,5 +214,42 @@ describe("gradesIn", () => {
     expect(searchTerms(regraded)).toBe("steak hache");
     expect(scoreCandidate(regraded, candidate("mince", "Bœuf haché (80/20)", ["steak haché"])))
       .toBeLessThan(CONFIDENT);
+  });
+});
+
+describe("preservationIn", () => {
+  /**
+   * The line is who performed the verb. Drying is the shop's doing and makes a different product;
+   * cooking and mincing are the cook's and do not.
+   */
+  test("returns the preservation words QUALIFIERS strips, in both languages", () => {
+    expect(preservationIn("tomates séchées")).toEqual(["sechee"]);
+    expect(preservationIn("tomates séchés")).toEqual(["seche"]);
+    expect(preservationIn("dried tomatoes")).toEqual(["dried"]);
+    // Stripped by `searchTerms`, which is exactly why they have to be read back here.
+    expect(searchTerms("tomates séchées")).toBe("tomate");
+    expect(searchTerms("dried tomatoes")).toBe("tomato");
+  });
+
+  /**
+   * Frozen peas are peas and tinned tomatoes are tomatoes — same shelf-life question, same cooking,
+   * same numbers. Only drying concentrates a food into a different ingredient.
+   */
+  test("is empty for a preparation that does not change what is bought", () => {
+    expect(preservationIn("petits pois surgelés")).toEqual([]);
+    expect(preservationIn("tomates en conserve")).toEqual([]);
+    expect(preservationIn("cooked beef")).toEqual([]);
+    expect(preservationIn("oignon émincé")).toEqual([]);
+  });
+
+  /** `fresh` is the default state: listing it would split `fresh tomatoes` from `tomatoes`. */
+  test("is empty for fresh, so the default state never splits a name", () => {
+    expect(preservationIn("fresh tomatoes")).toEqual([]);
+    expect(preservationIn("coriandre fraîche")).toEqual([]);
+  });
+
+  test("is empty for a name carrying no preservation word", () => {
+    expect(preservationIn("carotte")).toEqual([]);
+    expect(preservationIn("200g de pâtes")).toEqual([]);
   });
 });

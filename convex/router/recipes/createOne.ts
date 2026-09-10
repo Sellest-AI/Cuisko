@@ -1,10 +1,10 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { sanitizeRecipe } from "@convex/agent/tools/sanitizeRecipe";
+import { generateRecipe } from "@convex/functions/recipes/generateRecipe";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
 import { type ActionCtx, authActionI18n, internalAction, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
-import { vSanitizedRecipe } from "@convex/schema/recipePayloads";
+import { vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { v } from "convex/values";
 
 type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };
@@ -18,29 +18,25 @@ type Args = {
 };
 
 /**
- * Sanitizing is what the cook waits for; translating is not, so it is scheduled rather than
- * awaited — the recipe id comes back as soon as the row exists, in the one language they wrote it.
+ * Generating is what the cook waits for; translating is not, so it is scheduled rather than
+ * awaited — the recipe id comes back as soon as the row exists, in the language they wrote it.
+ *
+ * Resolving the ingredients is inside that wait, and the seconds it adds are taken knowingly: a
+ * recipe briefly and invisibly wrong about what it contains is worse than one that takes longer to
+ * appear, since the detail screen, the tags and the nutrition totals all read those links the
+ * moment the route changes. The cost falls over time on its own — every row the resolver invents
+ * and every alias it remembers is one the next import finds for free.
  */
 const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
   const locale = ctx.i18n.locale;
 
-  const recipe = await sanitizeRecipe.run(ctx, {
-    locale,
-    title: args.title,
-    description: args.description,
-    servings: args.servings,
-    ingredients: args.ingredients.split("\n").map((line) => line.trim()).filter(Boolean),
-    instructions: args.instructions,
-    outdated: null,
-  });
+  const { recipe, links } = await generateRecipe(ctx, { ...args, locale });
 
   const recipeId = await ctx.runMutation(internal.router.recipes.createOne._internal_persist, {
     userId: ctx.userId,
     locale,
-    recipe: {
-      ...recipe,
-      servings: args.servings,
-    },
+    recipe,
+    links,
   });
 
   await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
@@ -71,6 +67,6 @@ export const _internal = internalAction({
 });
 
 export const _internal_persist = internalMutation({
-  args: { userId: v.id("users"), locale: vLocale, recipe: vSanitizedRecipe },
+  args: { userId: v.id("users"), locale: vLocale, recipe: vSanitizedRecipe, links: v.array(vRecipeLink) },
   handler: (ctx, args): Promise<Id<"recipes">> => saveRecipe(ctx, args),
 });

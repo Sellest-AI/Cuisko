@@ -216,3 +216,133 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
     source,
   };
 };
+
+/**
+ * The two bounds on what a row may accumulate as other words for itself.
+ *
+ * They exist because an ingredient row is SHARED: every shopper searching this locale scores
+ * against its blob, so a word one person's typo put there costs everybody. BM25 divides by field
+ * length, which makes that concrete — an over-long blob lowers the row's own score for the name
+ * it is actually called, so an unbounded alias list makes a row progressively harder to find under
+ * the word everybody types. And nothing in the app can undo it: there is no screen for editing a
+ * catalog row's aliases, and the shopper who caused it never sees that they did.
+ *
+ * Ten is well above what a food needs — the prompt asks the model for "three or four", and the
+ * seeded catalog's fullest entry carries five. Sixty characters is longer than any ingredient name
+ * in either language and shorter than a sentence, which is the thing being kept out: a phrase
+ * stored as an alias matches on every one of its words.
+ */
+export const ALIAS_MAX_LENGTH = 60;
+export const ALIASES_PER_LOCALE = 10;
+
+/**
+ * One more spelling on a row that already exists, and the `search` blob that follows from it —
+ * the only two fields adding an alias may touch.
+ *
+ * **Here, beside `ingredientRow`, because `search` has one home and this is it (ADR 0011).** The
+ * blob is derived from `name` and `aliases`, so moving an alias obliges recomputing it, and a call
+ * site that built its own would index that row under a spelling the reader never searches for —
+ * with no error, no empty state, and no way to notice but the row never being found again. Two
+ * functions in this module, both feeding `searchTextByLocale` the same two fields, cannot drift
+ * apart without the drift being visible on one screen.
+ *
+ * **It is not `ingredientRow` with a doc argument, and that is the point.** A whole row rebuilt
+ * from a document would re-derive `name` too — and the pivot a `machine` name was hashed against
+ * is not stored, so a fully-machine row would come back recorded as a rendering of itself. The
+ * caller patches what this returns and nothing else, which is ADR 0011's other clause: a write
+ * that changes no source of a derived field must not recompute it.
+ *
+ * `undefined` for every reason not to write: the word is already on the row under some casing, it
+ * is not a word, it is too long, or the locale is full. A caller that patched anyway would bump
+ * `updatedAt` for no change. The name is checked alongside the aliases — a row does not need a
+ * synonym for what it is already called.
+ *
+ * **A full locale REFUSES rather than trimming**, which is the difference between a bound and a
+ * silent eviction. Dropping the oldest to make room would delete a word somebody has been finding
+ * this row by, to store one that has been typed once; and it would mean this function rewrote a
+ * part of the row nobody asked it to touch. The eleventh word is simply not worth the eleventh
+ * slot, and the shopper still gets their match.
+ */
+export const withAlias = (
+  doc: Doc<"ingredients">,
+  alias: string,
+  locale: Locale,
+): Pick<IngredientRow, "aliases" | "search"> | undefined => {
+  const spelling = alias.trim();
+  const stored = doc.aliases?.[locale] ?? [];
+  const known = [doc.name.values[locale], ...stored];
+
+  if (!spelling || spelling.length > ALIAS_MAX_LENGTH) return undefined;
+  if (stored.length >= ALIASES_PER_LOCALE) return undefined;
+  if (known.some((word) => word?.toLowerCase() === spelling.toLowerCase())) return undefined;
+
+  const aliases = { ...doc.aliases, [locale]: [...stored, spelling] };
+
+  return {
+    aliases,
+    // Every locale, not just the one that grew — `searchTextByLocale` drives off `LOCALES`, so the
+    // blob it returns is total, and patching a partial one would blank the other language's index.
+    search: searchTextByLocale((each) => [
+      doc.name.values[each] ?? "",
+      ...(aliases[each] ?? []),
+    ]),
+  };
+};
+
+/**
+ * The catalog's aliases for a row, plus the ones the app LEARNED for it — what a re-seed must
+ * write instead of the catalog's list alone.
+ *
+ * **Re-seeding is how a catalog edit ships, and it patches the whole row.** So before this existed,
+ * every word `rememberAlias` had written was erased the next time somebody ran the seed — silently,
+ * and on exactly the rows it matters for, since the near-miss candidates the ranker is asked about
+ * are overwhelmingly seeded ones. The cache would have refilled one paid model call at a time.
+ *
+ * **The catalog goes first, and that is the tie-break.** It is the authored list: a word a person
+ * put in `ingredientCatalog.ts` outranks one a model vouched for, and going first means it also
+ * wins the cap when the two together overflow. A learned word that loses its slot is not a loss of
+ * data anybody typed — it is a cache entry, and the ranker will answer it again.
+ *
+ * Unlike `withAlias`, this one TRIMS to the cap rather than refusing. It is not adding a word to a
+ * row; it is stating what the row's list now is, and a merge of two capped lists can legitimately
+ * arrive over the bound with neither side at fault.
+ *
+ * ⚠️ **KNOWN LIMITATION: the seed can no longer REMOVE an alias, and this is where that happens.**
+ * A learned word and a catalog word are indistinguishable once written — the column records only
+ * the spelling, not who put it there — so `existing` carries both, and feeding it back in means a
+ * word deleted from `ingredientCatalog.ts` is re-emitted on every subsequent seed. Before this
+ * function existed the seed was authoritative over `aliases` and a deletion took effect; that is
+ * the property traded away, knowingly, to stop the seed erasing the cache.
+ *
+ * It is the better of two silent failures rather than a good outcome: an alias that lingers makes
+ * a row findable under one word too many, and the one it replaced made a row unfindable under a
+ * word people type. Removing a catalog alias needs a manual edit against the deployment until
+ * this is closed, and the fix when it is wanted is a SECOND column — a `learnedAliases` beside
+ * `aliases`, with the seed authoritative over the first, `rememberAlias` writing only the second,
+ * and `ingredientRow` folding both into the blob. That is a schema change, which is why it is not
+ * this slice.
+ */
+export const mergedAliases = (
+  catalog: LocalizedList,
+  learned: LocalizedList | undefined,
+): LocalizedList =>
+  Object.fromEntries(
+    LOCALES.map((locale) => {
+      const seen = new Set<string>();
+      const kept: string[] = [];
+
+      for (const alias of [...(catalog[locale] ?? []), ...(learned?.[locale] ?? [])]) {
+        const spelling = alias.trim();
+
+        if (!spelling || spelling.length > ALIAS_MAX_LENGTH) continue;
+        if (seen.has(spelling.toLowerCase())) continue;
+
+        seen.add(spelling.toLowerCase());
+        kept.push(spelling);
+
+        if (kept.length === ALIASES_PER_LOCALE) break;
+      }
+
+      return [locale, kept];
+    }),
+  ) as LocalizedList;

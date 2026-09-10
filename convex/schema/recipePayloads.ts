@@ -49,12 +49,31 @@ export const vRecipeEdit = {
 };
 
 /**
+ * One `recipeIngredients` row before it has a recipe to belong to.
+ *
+ * It crosses a boundary rather than being derived behind one, and that is the point of the slice:
+ * resolving a name into a catalog row may reach a dataset, a live API and a model, so it happens
+ * in the ACTION, and the mutation that persists the recipe is handed the answer. `RecipeLink` in
+ * `functions/recipes/resolveRecipeIngredients.ts` is the TypeScript half of this shape.
+ *
+ * No `recipeId`: on a create there is no row yet, and on an edit the mutation already knows which
+ * one it is patching.
+ */
+export const vRecipeLink = v.object({
+  ingredientId: v.id("ingredients"),
+  position: v.number(),
+  quantity: v.number(),
+  unit: vUnit,
+});
+
+/**
  * A recipe as `sanitizeRecipe` returns it: ONE language, every localized field a bare string, and
  * every ingredient a name rather than a catalog id.
  *
  * It deliberately is not `recipes.validator`. The two differences are the whole of the slice —
  * translation is a second agent that runs after the insert, and turning a name into a catalog row
- * is `functions/ingredients/matchIngredients.ts`. Keeping the payload in this shape is what lets
+ * is `functions/recipes/resolveRecipeIngredients.ts`, which runs in the ACTION and hands its answer
+ * to the mutation as `vRecipeLink` above. Keeping the payload in this shape is what lets
  * `saveRecipe` be the one place that knows how a generation becomes a document.
  *
  * `tags` is `AUTHORED_TAGS`, not `TAGS`: the computed half falls out of the ingredients, so a model

@@ -3,7 +3,8 @@ id: 0010
 applies_to:
   [
     "convex/agent/**/*.ts",
-    "convex/functions/ingredients/matchIngredients.ts",
+    "convex/functions/ingredients/resolveIngredient.ts",
+    "convex/functions/recipes/resolveRecipeIngredients.ts",
     "shared/ingredientMatch.ts",
     "shared/cuisines.ts",
     "shared/tags.ts",
@@ -38,8 +39,10 @@ A model asked for `ingredientId` returns a plausible 32-character string. It val
 inserts, and the recipe then carries a row that does not exist or — worse — a row that does and is
 the wrong ingredient. Nothing throws. The recipe's nutrition total is wrong and its grocery line
 buys the wrong thing, and the first symptom is a cook noticing. So the model returns the *name*,
-and `matchIngredients` turns names into ids by searching and ranking — an algorithm, which can be
-run against the seeded catalog in a test that takes 900 ms and costs nothing.
+and `resolveIngredient` turns a name into an id by searching and ranking — an algorithm, which can
+be run against the seeded catalog in a test that takes 900 ms and costs nothing. Where a name
+survives every search, the ranker is still handed a LIST and answers with a position in it, never
+with an id it composed itself.
 
 That ranking exists because Convex's search index returns rows in relevance order and **no score**:
 at the call site, "nothing matched" and "a bad match ranked first" are the same answer. `CONFIDENT`
@@ -58,6 +61,6 @@ against a column whose values are not known in advance.
 `pnpm typecheck` — the `Exact<z.infer<typeof _sanitizedRecipe>, SanitizedRecipe>` check in
 `convex/agent/tools/sanitizeRecipe.ts` fails to compile when a vocabulary drifts.
 
-`pnpm test -- convex/functions/ingredients/__tests__/matchIngredients.test.ts` — seeds the real
-catalog and pins both sides of `CONFIDENT`: every realistic recipe line resolves to its row, and an
-ingredient the catalog does not hold comes back unmatched rather than linked to its nearest spelling.
+`pnpm test -- convex/functions/ingredients/__tests__/searchWidened.test.ts` — seeds the real catalog
+and pins both sides of the thresholds: a realistic line resolves to its row, and an ingredient the
+catalog does not hold does not come back linked to its nearest spelling.

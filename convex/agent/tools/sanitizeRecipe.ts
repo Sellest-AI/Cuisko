@@ -23,7 +23,7 @@ import { sanitizeRecipePrompt } from "../config/prompts/sanitizeRecipe";
  * Deliberately not a `Doc<"recipes">`: everything localized here is a bare string rather than a
  * `vLocalized`, and every ingredient is a *name* rather than an id. Both differences are the point
  * of the slice — translation is a separate agent, and turning a name into a catalog row is an
- * algorithm (`functions/ingredients/matchIngredients.ts`), not a generation. A model asked for a
+ * algorithm (`functions/recipes/resolveRecipeIngredients.ts`), not a generation. A model asked for a
  * document id invents one that parses.
  *
  * `quantity` is not optional, and that is the whole of rule 1 in the prompt: nutrition is per 100g,

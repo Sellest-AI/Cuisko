@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
@@ -22,6 +22,22 @@ const sanitizeRun = vi.hoisted(() => vi.fn());
 vi.mock("@convex/agent/tools/sanitizeRecipe", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../agent/tools/sanitizeRecipe")>();
   return { ...actual, sanitizeRecipe: { run: sanitizeRun } };
+});
+
+/**
+ * The other call this path spends money on, mocked for the same reason as the agent above: a
+ * resolve reaches two live APIs and can call a model per name, and no test may buy either.
+ *
+ * Nothing here asserts on it — what it is asked and what it answers belong to
+ * `regenerateRecipe.test.ts` and `resolveRecipeIngredients.test.ts`. It is stubbed so that
+ * exercising `authed` end to end stays free.
+ */
+const resolveRun = vi.hoisted(() => vi.fn());
+
+vi.mock("@convex/functions/recipes/resolveRecipeIngredients", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../../functions/recipes/resolveRecipeIngredients")>();
+  return { ...actual, resolveRecipeIngredients: resolveRun };
 });
 
 let t: ReturnType<typeof convexTest>;
@@ -85,10 +101,32 @@ const RECIPE = {
   ingredients: [{ name: "oignon", quantity: 2, unit: "pcs" as const }],
 };
 
+/**
+ * The module graph this file exercises, imported before anything is timed — the same narrow warm-up
+ * `router/ingredients/__tests__/resolve.test.ts` documents at length, for the same reason.
+ *
+ * `import.meta.glob` hands convex-test LAZY loaders, so the graph is instantiated on the first call
+ * that needs it and billed to whichever test made that call — here the authorization rejection at
+ * the top, whose own subject should cost microseconds. This slice added three modules to that graph
+ * and pushed the first test to ~5s against Vitest's default timeout.
+ *
+ * Narrow on purpose: warming the whole glob measures four times slower, because every file that
+ * globs `convex/` would then import the entire backend rather than the part it uses.
+ */
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne"))
+      .map(([, load]) => load()),
+  ),
+);
+
 beforeEach(() => {
   t = convexTest(schema, modules);
   sanitizeRun.mockReset();
   sanitizeRun.mockResolvedValue(RECIPE);
+  resolveRun.mockReset();
+  resolveRun.mockResolvedValue({ links: [], complete: true });
 });
 
 describe("router/recipes/updateOne", () => {
@@ -156,10 +194,13 @@ describe("router/recipes/updateOne", () => {
   });
 
   /**
-   * The point of `recipeChangesOf`: an edit that never touched the ingredients has nothing for the
-   * agent to re-derive, so it is not asked.
+   * The wiring, end to end, and deliberately not the decision: WHETHER the agent runs is
+   * `regenerateRecipe`'s call and is asserted in its own test. What only this file can see is that
+   * the answer reaches the persist — `analyzed` decides whether the row records the text as the
+   * machine's or as the cook's own, and a router that dropped it on the floor would still pass
+   * every test on either side of it.
    */
-  test("does not call the agent when only the title changed", async () => {
+  test("stores an edit the agent never saw as the cook's own words", async () => {
     const userId = await seedUser("Franck");
     const recipeId = await seedRecipe(userId);
 
@@ -174,17 +215,13 @@ describe("router/recipes/updateOne", () => {
     expect(row!.title.meta.fr!.status).toBe("edited");
   });
 
-  test("calls the agent when the ingredients changed", async () => {
+  test("stores an edit the agent did revise as machine text", async () => {
     const userId = await seedUser("Franck");
     const recipeId = await seedRecipe(userId);
 
     await t
       .withIdentity(asUser(userId))
-      .action(api.router.recipes.updateOne.authed, {
-        ...UNCHANGED,
-        recipeId,
-        ingredients: "2 oignons",
-      });
+      .action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, ingredients: "2 oignons" });
 
     expect(sanitizeRun).toHaveBeenCalledTimes(1);
 
@@ -201,6 +238,8 @@ describe("router/recipes/updateOne", () => {
       locale: "fr",
       recipe: RECIPE,
       analyzed: true,
+      links: [],
+      complete: true,
     });
 
     expect(returned).toBe(recipeId);

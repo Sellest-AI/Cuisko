@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 
 import schema from "../../../schema";
+import type { RecipeLink } from "../resolveRecipeIngredients";
 import { saveRecipe } from "../saveRecipe";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -12,15 +13,15 @@ const modules = import.meta.glob("/convex/**/*.*s");
 
 let t: ReturnType<typeof convexTest>;
 let userId: string;
+/** The two fixture rows, by the name a recipe line would spell them — see `linksOf`. */
+let catalog: Record<string, Id<"ingredients">>;
 
 /**
  * Two catalog rows and nothing else.
  *
- * `matchIngredients` is tested against the REAL catalog in `functions/ingredients/__tests__`,
- * where the thresholds it is tuned to are the thresholds under test. Here it is a collaborator:
- * what this file asserts is what `saveRecipe` does with a match and with a miss, so a two-row
- * catalog with unambiguous names is the honest fixture — a bigger one would only make the
- * assertions depend on ranking decisions that are already covered elsewhere.
+ * Resolving a name is tested where it happens — `resolveRecipeIngredients.test.ts`, and the walk's
+ * own tests under `functions/ingredients/__tests__`. What this file asserts is what `saveRecipe`
+ * does with a link and with a line that has none, so the rows exist only to be pointed at.
  *
  * `search` is set because that is the field the index reads; a row without it is invisible to
  * `searchCatalog`, and every ingredient would come back unmatched for the wrong reason.
@@ -54,8 +55,29 @@ const seed = async () => {
   });
 
   userId = ids.user;
+  catalog = {
+    "oignon": ids.onion as Id<"ingredients">,
+    "huile d'olive": ids.oil as Id<"ingredients">,
+  };
+
   return ids;
 };
+
+/**
+ * The links the ACTION would have resolved, stated outright.
+ *
+ * `saveRecipe` no longer decides which lines link: `resolveRecipeIngredients` does that in the
+ * action, where a name may reach two datasets, two live APIs and a model. A line naming one of the
+ * two fixture rows links; anything else stands for a name the resolver refused or could not buy,
+ * and reaches this writer unlinked — which is the case every "no link" assertion below is about.
+ */
+const linksOf = (ingredients: SanitizedRecipe["ingredients"]): RecipeLink[] =>
+  ingredients.flatMap((line, position) => {
+    const ingredientId = catalog[line.name];
+    if (!ingredientId) return [];
+
+    return [{ ingredientId, position, quantity: line.quantity, unit: line.unit }];
+  });
 
 const recipe = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe => ({
   title: "Soupe à l'oignon",
@@ -79,6 +101,7 @@ const save = (ingredients: SanitizedRecipe["ingredients"]) =>
       userId: userId as Id<"users">,
       locale: "fr",
       recipe: recipe(ingredients),
+      links: linksOf(ingredients),
     }),
   );
 
@@ -158,7 +181,7 @@ describe("functions/recipes/saveRecipe", () => {
   });
 
   /** No claim computed means no facet claimed — `false` is "not claimed", never "contains it". */
-  test("claims no facet when a line did not match the catalog", async () => {
+  test("claims no facet when a line resolved to nothing", async () => {
     const recipeId = await save([
       { name: "oignon", quantity: 2, unit: "pcs" },
       { name: "quelque chose d'inconnu", quantity: 1, unit: "pcs" },
@@ -179,8 +202,8 @@ describe("functions/recipes/saveRecipe", () => {
     expect(row!.search?.en).toContain("onion");
   });
 
-  /** The blob is what makes an unmatched line findable at all — see recipeSearchText.test.ts. */
-  test("keeps an unmatched line's raw name in the search blob", async () => {
+  /** The blob is what makes an unlinked line findable at all — see recipeSearchText.test.ts. */
+  test("keeps an unlinked line's raw name in the search blob", async () => {
     const recipeId = await save([{ name: "nuoc-mâm", quantity: 1, unit: "pcs" }]);
 
     const row = await t.run((ctx) => ctx.db.get(recipeId));
@@ -190,8 +213,8 @@ describe("functions/recipes/saveRecipe", () => {
     expect(row!.search?.fr).toContain("mâm");
   });
 
-  /** An unmatched line is an unknown ingredient, so no diet claim can be made about the recipe. */
-  test("appends no computed tags when a line did not match the catalog", async () => {
+  /** An unlinked line is an unknown ingredient, so no diet claim can be made about the recipe. */
+  test("appends no computed tags when a line resolved to nothing", async () => {
     const recipeId = await save([
       { name: "oignon", quantity: 2, unit: "pcs" },
       { name: "zzzzzzz nonexistent", quantity: 1, unit: "pcs" },
@@ -202,7 +225,7 @@ describe("functions/recipes/saveRecipe", () => {
     expect(row!.tags).toEqual(["soup", "comfort-food"]);
   });
 
-  test("links a confidently matched ingredient to its catalog row", async () => {
+  test("writes one join row per link, carrying the line's own quantity and unit", async () => {
     const { onion } = await t.run(async (ctx) => ({
       onion: (await ctx.db.query("ingredients").collect())[0]!._id,
     }));
@@ -217,7 +240,7 @@ describe("functions/recipes/saveRecipe", () => {
     expect(rows[0]!.unit).toBe("pcs");
   });
 
-  test("drops a name the catalog does not hold rather than guessing at one", async () => {
+  test("writes no join row for a line the resolver returned no link for", async () => {
     const recipeId = await save([
       { name: "oignon", quantity: 2, unit: "pcs" },
       { name: "poudre de perlimpinpin", quantity: 1, unit: "g" },
@@ -242,8 +265,9 @@ describe("functions/recipes/saveRecipe", () => {
   });
 
   /**
-   * The regression this file exists for: matching by NAME collapses two lines of the same
-   * ingredient into one, and gives both the first line's quantity. The link is the INDEX.
+   * The regression this file exists for: keying a line by NAME collapses two lines of the same
+   * ingredient into one, and gives both the first line's quantity. Each link carries its own
+   * `position`, and this writer inserts them as given rather than re-deriving one.
    */
   test("keeps both lines when the same ingredient appears twice with different amounts", async () => {
     const recipeId = await save([

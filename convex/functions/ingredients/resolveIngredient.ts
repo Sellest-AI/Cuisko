@@ -26,8 +26,8 @@ type Purchase = { defaultUnit: Unit; defaultQuantity: number };
 /**
  * What free text resolved to.
  *
- * Three cases and not an id-or-null, for the reason `MatchedIngredient` gives: the caller has to
- * *do* something different in each, and a nullable id pushes that decision to every call site.
+ * Three cases and not an id-or-null, because the caller has to *do* something different in each,
+ * and a nullable id pushes that decision to every call site.
  * `matched` and `created` both put a real line on the list; `refused` turns the placeholder card
  * into something the shopper can read.
  *
@@ -85,9 +85,10 @@ type ResolveCtx = ActionCtx & { userId: Id<"users"> };
 /**
  * Good enough to link a shopper's own typing to an existing row without asking them.
  *
- * The same bar `matchIngredients` links a recipe line at, and deliberately so: below it the row is
- * still evidence, and the steps after this one get to weigh it against what a dictionary says. The
- * asymmetry this slice introduces is at the *bottom* of the range (`RESOLVABLE`), not the top.
+ * The one bar in the app at which a name is linked to a row with nobody asked — a recipe line and
+ * a shopper's typing both come through here, so there is one answer and not two. Below it the row
+ * is still evidence, and the steps after this one get to weigh it against what a dictionary says.
+ * The width this walk adds is at the *bottom* of the range (`RESOLVABLE`), not at the top.
  */
 const LINKABLE = CONFIDENT;
 
@@ -110,8 +111,8 @@ const _load = async (
  * commonest reason a shopper reached here is not that the food is exotic but that they spelled it
  * their own way or in their other language.
  *
- * **A tie is not a match.** `MARGIN` is applied here for the same reason `matchIngredients` applies
- * it: `Blanc de poulet` and `Blanc de poulet en tranches` both score 1.0, and without the runner-up
+ * **A tie is not a match.** `MARGIN` is applied here because a tie is decided by nothing:
+ * `Blanc de poulet` and `Blanc de poulet en tranches` both score 1.0, and without the runner-up
  * check the winner is whichever the search index happened to return first — raw chicken or deli
  * slices, decided by a coin flip and linked with no tap. Below the margin the row is still evidence,
  * and the steps after this one get to weigh it.
@@ -256,15 +257,26 @@ const _fromApis = async (
  * **It is handed the evidence, and it may still return an existing row.** The near-miss candidates
  * step 1 declined on its score alone are exactly the cases a score cannot settle ("courgette" vs
  * "courge"), and a reader is better at them than a threshold. That arm returns `matched`, not
- * `created`: no row is written, and the id was one the caller already held (ADR 0010).
+ * `created`: no row is created, and the id was one the caller already held (ADR 0010).
+ *
+ * **It does write, though, and it is the only branch here that writes without creating.** When the
+ * ranker judges the shopper's word a real word for the food it matched, that word is remembered as
+ * an alias on the row — which is what stops the same judgement being bought again every time
+ * somebody types it. See `rememberAlias`.
  *
  * **It throws when the model cannot answer**, unlike steps 2 and 3, which swallow their failures.
  * The difference is what a refusal MEANS: `unreadable` is "we read that and could make nothing of
  * it", and reporting it because a provider was down would tell the shopper their word was the
  * problem. The client awaits this action and catches the throw — see the router — so a model outage
  * turns the placeholder into an error card without claiming to have judged anything.
+ *
+ * Exported for the same reason `gatherEvidence` is, and it is the other half of that split: a
+ * caller resolving a whole recipe has to know how many names will reach the model BEFORE it lets
+ * any of them, because inventions are capped per import — and a name only turns out to need a
+ * judgement once the three cheap steps have declined it. `resolveRecipeIngredients` runs
+ * `gatherEvidence` over every name, then spends this on the survivors it is willing to buy.
  */
-const _fromAgent = async (
+export const resolveWithAgent = async (
   ctx: ResolveCtx,
   { text, locale, evidence }: { text: string; locale: Locale; evidence: IngredientEvidence },
 ): Promise<ResolvedIngredient> => {
@@ -292,6 +304,28 @@ const _fromAgent = async (
       throw new Error(
         `resolveIngredient: the agent linked ${sanitized.ingredientId}, which no longer resolves`,
       );
+
+    // **The only step that makes this branch cheaper the second time.** Every term reaching step 4
+    // costs a ranker call, and nothing recorded what that call decided — so `zucchini` typed at a
+    // `courgette` row was judged, linked, forgotten, and judged again the next time somebody typed
+    // it. Written onto the row, step 1 answers it for nothing from then on.
+    //
+    // **Scheduled, not awaited, because it must not be able to fail the resolve.** By the time this
+    // runs the shopper's answer is already correct and already paid for — the row was matched, and
+    // caching the word is a saving on some FUTURE call. Awaiting it puts a write conflict on a hot
+    // catalog row (two shoppers resolving into the same one) in the path of a request that had
+    // succeeded, and turns their placeholder into an error card for an ingredient we found. A
+    // dropped cache write costs one model call the next time somebody types the word; a thrown one
+    // costs this shopper their result.
+    //
+    // The ranker gates WHETHER: `saveAlias` is false for a mangling nobody will repeat, which
+    // would otherwise index the row under a keyboard slip.
+    if (sanitized.saveAlias)
+      await ctx.scheduler.runAfter(0, internal.router.ingredients.resolve._internal_rememberAlias, {
+        ingredientId: sanitized.ingredientId,
+        alias: text,
+        locale,
+      });
 
     return {
       status: "matched",
@@ -364,7 +398,7 @@ export const resolveIngredient = async (
   const trimmed = text.trim();
   const { resolved, evidence } = await gatherEvidence(ctx, { text: trimmed, locale });
 
-  return resolved ?? _fromAgent(ctx, { text: trimmed, locale, evidence });
+  return resolved ?? resolveWithAgent(ctx, { text: trimmed, locale, evidence });
 };
 
 /**

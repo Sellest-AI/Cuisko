@@ -53,9 +53,16 @@ created from a thin source will later be corrected from a better one. Every one 
 legitimate write and none is going away.
 
 None of them may shape its own row. `ingredientRow` does — hand it facts, get back every field the
-table declares, `search` included — and every writer of the table composes it. Today that is two:
-`seedIngredients` and `createIngredient`, which is the create this record was amended for. An update
-that corrects a thin row from a better source is still anticipated.
+table declares, `search` included — and every writer of the table composes it. Today that is three:
+`seedIngredients`, `createIngredient` — the create this record was amended for — and `rememberAlias`,
+the update that was anticipated here and has since arrived. It writes a word a shopper typed onto a
+row the agent matched it to, so it moves `aliases` and therefore owes `search`; it composes
+`withAlias` from `ingredientRow.ts` rather than building a blob, and patches only the two fields
+whose sources it moved. A correction of a thin row from a better source is still anticipated.
+
+⚠️ Do not read that count as the list to audit — it has been wrong once already, having said "two"
+for as long as there were three. The question to ask of a new writer is not whether it is named
+here but whether it composes the sanitizer.
 
 C11 enforces this clause with no change: it trusts a **value produced by** a module that imports the
 serializer, not a filename on a list. So `ingredientRow` earns that trust by importing
