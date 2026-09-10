@@ -306,9 +306,9 @@ export const matchIngredientSchema = (candidateCount: number) =>
     saveAlias: z.boolean().nullable().optional()
       .describe(
         "true if what the shopper typed is a real word for that food and worth remembering on " +
-        "the row — another language, a regional word, a plural, a common misspelling. false for " +
-        "a one-off mangling of the word, or anything carrying a quantity or a brand. Left out " +
-        "when nothing matches.",
+        "the row — another language, a regional word, a plural, a common misspelling, or a " +
+        "brand people shop by. false for a one-off mangling of the word, or anything carrying " +
+        "a quantity. Left out when nothing matches.",
       ),
   });
 
