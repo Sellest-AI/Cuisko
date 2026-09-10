@@ -47,9 +47,7 @@
       "subtitle": "Ta façon de manger habituelle, pas seulement cette semaine.",
       "loading": "Je regarde comment ton foyer mange…",
       "diets": "Régimes",
-      "avoids": "Ingrédients à écarter",
-      "from_you": "toi",
-      "from_household": "quelqu'un de ton foyer"
+      "avoids": "Ingrédients à écarter"
     },
     "Allergies": {
       "title": "Il y a des choses à écarter ?",

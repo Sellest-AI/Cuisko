@@ -51,13 +51,13 @@ export const TunnelHeader = ({ title, subtitle, mascot = CUISKO.idle, icon, tone
       ) : (
         <>
           <RadialGradient
-            colors={["rgb(0, 0, 0)", theme.colors.primary.subtle]}
+            colors={["rgb(0, 0, 0)", colors.primary.subtle]}
             size={MASCOT_SIZE * 1.1}
             style={{
               position: "absolute",
               top: MASCOT_SIZE / 2.4,
               transform: [{ scaleY: 1 / 4 }],
-              opacity: 0.2
+              opacity: 0.15
             }}
           />
           <Image source={mascot} contentFit="contain" style={styles.mascot} />

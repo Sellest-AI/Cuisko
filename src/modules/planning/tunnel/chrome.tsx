@@ -95,7 +95,8 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
         <LinearGradient
           style={[
             StyleSheet.absoluteFill,
-            { height: chrome.tinted ? "60%" : "100%" },
+            { height: chrome.tinted ? "62%" : "100%" },
+            { opacity: chrome.tinted ? 0.8 : 1 }
           ]}
           colors={
             chrome.tinted
