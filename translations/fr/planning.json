@@ -13,6 +13,8 @@
     "import_receipt": "Ajouter un plat"
   },
   "Preferences": {
+    "diet": "Ta façon de manger",
+    "avoids": "Ce que tu écartes de ton assiette",
     "question": "Quels repas veux-tu voir ?",
     "loading": "Je relis tes goûts…"
   },

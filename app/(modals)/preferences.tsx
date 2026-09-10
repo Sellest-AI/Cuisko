@@ -13,8 +13,8 @@ export default function Preferences() {
   const close = useCallback(() => router.back(), [router]);
 
   /**
-   * The sheet is cut to the profile's own height. Three groups of chips vary enough between
-   * households that a fixed detent would leave a gap under one and clip another.
+   * The sheet is cut to the profile's own height. Three groups of chips vary enough between one
+   * person and the next that a fixed detent would leave a gap under one and clip another.
    */
   const onLayout = useMeasuredModalSheet();
 
