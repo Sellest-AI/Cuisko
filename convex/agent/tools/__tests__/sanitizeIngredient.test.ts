@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { LookupHit } from "@convex/functions/ingredients/lookup/lookupHit";
 import { ALLERGENS } from "@shared/allergens";
 
-import { toSanitizedIngredient } from "../sanitizeIngredient";
+import { parseModelOutput } from "../../utils";
+import { matchIngredientSchema, toSanitizedIngredient } from "../sanitizeIngredient";
 
 /**
  * The generation is not tested here — it is a model call, and the manual test beside this one is
@@ -512,5 +513,48 @@ describe("toSanitizedIngredient", () => {
     // `names` is required, so a shrug in one language fails loudly here rather than becoming a row
     // the English shopper finds under "N/A" and duplicates.
     expect(() => toSanitizedIngredient(nameless)).toThrow();
+  });
+});
+
+/**
+ * The ranker's schema, which is the whole contract with the cheap call.
+ *
+ * The tool's `execute` is not exercised here — it needs a model — so what these pin is the parse
+ * that stands between a model's answer and the two decisions read off it: whether to link, and
+ * whether to remember the word. Both are read from keys the model is allowed to omit.
+ */
+describe("matchIngredientSchema", () => {
+  const parse = (raw: unknown) => parseModelOutput(matchIngredientSchema(3), raw);
+
+  it("reads a model that answered all three", () => {
+    expect(parse({ matchIndex: 1, confidence: 0.9, saveAlias: true }))
+      .toEqual({ matchIndex: 1, confidence: 0.9, saveAlias: true });
+  });
+
+  /**
+   * The two shapes that mean "the model did not say", and the reason `execute` compares against
+   * `true` rather than reading the value: absent and null both have to land on NOT storing. A
+   * truthy read of either would index a catalog row under whatever the shopper typed, permanently,
+   * on the strength of a key the model never filled in.
+   */
+  it("leaves an unanswered saveAlias unset, whether it was dropped or nulled", () => {
+    expect(parse({ matchIndex: 1, confidence: 0.9 }).saveAlias).toBeUndefined();
+    expect(parse({ matchIndex: 1, confidence: 0.9, saveAlias: null }).saveAlias).toBeUndefined();
+  });
+
+  /**
+   * A position the model invented is DROPPED, and the tool reads that as "no match".
+   *
+   * The bound on the factory is what makes that happen: `matchIndex` is absentable, so
+   * `parseModelOutput` sends a value failing `.max(count - 1)` absent rather than throwing. Which
+   * is the safe direction — the step after this one invents the row, so a hallucinated index costs
+   * one generation instead of indexing a shopper's word onto a row picked out of thin air.
+   *
+   * Pinned because the factory's docblock claimed the opposite for a while, and the two readings
+   * differ in what a caller must handle. What the bound really prevents is on the way out: the
+   * provider is sent `max`, so the model cannot name a sixth candidate in a list of five.
+   */
+  it("drops a position outside the list it was handed", () => {
+    expect(parse({ matchIndex: 3, confidence: 1 }).matchIndex).toBeUndefined();
   });
 });

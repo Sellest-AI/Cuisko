@@ -1,6 +1,6 @@
 import type { MutationCtx } from "@convex/procedures";
 import { CATALOG } from "./ingredientCatalog";
-import { ingredientRow } from "./ingredientRow";
+import { ingredientRow, mergedAliases } from "./ingredientRow";
 
 /**
  * Inserts or updates the starter ingredient catalog. Idempotent: matches existing rows by `slug`,
@@ -40,6 +40,12 @@ export const seedIngredients = async (ctx: MutationCtx) => {
         {
           ...facts,
           diet: entry.diet,
+          // **The catalog's words, plus the ones the app learned for this row.** Re-seeding patches
+          // the whole row, so writing `entry.aliases` alone would erase every spelling
+          // `rememberAlias` had cached onto it — silently, and on precisely the rows that matter,
+          // since the near-miss candidates the ranker is asked about are mostly seeded ones. The
+          // catalog still wins any conflict; see `mergedAliases`.
+          aliases: mergedAliases(entry.aliases, existing?.aliases),
           // Both languages are hand-written in `ingredientCatalog.ts`, so neither is a rendering
           // of the other and nothing should ever replace one with a translation of its twin.
           names: { en: { value: en, status: "edited" }, fr: { value: fr, status: "edited" } },

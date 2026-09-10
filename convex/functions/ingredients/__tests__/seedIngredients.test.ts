@@ -147,3 +147,35 @@ describe("functions/ingredients/seedIngredients", () => {
     expect((await bySlug("carrot"))?.allergens).toEqual([]);
   });
 });
+
+/**
+ * Re-seeding is how a catalog edit ships, and it patches the WHOLE row — so it is also the write
+ * that can quietly undo what the app learned between two seeds.
+ *
+ * `rememberAlias` caches a word onto the row the ranker matched it to, precisely so the next
+ * shopper who types it is answered by the search rather than by a paid model call. Those rows are
+ * overwhelmingly seeded ones, since seeded rows are what the near-miss candidates come from. A seed
+ * that wrote `entry.aliases` alone would reset the cache on every run, with no error and no symptom
+ * but a bill that came back.
+ */
+describe("functions/ingredients/seedIngredients — re-seeding a learned row", () => {
+  test("keeps the aliases the app learned, and the catalog's own", async () => {
+    await t.run(seedIngredients);
+
+    const carrot = await bySlug("carrot");
+    const seeded = carrot?.aliases?.en ?? [];
+
+    await t.run((ctx) =>
+      ctx.db.patch(carrot!._id, { aliases: { ...carrot!.aliases, en: [...seeded, "gulerod"] } }),
+    );
+
+    await t.run(seedIngredients);
+
+    const reseeded = await bySlug("carrot");
+
+    // The learned word survives, and the catalog's own are still there and still first.
+    expect(reseeded?.aliases?.en).toEqual([...seeded, "gulerod"]);
+    // And it is reachable, which is the only form of "kept" that matters (ADR 0011).
+    expect(reseeded?.search?.en).toContain("gulerod");
+  });
+});

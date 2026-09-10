@@ -256,7 +256,12 @@ const _fromApis = async (
  * **It is handed the evidence, and it may still return an existing row.** The near-miss candidates
  * step 1 declined on its score alone are exactly the cases a score cannot settle ("courgette" vs
  * "courge"), and a reader is better at them than a threshold. That arm returns `matched`, not
- * `created`: no row is written, and the id was one the caller already held (ADR 0010).
+ * `created`: no row is created, and the id was one the caller already held (ADR 0010).
+ *
+ * **It does write, though, and it is the only branch here that writes without creating.** When the
+ * ranker judges the shopper's word a real word for the food it matched, that word is remembered as
+ * an alias on the row — which is what stops the same judgement being bought again every time
+ * somebody types it. See `rememberAlias`.
  *
  * **It throws when the model cannot answer**, unlike steps 2 and 3, which swallow their failures.
  * The difference is what a refusal MEANS: `unreadable` is "we read that and could make nothing of
@@ -292,6 +297,28 @@ const _fromAgent = async (
       throw new Error(
         `resolveIngredient: the agent linked ${sanitized.ingredientId}, which no longer resolves`,
       );
+
+    // **The only step that makes this branch cheaper the second time.** Every term reaching step 4
+    // costs a ranker call, and nothing recorded what that call decided — so `zucchini` typed at a
+    // `courgette` row was judged, linked, forgotten, and judged again the next time somebody typed
+    // it. Written onto the row, step 1 answers it for nothing from then on.
+    //
+    // **Scheduled, not awaited, because it must not be able to fail the resolve.** By the time this
+    // runs the shopper's answer is already correct and already paid for — the row was matched, and
+    // caching the word is a saving on some FUTURE call. Awaiting it puts a write conflict on a hot
+    // catalog row (two shoppers resolving into the same one) in the path of a request that had
+    // succeeded, and turns their placeholder into an error card for an ingredient we found. A
+    // dropped cache write costs one model call the next time somebody types the word; a thrown one
+    // costs this shopper their result.
+    //
+    // The ranker gates WHETHER: `saveAlias` is false for a mangling nobody will repeat, which
+    // would otherwise index the row under a keyboard slip.
+    if (sanitized.saveAlias)
+      await ctx.scheduler.runAfter(0, internal.router.ingredients.resolve._internal_rememberAlias, {
+        ingredientId: sanitized.ingredientId,
+        alias: text,
+        locale,
+      });
 
     return {
       status: "matched",

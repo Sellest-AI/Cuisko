@@ -33,7 +33,29 @@ import { createTool, modelText, parseModelOutput, providerSchema, wrapAgent } fr
  * list here (ADR 0010). Every other arm returns names and vocabulary.
  */
 export type SanitizedIngredient =
-  | { verdict: "existing"; ingredientId: Id<"ingredients">; name: string }
+  | {
+    verdict: "existing";
+    ingredientId: Id<"ingredients">;
+    name: string;
+    /**
+     * Whether the word the shopper typed is worth STORING on that row as another word for it.
+     *
+     * The whole reason the ranker's answer is worth keeping: this call fires on every term the
+     * catalog cannot resolve, so a shopper who types `zucchini` at a `courgette` row pays for a
+     * model call today and pays again tomorrow, forever, for an answer that never changes. Stored
+     * as an alias, the second attempt is answered by step 1 for nothing.
+     *
+     * It is the model's judgement and not this side's, because the question is about language: a
+     * REGIONAL word and a COMMON misspelling are both worth storing, and a one-off mangling
+     * ("pxtates") is not — the row would be indexed under a string nobody will ever type twice,
+     * and the catalog slowly fills with a keyboard's noise. Nothing here can tell those apart
+     * from the string alone, which is why the ranker is asked rather than a filter written.
+     *
+     * Absent reads as false: not storing costs one model call the next time, and storing junk
+     * cannot be undone from here.
+     */
+    saveAlias: boolean;
+  }
   | {
     verdict: "new";
     facts: IngredientFacts;
@@ -259,9 +281,17 @@ export type SanitizeIngredientInput = z.infer<typeof _inputSchema>;
 /**
  * What the ranker may answer, bounded by the list it was handed.
  *
- * A factory rather than a constant because the bound IS the list's length: an index the model
- * invents fails the parse and is retried, rather than reading `undefined` out of the array and
- * turning a hallucinated position into a silent "no match".
+ * A factory rather than a constant because the bound IS the list's length, and the bound does its
+ * work on the way OUT: `providerSchema` sends `max` to the provider, so a model generating against
+ * it cannot name a sixth candidate in a list of five. That is where a hallucinated position is
+ * actually prevented — not on the way back.
+ *
+ * ⚠️ On the way back it does NOT throw, and this docblock claimed for a while that it did.
+ * `matchIndex` is `.nullable().optional()`, and `parseModelOutput`'s rule is that an absentable
+ * field failing its own validation goes ABSENT rather than failing the parse — so an out-of-range
+ * index arrives as "no match" and the tool writes a fresh row. Which is the safe direction, and
+ * the reason the mistake was invisible: the expensive branch runs, nobody's list gets the wrong
+ * food, and the only cost is one generation. `sanitizeIngredient.test.ts` pins it.
  *
  * Exported for the reason the prompts are — the bake-off that picks the ranker's model has to score
  * the schema the tool actually sends, bound included, since that bound is most of what stops a
@@ -273,6 +303,13 @@ export const matchIngredientSchema = (candidateCount: number) =>
       .describe("The position of the matching candidate. Left out when none matches."),
     confidence: z.number().min(0).max(1).nullable().optional()
       .describe("How sure you are, 0 to 1. Left out when nothing matches."),
+    saveAlias: z.boolean().nullable().optional()
+      .describe(
+        "true if what the shopper typed is a real word for that food and worth remembering on " +
+        "the row — another language, a regional word, a plural, a common misspelling. false for " +
+        "a one-off mangling of the word, or anything carrying a quantity or a brand. Left out " +
+        "when nothing matches.",
+      ),
   });
 
 /** What the ranker is shown: the term, and the candidates by position. Never an id. */
@@ -622,6 +659,10 @@ export const sanitizeIngredient = createTool({
           verdict: "existing",
           ingredientId: candidate.id as Id<"ingredients">,
           name: candidate.name,
+          // Read strictly as `=== true`, so the two shapes that mean "the model did not say"
+          // (absent, and an explicit null) both mean no. See the field's note: a wrong false costs
+          // one model call the next time this term is typed, and a wrong true is permanent.
+          saveAlias: match.saveAlias === true,
         };
     }
 

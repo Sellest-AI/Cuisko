@@ -448,7 +448,14 @@ describe("router/ingredients/resolve", () => {
    */
   test("the agent picking a candidate is a match, and inserts nothing", async () => {
     const carrotId = await seedCarrot();
-    sanitizeRun.mockResolvedValue({ verdict: "existing", ingredientId: carrotId, name: "Carotte" });
+    sanitizeRun.mockResolvedValue({
+      verdict: "existing",
+      ingredientId: carrotId,
+      name: "Carotte",
+      // The ranker's other answer: `carottte rapee` is a slip and a preparation, not a word anyone
+      // will type again, so the row must not be indexed under it.
+      saveAlias: false,
+    });
 
     const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
       text: "carottte rapee",
@@ -465,6 +472,61 @@ describe("router/ingredients/resolve", () => {
       defaultQuantity: 200,
     });
     expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(1);
+    // A refused word is not written down: the row must not become findable under a keyboard slip.
+    expect(await t.run((ctx) => ctx.db.get(carrotId))).toMatchObject({
+      aliases: { fr: ["carottes"], en: ["carrots"] },
+    });
+  });
+
+  /**
+   * The step that makes the agent branch cheaper the second time.
+   *
+   * A term reaching step 4 costs a ranker call, and nothing recorded what that call decided — so
+   * the same word was judged, linked and forgotten on every shopper who typed it. When the ranker
+   * says the word is a real word for the food, it is written onto the row, and the assertion that
+   * matters is the SECOND call: it resolves without the agent being asked at all.
+   */
+  test("a word the ranker vouches for is remembered, and answered for free next time", async () => {
+    const carrotId = await seedCarrot();
+    sanitizeRun.mockResolvedValue({
+      verdict: "existing",
+      ingredientId: carrotId,
+      name: "Carotte",
+      saveAlias: true,
+    });
+
+    const user = await signIn();
+    const first = await user.action(api.router.ingredients.resolve.authed, {
+      text: "gulerod",
+      locale: "fr",
+    });
+
+    expect(first).toMatchObject({ status: "matched", ingredientId: carrotId });
+    expect(sanitizeRun).toHaveBeenCalledTimes(1);
+
+    // The write is SCHEDULED rather than awaited, so that a conflict on a hot catalog row cannot
+    // fail a resolve that already succeeded. Draining it here is what makes the caching observable
+    // — and the drain being necessary is itself the assertion that the shopper never waited on it.
+    // Fake timers only for the drain: `finishAllScheduledFunctions` advances them itself, and the
+    // action above has already returned, so nothing real is left waiting on a clock.
+    vi.useFakeTimers();
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    vi.useRealTimers();
+
+    // Both fields, because only one of them is reachable: an alias stored without its `search`
+    // entry is an alias no shopper can ever find, and nothing would report it (ADR 0011).
+    const row = await t.run((ctx) => ctx.db.get(carrotId));
+    expect(row?.aliases?.fr).toEqual(["carottes", "gulerod"]);
+    expect(row?.search?.fr).toContain("gulerod");
+
+    const second = await user.action(api.router.ingredients.resolve.authed, {
+      text: "gulerod",
+      locale: "fr",
+    });
+
+    expect(second).toMatchObject({ status: "matched", ingredientId: carrotId });
+    // The whole point: step 1 answered it, so the model was never asked a second time.
+    expect(sanitizeRun).toHaveBeenCalledTimes(1);
   });
 
   /**

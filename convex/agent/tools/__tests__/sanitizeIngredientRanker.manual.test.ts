@@ -19,7 +19,7 @@
  * reckless; the second is a generation and wants the best model available. Scoring them in one
  * table would pick one winner for two questions.
  *
- * **Five runs, and all of them matter.** The ranker's failure modes are opposite and a single
+ * **Six runs, and all of them matter.** The ranker's failure modes are opposite and a single
  * fixture only measures one:
  *
  * - A MISSED match creates a duplicate row — a second `carotte` that splits every grocery list and
@@ -27,8 +27,13 @@
  * - A WRONG match puts the wrong food on somebody's shopping list, also with no error anywhere.
  *
  * A model that always answers "no match" is perfect on the four refusal fixtures and useless on
- * `PRESENT`; an eager one does the reverse. So ship the model that is clean on ALL FIVE tables,
+ * `PRESENT`; an eager one does the reverse. So ship the model that is clean on ALL SIX tables,
  * and treat a candidate that wins one of them as unmeasured rather than good.
+ *
+ * **`MANGLED` measures the second question this call now answers**, and it is a different one: not
+ * "is this the same food" but "is what they typed a WORD" — the judgement that decides whether the
+ * match is written onto the row and never paid for again. It shares `PRESENT`'s candidate list so
+ * that a model failing it has failed at exactly that and not at the match.
  *
  * The four refusals are not duplicates of each other, and the differences are what a pass proves.
  * `ABSENT` can be answered correctly by a model that never knew the word — the right answer and
@@ -232,9 +237,35 @@ const WRONG_GRADE: Pick<SanitizeIngredientInput, "text" | "candidates"> = {
   ],
 };
 
+/* ── Fixture six: the right row, under a word not worth keeping ─────────────────────────── */
+
+/**
+ * The same match as `PRESENT`, reached through a word that must NOT be written down.
+ *
+ * `saveAlias` is what stops this call being paid for twice: a word the ranker vouches for is
+ * stored on the row it matched, and step 1 answers it for nothing from then on. Which makes the
+ * field's dangerous answer `true`, not `false` — a wrong `false` costs one more model call the next
+ * time somebody types the word, and a wrong `true` indexes a catalog row under a keyboard slip
+ * permanently, where it competes for every future search.
+ *
+ * So the fixture is a MANGLING and not a misspelling, and the difference is the whole test. The
+ * prompt keeps "the misspelling everybody makes" — `échalotte` with two t's is a word people type,
+ * and storing it is the feature working. `échqlote` is a thumb on the key beside the `a`: nobody
+ * will ever produce that string a second time, so the row gains nothing and the index gains noise.
+ *
+ * It is deliberately the same candidate list as `PRESENT`, so a model that scores well there and
+ * badly here has failed at exactly one thing — telling a word from a slip — rather than at the
+ * match. An entrant that answers "no match" fails this fixture too: the shopper still meant a
+ * shallot, and refusing costs them a duplicate row.
+ */
+const MANGLED: Pick<SanitizeIngredientInput, "text" | "candidates"> = {
+  ...PRESENT,
+  text: "échqlote",
+};
+
 /* ── Judging ───────────────────────────────────────────────────────────────────────────── */
 
-type Match = { matchIndex?: number; confidence?: number };
+type Match = { matchIndex?: number; confidence?: number; saveAlias?: boolean };
 
 /**
  * The answer through the tool's own parser, which is half of what is being measured: `matchIndex`
@@ -256,8 +287,8 @@ const parse = (count: number) => (raw: unknown): Match =>
  * `MATCHED` is imported rather than written out: the bar this flags against and the bar the tool
  * applies have to be one number.
  */
-const CHECKS = (expected: number | undefined) => (answer: Match): string[] => {
-  const { matchIndex, confidence } = answer;
+const CHECKS = (expected: number | undefined, keeps?: boolean) => (answer: Match): string[] => {
+  const { matchIndex, confidence, saveAlias } = answer;
   const linked = matchIndex !== undefined && (confidence ?? 0) >= MATCHED;
 
   const flags: string[] = [];
@@ -288,10 +319,33 @@ const CHECKS = (expected: number | undefined) => (answer: Match): string[] => {
   if (matchIndex !== undefined && confidence === undefined)
     flags.push(`matchIndex ${matchIndex} with no confidence — the tool reads this as no match`);
 
+  // Only where a match was expected, and only where the fixture states an answer. On the four
+  // refusal fixtures there is no row to remember a word on, so whatever the model wrote here is
+  // never read — flagging it would mark a correct refusal wrong, which is the mistake the
+  // confidence check above already made once.
+  //
+  // Asymmetric on purpose, because the two errors do not cost the same. A missing or false
+  // `saveAlias` on a word worth keeping costs one model call the next time it is typed, so it is a
+  // finding to read. A `true` on a mangling is permanent: the row is indexed under a string nobody
+  // will type twice, and it competes for every search from then on. The tool reads `=== true`, so
+  // absent is scored as false rather than as a separate answer.
+  if (expected !== undefined && keeps !== undefined && linked && (saveAlias === true) !== keeps)
+    flags.push(
+      keeps
+        ? `saveAlias ${saveAlias ?? "absent"} — this word is worth storing, and the next shopper ` +
+        "who types it pays for this call again"
+        : `saveAlias true — this is a slip, not a word, and storing it indexes the row under a ` +
+        "string nobody will type twice",
+    );
+
   return flags;
 };
 
-const CRITERIA = (expected: number | undefined, list: readonly { name: string }[]) => [
+const CRITERIA = (
+  expected: number | undefined,
+  list: readonly { name: string }[],
+  keeps?: boolean,
+) => [
   expected === undefined
     ? "Getting to NO MATCH. None of these candidates is the food that was typed, so the correct " +
     "answer is an empty one. Rank an entrant that linked one of them last, however sensible its " +
@@ -310,6 +364,17 @@ const CRITERIA = (expected: number | undefined, list: readonly { name: string }[
   "Did it stay inside the list? An index outside the candidates, or an answer carrying a name, a " +
   "row id or an explanation instead of a position, is a model that did not do the task it was " +
   "given — the schema is the contract and there is nothing to interpret.",
+  ...(keeps === undefined
+    ? []
+    : [
+      `Did it judge the WORD as well as the food? saveAlias should be ${keeps} here. The word the ` +
+      "shopper typed is stored on the row when this is true, which is what stops the next shopper " +
+      "who types it paying for this same call — so a needless false is a real cost. But it is the " +
+      "cheaper mistake by a long way: a word stored wrongly is indexed forever and competes for " +
+      "every future search, while a word not stored costs one call. Rank an entrant that got the " +
+      "match right and this wrong below one that got both, and an entrant that stored a mangling " +
+      "below one that stored nothing.",
+    ]),
 ];
 
 /* ── The runs ──────────────────────────────────────────────────────────────────────────── */
@@ -318,6 +383,8 @@ const bakeOff = (
   title: string,
   input: Pick<SanitizeIngredientInput, "text" | "candidates">,
   expected: number | undefined,
+  /** What `saveAlias` should be, where the fixture has an opinion. Undefined = not scored. */
+  keeps?: boolean,
 ) =>
   runBakeOff({
     title,
@@ -327,10 +394,10 @@ const bakeOff = (
     answer: {
       schema: matchIngredientSchema(input.candidates?.length ?? 0),
       parse: parse(input.candidates?.length ?? 0),
-      check: CHECKS(expected),
+      check: CHECKS(expected, keeps),
     },
     provider: { ignore: ["open-inference", "morph", "digitalocean", "baidu"], sort: "price" },
-    criteria: CRITERIA(expected, input.candidates ?? []),
+    criteria: CRITERIA(expected, input.candidates ?? [], keeps),
     // More than the row bake-off's three, and affordable here: this call is two lines in and two
     // numbers out, and what is being measured is partly VARIANCE — a model that links the wrong
     // row one time in five is a model that cannot ship, and three runs can miss that.
@@ -339,11 +406,29 @@ const bakeOff = (
 
 describe("sanitizeIngredient ranker — model bake-off", () => {
   it("ranks the field on a term the catalog already holds", async () => {
-    const result = await bakeOff("sanitizeIngredient · ranker · match present", PRESENT, PRESENT_ANSWER);
+    // `échalote` is the French word for the food, on a row named in English — the case `saveAlias`
+    // exists for. Stored, the next French shopper reaches `shallot` through step 1 for nothing.
+    const result = await bakeOff(
+      "sanitizeIngredient · ranker · match present",
+      PRESENT,
+      PRESENT_ANSWER,
+      true,
+    );
 
     // The only assertion, and it guards the benchmark rather than the models: an empty table is a
     // broken key or a dead slug, not a result. `clean` is deliberately NOT asserted on — a field
     // where every run is flagged is a finding to read, not a red test.
+    expect(result.ok).toBeGreaterThan(0);
+  });
+
+  it("ranks the field on the right row reached through a word not worth keeping", async () => {
+    const result = await bakeOff(
+      "sanitizeIngredient · ranker · mangled spelling",
+      MANGLED,
+      PRESENT_ANSWER,
+      false,
+    );
+
     expect(result.ok).toBeGreaterThan(0);
   });
 
