@@ -1,7 +1,6 @@
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { Badge } from "@ui/badge";
 import { CardChoice } from "@ui/cards/choice";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
@@ -29,13 +28,19 @@ type DietConstraint = Constraint & { value: Diet };
  * How the household eats, wherever the constraint came from.
  *
  * **The split is by source, not by question.** An earlier design split "mine" from "this week" and
- * asked the same question twice; what a cook thinks about is what constrains this week. Where a
- * constraint came from is a caption on the chip, and it is the only thing a tap depends on:
- * unticking always drops it from the week, and only ever writes back to the caller's own row — see
- * `_model/constraints.ts` for the whole table.
+ * asked the same question twice; what a cook thinks about is what constrains this week. So one
+ * list is drawn, and where a constraint came from is not shown on the tile — but it still decides
+ * what a tap WRITES: unticking always drops it from the week, and only ever writes back to the
+ * caller's own row, never a housemate's — see `_model/constraints.ts` for the whole table.
  *
- * It never says *which* housemate. `getPlanningSeed` returns their union with no name attached,
- * because a diet is close enough to health data that "someone in your household" is all this says.
+ * The tiles carried a provenance badge ("you" / "someone in your household") and no longer do.
+ * Nothing is applied more silently for it: an inherited constraint is still shown, still ticked
+ * and still removable for the week, it is merely no longer attributed. Putting it back is a
+ * caption again and nothing more, because `Constraint.source` still carries the answer.
+ *
+ * It never says *which* housemate, and never did. `getPlanningSeed` returns their union with no
+ * name attached, because a diet is close enough to health data that the most this could ever say
+ * is "someone in your household".
  *
  * The allergen half of the same list is the allergy step's, kept apart because a diet is a
  * preference the generator may bend and an allergy is one it must never bend.
@@ -46,15 +51,6 @@ export const TunnelDiet = () => {
   const tVocabulary = useTranslations("Vocabulary");
   const { constraints, toggleConstraint, isSeedLoading } = useTunnel();
   const onScroll = useTunnelScrollHandler();
-
-  /** Only a ticked chip is attributed: an untouched one belongs to nobody, so there is nothing to say. */
-  const captionFor = (constraint: Constraint) => {
-    if (!constraint.active) return undefined;
-
-    return constraint.source === "inherited"
-      ? t("Tunnel.Diet.from_household")
-      : t("Tunnel.Diet.from_you");
-  };
 
   /** `GroupSelect` is structural and speaks `string`, so the vocabulary is restored at this seam. */
   const onSelect = (value: string) => toggleConstraint(value as ConstraintValue);
@@ -75,6 +71,7 @@ export const TunnelDiet = () => {
     >
       <TunnelHeader
         title={t("Tunnel.Diet.title")}
+        subtitle={t("Tunnel.Diet.subtitle")}
         mascot={CUISKO.fish}
       />
       {isSeedLoading ? (
@@ -94,12 +91,6 @@ export const TunnelDiet = () => {
               style={{ width: tileWidth - 1 }}
               selected={diet.active}
               onPress={() => onSelect(diet.value)}
-              badge={captionFor(diet) && <Badge
-                variant="neutral"
-                textColor={theme.colors.primary.base}
-              >
-                {captionFor(diet) ?? ""}
-              </Badge>}
               elevated
             />
           ))}

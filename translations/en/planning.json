@@ -13,6 +13,8 @@
     "import_receipt": "Import receipt"
   },
   "Preferences": {
+    "diet": "How you eat",
+    "avoids": "What you keep off your plate",
     "question": "What meals do you want to see?",
     "loading": "Reading your tastes…"
   },
@@ -44,9 +46,7 @@
       "subtitle": "Your usual way of eating, not just this week.",
       "loading": "Reading how your household eats…",
       "diets": "Diets",
-      "avoids": "Ingredients to leave out",
-      "from_you": "you",
-      "from_household": "someone in your household"
+      "avoids": "Ingredients to leave out"
     },
     "Allergies": {
       "title": "Anything to keep off the plate?",

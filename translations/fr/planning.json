@@ -13,6 +13,8 @@
     "import_receipt": "Ajouter un plat"
   },
   "Preferences": {
+    "diet": "Ta façon de manger",
+    "avoids": "Ce que tu écartes de ton assiette",
     "question": "Quels repas veux-tu voir ?",
     "loading": "Je relis tes goûts…"
   },
@@ -45,9 +47,7 @@
       "subtitle": "Ta façon de manger habituelle, pas seulement cette semaine.",
       "loading": "Je regarde comment ton foyer mange…",
       "diets": "Régimes",
-      "avoids": "Ingrédients à écarter",
-      "from_you": "toi",
-      "from_household": "quelqu'un de ton foyer"
+      "avoids": "Ingrédients à écarter"
     },
     "Allergies": {
       "title": "Il y a des choses à écarter ?",
