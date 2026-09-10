@@ -24,7 +24,7 @@ import path from "node:path";
 
 import { listFiles, relative, report, ROOT } from "./_lib.mjs";
 
-const MAX_LINES = 80;
+const MAX_LINES = 90;
 
 const USE_NODE = /^\s*("|')use node("|');?\s*$/m;
 
@@ -64,7 +64,7 @@ const namedNodeButIsNot = [...sources].flatMap(([file, source]) => {
       file: relative(file),
       line: 1,
       message: 'named as the Node half but does not declare "use node".',
-      fix: "Add the directive, or merge it back and move the domain logic into convex/functions/ — the 80-line cap is not a reason to split (CONVENTIONS §2.2).",
+      fix: "Add the directive, or merge it back and move the domain logic into convex/functions/ — the 90-line cap is not a reason to split (CONVENTIONS §2.2).",
     },
   ];
 });

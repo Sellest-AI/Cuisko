@@ -17,7 +17,7 @@ import type { IMAGE_TAGS, vUploadImage } from "@convex/schema/media";
  *
  * It lives here rather than in `router/media/images/uploadMany.ts`, where it was written, because
  * a router file is a thin binding of an access level to a handler: C1 refuses an export outside the
- * `anon · authed · admin · server · _internal` grammar, and C2 caps the file at 80 lines. Both were
+ * `anon · authed · admin · server · _internal` grammar, and C2 caps the file at 90 lines. Both were
  * really saying the same thing — this is domain logic, and domain logic belongs in `functions/`.
  */
 

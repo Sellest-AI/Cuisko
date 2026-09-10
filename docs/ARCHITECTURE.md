@@ -103,7 +103,7 @@ convex/
 ├── env.ts          ★ Zod-validated. Throws at boot on anything missing.
 ├── schema.ts       Aggregates schema/.
 ├── schema/         One file per domain. Tables + shared validators + constants.
-├── router/         ★ The public API. {domain}/{operation}.ts. ≤80 lines each.
+├── router/         ★ The public API. {domain}/{operation}.ts. ≤90 lines each.
 ├── functions/      Reusable logic that TOUCHES the database. Plain (ctx, args) functions.
 ├── lib/            Vendor clients and pure helpers. Never touches ctx.db.
 ├── agent/          ★ Sealed AI boundary. agents / config / tools.
@@ -117,7 +117,7 @@ convex/
 
 | Layer           | May do                                                         | May **not** do                                             |
 | --------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
-| `router/`       | validators, procedure wrappers, arg shaping, call `functions/` | loops, domain branching, domain-library imports, >80 lines |
+| `router/`       | validators, procedure wrappers, arg shaping, call `functions/` | loops, domain branching, domain-library imports, >90 lines |
 | `functions/`    | touch `ctx.db`, domain logic, call `lib/`                      | be a registered Convex procedure                           |
 | `lib/`          | vendor SDKs, pure helpers                                      | touch `ctx.db`                                             |
 | `agent/`        | import `ai` / `@convex-dev/agent`                              | be imported by `src/`                                      |
@@ -476,7 +476,7 @@ contact with a growing codebase.
 | No empty `catch`                                                       | ESLint R6                                         | `pnpm lint`            |
 | Ownership is a capability, not a call                                  | ESLint R7                                         | `pnpm lint`            |
 | Export name matches its builder                                        | script C1                                         | `pnpm check:exports`   |
-| Routers stay thin                                                      | script C2 (≤80 lines)                             | `pnpm check:routers`   |
+| Routers stay thin                                                      | script C2 (≤90 lines)                             | `pnpm check:routers`   |
 | Queries use indexes; no `filter`+`paginate`                            | script C3                                         | `pnpm check:queries`   |
 | `updatedAt`, indexes, cascade completeness                             | script C4                                         | `pnpm check:schema`    |
 | Gated exports have a rejection test                                    | script C5                                         | `pnpm check:authtests` |

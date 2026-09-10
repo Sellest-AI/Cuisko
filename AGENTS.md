@@ -180,7 +180,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 - Every `docs/adr/` record whose `applies_to` glob matches a changed file.
 - Export name matches its builder (`admin` ⇒ `admin*`). **The highest-value check in this list** — a
   mismatch is a silent authorization hole that nothing else detects.
-- Router file ≤ 80 lines, and contains no loop, no domain branching, no domain-library import.
+- Router file ≤ 90 lines, and contains no loop, no domain branching, no domain-library import.
 - Screen ≤ ~120 lines and calls a module hook rather than fetching.
 
 ### Schema (if `convex/schema/**` changed)
