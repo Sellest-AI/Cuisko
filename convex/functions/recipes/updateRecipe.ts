@@ -115,13 +115,36 @@ export const updateRecipe = async (
    */
   const resolved = complete ? links : oldLinks;
 
-  // `lineCount` and `servings` travel WITH `resolved`: an incomplete resolve keeps the previous
-  // links, so the count they answer for is their own and not the edited recipe's — holding three
-  // old links against a four-line edit reads as an unresolved line and wipes every tag. `servings`
-  // goes with them because `computeTags` divides by it: the row's old ingredients over the edit's
-  // new serving count is a per-serving figure describing neither version.
+  /**
+   * The serving count `resolved` is stated for — written to the row AND handed to the tags, so the
+   * two can never disagree about how many people the stored quantities feed.
+   *
+   * A complete resolve is the edit's own, so it is the edit's count. An incomplete one keeps the
+   * row's links, and then it turns on whether the edit changed the amounts those links hold:
+   *
+   *   - **Same amounts.** A cook who cooked it for 3, found it fed 4, and changed only the number.
+   *     The kept links ARE this edit's amounts, so the new count applies and every per-serving
+   *     figure — calories, `high-calorie` — drops with it.
+   *   - **Different amounts.** The edit's quantities are not written on this path, so its count
+   *     would describe amounts the row does not hold: a recipe scaled from 2 to 4 would store the
+   *     old amounts as feeding 4 and halve every figure. The previous count stays with them.
+   *
+   * Compared by position, quantity and unit, and never by name. A stored row holds a catalog id,
+   * and the only name it can be read back as is the catalog's — `Oignon jaune` against the cook's
+   * `oignon` — so a name comparison would call every recipe edited. `position` is the line's index
+   * in `recipe.ingredients`, which is what makes the lookup below line up.
+   */
+  const amountsKept = old.every((row) => {
+    const line = recipe.ingredients[row.position];
+    return line !== undefined && line.quantity === row.quantity && line.unit === row.unit;
+  });
+  const servings = complete || amountsKept ? recipe.servings : existing.servings;
+
+  // `lineCount` travels WITH `resolved` too: an incomplete resolve keeps the previous links, so the
+  // count it answers for is their own and not the edited recipe's — holding three old links against
+  // a four-line edit reads as an unresolved line and wipes every tag.
   const { tags, facets } = await deriveRecipeFields(ctx, {
-    recipe: complete ? recipe : { ...recipe, servings: existing.servings },
+    recipe: { ...recipe, servings },
     links: resolved,
     lineCount: complete ? recipe.ingredients.length : resolved.length,
   });
@@ -146,7 +169,7 @@ export const updateRecipe = async (
     title: _rewrite(existing.title, recipe.title),
     description: _rewrite(existing.description, recipe.description),
     instructions: _rewrite(existing.instructions, serializeInstructions(recipe.instructions)),
-    servings: recipe.servings,
+    servings,
     equipments: recipe.equipments,
     difficulty: recipe.difficulty,
     tags,
