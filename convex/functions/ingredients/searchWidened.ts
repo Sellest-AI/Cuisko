@@ -10,8 +10,8 @@ import { searchCatalog } from "./searchCatalog";
 type SearchCtx = Pick<QueryCtx, "db">;
 
 /**
- * Wider than `matchIngredients` asks for, for the same reason: the ranker exists not to trust the
- * index's own ordering, and the right row can sit low in a page that two locales contribute to.
+ * Wider than a suggestion list asks for, because the ranker exists not to trust the index's own
+ * ordering, and the right row can sit low in a page that two locales contribute to.
  */
 const SEARCH_LIMIT = 24;
 
@@ -34,12 +34,13 @@ export type WidenedCandidate = {
 /**
  * "Before we invent a row, is this already here — under another spelling, or another language?"
  *
- * **Not a duplicate of `matchIngredients`, and the difference is the point.** That one answers
- * which catalog row a recipe line means, and is deliberately strict because a wrong link silently
- * corrupts a recipe's nutrition total and its grocery line. This one answers whether a row exists
- * at all, where the failure is reversed: a miss here creates a second `carotte` that splits every
- * grocery list and every nutrition total from then on, with no error anywhere. So it widens on
- * both axes that one narrows.
+ * **Not a duplicate of `searchCatalog`, and the difference is the point.** That one answers what to
+ * show a shopper who is typing, so it stays narrow: a wrong suggestion at the top of a list is a
+ * wrong link one tap away, and a wrong link silently corrupts a recipe's nutrition total and its
+ * grocery line. This one answers whether a row exists AT ALL, where the failure is reversed: a miss
+ * here creates a second `carotte` that splits every grocery list and every nutrition total from
+ * then on, with no error anywhere. So it widens on both axes the suggestion path narrows — and its
+ * caller re-applies the strict bar (`CONFIDENT` plus `MARGIN`) before it links anything.
  *
  * **Both locale indexes, not the caller's.** A search index is per-locale — `search_fr` holds the
  * French names, `search_en` the English ones — so a shopper typing "carrot" on a French device

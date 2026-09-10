@@ -26,8 +26,8 @@ type Purchase = { defaultUnit: Unit; defaultQuantity: number };
 /**
  * What free text resolved to.
  *
- * Three cases and not an id-or-null, for the reason `MatchedIngredient` gives: the caller has to
- * *do* something different in each, and a nullable id pushes that decision to every call site.
+ * Three cases and not an id-or-null, because the caller has to *do* something different in each,
+ * and a nullable id pushes that decision to every call site.
  * `matched` and `created` both put a real line on the list; `refused` turns the placeholder card
  * into something the shopper can read.
  *
@@ -85,9 +85,10 @@ type ResolveCtx = ActionCtx & { userId: Id<"users"> };
 /**
  * Good enough to link a shopper's own typing to an existing row without asking them.
  *
- * The same bar `matchIngredients` links a recipe line at, and deliberately so: below it the row is
- * still evidence, and the steps after this one get to weigh it against what a dictionary says. The
- * asymmetry this slice introduces is at the *bottom* of the range (`RESOLVABLE`), not the top.
+ * The one bar in the app at which a name is linked to a row with nobody asked — a recipe line and
+ * a shopper's typing both come through here, so there is one answer and not two. Below it the row
+ * is still evidence, and the steps after this one get to weigh it against what a dictionary says.
+ * The width this walk adds is at the *bottom* of the range (`RESOLVABLE`), not at the top.
  */
 const LINKABLE = CONFIDENT;
 
@@ -110,8 +111,8 @@ const _load = async (
  * commonest reason a shopper reached here is not that the food is exotic but that they spelled it
  * their own way or in their other language.
  *
- * **A tie is not a match.** `MARGIN` is applied here for the same reason `matchIngredients` applies
- * it: `Blanc de poulet` and `Blanc de poulet en tranches` both score 1.0, and without the runner-up
+ * **A tie is not a match.** `MARGIN` is applied here because a tie is decided by nothing:
+ * `Blanc de poulet` and `Blanc de poulet en tranches` both score 1.0, and without the runner-up
  * check the winner is whichever the search index happened to return first — raw chicken or deli
  * slices, decided by a coin flip and linked with no tap. Below the margin the row is still evidence,
  * and the steps after this one get to weigh it.
@@ -268,8 +269,14 @@ const _fromApis = async (
  * it", and reporting it because a provider was down would tell the shopper their word was the
  * problem. The client awaits this action and catches the throw — see the router — so a model outage
  * turns the placeholder into an error card without claiming to have judged anything.
+ *
+ * Exported for the same reason `gatherEvidence` is, and it is the other half of that split: a
+ * caller resolving a whole recipe has to know how many names will reach the model BEFORE it lets
+ * any of them, because inventions are capped per import — and a name only turns out to need a
+ * judgement once the three cheap steps have declined it. `resolveRecipeIngredients` runs
+ * `gatherEvidence` over every name, then spends this on the survivors it is willing to buy.
  */
-const _fromAgent = async (
+export const resolveWithAgent = async (
   ctx: ResolveCtx,
   { text, locale, evidence }: { text: string; locale: Locale; evidence: IngredientEvidence },
 ): Promise<ResolvedIngredient> => {
@@ -391,7 +398,7 @@ export const resolveIngredient = async (
   const trimmed = text.trim();
   const { resolved, evidence } = await gatherEvidence(ctx, { text: trimmed, locale });
 
-  return resolved ?? _fromAgent(ctx, { text: trimmed, locale, evidence });
+  return resolved ?? resolveWithAgent(ctx, { text: trimmed, locale, evidence });
 };
 
 /**

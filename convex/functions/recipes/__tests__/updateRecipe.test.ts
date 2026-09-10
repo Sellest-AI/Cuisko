@@ -6,6 +6,7 @@ import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Unit } from "@shared/ingredients";
 
 import schema from "../../../schema";
+import type { RecipeLink } from "../resolveRecipeIngredients";
 import { updateRecipe } from "../updateRecipe";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -15,7 +16,7 @@ let t: ReturnType<typeof convexTest>;
 let userId: string;
 let onionId: string;
 
-/** One catalog row, matched by every fixture recipe below. */
+/** One catalog row, which every fixture recipe below links a line to. */
 const seed = async () => {
   const ids = await t.run(async (ctx) => {
     const user = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
@@ -92,6 +93,25 @@ const links = (recipeId: Id<"recipes">) =>
     return rows.filter((row) => row.recipeId === recipeId);
   });
 
+/**
+ * The links the ACTION would have resolved, stated outright.
+ *
+ * `updateRecipe` no longer decides which lines link — `resolveRecipeIngredients` does that in
+ * `updateOne`, which resolves every line and hands the answer down. A line naming the one fixture
+ * row links; anything else stands for a name that reached this writer unlinked.
+ */
+const linksOf = (ingredients: SanitizedRecipe["ingredients"]): RecipeLink[] =>
+  ingredients.flatMap((line, position) =>
+    line.name === "oignon"
+      ? [{
+        ingredientId: onionId as Id<"ingredients">,
+        position,
+        quantity: line.quantity,
+        unit: line.unit,
+      }]
+      : [],
+  );
+
 const recipe = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe => ({
   title: "Soupe à l'oignon, revisitée",
   description: "Une soupe d'hiver, en mieux.",
@@ -109,9 +129,17 @@ const update = (
   recipeId: Id<"recipes">,
   ingredients: SanitizedRecipe["ingredients"],
   analyzed = true,
+  complete = true,
 ) =>
   t.run((ctx) =>
-    updateRecipe(ctx, { recipeId, locale: "fr", recipe: recipe(ingredients), analyzed }),
+    updateRecipe(ctx, {
+      recipeId,
+      locale: "fr",
+      recipe: recipe(ingredients),
+      analyzed,
+      links: linksOf(ingredients),
+      complete,
+    }),
   );
 
 beforeEach(async () => {
@@ -236,5 +264,69 @@ describe("functions/recipes/updateRecipe", () => {
     const rows = await links(recipeId);
     expect(rows).toHaveLength(1);
     expect(rows[0]!._id).toBe(originalLinkId);
+  });
+
+  /**
+   * The failure this guard exists for. `resolveRecipeIngredients` settles rather than throws, so a
+   * walk that died on a live API returns a SHORT list indistinguishable from a recipe with fewer
+   * ingredients. Writing it would delete a link the first save may have paid a model call and an
+   * invented row for — because a service the cook never touched blipped while they fixed a typo.
+   */
+  test("keeps the existing links when the resolve came back incomplete", async () => {
+    const recipeId = await seedRecipe();
+    const originalLinkId = await seedLink(recipeId, onionId as Id<"ingredients">, {
+      quantity: 2,
+      unit: "pcs",
+      position: 0,
+    });
+
+    // `linksOf` links only `oignon`, so this edit resolves to NOTHING — exactly the shape a failed
+    // walk produces, and `complete: false` is the only thing separating it from a cook who
+    // genuinely replaced their onion with thyme.
+    await update(
+      recipeId,
+      [
+        { name: "thym", quantity: 5, unit: "g" },
+        { name: "laurier", quantity: 1, unit: "pcs" },
+      ],
+      true,
+      false,
+    );
+
+    const rows = await links(recipeId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!._id).toBe(originalLinkId);
+  });
+
+  /**
+   * And the derived fields go with them. Guarding only the join table would still let `computeTags`
+   * see a short list, and it returns NO tags at all when a line did not resolve — so the recipe
+   * would lose every diet and allergen tag from the same blip.
+   */
+  /**
+   * The edit ADDS a line, so the kept links no longer match the recipe's line count — and that is
+   * the case the first version of this guard got wrong. `computeTags` reads a short set as "a line
+   * did not resolve" and answers nothing at all, so holding one old link against a two-line edit
+   * wiped every tag from the same outage the guard was meant to absorb. `lineCount` travels with
+   * the links for exactly this.
+   */
+  test("keeps the tags when an incomplete resolve leaves fewer links than the edit has lines", async () => {
+    const recipeId = await seedRecipe();
+    await seedLink(recipeId, onionId as Id<"ingredients">, { quantity: 2, unit: "pcs", position: 0 });
+
+    await update(
+      recipeId,
+      [
+        { name: "oignon", quantity: 2, unit: "pcs" },
+        { name: "thym", quantity: 5, unit: "g" },
+      ],
+      true,
+      false,
+    );
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.tags).not.toEqual([]);
+    expect(row!.tags).toEqual(expect.arrayContaining(["soup", "comfort-food"]));
   });
 });

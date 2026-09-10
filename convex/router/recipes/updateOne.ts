@@ -1,13 +1,11 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { sanitizeRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import { toModelRecipe } from "@convex/functions/recipes/toModelRecipe";
-import type { RecipeEdit } from "@convex/functions/recipes/recipeChangesOf";
-import { assertFilledIn, recipeChangesOf, reviseRecipe, sanitizeArgsOf } from "@convex/functions/recipes/recipeChangesOf";
+import { assertFilledIn, type RecipeEdit } from "@convex/functions/recipes/recipeChangesOf";
+import { regenerateRecipe } from "@convex/functions/recipes/regenerateRecipe";
 import { updateRecipe } from "@convex/functions/recipes/updateRecipe";
 import { type ActionCtx, authActionI18n, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
-import { vRecipeEdit, vSanitizedRecipe } from "@convex/schema/recipePayloads";
+import { vRecipeEdit, vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { ConvexError, v } from "convex/values";
 
 type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };
@@ -39,22 +37,22 @@ const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
   const stored = await ctx.runQuery(internal.router.recipes.getOne._internal, { id: args.recipeId, locale });
   if (stored.userId !== ctx.userId) throw new ConvexError({ code: "FORBIDDEN" });
 
-  const outdated = toModelRecipe(stored);
-
-  const { requiresNewAnalysis, requiresTranslation } = recipeChangesOf(args, outdated);
-
-  const analyzed = requiresNewAnalysis
-    ? await sanitizeRecipe.run(ctx, sanitizeArgsOf(args, outdated, locale))
-    : undefined;
+  const { recipe, links, complete, analyzed, requiresTranslation } = await regenerateRecipe(ctx, {
+    edit: args,
+    stored,
+    locale,
+  });
 
   await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {
     recipeId: args.recipeId,
     locale,
-    analyzed: requiresNewAnalysis,
-    recipe: reviseRecipe(args, outdated, analyzed),
+    analyzed,
+    recipe,
+    links,
+    complete,
   });
 
-  if (requiresTranslation || analyzed !== undefined)
+  if (requiresTranslation || analyzed)
     await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
       recipeId: args.recipeId,
       sourceLocale: locale,
@@ -69,6 +67,6 @@ export const authed = authActionI18n({
 });
 
 export const _internal_persist = internalMutation({
-  args: { recipeId: v.id("recipes"), locale: vLocale, recipe: vSanitizedRecipe, analyzed: v.boolean() },
+  args: { recipeId: v.id("recipes"), locale: vLocale, recipe: vSanitizedRecipe, analyzed: v.boolean(), links: v.array(vRecipeLink), complete: v.boolean() },
   handler: (ctx, args): Promise<Id<"recipes">> => updateRecipe(ctx, args),
 });
