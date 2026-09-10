@@ -1,0 +1,39 @@
+{
+  "title": "Lasagnes à la bolognaise",
+  "description": "Une lasagne du dimanche, montée en deux temps.",
+  "yields": "Pour 8 personnes",
+  "ingredients": [
+    {
+      "name": "Pour la sauce",
+      "items": [
+        { "value": "500 g de boeuf haché" },
+        { "value": "2 oignons émincés" },
+        { "value": "1 boîte de tomates concassées" }
+      ]
+    },
+    {
+      "name": "Pour la béchamel",
+      "items": [
+        { "value": "50 g de beurre" },
+        { "value": "50 g de farine" },
+        { "value": "50 cl de lait" }
+      ]
+    }
+  ],
+  "instructions": [
+    {
+      "name": "La sauce",
+      "items": [
+        { "value": "Faites revenir les oignons dans un filet d'huile." },
+        { "value": "Ajoutez la viande, puis les tomates, et laissez mijoter 30 minutes." }
+      ]
+    },
+    {
+      "name": "Le montage",
+      "items": [
+        { "value": "Alternez pâtes, sauce et béchamel dans un plat." },
+        { "value": "Enfournez 40 minutes à 180°C." }
+      ]
+    }
+  ]
+}

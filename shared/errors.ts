@@ -12,6 +12,15 @@ export const ERROR_CODES = [
   "RATE_LIMITED",
   "PAYMENT_REQUIRED",
   "EXTERNAL_SERVICE_ERROR",
+  /**
+   * A page we reached and could not read a recipe out of.
+   *
+   * Its own code rather than an `INVALID_INPUT`, because the two are different apologies and only
+   * one of them should offer the paste form: `INVALID_INPUT` means "check what you pasted", this
+   * means "your link is fine, the page is not one we can read". It is also not an
+   * `EXTERNAL_SERVICE_ERROR` — nothing failed, and there is nothing to retry.
+   */
+  "UNREADABLE_PAGE",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

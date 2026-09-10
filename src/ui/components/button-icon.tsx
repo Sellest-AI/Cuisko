@@ -85,7 +85,7 @@ export const ButtonIcon = ({
   const hasGradient = variant === "neutral-inverted" || (variant === "danger" && elevated);
 
   const pressIntensity = size === "xs" ? 0.95 :
-    size === "sm" ? 0.97 : undefined;
+    size === "sm" ? 0.97 : 0.93;
 
   return (
     <Pressable

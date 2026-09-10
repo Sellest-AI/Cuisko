@@ -1,0 +1,15 @@
+{
+  "title": "",
+  "description": "",
+  "yields": "A generous bowlful",
+  "ingredients": [
+    {
+      "name": null,
+      "items": [{ "value": "  2 onions  " }, { "value": "" }, { "value": "a knob of butter" }]
+    }
+  ],
+  "instructions": [
+    { "name": null, "items": [{ "value": "" }] },
+    { "name": null, "items": [{ "value": "Sweat the onions in the butter until soft." }] }
+  ]
+}
