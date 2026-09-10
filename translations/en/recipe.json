@@ -61,6 +61,18 @@
     "instructions_placeholder": "Prep\n- Heat the oven to 200°C\n- Halve the lemon and slip it inside the chicken with the thyme\n\nRoast\n- Rub the chicken with the oil, salt and pepper\n- Roast for 1 hour 15, basting halfway through\n- Rest for 10 minutes before carving",
     "save": "Save recipe"
   },
+  "Import": {
+    "url_title": "Import from a web page",
+    "url_placeholder": "Paste a recipe link",
+    "write_title": "Or write it yourself",
+    "write": "Write a recipe",
+    "invalid_title": "That does not look like a web address",
+    "invalid_body": "Check the link you pasted, then try again.",
+    "unreadable_title": "We could not read a recipe on that page",
+    "unreadable_body": "Your link is fine, the page is just not one we can read. You can write the recipe out instead.",
+    "unreachable_title": "That site did not answer",
+    "unreachable_body": "It may be down, or it may not let us in. Try again, or write the recipe out instead."
+  },
   "Creating": {
     "reading": "Reading your recipe",
     "matching": "Finding your ingredients",

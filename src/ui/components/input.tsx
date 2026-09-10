@@ -28,11 +28,12 @@ type Props = {
   onChangeText?: (value: string) => void,
   ref?: React.RefObject<TextInput | null>,
   type?: "text" | "numeric" | "decimal" | "email",
+  isLoading?: boolean,
 }
 
 export { TextInput } from "react-native";
 
-export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
+export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, isLoading, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
   const color = elevated ? styles.neutralElevated : styles.neutral;
 
   /**
@@ -111,6 +112,7 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
         composite={!onRightPress}
         size="sm"
         onPress={onRightPress}
+        isLoading={isLoading}
       >
         {rightIcon}
       </ButtonIcon>}

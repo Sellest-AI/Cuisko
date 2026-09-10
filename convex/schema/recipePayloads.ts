@@ -67,6 +67,26 @@ export const vRecipeLink = v.object({
 });
 
 /**
+ * A scraped page as the editor's fields, on its way to a form rather than to a mutation.
+ *
+ * The same shape as `vRecipeEdit` above, and kept separate from it on purpose: they answer to
+ * different things. `vRecipeEdit` is what an edit of an existing recipe must carry, and it is
+ * required-everywhere because that recipe already has a title. This is what an IMPORT returns, and
+ * its `title` is required for the opposite reason — a text field cannot hold `undefined`, so an
+ * untitled scrape seeds `""` for the cook to fill in. Folding the two together would mean the next
+ * change to what an edit must carry silently changed what an import returns.
+ *
+ * `RecipeDraft` in `lib/scraping/toRecipeDraft.ts` is the TypeScript half of this shape.
+ */
+export const vRecipeDraft = v.object({
+  title: v.string(),
+  description: v.string(),
+  servings: v.number(),
+  ingredients: v.string(),
+  instructions: v.string(),
+});
+
+/**
  * A recipe as `sanitizeRecipe` returns it: ONE language, every localized field a bare string, and
  * every ingredient a name rather than a catalog id.
  *

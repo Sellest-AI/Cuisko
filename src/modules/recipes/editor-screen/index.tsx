@@ -1,3 +1,4 @@
+import { useStore } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View, StyleSheet, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -9,10 +10,11 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
-import { serializeInstructions } from "@shared/recipes";
+import { DEFAULT_SERVINGS, serializeInstructions } from "@shared/recipes";
 
 import type { Id } from "~/lib/convex/api";
 
+import { importedDraftAtom } from "../_hooks/atoms";
 import { useCreateRecipe } from "../_hooks/useCreateRecipe";
 import { useRecipeDraft } from "../_hooks/useRecipeDraft";
 import { useUpdateRecipe } from "../_hooks/useUpdateRecipe";
@@ -53,13 +55,39 @@ type Props = {
 export const EditorScreen = ({ recipeId, style }: Props) => {
   const t = useTranslations("Recipe");
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [servings, setServings] = useState(DEFAULT_SERVINGS);
-  const [ingredients, setIngredients] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const store = useStore();
+
+  /**
+   * The other way the fields can arrive full: a page the cook imported, handed sideways through
+   * `importedDraftAtom` because a draft is too big to travel in a route.
+   *
+   * Read at the FIRST RENDER rather than in an effect, so the imported text is in the fields on the
+   * very first frame instead of a frame of empty form followed by a re-render. It is the same
+   * argument `servingsAtom` makes for comparing at read time rather than resetting in an effect.
+   *
+   * Through the store rather than `useAtom`, because the editor consumes this once and never wants
+   * to hear about it again: subscribing would re-render the whole form on the write and again on
+   * the clear, to seed fields it has already seeded.
+   */
+  const [imported] = useState(() => (recipeId ? undefined : store.get(importedDraftAtom)));
+
+  const [title, setTitle] = useState(imported?.title ?? "");
+  const [description, setDescription] = useState(imported?.description ?? "");
+  const [servings, setServings] = useState(imported?.servings ?? DEFAULT_SERVINGS);
+  const [ingredients, setIngredients] = useState(imported?.ingredients ?? "");
+  const [instructions, setInstructions] = useState(imported?.instructions ?? "");
 
   const { recipe, isLoading } = useRecipeDraft(recipeId);
+
+  /**
+   * Consumed once, then cleared — and the clearing is load-bearing rather than tidiness: without
+   * it, tapping "write a recipe" a minute later reopens the editor full of a recipe the cook
+   * already saved. An effect because it writes to something outside React, which is what an effect
+   * is for; the seeding it pairs with happened at first render, above.
+   */
+  useEffect(() => {
+    if (imported) store.set(importedDraftAtom, undefined);
+  }, [imported, store]);
 
   /**
    * Seeded once per recipe rather than on every render: the fields are the cook's to type in from
@@ -232,9 +260,6 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
     </>
   );
 };
-
-/** What a recipe is written for unless its author says otherwise — two people, not one. */
-const DEFAULT_SERVINGS = 2;
 
 const TITLE_ICON_SIZE = 24;
 

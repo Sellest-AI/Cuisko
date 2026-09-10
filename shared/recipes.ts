@@ -10,6 +10,16 @@
  * rendering four bars in one place and three in another.
  */
 
+/**
+ * What a recipe is written for unless its author says otherwise — two people, not one.
+ *
+ * Shared because two places have to agree on it and neither can see the other: the editor opens a
+ * blank form on it, and `toRecipeDraft` falls back to it for an imported page whose yield says no
+ * number. A second copy is how an import silently seeds a different count from the one a cook gets
+ * when they write the same recipe by hand.
+ */
+export const DEFAULT_SERVINGS = 2;
+
 /** Ordered easiest to hardest. A level is this array's 1-based position — index 0 is level 1. */
 export const DIFFICULTIES = ["simple", "easy", "medium", "hard", "advanced"] as const;
 

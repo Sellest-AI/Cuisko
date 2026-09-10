@@ -63,6 +63,18 @@
     "instructions_placeholder": "Préparation\n- Préchauffe le four à 200 °C\n- Coupe le citron en deux et glisse-le dans le poulet avec le thym\n\nCuisson\n- Frotte le poulet avec l'huile, le sel et le poivre\n- Enfourne 1 h 15 en arrosant à mi-cuisson\n- Laisse reposer 10 minutes avant de découper",
     "save": "Enregistrer la recette"
   },
+  "Import": {
+    "url_title": "Importer depuis une page web",
+    "url_placeholder": "Collez le lien d'une recette",
+    "write_title": "Ou saisissez-la vous-même",
+    "write": "Saisir ma recette",
+    "invalid_title": "Cela ne ressemble pas à une adresse web",
+    "invalid_body": "Vérifiez le lien que vous avez collé, puis réessayez.",
+    "unreadable_title": "Nous n'avons pas pu lire de recette sur cette page",
+    "unreadable_body": "Votre lien fonctionne, mais la page n'est pas lisible pour nous. Vous pouvez saisir la recette à la main.",
+    "unreachable_title": "Ce site n'a pas répondu",
+    "unreachable_body": "Il est peut-être indisponible, ou il refuse notre visite. Réessayez, ou saisissez la recette à la main."
+  },
   "Creating": {
     "reading": "Lecture de ta recette",
     "matching": "Recherche de tes ingrédients",
