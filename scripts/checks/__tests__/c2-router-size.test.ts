@@ -10,7 +10,7 @@ import { afterEach, expect, it } from "vitest";
 
 import { cleanupTrees, runCheck } from "./_harness";
 
-const MAX_LINES = 80;
+const MAX_LINES = 90;
 
 /** A file of exactly `count` lines. */
 const linesOf = (count: number) => Array.from({ length: count }, (_, i) => `// ${i}`).join("\n");

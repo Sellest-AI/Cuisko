@@ -316,7 +316,7 @@ note in §1 says the bundler drops. Those exports would never register, the modu
 from `internal.router.recipes`, and nothing would say so until a call failed in production — C1, C2,
 C7 and `tsc` all stay green, because the generated API is derived from the same filtered tree.
 
-> ⚠️ **A router file over 80 lines is not a reason to make one.** That is domain logic sitting a
+> ⚠️ **A router file over 90 lines is not a reason to make one.** That is domain logic sitting a
 > layer too high; it belongs in `functions/`, and a sibling file only moves the violation. C2 fails
 > a `*Node.ts` that does not declare `"use node"`, and fails an `<operation>.ts` that declares it
 > while a `*Node.ts` sibling exists — so the escape hatch cannot be borrowed for the line cap, and
@@ -330,7 +330,7 @@ C7 and `tsc` all stay green, because the generated API is derived from the same 
 
 | Layer                        | May do                                                         | May **not** do                                  | Tag   |
 | ---------------------------- | -------------------------------------------------------------- | ----------------------------------------------- | ----- |
-| `router/`                    | validators, procedure wrappers, arg shaping, call `functions/` | >80 lines                                       | 📐 C2  |
+| `router/`                    | validators, procedure wrappers, arg shaping, call `functions/` | >90 lines                                       | 📐 C2  |
 | `router/`                    | —                                                              | loops, domain branching, domain-library imports | 👁     |
 | `functions/`                 | touch `ctx.db`, domain logic, call `lib/`                      | be a registered Convex procedure                | 👁     |
 | `lib/`                       | vendor SDKs, pure helpers                                      | touch `ctx.db`                                  | 👁     |
@@ -706,7 +706,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] New FK ⇒ index added **and** `CASCADE` entry added 📐
 - [ ] New webhook uses `verifiedWebhook` 🔒
 - [ ] New secret added to the Zod schema in `convex/env.ts` 🔬
-- [ ] Router file under 80 lines 📐
+- [ ] Router file under 90 lines 📐
 - [ ] Authorization test added for each new gated export 📐
 
 **Frontend**

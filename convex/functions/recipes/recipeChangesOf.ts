@@ -82,7 +82,7 @@ const _timingsOf = (outdated: ModelRecipe): SanitizedRecipe["timings"] => ({
  *
  * A pure comparison with no `ctx` in sight, which is what lets it and `reviseRecipe` below sit
  * beside the recipe functions they read rather than inlined in the router action that calls them —
- * `updateOne.ts` stays under C2's 80-line cap by having a body that is mostly orchestration.
+ * `updateOne.ts` stays under C2's 90-line cap by having a body that is mostly orchestration.
  */
 export const recipeChangesOf = (args: RecipeEdit, outdated: ModelRecipe): RecipeChanges => {
   const hasTitleChanged = args.title !== outdated.title;
