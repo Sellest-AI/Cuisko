@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText } from "@convex/lib/i18n";
@@ -11,6 +11,19 @@ import { facetsOf } from "@shared/tags";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
+
+/**
+ * Imports the module under test before any test is timed, so the first one is not billed for the
+ * backend graph beneath it against Vitest's 5s timeout. See router/ingredients/__tests__/resolve.test.ts
+ * for the measurement. Stops at the `.` so a `"use node"` sibling stays out.
+ */
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/router/recipes/translateOne."))
+      .map(([, load]) => load()),
+  ),
+);
 
 let t: ReturnType<typeof convexTest>;
 
