@@ -10,7 +10,7 @@ import { toGrams, type Unit } from "@shared/ingredients";
 import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
-import { type RecipeCard, toRecipeCard } from "./recipeCard";
+import { coverOf, type RecipeCard, toRecipeCard } from "./recipeCard";
 
 type LoadCtx = Pick<QueryCtx, "db">;
 
@@ -53,7 +53,7 @@ type RecipeChef = {
 /**
  * One recipe, in full, for the page that draws it.
  *
- * Built on `RecipeCard` rather than beside it, so the four fields a list needs are described once.
+ * Built on `RecipeCard` rather than beside it, so the fields a list needs are described once.
  * A card is a detail with most of it left out, and stating that as an intersection means the two
  * cannot disagree about what a title or a cuisine is.
  *
@@ -78,6 +78,12 @@ export type RecipeDetail = RecipeCard & {
    */
   timings: Doc<"recipes">["timings"];
   chef?: RecipeChef;
+  /**
+   * The cover at its large size, for the header that spans the screen, beside the card's medium
+   * `coverImageUrl`. Two fields rather than one, so a name never means a different file depending
+   * on which payload it arrived in. Absent in the same cases as the card's.
+   */
+  coverImageLargeUrl?: string;
   /**
    * What the recipe adds up to, or nothing at all.
    *
@@ -244,13 +250,15 @@ export const loadRecipe = async (
 ): Promise<RecipeDetail> => {
   const recipe = await _resolve(ctx, target);
 
-  const [{ lines, lineCount }, chef] = await Promise.all([
+  const [{ lines, lineCount }, chef, cover] = await Promise.all([
     _linesOf(ctx, recipe._id, locale),
     _chefOf(ctx, recipe.userId),
+    coverOf(ctx, recipe),
   ]);
 
   return {
-    ...toRecipeCard(recipe, locale),
+    ...toRecipeCard(recipe, locale, cover),
+    coverImageLargeUrl: cover?.sizes.large.url,
     description: resolvei18n(recipe.description, locale),
     instructions: parseInstructions(resolvei18n(recipe.instructions, locale)),
     servings: recipe.servings,

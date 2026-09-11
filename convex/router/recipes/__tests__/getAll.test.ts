@@ -172,6 +172,49 @@ describe("router/recipes/getAll", () => {
     expect(byTitle["Untimed"]).toBeUndefined();
   });
 
+  /**
+   * A card draws the medium size, flattened to a url. A recipe whose cover has not landed yet is
+   * the same page with no url, never a failed one.
+   */
+  test("carries each card's medium cover url, and none for a recipe without a cover", async () => {
+    const userId = await seedUser("Franck");
+    const covered = await seedRecipe(userId, "Covered");
+    await seedRecipe(userId, "Bare");
+
+    await t.run(async (ctx) => {
+      const coverImageId = await ctx.db.insert("images", {
+        hasAlpha: false,
+        key: "public/cover.webp",
+        url: "cover.webp",
+        width: 1536,
+        height: 1024,
+        size: 400_000,
+        mimeType: "image/webp",
+        tags: ["IMAGE"],
+        updatedAt: Date.now(),
+      });
+      await ctx.db.insert("imageSizes", {
+        imageId: coverImageId,
+        quality: 70,
+        key: "public/cover-600.webp",
+        url: "cover-600.webp",
+        width: 600,
+        height: 400,
+        size: 6_000,
+      });
+      await ctx.db.patch(covered, { coverImageId });
+    });
+
+    const { page } = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.getAll.authed, FIRST_PAGE);
+
+    const byTitle = Object.fromEntries(page.map((recipe) => [recipe.title, recipe.coverImageUrl]));
+
+    expect(byTitle["Covered"]).toBe("cover-600.webp");
+    expect(byTitle["Bare"]).toBeUndefined();
+  });
+
   /** The document stops at the mapper: a page carrying `search` would ship both locales of it. */
   test("hands out cards rather than documents", async () => {
     const userId = await seedUser("Franck");

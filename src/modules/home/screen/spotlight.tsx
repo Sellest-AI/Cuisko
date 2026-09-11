@@ -6,7 +6,7 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-const CARD_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
+const CARD_PLACEHOLDER = require("assets/placeholders/empty-placeholder.jpg");
 
 /**
  * Placeholder until the week's picks come from Convex. The ids are stand-ins for the document id

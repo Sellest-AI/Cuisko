@@ -9,23 +9,13 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { CONTENT_NEGATIVE_SPACE } from "../../constants";
+import { CONTENT_NEGATIVE_SPACE, COVER_PLACEHOLDER } from "../../constants";
 import { RecipeHeader } from "./header";
 import { RecipeIntro } from "./intro";
 import { RecipeTabs, RecipeTab } from "./tabs";
 import { ChromeNavigationBar } from "./navigation-bar";
 import { useRecipe } from "../../_hooks/useRecipe";
 import { EmptyState } from "../../_components/empty-state";
-
-/**
- * The photo every recipe is drawn under, until a recipe can carry its own.
- *
- * `recipes` has no image field, so this is not waiting on the fetch — it is waiting on the column.
- * The grid stands the same fixture in for the same reason; when one lands, both read it and
- * nothing else on either screen moves.
- */
-const PLACEHOLDER_PHOTO =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80";
 
 /**
  * The frame the three recipe tabs mount into: the photo, the title, and the row that switches them.
@@ -95,7 +85,8 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
          * switch made halfway down the ingredients would drop you into the middle of the method.
          */
         scrollKey={active}
-        headerBackgroundImage={PLACEHOLDER_PHOTO}
+        /** The placeholder while loading too, so the frame has a photo before the recipe arrives. */
+        headerBackgroundImage={recipe?.coverImageLargeUrl ?? COVER_PLACEHOLDER}
         contentNegativeSpace={CONTENT_NEGATIVE_SPACE}
         headerContent={<RecipeHeader recipeId={id} tags={recipe?.tags ?? []} />}
         contentHeader={

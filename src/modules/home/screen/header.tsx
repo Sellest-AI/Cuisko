@@ -11,7 +11,7 @@ import { SafeAreaView } from "@ui/safe-area-view";
 /** Placeholder until households arrive from Convex. */
 const HOUSEHOLDS = [{ label: "House", value: "house" }];
 
-const AVATAR_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
+const AVATAR_PLACEHOLDER = require("assets/placeholders/empty-placeholder.jpg");
 
 /** Who you are, whose kitchen you are in, and what is waiting for you. */
 export const HomeHeader = () => (
