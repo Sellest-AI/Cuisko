@@ -25,7 +25,7 @@ export const _internal = internalAction({
     const baseImage = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
       userId: null,
       images: [{
-        url: output.imageUrlwithBackground,
+        url: output.imageUrlWithBackground,
       }]
     });
 

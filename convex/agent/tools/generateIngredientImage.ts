@@ -5,7 +5,7 @@ import { Locale, SUPPORTED_LOCALES } from "@shared/translations";
 import { CATEGORIES } from "@shared/categories";
 import { runImage } from "@convex/lib/replicate/node";
 import { parseReplicateRunOutput } from "@convex/lib/replicate/utils";
-import { defaultAgent } from "../agents";
+import { imagesGeneratorAgent } from "../agents";
 import { models } from "../config";
 import { removeBackground } from "@convex/lib/runpod/removeBackground";
 import { notEmpty } from "@shared/helpers";
@@ -186,13 +186,13 @@ Output: A small white plastic pill bottle with a childproof cap and plain generi
 featuring a simple cross symbol, a few round white tablets scattered beside the bottle.`
 
 export const generateIngredientImage = createTool({
-  description: "Generates a realistic, icon-ready image for an ingredient or product." +
-    "The tool uses the product name, aliases, and category to create a detailed visual prompt," +
+  description: "Generates a realistic, icon-ready image for an ingredient or product. " +
+    "The tool uses the product name, aliases, and category to create a detailed visual prompt, " +
     "generates a 512×512 image with appropriate packaging and recognizable details, " +
     "and returns the generated image with its background removed.",
   inputSchema: _inputSchema,
   execute: async (ctx, args) => {
-    const prompt = await wrapAgent(defaultAgent).generateText(ctx, {}, {
+    const prompt = await wrapAgent(imagesGeneratorAgent).generateText(ctx, {}, {
       model: models.prompterMini.model,
       providerOptions: models.prompterMini.providerOptions({ effort: false }),
       instructions: INSTRUCTIONS,
@@ -224,7 +224,7 @@ export const generateIngredientImage = createTool({
 
     return {
       prompt: prompt.text,
-      imageUrlwithBackground: imageWithBackground,
+      imageUrlWithBackground: imageWithBackground,
       imageAlphaBase64: imageWithoutBackground.url,
       position: imageWithoutBackground.position,
     }

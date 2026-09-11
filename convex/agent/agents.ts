@@ -52,3 +52,12 @@ export const rankerAgent = new Agent(components.agent, {
   // usageHandler,
 });
 
+export const imagesGeneratorAgent = new Agent(components.agent, {
+  name: "Cuisko Images Generator Agent",
+  providerOptions: models.prompterMini.providerOptions({ effort: "low" }),
+  languageModel: models.prompterMini.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});

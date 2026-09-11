@@ -1,6 +1,7 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { generateRecipe } from "@convex/functions/recipes/generateRecipe";
+import { replaceRecipeImages } from "@convex/functions/recipes/recipeImages";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
 import { type ActionCtx, authActionI18n, internalAction, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
@@ -44,6 +45,11 @@ const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
     sourceLocale: locale,
   });
 
+  await ctx.scheduler.runAfter(0, internal.router.recipes.generateImages._internal, {
+    recipeId,
+    userId: ctx.userId
+  })
+
   return recipeId;
 };
 
@@ -69,4 +75,13 @@ export const _internal = internalAction({
 export const _internal_persist = internalMutation({
   args: { userId: v.id("users"), locale: vLocale, recipe: vSanitizedRecipe, links: v.array(vRecipeLink) },
   handler: (ctx, args): Promise<Id<"recipes">> => saveRecipe(ctx, args),
+});
+
+export const _internal_persistImages = internalMutation({
+  args: {
+    recipeId: v.id("recipes"),
+    coverImageId: v.optional(v.id("images")),
+    plateImageId: v.optional(v.id("images")),
+  },
+  handler: (ctx, args): Promise<void> => replaceRecipeImages(ctx, args),
 });
