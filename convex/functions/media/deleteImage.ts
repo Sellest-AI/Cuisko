@@ -1,4 +1,3 @@
-import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { cascadeDelete } from "@convex/functions/cascade";
 import type { MutationCtx } from "@convex/procedures";
@@ -39,27 +38,4 @@ export const deleteImageRowsAfterFilesRemoved = async (ctx: MutationCtx, imageId
   }
 
   await cascadeDelete(ctx, "images", imageId);
-};
-
-/**
- * Queue the removal of the render `imageId` was cut from, along with everything hanging off it.
- *
- * Scheduled rather than awaited: deleting the files is four bucket round-trips per image and the
- * caller — a shopper who just got a new photo — has no reason to wait for the old one to go.
- *
- * The cleanup is aimed at the BASE image, not at `imageId` itself. The ingredient points at the
- * transparent cut-out; the white-background render it was cut from is its base, and deleting the
- * base cascades to the cut-out. Aiming at the cut-out instead would strand the render in the
- * bucket forever.
- */
-export const scheduleImageTreeDeletion = async (ctx: MutationCtx, imageId: Id<"images">) => {
-  const objects = await ctx.db
-    .query("imageObjects")
-    .withIndex("by_image_id", (q) => q.eq("imageId", imageId));
-
-  for await (const object of objects) {
-    await ctx.scheduler.runAfter(0, internal.router.media.images.deleteOne._internal, {
-      imageId: object.baseImageId,
-    });
-  }
 };

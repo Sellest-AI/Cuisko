@@ -65,6 +65,7 @@ import type * as functions_media_deleteImage from "../functions/media/deleteImag
 import type * as functions_media_deleteImageFiles from "../functions/media/deleteImageFiles.js";
 import type * as functions_media_getImage from "../functions/media/getImage.js";
 import type * as functions_media_imageSizes from "../functions/media/imageSizes.js";
+import type * as functions_media_imageTree from "../functions/media/imageTree.js";
 import type * as functions_media_sanitizeImage from "../functions/media/sanitizeImage.js";
 import type * as functions_media_saveImage from "../functions/media/saveImage.js";
 import type * as functions_media_uploadImage from "../functions/media/uploadImage.js";
@@ -219,6 +220,7 @@ declare const fullApi: ApiFromModules<{
   "functions/media/deleteImageFiles": typeof functions_media_deleteImageFiles;
   "functions/media/getImage": typeof functions_media_getImage;
   "functions/media/imageSizes": typeof functions_media_imageSizes;
+  "functions/media/imageTree": typeof functions_media_imageTree;
   "functions/media/sanitizeImage": typeof functions_media_sanitizeImage;
   "functions/media/saveImage": typeof functions_media_saveImage;
   "functions/media/uploadImage": typeof functions_media_uploadImage;

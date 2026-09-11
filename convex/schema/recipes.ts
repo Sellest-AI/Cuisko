@@ -100,10 +100,19 @@ export const recipes = defineTable({
   isGlutenFree: v.boolean(),
   isDairyFree: v.boolean(),
   isNutFree: v.boolean(),
+
+  // Images
+  coverImageId: v.optional(v.id("images")),
+  plateImageId: v.optional(v.id("images")),
+
   updatedAt: v.number(), // S5
 })
   .index("by_user", ["userId"])
   .index("by_difficulty", ["difficulty"])
+  // Answer "which recipe points at this image", which is what detaches it when the image is deleted
+  // (CASCADE.images in functions/cascade.ts). Nothing reads them on a normal path.
+  .index("by_cover_image", ["coverImageId"])
+  .index("by_plate_image", ["plateImageId"])
   // All four indexes carry the same filter fields: a cook who is vegan is vegan whether they are
   // searching by ingredient or by title, in French or in English, so a facet missing from one of
   // them is a promise the app keeps on one screen and breaks on another.

@@ -12,7 +12,10 @@ MUST NOT: combine `.filter()` with `.paginate()`. Put the predicate in the index
 MUST: name indexes `by_<field>[_and_<field>]`, fields in the same order as the definition.
 MUST: ship a new foreign key together with the index its cascade needs **and** its `CASCADE` entry.
 MUST: mark a `CASCADE` entry `onDelete: "detach"` when the dependent row outlives its parent, and
-make that field optional. The default is `"delete"`.
+make that field optional. The default is `"delete"`, which cascades recursively.
+MUST: declare `{ field, onDelete: "delete-image-tree" }` under a table whose rows own the images
+they point at, so deleting the row queues its images for deletion. An index cannot see that
+direction — the row points at the image, not the other way round.
 MAY: use `.filter()` to narrow an already-indexed, already-small result set.
 
 ## Why
