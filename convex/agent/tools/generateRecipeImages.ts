@@ -132,7 +132,7 @@ const _render = async (prompt: string, shot: Shot): Promise<string> => {
   const output = await runImage({
     width: shot.width,
     height: shot.height,
-    model: "prunaai/z-image-turbo",
+    model: "prunaai/p-image-ideogram",
     prompt: `${prompt} ${shot.promptSuffix}`,
   });
 
