@@ -2,7 +2,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
-import { type RecipeCard, toRecipeCard } from "./recipeCard";
+import { type RecipeCard, toRecipeCards } from "./recipeCard";
 
 type SearchCtx = Pick<QueryCtx, "db">;
 
@@ -122,5 +122,6 @@ export const searchForUser = async (
     if (!ranked.has(recipe._id)) ranked.set(recipe._id, recipe);
   }
 
-  return [...ranked.values()].slice(0, limit).map((recipe) => toRecipeCard(recipe, locale));
+  /** Covers are read after the cut, so a match that does not make the list costs no image read. */
+  return toRecipeCards(ctx, [...ranked.values()].slice(0, limit), locale);
 };

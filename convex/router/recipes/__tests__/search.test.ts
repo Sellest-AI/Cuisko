@@ -109,4 +109,31 @@ describe("router/recipes/search", () => {
 
     expect(found.map((recipe) => recipe.title)).toEqual(["Tomato soup"]);
   });
+
+  /** A match is drawn by the same card as the list, so it carries the same cover. */
+  test("carries the match's cover url", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId, "Tomato soup", "tomato");
+
+    await t.run(async (ctx) => {
+      const coverImageId = await ctx.db.insert("images", {
+        hasAlpha: false,
+        key: "public/cover.webp",
+        url: "cover.webp",
+        width: 600,
+        height: 400,
+        size: 6_000,
+        mimeType: "image/webp",
+        tags: ["IMAGE"],
+        updatedAt: Date.now(),
+      });
+      await ctx.db.patch(recipeId, { coverImageId });
+    });
+
+    const found = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.search.authed, { query: "tomato", locale: "en" });
+
+    expect(found[0]?.coverImageUrl).toBe("cover.webp");
+  });
 });

@@ -133,7 +133,7 @@ export const AssistantScreen = ({ style }: Props) => {
               key={recipe.title}
               title={recipe.title}
               subtitle={recipe.subtitle}
-              imageSrc={require("assets/placeholders/pizza-recipe.jpg")}
+              imageSrc={require("assets/placeholders/empty-placeholder.jpg")}
               style={{ width: 220 }}
             />
           ))}
@@ -170,7 +170,7 @@ export const AssistantScreen = ({ style }: Props) => {
                 height: 200,
 
               }}
-              source={require("assets/placeholders/pizza-recipe.jpg")}
+              source={require("assets/placeholders/empty-placeholder.jpg")}
             />
           </View>
         </Message>

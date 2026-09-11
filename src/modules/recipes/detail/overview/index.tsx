@@ -23,7 +23,7 @@ import { IngredientGroup } from "../../_components/ingredient-group";
  * every recipe would draw a blank circle. Unlike the name below it, this does not degrade into
  * something honest — an absent avatar is a hole in the tile — so it stands in unconditionally.
  */
-const PLACEHOLDER_AVATAR = require("assets/placeholders/pizza-recipe.jpg");
+const PLACEHOLDER_AVATAR = require("assets/placeholders/empty-placeholder.jpg");
 
 const COLUMNS = 3;
 

@@ -287,6 +287,71 @@ describe("functions/recipes/loadRecipe", () => {
     });
   });
 
+  /**
+   * The page header draws the large size and a card the medium one, from one read of the image.
+   * No rendition sits between 600 and 1024px on the ladder, so `large` is the original.
+   */
+  describe("the cover", () => {
+    const seedCover = (recipeId: Id<"recipes">, { deleted = false } = {}) =>
+      t.run(async (ctx) => {
+        const coverImageId = await ctx.db.insert("images", {
+          hasAlpha: false,
+          key: "public/cover.webp",
+          url: "cover.webp",
+          width: 1536,
+          height: 1024,
+          size: 400_000,
+          mimeType: "image/webp",
+          tags: ["IMAGE"],
+          updatedAt: Date.now(),
+        });
+
+        await ctx.db.insert("imageSizes", {
+          imageId: coverImageId,
+          quality: 70,
+          key: "public/cover-600.webp",
+          url: "cover-600.webp",
+          width: 600,
+          height: 400,
+          size: 6_000,
+        });
+
+        await ctx.db.patch(recipeId, { coverImageId });
+        if (deleted) await ctx.db.delete(coverImageId);
+      });
+
+    test("carries the medium url for the card and the large one for the header", async () => {
+      const recipeId = await seedRecipe();
+      await seedCover(recipeId);
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.coverImageUrl).toBe("cover-600.webp");
+      expect(recipe.coverImageLargeUrl).toBe("cover.webp");
+    });
+
+    test("leaves both absent for a recipe with no cover", async () => {
+      const recipeId = await seedRecipe();
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.coverImageUrl).toBeUndefined();
+      expect(recipe.coverImageLargeUrl).toBeUndefined();
+    });
+
+    /** A pointer at a deleted image must read as "no cover", not crash the whole recipe. */
+    test("leaves both absent when the image row is gone", async () => {
+      const recipeId = await seedRecipe();
+      await seedCover(recipeId, { deleted: true });
+
+      const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+      expect(recipe.title).toBe("Onion soup");
+      expect(recipe.coverImageUrl).toBeUndefined();
+      expect(recipe.coverImageLargeUrl).toBeUndefined();
+    });
+  });
+
   /** The stored key, not a heading — the screen groups by it and owns the words and the order. */
   test("carries each line's category, in position order", async () => {
     const recipeId = await seedRecipe();

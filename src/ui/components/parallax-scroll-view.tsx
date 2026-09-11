@@ -19,7 +19,11 @@ type Props = {
   /** Height of the header */
   headerContent: ReactNode;
   headerContentEdges?: ComponentProps<typeof SafeAreaView>["edges"];
-  headerBackgroundImage?: ComponentProps<typeof Image>["source"];
+  /**
+   * A url, or a bundled asset from `require`. Nothing wider: the image is React Native's on iOS and
+   * expo-image's on Android, and these two are the sources both of them draw.
+   */
+  headerBackgroundImage?: string | number;
   headerBackgroundImageStyle?: ComponentProps<typeof Image>["style"] & { blurRadius?: number };
   headerBackgroundImagePosition?: ComponentProps<typeof Image>["contentPosition"];
   headerBackground?: ReactNode;
@@ -214,10 +218,13 @@ export const ParallaxScrollView = ({
           </View>}
           {headerBackgroundImage && (
             <AnimatedImage
-              source={{
-                uri: headerBackgroundImage.toString(),
-                cache: "force-cache"
-              }}
+              /**
+               * A url is cached; anything else (a bundled `require`) is already a source and goes
+               * through untouched. Stringifying it would ask the network for "12".
+               */
+              source={typeof headerBackgroundImage === "string"
+                ? { uri: headerBackgroundImage, cache: "force-cache" }
+                : headerBackgroundImage}
               style={[{
                 position: "absolute",
                 width: "100%",

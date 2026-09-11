@@ -4,7 +4,7 @@ import type { QueryCtx } from "@convex/procedures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Locale } from "@convex/schema/i18n";
 
-import { type RecipeCard, toRecipeCard } from "./recipeCard";
+import { type RecipeCard, toRecipeCards } from "./recipeCard";
 
 type ListCtx = Pick<QueryCtx, "db">;
 
@@ -40,5 +40,5 @@ export const listForUser = async (
    * The cursor and `isDone` are passed through untouched. They describe the index read, and the
    * mapping is one-to-one — a page that rewrote them would be answering for a set it did not read.
    */
-  return { ...page, page: page.page.map((recipe) => toRecipeCard(recipe, locale)) };
+  return { ...page, page: await toRecipeCards(ctx, page.page, locale) };
 };

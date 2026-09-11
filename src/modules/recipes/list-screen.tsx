@@ -15,12 +15,7 @@ import { useTranslations } from "translations";
 
 import { useRecipeList } from "./_hooks/useRecipeList";
 import { EmptyState } from "./_components/empty-state";
-
-/**
- * Every card draws the same picture, because a recipe has no image field yet. When one lands it
- * replaces this and nothing else on the screen moves.
- */
-const CARD_PLACEHOLDER = require("assets/placeholders/pizza-recipe.jpg");
+import { COVER_PLACEHOLDER } from "./constants";
 
 type Props = {
   style?: ViewStyle
@@ -109,7 +104,7 @@ export const RecipesScreen = ({ style }: Props) => {
               <CardRecipe
                 title={item.title}
                 subtitle={tVocabulary(`Cuisines.${item.cuisine}`)}
-                imageSrc={CARD_PLACEHOLDER}
+                imageSrc={item.coverImageUrl ? { uri: item.coverImageUrl } : COVER_PLACEHOLDER}
                 style={{ width: "100%", marginBottom: COLUMN_GAP }}
                 onPress={() => router.push(`/recipe/${item.id}`)}
               />
