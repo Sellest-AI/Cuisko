@@ -2,7 +2,28 @@ import { describe, expect, test } from "vitest";
 
 import type { Localized } from "@convex/schema/i18n";
 
-import { hasTranslation, hashText, isTranslationOutdated, setTranslation } from "../index";
+import { hasTranslation, hashText, isTranslationOutdated, resolvei18n, setTranslation } from "../index";
+
+describe("resolvei18n", () => {
+  test("returns the requested locale when present", () => {
+    const field: Localized = { values: { fr: "Soupe à l'oignon", en: "Onion soup" }, meta: {} };
+    expect(resolvei18n(field, "fr")).toBe("Soupe à l'oignon");
+  });
+
+  test("falls back to the default locale before any other", () => {
+    const field: Localized = { values: { fr: "Soupe à l'oignon", en: "Onion soup" }, meta: {} };
+    expect(resolvei18n({ ...field, values: { en: "Onion soup" } }, "fr")).toBe("Onion soup");
+  });
+
+  test("returns the only saved language when neither the locale nor the fallback exists", () => {
+    const untranslated: Localized = { values: { fr: "Soupe à l'oignon" }, meta: {} };
+    expect(resolvei18n(untranslated, "en")).toBe("Soupe à l'oignon");
+  });
+
+  test("is empty for a field with no value in any language", () => {
+    expect(resolvei18n({ values: {}, meta: {} }, "en")).toBe("");
+  });
+});
 
 describe("hasTranslation", () => {
   test("is false for a locale with no value", () => {
