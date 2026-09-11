@@ -1,5 +1,5 @@
 import type { Id } from "@convex/_generated/dataModel";
-import { scheduleImageTreeDeletion } from "@convex/functions/media/deleteImage";
+import { scheduleImageTreeDeletion } from "@convex/functions/media/imageTree";
 import type { MutationCtx } from "@convex/procedures";
 
 type ReplaceArgs = {

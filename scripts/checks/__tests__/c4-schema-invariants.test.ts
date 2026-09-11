@@ -146,3 +146,48 @@ describe("S7 and S10 still bite", () => {
     expect(output).toContain('S10 — "cellarItems.householdId" has no CASCADE entry');
   });
 });
+
+describe("S10 — delete-image-tree rules", () => {
+  const recipes = table(
+    "recipes",
+    'coverImageId: v.optional(v.id("images")), servings: v.number(), updatedAt: v.number(),',
+    '.index("by_cover_image", ["coverImageId"])',
+  );
+
+  /** The rule under test, beside the detach entry S10 demands for the same field anyway. */
+  const cascadeWith = (rule: string) =>
+    `export const CASCADE = {
+       images: [{ table: "recipes", index: "by_cover_image", field: "coverImageId", onDelete: "detach" }],
+       recipes: [${rule}],
+     };`;
+
+  it("accepts a rule on an image id field of the deleted table", () => {
+    const { code, output } = runC4(
+      recipes,
+      cascadeWith('{ field: "coverImageId", onDelete: "delete-image-tree" }'),
+    );
+
+    expect(code).toBe(0);
+    expect(output).toContain("✅");
+  });
+
+  it("rejects a rule on a field that holds no image id", () => {
+    const { code, output } = runC4(
+      recipes,
+      cascadeWith('{ field: "servings", onDelete: "delete-image-tree" }'),
+    );
+
+    expect(code).toBe(1);
+    expect(output).toContain('deletes the image tree of "servings"');
+  });
+
+  it("rejects a rule on a field the table does not declare", () => {
+    const { code, output } = runC4(
+      recipes,
+      cascadeWith('{ field: "plateImageId", onDelete: "delete-image-tree" }'),
+    );
+
+    expect(code).toBe(1);
+    expect(output).toContain('deletes the image tree of "plateImageId"');
+  });
+});

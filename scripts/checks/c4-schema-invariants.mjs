@@ -273,10 +273,31 @@ for (const [name, table] of tables) {
   }
 }
 
-/* ── 4. Every cascade rule points at a table that exists ──────────────────────────────── */
+/* ── 4. Every cascade rule points at a table — or a field — that exists ───────────────── */
 
 for (const [parent, rules] of cascade) {
   for (const rule of rules) {
+    // A `"delete-image-tree"` rule names no table: it reads a field on the row being deleted. What
+    // has to exist is that field, holding image ids — anything else would hand a recipe id, say, to
+    // the image deletion and fail only when a row is actually deleted.
+    if (rule.onDelete === "delete-image-tree") {
+      const property = tables
+        .get(parent)
+        ?.fields?.properties.find(
+          (p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === rule.field,
+        );
+      const reference = property && foreignKeyTarget(property.initializer);
+
+      if (reference?.parent !== "images" || reference.inArray) {
+        findings.push({
+          file: "convex/functions/cascade.ts",
+          message: `S10 — CASCADE["${parent}"] deletes the image tree of "${rule.field}", which is not a v.id("images") on "${parent}".`,
+          fix: `Point the rule at an image id field declared on "${parent}", or remove it.`,
+        });
+      }
+      continue;
+    }
+
     if (!tables.has(rule.table)) {
       findings.push({
         file: "convex/functions/cascade.ts",

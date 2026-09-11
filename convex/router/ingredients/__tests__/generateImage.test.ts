@@ -144,16 +144,16 @@ describe("router/ingredients/generateImage", () => {
 
   /**
    * An outdated image with no `imageObjects` row — an upload that was never a generated pair.
-   * There is no base to aim at, so nothing is scheduled and the old row is simply left behind.
-   * Pinned because it is the one path where replacing an image leaks the previous one.
+   * It is its own root, so it is the one scheduled; aiming at nothing would leak it.
    */
-  test("schedules nothing when the outdated image has no base", async () => {
+  test("schedules the outdated image itself when it has no base", async () => {
     const t = convexTest(schema, modules);
 
-    const { ingredientId, newImageId } = await t.run(async (ctx) => {
+    const { ingredientId, newImageId, orphan } = await t.run(async (ctx) => {
       const orphan = await ctx.db.insert("images", imageRow("orphan.webp"));
 
       return {
+        orphan,
         ingredientId: await ctx.db.insert("ingredients", ingredientRow(orphan)),
         newImageId: await ctx.db.insert("images", imageRow("new.webp")),
       };
@@ -164,6 +164,8 @@ describe("router/ingredients/generateImage", () => {
       imageId: newImageId,
     });
 
-    expect(await scheduled(t)).toEqual([]);
+    const jobs = await scheduled(t);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.args[0]).toEqual({ imageId: orphan });
   });
 });

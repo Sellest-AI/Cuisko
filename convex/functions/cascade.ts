@@ -2,6 +2,7 @@ import type { IndexRange } from "convex/server";
 
 import type { Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx } from "../procedures";
+import { scheduleImageTreeDeletion } from "./media/imageTree";
 
 /**
  * A row that must react when its parent dies: which table holds it, which index answers
@@ -16,12 +17,30 @@ import type { MutationCtx } from "../procedures";
  * A `"detach"` field must be optional in the schema — clearing a required field would write a row
  * that fails validation.
  */
-type CascadeRule = {
+type ReferencingRule = {
   table: TableNames;
   index: string;
   field: string;
   onDelete?: "delete" | "detach";
 };
+
+/**
+ * An image the deleted row itself points at, which goes with it.
+ *
+ * The other direction from `ReferencingRule`, and the one an index lookup cannot see: nothing
+ * points AT the recipe from `images`, the recipe points at the image. Without this the row would go
+ * and its generated photos would stay in the bucket, referenced by nothing.
+ *
+ * Always the whole tree (`scheduleImageTreeDeletion`), never the one image: a field holding a
+ * cut-out would otherwise leave the render it was cut from behind. C4 checks that `field` is a
+ * `v.id("images")` on the table the rule sits under.
+ */
+type OwnedImageRule = {
+  field: string;
+  onDelete: "delete-image-tree";
+};
+
+type CascadeRule = ReferencingRule | OwnedImageRule;
 
 /**
  * Every foreign key in the schema, declared once, keyed by the table being deleted.
@@ -42,9 +61,10 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     { table: "userPreferences", index: "by_user", field: "userId" },
     { table: "householdUsers", index: "by_user", field: "userId" },
     { table: "recipeFavorites", index: "by_user", field: "userId" },
-    // The recipe goes with its author: `userId` is what makes it theirs, and a recipe left behind
-    // with a dangling one would show an empty chef on every screen that draws the credit.
-    { table: "recipes", index: "by_user", field: "userId" },
+    // Detached, not deleted: a recipe outlives its author. `loadRecipe` already draws a recipe with
+    // no `userId` as uncredited, and deleting it would take every household's copy of the dish with
+    // the account that happened to write it.
+    { table: "recipes", index: "by_user", field: "userId", onDelete: "detach" },
     { table: "userImages", index: "by_user_id", field: "userId" },
   ],
   images: [
@@ -55,6 +75,9 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     // Detached, not deleted: the photo is a decoration on a catalog row that existed before it and
     // goes on existing after it. The tile falls back to the emoji, which is never absent.
     { table: "ingredients", index: "by_image", field: "imageId", onDelete: "detach" },
+    // Detached for the same reason: a recipe is not its photo, and the screen draws a placeholder.
+    { table: "recipes", index: "by_cover_image", field: "coverImageId", onDelete: "detach" },
+    { table: "recipes", index: "by_plate_image", field: "plateImageId", onDelete: "detach" },
   ],
   households: [
     { table: "householdUsers", index: "by_household", field: "householdId" },
@@ -71,11 +94,20 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
   recipes: [
     { table: "recipeIngredients", index: "by_recipe", field: "recipeId" },
     { table: "recipeFavorites", index: "by_recipe", field: "recipeId" },
+    { field: "coverImageId", onDelete: "delete-image-tree" },
+    { field: "plateImageId", onDelete: "delete-image-tree" },
   ],
 };
 
 /**
- * Deletes `id` and everything that references it.
+ * Deletes `id` and everything that references it, recursively.
+ *
+ * A `"delete"` rule runs this same function on each dependent row rather than deleting it bare, so
+ * the dependent's own rules fire too. Deleting bare was how a cascade two levels deep orphaned its
+ * grandchildren: the rows under the row it removed never learned their parent was gone.
+ *
+ * A row already gone is a no-op rather than a throw. Recursion can reach the same row twice by two
+ * paths, and the second arrival has nothing left to do.
  *
  * For very large fan-outs, schedule the cascade in batches rather than doing it in one
  * mutation — a single transaction has a read/write budget and will fail once exceeded.
@@ -85,7 +117,18 @@ export const cascadeDelete = async <T extends TableNames>(
   table: T,
   id: Id<T>,
 ): Promise<void> => {
+  const doc = await ctx.db.get(id);
+  if (!doc) return;
+
   for (const rule of CASCADE[table] ?? []) {
+    if (rule.onDelete === "delete-image-tree") {
+      // The field is data, not a literal, so the document cannot be indexed by it with its type.
+      // C4 is what proves it names a `v.id("images")` on this table.
+      const imageId = (doc as Record<string, unknown>)[rule.field] as Id<"images"> | undefined;
+      if (imageId) await scheduleImageTreeDeletion(ctx, imageId);
+      continue;
+    }
+
     const rows = await ctx.db
       .query(rule.table)
       // The index name and field are data, not literals, so the generic index API cannot type
@@ -96,10 +139,10 @@ export const cascadeDelete = async <T extends TableNames>(
     for (const row of rows) {
       if (rule.onDelete === "detach") {
         // Clearing the pointer, not the row. The field is optional by construction — see the note
-        // on `CascadeRule` — so `undefined` is a value the schema accepts.
+        // on `ReferencingRule` — so `undefined` is a value the schema accepts.
         await ctx.db.patch(row._id, { [rule.field]: undefined } as never);
       } else {
-        await ctx.db.delete(row._id);
+        await cascadeDelete(ctx, rule.table, row._id as never);
       }
     }
   }

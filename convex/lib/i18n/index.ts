@@ -1,7 +1,20 @@
-import { Locale, Localized, TranslationStatus } from "@convex/schema/i18n";
+import { DEFAULT_LOCALE, Locale, Localized, TranslationStatus } from "@convex/schema/i18n";
 
-export function resolvei18n(f: Localized, locale: Locale, fallback: Locale = "en") {
-  return f.values[locale] ?? f.values[fallback] ?? "";
+/**
+ * The field in `locale`, else in `fallback`, else in whichever language it does exist in.
+ *
+ * The last step is what a freshly written row needs: a recipe is saved in the cook's language
+ * alone and translated afterwards, so until `translateOne` lands a French recipe read in English
+ * has no `en` value and no `DEFAULT_LOCALE` one either. Text in the wrong language is still the
+ * recipe; an empty string is not, and the image job reads the row inside that window.
+ */
+export function resolvei18n(f: Localized, locale: Locale, fallback: Locale = DEFAULT_LOCALE) {
+  return (
+    f.values[locale] ??
+    f.values[fallback] ??
+    Object.values(f.values).find((value) => value !== undefined) ??
+    ""
+  );
 }
 
 export const hasTranslation = (f: Localized, locale: Locale) =>

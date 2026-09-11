@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
-import { deleteImageRowsAfterFilesRemoved, scheduleImageTreeDeletion } from "../deleteImage";
+import { deleteImageRowsAfterFilesRemoved } from "../deleteImage";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -30,9 +30,6 @@ const ingredientRow = (imageId?: Id<"images">) => ({
   imageId,
   updatedAt: Date.now(),
 });
-
-const scheduled = (t: ReturnType<typeof convexTest>) =>
-  t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 
 /**
  * These cover the helpers directly, where the router tests cover them through the registered
@@ -114,47 +111,6 @@ describe("functions/media/deleteImage", () => {
       await expect(
         t.run((ctx) => deleteImageRowsAfterFilesRemoved(ctx, imageId)),
       ).resolves.toBeNull();
-    });
-  });
-
-  describe("scheduleImageTreeDeletion", () => {
-    /**
-     * Aimed at the base render, not at the cut-out handed in: deleting the base cascades to the
-     * cut-out, while aiming at the cut-out would strand the render in the bucket forever.
-     */
-    test("schedules the base of the image it is given", async () => {
-      const t = convexTest(schema, modules);
-
-      const { cutout, base } = await t.run(async (ctx) => {
-        const base = await ctx.db.insert("images", imageRow("base.webp"));
-        const cutout = await ctx.db.insert("images", imageRow("cutout.webp"));
-        await ctx.db.insert("imageObjects", {
-          imageId: cutout, baseImageId: base, x: 0, y: 0, updatedAt: Date.now(),
-        });
-        return { cutout, base };
-      });
-
-      await t.run((ctx) => scheduleImageTreeDeletion(ctx, cutout));
-
-      const jobs = await scheduled(t);
-      expect(jobs).toHaveLength(1);
-      expect(jobs[0]?.name).toContain("deleteOne");
-      expect(jobs[0]?.args[0]).toEqual({ imageId: base });
-    });
-
-    /**
-     * An image that was never a generated pair has no `imageObjects` row, so there is no base to
-     * aim at and nothing is scheduled — the row is left behind. Pinned because it is the one path
-     * where replacing an image leaks the previous one; the leak is tracked separately.
-     */
-    test("schedules nothing for an image with no base", async () => {
-      const t = convexTest(schema, modules);
-
-      const orphan = await t.run((ctx) => ctx.db.insert("images", imageRow("orphan.webp")));
-
-      await t.run((ctx) => scheduleImageTreeDeletion(ctx, orphan));
-
-      expect(await scheduled(t)).toEqual([]);
     });
   });
 });

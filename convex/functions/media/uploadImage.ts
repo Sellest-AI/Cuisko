@@ -88,12 +88,12 @@ export const uploadManyImages = async (ctx: ActionCtx, args: UploadManyArgs): Pr
     const url = image.url ?? image.base64;
     if (!url) throw new Error("Either url or base64 image data must be provided");
 
-    return uploadImage(url, {
+    return retryPromise(() => uploadImage(url, {
       autoCrop: image.autoCrop,
       object: image.object,
       userId: args.userId,
       tags: image.tags,
-    });
+    }), 2);
   }));
 
   const images = await retryPromise(() => ctx.runMutation(internal.router.media.images.saveMany._internal, {
