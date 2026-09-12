@@ -6,7 +6,7 @@ import type { Taste } from "@shared/tastes";
 
 import type { Constraint } from "../_model/constraints";
 
-import { MAX_DAYS, MEAL_SLOTS, type CookingTime, type MealSlot, type PlannedMeal } from "../_model/model";
+import { MAX_DAYS, type CookingTime, type MealSlot, type PlannedMeal } from "../_model/model";
 import { PLACEHOLDER_MEALS } from "./placeholders";
 
 /**
@@ -24,14 +24,19 @@ import { PLACEHOLDER_MEALS } from "./placeholders";
  * kitchen looks like.
  */
 export const TUNNEL_OFFERS = {
-  people: 3,
-  /** A week is the offer the planning screen makes, so a week is what the tunnel opens on. */
-  days: MAX_DAYS,
+  people: 2,
   /**
-   * Both plates: a household that only wants dinners planned is the exception, and starting from
-   * the fuller week means the common case is answered by not touching this at all.
+   * One day short of the full week, so the offer reads as an offer rather than as a ceiling: a
+   * track already at its maximum gives the user nothing to discover, and the day they add is the
+   * one that teaches them the slider moves at all.
    */
-  slots: MEAL_SLOTS,
+  days: MAX_DAYS - 1,
+  /**
+   * Lunch alone, not both plates. Planning a week of lunches is the job people arrive with, and
+   * the second plate doubles the generated week for a household that never asked for it — so
+   * dinner is a plate you add, not one you have to notice and remove.
+   */
+  slots: ["lunch"],
   equipments: ["oven", "microwave"],
 } as const satisfies { people: number; days: number; slots: readonly MealSlot[]; equipments: readonly Equipment[] };
 
