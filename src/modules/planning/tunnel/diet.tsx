@@ -25,6 +25,21 @@ const GAP = theme.spacing[8];
 type DietConstraint = Constraint & { value: Diet };
 
 /**
+ * The "no particular diet" tile, drawn but never stored.
+ *
+ * `omnivore` is not a constraint, so `constraints` never contains it — see the note on
+ * `CONSTRAINING_DIETS` in `_model/constraints.ts`. It is a tile because an all-off grid tested as
+ * *unanswered* rather than as answered-with-nothing, and users went looking for the option that
+ * said so. `active` is false here because selection is derived from the real diets, not from this
+ * object: it is a label for the empty set, and the empty set is not a tick.
+ */
+const NO_DIET: DietConstraint = {
+  value: "omnivore",
+  source: "mine",
+  active: false,
+};
+
+/**
  * How the household eats, wherever the constraint came from.
  *
  * **The split is by source, not by question.** An earlier design split "mine" from "this week" and
@@ -59,6 +74,9 @@ export const TunnelDiet = () => {
     isDietConstraint(constraint.value),
   );
 
+  /** No real diet ticked is what `NO_DIET` stands for, so it is what selects that tile. */
+  const hasNoDiet = diets.every((diet) => !diet.active);
+
   const { width } = useWindowDimensions();
   const tileWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
 
@@ -83,17 +101,29 @@ export const TunnelDiet = () => {
         <Text.Base color={colors.muted}>{t("Tunnel.Diet.loading")}</Text.Base>
       ) : (
         <View style={styles.grid}>
-          {diets.map((diet) => (
-            <CardChoice
-              key={diet.value}
-              label={tVocabulary(`Diets.${diet.value}`)}
-              emoji={DIET_EMOJI[diet.value]}
-              style={{ width: tileWidth - 1 }}
-              selected={diet.active}
-              onPress={() => onSelect(diet.value)}
-              elevated
-            />
-          ))}
+          {[NO_DIET, ...diets].map((diet) => {
+            const isNoDiet = diet.value === NO_DIET.value;
+
+            return (
+              <CardChoice
+                key={diet.value}
+                label={tVocabulary(`Diets.${diet.value}`)}
+                emoji={DIET_EMOJI[diet.value]}
+                style={{ width: tileWidth - 1 }}
+                selected={isNoDiet ? hasNoDiet : diet.active}
+                onPress={() => {
+                  /**
+                   * Selecting "no diet" is unticking every diet: the tile has no value of its own
+                   * to toggle, and leaving the old ticks on would contradict the tile the user
+                   * just lit. Already-empty is a no-op, which is what an inert tile should be.
+                   */
+                  if (isNoDiet) diets.filter((d) => d.active).forEach((d) => onSelect(d.value));
+                  else onSelect(diet.value);
+                }}
+                elevated
+              />
+            );
+          })}
         </View>
       )}
     </Animated.ScrollView>

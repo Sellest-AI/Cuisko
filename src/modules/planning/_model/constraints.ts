@@ -33,12 +33,18 @@ export type Constraint = {
 };
 
 /**
- * `omnivore` is not a constraint, so it is not a chip.
+ * `omnivore` is not a constraint, so it is never a *stored* one.
  *
  * Every other diet excludes something and reads as an instruction to the generator; `omnivore`
- * excludes nothing, and it is already what an empty list of ticks means — see `_dietOf`. A chip
- * for it would be one the user could switch on to no effect, or worse, one they would read as
- * "serve meat" when nothing here can promise that.
+ * excludes nothing, and it is already what an empty list of ticks means — see `_dietOf`. So it
+ * stays out of this list, and no row, no tick and no saved preference ever carries it.
+ *
+ * ⚠️ **It is drawn as a tile even so.** This list said "so it is not a chip" until UX tests with
+ * real users, where an all-off diet grid read as unanswered rather than as answered-with-nothing
+ * and people looked for the option that said so. The diet step therefore prepends a synthetic
+ * `omnivore` tile that is selected exactly when no real diet is active, and tapping it unticks
+ * the ones that are — see `tunnel/diet.tsx`. It is a view of the empty set, not a value: if you
+ * are ever tempted to let it round-trip through `save`, that is the rule above, still standing.
  */
 const CONSTRAINING_DIETS = DIETS.filter((diet) => diet !== "omnivore");
 
