@@ -21,6 +21,7 @@ export const CUISINES = [
   "greek",
   "british",
   "german",
+  "russian",
   "eastern-european",
   "scandinavian",
   "turkish",
