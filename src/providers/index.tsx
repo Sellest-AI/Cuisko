@@ -1,5 +1,6 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "@ui/safe-area-view";
@@ -30,7 +31,9 @@ export const Providers = ({ children }: { children: React.ReactNode }) => (
       <KeyboardProvider>
         <AnimationProvider>
           <SafeAreaProvider>
-            {children}
+            <GestureHandlerRootView>
+              {children}
+            </GestureHandlerRootView>
           </SafeAreaProvider>
         </AnimationProvider>
       </KeyboardProvider>
