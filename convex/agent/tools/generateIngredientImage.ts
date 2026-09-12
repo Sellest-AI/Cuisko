@@ -47,8 +47,8 @@ LIQUIDS & POURABLE INGREDIENTS (oil, vinegar, milk, juice, sauces, honey, syrup)
   glass bottle, jar, carton, or squeeze bottle depending on the item.
 - Describe the container's material (glass/plastic/cardboard), cap type, and fill level,
   and let a little of the liquid's color show through if the container is transparent.
-- Labels must be GENERIC/UNBRANDED — a plain colored label or none at all. Never depict real
-  brand names, logos, or trademarked packaging designs.
+- Prefer NO label at all: a bare container lets the liquid's color read instantly, which is what
+  makes the icon recognizable. Never depict real brand names, logos, or trademarked designs.
 
 BEVERAGES (soda, water, beer, energy drinks, juice boxes, canned coffee):
 - Always include the container type people actually associate with the drink: aluminum can,
@@ -56,7 +56,7 @@ BEVERAGES (soda, water, beer, energy drinks, juice boxes, canned coffee):
 - Describe condensation droplets on the outside if the drink is typically served cold.
 - Carbonated drinks may show a small splash or a few rising bubbles beside/behind the container
   for context, kept subtle and not obscuring the object.
-- Generic/unbranded label only — plain color and simple typography, no real brand names or logos.
+- No label, or at most a narrow unbranded band near the base — no real brand names or logos.
 
 CLEANING & HOUSEHOLD PRODUCTS (dish soap, detergent, gel, sprays, wipes, bleach):
 - Always include realistic, generic packaging: bottle with pump/flip-cap, spray trigger bottle,
@@ -64,7 +64,7 @@ CLEANING & HOUSEHOLD PRODUCTS (dish soap, detergent, gel, sprays, wipes, bleach)
   with that product.
 - If the product is a gel or liquid, you may show a small dollop/drop of the product's
   characteristic color next to or on the container to reinforce what it is.
-- Generic label only — no real brand names or logos.
+- Unbranded packaging — no real brand names or logos, and no large blank label panel.
 
 CLEANING TOOLS / CONSUMABLES (sponges, scrub brushes, cloths, steel wool, gloves):
 - Render the item itself, no container needed.
@@ -73,7 +73,8 @@ CLEANING TOOLS / CONSUMABLES (sponges, scrub brushes, cloths, steel wool, gloves
 
 PACKAGED/PROCESSED FOOD PRODUCTS (cereal, pasta, canned goods, snacks, chips, crackers):
 - Include realistic packaging (box, bag, can, pouch) appropriate to the product.
-- Generic label design only — plain color/typography, no real branding.
+- Unbranded packaging only, no real branding. If the container is transparent, leave it
+  unlabelled so the contents stay visible.
 - For cans/jars, you may describe a small cutaway or a few pieces of the product resting
   beside the container to show contents.
 
@@ -84,15 +85,15 @@ FROZEN GOODS (frozen vegetables, ice cream, frozen meals, ice pops, frozen dough
 - If showing the product outside its packaging (e.g. an ice cream scoop, an ice pop),
   give it a slightly glossy, hard-frozen surface texture rather than a melted look,
   unless "melting" is specifically requested.
-- Generic label only — no real branding.
+- Unbranded packaging — no real branding, and no large blank label panel.
 
 MEDICINE & PHARMACY ITEMS (pills, tablets, syrups, ointments, bandages, thermometers):
 - Include realistic, generic packaging: pill bottle, blister pack, syrup bottle with cap,
   ointment tube, bandage box, etc.
 - Blister packs may show a few pills/capsules partially popped out or visible through
   the foil/plastic for clarity.
-- Labels must be plain and generic (e.g. a white label with a simple cross or plus symbol
-  if needed for recognizability) — never real drug names, brand names, or logos.
+- Any label is a narrow unbranded band carrying at most a simple cross or plus symbol —
+  never a blank white panel, never real drug names, brand names, or logos.
 - Keep the depiction neutral and non-alarming (no medical warnings, no syringes/needles
   unless specifically requested).
 
@@ -104,6 +105,11 @@ TOOLS & UTENSILS (if relevant to the project, e.g. whisk, knife, ladle):
 - Never include human hands, faces, or other objects unless essential to reading the item
   (e.g. a spray bottle's trigger).
 - Never use real brand names, logos, or copyrighted packaging designs — always generic/neutral.
+- NEVER describe a blank, plain, white or empty label, and never a label band, wrap, sleeve or
+  strap around a container's body. A blank label covers the product and destroys the icon.
+  A transparent container (jar, glass bottle) is always shown unlabelled so its contents read
+  clearly. Where a label is unavoidable, it is small, near the base, and never wider than about
+  a third of the container's height.
 - Keep the prompt to 1–3 sentences, dense with visual detail, no filler language.
 - Output ONLY the prompt text. No explanations, no labels like "Prompt:", no quotation marks.
 
@@ -130,7 +136,7 @@ Instead, choose ONE of these natural composition strategies based on the item's 
 
 4. ROTATED/FORESHORTENED VIEW — for cylindrical items (canned goods, bottles, jars), a slight
    3/4 angle view rather than a flat side-on view can add visual height/depth without changing
-   the object's shape, as long as labels remain legible.
+   the object's shape, as long as the contents stay clearly visible.
 
 5. NATURAL CLUSTERING — for small round/irregular items (grapes, berries, nuts, garlic cloves),
    group a small cluster (3–6 pieces) rather than isolating a single tiny item that would leave
@@ -149,7 +155,7 @@ next to one tomato half revealing juicy seeds and flesh inside.
 Input: dish soap
 Output: A plastic squeeze bottle with a flip-top cap, three-quarters full of bright green
 dish soap gel, with a small dollop of the same green gel resting beside the bottle,
-plain unbranded label.
+unlabelled so the green gel shows through the whole bottle.
 
 Input: sponge
 Output: A rectangular two-layer cleaning sponge with a soft yellow porous foam top and a
@@ -157,7 +163,7 @@ green scouring pad bottom, slightly worn texture with a few visible soap suds cl
 
 Input: olive oil
 Output: A tall clear glass bottle filled with golden-green olive oil, a narrow pour spout
-and cork stopper, plain unbranded cream-colored label.
+and cork stopper, no label so the oil's color reads through the glass.
 
 Input: banana
 Output: A single ripe yellow banana with a few small brown speckles, its natural curve arcing
@@ -171,7 +177,7 @@ Input: honey
 Output: A short squat clear glass jar filled nearly to the brim with thick golden-amber honey,
 topped with a brushed brass screw-cap lid, a slow viscous drip trailing down the inside wall,
 a wooden honey dipper resting beside the jar with a small amount of honey dripping from its tip,
-plain unbranded off-white label.
+no label on the jar so the honey is visible through the glass.
 
 Input: asparagus
 Output: A small bundle of four asparagus spears with textured tips, loosely crossed and
@@ -182,8 +188,8 @@ Output: A small cluster of six deep-purple grapes with a light natural bloom on 
 grouped closely together with one grape slightly separated in front.
 
 Input: pain relief tablets
-Output: A small white plastic pill bottle with a childproof cap and plain generic label
-featuring a simple cross symbol, a few round white tablets scattered beside the bottle.`
+Output: A small white plastic pill bottle with a childproof cap and a narrow unbranded band
+near its base bearing a simple cross symbol, a few round white tablets scattered beside the bottle.`
 
 export const generateIngredientImage = createTool({
   description: "Generates a realistic, icon-ready image for an ingredient or product. " +
@@ -211,7 +217,7 @@ export const generateIngredientImage = createTool({
       model: "prunaai/z-image-turbo",
       prompt: [
         prompt.text,
-        "Rendered in 3D volumetric style, photorealistic materials and textures, soft studio lighting with gentle contact shadow beneath the object, subtle glossy or matte finish depending on material, rounded volumetric proportions typical of emoji design, centered composition, isolated on a plain solid white background (#FFFFFF), no text, no watermark, no extra props, no shadows on the background itself, square 1:1 aspect ratio, high-resolution product-photography quality. IMPORTANT : inanimate object only, no face, no eyes."
+        "Rendered in 3D volumetric style, photorealistic materials and textures, soft studio lighting with gentle contact shadow beneath the object, subtle glossy or matte finish depending on material, rounded volumetric proportions typical of emoji design, centered composition, isolated on a plain solid white background (#FFFFFF), no text, no watermark, no label, no blank white label panel or band wrapped around the object, no extra props, no shadows on the background itself, square 1:1 aspect ratio, high-resolution product-photography quality. IMPORTANT : inanimate object only, no face, no eyes."
       ].join(" ")
     })
 
