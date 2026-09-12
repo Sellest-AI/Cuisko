@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 
 import {
   CONFIDENT,
+  foldCost,
   gradesIn,
-  hasQualifier,
   PLAUSIBLE,
   preservationIn,
   RESOLVABLE,
@@ -219,44 +219,65 @@ describe("gradesIn", () => {
 });
 
 /**
- * The question the taxonomy index asks before it lets a spelling claim a key: did folding this name
- * throw a word away? `oignon en poudre` folds onto `oignon`, and the answer here is what stops
- * onion powder owning the onion's name.
+ * What the taxonomy index ranks its claimants by: how many words folding threw away. `oignon en
+ * poudre` and `Dés de jambon` both fold onto a bare food's key, and this number is what stops
+ * either of them owning it.
  */
-describe("hasQualifier", () => {
-  test("true when folding drops a qualifier and leaves a different food's name behind", () => {
-    expect(hasQualifier("oignon en poudre")).toBe(true);
-    expect(hasQualifier("beurre fondu")).toBe(true);
-    expect(hasQualifier("pomme de terre en poudre")).toBe(true);
-    // Each of them folds onto the bare food, which is the collision this exists to break.
-    expect(searchTerms("oignon en poudre")).toBe(searchTerms("oignon"));
-    expect(searchTerms("beurre fondu")).toBe(searchTerms("beurre"));
-  });
-
-  test("false for a name that keeps every word it identifies with", () => {
-    expect(hasQualifier("oignon")).toBe(false);
-    expect(hasQualifier("jus de citron")).toBe(false);
-    expect(hasQualifier("oignon vert")).toBe(false);
-    expect(hasQualifier("carotte")).toBe(false);
+describe("foldCost", () => {
+  test("0 for a name that keeps every word it identifies with", () => {
+    expect(foldCost("oignon")).toBe(0);
+    expect(foldCost("carotte")).toBe(0);
+    expect(foldCost("oignon vert")).toBe(0);
   });
 
   /**
-   * A stopword is not a qualifier: "de" carries no identity and dropping it takes nothing with it,
-   * so a name reduced only by stopwords is still its own name.
+   * The gap this replaced `hasQualifier` to close. `dés` and `de` are both stopwords, so the old
+   * predicate called this name unreduced and let it claim `jambon` on file order alone.
    */
-  test("false when only stopwords and quantities came off", () => {
-    expect(hasQualifier("200g de pâtes")).toBe(false);
-    expect(hasQualifier("2 gousses d'ail")).toBe(false);
+  test("counts stopwords, which the qualifier-only predicate did not", () => {
+    expect(foldCost("Dés de jambon")).toBe(2);
+    expect(foldCost("jus de citron")).toBe(1);
+  });
+
+  /**
+   * A dropped number counts too, and the additives are why. OFF files colours as `Vert 1724`, which
+   * folds to the bare `vert` — and so does `thé vert`, because `thé` becomes the English stopword
+   * `the`. Leave the number free and the dye costs 0 against the tea's 1, so a shopper asking for
+   * green tea reaches E143.
+   */
+  test("counts a dropped number, so a code is not a free claim on the word beside it", () => {
+    expect(foldCost("Vert 1724")).toBe(1);
+    expect(foldCost("2 gousses d'ail")).toBe(3);
+    expect(foldCost("200g de pâtes")).toBe(2);
+  });
+
+  test("counts qualifiers, and counts both kinds together", () => {
+    expect(foldCost("beurre fondu")).toBe(1);
+    expect(foldCost("oignon en poudre")).toBe(2);
+    expect(foldCost("pomme de terre en poudre")).toBe(3);
+  });
+
+  /**
+   * The reason the rule counts rather than answering yes or no. `pomme de terre` is reduced too —
+   * it loses `de` — so a "did folding drop anything?" predicate disqualifies the potato from its
+   * own name. It wins on being reduced LESS, and only a number can say that.
+   */
+  test("ranks a food's own name above the spellings that fold onto it", () => {
+    expect(foldCost("jambon")).toBeLessThan(foldCost("Dés de jambon"));
+    expect(foldCost("pomme de terre")).toBeLessThan(foldCost("pomme de terre en poudre"));
+    // Each pair folds to one key, which is the collision the ordering exists to break.
+    expect(searchTerms("Dés de jambon")).toBe(searchTerms("jambon"));
+    expect(searchTerms("pomme de terre en poudre")).toBe(searchTerms("pomme de terre"));
   });
 
   /**
    * `_tokenize` falls back to the qualifiers themselves rather than to nothing, so a name made only
    * of them dropped nothing — and a food genuinely called "poudre" keeps its own key.
    */
-  test("false when the name is nothing but qualifiers", () => {
-    expect(hasQualifier("poudre")).toBe(false);
-    expect(hasQualifier("fondu")).toBe(false);
-    expect(hasQualifier("")).toBe(false);
+  test("a name that is only qualifiers still folds to itself, at no cost", () => {
+    expect(foldCost("poudre")).toBe(0);
+    expect(foldCost("fondu")).toBe(0);
+    expect(foldCost("")).toBe(0);
   });
 });
 

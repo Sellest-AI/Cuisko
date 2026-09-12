@@ -94,8 +94,6 @@
     "Groceries": {
       "title": "Grocery list",
       "subtitle": "What is missing from your kitchen",
-      "info_title": "Important",
-      "info_body": "This list already accounts for your cellar stock and the ingredients used by your future planned meals. Mark \"Got it\" only for ingredients you just bought and have not added to your cellar yet.",
       "save": "Add to my list",
       "x_new_items_one": "{{count, number}} thing to pick up",
       "x_new_items_other": "{{count, number}} things to pick up",

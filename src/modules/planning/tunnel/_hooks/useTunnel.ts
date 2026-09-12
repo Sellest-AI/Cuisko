@@ -1,6 +1,6 @@
 import { useAtom } from "jotai";
 import { router, usePathname } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Equipment } from "@shared/equipments";
 import type { NutritionPreference } from "@shared/preferences";
@@ -55,8 +55,35 @@ export type TunnelStep = (typeof TUNNEL_STEPS)[number];
 
 const routeFor = (step: TunnelStep) => `/planning/new/${step}` as const;
 
+const _isStepPath = (path: string) => TUNNEL_STEPS.some((step) => path.endsWith(`/${step}`));
+
 export const useTunnel = () => {
-  const path = usePathname();
+  const rawPath = usePathname();
+
+  /**
+   * The last path that *was* a step, so a screen pushed over the tunnel does not collapse it.
+   *
+   * The tunnel opens routes that are not steps — the plate sheet, the quantity editor — and this
+   * hook stays mounted underneath them. Reading the live path there matches no step, which drops
+   * the progress bar to nothing mid-run, so an off-tunnel path keeps reporting the step it was
+   * pushed from.
+   *
+   * An allowlist and a latch, not a list of the routes to ignore: a denylist has to grow with
+   * every screen the tunnel learns to open, and one nobody remembers to add is a silent reset.
+   * `TUNNEL_STEPS` already knows what a step is.
+   *
+   * Latched during render rather than in an effect, because an effect lands a render too late:
+   * the off-tunnel path would already be current, would latch itself, and the guard would hold
+   * for exactly one render. Nothing here waits on the state either — a step path is read straight
+   * off `rawPath`, and the setter only records it for the render where it is gone.
+   */
+  const isStepPath = _isStepPath(rawPath);
+  const [lastStepPath, setLastStepPath] = useState(rawPath);
+
+  if (isStepPath && lastStepPath !== rawPath) setLastStepPath(rawPath);
+
+  const path = isStepPath ? rawPath : lastStepPath;
+
   const [people, setPeople] = useAtom(peopleAtom);
   const [days, setDays] = useAtom(daysAtom);
   const [slots, setSlots] = useAtom(slotsAtom);

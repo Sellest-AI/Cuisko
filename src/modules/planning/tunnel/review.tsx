@@ -86,7 +86,10 @@ export const TunnelReview = () => {
           <PlanningListRow
             row={item}
             variant="review"
-            onPress={() => _openPlate(item)}
+            onPress={() => {
+              if (item.kind === "empty") return _openPlate(item);
+              router.push(`/recipe/${item.meal.recipeId}`);
+            }}
             onTrailingPress={() => _openPlate(item)}
             style={{
               marginBottom: isLast ? theme.spacing[12] :

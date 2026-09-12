@@ -227,9 +227,9 @@ const _singularize = (token: string) => {
  * A name split into the three layers every rule below reads it at: every word, the words carrying
  * meaning, and the words carrying identity.
  *
- * One split rather than two, because `_tokenize` and `hasQualifier` ask different questions OF THE
- * SAME split — what a name reduces to, and whether reducing it dropped anything. Written twice,
- * the two copies disagree about what a qualifier is the first time one of the lists above grows.
+ * One split rather than two, because `_tokenize` and `foldCost` ask different questions OF THE
+ * SAME split — what a name reduces to, and how much reducing it threw away. Written twice, the two
+ * copies disagree about what a qualifier is the first time one of the lists above grows.
  */
 const _layers = (value: string) => {
   const raw = _fold(value)
@@ -255,25 +255,41 @@ const _tokenize = (value: string): string[] => {
 };
 
 /**
- * Whether reducing this name to its identifying words actually DROPPED a qualifier — whether
- * "oignon en poudre" reaches `searchTerms` as the bare "oignon".
+ * How many words folding removed from this spelling. 0 means the name survived whole.
  *
- * **Exported for the taxonomy index, where the answer decides which food owns a name.** That index
+ * **Exported for the taxonomy index, where this number decides which food owns a name.** That index
  * is a dictionary keyed by the folded form, so two spellings routinely compete for one key: an
  * onion's own name, and onion powder's after `poudre` came off. Both fold to `oignon` and only one
  * of them is an onion. Whichever the upstream file happened to list first used to win, which filed
- * `beurre` under butterfat (via `beurre fondu`) and `pomme de terre` under potato flour (via
- * `pomme de terre en poudre`) — each then answering with the wrong food's CIQUAL figures.
+ * `beurre` under butterfat (via `beurre fondu`), `pomme de terre` under potato flour, `jambon`
+ * under diced ham and `citron` under lemon LEAF — each then answering with the wrong food's CIQUAL
+ * figures.
  *
- * A name that is nothing BUT qualifiers answers false, which is `_tokenize`'s own fallback read
- * back: "poudre" reduces to itself rather than to nothing, so nothing was dropped and the spelling
- * is its own.
+ * **A count, not a yes-or-no, and that is the whole design.** The predicate this replaces asked
+ * only whether a QUALIFIER came off, so `Dés de jambon` — which loses `dés` and `de`, both
+ * stopwords — still claimed `jambon` outright. Counting every dropped word closes that, and it has
+ * to count rather than answer "did folding drop anything?": `pomme de terre` itself drops `de`, and
+ * a yes-or-no rule would disqualify the potato from its own name. It survives because it drops one
+ * word where `pomme de terre en poudre` drops three.
+ *
+ * A name that is nothing BUT qualifiers costs 0, which is `_tokenize`'s own fallback read back:
+ * "poudre" reduces to itself rather than to nothing, so nothing was dropped and the spelling is its
+ * own.
+ *
+ * ⚠️ **A dropped NUMBER is counted, like any other dropped word**, which is why this counts from
+ * the raw fold rather than from `_layers().raw` — that layer has already filtered quantities out.
+ * The additives are what force it: OFF files colours as `Vert 1724` and `Noir 7984`, and with the
+ * number free those cost 0 and beat `thé vert` and `thé noir` — which cost 1, because `thé` folds
+ * to the English stopword `the`. A French shopper asking for green tea got the dye E143, complete
+ * with its missing CIQUAL code. A number that is the only thing separating two names is doing
+ * identifying work, and a rule that ranks by what folding destroyed has to see it.
+ *
+ * Counting it does not hand the tea the key on cost — the two tie at 1, and source order settles
+ * what the metric cannot. That outcome is pinned by a test in the taxonomy's own suite rather than
+ * trusted to the shape of an upstream file nobody here controls.
  */
-export const hasQualifier = (value: string): boolean => {
-  const { meaningful, identifying } = _layers(value);
-
-  return identifying.length > 0 && identifying.length < meaningful.length;
-};
+export const foldCost = (value: string): number =>
+  _fold(value).split(" ").filter(Boolean).length - _tokenize(value).length;
 
 const _editDistance = (left: string, right: string): number => {
   let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
