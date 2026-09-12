@@ -38,13 +38,31 @@ Match on the food, never on the spelling:
 - A different language, a misspelling, a plural, an accent dropped: MATCH.
 - A regional word for the same thing — courgette / zucchini, coriander / cilantro, spring onion /
   scallion: MATCH. Two words, one shelf.
-- A NARROWER kind of a candidate is NOT a match, however true the "is a" reads. "pain de mie" is a
+- A BRAND beside the food is not part of the food. Strike the maker's name from what they typed
+  and match what is LEFT: "ketchup heinz" is ketchup, "moutarde amora" is mustard. A maker is not
+  a kind, which is what separates this from the bullet below, and the brand becomes the alias.
+  What a brand can never do is pick a VARIETY for the shopper. Strike "lindt" from "chocolat
+  lindt" and you are left with "chocolat" — so a row named "chocolat" is the match, but a list
+  offering "chocolat au lait", "chocolat noir 70%" and "chocolat blanc" is asking WHICH, and the
+  shopper did not say. That is nothing at all, never the likeliest of the three. Decide this by
+  reading the LIST in front of you, never from what you know about the maker's range: if what is
+  left after striking the brand names one candidate, that is the match; if it names a shelf the
+  candidates then split into kinds, there is no answer here.
+  A brand naming a finished product is not an ingredient either — a "kinder bueno" is a confection
+  and matches no chocolate.
+- A NARROWER kind of a candidate is NOT a match, however true the "is a" reads — unless the only
+  thing narrowing it is a brand, which the bullet above covers. "pain de mie" is a
   white bread, and "pain blanc" is still the wrong answer: one is a bagged sliced loaf, the other
   names the shelf it sits on, and a shopper handed the second buys a baguette. Match a word to its
   SYNONYM, never to its category — the step after you writes the specific row, and a catalog
   holding both the kind and the shelf is what you want.
 - A different food that shares a word — "sugar" and "sugar snap pea", "milk" and "coconut milk",
   "pepper" (the spice) and "bell pepper": NOT a match, however close the words look.
+- The word they SHARE is often the form, and the word that differs is the food. "jus de citron" and
+  "jus d'orange" are both juice and are two different fruits; "oignon vert" and "oignon" are both
+  alliums and are two different vegetables, bought in different weeks at different prices. Read the
+  part of the name that says WHICH food, and let it decide, not the part they have in common. A
+  brand is not that part: "heinz" names who made it, not what it is, so it decides nothing here.
 - A different form of a food where a cook would buy a different product: NOT a match. Three ways it
   arrives, and the last is the one that gets missed:
   - TRANSFORMED — "tomato" and "tomato paste", "almond" and "almond flour".
@@ -56,10 +74,31 @@ Match on the food, never on the spelling:
     other.
   The question is whether it is a separate item in the shop, never whether it is the same plant or
   the same animal.
-- A NUMBER in either name is part of what the food IS, not a quantity to look past. Minced beef at
-  5% fat and at 20%, whole and semi-skimmed milk, 70% and 85% chocolate: different products, on
-  different shelves, with different nutrition per 100 g. Two names that agree on every word and
-  differ on their number are NOT a match — and neither is a number against no number at all.
+
+# Count the numbers before you answer
+
+This one has a test, and the test is arithmetic, so run it rather than judging it. Count the
+numbers in what the shopper typed. Count the numbers in the candidate. Two different counts, or two
+different numbers, and they are NOT the same food. "steak haché 5%" has one and "steak haché" has
+none: not a match, and nothing about the rest of the words can change that.
+
+Minced beef at 5% fat and at 20%, whole and semi-skimmed milk, 70% and 85% chocolate: different
+products, on different shelves, with different prices and different nutrition per 100 g.
+
+A number against NO number is the half of this that gets missed, so read it twice. The shorter name
+looks like the same food written loosely, with a detail left off — it is not. A number in a food's
+name is never how much they are buying: what a shopper buys is settled at the till, by weight, and
+never in the name. So the number is a GRADE, and a name carrying no grade is the shelf that holds
+every grade side by side — which the narrower-kind rule above already answers. "steak haché" sits
+above 5% and 20% both, exactly as "pain blanc" sits above "pain de mie", and a shopper who asked
+for 5% and is handed the shelf has bought the wrong fat.
+
+You may also be shown what a FOOD DICTIONARY files the typed term under, in the languages it
+covers. That is not a candidate and it is not one of the answers — it is what the words mean,
+established before you were asked. Read it as the food they meant, and judge the candidates against
+it: a candidate naming a different food than the dictionary states is not a match, however much of
+the spelling the two names share. When no dictionary line appears, nothing looked the term up, and
+the term itself is all you have.
 
 Return nothing at all when nothing matches. An empty answer is the RIGHT answer most of the time
 you are asked, and it costs nothing: the step after you can invent the row. A wrong match cannot be
@@ -80,19 +119,36 @@ the wrong food reaches a shopping list.
 
 You are the only reason this question costs anything. A shopper who types a word the catalog does
 not hold reaches you, and if that word is written down on the row you matched, the next shopper to
-type it is answered by the search for nothing. So: is the word they typed one that somebody would
-plausibly type again, looking for this food?
+type it is answered by the search for nothing.
 
-- true for a real word for the food: the other language, a regional word ("zucchini" at a
-  courgette), a plural, an accent dropped, a brand people shop by, or the misspelling everybody
-  makes.
-- false for a one-off mangling — "pxtates", "carotte" typed with a thumb on the wrong key, letters
-  transposed. It is not a word, nobody will type it a second time, and stored it makes the catalog
-  answer searches with noise forever.
-- false for anything carrying something that is not the food's name: a quantity ("2 carottes"), a
-  preparation ("carottes râpées"), a whole phrase.
-- false whenever you are unsure. Saying nothing costs one call the next time somebody types it.
-  Saving a bad word cannot be undone from here.
+Do not ask whether somebody would type it again. You cannot know that, nothing you can read tells
+you, and guessing at it is what puts junk in a catalog that never forgets. Ask the question you CAN
+answer: **is what they typed a word?**
+
+Spell the food yourself, in the language the shopper wrote in. Now read what they typed against
+your spelling, letter by letter, and answer from that alone:
+
+- It is a real word for the food: your spelling, the other language, a regional word ("zucchini" at
+  a courgette), a plural, an accent dropped, a brand people shop by. **true.**
+- It is your spelling with a letter WRONG, missing, doubled or swapped — "échqlote", "pxtates",
+  "carotte" typed with a thumb on the next key over. **false.** The string is not a word in any
+  language, and a catalog row indexed under it answers nobody's search ever again.
+- It carries something that is not the food's name: a quantity ("2 carottes"), a preparation
+  ("carottes râpées"), a whole phrase. **false.**
+- You cannot say. **false.** Saying nothing costs one call the next time somebody types it. Saving
+  a bad word cannot be undone from here.
+
+A misspelling you believe is a common one is still false. From where you sit, the misspelling
+everybody makes and the slip this one shopper just made are the same string — there is no evidence
+in front of you that separates them, so there is no judgement to make and you should not invent
+one. The word survives only when it is spelled right.
+
+**And a slip stays a slip however certain the match was.** This is the answer that goes wrong, so
+watch for the shape of it: you read straight through the damage, you named the food without
+hesitating, you returned the index at 0.95 — and the ease of all that feels like proof the string
+was a word. It is not. Recognising a food through a typo is what you are FOR; the typo is still a
+typo. A high confidence is a statement about the FOOD, never about the spelling, and the two
+answers are decided separately. Match on a mangled word, store nothing.
 
 Leave it out when nothing matches — there is no row to remember it on.
 `.trim();

@@ -312,14 +312,86 @@ export const matchIngredientSchema = (candidateCount: number) =>
       ),
   });
 
-/** What the ranker is shown: the term, and the candidates by position. Never an id. */
+/** Every spelling a hit stated for one language, lowercased for comparison. */
+const _statedIn = (hits: readonly LookupHit[], locale: Locale) =>
+  hits.flatMap((hit) => hit.names[locale] ?? []);
+
+/**
+ * The spellings worth STORING as another word for the food — the curated hits' only.
+ *
+ * **A rule about how a source found its answer, not about how good the source is.** A hit marked
+ * `searched` was handed the shopper's words and returned what ranked highest, and neither API is
+ * ranking by "is this the same food": Open Food Facts answered `crème de marrons` with `Yaourt
+ * brassé crème de marrons 2 x 160 g` — a yogurt — and `Clement Faugier - Vanilla Chestnut Spread,
+ * 17.5oz (500g)`, a brand and a package size. USDA answered `pâte de pistache` with `Pastry,
+ * Pastelitos de Guava (guava pastries)`. Stored as aliases these reach the search blob through
+ * `ingredientRow`, and the catalog starts answering "yaourt" with a jar of chestnut spread.
+ *
+ * **A score cannot separate them, which is why this is not another threshold.** The yogurt is a
+ * different food that CONTAINS this one, so it carries the name in full; the guava pastry rides in
+ * on `paste` resembling `pastry` at 0.667. Measured: the pastry scores 0.356 against `pistachio
+ * paste` and USDA's own correct `Nuts, pistachio nuts, raw` scores 0.400 — 0.044 apart, so any bar
+ * that excludes one excludes both.
+ *
+ * **The searching sources lose nothing they were doing well.** Their spellings are already spent
+ * where they pay: `_fromApis` re-searches the catalog with every one of them before a row is ever
+ * written, which is the job those files claim for them. This governs storage — and, below, the one
+ * other place a source's words are repeated to a model as fact.
+ */
+const _vocabularyIn = (hits: readonly LookupHit[], locale: Locale) =>
+  _statedIn(hits.filter((hit) => !hit.searched), locale);
+
+/** Enough for the ranker to recognise the food; more is a wall of synonyms it has to read past. */
+const _DICTIONARY_SPELLINGS = 3;
+
+/**
+ * What a curated source states the typed term IS — the evidence the ranker was deciding without.
+ *
+ * By the time this call happens, `resolveIngredient` has already looked the shopper's words up in
+ * the Open Food Facts taxonomy, for nothing and with no network. So something frequently knows
+ * already that `jus de citron` is lemon juice — and that answer was handed to the row-writing call
+ * and withheld from THIS one, which is the call that decides whether an existing row is the same
+ * food. Judging on the words alone, it linked `jus de citron` to a `Jus d'orange` row, and
+ * `oignon vert` to `Oignon`: same form, different fruit, different vegetable.
+ *
+ * ⚠️ Curated hits only, by `_vocabularyIn`, and the reason is sharper here than it is for storage.
+ *    A searched source answers a keyword query with whatever ranked highest — USDA replies to
+ *    `pâte de pistache` with a guava pastry — and a wrong name presented to a model as what the
+ *    term IS does not merely add noise, it argues for the wrong answer.
+ *
+ * Empty when nothing curated answered, which is the common case: the ranker then sees exactly what
+ * it saw before, and this is one more line in the prompt rather than a new dependency.
+ */
+const _dictionarySays = (hits: readonly LookupHit[]): string => {
+  const stated = SUPPORTED_LOCALES.flatMap((locale) => {
+    const spellings = _vocabularyIn(hits, locale).slice(0, _DICTIONARY_SPELLINGS);
+
+    return spellings.length ? [`- ${locale}: ${spellings.join(", ")}`] : [];
+  });
+
+  return stated.length
+    ? `A food dictionary files what they typed under this food:\n${stated.join("\n")}`
+    : "";
+};
+
+/**
+ * What the ranker is shown: the term, what a dictionary makes of it, and the candidates by
+ * position. Never an id.
+ */
 export const matchIngredientUserPrompt = (
-  { text, candidates = [] }: Pick<SanitizeIngredientInput, "text" | "candidates">,
+  {
+    text,
+    candidates = [],
+    hits = [],
+  }: Pick<SanitizeIngredientInput, "text" | "candidates" | "hits">,
 ) =>
   [
     `The shopper typed:\n${text}`,
+    _dictionarySays(hits as LookupHit[]),
     `Candidates:\n${candidates.map(({ name }, index) => `${index}. ${name}`).join("\n")}`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
 // The two compile-time assertions ADR 0010 asks for: the schema and the hand-written types drift
 // apart in silence otherwise — a vocabulary gains a value, a lookup gains a field, and the first
@@ -346,34 +418,6 @@ const _factsCheck: _FactsCheck = true;
 const _allergenCheck: _AllergenCheck = true;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _evidenceCheck: _EvidenceCheck = true;
-
-/** Every spelling a hit stated for one language, lowercased for comparison. */
-const _statedIn = (hits: readonly LookupHit[], locale: Locale) =>
-  hits.flatMap((hit) => hit.names[locale] ?? []);
-
-/**
- * The spellings worth STORING as another word for the food — the curated hits' only.
- *
- * **A rule about how a source found its answer, not about how good the source is.** A hit marked
- * `searched` was handed the shopper's words and returned what ranked highest, and neither API is
- * ranking by "is this the same food": Open Food Facts answered `crème de marrons` with `Yaourt
- * brassé crème de marrons 2 x 160 g` — a yogurt — and `Clement Faugier - Vanilla Chestnut Spread,
- * 17.5oz (500g)`, a brand and a package size. USDA answered `pâte de pistache` with `Pastry,
- * Pastelitos de Guava (guava pastries)`. Stored as aliases these reach the search blob through
- * `ingredientRow`, and the catalog starts answering "yaourt" with a jar of chestnut spread.
- *
- * **A score cannot separate them, which is why this is not another threshold.** The yogurt is a
- * different food that CONTAINS this one, so it carries the name in full; the guava pastry rides in
- * on `paste` resembling `pastry` at 0.667. Measured: the pastry scores 0.356 against `pistachio
- * paste` and USDA's own correct `Nuts, pistachio nuts, raw` scores 0.400 — 0.044 apart, so any bar
- * that excludes one excludes both.
- *
- * **The searching sources lose nothing they were doing well.** Their spellings are already spent
- * where they pay: `_fromApis` re-searches the catalog with every one of them before a row is ever
- * written, which is the job those files claim for them. This governs storage alone.
- */
-const _vocabularyIn = (hits: readonly LookupHit[], locale: Locale) =>
-  _statedIn(hits.filter((hit) => !hit.searched), locale);
 
 /** The names the gates below score against, as `aboutTheSameFood` wants them. */
 const _namesByLocale = (facts: z.infer<typeof _modelFactsSchema>) =>
