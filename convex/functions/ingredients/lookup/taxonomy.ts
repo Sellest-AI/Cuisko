@@ -1,4 +1,4 @@
-import { searchTerms } from "@shared/ingredientMatch";
+import { hasQualifier, searchTerms } from "@shared/ingredientMatch";
 import { LOCALES, type Locale, type LocalizedList } from "@convex/schema/i18n";
 
 import { TAXONOMY } from "./data/taxonomy";
@@ -25,24 +25,41 @@ export type TaxonomyEntry = {
  * ~6k entries are walked on the first resolve a deployment serves and never again; building it
  * inside the lookup would pay that cost on every keystroke that reaches step 2.
  *
- * A spelling shared by two foods keeps the FIRST entry that claimed it. The taxonomy is ordered
- * parents before children, so the first claimant is the more general food — "poivron" resolving to
- * bell pepper rather than to one cultivar of it is the answer a shopper meant.
+ * **A name a spelling keeps outright beats one it only reaches after a qualifier came off**, which
+ * is what the two passes below buy. Folding is lossy by design — `searchTerms` strips `poudre`,
+ * `fondu` and every other preparation word — so `oignon en poudre`, `beurre fondu` and
+ * `pomme de terre en poudre` all fold onto the bare food's key. One pass claimed those keys for
+ * whichever entry the upstream file listed first, and the file is not ordered: `oignon` resolved to
+ * onion POWDER, `beurre` to butterfat, `pomme de terre` to potato flour. Each then answered a
+ * resolve with another food's names and another food's CIQUAL figures, and a row invented from it
+ * was wrong in eight numbers at once with nothing to say so.
+ *
+ * ⚠️ The old note claimed ordering did this work — "parents before children, so the first claimant
+ *    is the more general food". It does not: `en:onion-powder` sits at line 1609 and `en:onion` at
+ *    2079. Ordering was never a property of the data, so the rule now comes from the spelling.
+ *
+ * Within a pass the first claimant still wins, which is the tie nothing else can break: two foods
+ * whose own names fold together are a genuine ambiguity, and the file's order is as good an answer
+ * as any.
  */
 let index: Map<string, TaxonomyEntry> | undefined;
 
 const spellingIndex = (): Map<string, TaxonomyEntry> => {
   if (index) return index;
 
-  index = new Map();
-  for (const entry of TAXONOMY) {
-    const spellings = [...Object.values(entry.names), ...Object.values(entry.synonyms).flat()];
+  const built = new Map<string, TaxonomyEntry>();
 
-    for (const spelling of spellings) {
-      const key = searchTerms(spelling);
-      if (key && !index.has(key)) index.set(key, entry);
-    }
-  }
+  const claim = (entry: TaxonomyEntry, spelling: string) => {
+    const key = searchTerms(spelling);
+    if (key && !built.has(key)) built.set(key, entry);
+  };
+
+  for (const entry of TAXONOMY)
+    for (const spelling of spellingsOf(entry)) if (!hasQualifier(spelling)) claim(entry, spelling);
+
+  for (const entry of TAXONOMY) for (const spelling of spellingsOf(entry)) claim(entry, spelling);
+
+  index = built;
 
   return index;
 };
