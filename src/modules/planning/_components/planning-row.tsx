@@ -5,15 +5,16 @@ import { DayMarker } from "@ui/day-marker";
 import { ArrowLeftRight, EllipsisVertical, Plus } from "@ui/icons";
 import { resolveLocale, useTranslations } from "translations";
 
-import type { PlanningRow } from "../_model/model";
-import { EMPTY_PLATE_IMAGE } from "../_hooks/placeholders";
+import type { MealCard, PlanningRow } from "../_model/model";
+import { EMPTY_PLATE_IMAGE, MEAL_IMAGE } from "../_hooks/placeholders";
 import { MEAL_STATUS } from "./meal-status";
 
 /** The rail the date marker sits in. Rows without one indent past it, so the cards stay aligned. */
 const MARKER_RAIL = 48;
 
 type Props = {
-  row: PlanningRow;
+  /** The kept week's plates and the draft's alike — see `MealCard`. */
+  row: PlanningRow<MealCard>;
   /** The swap arrows in the tunnel's review step, the overflow dots on the planning screen. */
   variant?: "plan" | "review";
   onPress?: () => void;
@@ -55,7 +56,7 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
         <CardMeal
           style={styles.card}
           title={row.meal.title.slice(0, 17).trim().concat(row.meal.title.length > 17 ? "…" : "")}
-          duration={t("Meal.x_minutes", { count: row.meal.minutes })}
+          duration={row.meal.minutes === undefined ? undefined : t("Meal.x_minutes", { count: row.meal.minutes })}
           servings={row.meal.servings}
           slot={slot}
           slotLabel={t(slot === "dinner" ? "Meal.dinner" : "Meal.lunch")}
@@ -63,7 +64,7 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
           statusLabel={t(MEAL_STATUS[status].key)}
           statusIcon={MEAL_STATUS[status].icon}
           emoji={row.meal.emoji}
-          imageSrc={row.meal.imageSrc}
+          imageSrc={row.meal.imageSrc ?? MEAL_IMAGE}
           onPress={onPress}
           trailingIcon={variant === "review" ? ArrowLeftRight : EllipsisVertical}
           onTrailingPress={onTrailingPress}

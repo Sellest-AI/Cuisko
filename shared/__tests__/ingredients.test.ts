@@ -1,6 +1,45 @@
 import { describe, expect, test } from "vitest";
 
-import { formatQuantity, pickQuantity, toGrams, serializeIngredients } from "../ingredients";
+import {
+  formatQuantity,
+  pickQuantity,
+  serializeIngredients,
+  stockUnitOf,
+  toGrams,
+  toStockUnit,
+} from "../ingredients";
+
+describe("stockUnitOf", () => {
+  test("counts an ingredient in the base unit of the kind it is bought in", () => {
+    expect(stockUnitOf("kg")).toBe("g");
+    expect(stockUnitOf("l")).toBe("ml");
+    expect(stockUnitOf("cs")).toBe("ml");
+    expect(stockUnitOf("pcs")).toBe("pcs");
+  });
+});
+
+describe("toStockUnit", () => {
+  test("converts within one kind of unit without knowing anything about the ingredient", () => {
+    expect(toStockUnit(1, "l", { defaultUnit: "ml" })).toBe(1000);
+    expect(toStockUnit(2, "kg", { defaultUnit: "g" })).toBe(2000);
+    expect(toStockUnit(6, "pcs", { defaultUnit: "pcs" })).toBe(6);
+  });
+
+  test("crosses kinds through grams, with the ratios both ends need", () => {
+    // Milk bought in ml, written in grams: 515 g at 1.03 g/ml.
+    expect(toStockUnit(515, "g", { defaultUnit: "ml", gramsPerMl: 1.03 })).toBeCloseTo(500);
+    // Carrots bought by the piece, written in grams: 300 g at 150 g each.
+    expect(toStockUnit(300, "g", { defaultUnit: "pcs", gramsPerPiece: 150 })).toBe(2);
+    // Butter bought in grams, written in spoons: 15 ml at 0.91 g/ml.
+    expect(toStockUnit(1, "cs", { defaultUnit: "g", gramsPerMl: 0.91 })).toBeCloseTo(13.65);
+  });
+
+  test("refuses to cross kinds when a ratio is missing", () => {
+    expect(toStockUnit(300, "g", { defaultUnit: "pcs" })).toBeUndefined();
+    expect(toStockUnit(1, "l", { defaultUnit: "g" })).toBeUndefined();
+    expect(toStockUnit(2, "pcs", { defaultUnit: "ml", gramsPerPiece: 100 })).toBeUndefined();
+  });
+});
 
 describe("toGrams", () => {
   test("converts a mass unit without knowing anything about the ingredient", () => {

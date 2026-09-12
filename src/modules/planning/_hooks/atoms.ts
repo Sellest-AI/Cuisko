@@ -6,7 +6,7 @@ import type { Taste } from "@shared/tastes";
 
 import type { Constraint } from "../_model/constraints";
 
-import { MAX_DAYS, type CookingTime, type MealSlot, type PlannedMeal } from "../_model/model";
+import { MAX_DAYS, type CookingTime, type DraftMeal, type MealSlot, type PlannedMeal } from "../_model/model";
 import { PLACEHOLDER_MEALS } from "./placeholders";
 
 /**
@@ -146,7 +146,7 @@ export const planMealsAtom = atom<PlannedMeal[]>(PLACEHOLDER_MEALS);
  * the next run. Committing it is a question this slice does not answer: whether a generated week
  * replaces the plan or merges into the days it covers is a product call, not a plumbing one.
  */
-export const draftMealsAtom = atom<PlannedMeal[]>([]);
+export const draftMealsAtom = atom<DraftMeal[]>([]);
 
 /** Rows the user says are already in the kitchen, so the list stops asking for them. */
 export const ownedRowsAtom = atom<string[]>([]);

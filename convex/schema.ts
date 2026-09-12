@@ -7,6 +7,7 @@ import { households, householdUsers } from "./schema/households";
 import { ingredients } from "./schema/ingredients";
 import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
 import { recipeFavorites, recipeIngredients, recipes } from "./schema/recipes";
+import { mealPlans, plannedMealIngredients, plannedMeals } from "./schema/planning";
 import { imageSizes, imageObjects, images, userImages } from "./schema/media";
 
 /**
@@ -20,6 +21,9 @@ export default defineSchema({
   userPreferences,
   households,
   householdUsers,
+  mealPlans,
+  plannedMeals,
+  plannedMealIngredients,
   ingredients,
   groceryListItems,
   cellarItems,

@@ -1,20 +1,21 @@
-import { useAtom, useAtomValue, type PrimitiveAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 
 import {
   addMeal,
   matchesQuery,
+  plannedMealOf,
   plateIdFor,
   removeMeal,
   replaceMeal,
   setMealServings,
   type MealSlot,
-  type PlannedMeal,
+  type Plate,
   type Recipe,
 } from "../_model/model";
 
 import { draftMealsAtom, peopleAtom, planMealsAtom } from "./atoms";
-import { RECIPE_CATALOGUE } from "./placeholders";
+import { draftMealOf, RECIPE_CATALOGUE } from "./placeholders";
 
 /**
  * What the sheet was opened on: a plate already in the plan, or a slot with nothing on it.
@@ -36,10 +37,32 @@ export type MealTarget =
  */
 export type MealScope = "plan" | "draft";
 
-const MEALS_ATOM: Record<MealScope, PrimitiveAtom<PlannedMeal[]>> = {
-  plan: planMealsAtom,
-  draft: draftMealsAtom,
+/** One week's plates and the four edits the sheet makes to them, whatever shape its plates are. */
+type Store = {
+  meals: (Plate & { recipeId: string })[];
+  add: (plate: Plate, recipe: Recipe) => void;
+  replace: (mealId: string, recipe: Recipe) => void;
+  setServings: (mealId: string, servings: number) => void;
+  remove: (mealId: string) => void;
 };
+
+/**
+ * The edits, bound to one week's setter and to the builder that turns a recipe into its kind of plate.
+ *
+ * Generic here and nowhere else: the kept week holds `PlannedMeal`s and the draft `DraftMeal`s, and
+ * this is where each is told apart once, so the hook below reads a single `Store`.
+ */
+const _storeOf = <M extends Plate & { recipeId: string }>(
+  meals: M[],
+  setMeals: (update: (current: M[]) => M[]) => void,
+  plated: (plate: Plate, recipe: Recipe) => M,
+): Store => ({
+  meals,
+  add: (plate, recipe) => setMeals((current) => addMeal(current, plated(plate, recipe))),
+  replace: (mealId, recipe) => setMeals((current) => replaceMeal(current, mealId, (plate) => plated(plate, recipe))),
+  setServings: (mealId, servings) => setMeals((current) => setMealServings(current, mealId, servings)),
+  remove: (mealId) => setMeals((current) => removeMeal(current, mealId)),
+});
 
 /**
  * One plate of a week, open for editing: its portions, the dish on it, or whether it stays.
@@ -54,7 +77,18 @@ const MEALS_ATOM: Record<MealScope, PrimitiveAtom<PlannedMeal[]>> = {
  * "pick a dish, then set the portions" one visit rather than two.
  */
 export const useMealEditor = (target: MealTarget, scope: MealScope) => {
-  const [meals, setMeals] = useAtom(MEALS_ATOM[scope]);
+  /** Both read, so the hook calls are unconditional; only the chosen one is edited. */
+  const [planned, setPlanned] = useAtom(planMealsAtom);
+  const [drafted, setDrafted] = useAtom(draftMealsAtom);
+
+  const store = useMemo(
+    () => (scope === "draft"
+      ? _storeOf(drafted, setDrafted, draftMealOf)
+      : _storeOf(planned, setPlanned, plannedMealOf)),
+    [scope, drafted, setDrafted, planned, setPlanned],
+  );
+
+  const { meals } = store;
   const people = useAtomValue(peopleAtom);
   const [query, setQuery] = useState("");
 
@@ -78,7 +112,7 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
 
   const choose = useCallback(
     (recipe: Recipe) => {
-      if (meal) return setMeals((current) => replaceMeal(current, meal.id, recipe));
+      if (meal) return store.replace(meal.id, recipe);
 
       /** A plate that has gone from the plan cannot be given a dish — the sheet is already leaving. */
       if (target.kind !== "slot") return;
@@ -90,10 +124,10 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
         servings: draftServings,
       };
 
-      setMeals((current) => addMeal(current, plate, recipe));
+      store.add(plate, recipe);
       setCreatedId(plate.id);
     },
-    [meal, target, draftServings, setMeals],
+    [meal, target, draftServings, store],
   );
 
   return {
@@ -114,9 +148,9 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
       (servings: number) => {
         if (!meal) return setDraftServings(servings);
 
-        setMeals((current) => setMealServings(current, meal.id, servings));
+        store.setServings(meal.id, servings);
       },
-      [meal, setMeals],
+      [meal, store],
     ),
     /**
      * The plate goes — and, for now, only the plate.
@@ -133,7 +167,7 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
     remove: useCallback(() => {
       if (!meal) return;
 
-      setMeals((current) => removeMeal(current, meal.id));
-    }, [meal, setMeals]),
+      store.remove(meal.id);
+    }, [meal, store]),
   };
 };

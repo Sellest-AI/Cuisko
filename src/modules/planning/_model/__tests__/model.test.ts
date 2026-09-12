@@ -6,6 +6,7 @@ import {
   buildRows,
   dayStatusFor,
   groceriesFor,
+  groceryHeadingOf,
   indexOfDate,
   isSameDay,
   matchesQuery,
@@ -14,6 +15,7 @@ import {
   parseDateParam,
   parseMealSlot,
   planDates,
+  plannedMealOf,
   planSections,
   plateIdFor,
   removeMeal,
@@ -22,7 +24,10 @@ import {
   toDateParam,
   toggle,
   toggleTaste,
+  toMealCard,
   type DaySection,
+  type DraftIngredient,
+  type DraftMeal,
   type MealIngredient,
   type MealSlot,
   type PlannedMeal,
@@ -55,6 +60,19 @@ const RISOTTO: Recipe = {
   id: "risotto", title: "Risotto aux cèpes", minutes: 45, servings: 2,
   status: "shopping-needed", emoji: "🍚", ingredients: [BEEF],
 };
+
+const TOMATO_LINE: DraftIngredient = {
+  ingredientId: "tomato", name: "Tomates", category: "VEGETABLE", emoji: "🍅",
+  amount: 300, unit: "g", covered: false,
+};
+
+const BEEF_LINE: DraftIngredient = {
+  ingredientId: "beef", name: "Boeuf", category: "MEAT", emoji: "🥩", amount: 400, unit: "g", covered: true,
+};
+
+const draft = (id: string, slot: MealSlot, ingredients: DraftIngredient[] = [TOMATO_LINE]): DraftMeal => ({
+  id, title: id, servings: 4, date: day(0), recipeId: `recipe-${id}`, slot, ingredients,
+});
 
 const section = (offset: number, meals: PlannedMeal[]): DaySection => ({
   date: day(offset),
@@ -255,9 +273,23 @@ describe("indexOfDate", () => {
   });
 });
 
+describe("groceryHeadingOf", () => {
+  it("folds catalog categories onto the list's headings", () => {
+    expect(groceryHeadingOf("VEGETABLE")).toBe("vegetables");
+    expect(groceryHeadingOf("HERB")).toBe("vegetables");
+    expect(groceryHeadingOf("EGG")).toBe("meats");
+    expect(groceryHeadingOf("SEAFOOD")).toBe("fish");
+    expect(groceryHeadingOf("LEGUME")).toBe("grains");
+  });
+
+  it("sends what no heading names to other", () => {
+    expect(groceryHeadingOf("SPICE")).toBe("other");
+  });
+});
+
 describe("groceriesFor", () => {
   it("merges the same ingredient across two meals into one row that names both", () => {
-    const [vegetables] = groceriesFor([meal("a", "lunch"), meal("b", "dinner")]);
+    const [vegetables] = groceriesFor([draft("a", "lunch"), draft("b", "dinner")]);
 
     expect(vegetables?.rows).toHaveLength(1);
     expect(vegetables?.rows[0]).toMatchObject({ amount: 600, mealIds: ["a", "b"] });
@@ -266,8 +298,8 @@ describe("groceriesFor", () => {
   /** Nothing here knows how many grams a piece weighs, so merging the two would invent a number. */
   it("keeps the same ingredient in two units on two separate rows", () => {
     const rows = groceriesFor([
-      meal("a", "lunch", 0, [TOMATO]),
-      meal("b", "dinner", 0, [{ ...TOMATO, amount: 4, unit: "pcs" }]),
+      draft("a", "lunch", [TOMATO_LINE]),
+      draft("b", "dinner", [{ ...TOMATO_LINE, amount: 4, unit: "pcs" }]),
     ])[0]?.rows;
 
     expect(rows).toHaveLength(2);
@@ -275,13 +307,21 @@ describe("groceriesFor", () => {
   });
 
   it("orders categories by the fixed list rather than by what it happened to see first", () => {
-    const categories = groceriesFor([meal("a", "lunch", 0, [BEEF, TOMATO])]);
+    const categories = groceriesFor([draft("a", "lunch", [BEEF_LINE, TOMATO_LINE])]);
 
     expect(categories.map((category) => category.id)).toEqual(["vegetables", "meats"]);
   });
 
+  it("groups catalog categories under the heading they are shopped under", () => {
+    const categories = groceriesFor([draft("a", "lunch", [{ ...TOMATO_LINE, ingredientId: "basil", category: "HERB" }, TOMATO_LINE])]);
+
+    expect(categories).toHaveLength(1);
+    expect(categories[0]).toMatchObject({ id: "vegetables" });
+    expect(categories[0]?.rows).toHaveLength(2);
+  });
+
   it("keeps the surviving categories in the same order when a meal is toggled off", () => {
-    const both = [meal("a", "lunch", 0, [TOMATO]), meal("b", "dinner", 0, [BEEF])];
+    const both = [draft("a", "lunch", [TOMATO_LINE]), draft("b", "dinner", [BEEF_LINE])];
 
     expect(groceriesFor(both).map((category) => category.id)).toEqual(["vegetables", "meats"]);
     expect(groceriesFor(both.slice(0, 1)).map((category) => category.id)).toEqual(["vegetables"]);
@@ -310,7 +350,7 @@ describe("addMeal", () => {
   const plate = { id: "2026-08-13:dinner", date: day(1), slot: "dinner" as MealSlot, servings: 3 };
 
   it("puts the dish on the slot asked for, leaving the rest of the week alone", () => {
-    const week = addMeal([meal("a", "lunch")], plate, RISOTTO);
+    const week = addMeal([meal("a", "lunch")], plannedMealOf(plate, RISOTTO));
 
     expect(week.map((entry) => entry.id)).toEqual(["a", "2026-08-13:dinner"]);
     expect(week[1]).toMatchObject({
@@ -324,12 +364,12 @@ describe("addMeal", () => {
 
   /** The same guard `setMealServings` applies: a route param could ask for a plate for nobody. */
   it("clamps the portions it is created for", () => {
-    expect(addMeal([], { ...plate, servings: 0 }, RISOTTO)[0]?.servings).toBe(1);
-    expect(addMeal([], { ...plate, servings: 99 }, RISOTTO)[0]?.servings).toBe(MAX_SERVINGS);
+    expect(addMeal([], plannedMealOf({ ...plate, servings: 0 }, RISOTTO))[0]?.servings).toBe(1);
+    expect(addMeal([], plannedMealOf({ ...plate, servings: 99 }, RISOTTO))[0]?.servings).toBe(MAX_SERVINGS);
   });
 
   it("copies the recipe's ingredients rather than sharing the array with it", () => {
-    const [added] = addMeal([], plate, RISOTTO);
+    const [added] = addMeal([], plannedMealOf(plate, RISOTTO));
 
     added?.ingredients.push(TOMATO);
 
@@ -338,7 +378,7 @@ describe("addMeal", () => {
 
   /** The plate a removal left behind is the plate the sheet fills, so the two ids have to agree. */
   it("is findable by the id its own slot implies", () => {
-    const week = addMeal([], { ...plate, id: plateIdFor(day(1), "dinner") }, RISOTTO);
+    const week = addMeal([], plannedMealOf({ ...plate, id: plateIdFor(day(1), "dinner") }, RISOTTO));
 
     expect(removeMeal(week, plateIdFor(day(1), "dinner"))).toEqual([]);
   });
@@ -363,7 +403,7 @@ describe("setMealServings", () => {
 
 describe("replaceMeal", () => {
   it("takes the dish from the recipe", () => {
-    const [swapped] = replaceMeal([meal("a", "lunch")], "a", RISOTTO);
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plannedMealOf(plate, RISOTTO));
 
     expect(swapped).toMatchObject({
       title: "Risotto aux cèpes",
@@ -376,18 +416,45 @@ describe("replaceMeal", () => {
   /** The plate is what the week is built on: move it and every other meal shifts around it. */
   it("keeps the plate's own id, day, slot and portions", () => {
     const plate = meal("a", "dinner", 3);
-    const [swapped] = replaceMeal([plate], "a", RISOTTO);
+    const [swapped] = replaceMeal([plate], "a", (target) => plannedMealOf(target, RISOTTO));
 
     expect(swapped).toMatchObject({ id: "a", slot: "dinner", servings: 4 });
     expect(swapped && isSameDay(swapped.date, day(3))).toBe(true);
   });
 
   it("copies the recipe's ingredients rather than sharing the array with it", () => {
-    const [swapped] = replaceMeal([meal("a", "lunch")], "a", RISOTTO);
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plannedMealOf(plate, RISOTTO));
 
     swapped?.ingredients.push(TOMATO);
 
     expect(RISOTTO.ingredients).toHaveLength(1);
+  });
+
+  /** The builder hands back a plate, and a builder is caller code: its portions are clamped all the same. */
+  it("clamps the portions the builder returns", () => {
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => ({
+      ...plannedMealOf(plate, RISOTTO),
+      servings: 99,
+    }));
+
+    expect(swapped?.servings).toBe(MAX_SERVINGS);
+  });
+});
+
+describe("toMealCard", () => {
+  it("is ready when the cellar covers every line", () => {
+    expect(toMealCard(draft("a", "lunch", [BEEF_LINE])).status).toBe("ready");
+  });
+
+  it("needs shopping when one line is not covered", () => {
+    expect(toMealCard(draft("a", "lunch", [BEEF_LINE, TOMATO_LINE])).status).toBe("shopping-needed");
+  });
+
+  it("draws the generated image when there is one, and leaves the fallback to the row otherwise", () => {
+    expect(toMealCard({ ...draft("a", "lunch"), imageUrl: "https://x/plate.png" }).imageSrc).toEqual({
+      uri: "https://x/plate.png",
+    });
+    expect(toMealCard(draft("a", "lunch")).imageSrc).toBeUndefined();
   });
 });
 

@@ -6,7 +6,8 @@ import { MEAL_SLOTS } from "@shared/mealSlots";
 import { vEquipments } from "./cellars";
 
 /** S11 — the shared vocabulary produces the runtime validator, so the two cannot drift. */
-export const vMealSlots = v.array(v.union(...MEAL_SLOTS.map(v.literal)));
+export const vMealSlot = v.union(...MEAL_SLOTS.map(v.literal));
+export const vMealSlots = v.array(vMealSlot);
 
 /**
  * The kitchen, and what it usually plans for. Never how a person eats: that follows them between

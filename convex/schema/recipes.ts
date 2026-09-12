@@ -35,6 +35,11 @@ export const recipes = defineTable({
   difficulty: v.union(...DIFFICULTY_LEVELS.map(v.literal)),
   userId: v.optional(v.id("users")),
   /**
+   * A random ordering key used to sample recipes without exposing other users' rows.
+   * Optional only while the backfill migration brings existing recipes up to date.
+   */
+  shuffleKey: v.optional(v.number()),
+  /**
    * Closed vocabularies rather than free strings, and for one reason: the model that fills these
    * in speaks a single locale per run, so free text would store "italienne" from a French cook and
    * "Italian" from an English one — two recipes of the same cuisine that never group or filter
@@ -108,6 +113,7 @@ export const recipes = defineTable({
   updatedAt: v.number(), // S5
 })
   .index("by_user", ["userId"])
+  .index("by_user_id_and_shuffle_key", ["userId", "shuffleKey"])
   .index("by_difficulty", ["difficulty"])
   // Answer "which recipe points at this image", which is what detaches it when the image is deleted
   // (CASCADE.images in functions/cascade.ts). Nothing reads them on a normal path.

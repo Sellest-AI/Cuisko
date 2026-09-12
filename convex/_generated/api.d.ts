@@ -71,6 +71,11 @@ import type * as functions_media_sanitizeImage from "../functions/media/sanitize
 import type * as functions_media_saveImage from "../functions/media/saveImage.js";
 import type * as functions_media_uploadImage from "../functions/media/uploadImage.js";
 import type * as functions_media_uploadImageSizes from "../functions/media/uploadImageSizes.js";
+import type * as functions_planning_availableStock from "../functions/planning/availableStock.js";
+import type * as functions_planning_candidatePool from "../functions/planning/candidatePool.js";
+import type * as functions_planning_planDraft from "../functions/planning/planDraft.js";
+import type * as functions_planning_scaleLines from "../functions/planning/scaleLines.js";
+import type * as functions_planning_selectMeals from "../functions/planning/selectMeals.js";
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
 import type * as functions_preferences_getPlanningSeed from "../functions/preferences/getPlanningSeed.js";
 import type * as functions_preferences_save from "../functions/preferences/save.js";
@@ -134,6 +139,7 @@ import type * as router_media_images_saveSizes from "../router/media/images/save
 import type * as router_media_images_uploadMany from "../router/media/images/uploadMany.js";
 import type * as router_media_images_uploadOne from "../router/media/images/uploadOne.js";
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
+import type * as router_planning_getDraft from "../router/planning/getDraft.js";
 import type * as router_preferences_getMine from "../router/preferences/getMine.js";
 import type * as router_preferences_getPlanningSeed from "../router/preferences/getPlanningSeed.js";
 import type * as router_preferences_save from "../router/preferences/save.js";
@@ -154,6 +160,7 @@ import type * as schema_i18n from "../schema/i18n.js";
 import type * as schema_ingredientPayloads from "../schema/ingredientPayloads.js";
 import type * as schema_ingredients from "../schema/ingredients.js";
 import type * as schema_media from "../schema/media.js";
+import type * as schema_planning from "../schema/planning.js";
 import type * as schema_preferences from "../schema/preferences.js";
 import type * as schema_recipePayloads from "../schema/recipePayloads.js";
 import type * as schema_recipes from "../schema/recipes.js";
@@ -229,6 +236,11 @@ declare const fullApi: ApiFromModules<{
   "functions/media/saveImage": typeof functions_media_saveImage;
   "functions/media/uploadImage": typeof functions_media_uploadImage;
   "functions/media/uploadImageSizes": typeof functions_media_uploadImageSizes;
+  "functions/planning/availableStock": typeof functions_planning_availableStock;
+  "functions/planning/candidatePool": typeof functions_planning_candidatePool;
+  "functions/planning/planDraft": typeof functions_planning_planDraft;
+  "functions/planning/scaleLines": typeof functions_planning_scaleLines;
+  "functions/planning/selectMeals": typeof functions_planning_selectMeals;
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;
   "functions/preferences/getPlanningSeed": typeof functions_preferences_getPlanningSeed;
   "functions/preferences/save": typeof functions_preferences_save;
@@ -292,6 +304,7 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadMany": typeof router_media_images_uploadMany;
   "router/media/images/uploadOne": typeof router_media_images_uploadOne;
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
+  "router/planning/getDraft": typeof router_planning_getDraft;
   "router/preferences/getMine": typeof router_preferences_getMine;
   "router/preferences/getPlanningSeed": typeof router_preferences_getPlanningSeed;
   "router/preferences/save": typeof router_preferences_save;
@@ -312,6 +325,7 @@ declare const fullApi: ApiFromModules<{
   "schema/ingredientPayloads": typeof schema_ingredientPayloads;
   "schema/ingredients": typeof schema_ingredients;
   "schema/media": typeof schema_media;
+  "schema/planning": typeof schema_planning;
   "schema/preferences": typeof schema_preferences;
   "schema/recipePayloads": typeof schema_recipePayloads;
   "schema/recipes": typeof schema_recipes;

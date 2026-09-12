@@ -4,6 +4,7 @@ import { facetsOf } from "@shared/tags";
 import { components, internal } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
 import { recipeSearchText } from "./functions/recipes/recipeSearchText";
+import { randomShuffleKey } from "./lib/nanoid";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 
@@ -54,4 +55,21 @@ export const backfillRecipeSearch = migrations.define({
   },
 });
 
+/**
+ * Gives every existing recipe a stable random ordering key for the planning candidate window.
+ * The field is optional in the schema until this online migration has completed everywhere.
+ */
+export const backfillRecipeShuffleKey = migrations.define({
+  table: "recipes",
+  migrateOne: async (_ctx, recipe) => {
+    if (recipe.shuffleKey === undefined) {
+      return { shuffleKey: randomShuffleKey() };
+    }
+  },
+});
+
 export const runBackfillRecipeSearch = migrations.runner([internal.migrations.backfillRecipeSearch]);
+
+export const runBackfillRecipeShuffleKey = migrations.runner([
+  internal.migrations.backfillRecipeShuffleKey,
+]);

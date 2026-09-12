@@ -6,6 +6,7 @@
  * provider tree.
  */
 
+import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
 import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, type MealSlot } from "@shared/mealSlots";
 import { foldAccents } from "@shared/translations";
@@ -73,10 +74,73 @@ export type PlannedMeal = Omit<Recipe, "id"> & {
   slot: MealSlot;
 };
 
-export type DaySection = {
+/**
+ * One line of a generated plate, as `getDraft` answers it.
+ *
+ * `amount` / `unit` are the recipe's own words scaled to the plate — "2 pcs", never the grams stock
+ * is counted in. `category` is the catalog's, folded onto a grocery heading by `groceryHeadingOf`.
+ */
+export type DraftIngredient = {
+  ingredientId: string;
+  name: string;
+  emoji: string;
+  category: Category;
+  imageUrl?: string;
+  amount: number;
+  unit: Unit;
+  /** What the cellar already holds, after what the week's earlier plates took. */
+  covered: boolean;
+};
+
+/**
+ * A plate of the week the tunnel generated and nobody has agreed to yet.
+ *
+ * The server's `DraftMeal` with two differences, both made where it lands (`usePlanDraft`): the day
+ * is a `Date`, and `id` names the plate — `plateIdFor` its day and slot, which is unique within a
+ * draft and is the same id the sheet gives a plate it creates on that slot.
+ *
+ * No `status`, no `emoji`, no price: status is a derivation of `covered`, a recipe has no emoji
+ * column, and nothing in the schema carries a price.
+ */
+export type DraftMeal = {
+  id: string;
+  recipeId: string;
+  date: Date;
+  slot: MealSlot;
+  servings: number;
+  title: string;
+  minutes?: number;
+  imageUrl?: string;
+  ingredients: DraftIngredient[];
+};
+
+/**
+ * What a plate in a list is drawn from — the kept week's and the draft's alike.
+ *
+ * A projection rather than a shared meal type: the two weeks store different things, and the row
+ * only needs this much of either. `PlannedMeal` satisfies it as it stands; a draft goes through
+ * `toMealCard`.
+ */
+export type MealCard = {
+  id: string;
+  recipeId: string;
+  date: Date;
+  slot: MealSlot;
+  title: string;
+  minutes?: number;
+  servings: number;
+  status: MealStatus;
+  emoji?: string;
+  imageSrc?: ImageSource;
+};
+
+/** Anything a list can place on a day: the plate's id, its day and its slot. */
+type Dated = { id: string; date: Date; slot: MealSlot };
+
+export type DaySection<M extends Dated = PlannedMeal> = {
   date: Date;
   status: DayStatus;
-  meals: PlannedMeal[];
+  meals: M[];
 };
 
 type RowBase = {
@@ -91,8 +155,8 @@ type RowBase = {
 };
 
 /** The list's flat source. One row per plate — planned or not — which is what FlashList renders. */
-export type PlanningRow =
-  | (RowBase & { kind: "meal"; meal: PlannedMeal })
+export type PlanningRow<M extends Dated = PlannedMeal> =
+  | (RowBase & { kind: "meal"; meal: M })
   | (RowBase & { kind: "empty"; slot: MealSlot });
 
 export type GroceryRow = {
@@ -102,7 +166,6 @@ export type GroceryRow = {
   emoji: string;
   amount: number;
   unit: Unit;
-  pricePerKg?: number;
   /** The meals needing it, drawn as the stack of little plates under the name. */
   mealIds: string[];
 };
@@ -143,6 +206,34 @@ export const CATEGORY_ORDER = ["vegetables", "meats", "fish", "dairy", "grains",
  * silently drawing as "Odds and ends" the way a string-keyed lookup with a fallback would.
  */
 export type CategoryId = (typeof CATEGORY_ORDER)[number];
+
+/**
+ * The grocery heading a catalog category is shopped under.
+ *
+ * The catalog has sixteen categories and the list has six headings, so this folds rather than
+ * renames: a herb is bought with the vegetables, an egg beside the meat. A `Record` over the whole
+ * vocabulary, so a seventeenth category fails to compile here instead of drawing as "other".
+ */
+const GROCERY_HEADING: Record<Category, CategoryId> = {
+  VEGETABLE: "vegetables",
+  FRUIT: "vegetables",
+  HERB: "vegetables",
+  MEAT: "meats",
+  EGG: "meats",
+  SEAFOOD: "fish",
+  DAIRY: "dairy",
+  GRAIN: "grains",
+  LEGUME: "grains",
+  NUT: "other",
+  SEED: "other",
+  SPICE: "other",
+  OIL: "other",
+  CONDIMENT: "other",
+  SWEETENER: "other",
+  OTHER: "other",
+};
+
+export const groceryHeadingOf = (category: Category): CategoryId => GROCERY_HEADING[category];
 
 /** Local time on purpose — "Tuesday" has to mean the user's Tuesday, not UTC's. */
 export const isSameDay = (first: Date, second: Date) =>
@@ -200,7 +291,7 @@ export const dayStatusFor = (date: Date, today: Date): DayStatus => {
  * stamped that date, and a plan that silently stops listing a meal it is still counting in the
  * groceries is worse than one showing a day the range did not ask for.
  */
-export const planSections = (dates: Date[], meals: PlannedMeal[], today: Date): DaySection[] => {
+export const planSections = <M extends Dated>(dates: Date[], meals: M[], today: Date): DaySection<M>[] => {
   const days = [...dates];
 
   for (const meal of meals)
@@ -239,21 +330,21 @@ type BuildOptions = {
  * the user turns a week they lived into a week they failed, which is the one thing the planning
  * screen must never do.
  */
-export const buildRows = (
-  sections: DaySection[],
+export const buildRows = <M extends Dated>(
+  sections: DaySection<M>[],
   today: Date,
   { emptySlots = MEAL_SLOTS }: BuildOptions = {},
-): PlanningRow[] => {
+): PlanningRow<M>[] => {
   const todayStart = _startOfDay(today);
 
   return sections.flatMap((section) => {
     const isPast = _startOfDay(section.date) < todayStart;
 
-    const rows: PlanningRow[] = MEAL_SLOTS.flatMap((slot) => {
+    const rows: PlanningRow<M>[] = MEAL_SLOTS.flatMap((slot) => {
       const planned = section.meals.filter((meal) => meal.slot === slot);
 
       if (planned.length > 0)
-        return planned.map((meal): PlanningRow => ({
+        return planned.map((meal): PlanningRow<M> => ({
           kind: "meal",
           id: meal.id,
           date: section.date,
@@ -290,7 +381,7 @@ export const buildRows = (
  * Past the last row there is no row after, so the nearest one is the last — the plan only runs to
  * its horizon, and a date beyond it belongs at the end, not back at the top.
  */
-export const indexOfDate = (rows: PlanningRow[], date?: Date) => {
+export const indexOfDate = <M extends Dated>(rows: PlanningRow<M>[], date?: Date) => {
   if (!date || rows.length === 0) return 0;
 
   const target = _startOfDay(date);
@@ -305,14 +396,11 @@ export const indexOfDate = (rows: PlanningRow[], date?: Date) => {
  * Removal, not emptying: the day keeps whatever else was on it, and `buildRows` draws it with one
  * plate instead of two. A day left with nothing simply stops appearing.
  */
-export const removeMeal = (meals: PlannedMeal[], mealId: string): PlannedMeal[] =>
+export const removeMeal = <M extends Plate>(meals: M[], mealId: string): M[] =>
   meals.filter((meal) => meal.id !== mealId);
 
-const _replaceOne = (
-  meals: PlannedMeal[],
-  mealId: string,
-  change: (meal: PlannedMeal) => PlannedMeal,
-): PlannedMeal[] => meals.map((meal) => (meal.id === mealId ? change(meal) : meal));
+const _replaceOne = <M extends Plate>(meals: M[], mealId: string, change: (meal: M) => M): M[] =>
+  meals.map((meal) => (meal.id === mealId ? change(meal) : meal));
 
 /**
  * Clamped rather than trusted: the slider cannot ask for a half portion or a zero one, but this is
@@ -330,21 +418,24 @@ export type Plate = {
 };
 
 /**
- * A dish, served on that plate.
+ * A dish, served on that plate — the kept week's shape.
  *
  * The one place a `PlannedMeal` is built from a `Recipe`, so putting a dish on an empty slot and
  * swapping the dish already on one cannot disagree about what a plate made of that recipe is. The
  * ingredients are copied rather than shared: two plates of the same dish holding the catalogue's
  * own array would edit each other.
+ *
+ * The editing functions below take a meal already built rather than a recipe, so they serve the
+ * draft too, whose plates are a different shape — the builder is the caller's.
  */
-const _plated = (plate: Plate, recipe: Recipe): PlannedMeal => ({
+export const plannedMealOf = (plate: Plate, recipe: Recipe): PlannedMeal => ({
   ...recipe,
   ingredients: [...recipe.ingredients],
   id: plate.id,
   recipeId: recipe.id,
   date: plate.date,
   slot: plate.slot,
-  servings: _clampServings(plate.servings),
+  servings: plate.servings,
 });
 
 /**
@@ -355,9 +446,9 @@ const _plated = (plate: Plate, recipe: Recipe): PlannedMeal => ({
  * Appended rather than inserted in date order — `planSections` groups by day, so the position in
  * this array is not what decides where the plate is drawn.
  */
-export const addMeal = (meals: PlannedMeal[], plate: Plate, recipe: Recipe): PlannedMeal[] => [
+export const addMeal = <M extends Plate>(meals: M[], meal: M): M[] => [
   ...meals,
-  _plated(plate, recipe),
+  { ...meal, servings: _clampServings(meal.servings) },
 ];
 
 /**
@@ -366,25 +457,40 @@ export const addMeal = (meals: PlannedMeal[], plate: Plate, recipe: Recipe): Pla
  * It does not touch the ingredient amounts — see `groceriesFor`, which still sums what the recipe
  * was written for.
  */
-export const setMealServings = (
-  meals: PlannedMeal[],
-  mealId: string,
-  servings: number,
-): PlannedMeal[] =>
+export const setMealServings = <M extends Plate>(meals: M[], mealId: string, servings: number): M[] =>
   _replaceOne(meals, mealId, (meal) => ({ ...meal, servings: _clampServings(servings) }));
 
 /**
  * A different dish on the same plate.
  *
  * The plate keeps its id, its day, its slot and the portions it was set to; everything the dish
- * decides comes from the recipe. Swapping the whole meal out for a new one instead would move it
- * to the end of the week and drop the portions the user had just chosen.
+ * decides comes from `plated`, which is handed that plate. Swapping the whole meal out for a new one
+ * instead would move it to the end of the week and drop the portions the user had just chosen.
  */
-export const replaceMeal = (
-  meals: PlannedMeal[],
-  mealId: string,
-  recipe: Recipe,
-): PlannedMeal[] => _replaceOne(meals, mealId, (meal) => _plated(meal, recipe));
+export const replaceMeal = <M extends Plate>(meals: M[], mealId: string, plated: (plate: Plate) => M): M[] =>
+  _replaceOne(meals, mealId, (meal) => {
+    const swapped = plated({ id: meal.id, date: meal.date, slot: meal.slot, servings: meal.servings });
+
+    return { ...swapped, servings: _clampServings(swapped.servings) };
+  });
+
+/**
+ * A draft plate as a list draws it.
+ *
+ * Ready when the cellar covers every line, shopping otherwise — the same two states a kept plate
+ * carries, derived here because the draft stores coverage and not a verdict.
+ */
+export const toMealCard = (meal: DraftMeal): MealCard => ({
+  id: meal.id,
+  recipeId: meal.recipeId,
+  date: meal.date,
+  slot: meal.slot,
+  title: meal.title,
+  minutes: meal.minutes,
+  servings: meal.servings,
+  status: meal.ingredients.every((ingredient) => ingredient.covered) ? "ready" : "shopping-needed",
+  imageSrc: meal.imageUrl ? { uri: meal.imageUrl } : undefined,
+});
 
 /** Case as well as accents — a recipe title is matched, not indexed, so nothing else reads it. */
 const _fold = (value: string) => foldAccents(value).toLowerCase();
@@ -413,14 +519,18 @@ const _categoryRank = (id: string) => {
  *
  * Lines merge on ingredient *and* unit: 500g and 4 pieces of the same thing are two rows, because
  * nothing here knows how many grams a piece weighs. Merging them would invent a number.
+ *
+ * Every line counts, covered or not: what the cellar covers is taken off the list when the week is
+ * committed, against the cellar as it is then.
  */
-export const groceriesFor = (meals: PlannedMeal[]): GroceryCategory[] => {
+export const groceriesFor = (meals: DraftMeal[]): GroceryCategory[] => {
   const rows = new Map<string, GroceryRow>();
   const categories = new Map<string, string[]>();
 
   for (const meal of meals)
     for (const ingredient of meal.ingredients) {
-      const id = `${ingredient.id}:${ingredient.unit}`;
+      const id = `${ingredient.ingredientId}:${ingredient.unit}`;
+      const heading = groceryHeadingOf(ingredient.category);
       const existing = rows.get(id);
 
       if (existing) {
@@ -435,13 +545,12 @@ export const groceriesFor = (meals: PlannedMeal[]): GroceryCategory[] => {
         emoji: ingredient.emoji,
         amount: ingredient.amount,
         unit: ingredient.unit,
-        pricePerKg: ingredient.pricePerKg,
         mealIds: [meal.id],
       });
 
-      const seen = categories.get(ingredient.category);
+      const seen = categories.get(heading);
       if (seen) seen.push(id);
-      else categories.set(ingredient.category, [id]);
+      else categories.set(heading, [id]);
     }
 
   return [...categories.entries()]

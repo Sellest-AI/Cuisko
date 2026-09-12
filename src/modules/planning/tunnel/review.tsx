@@ -15,6 +15,8 @@ import {
   planDates,
   planSections,
   toDateParam,
+  toMealCard,
+  type MealCard,
   type PlanningRow,
 } from "../_model/model";
 import { useTunnel } from "./_hooks/useTunnel";
@@ -24,7 +26,7 @@ import { TunnelHeader } from "./_components/tunnel-header";
 
 /** FlashList is generic; the animated wrapper needs a concrete props type to attach `onScroll`. */
 const AnimatedFlashList = Animated.createAnimatedComponent(
-  FlashList as ComponentType<FlashListProps<PlanningRow>>,
+  FlashList as ComponentType<FlashListProps<PlanningRow<MealCard>>>,
 );
 
 /**
@@ -37,7 +39,7 @@ const AnimatedFlashList = Animated.createAnimatedComponent(
  * without it the sheet would edit the plan they are already keeping, and a tunnel abandoned
  * halfway would have changed it anyway.
  */
-const _openPlate = (row: PlanningRow) =>
+const _openPlate = (row: PlanningRow<MealCard>) =>
   router.push(row.kind === "meal"
     ? { pathname: "/meal", params: { mealId: row.meal.id, scope: "draft" } }
     : {
@@ -59,7 +61,7 @@ export const TunnelReview = () => {
    * only thing there was to tap.
    */
   const rows = useMemo(
-    () => buildRows(planSections(planDates(today, days), meals, today), today, { emptySlots: slots }),
+    () => buildRows(planSections(planDates(today, days), meals.map(toMealCard), today), today, { emptySlots: slots }),
     [today, days, meals, slots],
   );
 

@@ -8,12 +8,13 @@ import { colors, theme } from "theme";
 
 import { formatQuantity } from "@shared/ingredients";
 
-import { type GroceryRow, type PlannedMeal } from "../_model/model";
+import { MEAL_IMAGE } from "../_hooks/placeholders";
+import { type DraftMeal, type GroceryRow } from "../_model/model";
 
 type Props = {
   row: GroceryRow;
   /** The meals needing this row, already resolved — drawn as the stack of little plates. */
-  meals: PlannedMeal[];
+  meals: DraftMeal[];
   owned: boolean;
   haveLabel: string;
   needLabel: string;
@@ -28,7 +29,7 @@ const PRODUCE = {
 };
 
 /**
- * One ingredient the week needs: how much, what it costs, and which meals are asking for it.
+ * One ingredient the week needs: how much, and which meals are asking for it.
  *
  * The stack of plates is the row's justification — it answers "why is this on my list?" without a
  * tap, which is the difference between a list you trust and one you second-guess in the shop.
@@ -57,14 +58,11 @@ export const TunnelGroceryRow = ({ row, meals, owned, haveLabel, needLabel, onTo
           </Text.Base>
         </View>
       </View>
-      {row.pricePerKg !== undefined && (
-        <Text.Sm color={colors.muted}>{row.pricePerKg.toFixed(2)}€ / kg</Text.Sm>
-      )}
       <View style={styles.avatars}>
         {meals.map((meal, index) => (
           <Image
             key={meal.id}
-            source={meal.imageSrc}
+            source={meal.imageUrl ? { uri: meal.imageUrl } : MEAL_IMAGE}
             contentFit="cover"
             style={[styles.avatar, index > 0 && { marginLeft: AVATAR_OVERLAP }]}
           />

@@ -26,13 +26,14 @@
  * own words, not rows a backend will ever hand back.
  */
 
+import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
 
 import {
   addDays,
-  planDates,
+  type DraftMeal,
   type MealIngredient,
-  type MealSlot,
+  type Plate,
   type PlannedMeal,
   type Recipe,
 } from "../_model/model";
@@ -163,43 +164,12 @@ export const PLACEHOLDER_MEALS: PlannedMeal[] = Array.from(
 export const PLACEHOLDER_DAYS_AHEAD = DAYS_AFTER;
 
 /**
- * The dishes the fake generation walks through, in order.
- *
- * A rotation rather than a fixed list of plates: the setup step now decides how many days and
- * which slots to fill, so the generation has to size itself to the answer. Four dishes is enough
- * that a full week of both meals never serves the same thing two plates running.
+ * The four dishes, in the order the swap sheet's catalogue lists them and borrows their lines.
  */
 const ROTATION = ["duck", "asparagus", "mushroomRice", "gnocchi"] as const satisfies readonly RecipeKey[];
 
 /** Total by construction — the modulo cannot leave the tuple, so the fallback is unreachable. */
 const _dishAt = (position: number): RecipeKey => ROTATION[position % ROTATION.length] ?? ROTATION[0];
-
-/**
- * The generated week, sized by the setup step and each meal already carrying its day.
- *
- * Reading `days` and `slots` rather than emitting a fixed fortnight is what makes those two
- * questions worth asking: a user who says "three days, dinners only" and is handed a full week of
- * lunches back has been asked something the app then ignored.
- *
- * The date is decided here rather than by the screen that lists them, so dropping a meal in review
- * leaves every other meal on the day it was given. Deriving the day from a meal's position in the
- * array instead would reshuffle the whole week on one removal.
- *
- * The days come from `planDates` rather than being counted out again here: the review step lists
- * the same days to offer its empty plates on, and a week generated onto days that list does not
- * cover would show meals it cannot place beside slots nothing can fill.
- */
-export const generatedMeals = (today: Date, days: number, slots: MealSlot[]): PlannedMeal[] =>
-  planDates(today, days).map((date, day) =>
-    slots.map((slot, index) => {
-      const position = day * slots.length + index;
-
-      /** Alternating, so the review and grocery steps both show a week that is part ready, part shop. */
-      const status = position % 2 === 0 ? "ready" : "shopping-needed";
-
-      return _materialise(_plate(_dishAt(position), slot, status, `gen${position}`), date);
-    }),
-  ).flat();
 
 /**
  * Dishes past the four the week is built from, so the swap sheet searches a catalogue rather than
@@ -242,6 +212,38 @@ export const RECIPE_CATALOGUE: Recipe[] = [
   ...CATALOGUE_TITLES.map((title, index) =>
     _recipe(`catalogue${index}`, _dishAt(index), index + ROTATION.length, title)),
 ];
+
+/** The catalog category each placeholder heading stands for, so a swapped-in dish groups like a real one. */
+const DRAFT_CATEGORY: Record<string, Category> = {
+  vegetables: "VEGETABLE",
+  meats: "MEAT",
+  grains: "GRAIN",
+  dairy: "DAIRY",
+};
+
+/**
+ * A placeholder dish put on a generated plate — what the review step's swap sheet chooses from until
+ * a real catalogue backs it.
+ *
+ * ⚠️ **The recipe id is invented**, so a draft holding one cannot be committed as it stands. Nothing
+ * is covered either: the placeholder was never scored against the cellar. Both go when the sheet
+ * searches the real library, and this goes with them.
+ */
+export const draftMealOf = (plate: Plate, recipe: Recipe): DraftMeal => ({
+  ...plate,
+  recipeId: recipe.id,
+  title: recipe.title,
+  minutes: recipe.minutes,
+  ingredients: recipe.ingredients.map((ingredient) => ({
+    ingredientId: ingredient.id,
+    name: ingredient.name,
+    emoji: ingredient.emoji,
+    category: DRAFT_CATEGORY[ingredient.category] ?? "OTHER",
+    amount: ingredient.amount,
+    unit: ingredient.unit,
+    covered: false,
+  })),
+});
 
 /** One image for every tile until real produce photography exists. */
 export const TILE_IMAGE = DISH;

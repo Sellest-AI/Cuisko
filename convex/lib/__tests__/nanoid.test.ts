@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { nanoid } from "../nanoid";
+import { nanoid, randomShuffleKey } from "../nanoid";
 
 /** Every S3 object key is built on one of these, so a collision is a silently overwritten upload. */
 
@@ -50,5 +50,22 @@ describe("lib/nanoid", () => {
     const used = new Set(nanoid(1000).split(""));
 
     expect(used.size).toBeGreaterThan(DEFAULT_ALPHABET.length / 2);
+  });
+});
+
+describe("lib/nanoid > randomShuffleKey", () => {
+  /** The key is an ordering key, not a probability: a float's precision is wasted on it, and
+   * an integer is what the database displays. This asserts the shape rather than the value. */
+  test("returns an integer, never a float", () => {
+    for (let i = 0; i < 100; i++) {
+      const key = randomShuffleKey();
+      expect(key).toBeTypeOf("number");
+      expect(Number.isInteger(key)).toBe(true);
+    }
+  });
+
+  test("is not always zero", () => {
+    const keys = new Set(Array.from({ length: 100 }, () => randomShuffleKey()));
+    expect(keys.size).toBeGreaterThan(1);
   });
 });
