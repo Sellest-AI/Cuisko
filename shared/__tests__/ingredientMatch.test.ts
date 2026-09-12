@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   CONFIDENT,
   gradesIn,
+  hasQualifier,
   PLAUSIBLE,
   preservationIn,
   RESOLVABLE,
@@ -214,6 +215,48 @@ describe("gradesIn", () => {
     expect(searchTerms(regraded)).toBe("steak hache");
     expect(scoreCandidate(regraded, candidate("mince", "Bœuf haché (80/20)", ["steak haché"])))
       .toBeLessThan(CONFIDENT);
+  });
+});
+
+/**
+ * The question the taxonomy index asks before it lets a spelling claim a key: did folding this name
+ * throw a word away? `oignon en poudre` folds onto `oignon`, and the answer here is what stops
+ * onion powder owning the onion's name.
+ */
+describe("hasQualifier", () => {
+  test("true when folding drops a qualifier and leaves a different food's name behind", () => {
+    expect(hasQualifier("oignon en poudre")).toBe(true);
+    expect(hasQualifier("beurre fondu")).toBe(true);
+    expect(hasQualifier("pomme de terre en poudre")).toBe(true);
+    // Each of them folds onto the bare food, which is the collision this exists to break.
+    expect(searchTerms("oignon en poudre")).toBe(searchTerms("oignon"));
+    expect(searchTerms("beurre fondu")).toBe(searchTerms("beurre"));
+  });
+
+  test("false for a name that keeps every word it identifies with", () => {
+    expect(hasQualifier("oignon")).toBe(false);
+    expect(hasQualifier("jus de citron")).toBe(false);
+    expect(hasQualifier("oignon vert")).toBe(false);
+    expect(hasQualifier("carotte")).toBe(false);
+  });
+
+  /**
+   * A stopword is not a qualifier: "de" carries no identity and dropping it takes nothing with it,
+   * so a name reduced only by stopwords is still its own name.
+   */
+  test("false when only stopwords and quantities came off", () => {
+    expect(hasQualifier("200g de pâtes")).toBe(false);
+    expect(hasQualifier("2 gousses d'ail")).toBe(false);
+  });
+
+  /**
+   * `_tokenize` falls back to the qualifiers themselves rather than to nothing, so a name made only
+   * of them dropped nothing — and a food genuinely called "poudre" keeps its own key.
+   */
+  test("false when the name is nothing but qualifiers", () => {
+    expect(hasQualifier("poudre")).toBe(false);
+    expect(hasQualifier("fondu")).toBe(false);
+    expect(hasQualifier("")).toBe(false);
   });
 });
 

@@ -45,6 +45,35 @@ describe("functions/ingredients/lookup/taxonomy", () => {
   );
 
   /**
+   * The collision the two-pass index exists to break, against the shipped file rather than a
+   * fixture — the point is which entry the REAL taxonomy hands back.
+   *
+   * `searchTerms` strips `poudre` and `fondu`, so `oignon en poudre` (line 1609), the potato flour
+   * synonym `pomme de terre en poudre` (line 319) and the butterfat synonym `beurre fondu` (line
+   * 268) all fold onto the bare food's key — and every one of them sits ABOVE the food itself in
+   * the file. Claimed by file order, `oignon` resolved to onion powder and answered a resolve with
+   * its names and its CIQUAL figures.
+   */
+  test.each([
+    ["oignon", "en:onion"],
+    ["beurre", "en:butter"],
+    ["pomme de terre", "en:potato"],
+  ])("%s resolves to the food itself, not to the powder that folds onto its name", (typed, key) => {
+    expect(findInTaxonomy(typed)?.key).toBe(key);
+  });
+
+  /**
+   * The two lines this slice was reported for. Both are foods the taxonomy knows perfectly well,
+   * and both were linked to a near-miss catalog row — `jus d'orange` and `oignon`.
+   */
+  test.each([
+    ["jus de citron", "en:lemon-juice"],
+    ["oignon vert", "en:spring-onion"],
+  ])("%s is its own food and not the one it shares a word with", (typed, key) => {
+    expect(findInTaxonomy(typed)?.key).toBe(key);
+  });
+
+  /**
    * Exact on the folded form, and NOT fuzzy — the reason is in the doc on `findInTaxonomy`. Six
    * thousand foods including every additive OFF knows is a corpus where a near-miss is a
    * confident-looking wrong answer with a nutrition table attached.

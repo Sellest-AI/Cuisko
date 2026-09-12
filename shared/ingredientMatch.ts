@@ -224,12 +224,14 @@ const _singularize = (token: string) => {
 };
 
 /**
- * A name reduced to the words that identify it.
+ * A name split into the three layers every rule below reads it at: every word, the words carrying
+ * meaning, and the words carrying identity.
  *
- * The two fallbacks are what keep a name from reducing to nothing: an ingredient genuinely called
- * "fresh cream" would otherwise arrive as an empty token list and match everything equally.
+ * One split rather than two, because `_tokenize` and `hasQualifier` ask different questions OF THE
+ * SAME split — what a name reduces to, and whether reducing it dropped anything. Written twice,
+ * the two copies disagree about what a qualifier is the first time one of the lists above grows.
  */
-const _tokenize = (value: string): string[] => {
+const _layers = (value: string) => {
   const raw = _fold(value)
     .split(" ")
     .filter((token) => token && !_isQuantity(token))
@@ -237,7 +239,40 @@ const _tokenize = (value: string): string[] => {
   const meaningful = raw.filter((token) => !STOPWORDS.has(token));
   const identifying = meaningful.filter((token) => !QUALIFIERS.has(token));
 
+  return { raw, meaningful, identifying };
+};
+
+/**
+ * A name reduced to the words that identify it.
+ *
+ * The two fallbacks are what keep a name from reducing to nothing: an ingredient genuinely called
+ * "fresh cream" would otherwise arrive as an empty token list and match everything equally.
+ */
+const _tokenize = (value: string): string[] => {
+  const { raw, meaningful, identifying } = _layers(value);
+
   return identifying.length > 0 ? identifying : meaningful.length > 0 ? meaningful : raw;
+};
+
+/**
+ * Whether reducing this name to its identifying words actually DROPPED a qualifier — whether
+ * "oignon en poudre" reaches `searchTerms` as the bare "oignon".
+ *
+ * **Exported for the taxonomy index, where the answer decides which food owns a name.** That index
+ * is a dictionary keyed by the folded form, so two spellings routinely compete for one key: an
+ * onion's own name, and onion powder's after `poudre` came off. Both fold to `oignon` and only one
+ * of them is an onion. Whichever the upstream file happened to list first used to win, which filed
+ * `beurre` under butterfat (via `beurre fondu`) and `pomme de terre` under potato flour (via
+ * `pomme de terre en poudre`) — each then answering with the wrong food's CIQUAL figures.
+ *
+ * A name that is nothing BUT qualifiers answers false, which is `_tokenize`'s own fallback read
+ * back: "poudre" reduces to itself rather than to nothing, so nothing was dropped and the spelling
+ * is its own.
+ */
+export const hasQualifier = (value: string): boolean => {
+  const { meaningful, identifying } = _layers(value);
+
+  return identifying.length > 0 && identifying.length < meaningful.length;
 };
 
 const _editDistance = (left: string, right: string): number => {
