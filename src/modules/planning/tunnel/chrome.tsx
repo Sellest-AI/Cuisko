@@ -4,6 +4,8 @@ import { ReactNode, useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { Extrapolation, interpolate, useAnimatedStyle } from "react-native-reanimated";
 
+import { RadialGradient } from "@ui/radial-gradient";
+import { AnimatePresence, m } from "@ui/motion";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
@@ -13,7 +15,6 @@ import { tunnelScrollY } from "./_hooks/useTunnelScrollHandler";
 import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
 import { StepProgress } from "./_components/step-progress";
 import { TunnelBar } from "./_components/tunnel-bar";
-import { RadialGradient } from "@ui/radial-gradient";
 
 /**
  * Per-step chrome, keyed by the step's own name.
@@ -107,13 +108,25 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
           end={{ x: 0, y: 0.7 }}
         />
       </Animated.View>
-      {!chrome.tinted && !isLast && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, ground]}>
-        <RadialGradient
-          size={500}
-          colors={[colors.primary.base, colors.neutral.subtle]}
-          style={{ position: "absolute", top: 0, left: -172, opacity: 0.25 }}
-        />
-      </Animated.View>}
+      <AnimatePresence>
+        {!chrome.tinted && !isLast &&
+          <m.View
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, ground]}>
+              <RadialGradient
+                size={500}
+                colors={[colors.primary.base, colors.neutral.subtle]}
+                style={{ position: "absolute", top: 0, left: -172, opacity: 0.25 }}
+              />
+            </Animated.View>
+          </m.View>
+        }
+      </AnimatePresence>
       <SafeAreaView edges={{ top: "additive", bottom: "off" }} style={styles.safe}>
         {chrome.progress && (
           <StepProgress
