@@ -4,7 +4,11 @@ import type { LookupHit } from "@convex/functions/ingredients/lookup/lookupHit";
 import { ALLERGENS } from "@shared/allergens";
 
 import { parseModelOutput } from "../../utils";
-import { matchIngredientSchema, toSanitizedIngredient } from "../sanitizeIngredient";
+import {
+  matchIngredientSchema,
+  matchIngredientUserPrompt,
+  toSanitizedIngredient,
+} from "../sanitizeIngredient";
 
 /**
  * The generation is not tested here — it is a model call, and the manual test beside this one is
@@ -523,6 +527,57 @@ describe("toSanitizedIngredient", () => {
  * that stands between a model's answer and the two decisions read off it: whether to link, and
  * whether to remember the word. Both are read from keys the model is allowed to omit.
  */
+/**
+ * The ranker sees the taxonomy's answer, which is the whole of the wrong-link fix: `jus de citron`
+ * was judged against a `Jus d'orange` row on the words alone, and linked.
+ */
+describe("matchIngredientUserPrompt", () => {
+  const _curated: LookupHit = {
+    source: "foodComposition",
+    names: { en: ["lemon juice"], fr: ["jus de citron"] },
+  };
+
+  it("states what a curated source filed the term under", () => {
+    const prompt = matchIngredientUserPrompt({
+      text: "jus de citron",
+      candidates: [{ id: "k1", name: "Jus d'orange" }],
+      hits: [_curated],
+    });
+
+    expect(prompt).toContain("A food dictionary files what they typed under this food:");
+    expect(prompt).toContain("lemon juice");
+    // Still the same two things it always carried — the term, and the candidates by position.
+    expect(prompt).toContain("jus de citron");
+    expect(prompt).toContain("0. Jus d'orange");
+  });
+
+  /**
+   * A searched source answers a keyword query with whatever ranked highest — USDA replies to
+   * `pâte de pistache` with a guava pastry. Repeated to the ranker as what the term IS, that
+   * argues for the wrong answer rather than merely adding noise.
+   */
+  it("says nothing about a source that reached its answer by searching", () => {
+    const prompt = matchIngredientUserPrompt({
+      text: "pâte de pistache",
+      candidates: [{ id: "k1", name: "pâte d'amande" }],
+      hits: [{ source: "foodComposition", names: { en: ["Pastry, Pastelitos de Guava"] }, searched: true }],
+    });
+
+    expect(prompt).not.toContain("A food dictionary");
+    expect(prompt).not.toContain("Pastelitos");
+  });
+
+  it("leaves the line out entirely when nothing looked the term up", () => {
+    const prompt = matchIngredientUserPrompt({
+      text: "kaki",
+      candidates: [{ id: "k1", name: "kiwi" }],
+    });
+
+    expect(prompt).not.toContain("A food dictionary");
+    expect(prompt).toContain("0. kiwi");
+  });
+});
+
 describe("matchIngredientSchema", () => {
   const parse = (raw: unknown) => parseModelOutput(matchIngredientSchema(3), raw);
 
