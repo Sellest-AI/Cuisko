@@ -54,6 +54,7 @@ type Props = {
    */
   badge?: ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
   style?: ViewStyle;
   imageStyle?: ComponentProps<typeof Image>["style"];
   elevated?: boolean;
@@ -77,6 +78,7 @@ export const CardChoice = ({
   elevated = false,
   badge,
   onPress,
+  onLongPress,
   imageStyle,
   style,
 }: Props) => {
@@ -86,6 +88,7 @@ export const CardChoice = ({
     <Pressable
       intensity={0.96}
       onPress={onPress}
+      onLongPress={onLongPress}
       style={{
         ...styles.container,
         ...(tone === "neutral" ? styles.resting : null),

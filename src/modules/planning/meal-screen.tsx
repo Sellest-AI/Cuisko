@@ -17,6 +17,7 @@ import { SectionLabel } from "./_components/section-label";
 import { useMealEditor, type MealScope, type MealTarget } from "./_hooks/useMealEditor";
 import { MAX_SERVINGS, parseDateParam, parseMealSlot, type Recipe } from "./_model/model";
 import { FlashList } from "@shopify/flash-list";
+import { router } from "expo-router";
 
 const COLUMNS = 2;
 const GUTTER = theme.spacing[16];
@@ -137,6 +138,7 @@ const Editor = ({
                   selected={selected}
                   elevated={selected}
                   onPress={() => choose(recipe)}
+                  onLongPress={() => router.push(`/recipe/${recipe.id}`)}
                   imageStyle={{ height: TILE_IMAGE_HEIGHT }}
                   badge={<RecipeBadge recipe={recipe} selected={selected} />}
                   style={{ padding: theme.spacing[12], width: "100%" }}
