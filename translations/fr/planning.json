@@ -95,8 +95,6 @@
     "Groceries": {
       "title": "Liste de courses",
       "subtitle": "Ce qui manque dans ta cuisine",
-      "info_title": "Important",
-      "info_body": "Cette liste tient déjà compte de ce qu'il y a dans ta cave et des ingrédients utilisés par tes futurs repas prévus. Coche \"J'en ai\" seulement pour les ingrédients que tu viens d'acheter et que tu n'as pas encore ajoutés à ta cave.",
       "save": "Ajouter à ma liste",
       "x_new_items_one": "{{count, number}} chose à rapporter",
       "x_new_items_many": "{{count, number}} de choses à rapporter",

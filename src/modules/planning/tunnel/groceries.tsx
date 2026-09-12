@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { MessageCircleWarning, ReceiptTextIcon } from "@ui/icons";
+import { ReceiptTextIcon } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -13,7 +13,6 @@ import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
 import { TunnelHeader } from "./_components/tunnel-header";
 import { TunnelGroceryRow } from "./groceries.row";
-import { InfoBanner } from "@ui/info-banner";
 
 /**
  * The categories the model can emit, as keys this file may name — `t()` takes no dynamic key.
@@ -40,7 +39,7 @@ const _isCategoryId = (id: string): id is CategoryId => id in CATEGORY_KEYS;
 /** What the week needs that the kitchen has not got. */
 export const TunnelGroceries = () => {
   const t = useTranslations("Planning");
-  const { categories, meals, owned, toggleHave } = useTunnelGroceries();
+  const { categories, meals, owned } = useTunnelGroceries();
   const onScroll = useTunnelScrollHandler();
 
   return (
@@ -55,17 +54,6 @@ export const TunnelGroceries = () => {
         subtitle={t("Tunnel.Groceries.subtitle")}
         icon={ReceiptTextIcon}
       />
-      <InfoBanner
-        title={t("Tunnel.Groceries.info_title")}
-        variant="warning"
-        icon={MessageCircleWarning}
-        style={{
-          marginHorizontal: theme.spacing[16],
-          marginBottom: theme.spacing[28],
-        }}
-      >
-        {t("Tunnel.Groceries.info_body")}
-      </InfoBanner>
       {categories.map((category, i) => (
         <View key={category.id}>
           <Text.Lg style={{ ...styles.heading, ...(i === 0 ? { marginTop: 0 } : {}) }}>
@@ -79,7 +67,6 @@ export const TunnelGroceries = () => {
               owned={owned.includes(row.id)}
               haveLabel={t("Tunnel.Groceries.have")}
               needLabel={t("Tunnel.Groceries.need")}
-              onToggle={() => toggleHave(row.id)}
             />
           ))}
         </View>

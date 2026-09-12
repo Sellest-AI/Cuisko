@@ -17,7 +17,7 @@ type Props = {
   owned: boolean;
   haveLabel: string;
   needLabel: string;
-  onToggle: () => void;
+  onToggle?: () => void;
 };
 
 const AVATAR = 22;
@@ -47,14 +47,18 @@ export const TunnelGroceryRow = ({ row, meals, owned, haveLabel, needLabel, onTo
         >
           {row.name}
         </Text.Base>
-        <View style={[styles.quantity, owned ? { opacity: 0.5 } : {}]}>
+        <View style={[
+          styles.quantity,
+          !onToggle && styles.quantityBig,
+          owned ? { opacity: 0.5 } : {}
+        ]}>
           <Text.Base>
             {formatQuantity(row.amount, row.unit)}
           </Text.Base>
         </View>
       </View>
       {row.pricePerKg !== undefined && (
-        <Text.Sm color={colors.muted}>{row.pricePerKg.toFixed(2)}€/kg</Text.Sm>
+        <Text.Sm color={colors.muted}>{row.pricePerKg.toFixed(2)}€ / kg</Text.Sm>
       )}
       <View style={styles.avatars}>
         {meals.map((meal, index) => (
@@ -67,7 +71,7 @@ export const TunnelGroceryRow = ({ row, meals, owned, haveLabel, needLabel, onTo
         ))}
       </View>
     </View>
-    <Pressable
+    {onToggle && <Pressable
       intensity={0.94}
       onPress={onToggle}
       style={{ ...styles.toggle, ...(owned ? styles.toggleOwned : styles.toggleNeeded) }}
@@ -78,7 +82,7 @@ export const TunnelGroceryRow = ({ row, meals, owned, haveLabel, needLabel, onTo
       <Text.Base color={owned ? colors.secondary.base : colors.muted} weight={600}>
         {owned ? haveLabel : needLabel}
       </Text.Base>
-    </Pressable>
+    </Pressable>}
   </View>
 );
 
@@ -107,6 +111,7 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing[8],
   },
   name: { flexShrink: 1 },
@@ -117,6 +122,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border.default,
     backgroundColor: colors.surface.elevated,
+  },
+  quantityBig: {
+    borderColor: colors.neutral.subtle,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing[12],
+    paddingVertical: theme.spacing[4],
   },
   avatars: { flexDirection: "row", alignItems: "center" },
   avatar: {
