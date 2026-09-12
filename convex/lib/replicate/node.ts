@@ -91,6 +91,7 @@ export const runImage = (params: RunImageParams) => {
   }
 
   const pImageParams = {
+    aspect_ratio: `${getClosestAspectRatio(width, height).closest}`,
     output_format: "webp",
     output_quality: 100,
     prompt_upsampling: true,
