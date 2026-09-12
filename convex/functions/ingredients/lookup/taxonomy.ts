@@ -1,4 +1,4 @@
-import { hasQualifier, searchTerms } from "@shared/ingredientMatch";
+import { foldCost, gradesIn, searchTerms } from "@shared/ingredientMatch";
 import { LOCALES, type Locale, type LocalizedList } from "@convex/schema/i18n";
 
 import { TAXONOMY } from "./data/taxonomy";
@@ -25,22 +25,33 @@ export type TaxonomyEntry = {
  * ~6k entries are walked on the first resolve a deployment serves and never again; building it
  * inside the lookup would pay that cost on every keystroke that reaches step 2.
  *
- * **A name a spelling keeps outright beats one it only reaches after a qualifier came off**, which
- * is what the two passes below buy. Folding is lossy by design — `searchTerms` strips `poudre`,
- * `fondu` and every other preparation word — so `oignon en poudre`, `beurre fondu` and
- * `pomme de terre en poudre` all fold onto the bare food's key. One pass claimed those keys for
- * whichever entry the upstream file listed first, and the file is not ordered: `oignon` resolved to
- * onion POWDER, `beurre` to butterfat, `pomme de terre` to potato flour. Each then answered a
- * resolve with another food's names and another food's CIQUAL figures, and a row invented from it
- * was wrong in eight numbers at once with nothing to say so.
+ * **Among the spellings that fold to one key, the one that had to throw away the fewest words owns
+ * it.** Folding is lossy by design — `searchTerms` strips quantities, articles and every
+ * preparation word — so `oignon en poudre`, `Dés de jambon`, `feuille de citronnier` and
+ * `pomme de terre en poudre` all fold onto a bare food's key. Claimed by the upstream file's order,
+ * which is no order at all, `oignon` resolved to onion POWDER, `jambon` to diced ham and `citron`
+ * to lemon LEAF. Each then answered a resolve with another food's names and another food's CIQUAL
+ * figures, and a row invented from it was wrong in eight numbers at once with nothing to say so.
  *
- * ⚠️ The old note claimed ordering did this work — "parents before children, so the first claimant
- *    is the more general food". It does not: `en:onion-powder` sits at line 1609 and `en:onion` at
- *    2079. Ordering was never a property of the data, so the rule now comes from the spelling.
+ * ⚠️ The rule counts words rather than asking whether folding dropped any, and the difference is
+ *    load-bearing: `pomme de terre` drops `de` itself, so a yes-or-no predicate disqualifies the
+ *    potato from its own name. It wins on dropping one word where the flour drops three. An earlier
+ *    version asked only whether a QUALIFIER came off, which is why `Dés de jambon` — reduced by two
+ *    stopwords and no qualifier — still held `jambon`.
  *
- * Within a pass the first claimant still wins, which is the tie nothing else can break: two foods
- * whose own names fold together are a genuine ambiguity, and the file's order is as good an answer
- * as any.
+ * **A graded spelling claims nothing here, at any rank.** `crème à 33% de matière grasse` is not
+ * the entry to hand somebody who asked about cream in general, and `searchTerms` strips the grade
+ * from the key, so eight cream entries fold onto `creme matiere grasse` and whichever won was the
+ * wrong fat content for the other seven. Where excluding them empties a key the lookup misses and
+ * the resolver falls through to the steps that can build a correct row: a miss costs one
+ * generation, a wrong fat content is permanent and silent.
+ *
+ * ⚠️ A grade in the shopper's QUERY is the opposite situation and is left alone — `steak haché 5%`
+ *    finding the grade-free `steak haché` is the designed path, and `gradesIn` re-attaches the 5%
+ *    when the catalog is re-searched. Only a grade in the ENTRY's own name is a defect.
+ *
+ * Equal cost keeps the earlier entry, which is the tie nothing else can break: two foods whose own
+ * names fold together are a genuine ambiguity, and the file's order is as good an answer as any.
  */
 let index: Map<string, TaxonomyEntry> | undefined;
 
@@ -48,14 +59,18 @@ const spellingIndex = (): Map<string, TaxonomyEntry> => {
   if (index) return index;
 
   const built = new Map<string, TaxonomyEntry>();
+  const ranked = new Map<string, number>();
 
   const claim = (entry: TaxonomyEntry, spelling: string) => {
     const key = searchTerms(spelling);
-    if (key && !built.has(key)) built.set(key, entry);
-  };
+    if (!key || gradesIn(spelling).length) return;
 
-  for (const entry of TAXONOMY)
-    for (const spelling of spellingsOf(entry)) if (!hasQualifier(spelling)) claim(entry, spelling);
+    const cost = foldCost(spelling);
+    if (!built.has(key) || cost < ranked.get(key)!) {
+      built.set(key, entry);
+      ranked.set(key, cost);
+    }
+  };
 
   for (const entry of TAXONOMY) for (const spelling of spellingsOf(entry)) claim(entry, spelling);
 

@@ -63,6 +63,36 @@ describe("functions/ingredients/lookup/taxonomy", () => {
   });
 
   /**
+   * The same collision one step wider: these five lost only STOPWORDS, not a qualifier, so the
+   * predicate that fixed the three above could not see them. `Dés de jambon` drops `dés` and `de`
+   * and claimed `jambon`; the lemon's key was held by a lemon LEAF. Counting every dropped word is
+   * what hands each key back to the food itself.
+   */
+  test.each([
+    ["jambon", "en:ham"],
+    ["pomme", "en:apple"],
+    ["apple", "en:apple"],
+    ["vanille", "en:vanilla"],
+    ["citron", "en:lemon"],
+    ["chocolat", "en:chocolate"],
+    ["chocolate", "en:chocolate"],
+  ])("%s resolves to the food itself, not to a cut or a part of it", (typed, key) => {
+    expect(findInTaxonomy(typed)?.key).toBe(key);
+  });
+
+  /**
+   * A grade in the ENTRY's name is not a worse claim on the grade-free key, it is not a claim at
+   * all. Eight `crème à N%` entries fold onto one key because `searchTerms` strips the grade, so
+   * whichever won was the wrong fat content for the other seven — today it answered 33%. A miss
+   * costs one generation and the resolver can still build `crème à 10%` correctly; a wrong fat
+   * content is permanent and silent.
+   */
+  test("a graded spelling claims no key, so the general food falls through instead", () => {
+    expect(findInTaxonomy("crème à 10% de matière grasse")).toBeUndefined();
+    expect(findInTaxonomy("crème matière grasse")).toBeUndefined();
+  });
+
+  /**
    * The two lines this slice was reported for. Both are foods the taxonomy knows perfectly well,
    * and both were linked to a near-miss catalog row — `jus d'orange` and `oignon`.
    */
@@ -71,6 +101,38 @@ describe("functions/ingredients/lookup/taxonomy", () => {
     ["oignon vert", "en:spring-onion"],
   ])("%s is its own food and not the one it shares a word with", (typed, key) => {
     expect(findInTaxonomy(typed)?.key).toBe(key);
+  });
+
+  /**
+   * ⚠️ This looks exactly like the crème case above and is its mirror image. `steak hache` has ONE
+   * claimant and that spelling carries no grade — the 5% is in the shopper's QUERY, which
+   * `gradesIn` pulls out and re-attaches when the catalog is re-searched. That is the designed
+   * path, and it is what stops a 5% mince linking to the seeded `Bœuf haché (80/20)`.
+   */
+  test("a grade the shopper typed still finds the grade-free entry", () => {
+    expect(findInTaxonomy("steak haché")?.key).toBe("en:meat-patty");
+    expect(findInTaxonomy("steak haché 5%")?.key).toBe("en:meat-patty");
+  });
+
+  /**
+   * ⚠️ A tie the cost cannot break, pinned here because the right answer is knowable and the thing
+   * currently holding it is not a rule. `thé` folds to the English stopword `the`, so `thé vert`
+   * reduces to the bare `vert` at cost 1 — and so does the E143 synonym `Vert 1724`, whose number
+   * costs exactly as much. The tea wins only because it sits earlier in the upstream file (3374
+   * against 5127, and 3113 against 4826 for the black).
+   *
+   * Counting the number is what created that tie, and it was worth creating: before it the dye cost
+   * 0 and won outright, so a French shopper asking for green tea reached a colouring with no CIQUAL
+   * code at all. But a tie is not a rule, and this one is not the genuine ambiguity that `pâte`
+   * against `pâtes` is — a tea and a dye have a right answer. A regeneration of the OFF data that
+   * reorders these two would restore the bug in silence, so it fails here instead.
+   */
+  test.each([
+    ["thé vert", "en:green-tea", "18155"],
+    ["thé noir", "en:black-tea", "18154"],
+  ])("%s is the tea, and keeps the nutrition code the dye has none of", (typed, key, ciqual) => {
+    expect(findInTaxonomy(typed)?.key).toBe(key);
+    expect(findInTaxonomy(typed)?.ciqualCode).toBe(ciqual);
   });
 
   /**
