@@ -40,8 +40,6 @@ export type MealIngredient = {
   emoji: string;
   amount: number;
   unit: Unit;
-  /** Shown under the name as `1.3€/kg`. Absent where an ingredient has no meaningful unit price. */
-  pricePerKg?: number;
 };
 
 /**
@@ -532,6 +530,65 @@ export const toMealCard = (meal: DraftMeal): MealCard => ({
   status: meal.ingredients.every((ingredient) => ingredient.covered) ? "ready" : "shopping-needed",
   imageSrc: meal.imageUrl ? { uri: meal.imageUrl } : undefined,
 });
+
+/**
+ * A kept plate as the server answers it: `getMany` and `getPaginated` alike.
+ *
+ * Structural rather than imported, so this file stays free of Convex (see the header). The day is a
+ * local-midnight timestamp, and `status` is already derived — see `PlannedMealCard` on the server.
+ */
+export type KeptMeal = {
+  id: string;
+  date: number;
+  slot: MealSlot;
+  servings: number;
+  status: Exclude<MealStatus, "empty">;
+  recipe: { id: string; title: string; minutes?: number; plateImageUrl?: string; coverImageUrl?: string };
+};
+
+/** A kept plate as a list draws it — the counterpart to `toMealCard` for the week already agreed to. */
+export const keptMealCardOf = (meal: KeptMeal): MealCard => ({
+  id: meal.id,
+  recipeId: meal.recipe.id,
+  date: new Date(meal.date),
+  slot: meal.slot,
+  title: meal.recipe.title,
+  minutes: meal.recipe.minutes,
+  servings: meal.servings,
+  status: meal.status,
+  imageSrc: meal.recipe.plateImageUrl ? { uri: meal.recipe.plateImageUrl } : undefined,
+});
+
+/**
+ * Plates in the order a week is eaten: by day, then by slot within it.
+ *
+ * The index orders by day only, so two plates on one day come back in the order they were written —
+ * which is not the order the carousel has to walk them in.
+ */
+export const inEatingOrder = <M extends Dated>(meals: M[]): M[] =>
+  [...meals].sort((first, second) =>
+    startOfDay(first.date).getTime() - startOfDay(second.date).getTime() ||
+    MEAL_SLOTS.indexOf(first.slot) - MEAL_SLOTS.indexOf(second.slot));
+
+/**
+ * The days the planning list offers empty plates on: today, through the last day anything is planned.
+ *
+ * Never past it. Beyond the last planned day the week has not been generated, and a run of empty days
+ * is an invitation to fill them one plate at a time — which is the tunnel's job, not the list's. Never
+ * before today either: see `buildRows` on why a past gap is not drawn.
+ */
+export const openDates = (today: Date, meals: Dated[]): Date[] => {
+  const start = startOfDay(today);
+  const last = meals.reduce(
+    (latest, meal) => Math.max(latest, startOfDay(meal.date).getTime()),
+    start.getTime(),
+  );
+
+  const dates: Date[] = [];
+  for (let date = start; date.getTime() <= last; date = addDays(date, 1)) dates.push(date);
+
+  return dates;
+};
 
 /** Case as well as accents — a recipe title is matched, not indexed, so nothing else reads it. */
 const _fold = (value: string) => foldAccents(value).toLowerCase();

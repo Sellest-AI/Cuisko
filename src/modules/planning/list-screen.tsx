@@ -20,7 +20,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { MEAL_IMAGE } from "./_hooks/placeholders";
 import { usePlanningList } from "./_hooks/usePlanningList";
 import { PlanningListRow } from "./_components/planning-row";
-import { toDateParam, type PlanningRow } from "./_model/model";
+import { toDateParam, type MealCard, type PlanningRow } from "./_model/model";
 
 type Props = {
   /** The day to open on as `YYYY-MM-DD`, straight off the route — validated by the hook. */
@@ -36,7 +36,7 @@ const HEADER_ICON_SIZE = 26;
  * the day and slot the link carried, which is what makes an untouched slot fillable at all. No
  * `scope`, so the sheet edits the plan itself: this list *is* the week being kept.
  */
-const _openPlate = (row: PlanningRow) =>
+const _openPlate = (row: PlanningRow<MealCard>) =>
   router.push(row.kind === "meal"
     ? { pathname: "/meal", params: { mealId: row.meal.id } }
     : { pathname: "/meal", params: { date: toDateParam(row.date), slot: row.slot } });
@@ -51,7 +51,7 @@ const _openPlate = (row: PlanningRow) =>
  */
 export const PlanningScreen = ({ focusDate }: Props) => {
   const t = useTranslations("Planning");
-  const { rows, initialIndex } = usePlanningList(focusDate);
+  const { rows, initialIndex, isLoading, loadOlder, loadNewer } = usePlanningList(focusDate);
 
   const { top } = useSafeAreaInsets()
 
@@ -86,7 +86,8 @@ export const PlanningScreen = ({ focusDate }: Props) => {
           {t("Screen.preferences")}
         </Button>
       </SafeAreaView>
-      <FlashList
+      {/* Mounted once both first pages are in: `initialScrollIndex` is only read on the first render. */}
+      {!isLoading && <FlashList
         data={rows}
         keyExtractor={(row) => row.id}
         /**
@@ -94,6 +95,9 @@ export const PlanningScreen = ({ focusDate }: Props) => {
          * a specific day and landing six days behind it is a scroll the user did not ask for.
          */
         initialScrollIndex={initialIndex - 1}
+        /** Older pages land above, and FlashList keeps the rows on screen where they were. */
+        onStartReached={loadOlder}
+        onEndReached={loadNewer}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         onLoad={() => requestAnimationFrame(() => setShow(true))}
@@ -144,7 +148,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
             </Button>
           </View>
         }
-      />
+      />}
       <AnimatePresence>
         {!show && <m.View
           animate={{ opacity: 1 }}

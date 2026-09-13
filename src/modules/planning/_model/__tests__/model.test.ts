@@ -8,7 +8,11 @@ import {
   groceriesFor,
   groceryHeadingOf,
   indexOfDate,
+  inEatingOrder,
   isSameDay,
+  keptMealCardOf,
+  openDates,
+  type KeptMeal,
   matchesQuery,
   ownedLinesOf,
   MAX_SERVINGS,
@@ -40,7 +44,7 @@ const day = (offset: number) => new Date(2026, 7, 12 + offset);
 
 const TOMATO: MealIngredient = {
   id: "tomato", name: "Tomates", category: "vegetables", emoji: "🍅",
-  amount: 300, unit: "g", pricePerKg: 1.3,
+  amount: 300, unit: "g",
 };
 
 const BEEF: MealIngredient = {
@@ -679,5 +683,58 @@ describe("toggle", () => {
   /** No ceiling here: that is `toggleTaste`'s job, and the two are used on different questions. */
   it("keeps adding past the taste ceiling", () => {
     expect(toggle(["a", "b", "c", "d"], "e")).toHaveLength(5);
+  });
+});
+
+describe("keptMealCardOf", () => {
+  const kept: KeptMeal = {
+    id: "plate", date: day(1).getTime(), slot: "dinner", servings: 3, status: "shopping-needed",
+    recipe: { id: "soup", title: "Soupe", minutes: 20, plateImageUrl: "https://img/soup.png" },
+  };
+
+  it("names the plate by its own id and the dish by the recipe's", () => {
+    expect(keptMealCardOf(kept)).toMatchObject({ id: "plate", recipeId: "soup", title: "Soupe", servings: 3 });
+  });
+
+  it("turns the day back into a Date and the plate image into an image source", () => {
+    const card = keptMealCardOf(kept);
+
+    expect(isSameDay(card.date, day(1))).toBe(true);
+    expect(card.imageSrc).toEqual({ uri: "https://img/soup.png" });
+  });
+
+  /** Absent, so the row falls back to its placeholder rather than drawing a broken image. */
+  it("leaves the image out when the recipe has no plate image", () => {
+    expect(keptMealCardOf({ ...kept, recipe: { id: "soup", title: "Soupe" } }).imageSrc).toBeUndefined();
+  });
+});
+
+describe("inEatingOrder", () => {
+  it("orders by day, then lunch before dinner within one", () => {
+    const ordered = inEatingOrder([meal("d1", "dinner", 1), meal("l1", "lunch", 1), meal("d0", "dinner", 0)]);
+
+    expect(ordered.map((entry) => entry.id)).toEqual(["d0", "l1", "d1"]);
+  });
+
+  it("does not reorder the array it was given", () => {
+    const meals = [meal("d0", "dinner"), meal("l0", "lunch")];
+    inEatingOrder(meals);
+
+    expect(meals.map((entry) => entry.id)).toEqual(["d0", "l0"]);
+  });
+});
+
+describe("openDates", () => {
+  it("runs from today through the last planned day", () => {
+    expect(openDates(TODAY, [meal("a", "lunch", 2), meal("b", "lunch", -3)])).toEqual([day(0), day(1), day(2)]);
+  });
+
+  /** Today still gets its empty plates, which is the invitation to plan at all. */
+  it("offers today alone when nothing lies ahead", () => {
+    expect(openDates(TODAY, [meal("past", "lunch", -1)])).toEqual([day(0)]);
+  });
+
+  it("starts at midnight whatever time today was read at", () => {
+    expect(openDates(new Date(2026, 7, 12, 18, 30), [])).toEqual([day(0)]);
   });
 });

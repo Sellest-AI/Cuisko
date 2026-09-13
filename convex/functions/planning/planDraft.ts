@@ -119,7 +119,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
       recipeIds.map(async (id) => {
         const recipe = pool.recipes.get(id)!;
         const plate = recipe.plateImageId ? await getImage(ctx, recipe.plateImageId) : null;
-        return [id, { card: toRecipeCard(recipe, args.locale, null), imageUrl: plate?.sizes.small.url }] as const;
+        return [id, { card: toRecipeCard(recipe, args.locale, null, plate) }] as const;
       }),
     ).then((entries) => new Map(entries)),
     Promise.all(
@@ -132,7 +132,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
   ]);
 
   return selected.map(({ plate, candidate, covered }) => {
-    const { card, imageUrl } = cards.get(candidate.recipeId)!;
+    const { card } = cards.get(candidate.recipeId)!;
     const isCovered = new Set(covered);
 
     return {
@@ -142,7 +142,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
       servings: plate.servings,
       title: card.title,
       minutes: card.minutes,
-      imageUrl,
+      imageUrl: card.plateImageUrl,
       ingredients: candidate.needs.map((need) => {
         const ingredient = pool.ingredients.get(need.ingredientId)!;
 

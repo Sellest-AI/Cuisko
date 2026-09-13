@@ -2,6 +2,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 import { fromStockUnit, stockUnitOf, type Unit } from "@shared/ingredients";
 
+import { cascadeDelete } from "../cascade";
 import { addToGroceryList } from "../cellars/addToGroceryList";
 import type { Need, Stock } from "./selectMeals";
 
@@ -115,10 +116,11 @@ const _toBuy = ({ need, ingredient }: MealLine, split: Split): { quantity: numbe
  * lossy — it merged with other meals, and it rounded — and `groceryQuantity` is the only record of
  * what actually landed.
  *
- * A row that has since been bought or struck off is simply gone, and there is nothing to give back.
- * Gone rather than detached: `addToCellar` and `removeFromGroceryList` delete the row with
- * `ctx.db.delete`, which does not run the cascade, so the pointer here outlives what it points at
- * and this reads `null`. That is the case the `get` guards, not a defensive nicety.
+ * A row that has since been bought or struck off is simply gone, and there is nothing to give back
+ * — both gestures detach the claim's pointer as they take the row, so the `get` below reads `null`
+ * only on data from before that, and the guard is what keeps the invariant survivable rather than
+ * load-bearing. The same care at the bottom: a row taken at zero goes through the cascade too, so
+ * a merged row's other claims lose their pointer with it instead of naming a ghost.
  *
  * Never below zero: the row may hold less than this line put on it, because somebody edited it.
  */
@@ -131,7 +133,7 @@ const _backOut = async (ctx: MutationCtx, row: Doc<"plannedMealIngredients">) =>
   const left = item.quantity - row.groceryQuantity;
 
   if (left > NOTHING_LEFT) await ctx.db.patch(item._id, { quantity: left, updatedAt: Date.now() });
-  else await ctx.db.delete(item._id);
+  else await cascadeDelete(ctx, "groceryListItems", item._id);
 };
 
 /**

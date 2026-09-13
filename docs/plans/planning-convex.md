@@ -186,11 +186,11 @@ updatedAt:          v.number()
 **This table is a ledger, not a copy of the recipe.** Three numbers, three jobs, and none of them
 recomputable from the other two:
 
-| | example | what it answers |
-|---|---|---|
-| `sourceQuantity` / `sourceUnit` | `2 pcs` | what the meal screen prints, in the recipe's own words |
-| `quantity` / `unit` | `300 g` | what this meal reserves from stock, and what cooking it subtracts |
-| `groceryQuantity` | `50 g` | what went onto the grocery list, and what removing the meal takes back off |
+|                                 | example | what it answers                                                            |
+| ------------------------------- | ------- | -------------------------------------------------------------------------- |
+| `sourceQuantity` / `sourceUnit` | `2 pcs` | what the meal screen prints, in the recipe's own words                     |
+| `quantity` / `unit`             | `300 g` | what this meal reserves from stock, and what cooking it subtracts          |
+| `groceryQuantity`               | `50 g`  | what went onto the grocery list, and what removing the meal takes back off |
 
 Worked through: the recipe says "1 onion" for 2 servings, the plan is for 4, and the cellar holds one
 row of 250 g of onions. The meal screen must say **2 onions**, the reservation is **300 g**
@@ -254,15 +254,24 @@ Deferred.
 
 ```
 router/planning/getDraft.ts     authed  householdQueryI18n  → a generated week, writes nothing
-router/planning/getWeek.ts      authed  householdQueryI18n  → the household's planned meals
+router/planning/getMany.ts      authed  householdQueryI18n  → plates between two days (home's week strip)
+router/planning/getPaginated.ts authed  householdQueryI18n  → plates a page at a time, before or after a day (the list)
 router/planning/commit.ts       authed  householdMutation   → persists a draft + its groceries
 router/planning/planOne.ts      authed  householdMutation   → one plate (recipe screen, slice 6)
 router/planning/setServings.ts  authed  householdMutation   → re-scales one meal, updates groceries
-router/planning/removeOne.ts    authed  householdMutation   → drops one meal, updates groceries
+router/planning/removeOne.ts    authed  householdMutation   → drops one meal, updates groceries, and the mealPlans
 ```
 
-All six are `household*` builders, so membership is the authorization and `ctx.householdId` is what
+All seven are `household*` builders, so membership is the authorization and `ctx.householdId` is what
 every query narrows by. There is no `admin` twin and no `userId` argument anywhere in this surface.
+
+**The two reads are split by question.** Home asks about a fixed window, today ±3, so `getMany` is a
+capped range read and collects. The list opens on a focus day and scrolls both ways without end. A
+Convex cursor resumes a read and cannot seek to a value, so the day goes into the index range instead:
+`usePlanningList` runs two `usePaginatedQuery`s on `getPaginated` that meet at it, `after` ascending
+and `before` descending, reversed on arrival. `from` is fixed per mount, because changing a paginated
+query's args resets both. Both read `plannedMeals` by `by_household_and_date`, never `mealPlans`: the
+screens draw plates, and a plan's creation order stops matching date order once `planOne` lands.
 
 ### Flow
 
@@ -328,9 +337,11 @@ convex/functions/planning/selectMeals.ts       PURE  ← the feature
 convex/functions/planning/planDraft.ts         orchestrates getDraft
 convex/functions/planning/commitPlan.ts        insert plan + meals + ledger
 convex/functions/planning/syncMealLines.ts     the ONLY writer of the ledger + grocery delta
-convex/functions/planning/getWeek.ts           (ctx, householdId, range) => PlannedWeek
+convex/functions/planning/plannedMealCard.ts   plates → PlannedMealCard[], each recipe read once
+convex/functions/planning/mealsBetween.ts      (ctx, householdId, from, to) => PlannedMealCard[], span ≤ a week
+convex/functions/planning/pageMeals.ts         (ctx, householdId, from, direction, paginationOpts) => page
 
-convex/router/planning/{getDraft,getWeek,commit,planOne,setServings,removeOne}.ts
+convex/router/planning/{getDraft,getMany,getPaginated,commit,planOne,setServings,removeOne}.ts
 
 src/modules/planning/_hooks/usePlanDraft.ts    generating step
 src/modules/planning/_hooks/usePlanCommit.ts   groceries step
@@ -445,7 +456,11 @@ availableStock.test.ts     cellar minus a future meal's ledger · a past meal re
 syncMealLines.test.ts      merges into an existing grocery row · decrements on removal ·
                            deletes the row at zero, never below · re-scales on a servings change
 getDraft.test.ts           anon rejected · a non-member's householdId rejected · member gets a week
-getWeek.test.ts            anon rejected · non-member rejected
+getMany.test.ts            anon rejected · non-member rejected · [from, to) · refuses more than a week ·
+                           shopping-needed while a line's grocery row is still listed, ready once bought
+                           (buying detaches the pointer with the row) · cooked stays cooked
+getPaginated.test.ts       anon rejected · non-member rejected · after includes the day · before
+                           excludes it, newest first · another household's plates never answered
 commit.test.ts             anon rejected · non-member rejected · writes plan, meals and ledger
 planOne.test.ts            anon rejected · non-member rejected
 setServings.test.ts        anon rejected · a meal in another household rejected
@@ -484,8 +499,8 @@ removeOne.test.ts          anon rejected · a meal in another household rejected
 2. selectMeals + scaleLines + availableStock, with tests  → the feature, callable from a test
 3. getDraft + usePlanDraft                                → the generating step shows real meals
 4. commit + syncMealLines + usePlanCommit                 → the last button writes the week
-5. getWeek + useWeeklyPlan/usePlanningList off placeholders → planning screen and home show the plan
-6. setServings + removeOne                                → editing a meal moves the grocery list
+5. getMany + getPaginated + useWeeklyPlan/usePlanningList off placeholders → planning screen and home show the plan
+6. setServings + removeOne                                → editing a meal moves the grocery list and the mealPlans
 7. planOne                                                → the recipe screen's "add to grocery list"
 ```
 

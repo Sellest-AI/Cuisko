@@ -51,18 +51,17 @@ const _ingredient = (
   emoji: string,
   amount: number,
   unit: Unit,
-  pricePerKg?: number,
-): MealIngredient => ({ id, name, category, emoji, amount, unit, pricePerKg });
+): MealIngredient => ({ id, name, category, emoji, amount, unit });
 
-const TOMATO = _ingredient("tomato", "Tomates", "vegetables", "🍅", 250, "g", 1.3);
-const CARROT = _ingredient("carrot", "Carottes", "vegetables", "🥕", 2, "pcs", 1.3);
-const MUSHROOM = _ingredient("mushroom", "Champignons", "vegetables", "🍄", 200, "g", 4.2);
-const ASPARAGUS = _ingredient("asparagus", "Asperges", "vegetables", "🥬", 400, "g", 6.9);
-const DUCK = _ingredient("duck", "Magret de canard", "meats", "🦆", 2, "pcs", 24.5);
-const BACON = _ingredient("bacon", "Bacon", "meats", "🥓", 150, "g", 12.4);
-const RICE = _ingredient("rice", "Riz", "grains", "🍚", 300, "g", 2.1);
-const GNOCCHI = _ingredient("gnocchi", "Gnocchis", "grains", "🥔", 500, "g", 3.4);
-const CREAM = _ingredient("cream", "Crème fraîche", "dairy", "🥛", 20, "cl", 3.8);
+const TOMATO = _ingredient("tomato", "Tomates", "vegetables", "🍅", 250, "g");
+const CARROT = _ingredient("carrot", "Carottes", "vegetables", "🥕", 2, "pcs");
+const MUSHROOM = _ingredient("mushroom", "Champignons", "vegetables", "🍄", 200, "g");
+const ASPARAGUS = _ingredient("asparagus", "Asperges", "vegetables", "🥬", 400, "g");
+const DUCK = _ingredient("duck", "Magret de canard", "meats", "🦆", 2, "pcs");
+const BACON = _ingredient("bacon", "Bacon", "meats", "🥓", 150, "g");
+const RICE = _ingredient("rice", "Riz", "grains", "🍚", 300, "g");
+const GNOCCHI = _ingredient("gnocchi", "Gnocchis", "grains", "🥔", 500, "g");
+const CREAM = _ingredient("cream", "Crème fraîche", "dairy", "🥛", 20, "cl");
 
 /** The four dishes the mockups run on, reused across days as a real week reuses recipes. */
 const RECIPES = {
@@ -154,14 +153,6 @@ export const PLACEHOLDER_MEALS: PlannedMeal[] = Array.from(
     return (PLAN[offset] ?? []).map((planned) => _materialise(planned, date));
   },
 ).flat();
-
-/**
- * How far ahead the planning list offers empty plates.
- *
- * Short on purpose: past this the week has not been generated, and a run of empty days is an
- * invitation to fill them one at a time — which is the tunnel's job, not the list's.
- */
-export const PLACEHOLDER_DAYS_AHEAD = DAYS_AFTER;
 
 /**
  * The four dishes, in the order the swap sheet's catalogue lists them and borrows their lines.

@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
+import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
 
@@ -46,6 +47,51 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
     });
 
     return { userId, householdId, ingredientId };
+  });
+
+/** The scaffolding a ledger claim hangs off: one plan, one plate on it, from a one-recipe library. */
+const seedPlate = (t: ReturnType<typeof convexTest>, householdId: Id<"households">) =>
+  t.run(async (ctx) => {
+    const recipeId = await ctx.db.insert("recipes", {
+      title: { values: { fr: "Soupe" }, meta: {} },
+      description: { values: { fr: "" }, meta: {} },
+      instructions: { values: { fr: "" }, meta: {} },
+      servings: 2,
+      equipments: [],
+      difficulty: 1,
+      tags: [],
+      cuisine: "french",
+      timings: { cooking: 20 },
+      search: { en: "", fr: "" },
+      shuffleKey: 0.5,
+      isVegan: true,
+      isVegetarian: true,
+      isPescatarian: true,
+      isGlutenFree: true,
+      isDairyFree: true,
+      isNutFree: true,
+      updatedAt: Date.now(),
+    });
+    const mealPlanId = await ctx.db.insert("mealPlans", {
+      householdId,
+      startDate: 0,
+      days: 1,
+      slots: ["lunch"],
+      people: 2,
+      seed: 0.5,
+      updatedAt: Date.now(),
+    });
+
+    return ctx.db.insert("plannedMeals", {
+      mealPlanId,
+      householdId,
+      recipeId,
+      date: 0,
+      slot: "lunch",
+      servings: 2,
+      status: "planned",
+      updatedAt: Date.now(),
+    });
   });
 
 describe("router/cellars/removeFromGroceryList", () => {
@@ -119,5 +165,53 @@ describe("router/cellars/removeFromGroceryList", () => {
     const remaining = await t.run((ctx) => ctx.db.query("groceryListItems").collect());
     expect(remaining).toHaveLength(1);
     expect(remaining[0]!.unit).toBe("kg");
+  });
+
+  /**
+   * A claim pointing at a struck row loses the pointer with the row instead of naming a ghost —
+   * but the claim itself stays struck, and a reservation it held against a cellar lot stands: the
+   * shopper overruled the list, and the line still gets cooked.
+   */
+  test("detaches a plan's claim without touching its reservation", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const plannedMealId = await seedPlate(t, householdId);
+    const { claimId, reservedLotId } = await t.run(async (ctx) => {
+      const reservedLotId = await ctx.db.insert("cellarItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 250, updatedAt: Date.now(),
+      });
+      const groceryRowId = await ctx.db.insert("groceryListItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now(),
+      });
+      const claimId = await ctx.db.insert("plannedMealIngredients", {
+        plannedMealId,
+        ingredientId,
+        sourceQuantity: 4,
+        sourceUnit: "pcs",
+        quantity: 4,
+        unit: "pcs",
+        groceryQuantity: 4,
+        groceryListItemId: groceryRowId,
+        cellarItemId: reservedLotId,
+        updatedAt: Date.now(),
+      });
+
+      return { claimId, reservedLotId };
+    });
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.removeFromGroceryList.authed, { householdId, ingredientId, unit: "pcs" });
+
+    await t.run(async (ctx) => {
+      const groceryList = await ctx.db.query("groceryListItems").collect();
+      expect(groceryList).toHaveLength(0);
+
+      const claim = await ctx.db.get(claimId);
+      expect(claim).not.toBeNull();
+      expect(claim!.groceryListItemId).toBeUndefined();
+      expect(claim!.cellarItemId).toBe(reservedLotId);
+    });
   });
 });

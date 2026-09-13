@@ -21,6 +21,14 @@ type Args = {
  *
  * A purchase larger than everything written down simply runs out of lines to strike; the surplus
  * goes on the shelf, and deciding whether that was a mistake is the client's, not this function's.
+ *
+ * A struck line may have been carrying a plan's claim — the ledger row `syncMealLines` wrote when
+ * the week was committed. Buying **settles** the claim: the food is here now, so the ledger stops
+ * naming the list row and names the lot the purchase landed in instead. This is what the undo
+ * reads — `removeFromCellar`, given the purchase back within the undo window, finds these rows by
+ * their lot and re-links them to the row the restore lands on. Left stale instead, the pointer
+ * would name a row that is gone; every reader copes with that, but the undo would have nothing to
+ * re-link, and dropping the meal later would give nothing back.
  */
 export const addToCellar = async (
   ctx: MutationCtx,
@@ -36,12 +44,16 @@ export const addToCellar = async (
     .filter((item) => item.unit === args.unit)
     .sort((a, b) => a.quantity - b.quantity);
 
+  /** Only the rows struck whole are settled; a row only decremented keeps its claims pointing at it. */
+  const struckRowIds: Id<"groceryListItems">[] = [];
+
   let remainingQuantity = args.quantity;
   for (const groceryListItem of matchingItems) {
     if (remainingQuantity <= 0) break;
 
     if (groceryListItem.quantity <= remainingQuantity) {
       await ctx.db.delete(groceryListItem._id);
+      struckRowIds.push(groceryListItem._id);
       remainingQuantity -= groceryListItem.quantity;
     } else {
       await ctx.db.patch(groceryListItem._id, {
@@ -70,22 +82,44 @@ export const addToCellar = async (
 
   // The row the quantity ended up on, whether it was merged or minted — the caller asked where its
   // stock went, and "nothing, it merged" is not an answer it can use.
+  let cellarItemId: Id<"cellarItems">;
   if (matchingCellarItem) {
     await ctx.db.patch(matchingCellarItem._id, {
       quantity: matchingCellarItem.quantity + args.quantity,
       updatedAt: Date.now(),
     });
 
-    return matchingCellarItem._id;
+    cellarItemId = matchingCellarItem._id;
+  } else {
+    cellarItemId = await ctx.db.insert("cellarItems", {
+      householdId: args.householdId,
+      ingredientId: args.ingredientId,
+      unit: args.unit,
+      quantity: args.quantity,
+      // Nothing on a receipt says when it goes off; the shopper tells us later, or never.
+      expirationDate: undefined,
+      updatedAt: Date.now(),
+    });
   }
 
-  return await ctx.db.insert("cellarItems", {
-    householdId: args.householdId,
-    ingredientId: args.ingredientId,
-    unit: args.unit,
-    quantity: args.quantity,
-    // Nothing on a receipt says when it goes off; the shopper tells us later, or never.
-    expirationDate: undefined,
-    updatedAt: Date.now(),
-  });
+  // One patch per claim: the pointer goes, the lot arrives. A claim already reserving against a
+  // lot keeps it — the purchase only settles the part that was missing, and the reserved part is
+  // still spoken for. `updatedAt` moves with the settlement, which is what lets the undo's
+  // recency check tell this purchase's claims from an older one's.
+  for (const struckRowId of struckRowIds) {
+    const claims = await ctx.db
+      .query("plannedMealIngredients")
+      .withIndex("by_grocery_list_item", (q) => q.eq("groceryListItemId", struckRowId))
+      .collect();
+
+    for (const claim of claims) {
+      await ctx.db.patch(claim._id, {
+        groceryListItemId: undefined,
+        cellarItemId: claim.cellarItemId ?? cellarItemId,
+        updatedAt: Date.now(),
+      });
+    }
+  }
+
+  return cellarItemId;
 };

@@ -76,32 +76,37 @@ type RunImageParams = {
   width: number;
   height: number;
   prompt: string;
-  model: "prunaai/z-image-turbo" | "prunaai/p-image-ideogram"
-}
+  model: "prunaai/z-image-turbo" | "prunaai/p-image-ideogram",
+} & ({
+  model: "prunaai/z-image-turbo";
+} | {
+  model: "prunaai/p-image-ideogram";
+  promptUpsampling?: boolean;
+})
 
 export const runImage = (params: RunImageParams) => {
   const { width, height, prompt, model } = params;
 
-  const zImageParams = {
+  const zImageParams = model === "prunaai/z-image-turbo" ? {
     go_fast: false,
     output_format: "webp",
     guidance_scale: 0,
     output_quality: 100,
     num_inference_steps: 8
-  }
+  } : {}
 
-  const pImageParams = {
+  const pImageParams = model === "prunaai/p-image-ideogram" ? {
     aspect_ratio: `${getClosestAspectRatio(width, height).closest}`,
     output_format: "webp",
     output_quality: 100,
-    prompt_upsampling: true,
+    prompt_upsampling: params.promptUpsampling ?? false,
     thinking: "very low",
-  }
+  } : {}
 
   return replicate.run(model, {
     input: {
-      ...(model === "prunaai/z-image-turbo" ? zImageParams : {}),
-      ...(model === "prunaai/p-image-ideogram" ? pImageParams : {}),
+      ...zImageParams,
+      ...pImageParams,
       prompt,
       width,
       height,

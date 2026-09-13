@@ -48,6 +48,7 @@
  * No React and no Jotai here; `atoms.ts` holds the state and the hooks call into this.
  */
 
+import { UNDO_WINDOW_MS } from "@shared/groceries";
 import { type Unit } from "@shared/ingredients";
 import type { TranslationKeys } from "translations";
 
@@ -62,16 +63,11 @@ export const isIntent = (value: string | undefined): value is Intent =>
   value !== undefined && (INTENTS as readonly string[]).includes(value);
 
 /**
- * How long a purchase stays undoable.
- *
- * Where emptied *stock* goes never depends on it — a plate still waiting for it puts it back on
- * the list, nothing waiting sends it to memory, on both sides of the window. What the window
- * governs is the purchase behind it: inside, the receipt is still on the books, so the row is
- * drawn as reversible, the sheet offers that exact amount back, and giving it back also gives back
- * any line the purchase struck off. Outside, the purchase has settled — putting stock back is the
- * shopper using what they bought, not unmaking the trip, and their list stays as they left it.
+ * Re-exported because every receipt in this module is measured against it. Defined in
+ * `shared/groceries.ts`, where the server's undo re-link reads the same number — two copies would
+ * drift, and the drift would show up as an undo that stops re-linking a plan's claims.
  */
-export const UNDO_WINDOW_MS = 5 * 60 * 1000;
+export { UNDO_WINDOW_MS };
 
 /**
  * Rows stop reordering by recency this long after their last touch, and go alphabetical.
