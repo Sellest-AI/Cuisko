@@ -7,14 +7,8 @@ import { useQueryCached } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 import { runConstraintsOf } from "../_model/constraints";
-import { planDates, plateIdFor, type DraftMeal } from "../_model/model";
+import { planDates, plateIdFor, startOfDay, type DraftMeal } from "../_model/model";
 import { constraintsAtom, daysAtom, peopleAtom, slotsAtom } from "./atoms";
-
-const _startOfToday = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-};
 
 /**
  * A week generated from the real library and the household's cellar, for the tunnel's answers.
@@ -37,7 +31,7 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
   const slots = useAtomValue(slotsAtom);
   const people = useAtomValue(peopleAtom);
   const constraints = useAtomValue(constraintsAtom);
-  const [today] = useState(_startOfToday);
+  const [today] = useState(() => startOfDay(new Date()));
 
   /** Skipped until the constraint list is seeded: a draft for "nobody avoids anything" is not one to show. */
   const args = useMemo(() => {

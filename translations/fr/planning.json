@@ -95,6 +95,7 @@
     "Groceries": {
       "title": "Liste de courses",
       "subtitle": "Ce qui manque dans ta cuisine",
+      "in_kitchen": "Déjà dans ta cuisine",
       "save": "Ajouter à ma liste",
       "x_new_items_one": "{{count, number}} chose à rapporter",
       "x_new_items_many": "{{count, number}} de choses à rapporter",

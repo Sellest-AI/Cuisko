@@ -52,6 +52,13 @@ export const plannedMealIngredients = defineTable({
   sourceUnit: vUnit,
   quantity: v.number(),
   unit: vUnit,
+  /**
+   * What went onto the grocery list for this line, **in the unit that list row holds** — the
+   * ingredient's `defaultUnit`, not this row's `unit`. The household shops in "3 onions" and
+   * reserves in grams, and the two are different numbers: this one is the rounded, merged figure
+   * that actually landed, which is what backing the meal out has to give back. The unit is not
+   * stored beside it because `groceryListItemId` names the row that holds it.
+   */
   groceryQuantity: v.optional(v.number()),
   groceryListItemId: v.optional(v.id("groceryListItems")),
   cellarItemId: v.optional(v.id("cellarItems")),

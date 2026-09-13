@@ -238,3 +238,22 @@ export const toStockUnit = (
 type DraftIngredient = { name: string; quantity: number; unit: Unit };
 export const serializeIngredients = (ingredients: DraftIngredient[]): string =>
   ingredients.map((line) => `${exactQuantity(line.quantity, line.unit)} ${line.name}`).join("\n");
+
+/**
+ * A quantity of an ingredient's stock unit, back in the unit it is SHOPPED in.
+ *
+ * The inverse of `toStockUnit` within one kind of unit, which is the only direction shopping needs:
+ * the stock unit is derived from `defaultUnit` (`stockUnitOf`), so the two always share a dimension
+ * and no ratio is involved — 347 g of an ingredient bought in kg is 0.347 kg.
+ *
+ * Pieces round **up** to a whole, and that is not a display choice: the number this returns is what
+ * goes on the grocery list and what gets taken back off it, and no shop sells 0.4 of an onion.
+ */
+export const fromStockUnit = (amount: number, ingredient: { defaultUnit: Unit }): number => {
+  const unit = ingredient.defaultUnit;
+
+  if (unit in GRAMS_PER_MASS_UNIT) return amount / GRAMS_PER_MASS_UNIT[unit as keyof typeof GRAMS_PER_MASS_UNIT];
+  if (unit in ML_PER_VOLUME_UNIT) return amount / ML_PER_VOLUME_UNIT[unit as keyof typeof ML_PER_VOLUME_UNIT];
+
+  return Math.ceil(amount);
+};

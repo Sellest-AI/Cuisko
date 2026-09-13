@@ -73,9 +73,12 @@ import type * as functions_media_uploadImage from "../functions/media/uploadImag
 import type * as functions_media_uploadImageSizes from "../functions/media/uploadImageSizes.js";
 import type * as functions_planning_availableStock from "../functions/planning/availableStock.js";
 import type * as functions_planning_candidatePool from "../functions/planning/candidatePool.js";
+import type * as functions_planning_commitPlan from "../functions/planning/commitPlan.js";
+import type * as functions_planning_limits from "../functions/planning/limits.js";
 import type * as functions_planning_planDraft from "../functions/planning/planDraft.js";
 import type * as functions_planning_scaleLines from "../functions/planning/scaleLines.js";
 import type * as functions_planning_selectMeals from "../functions/planning/selectMeals.js";
+import type * as functions_planning_syncMealLines from "../functions/planning/syncMealLines.js";
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
 import type * as functions_preferences_getPlanningSeed from "../functions/preferences/getPlanningSeed.js";
 import type * as functions_preferences_save from "../functions/preferences/save.js";
@@ -139,6 +142,7 @@ import type * as router_media_images_saveSizes from "../router/media/images/save
 import type * as router_media_images_uploadMany from "../router/media/images/uploadMany.js";
 import type * as router_media_images_uploadOne from "../router/media/images/uploadOne.js";
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
+import type * as router_planning_commit from "../router/planning/commit.js";
 import type * as router_planning_getDraft from "../router/planning/getDraft.js";
 import type * as router_preferences_getMine from "../router/preferences/getMine.js";
 import type * as router_preferences_getPlanningSeed from "../router/preferences/getPlanningSeed.js";
@@ -238,9 +242,12 @@ declare const fullApi: ApiFromModules<{
   "functions/media/uploadImageSizes": typeof functions_media_uploadImageSizes;
   "functions/planning/availableStock": typeof functions_planning_availableStock;
   "functions/planning/candidatePool": typeof functions_planning_candidatePool;
+  "functions/planning/commitPlan": typeof functions_planning_commitPlan;
+  "functions/planning/limits": typeof functions_planning_limits;
   "functions/planning/planDraft": typeof functions_planning_planDraft;
   "functions/planning/scaleLines": typeof functions_planning_scaleLines;
   "functions/planning/selectMeals": typeof functions_planning_selectMeals;
+  "functions/planning/syncMealLines": typeof functions_planning_syncMealLines;
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;
   "functions/preferences/getPlanningSeed": typeof functions_preferences_getPlanningSeed;
   "functions/preferences/save": typeof functions_preferences_save;
@@ -304,6 +311,7 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadMany": typeof router_media_images_uploadMany;
   "router/media/images/uploadOne": typeof router_media_images_uploadOne;
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
+  "router/planning/commit": typeof router_planning_commit;
   "router/planning/getDraft": typeof router_planning_getDraft;
   "router/preferences/getMine": typeof router_preferences_getMine;
   "router/preferences/getPlanningSeed": typeof router_preferences_getPlanningSeed;

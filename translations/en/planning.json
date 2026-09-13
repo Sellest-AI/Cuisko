@@ -94,6 +94,7 @@
     "Groceries": {
       "title": "Grocery list",
       "subtitle": "What is missing from your kitchen",
+      "in_kitchen": "Already in your kitchen",
       "save": "Add to my list",
       "x_new_items_one": "{{count, number}} thing to pick up",
       "x_new_items_other": "{{count, number}} things to pick up",

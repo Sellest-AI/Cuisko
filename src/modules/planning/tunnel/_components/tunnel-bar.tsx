@@ -19,6 +19,13 @@ type Props = {
   /** Shown under the label on the last step, where the action is worth explaining. */
   sublabel?: string;
   variant?: "primary" | "secondary";
+  /**
+   * Nothing to move on with: the step's answer is missing in a way the user cannot be asked to fix
+   * here. The bar dims rather than hiding, so the way forward stays where it was.
+   */
+  disabled?: boolean;
+  /** The step is writing. The pill takes the press away for the round trip rather than queueing it. */
+  isLoading?: boolean;
   onNext: () => void;
   onBack?: () => void;
   /** Leaving the first step abandons the tunnel, so it closes rather than goes back. */
@@ -42,6 +49,8 @@ export const TunnelBar = ({
   label,
   sublabel,
   variant = "primary",
+  disabled = false,
+  isLoading = false,
   showProgress = true,
   onNext,
   onBack,
@@ -76,6 +85,8 @@ export const TunnelBar = ({
           elevated
           variant={variant}
           size="lg"
+          disabled={disabled}
+          isLoading={isLoading}
           onPress={onNext}
           rightIcon={isLast ? ListPlus : nextIcon}
           onRightPress={onNext}

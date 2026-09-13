@@ -247,4 +247,4 @@ export const draftMealOf = (plate: Plate, recipe: Recipe): DraftMeal => ({
 
 /** One image for every tile until real produce photography exists. */
 export const TILE_IMAGE = DISH;
-export const MEAL_IMAGE = PLATE;
+export const MEAL_IMAGE = EMPTY_PLATE;

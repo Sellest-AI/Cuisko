@@ -14,11 +14,8 @@ import type { MealSlot } from "@shared/mealSlots";
 
 import { availableStock } from "./availableStock";
 import { candidatePool, OWN_SHARE } from "./candidatePool";
+import { isDistinct, MAX_DAYS, MAX_SERVINGS } from "./limits";
 import { selectMeals, type Plate } from "./selectMeals";
-
-/** A week, and the most one plate is cooked for — the tunnel's own ceilings, enforced where it cannot be bypassed. */
-const MAX_DAYS = 7;
-const MAX_SERVINGS = 8;
 
 type Args = {
   householdId: Id<"households">;
@@ -59,8 +56,6 @@ export type DraftMeal = {
   ingredients: DraftIngredient[];
 };
 
-const _isDistinct = <T>(values: T[]) => new Set(values).size === values.length;
-
 /**
  * Everything here is the client's, and the plates are `dates × slots`, which multiplies every read
  * below — so each factor is bounded where it cannot be bypassed. A repeated date or slot is refused
@@ -70,8 +65,8 @@ const _isDistinct = <T>(values: T[]) => new Set(values).size === values.length;
  */
 const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
   dates.length <= MAX_DAYS &&
-  _isDistinct(dates) &&
-  _isDistinct(slots) &&
+  isDistinct(dates) &&
+  isDistinct(slots) &&
   Number.isInteger(servings) &&
   servings >= 1 &&
   servings <= MAX_SERVINGS &&

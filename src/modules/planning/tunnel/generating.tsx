@@ -1,3 +1,4 @@
+import { useAtom } from "jotai";
 import { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -11,6 +12,7 @@ import { useTranslations } from "translations";
 
 import { CUISKO, CUISKO_VIDEO } from "~/lib/mascots";
 
+import { shuffleSeedAtom } from "../_hooks/atoms";
 import { MEAL_IMAGE, TILE_IMAGE } from "../_hooks/placeholders";
 import { usePlanDraft } from "../_hooks/usePlanDraft";
 import { useTunnel } from "./_hooks/useTunnel";
@@ -84,8 +86,27 @@ export const TunnelGenerating = () => {
   const { next, setMeals, commitPreferences } = useTunnel();
   const [cooked, setCooked] = useState(0);
 
-  /** Rolled once per mount, so the reactive draft cannot reshuffle itself — see `usePlanDraft`. */
-  const [seed] = useState(Math.random);
+  /**
+   * Rolled once per run, so the reactive draft cannot reshuffle itself — see `usePlanDraft`.
+   *
+   * In an atom as well as in state, because the two answer different questions. The roll is this
+   * mount's and the draft uses it from the first frame; the atom is where `commit` reads it from two
+   * screens later, so the plan can record which shuffle produced this week. Published in an effect
+   * rather than during render — writing a shared atom mid-render updates the other components
+   * subscribed to it while React is still rendering this one.
+   *
+   * Read back rather than only written, so a remount inside the same run (Android's back button off
+   * the review step) regenerates the week it already showed instead of drawing a new one.
+   * `resetTunnelAtom` empties it, which is what makes the NEXT run a different week.
+   */
+  const [storedSeed, setSeed] = useAtom(shuffleSeedAtom);
+  const [rolled] = useState(Math.random);
+  const seed = storedSeed ?? rolled;
+
+  useEffect(() => {
+    if (storedSeed === null) setSeed(rolled);
+  }, [storedSeed, rolled, setSeed]);
+
   const { meals, isGenerating } = usePlanDraft({ seed });
   const isDone = cooked >= DISHES && !isGenerating;
 

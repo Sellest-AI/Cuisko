@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   formatQuantity,
+  fromStockUnit,
   pickQuantity,
   serializeIngredients,
   stockUnitOf,
@@ -142,5 +143,29 @@ describe("pickQuantity", () => {
 
   test("reads undefined the same as null", () => {
     expect(pickQuantity({ amount: undefined, unit: undefined }, GNOCCHI)).toEqual({ amount: 500, unit: "g" });
+  });
+});
+
+describe("fromStockUnit", () => {
+  /** The list reads "0.5 kg", not "500 g": the household shops in the unit it buys the thing in. */
+  test("converts out of the stock unit into the unit the ingredient is bought in", () => {
+    expect(fromStockUnit(500, { defaultUnit: "kg" })).toBe(0.5);
+    expect(fromStockUnit(1500, { defaultUnit: "l" })).toBe(1.5);
+  });
+
+  test("leaves a quantity already in its stock unit alone", () => {
+    expect(fromStockUnit(347, { defaultUnit: "g" })).toBe(347);
+  });
+
+  /** No shop sells 1.3 onions, and this number is what goes on the list and comes back off it. */
+  test("rounds pieces up to a whole", () => {
+    expect(fromStockUnit(1.3, { defaultUnit: "pcs" })).toBe(2);
+    expect(fromStockUnit(2, { defaultUnit: "pcs" })).toBe(2);
+  });
+
+  test("is the inverse of toStockUnit within one kind of unit", () => {
+    const flour = { defaultUnit: "kg" } as const;
+
+    expect(fromStockUnit(toStockUnit(2, "kg", flour)!, flour)).toBe(2);
   });
 });

@@ -152,6 +152,15 @@ export const draftMealsAtom = atom<DraftMeal[]>([]);
 export const ownedRowsAtom = atom<string[]>([]);
 
 /**
+ * The shuffle the generated week was drawn from, rolled once per run by the generating step.
+ *
+ * An atom rather than that step's own state because the run outlives it: `commit` stores the seed on
+ * the plan, so the week can be drawn again — and the step that commits is two screens further on.
+ * `null` means nothing has been generated yet, which is the one state where there is nothing to keep.
+ */
+export const shuffleSeedAtom = atom<number | null>(null);
+
+/**
  * Empty the last run out before starting another.
  *
  * These atoms are module-scoped, so they outlive the tunnel that filled them. Without this, a
@@ -172,6 +181,7 @@ export const ownedRowsAtom = atom<string[]>([]);
 export const resetTunnelAtom = atom(null, (_get, set) => {
   set(draftMealsAtom, []);
   set(ownedRowsAtom, []);
+  set(shuffleSeedAtom, null);
   set(moodsAtom, []);
   set(seeksAtom, null);
   set(cookingTimeAtom, "any");

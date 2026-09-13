@@ -162,15 +162,48 @@ export type PlanningRow<M extends Dated = PlannedMeal> =
 export type GroceryRow = {
   /** Ingredient and unit together: two units of one ingredient cannot share a line. */
   id: string;
+  /** Carried rather than parsed back out of `id`, which is a key and not a pair of fields. */
+  ingredientId: string;
   name: string;
   emoji: string;
+  imageUrl?: string;
+  /**
+   * What this row is asking for.
+   *
+   * On a missing row, the part of the week the cellar did NOT reach — not everything the week wants
+   * of it. A cupboard holding three onions against a week wanting three on Monday and three on
+   * Thursday is asked for three, which is what `commit` will buy; the full six would be the page
+   * charging the shopper for what they already own. On a covered row it is the whole of it, since
+   * nothing there is being asked for at all.
+   */
   amount: number;
   unit: Unit;
   /** The meals needing it, drawn as the stack of little plates under the name. */
   mealIds: string[];
+  /**
+   * The cellar covers this row for **every** meal that asked for it.
+   *
+   * All of them, not any: the week is served in order and the stock runs down as it goes, so a row
+   * two plates share can be covered for Monday and short by Thursday. That row is something to buy.
+   */
+  covered: boolean;
 };
 
 export type GroceryCategory = { id: string; rows: GroceryRow[] };
+
+/**
+ * What a week's plates add up to, split by whether the kitchen already has it.
+ *
+ * Two lists rather than one flag on the rows, because the page draws them apart: what to buy is the
+ * page, and what the cellar already covers is the reassurance under it — the answer to "so what did
+ * planning from my cupboards actually save me?".
+ */
+export type GroceryList = {
+  /** What is missing, by category — the list the shopper takes out. */
+  missing: GroceryCategory[];
+  /** What the cellar already covers, flat and in category order. Nothing here is bought. */
+  covered: GroceryRow[];
+};
 
 /**
  * Every plate a day can hold, in the order a day is eaten.
@@ -247,7 +280,15 @@ export const addDays = (date: Date, days: number) => {
   return shifted;
 };
 
-const _startOfDay = (date: Date) => {
+/**
+ * Local midnight of that day.
+ *
+ * Exported because the two hooks that talk to the server both need it: a plan's dates and its
+ * `today` are local-day timestamps — "Tuesday" has to mean the user's Tuesday — and a second copy
+ * beside either of them is where the draft and the commit would start disagreeing about which day
+ * it is.
+ */
+export const startOfDay = (date: Date) => {
   const copy = new Date(date);
   copy.setHours(0, 0, 0, 0);
   return copy;
@@ -272,8 +313,8 @@ export const planDates = (today: Date, days: number): Date[] =>
  * day per-meal status is a different question, and `MealStatus` answers that one.
  */
 export const dayStatusFor = (date: Date, today: Date): DayStatus => {
-  const day = _startOfDay(date);
-  const now = _startOfDay(today);
+  const day = startOfDay(date);
+  const now = startOfDay(today);
 
   if (day < now) return "complete";
 
@@ -335,10 +376,10 @@ export const buildRows = <M extends Dated>(
   today: Date,
   { emptySlots = MEAL_SLOTS }: BuildOptions = {},
 ): PlanningRow<M>[] => {
-  const todayStart = _startOfDay(today);
+  const todayStart = startOfDay(today);
 
   return sections.flatMap((section) => {
-    const isPast = _startOfDay(section.date) < todayStart;
+    const isPast = startOfDay(section.date) < todayStart;
 
     const rows: PlanningRow<M>[] = MEAL_SLOTS.flatMap((slot) => {
       const planned = section.meals.filter((meal) => meal.slot === slot);
@@ -384,8 +425,8 @@ export const buildRows = <M extends Dated>(
 export const indexOfDate = <M extends Dated>(rows: PlanningRow<M>[], date?: Date) => {
   if (!date || rows.length === 0) return 0;
 
-  const target = _startOfDay(date);
-  const index = rows.findIndex((row) => _startOfDay(row.date) >= target);
+  const target = startOfDay(date);
+  const index = rows.findIndex((row) => startOfDay(row.date) >= target);
 
   return index === -1 ? rows.length - 1 : index;
 };
@@ -515,37 +556,63 @@ const _categoryRank = (id: string) => {
 };
 
 /**
- * What the chosen meals add up to, by category.
+ * The row a line lands on: the ingredient and the unit it is written in, together.
+ *
+ * Named because two callers build it and one of them is a *lookup* — `ownedLinesOf` has to find the
+ * lines behind a row the user ticked, and a second `${a}:${b}` written there would agree with this
+ * one until somebody changed the key. Nothing parses it back apart; the fields are carried instead.
+ */
+const _rowIdFor = (ingredient: DraftIngredient) => `${ingredient.ingredientId}:${ingredient.unit}`;
+
+/**
+ * What the chosen meals add up to: what is missing, by category, and what the cellar already covers.
  *
  * Lines merge on ingredient *and* unit: 500g and 4 pieces of the same thing are two rows, because
  * nothing here knows how many grams a piece weighs. Merging them would invent a number.
  *
- * Every line counts, covered or not: what the cellar covers is taken off the list when the week is
- * committed, against the cellar as it is then.
+ * Coverage is the generation's answer, not this function's — a line knows whether the cellar reached
+ * it, and a row merging several is only covered when all of them were. A row that is not fully
+ * covered asks for its uncovered lines only, so the page and the list that `commit` writes agree
+ * about what is being bought. What is finally asked for is still decided server-side, against the
+ * cellar as it is then.
+ *
+ * ⚠️ It is still an approximation in one direction: a line the cellar part-covers counts in full,
+ * because a `DraftIngredient` says whether it was covered and not by how much. It overstates that
+ * line and never understates the row, which is the safe way round for a shopping list.
  */
-export const groceriesFor = (meals: DraftMeal[]): GroceryCategory[] => {
+export const groceriesFor = (meals: DraftMeal[]): GroceryList => {
   const rows = new Map<string, GroceryRow>();
   const categories = new Map<string, string[]>();
+  /** What each row is short of, summed beside the total rather than derived from it. */
+  const missingAmounts = new Map<string, number>();
 
   for (const meal of meals)
     for (const ingredient of meal.ingredients) {
-      const id = `${ingredient.ingredientId}:${ingredient.unit}`;
+      const id = _rowIdFor(ingredient);
       const heading = groceryHeadingOf(ingredient.category);
       const existing = rows.get(id);
 
+      if (!ingredient.covered) {
+        missingAmounts.set(id, (missingAmounts.get(id) ?? 0) + ingredient.amount);
+      }
+
       if (existing) {
         existing.amount += ingredient.amount;
+        existing.covered = existing.covered && ingredient.covered;
         if (!existing.mealIds.includes(meal.id)) existing.mealIds.push(meal.id);
         continue;
       }
 
       rows.set(id, {
         id,
+        ingredientId: ingredient.ingredientId,
         name: ingredient.name,
         emoji: ingredient.emoji,
+        imageUrl: ingredient.imageUrl,
         amount: ingredient.amount,
         unit: ingredient.unit,
         mealIds: [meal.id],
+        covered: ingredient.covered,
       });
 
       const seen = categories.get(heading);
@@ -553,12 +620,46 @@ export const groceriesFor = (meals: DraftMeal[]): GroceryCategory[] => {
       else categories.set(heading, [id]);
     }
 
-  return [...categories.entries()]
-    .sort(([a], [b]) => _categoryRank(a) - _categoryRank(b) || a.localeCompare(b))
-    .map(([id, rowIds]) => ({
-      id,
-      rows: rowIds.map((rowId) => rows.get(rowId)!),
-    }));
+  const inOrder = [...categories.entries()].sort(
+    ([a], [b]) => _categoryRank(a) - _categoryRank(b) || a.localeCompare(b),
+  );
+
+  return {
+    missing: inOrder
+      .map(([id, rowIds]) => ({
+        id,
+        rows: rowIds
+          .map((rowId) => rows.get(rowId)!)
+          .filter((row) => !row.covered)
+          // Asked for at what it is short of, which is what `commit` will buy — see `amount`.
+          .map((row) => ({ ...row, amount: missingAmounts.get(row.id) ?? row.amount })),
+      }))
+      // A category whose every row is covered has nothing to shop for, so it heads nothing.
+      .filter((category) => category.rows.length > 0),
+    covered: inOrder.flatMap(([, rowIds]) => rowIds.map((rowId) => rows.get(rowId)!).filter((row) => row.covered)),
+  };
+};
+
+/**
+ * The ingredient-and-unit pairs behind the rows the shopper ticked — what `commit` takes as `owned`.
+ *
+ * Resolved from the lines rather than by splitting the row ids back up: the id is a key, and a
+ * caller that took it apart would be depending on how this file happens to spell one.
+ */
+export const ownedLinesOf = (meals: DraftMeal[], rowIds: string[]) => {
+  const wanted = new Set(rowIds);
+  const pairs = new Map<string, { ingredientId: string; unit: Unit }>();
+
+  for (const meal of meals)
+    for (const ingredient of meal.ingredients) {
+      const id = _rowIdFor(ingredient);
+
+      if (wanted.has(id) && !pairs.has(id)) {
+        pairs.set(id, { ingredientId: ingredient.ingredientId, unit: ingredient.unit });
+      }
+    }
+
+  return [...pairs.values()];
 };
 
 /**
