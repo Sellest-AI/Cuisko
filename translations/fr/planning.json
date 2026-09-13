@@ -97,6 +97,8 @@
       "subtitle": "Ce qui manque dans ta cuisine",
       "in_kitchen": "Déjà dans ta cuisine",
       "save": "Ajouter à ma liste",
+      "save_failed_title": "La semaine n'a pas pu être gardée",
+      "save_failed_body": "Réessaie dans un instant : ta semaine est toujours là, rien n'a été perdu.",
       "x_new_items_one": "{{count, number}} chose à rapporter",
       "x_new_items_many": "{{count, number}} de choses à rapporter",
       "x_new_items_other": "{{count, number}} choses à rapporter",

@@ -47,7 +47,12 @@ const PIECE_EPSILON = 1e-9;
  */
 export const scaleLines = (lines: ScalableLine[], { recipeServings, servings }: Args): Need[] =>
   lines.map(({ ingredientId, quantity, unit, ingredient }) => {
-    const exact = (quantity * servings) / recipeServings;
+    /**
+     * A recipe written for nobody is broken data, and dividing by it would poison every line with
+     * Infinity. Scaling such a line by one keeps the plan alive — the same answer the line would
+     * get from servings equal to the recipe's, and the least surprising recovery available.
+     */
+    const exact = recipeServings > 0 ? (quantity * servings) / recipeServings : quantity;
     const scaled = unit === "pcs" ? Math.ceil(exact - PIECE_EPSILON) : exact;
     const line = { ingredientId, quantity: scaled, unit };
 

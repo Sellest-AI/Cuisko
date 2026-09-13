@@ -96,6 +96,8 @@
       "subtitle": "What is missing from your kitchen",
       "in_kitchen": "Already in your kitchen",
       "save": "Add to my list",
+      "save_failed_title": "The week couldn't be saved",
+      "save_failed_body": "Try again in a moment — your week is still here, nothing was lost.",
       "x_new_items_one": "{{count, number}} thing to pick up",
       "x_new_items_other": "{{count, number}} things to pick up",
       "have": "Got it",

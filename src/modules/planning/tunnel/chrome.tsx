@@ -1,11 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { DefaultTheme, ThemeProvider } from "expo-router";
-import { ReactNode, useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { Extrapolation, interpolate, useAnimatedStyle } from "react-native-reanimated";
 
 import { RadialGradient } from "@ui/radial-gradient";
 import { AnimatePresence, m } from "@ui/motion";
+import { DatabaseX } from "@ui/icons";
+import { InfoBanner } from "@ui/info-banner";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
@@ -66,6 +68,13 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
   const { newItemCount } = useTunnelGroceries();
   const { commit, isSaving } = usePlanCommit();
 
+  /**
+   * The step whose keep last failed, and the fact of it. The banner is derived from being on that
+   * step rather than cleared on leaving it — an effect resetting state is the cascading render the
+   * lint rule names, and "you are back on the step whose write failed" is the honest thing to show.
+   */
+  const [saveFailed, setSaveFailed] = useState<{ step: number } | null>(null);
+
   /** `useTunnel` clamps an unrecognised path to the first step, so this index is always in range. */
   const name = TUNNEL_STEPS[step - 1]!;
   const chrome = CHROME[name];
@@ -78,15 +87,22 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
    * only then does the tunnel let go of them.
    *
    * A failed write leaves the user exactly where they were, with the draft intact, so the button is
-   * theirs to press again — advancing would drop a week nothing had kept. A press while the first one
-   * is still in flight is ignored rather than queued, which is what stops a double tap writing the
-   * week twice.
+   * theirs to press again — advancing would drop a week nothing had kept. It does not fail quietly:
+   * the banner says so plainly (PRODUCT.md's rule for a failure with data at stake) and stays while
+   * the user is on that step — backing out hides it, coming back shows it again. A press while the
+   * first one is still in flight is ignored rather than queued, which is what stops a double tap
+   * writing the week twice.
    */
   const keep = useCallback(async () => {
     if (isSaving) return;
 
-    if (await commit()) next();
-  }, [isSaving, commit, next]);
+    if (await commit()) {
+      setSaveFailed(null);
+      next();
+    } else {
+      setSaveFailed({ step });
+    }
+  }, [isSaving, commit, next, step]);
 
   /**
    * A generation that came back with nothing has nothing to keep, so the last step offers no way on.
@@ -167,6 +183,18 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
           <ThemeProvider value={TUNNEL_THEME}>{children}</ThemeProvider>
         </View>
       </SafeAreaView>
+      {chrome.bar && saveFailed?.step === step && (
+        <m.View
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          exit={{ opacity: 0 }}
+          style={styles.banner}
+        >
+          <InfoBanner variant="warning" title={t("Tunnel.Groceries.save_failed_title")} icon={DatabaseX}>
+            {t("Tunnel.Groceries.save_failed_body")}
+          </InfoBanner>
+        </m.View>
+      )}
       {chrome.bar && (
         <TunnelBar
           step={step}
@@ -209,4 +237,8 @@ const styles = StyleSheet.create({
     width: 320
   },
   body: { flex: 1 },
+  banner: {
+    marginHorizontal: theme.spacing[16],
+    marginBottom: theme.spacing[8],
+  },
 });

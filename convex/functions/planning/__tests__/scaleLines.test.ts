@@ -46,6 +46,13 @@ describe("functions/planning/scaleLines", () => {
 
       expect(need?.quantity).toBe(1);
     });
+
+    /** A recipe written for nobody is broken data; Infinity here would poison the whole plan. */
+    test("scales by one, not by Infinity, when the recipe claims zero servings", () => {
+      const [need] = scaleLines([line(200, "g")], { recipeServings: 0, servings: 4 });
+
+      expect(need).toMatchObject({ quantity: 200, unit: "g", kind: "measured", amount: 200 });
+    });
   });
 
   describe("the stock unit", () => {

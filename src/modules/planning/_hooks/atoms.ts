@@ -142,9 +142,9 @@ export const planMealsAtom = atom<PlannedMeal[]>(PLACEHOLDER_MEALS);
  * and writing the generation straight into the plan would replace a week they were keeping with
  * one they had not yet said yes to.
  *
- * Nothing hands it over yet — the last step dismisses to `/planning` and the draft is dropped on
- * the next run. Committing it is a question this slice does not answer: whether a generated week
- * replaces the plan or merges into the days it covers is a product call, not a plumbing one.
+ * The last step commits it through `usePlanCommit`; a run's reset drops whatever was left
+ * uncommitted. What a second week then does to the days already planned — replace them or merge
+ * into them — is still a product call, not a plumbing one: `commit` writes beside what is there.
  */
 export const draftMealsAtom = atom<DraftMeal[]>([]);
 

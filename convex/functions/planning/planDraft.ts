@@ -88,7 +88,7 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
  * nothing to plan it from.
  */
 export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]> => {
-  if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_ARGUMENT" });
+  if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_INPUT" });
 
   const plates: Plate[] = args.dates.flatMap((date) =>
     args.slots.map((slot) => ({ date, slot, servings: args.servings })),

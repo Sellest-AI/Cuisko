@@ -167,7 +167,7 @@ const _inOrder = (plates: CommittedPlate[]) =>
  * the user dropped meals from in review cannot describe itself as one it is not.
  */
 export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"mealPlans">> => {
-  if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_ARGUMENT" });
+  if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_INPUT" });
 
   const plates = _inOrder(args.plates);
   const recipes = await _recipesFor(ctx, plates, args.userId);
