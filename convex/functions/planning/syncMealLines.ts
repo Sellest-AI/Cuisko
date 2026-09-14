@@ -1,6 +1,7 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 import { fromStockUnit, stockUnitOf, type Unit } from "@shared/ingredients";
+import { MEAL_SLOTS } from "@shared/mealSlots";
 
 import { cascadeDelete } from "../cascade";
 import { addToGroceryList } from "../cellars/addToGroceryList";
@@ -34,15 +35,29 @@ type Args = {
    * What the cellar can still give, in each ingredient's stock unit — **consumed in place**, so the
    * next meal is scored against what this one left. The caller owns it, and it must not already
    * count this meal's own existing lines: `availableStock` subtracts every planned meal's ledger,
-   * this meal's included, so a re-sync passes stock with those lines added back.
+   * this meal's included, so a re-scale names the meal as `except` and its reservations stay out.
    */
   stock: Stock;
   /** The lot each ingredient is reserved against — a hint for a later "what expires first", not an authority. */
   lots: Map<Id<"ingredients">, Id<"cellarItems">>;
+  /**
+   * Local-day timestamp: the first day a plate still counts as ahead of the household. A jar this
+   * meal's old lines put on the list is handed to a later plate that needs it, and "later" is read
+   * from here — the same line `availableStock` draws for what still reserves stock.
+   */
+  from: number;
 };
 
 /** Under this, a remainder is float noise from a conversion rather than something to buy. */
 const NOTHING_LEFT = 1e-9;
+
+/**
+ * The (ingredient, unit) pair a shopper's "already in the kitchen" tick is keyed by — the recipe's
+ * own unit, not the stock unit, because the tick answers for the line as the recipe wrote it.
+ * Shared because the tick is written by one caller and read back by another, and a second spelling
+ * of the key would agree only until one of them changed.
+ */
+export const ownedTickKey = (ingredientId: Id<"ingredients">, unit: Unit) => `${ingredientId}:${unit}`;
 
 /** What one line reserves, what is missing from it, and the unit each is counted in. */
 type Split = {
@@ -136,6 +151,51 @@ const _backOut = async (ctx: MutationCtx, row: Doc<"plannedMealIngredients">) =>
   else await cascadeDelete(ctx, "groceryListItems", item._id);
 };
 
+/** The household's plates still ahead of it, other than this one, in the order the week is eaten. */
+const _laterPlates = async (ctx: MutationCtx, householdId: Id<"households">, plannedMealId: Id<"plannedMeals">, from: number) => {
+  const plates = await ctx.db
+    .query("plannedMeals")
+    .withIndex("by_household_and_date", (q) => q.eq("householdId", householdId).gte("date", from))
+    .collect();
+
+  return plates
+    .filter((plate) => plate.status === "planned" && plate._id !== plannedMealId)
+    .sort((a, b) => a.date - b.date || MEAL_SLOTS.indexOf(a.slot) - MEAL_SLOTS.indexOf(b.slot));
+};
+
+/**
+ * The first later plate's line that is living off this row's jar, if any.
+ *
+ * A jar is bought once for the week — see the pinch note in `syncMealLines` — so every plate after
+ * the one that asked for it records its pinch as covered with nothing to buy: `quantity` 0, no
+ * `groceryQuantity`, not ticked by the shopper. Giving the jar back with this row would leave that
+ * plate reading ready with its pinch bought by nobody, so the claim is handed on instead. A jar
+ * already bought has no row to hand on; the pointer was detached when it went.
+ */
+const _heirOf = async (
+  ctx: MutationCtx,
+  row: Doc<"plannedMealIngredients">,
+  plates: () => Promise<Doc<"plannedMeals">[]>,
+) => {
+  if (row.quantity !== 0 || !row.groceryQuantity || !row.groceryListItemId) return undefined;
+  if (!(await ctx.db.get(row.groceryListItemId))) return undefined;
+
+  for (const plate of await plates()) {
+    const lines = await ctx.db
+      .query("plannedMealIngredients")
+      .withIndex("by_planned_meal", (q) => q.eq("plannedMealId", plate._id))
+      .collect();
+
+    const heir = lines.find(
+      (line) => line.ingredientId === row.ingredientId && line.quantity === 0 && !line.groceryQuantity && !line.owned,
+    );
+
+    if (heir) return heir;
+  }
+
+  return undefined;
+};
+
 /**
  * Makes a planned meal's ledger equal `lines`, and moves the grocery list by the difference.
  *
@@ -147,14 +207,31 @@ const _backOut = async (ctx: MutationCtx, row: Doc<"plannedMealIngredients">) =>
  * The lines are walked in order and `stock` is consumed as they go, so a recipe naming an ingredient
  * twice is scored against what its first line left behind.
  */
-export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMealId, lines, stock, lots }: Args) => {
+export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMealId, lines, stock, lots, from }: Args) => {
   const existing = await ctx.db
     .query("plannedMealIngredients")
     .withIndex("by_planned_meal", (q) => q.eq("plannedMealId", plannedMealId))
     .collect();
 
+  /** Read once, and only if a jar has to find an heir — a fresh plate has nothing to back out. */
+  let later: Promise<Doc<"plannedMeals">[]> | undefined;
+  const laterPlates = () => (later ??= _laterPlates(ctx, householdId, plannedMealId, from));
+
   for (const row of existing) {
-    await _backOut(ctx, row);
+    const heir = await _heirOf(ctx, row, laterPlates);
+
+    if (heir) {
+      await ctx.db.patch(heir._id, {
+        groceryQuantity: row.groceryQuantity,
+        groceryListItemId: row.groceryListItemId,
+        updatedAt: Date.now(),
+      });
+      // The jar stays on the list, so a plate rewritten below still finds the ingredient present.
+      if (!stock.has(row.ingredientId)) stock.set(row.ingredientId, 0);
+    } else {
+      await _backOut(ctx, row);
+    }
+
     await ctx.db.delete(row._id);
   }
 
@@ -193,6 +270,7 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
       groceryQuantity: buying?.quantity,
       groceryListItemId,
       cellarItemId: split.reservedStock ? lots.get(line.need.ingredientId) : undefined,
+      owned: line.owned,
       updatedAt: Date.now(),
     });
   }

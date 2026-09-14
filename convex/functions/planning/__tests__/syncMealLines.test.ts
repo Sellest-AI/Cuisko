@@ -113,7 +113,7 @@ const sync = (
     );
 
     const left: Stock = new Map(stock);
-    await syncMealLines(ctx, { householdId, plannedMealId, lines, stock: left, lots: new Map(lots) });
+    await syncMealLines(ctx, { householdId, plannedMealId, lines, stock: left, lots: new Map(lots), from: TODAY });
 
     return [...left];
   });

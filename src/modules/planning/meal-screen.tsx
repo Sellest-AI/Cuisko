@@ -3,7 +3,8 @@ import { Platform, ScrollView, StyleSheet, View } from "react-native";
 
 import { Badge } from "@ui/badge";
 import { CardChoice } from "@ui/cards/choice";
-import { CheckIcon, Search, Trash2 } from "@ui/icons";
+import { CheckIcon, DatabaseX, Search, Trash2 } from "@ui/icons";
+import { InfoBanner } from "@ui/info-banner";
 import { Input } from "@ui/input";
 import { StepSlider } from "@ui/step-slider";
 import { Text } from "@ui/text";
@@ -68,6 +69,8 @@ type EditorProps = {
   setQuery: (query: string) => void;
   setServings: (servings: number) => void;
   choose: (recipe: Recipe) => void;
+  /** The server refused the last edit and the plate is back to what it was. */
+  failed?: boolean;
 };
 
 const Editor = ({
@@ -78,6 +81,7 @@ const Editor = ({
   setQuery,
   setServings,
   choose,
+  failed = false,
 }: EditorProps) => {
   const t = useTranslations("Planning");
   /**
@@ -100,6 +104,11 @@ const Editor = ({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
+      {failed && (
+        <InfoBanner variant="warning" title={t("Tunnel.Meal.edit_failed_title")} icon={DatabaseX} style={styles.banner}>
+          {t("Tunnel.Meal.edit_failed_body")}
+        </InfoBanner>
+      )}
       <SectionLabel label={t("Tunnel.Meal.portions")} value={String(servings)} />
       <StepSlider value={servings} max={MAX_SERVINGS} onChange={setServings} />
       <SectionLabel
@@ -169,12 +178,14 @@ const Sheet = ({ target, scope, onClose }: {
   onClose: () => void;
 }) => {
   const t = useTranslations("Planning");
-  const { meal, missing, remove, ...editor } = useMealEditor(target, scope);
+  const { meal, missing, isLoading, failed, remove, ...editor } = useMealEditor(target, scope);
 
-  /** Removing leaves nothing to come back to, so the sheet goes with it. */
-  const destroy = useCallback(() => {
-    remove();
-    onClose();
+  /**
+   * Removing leaves nothing to come back to, so the sheet goes with it — once the plate has
+   * actually gone. A refused removal keeps the sheet open, with the banner saying why.
+   */
+  const destroy = useCallback(async () => {
+    if (await remove()) onClose();
   }, [remove, onClose]);
 
   const choose = useCallback((recipe: Recipe) => {
@@ -185,10 +196,13 @@ const Sheet = ({ target, scope, onClose }: {
   /** Nothing to throw away until a dish is on the plate, so the slot opens without the action. */
   useModalAction(meal ? { icon: Trash2, onPress: destroy, variant: "danger" } : null);
 
+  /** The plate is being asked for; an empty sheet beats a spinner that lands and leaves in a blink. */
+  if (isLoading) return <View style={styles.page} />;
+
   /** A stale link, or the moment between removing the plate and the dismissal landing. */
   if (missing) return <Nothing label={t("Tunnel.Meal.missing")} />;
 
-  return <Editor {...editor} choose={choose} />;
+  return <Editor {...editor} choose={choose} failed={failed} />;
 };
 
 /**
@@ -248,5 +262,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   search: { marginBottom: theme.spacing[12] },
+  banner: { marginBottom: theme.spacing[16] },
   grid: { width: "100%" }
 });

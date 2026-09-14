@@ -125,13 +125,13 @@ export const seeksAtom = atom<NutritionPreference[] | null>(null);
 export const cookingTimeAtom = atom<CookingTime>("any");
 
 /**
- * The week the app is actually keeping: what the planning screen lists and what a plate edited
- * from it changes.
+ * What is left of the placeholder week: the plates the meal sheet mints on an EMPTY slot of the
+ * kept week, which nothing reads.
  *
- * State rather than the derivation the list used to rebuild per mount, because editing a plate is
- * the point — a pure function has nothing to write back to, so the swap sheet and the list would
- * be looking at two different weeks. Seeded from the placeholders; a later slice swaps the seed
- * for a Convex query and everything above this line stays as it is (ADR 0006).
+ * The kept week itself lives in Convex now — the list and home read it (`usePlanningList`,
+ * `useWeeklyPlan`), and a plate opened from the list is edited on the server (`useKeptMeal`). Only
+ * filling an empty slot still lands here, until `planOne` writes it; that slice deletes this atom
+ * and the placeholders with it.
  */
 export const planMealsAtom = atom<PlannedMeal[]>(PLACEHOLDER_MEALS);
 

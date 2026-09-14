@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Unit } from "@shared/ingredients";
 
 import schema from "../../../schema";
@@ -18,7 +18,13 @@ const DAY = 86_400_000;
 const household = () =>
   t.run((ctx) => ctx.db.insert("households", { name: "Home", inviteCode: "ABC", updatedAt: Date.now() }));
 
-const ingredient = (facts: { defaultUnit?: Unit; gramsPerPiece?: number; gramsPerMl?: number } = {}) =>
+const ingredient = (facts: {
+  category?: Doc<"ingredients">["category"];
+  defaultUnit?: Unit;
+  defaultQuantity?: number;
+  gramsPerPiece?: number;
+  gramsPerMl?: number;
+} = {}) =>
   t.run((ctx) =>
     ctx.db.insert("ingredients", {
       name: { values: { fr: "x", en: "x" }, meta: {} },
@@ -37,12 +43,16 @@ const cellar = (householdId: Id<"households">, ingredientId: Id<"ingredients">, 
     ctx.db.insert("cellarItems", { householdId, ingredientId, quantity, unit, updatedAt: Date.now() }),
   );
 
-/** One planned meal on `date`, reserving `grams` of `ingredientId`. */
+/** One planned meal on `date`, reserving `grams` of `ingredientId`; a `groceryQuantity` marks the line bought. */
 const reserve = async (
   householdId: Id<"households">,
   ingredientId: Id<"ingredients">,
   grams: number,
-  { date = TODAY, status = "planned" }: { date?: number; status?: "planned" | "cooked" } = {},
+  { date = TODAY, status = "planned", groceryQuantity }: {
+    date?: number;
+    status?: "planned" | "cooked";
+    groceryQuantity?: number;
+  } = {},
 ) =>
   t.run(async (ctx) => {
     const recipeId = await ctx.db.insert("recipes", {
@@ -90,13 +100,15 @@ const reserve = async (
       sourceUnit: "g",
       quantity: grams,
       unit: "g",
+      groceryQuantity,
       updatedAt: Date.now(),
     });
+    return plannedMealId;
   });
 
 // `t.run` returns through Convex serialization, which has no Map — so it crosses as entries.
-const stockOf = async (householdId: Id<"households">) =>
-  new Map(await t.run(async (ctx) => [...(await availableStock(ctx, householdId, TODAY))]));
+const stockOf = async (householdId: Id<"households">, except?: Id<"plannedMeals">) =>
+  new Map(await t.run(async (ctx) => [...(await availableStock(ctx, householdId, TODAY, except))]));
 
 beforeEach(() => {
   t = convexTest(schema, modules);
@@ -138,6 +150,36 @@ describe("functions/planning/availableStock", () => {
     await reserve(home, tomato, 300, { date: TODAY + DAY });
 
     expect((await stockOf(home)).get(tomato)).toBe(200);
+  });
+
+  /** The re-scale's pool: a plate being re-portioned does not charge its old lines against its new ones. */
+  test("leaves a meal named as except holding its reservations", async () => {
+    const home = await household();
+    const tomato = await ingredient();
+    await cellar(home, tomato, 500);
+    const mine = await reserve(home, tomato, 300, { date: TODAY + DAY });
+    await reserve(home, tomato, 100, { date: TODAY + 2 * DAY });
+
+    expect((await stockOf(home)).get(tomato)).toBe(100);
+    expect((await stockOf(home, mine)).get(tomato)).toBe(400);
+  });
+
+  /**
+   * A jar bought for one plate covers the pinches after it — the pool says present at nothing, which
+   * is what stops a week of pinch plates ordering a jar each. The meal that bought it does not carry
+   * its own jar back into its own pool: its re-scale re-runs the whole split, jar and all.
+   */
+  test("keeps a pinch a planned meal has bought present, but not for the meal that bought it", async () => {
+    const home = await household();
+    const thyme = await ingredient({ category: "HERB", defaultUnit: "g", defaultQuantity: 20 });
+    const buyer = await reserve(home, thyme, 0, { date: TODAY + DAY, groceryQuantity: 20 });
+    await reserve(home, thyme, 0, { date: TODAY + 2 * DAY });
+
+    const stock = await stockOf(home);
+    expect(stock.has(thyme)).toBe(true);
+    expect(stock.get(thyme)).toBe(0);
+
+    expect((await stockOf(home, buyer)).has(thyme)).toBe(false);
   });
 
   test("lets a past meal reserve nothing", async () => {

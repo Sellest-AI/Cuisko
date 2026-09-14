@@ -43,8 +43,10 @@ export const usePlanCommit = () => {
     if (!householdId || meals.length === 0) return true;
 
     try {
-      // The household travels as ctx.householdId (see router/planning/commit), never as an argument.
+      // The id names which household; the builder checks membership and holds it in ctx.householdId
+      // (see router/planning/commit), which is the only one this call can write to.
       await mutate({
+        householdId,
         people,
         /**
          * A draft cannot exist without the roll that drew it — the generating step sets both — so

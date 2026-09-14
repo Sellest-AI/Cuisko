@@ -62,6 +62,15 @@ export const plannedMealIngredients = defineTable({
    */
   groceryQuantity: v.optional(v.number()),
   groceryListItemId: v.optional(v.id("groceryListItems")),
+  /**
+   * The shopper ticked this line as already in the kitchen, so nothing was bought for it.
+   *
+   * Kept because the outcome alone — no grocery row — cannot tell a tick from a line the cellar
+   * covered, and re-portioning a ticked line must not put it on the list. Optional because rows
+   * written before it existed read as unticked, which asks again only for what the cellar cannot
+   * cover.
+   */
+  owned: v.optional(v.boolean()),
   cellarItemId: v.optional(v.id("cellarItems")),
   updatedAt: v.number(), // S5
 })

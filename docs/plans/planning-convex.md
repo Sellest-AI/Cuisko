@@ -172,6 +172,7 @@ quantity:           v.number()      // the whole requirement, in the unit stock 
 unit:               vUnit           //   → "300 g", what reserves and what gets decremented
 groceryQuantity:    v.optional(v.number())          // the part that was missing, in `unit`
 groceryListItemId:  v.optional(v.id("groceryListItems"))
+owned:              v.optional(v.boolean())          // the shopper ticked this line "already in the kitchen"
 cellarItemId:       v.optional(v.id("cellarItems"))  // the lot this line is spoken for against
 updatedAt:          v.number()
 ```
@@ -256,13 +257,14 @@ Deferred.
 router/planning/getDraft.ts     authed  householdQueryI18n  → a generated week, writes nothing
 router/planning/getMany.ts      authed  householdQueryI18n  → plates between two days (home's week strip)
 router/planning/getPaginated.ts authed  householdQueryI18n  → plates a page at a time, before or after a day (the list)
+router/planning/getOne.ts       authed  householdQueryI18n  → one plate, or null once it is gone (the meal sheet)
 router/planning/commit.ts       authed  householdMutation   → persists a draft + its groceries
 router/planning/planOne.ts      authed  householdMutation   → one plate (recipe screen, slice 6)
 router/planning/setServings.ts  authed  householdMutation   → re-scales one meal, updates groceries
 router/planning/removeOne.ts    authed  householdMutation   → drops one meal, updates groceries, and the mealPlans
 ```
 
-All seven are `household*` builders, so membership is the authorization and `ctx.householdId` is what
+All eight are `household*` builders, so membership is the authorization and `ctx.householdId` is what
 every query narrows by. There is no `admin` twin and no `userId` argument anywhere in this surface.
 
 **The two reads are split by question.** Home asks about a fixed window, today ±3, so `getMany` is a
@@ -336,17 +338,21 @@ convex/functions/planning/scaleLines.ts        PURE
 convex/functions/planning/selectMeals.ts       PURE  ← the feature
 convex/functions/planning/planDraft.ts         orchestrates getDraft
 convex/functions/planning/commitPlan.ts        insert plan + meals + ledger
-convex/functions/planning/syncMealLines.ts     the ONLY writer of the ledger + grocery delta
+convex/functions/planning/syncMealLines.ts     the ONLY writer of the ledger + grocery delta; a jar backed out passes to the next plate needing it
 convex/functions/planning/plannedMealCard.ts   plates → PlannedMealCard[], each recipe read once
 convex/functions/planning/mealsBetween.ts      (ctx, householdId, from, to) => PlannedMealCard[], span ≤ a week
 convex/functions/planning/pageMeals.ts         (ctx, householdId, from, direction, paginationOpts) => page
+convex/functions/planning/loadMealCard.ts      (ctx, householdId, mealId, locale) => PlannedMealCard | null
+convex/functions/planning/rescaleMeal.ts       one plate re-portioned, its ledger and groceries re-synced
+convex/functions/planning/dropMeal.ts          one plate dropped, its claims given back, the plan with its last plate
 
-convex/router/planning/{getDraft,getMany,getPaginated,commit,planOne,setServings,removeOne}.ts
+convex/router/planning/{getDraft,getMany,getPaginated,getOne,commit,planOne,setServings,removeOne}.ts
 
 src/modules/planning/_hooks/usePlanDraft.ts    generating step
 src/modules/planning/_hooks/usePlanCommit.ts   groceries step
 src/modules/planning/_hooks/useWeeklyPlan.ts   off placeholders
 src/modules/planning/_hooks/usePlanningList.ts off placeholders
+src/modules/planning/_hooks/useKeptMeal.ts     one kept plate: getOne + setServings + removeOne, for the meal sheet
 src/modules/planning/_hooks/placeholders.ts    shrinks to images only, then deleted
 src/modules/planning/hooks.ts                  re-exports what home/ needs
 src/modules/planning/_model/model.ts           PlannedMeal loses pricePerKg, gains ids
@@ -463,8 +469,13 @@ getPaginated.test.ts       anon rejected · non-member rejected · after include
                            excludes it, newest first · another household's plates never answered
 commit.test.ts             anon rejected · non-member rejected · writes plan, meals and ledger
 planOne.test.ts            anon rejected · non-member rejected
-setServings.test.ts        anon rejected · a meal in another household rejected
-removeOne.test.ts          anon rejected · a meal in another household rejected
+getOne.test.ts             anon rejected · non-member rejected · another household's plate rejected · null once gone
+setServings.test.ts        anon rejected · a meal in another household rejected · re-scales the ledger and the
+                           list · a tick survives a re-scale, per ingredient and unit · no-op leaves the list alone ·
+                           past, cooked and impossible sizes refused
+removeOne.test.ts          anon rejected · a meal in another household rejected · claims given back, the rest of
+                           the week kept · a jar passes to the next plate needing it · the plan row goes with its
+                           last plate · cooked refused
 ```
 
 ### Decisions I am least confident about
@@ -517,6 +528,10 @@ Everything the tunnel collects and this slice ignores:
 - **The note.** Stored on `mealPlans`, read by nothing.
 - **Moods / tastes, seeks, cooking time, equipments, cuisine, difficulty.** Collected, not applied.
   The candidate pool filters on diet and allergens only.
+- **Swapping the dish on a kept plate.** The meal sheet re-portions and removes a kept plate through
+  `setServings` / `removeOne`; its dish grid is still the placeholder catalogue, replaced by the
+  search-engine slice, and there is no `replaceOne` to write a swap with. Choosing on a kept plate
+  does nothing.
 - **Reroll.** No "generate again", no per-meal swap. The client-held seed is what makes it cheap when
   it comes.
 - **Leftovers and portions.** `servings` is people, and a meal is cooked for exactly its day.

@@ -15,3 +15,13 @@ export const MAX_SERVINGS = 8;
 
 /** A repeated date, slot or plate is refused rather than deduplicated — see `planDraft`. */
 export const isDistinct = <T>(values: T[]) => new Set(values).size === values.length;
+
+/**
+ * A whole number of places at the table, from one through `MAX_SERVINGS`.
+ *
+ * The predicate a plate's `servings` and a plan's `people` both have to answer — and refusing
+ * non-integers is also what refuses `NaN`, which fails every comparison and would otherwise scale
+ * every line of a recipe into `NaN`.
+ */
+export const isServings = (servings: number) =>
+  Number.isInteger(servings) && servings >= 1 && servings <= MAX_SERVINGS;
