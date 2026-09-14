@@ -62,15 +62,28 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setInputRef(ref); }, []);
 
-  const showGroceries = () => {
-    if (!pathname.startsWith("/groceries")) router.push("/groceries");
+  /**
+   * Lands the shopper on the page their submission went to: an ingredient aimed at the cellar
+   * shows it with the cellar on top, everything else keeps the list first. The intent travels
+   * rather than the mode, so the page and the write can never disagree about where stock went.
+   *
+   * Already on the page, only the param moves — a push would stack a second groceries screen
+   * under the back gesture.
+   */
+  const showGroceries = (intent: "buy" | "relist") => {
+    const section = intent === "buy" ? "cellar" : "to-buy";
+
+    if (pathname.startsWith("/groceries")) router.setParams({ section });
+    else router.push({ pathname: "/groceries", params: { section } });
   }
 
   const submitSuggestion = (suggestionId: string, unit: Unit, amount: number) => {
+    const stockIntent = _stockIntent(mode);
+
     // Deliberately not awaited: `apply` handles its own failure, and the bar closes on the
     // gesture rather than on the write landing — Convex reflects the row when it does.
-    void apply(_stockIntent(mode), { ingredientId: suggestionId, unit: unit }, Number(amount));
-    showGroceries();
+    void apply(stockIntent, { ingredientId: suggestionId, unit: unit }, Number(amount));
+    showGroceries(stockIntent);
   }
 
   /**
@@ -84,8 +97,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
    * "500g yuzu" does not go to a dictionary as "500g yuzu".
    */
   const submitUnknown = (text: string, unit: Unit | null, amount: number | null) => {
-    void addUnknown(text, _stockIntent(mode), unit, amount);
-    showGroceries();
+    const stockIntent = _stockIntent(mode);
+    void addUnknown(text, stockIntent, unit, amount);
+    showGroceries(stockIntent);
   }
 
   return (

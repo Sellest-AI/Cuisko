@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
+import { sectionFromParam } from "./_model/model";
 import { GroceryGrid } from "./list-screen.grid";
 
 import { SafeAreaView } from "@ui/safe-area-view";
@@ -20,13 +21,19 @@ const LISTS = [
   { label: "Other", value: "Other" },
 ];
 
+/** The raw `section` URL param, as the route read it — what it means is the model's call. */
+type GroceryScreenProps = { section?: string };
+
 /**
  * Groceries: what is missing, and what is already in the cellar.
  *
  * Composition only. The grid owns both sections because they animate between one another, and
  * that is only possible while they share a container (see `list-screen.grid.tsx`).
+ *
+ * `section` arrives raw from the route; `sectionFromParam` decides what it is allowed to mean,
+ * because that is where `Section` lives and the route cannot reach it.
  */
-export const GroceryScreen = () => {
+export const GroceryScreen = ({ section }: GroceryScreenProps) => {
   const t = useTranslations("Groceries");
   const [list, setList] = useState("House");
 
@@ -54,7 +61,7 @@ export const GroceryScreen = () => {
           </View>
           <Select value={list} onChange={setList} options={LISTS} />
         </SafeAreaView>
-        <GroceryGrid />
+        <GroceryGrid lead={sectionFromParam(section)} />
       </ScrollView>
     </>
   );

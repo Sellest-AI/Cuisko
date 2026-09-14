@@ -5,11 +5,13 @@ import {
   buildSections,
   dropIngredientLines,
   dropMealLines,
+  orderSections,
   peelReceipts,
   putInCellar,
   reduceLines,
   rememberStock,
   rowsOf,
+  sectionFromParam,
   stockFor,
   takeFromCellar,
   UNDO_WINDOW_MS,
@@ -844,5 +846,36 @@ describe("folding ghosts into a section", () => {
     expect(bare.cellar).toHaveLength(0);
     expect(rowsOf("to-buy", bare, [ghost("g1", "relist")])).toHaveLength(1);
     expect(rowsOf("cellar", bare, [ghost("g2", "buy")])).toHaveLength(1);
+  });
+});
+
+describe("the order the sections render in", () => {
+  const STOCK_ORDER: Section[] = ["to-buy", "cellar", "recently-bought"];
+
+  it("promotes the lead and keeps the rest in stock order", () => {
+    expect(orderSections([...STOCK_ORDER], "cellar")).toEqual(["cellar", "to-buy", "recently-bought"]);
+  });
+
+  it("is the stock order when nobody asked for a section", () => {
+    expect(orderSections([...STOCK_ORDER])).toEqual(STOCK_ORDER);
+  });
+
+  it("ignores a lead the sections do not hold", () => {
+    /** The param is validated upstream; the guard keeps the invariant local. */
+    expect(orderSections([...STOCK_ORDER], "nowhere" as Section)).toEqual(STOCK_ORDER);
+  });
+});
+
+describe("what a section param is allowed to mean", () => {
+  it.each(["to-buy", "cellar", "recently-bought"])("accepts %s", (value) => {
+    expect(sectionFromParam(value)).toBe(value);
+  });
+
+  it("takes the first of a repeated param", () => {
+    expect(sectionFromParam(["cellar", "to-buy"])).toBe("cellar");
+  });
+
+  it.each([[undefined], [""], ["junk"], [[""]], [[]]])("sees no preference in %s", (value) => {
+    expect(sectionFromParam(value)).toBeUndefined();
   });
 });
