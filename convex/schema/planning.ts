@@ -9,14 +9,20 @@ export const vPlannedMealStatus = v.union(
   v.literal("cooked"),
 );
 
-/** One run of the planning tunnel for one household. */
+/**
+ * One run of the planning tunnel for one household — or one plate planned from a recipe screen.
+ *
+ * `seed` is the shuffle the tunnel drew the week from, kept so a reroll can reproduce it. A plate
+ * planned from a recipe was not drawn from anything, so it has none: recording `0` there would
+ * describe a shuffle that never ran, and a reroll would faithfully reproduce a week nobody generated.
+ */
 export const mealPlans = defineTable({
   householdId: v.id("households"),
   startDate: v.number(),
   days: v.number(),
   slots: vMealSlots,
   people: v.number(),
-  seed: v.number(),
+  seed: v.optional(v.number()),
   note: v.optional(v.string()),
   updatedAt: v.number(), // S5
 })

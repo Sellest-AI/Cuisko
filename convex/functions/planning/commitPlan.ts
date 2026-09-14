@@ -27,8 +27,11 @@ type Args = {
   plates: CommittedPlate[];
   /** How many the run was planned for. Stored on the plan; a plate carries its own `servings`. */
   people: number;
-  /** The shuffle seed the draft was generated from, kept so a later reroll can reproduce this week. */
-  seed: number;
+  /**
+   * The shuffle seed the draft was generated from, kept so a later reroll can reproduce this week.
+   * Absent for a plate planned from a recipe screen, which no shuffle drew — see `mealPlans`.
+   */
+  seed?: number;
   note?: string;
   /** Local-day timestamp of today: only meals from here on hold stock — see `availableStock`. */
   today: number;
@@ -57,8 +60,7 @@ const _isValidRequest = ({ plates, people, seed }: Args) => {
     isDistinct(plates.map((plate) => `${plate.date}:${plate.slot}`)) &&
     plates.every((plate) => isServings(plate.servings)) &&
     isServings(people) &&
-    seed >= 0 &&
-    seed < 1
+    (seed === undefined || (seed >= 0 && seed < 1))
   );
 };
 

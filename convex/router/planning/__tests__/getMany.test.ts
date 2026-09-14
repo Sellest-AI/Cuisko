@@ -149,12 +149,12 @@ describe("router/planning/getMany", () => {
     expect(meals.map((meal) => meal.status)).toEqual(["shopping-needed", "ready", "cooked"]);
   });
 
-  test("refuses a range wider than a week", async () => {
+  test("refuses a range wider than nine days", async () => {
     const { userId, householdId } = await seedMember();
 
     await expect(
       t.withIdentity(asUser(userId)).query(api.router.planning.getMany.authed, {
-        householdId, locale: "fr", from: TODAY, to: TODAY + 8 * DAY,
+        householdId, locale: "fr", from: TODAY, to: TODAY + 10 * DAY,
       }),
     ).rejects.toThrow();
   });

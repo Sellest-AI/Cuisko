@@ -30,6 +30,18 @@
     "shopping_needed": "Short a few",
     "empty": "Open slot"
   },
+  "PlanRecipe": {
+    "portions": "How many are eating?",
+    "meal": "Which meal?",
+    "day": "Which day?",
+    "replace_title": "Swap the dish?",
+    "replace_body": "{{previous}} makes way for {{next}} at {{meal}} on {{day}}. Its groceries come off the list, and {{next}}'s go on.",
+    "confirm": "Swap it",
+    "cancel": "Keep it",
+    "failed_title": "The plate couldn't be planned",
+    "failed_body": "Try again in a moment. A meal already cooked can't be replaced.",
+    "missing": "That recipe is no longer here"
+  },
   "Tunnel": {
     "next_step": "Next step",
     "Setup": {

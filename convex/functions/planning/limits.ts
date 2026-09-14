@@ -10,6 +10,15 @@
 /** A week. Past that the plan is guessing at a shop that has not happened yet. */
 export const MAX_DAYS = 7;
 
+/**
+ * The widest window a range read collects, in days.
+ *
+ * Wider than a plan because two readers ask: home's strip wants today ±3, and the recipe screen's
+ * "when do you want to cook this?" grid offers today and the eight days after it. Still a bounded
+ * `.collect()` — the ceiling is what makes it one.
+ */
+export const MAX_RANGE_DAYS = 9;
+
 /** The most one plate is cooked for: a plate is a meal, not a batch for a freezer. */
 export const MAX_SERVINGS = 8;
 

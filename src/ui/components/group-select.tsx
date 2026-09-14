@@ -7,6 +7,8 @@ import { theme } from "theme";
 type Props = {
   style?: ViewStyle,
   label?: string,
+  /** The label's colour, when the heading should sit quieter than the chips under it. */
+  labelColor?: string,
   items: {
     value: string,
     label: string,
@@ -33,10 +35,10 @@ type Props = {
  * Stateless on purpose — the answers belong to whatever is collecting them, and a chip row that
  * remembered its own would disagree with the value being saved the moment either changed.
  */
-export const GroupSelect = ({ style, items, label, onSelect }: Props) => {
+export const GroupSelect = ({ style, items, label, labelColor, onSelect }: Props) => {
   return (
     <View style={[styles.container, style]}>
-      {label && <Text.Lg>{label}</Text.Lg>}
+      {label && <Text.Lg color={labelColor}>{label}</Text.Lg>}
       <View style={styles.buttonsGrid}>
         {items.map((item) => {
           const icon = item.selected ? Check : item.icon;

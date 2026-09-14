@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
-import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { Badge } from "@ui/badge";
 import { CardChoice } from "@ui/cards/choice";
 import { CheckIcon, DatabaseX, Search, Trash2 } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { Input } from "@ui/input";
+import { ModalScrollView } from "@ui/modal-scroll-view";
 import { StepSlider } from "@ui/step-slider";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -99,11 +100,7 @@ const Editor = ({
 
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.page}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+    <ModalScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       {failed && (
         <InfoBanner variant="warning" title={t("Tunnel.Meal.edit_failed_title")} icon={DatabaseX} style={styles.banner}>
           {t("Tunnel.Meal.edit_failed_body")}
@@ -157,7 +154,7 @@ const Editor = ({
           }}
         />
       )}
-    </ScrollView>
+    </ModalScrollView>
   );
 };
 

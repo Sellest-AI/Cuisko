@@ -31,6 +31,18 @@
     "shopping_needed": "Il manque un peu",
     "empty": "Assiette libre"
   },
+  "PlanRecipe": {
+    "portions": "Combien à table ?",
+    "meal": "Quel repas ?",
+    "day": "Quel jour ?",
+    "replace_title": "Changer de plat ?",
+    "replace_body": "{{previous}} laisse sa place à {{next}} au {{meal}} de {{day}}. Ses courses quittent la liste, celles de {{next}} y entrent.",
+    "confirm": "Je change",
+    "cancel": "Je garde",
+    "failed_title": "L'assiette n'a pas pu être planifiée",
+    "failed_body": "Réessayez dans un instant. Un repas déjà cuisiné ne peut pas être remplacé.",
+    "missing": "Cette recette n'est plus là"
+  },
   "Tunnel": {
     "next_step": "Étape suivante",
     "Setup": {

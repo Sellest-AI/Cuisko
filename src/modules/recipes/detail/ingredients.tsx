@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { View, StyleSheet, useWindowDimensions } from "react-native";
 
 import { ActionRow } from "@ui/action-row";
@@ -88,10 +89,14 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
           />
         </View>
       ))}
+      {/*
+        * The sheet asks when and for how many, seeded from this tab's stepper through the shared
+        * servings atom, so the count set here is the count the sheet opens on.
+        */}
       <ActionRow
         variant="secondary"
         style={styles.action}
-        onPress={() => null}
+        onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId: recipe.id } })}
         content={t("Ingredients.add_to_list")}
         contentIcon={ListPlus}
         subtitle={t("Ingredients.add_to_list_subtitle")}

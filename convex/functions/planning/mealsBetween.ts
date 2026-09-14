@@ -4,7 +4,7 @@ import type { Locale } from "@convex/schema/i18n";
 
 import { ConvexError } from "convex/values";
 
-import { MAX_DAYS } from "./limits";
+import { MAX_RANGE_DAYS } from "./limits";
 import { type PlannedMealCard, toPlannedMealCards } from "./plannedMealCard";
 
 type Args = {
@@ -20,10 +20,10 @@ const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
 /**
- * The widest range this read collects: a week, plus the hour a daylight-saving change adds to a
+ * The widest range this read collects: `MAX_RANGE_DAYS`, plus the hour a daylight-saving change adds to a
  * span measured between two local midnights.
  */
-const MAX_SPAN = MAX_DAYS * DAY + HOUR;
+const MAX_SPAN = MAX_RANGE_DAYS * DAY + HOUR;
 
 /**
  * The household's plates between two days, in date order.

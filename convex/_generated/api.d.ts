@@ -82,6 +82,7 @@ import type * as functions_planning_loadMealCard from "../functions/planning/loa
 import type * as functions_planning_mealsBetween from "../functions/planning/mealsBetween.js";
 import type * as functions_planning_pageMeals from "../functions/planning/pageMeals.js";
 import type * as functions_planning_planDraft from "../functions/planning/planDraft.js";
+import type * as functions_planning_planMeal from "../functions/planning/planMeal.js";
 import type * as functions_planning_plannedMealCard from "../functions/planning/plannedMealCard.js";
 import type * as functions_planning_recipeLines from "../functions/planning/recipeLines.js";
 import type * as functions_planning_rescaleMeal from "../functions/planning/rescaleMeal.js";
@@ -156,6 +157,7 @@ import type * as router_planning_getDraft from "../router/planning/getDraft.js";
 import type * as router_planning_getMany from "../router/planning/getMany.js";
 import type * as router_planning_getOne from "../router/planning/getOne.js";
 import type * as router_planning_getPaginated from "../router/planning/getPaginated.js";
+import type * as router_planning_planOne from "../router/planning/planOne.js";
 import type * as router_planning_removeOne from "../router/planning/removeOne.js";
 import type * as router_planning_setServings from "../router/planning/setServings.js";
 import type * as router_preferences_getMine from "../router/preferences/getMine.js";
@@ -265,6 +267,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/mealsBetween": typeof functions_planning_mealsBetween;
   "functions/planning/pageMeals": typeof functions_planning_pageMeals;
   "functions/planning/planDraft": typeof functions_planning_planDraft;
+  "functions/planning/planMeal": typeof functions_planning_planMeal;
   "functions/planning/plannedMealCard": typeof functions_planning_plannedMealCard;
   "functions/planning/recipeLines": typeof functions_planning_recipeLines;
   "functions/planning/rescaleMeal": typeof functions_planning_rescaleMeal;
@@ -339,6 +342,7 @@ declare const fullApi: ApiFromModules<{
   "router/planning/getMany": typeof router_planning_getMany;
   "router/planning/getOne": typeof router_planning_getOne;
   "router/planning/getPaginated": typeof router_planning_getPaginated;
+  "router/planning/planOne": typeof router_planning_planOne;
   "router/planning/removeOne": typeof router_planning_removeOne;
   "router/planning/setServings": typeof router_planning_setServings;
   "router/preferences/getMine": typeof router_preferences_getMine;
