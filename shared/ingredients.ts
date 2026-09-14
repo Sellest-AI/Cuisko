@@ -175,6 +175,54 @@ export const toGrams = (quantity: number, unit: Unit, weights: GramWeights): num
   return undefined;
 };
 
+/** The unit an ingredient's stock is counted in, for each kind of unit it may be bought in. */
+const STOCK_UNITS = { mass: "g", volume: "ml", piece: "pcs" } as const;
+
+export type StockUnit = (typeof STOCK_UNITS)[keyof typeof STOCK_UNITS];
+
+const _dimensionOf = (unit: Unit): keyof typeof STOCK_UNITS =>
+  unit in GRAMS_PER_MASS_UNIT ? "mass" : unit in ML_PER_VOLUME_UNIT ? "volume" : "piece";
+
+/**
+ * The one unit every quantity of this ingredient is compared in: grams for flour, millilitres for
+ * milk, pieces for eggs — whichever kind of unit it is bought in.
+ *
+ * Not grams for everything, because grams need data the catalog does not always hold. Six carrots
+ * in the cellar against three in a recipe is a subtraction, and routing it through a missing
+ * `gramsPerPiece` turned it into "nothing is covered".
+ */
+export const stockUnitOf = (defaultUnit: Unit): StockUnit => STOCK_UNITS[_dimensionOf(defaultUnit)];
+
+/**
+ * A quantity in its ingredient's stock unit, or `undefined` when it cannot get there.
+ *
+ * Within one kind of unit this is arithmetic and needs nothing from the ingredient: 1 l of milk is
+ * 1000 ml, 2 kg of flour 2000 g. Across kinds it goes through grams, and needs the ratios both ends
+ * speak — 1 cs of butter bought in grams needs a density, 300 g of carrots bought by the piece
+ * needs a piece weight. Missing either is `undefined`, never a guess, for the reason `toGrams` is.
+ */
+export const toStockUnit = (
+  quantity: number,
+  unit: Unit,
+  ingredient: GramWeights & { defaultUnit: Unit },
+): number | undefined => {
+  const target = _dimensionOf(ingredient.defaultUnit);
+  const source = _dimensionOf(unit);
+
+  if (source === target) {
+    if (source === "mass") return quantity * GRAMS_PER_MASS_UNIT[unit as keyof typeof GRAMS_PER_MASS_UNIT];
+    if (source === "volume") return quantity * ML_PER_VOLUME_UNIT[unit as keyof typeof ML_PER_VOLUME_UNIT];
+    return quantity;
+  }
+
+  const grams = toGrams(quantity, unit, ingredient);
+  if (grams === undefined) return undefined;
+  if (target === "mass") return grams;
+
+  const perUnit = target === "volume" ? ingredient.gramsPerMl : ingredient.gramsPerPiece;
+  return perUnit === undefined ? undefined : grams / perUnit;
+};
+
 /**
  * A recipe's stored ingredients, back into the free-text lines the editor's textarea holds.
  *
@@ -190,3 +238,22 @@ export const toGrams = (quantity: number, unit: Unit, weights: GramWeights): num
 type DraftIngredient = { name: string; quantity: number; unit: Unit };
 export const serializeIngredients = (ingredients: DraftIngredient[]): string =>
   ingredients.map((line) => `${exactQuantity(line.quantity, line.unit)} ${line.name}`).join("\n");
+
+/**
+ * A quantity of an ingredient's stock unit, back in the unit it is SHOPPED in.
+ *
+ * The inverse of `toStockUnit` within one kind of unit, which is the only direction shopping needs:
+ * the stock unit is derived from `defaultUnit` (`stockUnitOf`), so the two always share a dimension
+ * and no ratio is involved — 347 g of an ingredient bought in kg is 0.347 kg.
+ *
+ * Pieces round **up** to a whole, and that is not a display choice: the number this returns is what
+ * goes on the grocery list and what gets taken back off it, and no shop sells 0.4 of an onion.
+ */
+export const fromStockUnit = (amount: number, ingredient: { defaultUnit: Unit }): number => {
+  const unit = ingredient.defaultUnit;
+
+  if (unit in GRAMS_PER_MASS_UNIT) return amount / GRAMS_PER_MASS_UNIT[unit as keyof typeof GRAMS_PER_MASS_UNIT];
+  if (unit in ML_PER_VOLUME_UNIT) return amount / ML_PER_VOLUME_UNIT[unit as keyof typeof ML_PER_VOLUME_UNIT];
+
+  return Math.ceil(amount);
+};

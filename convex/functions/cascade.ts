@@ -84,18 +84,48 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     { table: "groceryListItems", index: "by_household", field: "householdId" },
     { table: "cellarItems", index: "by_household", field: "householdId" },
     { table: "recentlyUsedIngredients", index: "by_household", field: "householdId" },
+    { table: "mealPlans", index: "by_household", field: "householdId" },
+    { table: "plannedMeals", index: "by_household_and_date", field: "householdId" },
+  ],
+  mealPlans: [
+    { table: "plannedMeals", index: "by_meal_plan", field: "mealPlanId" },
+  ],
+  recipes: [
+    { table: "recipeIngredients", index: "by_recipe", field: "recipeId" },
+    { table: "recipeFavorites", index: "by_recipe", field: "recipeId" },
+    { table: "plannedMeals", index: "by_recipe", field: "recipeId" },
+    { field: "coverImageId", onDelete: "delete-image-tree" },
+    { field: "plateImageId", onDelete: "delete-image-tree" },
   ],
   ingredients: [
     { table: "groceryListItems", index: "by_ingredient", field: "ingredientId" },
     { table: "cellarItems", index: "by_ingredient", field: "ingredientId" },
     { table: "recentlyUsedIngredients", index: "by_ingredient", field: "ingredientId" },
     { table: "recipeIngredients", index: "by_ingredient", field: "ingredientId" },
+    { table: "plannedMealIngredients", index: "by_ingredient", field: "ingredientId" },
   ],
-  recipes: [
-    { table: "recipeIngredients", index: "by_recipe", field: "recipeId" },
-    { table: "recipeFavorites", index: "by_recipe", field: "recipeId" },
-    { field: "coverImageId", onDelete: "delete-image-tree" },
-    { field: "plateImageId", onDelete: "delete-image-tree" },
+  groceryListItems: [
+    {
+      table: "plannedMealIngredients",
+      index: "by_grocery_list_item",
+      field: "groceryListItemId",
+      onDelete: "detach",
+    },
+  ],
+  cellarItems: [
+    {
+      table: "plannedMealIngredients",
+      index: "by_cellar_item",
+      field: "cellarItemId",
+      onDelete: "detach",
+    },
+  ],
+  plannedMeals: [
+    {
+      table: "plannedMealIngredients",
+      index: "by_planned_meal",
+      field: "plannedMealId",
+    },
   ],
 };
 

@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
+import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
 
@@ -46,6 +47,51 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
     });
 
     return { userId, householdId, ingredientId };
+  });
+
+/** The scaffolding a ledger claim hangs off: one plan, one plate on it, from a one-recipe library. */
+const seedPlate = (t: ReturnType<typeof convexTest>, householdId: Id<"households">) =>
+  t.run(async (ctx) => {
+    const recipeId = await ctx.db.insert("recipes", {
+      title: { values: { fr: "Soupe" }, meta: {} },
+      description: { values: { fr: "" }, meta: {} },
+      instructions: { values: { fr: "" }, meta: {} },
+      servings: 2,
+      equipments: [],
+      difficulty: 1,
+      tags: [],
+      cuisine: "french",
+      timings: { cooking: 20 },
+      search: { en: "", fr: "" },
+      shuffleKey: 0.5,
+      isVegan: true,
+      isVegetarian: true,
+      isPescatarian: true,
+      isGlutenFree: true,
+      isDairyFree: true,
+      isNutFree: true,
+      updatedAt: Date.now(),
+    });
+    const mealPlanId = await ctx.db.insert("mealPlans", {
+      householdId,
+      startDate: 0,
+      days: 1,
+      slots: ["lunch"],
+      people: 2,
+      seed: 0.5,
+      updatedAt: Date.now(),
+    });
+
+    return ctx.db.insert("plannedMeals", {
+      mealPlanId,
+      householdId,
+      recipeId,
+      date: 0,
+      slot: "lunch",
+      servings: 2,
+      status: "planned",
+      updatedAt: Date.now(),
+    });
   });
 
 describe("router/cellars/addToCellar", () => {
@@ -124,5 +170,134 @@ describe("router/cellars/addToCellar", () => {
 
     const recentlyUsed = await t.run((ctx) => ctx.db.query("recentlyUsedIngredients").collect());
     expect(recentlyUsed).toHaveLength(0);
+  });
+
+  /**
+   * The claim the week's commit wrote: 4 eggs missing, bought into the lot the purchase created.
+   * The ledger stops naming the list row and names the lot instead — the state the undo reads.
+   */
+  test("re-anchors a plan's claim when the purchase strikes its grocery row", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const plannedMealId = await seedPlate(t, householdId);
+    const { groceryRowId, claimId } = await t.run(async (ctx) => {
+      const groceryRowId = await ctx.db.insert("groceryListItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now(),
+      });
+      const claimId = await ctx.db.insert("plannedMealIngredients", {
+        plannedMealId,
+        ingredientId,
+        sourceQuantity: 4,
+        sourceUnit: "pcs",
+        quantity: 4,
+        unit: "pcs",
+        groceryQuantity: 4,
+        groceryListItemId: groceryRowId,
+        updatedAt: Date.now(),
+      });
+
+      return { groceryRowId, claimId };
+    });
+
+    const cellarItemId = await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 4 });
+
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(groceryRowId)).toBeNull();
+
+      const claim = await ctx.db.get(claimId);
+      expect(claim!.groceryListItemId).toBeUndefined();
+      expect(claim!.cellarItemId).toBe(cellarItemId);
+      expect(claim!.groceryQuantity).toBe(4);
+    });
+  });
+
+  /**
+   * The claim reserved against the first lot at commit time; the purchase merges into a second
+   * lot that already existed. The reservation stands — the purchase only settles the missing part.
+   */
+  test("keeps a claim's own reservation when the purchase lands on another lot", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const plannedMealId = await seedPlate(t, householdId);
+    const { claimId, reservedLotId } = await t.run(async (ctx) => {
+      // Inserted first, so the purchase merges into it; the claim's reservation is the other lot.
+      await ctx.db.insert("cellarItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 1, updatedAt: Date.now(),
+      });
+      const reservedLotId = await ctx.db.insert("cellarItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 250, updatedAt: Date.now(),
+      });
+      const groceryRowId = await ctx.db.insert("groceryListItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now(),
+      });
+      const claimId = await ctx.db.insert("plannedMealIngredients", {
+        plannedMealId,
+        ingredientId,
+        sourceQuantity: 4,
+        sourceUnit: "pcs",
+        quantity: 4,
+        unit: "pcs",
+        groceryQuantity: 4,
+        groceryListItemId: groceryRowId,
+        cellarItemId: reservedLotId,
+        updatedAt: Date.now(),
+      });
+
+      return { claimId, reservedLotId };
+    });
+
+    const landedOn = await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 4 });
+    expect(landedOn).not.toBe(reservedLotId);
+
+    await t.run(async (ctx) => {
+      const claim = await ctx.db.get(claimId);
+      expect(claim!.groceryListItemId).toBeUndefined();
+      expect(claim!.cellarItemId).toBe(reservedLotId);
+
+      const boughtLot = await ctx.db.get(landedOn);
+      expect(boughtLot!.quantity).toBe(5);
+    });
+  });
+
+  /** A row only decremented keeps its identity, and with it the claims still pointing at it. */
+  test("a row only partly struck keeps the claim's pointer", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const plannedMealId = await seedPlate(t, householdId);
+    const { groceryRowId, claimId } = await t.run(async (ctx) => {
+      const groceryRowId = await ctx.db.insert("groceryListItems", {
+        householdId, ingredientId, unit: "pcs", quantity: 10, updatedAt: Date.now(),
+      });
+      const claimId = await ctx.db.insert("plannedMealIngredients", {
+        plannedMealId,
+        ingredientId,
+        sourceQuantity: 4,
+        sourceUnit: "pcs",
+        quantity: 4,
+        unit: "pcs",
+        groceryQuantity: 4,
+        groceryListItemId: groceryRowId,
+        updatedAt: Date.now(),
+      });
+
+      return { groceryRowId, claimId };
+    });
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 4 });
+
+    await t.run(async (ctx) => {
+      const claim = await ctx.db.get(claimId);
+      expect(claim!.groceryListItemId).toBe(groceryRowId);
+      expect(claim!.cellarItemId).toBeUndefined();
+    });
   });
 });

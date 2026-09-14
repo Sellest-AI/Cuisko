@@ -19,7 +19,7 @@ type RecipeIngredient = {
   name: string;
   quantity: number;
   unit: Unit;
-/** Stands in for the produce photo when `imageUrl` is absent, which is most of the catalog today. */
+  /** Stands in for the produce photo when `imageUrl` is absent, which is most of the catalog today. */
   emoji: string;
   /**
    * The produce photo the tile draws, when the catalog row has one — the thumbnail, and only it.
@@ -257,7 +257,7 @@ export const loadRecipe = async (
   ]);
 
   return {
-    ...toRecipeCard(recipe, locale, cover),
+    ...toRecipeCard(recipe, locale, cover, null),
     coverImageLargeUrl: cover?.sizes.large.url,
     description: resolvei18n(recipe.description, locale),
     instructions: parseInstructions(resolvei18n(recipe.instructions, locale)),

@@ -97,9 +97,14 @@ export const ButtonPill = ({
   const borderColor = variant === "neutral" && !elevated ?
     colors.border.medium : colors.border.default;
 
+  /**
+   * The keys that describe the row inside the pill, pulled off the caller's style so they land
+   * there and not on the outer pressable: padding, the gap between the parts, and where the parts
+   * sit along the row. Everything else is the pill's box and goes outside.
+   */
   const { paddingHorizontal, paddingVertical, gap: styleGap,
     paddingLeft: overridePaddingLeft, paddingRight: overridePaddingRight,
-    padding: overridePadding, minHeight, ...rest } = flatStyle;
+    padding: overridePadding, minHeight, justifyContent, ...rest } = flatStyle;
 
   const defaultPadding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
   const padding = overridePadding ?? defaultPadding;
@@ -137,7 +142,7 @@ export const ButtonPill = ({
           styles.borderRadius,
           { gap, borderColor },
           { padding, paddingLeft, paddingRight },
-          { paddingHorizontal, paddingVertical, minHeight },
+          { paddingHorizontal, paddingVertical, minHeight, justifyContent },
           elevated && styles.elevated,
           color
         ]}>

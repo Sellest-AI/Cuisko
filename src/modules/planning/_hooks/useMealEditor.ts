@@ -1,20 +1,22 @@
-import { useAtom, useAtomValue, type PrimitiveAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useCallback, useMemo, useState } from "react";
 
 import {
   addMeal,
   matchesQuery,
+  plannedMealOf,
   plateIdFor,
   removeMeal,
   replaceMeal,
   setMealServings,
   type MealSlot,
-  type PlannedMeal,
+  type Plate,
   type Recipe,
 } from "../_model/model";
 
 import { draftMealsAtom, peopleAtom, planMealsAtom } from "./atoms";
-import { RECIPE_CATALOGUE } from "./placeholders";
+import { draftMealOf, RECIPE_CATALOGUE } from "./placeholders";
+import { useKeptMeal } from "./useKeptMeal";
 
 /**
  * What the sheet was opened on: a plate already in the plan, or a slot with nothing on it.
@@ -36,17 +38,44 @@ export type MealTarget =
  */
 export type MealScope = "plan" | "draft";
 
-const MEALS_ATOM: Record<MealScope, PrimitiveAtom<PlannedMeal[]>> = {
-  plan: planMealsAtom,
-  draft: draftMealsAtom,
+/** One week's plates and the four edits the sheet makes to them, whatever shape its plates are. */
+type Store = {
+  meals: (Plate & { recipeId: string })[];
+  add: (plate: Plate, recipe: Recipe) => void;
+  replace: (mealId: string, recipe: Recipe) => void;
+  setServings: (mealId: string, servings: number) => void;
+  remove: (mealId: string) => void;
 };
+
+/**
+ * The edits, bound to one week's setter and to the builder that turns a recipe into its kind of plate.
+ *
+ * Generic here and nowhere else: the kept week holds `PlannedMeal`s and the draft `DraftMeal`s, and
+ * this is where each is told apart once, so the hook below reads a single `Store`.
+ */
+const _storeOf = <M extends Plate & { recipeId: string }>(
+  meals: M[],
+  setMeals: (update: (current: M[]) => M[]) => void,
+  plated: (plate: Plate, recipe: Recipe) => M,
+): Store => ({
+  meals,
+  add: (plate, recipe) => setMeals((current) => addMeal(current, plated(plate, recipe))),
+  replace: (mealId, recipe) => setMeals((current) => replaceMeal(current, mealId, (plate) => plated(plate, recipe))),
+  setServings: (mealId, servings) => setMeals((current) => setMealServings(current, mealId, servings)),
+  remove: (mealId) => setMeals((current) => removeMeal(current, mealId)),
+});
 
 /**
  * One plate of a week, open for editing: its portions, the dish on it, or whether it stays.
  *
- * Reads and writes an atom rather than being handed the meal, because the sheet is a route of its
- * own: it mounts outside the tree that listed the plate — the planning screen's or the tunnel's —
- * and there is nothing to pass it but what is in its params.
+ * Reads a store rather than being handed the meal, because the sheet is a route of its own: it
+ * mounts outside the tree that listed the plate — the planning screen's or the tunnel's — and
+ * there is nothing to pass it but what is in its params.
+ *
+ * **A kept plate is read from and written to the server** (`useKeptMeal`): the week the app keeps
+ * lives in Convex, and re-portioning or removing a plate has to move the grocery list with it. The
+ * draft is still an atom — nothing is agreed to until the tunnel commits — and so, for now, is a
+ * plate minted on an empty slot of the kept week, which `planOne` (the next slice) will write.
  *
  * Opened on an empty slot it holds a draft instead: no plate exists until a dish is chosen, so the
  * portions have somewhere to live in the meantime and the plan is not given a plate with no dish
@@ -54,7 +83,21 @@ const MEALS_ATOM: Record<MealScope, PrimitiveAtom<PlannedMeal[]>> = {
  * "pick a dish, then set the portions" one visit rather than two.
  */
 export const useMealEditor = (target: MealTarget, scope: MealScope) => {
-  const [meals, setMeals] = useAtom(MEALS_ATOM[scope]);
+  /** All read, so the hook calls are unconditional; only the chosen one is edited. */
+  const [planned, setPlanned] = useAtom(planMealsAtom);
+  const [drafted, setDrafted] = useAtom(draftMealsAtom);
+
+  const isKept = scope === "plan" && target.kind === "meal";
+  const kept = useKeptMeal(isKept ? target.mealId : undefined);
+
+  const store = useMemo(
+    () => (scope === "draft"
+      ? _storeOf(drafted, setDrafted, draftMealOf)
+      : _storeOf(planned, setPlanned, plannedMealOf)),
+    [scope, drafted, setDrafted, planned, setPlanned],
+  );
+
+  const { meals } = store;
   const people = useAtomValue(peopleAtom);
   const [query, setQuery] = useState("");
 
@@ -68,7 +111,7 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
   const [draftServings, setDraftServings] = useState(people);
 
   const mealId = target.kind === "meal" ? target.mealId : createdId;
-  const meal = meals.find((candidate) => candidate.id === mealId);
+  const meal = isKept ? kept.meal : meals.find((candidate) => candidate.id === mealId);
 
   const recipes = useMemo(
     () => RECIPE_CATALOGUE
@@ -78,7 +121,14 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
 
   const choose = useCallback(
     (recipe: Recipe) => {
-      if (meal) return setMeals((current) => replaceMeal(current, meal.id, recipe));
+      /**
+       * The grid is a placeholder until the search-engine slice replaces it, and a kept plate has no
+       * server operation to swap its dish yet — so on one, a tap chooses nothing rather than writing
+       * an invented recipe into an atom nothing reads.
+       */
+      if (isKept) return;
+
+      if (meal) return store.replace(meal.id, recipe);
 
       /** A plate that has gone from the plan cannot be given a dish — the sheet is already leaving. */
       if (target.kind !== "slot") return;
@@ -90,20 +140,26 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
         servings: draftServings,
       };
 
-      setMeals((current) => addMeal(current, plate, recipe));
+      store.add(plate, recipe);
       setCreatedId(plate.id);
     },
-    [meal, target, draftServings, setMeals],
+    [isKept, meal, target, draftServings, store],
   );
+
+  const { setServings: rescaleKept, remove: removeKept } = kept;
 
   return {
     meal,
+    /** A kept plate is asked for; until the answer lands there is nothing to draw and nothing missing. */
+    isLoading: kept.isLoading,
     /**
      * True only when the sheet was opened on a plate that is not there: a stale link, or the plate
      * it has just removed. An empty slot with nothing chosen yet is not missing — it is the point.
      */
-    missing: mealId !== undefined && !meal,
-    servings: meal?.servings ?? draftServings,
+    missing: isKept ? kept.isMissing : mealId !== undefined && !meal,
+    /** The server refused the last edit of a kept plate, which is back to what it was. */
+    failed: kept.failed,
+    servings: (isKept ? kept.servings : meal?.servings) ?? draftServings,
     /** What the grid marks as the dish already on the plate. Nothing, until one is chosen. */
     selectedRecipeId: meal?.recipeId,
     recipes,
@@ -112,28 +168,28 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
     choose,
     setServings: useCallback(
       (servings: number) => {
+        if (isKept) return void rescaleKept(servings);
         if (!meal) return setDraftServings(servings);
 
-        setMeals((current) => setMealServings(current, meal.id, servings));
+        store.setServings(meal.id, servings);
       },
-      [meal, setMeals],
+      [isKept, rescaleKept, meal, store],
     ),
     /**
-     * The plate goes — and, for now, only the plate.
+     * The plate goes, and on the kept week its claims on the grocery list go with it — `removeOne`
+     * gives back what the plate put on the list and nothing else, so the shopper's own asking and
+     * the other plates' claims stay.
      *
-     * Its claims on the grocery list should go with it, or the list keeps shopping for a meal
-     * nobody is cooking. They cannot yet: `groceryListItems` has no meal column, so every line in
-     * the database reads as one the shopper wrote themselves, and there is nothing here that could
-     * tell a plate's claim from a deliberate instruction. Striking lines off by ingredient would
-     * take the shopper's own asking with them, which is the worse failure of the two.
-     *
-     * `dropMealLines` is still in `_model/` and still tested, waiting for that column — it is the
-     * reason a line was given a `meal` field before there was a table to put one in.
+     * Resolves whether the plate actually went: the draft always does, the server can refuse — a
+     * plate already cooked — and the sheet must not dismiss on a plate that is still there.
      */
-    remove: useCallback(() => {
-      if (!meal) return;
+    remove: useCallback(async (): Promise<boolean> => {
+      if (isKept) return removeKept();
+      if (!meal) return false;
 
-      setMeals((current) => removeMeal(current, meal.id));
-    }, [meal, setMeals]),
+      store.remove(meal.id);
+
+      return true;
+    }, [isKept, removeKept, meal, store]),
   };
 };

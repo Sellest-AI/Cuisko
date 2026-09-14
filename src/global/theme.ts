@@ -149,6 +149,8 @@ export const theme = {
       /** Hairline on translucent surfaces; reads as a highlight, not a line. */
       default: _withAlpha(PALETTE.white, 0.22),
       medium: _withAlpha(PALETTE.neutral[200], 0.14),
+      /** A neutral border, not a highlight. Used for light items on light backgrounds. */
+      dark: _withAlpha(PALETTE.neutral[100], 0.7),
     },
   },
   /**

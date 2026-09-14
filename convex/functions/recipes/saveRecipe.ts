@@ -1,5 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText, setTranslation } from "@convex/lib/i18n";
+import { randomShuffleKey } from "@convex/lib/nanoid";
 import type { Localized } from "@convex/schema/i18n";
 import type { MutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
@@ -56,6 +57,7 @@ export const saveRecipe = async (ctx: MutationCtx, { userId, locale, recipe, lin
     search,
     cuisine: recipe.cuisine,
     timings: recipe.timings,
+    shuffleKey: randomShuffleKey(),
     updatedAt: Date.now(),
   });
 

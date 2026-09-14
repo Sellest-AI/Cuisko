@@ -30,6 +30,18 @@
     "shopping_needed": "Short a few",
     "empty": "Open slot"
   },
+  "PlanRecipe": {
+    "portions": "How many are eating?",
+    "meal": "Which meal?",
+    "day": "Which day?",
+    "replace_title": "Swap the dish?",
+    "replace_body": "{{previous}} makes way for {{next}} at {{meal}} on {{day}}. Its groceries come off the list, and {{next}}'s go on.",
+    "confirm": "Swap it",
+    "cancel": "Keep it",
+    "failed_title": "The plate couldn't be planned",
+    "failed_body": "Try again in a moment. A meal already cooked can't be replaced.",
+    "missing": "That recipe is no longer here"
+  },
   "Tunnel": {
     "next_step": "Next step",
     "Setup": {
@@ -89,12 +101,17 @@
       "search": "Search recipes…",
       "selected": "Selected",
       "no_match": "No dish by that name",
-      "missing": "That plate is no longer in the plan"
+      "missing": "That plate is no longer in the plan",
+      "edit_failed_title": "The change couldn't be saved",
+      "edit_failed_body": "The plate is back to what it was. A meal already cooked, or whose day has passed, can't be changed any more."
     },
     "Groceries": {
       "title": "Grocery list",
       "subtitle": "What is missing from your kitchen",
+      "in_kitchen": "Already in your kitchen",
       "save": "Add to my list",
+      "save_failed_title": "The week couldn't be saved",
+      "save_failed_body": "Try again in a moment — your week is still here, nothing was lost.",
       "x_new_items_one": "{{count, number}} thing to pick up",
       "x_new_items_other": "{{count, number}} things to pick up",
       "have": "Got it",

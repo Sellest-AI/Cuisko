@@ -6,7 +6,7 @@ import type { Taste } from "@shared/tastes";
 
 import type { Constraint } from "../_model/constraints";
 
-import { MAX_DAYS, type CookingTime, type MealSlot, type PlannedMeal } from "../_model/model";
+import { MAX_DAYS, type CookingTime, type DraftMeal, type MealSlot, type PlannedMeal } from "../_model/model";
 import { PLACEHOLDER_MEALS } from "./placeholders";
 
 /**
@@ -125,13 +125,13 @@ export const seeksAtom = atom<NutritionPreference[] | null>(null);
 export const cookingTimeAtom = atom<CookingTime>("any");
 
 /**
- * The week the app is actually keeping: what the planning screen lists and what a plate edited
- * from it changes.
+ * What is left of the placeholder week: the plates the meal sheet mints on an EMPTY slot of the
+ * kept week, which nothing reads.
  *
- * State rather than the derivation the list used to rebuild per mount, because editing a plate is
- * the point — a pure function has nothing to write back to, so the swap sheet and the list would
- * be looking at two different weeks. Seeded from the placeholders; a later slice swaps the seed
- * for a Convex query and everything above this line stays as it is (ADR 0006).
+ * The kept week itself lives in Convex now — the list and home read it (`usePlanningList`,
+ * `useWeeklyPlan`), and a plate opened from the list is edited on the server (`useKeptMeal`). Only
+ * filling an empty slot still lands here, until `planOne` writes it; that slice deletes this atom
+ * and the placeholders with it.
  */
 export const planMealsAtom = atom<PlannedMeal[]>(PLACEHOLDER_MEALS);
 
@@ -142,14 +142,23 @@ export const planMealsAtom = atom<PlannedMeal[]>(PLACEHOLDER_MEALS);
  * and writing the generation straight into the plan would replace a week they were keeping with
  * one they had not yet said yes to.
  *
- * Nothing hands it over yet — the last step dismisses to `/planning` and the draft is dropped on
- * the next run. Committing it is a question this slice does not answer: whether a generated week
- * replaces the plan or merges into the days it covers is a product call, not a plumbing one.
+ * The last step commits it through `usePlanCommit`; a run's reset drops whatever was left
+ * uncommitted. What a second week then does to the days already planned — replace them or merge
+ * into them — is still a product call, not a plumbing one: `commit` writes beside what is there.
  */
-export const draftMealsAtom = atom<PlannedMeal[]>([]);
+export const draftMealsAtom = atom<DraftMeal[]>([]);
 
 /** Rows the user says are already in the kitchen, so the list stops asking for them. */
 export const ownedRowsAtom = atom<string[]>([]);
+
+/**
+ * The shuffle the generated week was drawn from, rolled once per run by the generating step.
+ *
+ * An atom rather than that step's own state because the run outlives it: `commit` stores the seed on
+ * the plan, so the week can be drawn again — and the step that commits is two screens further on.
+ * `null` means nothing has been generated yet, which is the one state where there is nothing to keep.
+ */
+export const shuffleSeedAtom = atom<number | null>(null);
 
 /**
  * Empty the last run out before starting another.
@@ -172,6 +181,7 @@ export const ownedRowsAtom = atom<string[]>([]);
 export const resetTunnelAtom = atom(null, (_get, set) => {
   set(draftMealsAtom, []);
   set(ownedRowsAtom, []);
+  set(shuffleSeedAtom, null);
   set(moodsAtom, []);
   set(seeksAtom, null);
   set(cookingTimeAtom, "any");

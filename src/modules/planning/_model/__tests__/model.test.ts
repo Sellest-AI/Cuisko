@@ -6,14 +6,21 @@ import {
   buildRows,
   dayStatusFor,
   groceriesFor,
+  groceryHeadingOf,
   indexOfDate,
+  inEatingOrder,
   isSameDay,
+  keptMealCardOf,
+  openDates,
+  type KeptMeal,
   matchesQuery,
+  ownedLinesOf,
   MAX_SERVINGS,
   MAX_TASTES,
   parseDateParam,
   parseMealSlot,
   planDates,
+  plannedMealOf,
   planSections,
   plateIdFor,
   removeMeal,
@@ -22,7 +29,10 @@ import {
   toDateParam,
   toggle,
   toggleTaste,
+  toMealCard,
   type DaySection,
+  type DraftIngredient,
+  type DraftMeal,
   type MealIngredient,
   type MealSlot,
   type PlannedMeal,
@@ -34,7 +44,7 @@ const day = (offset: number) => new Date(2026, 7, 12 + offset);
 
 const TOMATO: MealIngredient = {
   id: "tomato", name: "Tomates", category: "vegetables", emoji: "🍅",
-  amount: 300, unit: "g", pricePerKg: 1.3,
+  amount: 300, unit: "g",
 };
 
 const BEEF: MealIngredient = {
@@ -55,6 +65,22 @@ const RISOTTO: Recipe = {
   id: "risotto", title: "Risotto aux cèpes", minutes: 45, servings: 2,
   status: "shopping-needed", emoji: "🍚", ingredients: [BEEF],
 };
+
+const TOMATO_LINE: DraftIngredient = {
+  ingredientId: "tomato", name: "Tomates", category: "VEGETABLE", emoji: "🍅",
+  amount: 300, unit: "g", covered: false,
+};
+
+const BEEF_LINE: DraftIngredient = {
+  ingredientId: "beef", name: "Boeuf", category: "MEAT", emoji: "🥩", amount: 400, unit: "g", covered: true,
+};
+
+/** The same beef, still to be bought: the ordering cases need a line the cellar does not cover. */
+const BEEF_TO_BUY: DraftIngredient = { ...BEEF_LINE, covered: false };
+
+const draft = (id: string, slot: MealSlot, ingredients: DraftIngredient[] = [TOMATO_LINE]): DraftMeal => ({
+  id, title: id, servings: 4, date: day(0), recipeId: `recipe-${id}`, slot, ingredients,
+});
 
 const section = (offset: number, meals: PlannedMeal[]): DaySection => ({
   date: day(offset),
@@ -255,9 +281,23 @@ describe("indexOfDate", () => {
   });
 });
 
+describe("groceryHeadingOf", () => {
+  it("folds catalog categories onto the list's headings", () => {
+    expect(groceryHeadingOf("VEGETABLE")).toBe("vegetables");
+    expect(groceryHeadingOf("HERB")).toBe("vegetables");
+    expect(groceryHeadingOf("EGG")).toBe("meats");
+    expect(groceryHeadingOf("SEAFOOD")).toBe("fish");
+    expect(groceryHeadingOf("LEGUME")).toBe("grains");
+  });
+
+  it("sends what no heading names to other", () => {
+    expect(groceryHeadingOf("SPICE")).toBe("other");
+  });
+});
+
 describe("groceriesFor", () => {
   it("merges the same ingredient across two meals into one row that names both", () => {
-    const [vegetables] = groceriesFor([meal("a", "lunch"), meal("b", "dinner")]);
+    const [vegetables] = groceriesFor([draft("a", "lunch"), draft("b", "dinner")]).missing;
 
     expect(vegetables?.rows).toHaveLength(1);
     expect(vegetables?.rows[0]).toMatchObject({ amount: 600, mealIds: ["a", "b"] });
@@ -266,29 +306,124 @@ describe("groceriesFor", () => {
   /** Nothing here knows how many grams a piece weighs, so merging the two would invent a number. */
   it("keeps the same ingredient in two units on two separate rows", () => {
     const rows = groceriesFor([
-      meal("a", "lunch", 0, [TOMATO]),
-      meal("b", "dinner", 0, [{ ...TOMATO, amount: 4, unit: "pcs" }]),
-    ])[0]?.rows;
+      draft("a", "lunch", [TOMATO_LINE]),
+      draft("b", "dinner", [{ ...TOMATO_LINE, amount: 4, unit: "pcs" }]),
+    ]).missing[0]?.rows;
 
     expect(rows).toHaveLength(2);
     expect(rows?.map((row) => row.unit)).toEqual(["g", "pcs"]);
   });
 
   it("orders categories by the fixed list rather than by what it happened to see first", () => {
-    const categories = groceriesFor([meal("a", "lunch", 0, [BEEF, TOMATO])]);
+    const { missing } = groceriesFor([draft("a", "lunch", [BEEF_TO_BUY, TOMATO_LINE])]);
 
-    expect(categories.map((category) => category.id)).toEqual(["vegetables", "meats"]);
+    expect(missing.map((category) => category.id)).toEqual(["vegetables", "meats"]);
+  });
+
+  it("groups catalog categories under the heading they are shopped under", () => {
+    const { missing } = groceriesFor([
+      draft("a", "lunch", [{ ...TOMATO_LINE, ingredientId: "basil", category: "HERB" }, TOMATO_LINE]),
+    ]);
+
+    expect(missing).toHaveLength(1);
+    expect(missing[0]).toMatchObject({ id: "vegetables" });
+    expect(missing[0]?.rows).toHaveLength(2);
   });
 
   it("keeps the surviving categories in the same order when a meal is toggled off", () => {
-    const both = [meal("a", "lunch", 0, [TOMATO]), meal("b", "dinner", 0, [BEEF])];
+    const both = [draft("a", "lunch", [TOMATO_LINE]), draft("b", "dinner", [BEEF_TO_BUY])];
 
-    expect(groceriesFor(both).map((category) => category.id)).toEqual(["vegetables", "meats"]);
-    expect(groceriesFor(both.slice(0, 1)).map((category) => category.id)).toEqual(["vegetables"]);
+    expect(groceriesFor(both).missing.map((category) => category.id)).toEqual(["vegetables", "meats"]);
+    expect(groceriesFor(both.slice(0, 1)).missing.map((category) => category.id)).toEqual(["vegetables"]);
   });
 
   it("returns nothing for no meals", () => {
-    expect(groceriesFor([])).toEqual([]);
+    expect(groceriesFor([])).toEqual({ missing: [], covered: [] });
+  });
+
+  describe("what the cellar already covers", () => {
+    it("sends a covered line to the second list and leaves it off the first", () => {
+      const { missing, covered } = groceriesFor([draft("a", "lunch", [BEEF_LINE, TOMATO_LINE])]);
+
+      expect(covered.map((row) => row.name)).toEqual(["Boeuf"]);
+      expect(missing.flatMap((category) => category.rows).map((row) => row.name)).toEqual(["Tomates"]);
+    });
+
+    /** A category with nothing left to buy heads nothing: an empty "Meats" is a heading over a gap. */
+    it("drops a category whose every row is covered", () => {
+      const { missing } = groceriesFor([draft("a", "lunch", [BEEF_LINE])]);
+
+      expect(missing).toEqual([]);
+    });
+
+    /**
+     * The stock runs down as the week is served, so a row two plates share can be covered for the
+     * first and short for the second. That row is something to buy, not something the kitchen has.
+     */
+    it("keeps a row missing when one of the meals sharing it was not covered", () => {
+      const { missing, covered } = groceriesFor([
+        draft("a", "lunch", [BEEF_LINE]),
+        draft("b", "dinner", [BEEF_TO_BUY]),
+      ]);
+
+      expect(covered).toEqual([]);
+      expect(missing.flatMap((category) => category.rows)).toMatchObject([{ covered: false }]);
+    });
+
+    /**
+     * The page must not charge the shopper for what is already in the cupboard: the covered half of
+     * the row is not bought, and `commit` puts only the other half on the list.
+     */
+    it("asks a part-covered row for its uncovered lines only", () => {
+      const { missing } = groceriesFor([
+        draft("a", "lunch", [BEEF_LINE]),
+        draft("b", "dinner", [BEEF_TO_BUY]),
+      ]);
+
+      expect(missing.flatMap((category) => category.rows)).toMatchObject([{ amount: 400 }]);
+    });
+
+    it("asks a row nothing covers for the whole of it", () => {
+      const { missing } = groceriesFor([draft("a", "lunch", [BEEF_TO_BUY]), draft("b", "dinner", [BEEF_TO_BUY])]);
+
+      expect(missing.flatMap((category) => category.rows)).toMatchObject([{ amount: 800 }]);
+    });
+
+    it("still names every meal that asked for a part-covered row", () => {
+      const { missing } = groceriesFor([
+        draft("a", "lunch", [BEEF_LINE]),
+        draft("b", "dinner", [BEEF_TO_BUY]),
+      ]);
+
+      expect(missing[0]?.rows[0]?.mealIds).toEqual(["a", "b"]);
+    });
+
+    it("orders the covered list by category too", () => {
+      const { covered } = groceriesFor([
+        draft("a", "lunch", [BEEF_LINE, { ...TOMATO_LINE, covered: true }]),
+      ]);
+
+      expect(covered.map((row) => row.name)).toEqual(["Tomates", "Boeuf"]);
+    });
+  });
+});
+
+describe("ownedLinesOf", () => {
+  it("answers the ingredient and unit behind each row the shopper ticked", () => {
+    const meals = [draft("a", "lunch", [TOMATO_LINE, BEEF_TO_BUY])];
+
+    expect(ownedLinesOf(meals, ["tomato:g"])).toEqual([{ ingredientId: "tomato", unit: "g" }]);
+  });
+
+  it("answers each pair once, however many meals asked for it", () => {
+    const meals = [draft("a", "lunch"), draft("b", "dinner")];
+
+    expect(ownedLinesOf(meals, ["tomato:g"])).toHaveLength(1);
+  });
+
+  /** A row id nothing on the plan matches is a tick from a previous run, and asserts nothing. */
+  it("ignores a row id no line carries", () => {
+    expect(ownedLinesOf([draft("a", "lunch")], ["carrot:pcs"])).toEqual([]);
   });
 });
 
@@ -310,7 +445,7 @@ describe("addMeal", () => {
   const plate = { id: "2026-08-13:dinner", date: day(1), slot: "dinner" as MealSlot, servings: 3 };
 
   it("puts the dish on the slot asked for, leaving the rest of the week alone", () => {
-    const week = addMeal([meal("a", "lunch")], plate, RISOTTO);
+    const week = addMeal([meal("a", "lunch")], plannedMealOf(plate, RISOTTO));
 
     expect(week.map((entry) => entry.id)).toEqual(["a", "2026-08-13:dinner"]);
     expect(week[1]).toMatchObject({
@@ -324,12 +459,12 @@ describe("addMeal", () => {
 
   /** The same guard `setMealServings` applies: a route param could ask for a plate for nobody. */
   it("clamps the portions it is created for", () => {
-    expect(addMeal([], { ...plate, servings: 0 }, RISOTTO)[0]?.servings).toBe(1);
-    expect(addMeal([], { ...plate, servings: 99 }, RISOTTO)[0]?.servings).toBe(MAX_SERVINGS);
+    expect(addMeal([], plannedMealOf({ ...plate, servings: 0 }, RISOTTO))[0]?.servings).toBe(1);
+    expect(addMeal([], plannedMealOf({ ...plate, servings: 99 }, RISOTTO))[0]?.servings).toBe(MAX_SERVINGS);
   });
 
   it("copies the recipe's ingredients rather than sharing the array with it", () => {
-    const [added] = addMeal([], plate, RISOTTO);
+    const [added] = addMeal([], plannedMealOf(plate, RISOTTO));
 
     added?.ingredients.push(TOMATO);
 
@@ -338,7 +473,7 @@ describe("addMeal", () => {
 
   /** The plate a removal left behind is the plate the sheet fills, so the two ids have to agree. */
   it("is findable by the id its own slot implies", () => {
-    const week = addMeal([], { ...plate, id: plateIdFor(day(1), "dinner") }, RISOTTO);
+    const week = addMeal([], plannedMealOf({ ...plate, id: plateIdFor(day(1), "dinner") }, RISOTTO));
 
     expect(removeMeal(week, plateIdFor(day(1), "dinner"))).toEqual([]);
   });
@@ -363,7 +498,7 @@ describe("setMealServings", () => {
 
 describe("replaceMeal", () => {
   it("takes the dish from the recipe", () => {
-    const [swapped] = replaceMeal([meal("a", "lunch")], "a", RISOTTO);
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plannedMealOf(plate, RISOTTO));
 
     expect(swapped).toMatchObject({
       title: "Risotto aux cèpes",
@@ -376,18 +511,45 @@ describe("replaceMeal", () => {
   /** The plate is what the week is built on: move it and every other meal shifts around it. */
   it("keeps the plate's own id, day, slot and portions", () => {
     const plate = meal("a", "dinner", 3);
-    const [swapped] = replaceMeal([plate], "a", RISOTTO);
+    const [swapped] = replaceMeal([plate], "a", (target) => plannedMealOf(target, RISOTTO));
 
     expect(swapped).toMatchObject({ id: "a", slot: "dinner", servings: 4 });
     expect(swapped && isSameDay(swapped.date, day(3))).toBe(true);
   });
 
   it("copies the recipe's ingredients rather than sharing the array with it", () => {
-    const [swapped] = replaceMeal([meal("a", "lunch")], "a", RISOTTO);
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plannedMealOf(plate, RISOTTO));
 
     swapped?.ingredients.push(TOMATO);
 
     expect(RISOTTO.ingredients).toHaveLength(1);
+  });
+
+  /** The builder hands back a plate, and a builder is caller code: its portions are clamped all the same. */
+  it("clamps the portions the builder returns", () => {
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => ({
+      ...plannedMealOf(plate, RISOTTO),
+      servings: 99,
+    }));
+
+    expect(swapped?.servings).toBe(MAX_SERVINGS);
+  });
+});
+
+describe("toMealCard", () => {
+  it("is ready when the cellar covers every line", () => {
+    expect(toMealCard(draft("a", "lunch", [BEEF_LINE])).status).toBe("ready");
+  });
+
+  it("needs shopping when one line is not covered", () => {
+    expect(toMealCard(draft("a", "lunch", [BEEF_LINE, TOMATO_LINE])).status).toBe("shopping-needed");
+  });
+
+  it("draws the generated image when there is one, and leaves the fallback to the row otherwise", () => {
+    expect(toMealCard({ ...draft("a", "lunch"), imageUrl: "https://x/plate.png" }).imageSrc).toEqual({
+      uri: "https://x/plate.png",
+    });
+    expect(toMealCard(draft("a", "lunch")).imageSrc).toBeUndefined();
   });
 });
 
@@ -521,5 +683,58 @@ describe("toggle", () => {
   /** No ceiling here: that is `toggleTaste`'s job, and the two are used on different questions. */
   it("keeps adding past the taste ceiling", () => {
     expect(toggle(["a", "b", "c", "d"], "e")).toHaveLength(5);
+  });
+});
+
+describe("keptMealCardOf", () => {
+  const kept: KeptMeal = {
+    id: "plate", date: day(1).getTime(), slot: "dinner", servings: 3, status: "shopping-needed",
+    recipe: { id: "soup", title: "Soupe", minutes: 20, plateImageUrl: "https://img/soup.png" },
+  };
+
+  it("names the plate by its own id and the dish by the recipe's", () => {
+    expect(keptMealCardOf(kept)).toMatchObject({ id: "plate", recipeId: "soup", title: "Soupe", servings: 3 });
+  });
+
+  it("turns the day back into a Date and the plate image into an image source", () => {
+    const card = keptMealCardOf(kept);
+
+    expect(isSameDay(card.date, day(1))).toBe(true);
+    expect(card.imageSrc).toEqual({ uri: "https://img/soup.png" });
+  });
+
+  /** Absent, so the row falls back to its placeholder rather than drawing a broken image. */
+  it("leaves the image out when the recipe has no plate image", () => {
+    expect(keptMealCardOf({ ...kept, recipe: { id: "soup", title: "Soupe" } }).imageSrc).toBeUndefined();
+  });
+});
+
+describe("inEatingOrder", () => {
+  it("orders by day, then lunch before dinner within one", () => {
+    const ordered = inEatingOrder([meal("d1", "dinner", 1), meal("l1", "lunch", 1), meal("d0", "dinner", 0)]);
+
+    expect(ordered.map((entry) => entry.id)).toEqual(["d0", "l1", "d1"]);
+  });
+
+  it("does not reorder the array it was given", () => {
+    const meals = [meal("d0", "dinner"), meal("l0", "lunch")];
+    inEatingOrder(meals);
+
+    expect(meals.map((entry) => entry.id)).toEqual(["d0", "l0"]);
+  });
+});
+
+describe("openDates", () => {
+  it("runs from today through the last planned day", () => {
+    expect(openDates(TODAY, [meal("a", "lunch", 2), meal("b", "lunch", -3)])).toEqual([day(0), day(1), day(2)]);
+  });
+
+  /** Today still gets its empty plates, which is the invitation to plan at all. */
+  it("offers today alone when nothing lies ahead", () => {
+    expect(openDates(TODAY, [meal("past", "lunch", -1)])).toEqual([day(0)]);
+  });
+
+  it("starts at midnight whatever time today was read at", () => {
+    expect(openDates(new Date(2026, 7, 12, 18, 30), [])).toEqual([day(0)]);
   });
 });

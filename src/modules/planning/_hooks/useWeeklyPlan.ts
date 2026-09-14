@@ -4,9 +4,22 @@ import { router } from "expo-router";
 import type { Plate } from "@ui/carousels/plate";
 import type { WeekDay } from "@ui/week-strip";
 
-import { addDays, MealSlot, isSameDay, toDateParam, MealStatus } from "../_model/model";
-import { usePlanningList } from "./usePlanningList";
-import { compareDates } from "@shared/dates";
+import { useLocale } from "~/hooks/useLocale";
+import { api } from "~/lib/convex/api";
+import { useQueryCached } from "~/lib/convex/client";
+import { useHousehold } from "~/modules/households/hooks";
+
+import {
+  addDays,
+  dayStatusFor,
+  inEatingOrder,
+  isSameDay,
+  keptMealCardOf,
+  startOfDay,
+  toDateParam,
+  type MealSlot,
+  type MealStatus,
+} from "../_model/model";
 
 /**
  * What the carousel draws, plus the slot in the week it fills. Structural — see ADR 0002.
@@ -28,63 +41,56 @@ const DAYS_BEFORE = 3;
 const DAYS_AFTER = 3;
 
 /**
- * Placeholder: every past day reads as cooked and today as still open. Real status is per-day
- * data, not a function of the calendar — this goes when the plan comes from Convex.
+ * The strip's days, each marked by where it sits against today — the same calendar answer the
+ * planning list's day markers give (`dayStatusFor`), so the two screens agree about a day.
  */
-const _statusFor = (offset: number): WeekDay["status"] => {
-  if (offset < 0) return "complete";
-  if (offset === 0) return "pending";
-  return "empty";
-};
-
 const _buildWeek = (today: Date): WeekDay[] =>
   Array.from({ length: DAYS_BEFORE + DAYS_AFTER + 1 }, (_, index) => {
-    const offset = index - DAYS_BEFORE;
+    const date = addDays(today, index - DAYS_BEFORE);
 
-    return { date: addDays(today, offset), status: _statusFor(offset) };
+    return { date, status: dayStatusFor(date, today) };
   });
 
 /**
  * The week strip, the plates on it, and which one is in focus.
  *
- * Data is hardcoded here on purpose: the interface comes first, so the screen is built against the
- * shape it will keep and swapping in `api.router.*` later touches this file alone
- * (ARCHITECTURE.md § Build order, ADR 0006).
+ * A range read (`getMany`), not the planning list's pages: the strip is a fixed window either side of
+ * today, and a paginated read would have to be fetched until it happened to cover it.
  */
 export const useWeeklyPlan = () => {
+  const locale = useLocale();
+  const { householdId } = useHousehold();
+
   /**
-   * One "today" per mount. Rebuilding it every render would rebuild every `Date` with it, and the
-   * strip's identity would change under the carousel on any unrelated state change.
+   * One "today" per mount, at midnight. Rebuilding it every render would rebuild every `Date` with it,
+   * and the strip's identity would change under the carousel on any unrelated state change.
    */
-  const today = useMemo(() => new Date(), []);
+  const [today] = useState(() => startOfDay(new Date()));
   const days = useMemo(() => _buildWeek(today), [today]);
 
-  /**
-   * `toDateParam`, not `toDateString`: the list validates this through `parseDateParam`, which
-   * takes `YYYY-MM-DD` and returns nothing for anything else — so a `Date`'s own string format
-   * was being dropped on every render and the carousel always opened on the first plate.
-   */
-  const { rows } = usePlanningList(toDateParam(today));
+  /** `to` is exclusive: the midnight after the strip's last day. */
+  const { data } = useQueryCached(
+    api.router.planning.getMany.authed,
+    householdId
+      ? {
+        householdId,
+        locale,
+        from: addDays(today, -DAYS_BEFORE).getTime(),
+        to: addDays(today, DAYS_AFTER + 1).getTime(),
+      }
+      : "skip",
+  );
 
-  const meals: CarouselMeal[] = useMemo(() => rows
-    .filter((row) => row.kind === "meal")
-    .filter((row) => {
-      const date = days[0];
-      if (!date) return true;
-      return compareDates(row.date, date.date) >= 0;
-    })
-    .filter((row) => {
-      const date = days[days.length - 1];
-      if (!date) return true;
-      return compareDates(row.date, date.date) <= 0;
-    })
-    .map((row) => ({
-      title: row.meal.title,
-      status: row.meal.status,
-      imageSrc: row.meal.imageSrc,
-      date: new Date(row.date),
-      type: row.meal.slot,
-    })), [days, rows]);
+  const meals: CarouselMeal[] = useMemo(
+    () => inEatingOrder((data ?? []).map(keptMealCardOf)).map((meal) => ({
+      title: meal.title,
+      status: meal.status,
+      imageSrc: meal.imageSrc,
+      date: meal.date,
+      type: meal.slot,
+    })),
+    [data],
+  );
 
   const [selectedDate, setSelectedDate] = useState(today);
   const [mealType, setMealType] = useState<MealSlot>("lunch");
@@ -92,9 +98,10 @@ export const useWeeklyPlan = () => {
   const selectedDayIndex = useMemo(() => days.findIndex((day) => isSameDay(day.date, selectedDate)), [days, selectedDate]);
 
   /**
-   * The plate the day and the meal toggle agree on. Only today carries both a lunch and a
-   * dinner, so fall back to the day alone — otherwise picking a past day while the toggle
-   * says "lunch" matches nothing and the carousel sits where it was. -1 it ignores.
+   * The plate the day and the meal toggle agree on. A planned day can hold only one of the two
+   * slots — the week plans whichever slots the household picked, and a dropped meal leaves the
+   * other empty — so fall back to the day alone: otherwise the toggle's half of the match finds
+   * nothing and the carousel sits where it was. -1 it ignores.
    */
   const exactMatch = useMemo(() => meals.findIndex(
     (meal) => isSameDay(meal.date, selectedDate) && meal.type === mealType,

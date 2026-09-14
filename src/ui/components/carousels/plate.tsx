@@ -25,6 +25,8 @@ import { Pressable } from "@ui/pressable";
 import { ButtonIcon } from "@ui/button-icon";
 import { ArrowLeftRight, Icon, MorphIcon } from "@ui/icons";
 
+const MAX_TITLE_LENGTH = 16;
+
 /** Plate diameter at rest, and how much of it is left when the plate is off-centre. */
 const PLATE_SIZE = 164;
 const PLATE_GAP = theme.spacing[16];
@@ -98,9 +100,9 @@ type Props<T extends Plate> = {
 }
 
 /** The badge is absolutely positioned, so it has no intrinsic width to grow from. Approximate one
- *  from the label lengths — roughly 11px a character, and the subtitle sits a size smaller. */
+ *  from the label lengths — roughly 10px a character, and the subtitle sits a size smaller. */
 const _badgeMinWidth = ({ title, subtitle }: Plate) =>
-  Math.max(title.length, (subtitle?.length ?? 0) * 0.8) * 11;
+  Math.max(Math.min(MAX_TITLE_LENGTH, title.length), (subtitle?.length ?? 0) * 0.8) * 10;
 
 export const PlateCarousel = <T extends Plate>({
   style,
@@ -397,7 +399,7 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
           <Text.Base
             numberOfLines={1}
           >
-            {plate.title}
+            {plate.title.length > MAX_TITLE_LENGTH ? plate.title.slice(0, MAX_TITLE_LENGTH) + "…" : plate.title}
           </Text.Base>
           {plate.subtitle ? (
             <Text.Sm

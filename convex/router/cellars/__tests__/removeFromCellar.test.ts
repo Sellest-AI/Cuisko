@@ -1,6 +1,9 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
+import { UNDO_WINDOW_MS } from "@shared/groceries";
+
+import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
 
@@ -47,6 +50,79 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
 
     return { userId, householdId, ingredientId };
   });
+
+/** The scaffolding a ledger claim hangs off: one plan, one plate on it, from a one-recipe library. */
+const seedPlate = (t: ReturnType<typeof convexTest>, householdId: Id<"households">) =>
+  t.run(async (ctx) => {
+    const recipeId = await ctx.db.insert("recipes", {
+      title: { values: { fr: "Soupe" }, meta: {} },
+      description: { values: { fr: "" }, meta: {} },
+      instructions: { values: { fr: "" }, meta: {} },
+      servings: 2,
+      equipments: [],
+      difficulty: 1,
+      tags: [],
+      cuisine: "french",
+      timings: { cooking: 20 },
+      search: { en: "", fr: "" },
+      shuffleKey: 0.5,
+      isVegan: true,
+      isVegetarian: true,
+      isPescatarian: true,
+      isGlutenFree: true,
+      isDairyFree: true,
+      isNutFree: true,
+      updatedAt: Date.now(),
+    });
+    const mealPlanId = await ctx.db.insert("mealPlans", {
+      householdId,
+      startDate: 0,
+      days: 1,
+      slots: ["lunch"],
+      people: 2,
+      seed: 0.5,
+      updatedAt: Date.now(),
+    });
+
+    return ctx.db.insert("plannedMeals", {
+      mealPlanId,
+      householdId,
+      recipeId,
+      date: 0,
+      slot: "lunch",
+      servings: 2,
+      status: "planned",
+      updatedAt: Date.now(),
+    });
+  });
+
+/**
+ * A claim the purchase settled, as `addToCellar` leaves it: the list row struck, the claim
+ * anchored to the lot the purchase landed on, its grocery quantity remembered.
+ */
+const seedBoughtClaim = async (
+  t: ReturnType<typeof convexTest>,
+  householdId: Id<"households">,
+  ingredientId: Id<"ingredients">,
+  cellarItemId: Id<"cellarItems">,
+  settledAt: number,
+) => {
+  const plannedMealId = await seedPlate(t, householdId);
+
+  return t.run((ctx) =>
+    ctx.db.insert("plannedMealIngredients", {
+      plannedMealId,
+      ingredientId,
+      sourceQuantity: 4,
+      sourceUnit: "pcs",
+      quantity: 4,
+      unit: "pcs",
+      groceryQuantity: 4,
+      groceryListItemId: undefined,
+      cellarItemId,
+      updatedAt: settledAt,
+    }));
+};
 
 describe("router/cellars/removeFromCellar", () => {
   test("rejects an unauthenticated caller", async () => {
@@ -255,5 +331,102 @@ describe("router/cellars/removeFromCellar", () => {
 
     const recentlyUsed = await t.run((ctx) => ctx.db.query("recentlyUsedIngredients").collect());
     expect(recentlyUsed).toHaveLength(1);
+  });
+
+  /**
+   * The undo's whole point: a mistap on the wrong row is taken back, and the plan's claim goes
+   * back to asking for its ingredient — pointing at the row the restore created, at no lot. The
+   * capture has to happen before the emptied lot is deleted, or the cascade has already detached
+   * the only handle the re-link had.
+   */
+  test("re-links a plan's claim the undone purchase settled", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const lotId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now() }),
+    );
+    const claimId = await seedBoughtClaim(t, householdId, ingredientId, lotId, Date.now());
+
+    await t.withIdentity(asUser(userId)).mutation(api.router.cellars.removeFromCellar.authed, {
+      householdId,
+      ingredientId,
+      unit: "pcs",
+      quantity: 4,
+      restoreToList: 4,
+    });
+
+    await t.run(async (ctx) => {
+      const groceryList = await ctx.db.query("groceryListItems").collect();
+      expect(groceryList).toHaveLength(1);
+
+      const claim = await ctx.db.get(claimId);
+      expect(claim!.groceryListItemId).toBe(groceryList[0]!._id);
+      expect(claim!.cellarItemId).toBeUndefined();
+      expect(claim!.groceryQuantity).toBe(4);
+    });
+  });
+
+  /**
+   * An anchor outlives its purchase — a later buy merges into the same lot — so age is what keeps
+   * an older, kept purchase's claim out of the capture. The restore still happens; the claim stays
+   * bought.
+   */
+  test("leaves a claim settled by an older purchase alone", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const lotId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now() }),
+    );
+    const claimId = await seedBoughtClaim(
+      t,
+      householdId,
+      ingredientId,
+      lotId,
+      Date.now() - UNDO_WINDOW_MS - 1000,
+    );
+
+    await t.withIdentity(asUser(userId)).mutation(api.router.cellars.removeFromCellar.authed, {
+      householdId,
+      ingredientId,
+      unit: "pcs",
+      quantity: 4,
+      restoreToList: 4,
+    });
+
+    await t.run(async (ctx) => {
+      const groceryList = await ctx.db.query("groceryListItems").collect();
+      expect(groceryList).toHaveLength(1);
+
+      const claim = await ctx.db.get(claimId);
+      expect(claim!.groceryListItemId).toBeUndefined();
+    });
+  });
+
+  /** Nothing is being unmade, so no claim comes back: the claim stays settled by the purchase. */
+  test("a removal with no restore re-links nothing", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    const lotId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now() }),
+    );
+    const claimId = await seedBoughtClaim(t, householdId, ingredientId, lotId, Date.now());
+
+    await t.withIdentity(asUser(userId)).mutation(api.router.cellars.removeFromCellar.authed, {
+      householdId,
+      ingredientId,
+      unit: "pcs",
+      quantity: 4,
+    });
+
+    await t.run(async (ctx) => {
+      const groceryList = await ctx.db.query("groceryListItems").collect();
+      expect(groceryList).toHaveLength(0);
+
+      const claim = await ctx.db.get(claimId);
+      expect(claim!.groceryListItemId).toBeUndefined();
+    });
   });
 });

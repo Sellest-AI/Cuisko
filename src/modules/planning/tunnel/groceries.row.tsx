@@ -8,15 +8,15 @@ import { colors, theme } from "theme";
 
 import { formatQuantity } from "@shared/ingredients";
 
-import { type GroceryRow, type PlannedMeal } from "../_model/model";
+import { MEAL_IMAGE } from "../_hooks/placeholders";
+import { type DraftMeal, type GroceryRow } from "../_model/model";
+import { useTranslations } from "translations";
 
 type Props = {
   row: GroceryRow;
   /** The meals needing this row, already resolved — drawn as the stack of little plates. */
-  meals: PlannedMeal[];
+  meals: DraftMeal[];
   owned: boolean;
-  haveLabel: string;
-  needLabel: string;
   onToggle?: () => void;
 };
 
@@ -28,63 +28,69 @@ const PRODUCE = {
 };
 
 /**
- * One ingredient the week needs: how much, what it costs, and which meals are asking for it.
+ * One ingredient the week needs: how much, and which meals are asking for it.
  *
  * The stack of plates is the row's justification — it answers "why is this on my list?" without a
  * tap, which is the difference between a list you trust and one you second-guess in the shop.
  */
-export const TunnelGroceryRow = ({ row, meals, owned, haveLabel, needLabel, onToggle }: Props) => (
-  <View style={styles.row}>
-    <View style={styles.produce}>
-      <Text.H4 style={styles.emoji}>{row.emoji}</Text.H4>
-    </View>
-    <View style={[styles.body, owned ? { opacity: 0.5 } : {}]}>
-      <View style={styles.titleRow}>
-        <Text.Base
-          color={colors.muted}
-          numberOfLines={1}
-          style={styles.name}
-        >
-          {row.name}
-        </Text.Base>
-        <View style={[
-          styles.quantity,
-          !onToggle && styles.quantityBig,
-          owned ? { opacity: 0.5 } : {}
-        ]}>
-          <Text.Base>
-            {formatQuantity(row.amount, row.unit)}
+export const TunnelGroceryRow = ({ row, meals, owned, onToggle }: Props) => {
+  const t = useTranslations("Planning");
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.produce}>
+        {row.imageUrl ? <Image
+          source={row.imageUrl}
+          contentFit="contain"
+          style={[styles.ingredientImage]}
+        /> : <Text.H4 style={styles.emoji}>{row.emoji}</Text.H4>}
+      </View>
+      <View style={[styles.body, owned ? { opacity: 0.5 } : {}]}>
+        <View style={[styles.titleRow, owned && { justifyContent: "flex-start" }]}>
+          <Text.Base
+            color={colors.muted}
+            numberOfLines={1}
+            style={styles.name}
+          >
+            {row.name}
           </Text.Base>
+          <View style={[
+            styles.quantity,
+            !owned && styles.quantityBig,
+            owned ? { opacity: 0.5 } : {}
+          ]}>
+            <Text.Base>
+              {formatQuantity(Math.ceil(row.amount), row.unit)}
+            </Text.Base>
+          </View>
+        </View>
+        <View style={styles.avatars}>
+          {meals.map((meal, index) => (
+            <Image
+              key={meal.id}
+              source={meal.imageUrl ? { uri: meal.imageUrl } : MEAL_IMAGE}
+              contentFit="cover"
+              style={[styles.avatar, index > 0 && { marginLeft: AVATAR_OVERLAP }]}
+            />
+          ))}
         </View>
       </View>
-      {row.pricePerKg !== undefined && (
-        <Text.Sm color={colors.muted}>{row.pricePerKg.toFixed(2)}€ / kg</Text.Sm>
-      )}
-      <View style={styles.avatars}>
-        {meals.map((meal, index) => (
-          <Image
-            key={meal.id}
-            source={meal.imageSrc}
-            contentFit="cover"
-            style={[styles.avatar, index > 0 && { marginLeft: AVATAR_OVERLAP }]}
-          />
-        ))}
-      </View>
+      {(onToggle || owned) && <Pressable
+        intensity={0.94}
+        onPress={onToggle}
+        disabled={!onToggle}
+        style={{ ...styles.toggle, ...(owned ? styles.toggleOwned : styles.toggleNeeded) }}
+      >
+        {owned
+          ? <CircleCheckIcon size={16} color={colors.secondary.base} />
+          : <CircleDashedIcon size={16} color={colors.muted} />}
+        <Text.Base color={owned ? colors.secondary.base : colors.muted} weight={600}>
+          {owned ? t("Tunnel.Groceries.have") : t("Tunnel.Groceries.need")}
+        </Text.Base>
+      </Pressable>}
     </View>
-    {onToggle && <Pressable
-      intensity={0.94}
-      onPress={onToggle}
-      style={{ ...styles.toggle, ...(owned ? styles.toggleOwned : styles.toggleNeeded) }}
-    >
-      {owned
-        ? <CircleCheckIcon size={16} color={colors.secondary.base} />
-        : <CircleDashedIcon size={16} color={colors.muted} />}
-      <Text.Base color={owned ? colors.secondary.base : colors.muted} weight={600}>
-        {owned ? haveLabel : needLabel}
-      </Text.Base>
-    </Pressable>}
-  </View>
-);
+  );
+}
 
 const styles = StyleSheet.create({
   row: {
@@ -101,12 +107,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.dark,
   },
   body: { flex: 1 },
   /** Overrides the H4 metrics — an emoji needs the room a heading does not. */
   emoji: {
     fontSize: 32,
     lineHeight: 40
+  },
+  ingredientImage: {
+    height: 44,
+    width: 40,
   },
   titleRow: {
     flexDirection: "row",
@@ -124,7 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated,
   },
   quantityBig: {
-    borderColor: colors.neutral.subtle,
+    borderColor: colors.border.dark,
     borderWidth: 1,
     paddingHorizontal: theme.spacing[12],
     paddingVertical: theme.spacing[4],

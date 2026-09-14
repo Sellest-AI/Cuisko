@@ -36,10 +36,16 @@ const CATEGORY_KEYS = {
  */
 const _isCategoryId = (id: string): id is CategoryId => id in CATEGORY_KEYS;
 
-/** What the week needs that the kitchen has not got. */
+/**
+ * What the week needs that the kitchen has not got — and, under it, what the kitchen already covers.
+ *
+ * The two lists are the feature, not a nicety: the point of planning from the cellar is that the
+ * list is shorter than the week, and the second section is the only place that saving is visible.
+ * It is drawn flat and read-only — the cellar is stating a fact, not offering a choice.
+ */
 export const TunnelGroceries = () => {
   const t = useTranslations("Planning");
-  const { categories, meals, owned } = useTunnelGroceries();
+  const { missing, covered, meals, owned } = useTunnelGroceries();
   const onScroll = useTunnelScrollHandler();
 
   return (
@@ -54,7 +60,7 @@ export const TunnelGroceries = () => {
         subtitle={t("Tunnel.Groceries.subtitle")}
         icon={ReceiptTextIcon}
       />
-      {categories.map((category, i) => (
+      {missing.map((category, i) => (
         <View key={category.id}>
           <Text.Lg style={{ ...styles.heading, ...(i === 0 ? { marginTop: 0 } : {}) }}>
             {t(_isCategoryId(category.id) ? CATEGORY_KEYS[category.id] : CATEGORY_KEYS.other)}
@@ -65,12 +71,25 @@ export const TunnelGroceries = () => {
               row={row}
               meals={meals.filter((meal) => row.mealIds.includes(meal.id))}
               owned={owned.includes(row.id)}
-              haveLabel={t("Tunnel.Groceries.have")}
-              needLabel={t("Tunnel.Groceries.need")}
             />
           ))}
         </View>
       ))}
+      {covered.length > 0 && (
+        <View>
+          <Text.Lg style={{ ...styles.heading, ...(missing.length === 0 ? { marginTop: 0 } : {}) }}>
+            {t("Tunnel.Groceries.in_kitchen")}
+          </Text.Lg>
+          {covered.map((row) => (
+            <TunnelGroceryRow
+              key={row.id}
+              row={row}
+              meals={meals.filter((meal) => row.mealIds.includes(meal.id))}
+              owned
+            />
+          ))}
+        </View>
+      )}
     </Animated.ScrollView>
   );
 };

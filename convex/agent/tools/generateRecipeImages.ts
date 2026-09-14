@@ -117,11 +117,13 @@ const SHOTS = {
     width: 768,
     height: 512,
     promptSuffix: "Professional editorial food photography for a cookbook or food magazine, camera positioned at approximately a 30–35° downward angle, slightly more top-down than a traditional 45° three-quarter view above the table, the dish as the clear hero in sharp focus and filling most of the frame, props and background softly blurred with a shallow depth of field, natural soft side light with gentle realistic shadows, rich true-to-life colours, glistening appetizing textures, landscape 3:2 aspect ratio, high resolution. No text, no watermark, no logos, no people, no hands.",
+    promptUpsampling: true,
   },
   plate: {
     width: 512,
     height: 512,
-    promptSuffix: "Shot from directly overhead at exactly 90 degrees, a true top-down view in which the plate appears as a perfect circle, the whole round plate visible and centred with an even margin of empty background on every side, the plate filling about 85% of the frame, isolated on a plain solid white background (#FFFFFF), soft even diffused studio lighting, a faint soft shadow just around the rim, nothing outside the plate: no cutlery, no napkin, no crumbs, no stray garnish, crisp focus across the whole plate, true-to-life appetizing colours, professional food photography, square 1:1 aspect ratio, high resolution. No text, no watermark, no people, no hands.",
+    promptSuffix: "Shot from directly overhead at exactly 90 degrees, a true top-down view in which the plate appears as a perfect circle, the whole round plate visible and centred with an even margin of empty background on every side, the plate filling about 85% of the frame, isolated on a plain solid neon GREEN background (#00FF00), soft even diffused studio lighting, a faint soft shadow just around the rim, nothing outside the plate: no cutlery, no napkin, no crumbs, no stray garnish, crisp focus across the whole plate, true-to-life appetizing colours, professional food photography, square 1:1 aspect ratio, high resolution. No text, no watermark, no people, no hands.",
+    promptUpsampling: false,
   },
 } as const;
 
@@ -134,6 +136,7 @@ const _render = async (prompt: string, shot: Shot): Promise<string> => {
     height: shot.height,
     model: "prunaai/p-image-ideogram",
     prompt: `${prompt} ${shot.promptSuffix}`,
+    promptUpsampling: shot.promptUpsampling,
   });
 
   const images = await parseReplicateRunOutput(output);

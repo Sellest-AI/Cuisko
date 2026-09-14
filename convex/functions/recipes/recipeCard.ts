@@ -7,8 +7,8 @@ import type { Cuisine } from "@shared/cuisines";
 
 type CardCtx = Pick<QueryCtx, "db">;
 
-/** The cover as `getImage` resolves it: every size, or nothing. */
-export type CoverImage = Awaited<ReturnType<typeof getImage>>;
+/** A recipe image as `getImage` resolves it: every size, or nothing. */
+export type RecipeImage = Awaited<ReturnType<typeof getImage>>;
 
 /**
  * A recipe as a list draws it: five fields, already in the caller's language.
@@ -37,6 +37,7 @@ export type RecipeCard = {
    * its placeholder for all three.
    */
   coverImageUrl?: string;
+  plateImageUrl?: string;
 };
 
 /**
@@ -60,19 +61,24 @@ const _totalMinutes = (timings: Doc<"recipes">["timings"]) => {
  * Separate from `toRecipeCard` so a caller that needs a second size of the same image, as
  * `loadRecipe` does for the page header, can take it from this one read instead of reading again.
  */
-export const coverOf = (ctx: CardCtx, recipe: Doc<"recipes">): Promise<CoverImage> =>
+export const coverOf = (ctx: CardCtx, recipe: Doc<"recipes">): Promise<RecipeImage> =>
   recipe.coverImageId ? getImage(ctx, recipe.coverImageId) : Promise.resolve(null);
+
+export const plateOf = (ctx: CardCtx, recipe: Doc<"recipes">): Promise<RecipeImage> =>
+  recipe.plateImageId ? getImage(ctx, recipe.plateImageId) : Promise.resolve(null);
 
 export const toRecipeCard = (
   recipe: Doc<"recipes">,
   locale: Locale,
-  cover: CoverImage,
+  cover: RecipeImage,
+  plate: RecipeImage,
 ): RecipeCard => ({
   id: recipe._id,
   title: resolvei18n(recipe.title, locale),
   cuisine: recipe.cuisine,
   minutes: _totalMinutes(recipe.timings),
   coverImageUrl: cover?.sizes.medium.url,
+  plateImageUrl: plate?.sizes.medium.url,
 });
 
 /**
@@ -86,4 +92,4 @@ export const toRecipeCards = (
   recipes: Doc<"recipes">[],
   locale: Locale,
 ): Promise<RecipeCard[]> =>
-  Promise.all(recipes.map(async (recipe) => toRecipeCard(recipe, locale, await coverOf(ctx, recipe))));
+  Promise.all(recipes.map(async (recipe) => toRecipeCard(recipe, locale, await coverOf(ctx, recipe), await plateOf(ctx, recipe))));

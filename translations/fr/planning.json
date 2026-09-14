@@ -31,6 +31,18 @@
     "shopping_needed": "Il manque un peu",
     "empty": "Assiette libre"
   },
+  "PlanRecipe": {
+    "portions": "Combien à table ?",
+    "meal": "Quel repas ?",
+    "day": "Quel jour ?",
+    "replace_title": "Changer de plat ?",
+    "replace_body": "{{previous}} laisse sa place à {{next}} au {{meal}} de {{day}}. Ses courses quittent la liste, celles de {{next}} y entrent.",
+    "confirm": "Je change",
+    "cancel": "Je garde",
+    "failed_title": "L'assiette n'a pas pu être planifiée",
+    "failed_body": "Réessayez dans un instant. Un repas déjà cuisiné ne peut pas être remplacé.",
+    "missing": "Cette recette n'est plus là"
+  },
   "Tunnel": {
     "next_step": "Étape suivante",
     "Setup": {
@@ -90,12 +102,17 @@
       "search": "Chercher une recette…",
       "selected": "Choisi",
       "no_match": "Aucun plat de ce nom",
-      "missing": "Cette assiette n'est plus au programme"
+      "missing": "Cette assiette n'est plus au programme",
+      "edit_failed_title": "Le changement n'a pas pu être enregistré",
+      "edit_failed_body": "L'assiette est revenue à ce qu'elle était. Un repas déjà cuisiné, ou dont le jour est passé, ne peut plus être modifié."
     },
     "Groceries": {
       "title": "Liste de courses",
       "subtitle": "Ce qui manque dans ta cuisine",
+      "in_kitchen": "Déjà dans ta cuisine",
       "save": "Ajouter à ma liste",
+      "save_failed_title": "La semaine n'a pas pu être gardée",
+      "save_failed_body": "Réessaie dans un instant : ta semaine est toujours là, rien n'a été perdu.",
       "x_new_items_one": "{{count, number}} chose à rapporter",
       "x_new_items_many": "{{count, number}} de choses à rapporter",
       "x_new_items_other": "{{count, number}} choses à rapporter",

@@ -1,6 +1,46 @@
 import { describe, expect, test } from "vitest";
 
-import { formatQuantity, pickQuantity, toGrams, serializeIngredients } from "../ingredients";
+import {
+  formatQuantity,
+  fromStockUnit,
+  pickQuantity,
+  serializeIngredients,
+  stockUnitOf,
+  toGrams,
+  toStockUnit,
+} from "../ingredients";
+
+describe("stockUnitOf", () => {
+  test("counts an ingredient in the base unit of the kind it is bought in", () => {
+    expect(stockUnitOf("kg")).toBe("g");
+    expect(stockUnitOf("l")).toBe("ml");
+    expect(stockUnitOf("cs")).toBe("ml");
+    expect(stockUnitOf("pcs")).toBe("pcs");
+  });
+});
+
+describe("toStockUnit", () => {
+  test("converts within one kind of unit without knowing anything about the ingredient", () => {
+    expect(toStockUnit(1, "l", { defaultUnit: "ml" })).toBe(1000);
+    expect(toStockUnit(2, "kg", { defaultUnit: "g" })).toBe(2000);
+    expect(toStockUnit(6, "pcs", { defaultUnit: "pcs" })).toBe(6);
+  });
+
+  test("crosses kinds through grams, with the ratios both ends need", () => {
+    // Milk bought in ml, written in grams: 515 g at 1.03 g/ml.
+    expect(toStockUnit(515, "g", { defaultUnit: "ml", gramsPerMl: 1.03 })).toBeCloseTo(500);
+    // Carrots bought by the piece, written in grams: 300 g at 150 g each.
+    expect(toStockUnit(300, "g", { defaultUnit: "pcs", gramsPerPiece: 150 })).toBe(2);
+    // Butter bought in grams, written in spoons: 15 ml at 0.91 g/ml.
+    expect(toStockUnit(1, "cs", { defaultUnit: "g", gramsPerMl: 0.91 })).toBeCloseTo(13.65);
+  });
+
+  test("refuses to cross kinds when a ratio is missing", () => {
+    expect(toStockUnit(300, "g", { defaultUnit: "pcs" })).toBeUndefined();
+    expect(toStockUnit(1, "l", { defaultUnit: "g" })).toBeUndefined();
+    expect(toStockUnit(2, "pcs", { defaultUnit: "ml", gramsPerPiece: 100 })).toBeUndefined();
+  });
+});
 
 describe("toGrams", () => {
   test("converts a mass unit without knowing anything about the ingredient", () => {
@@ -103,5 +143,29 @@ describe("pickQuantity", () => {
 
   test("reads undefined the same as null", () => {
     expect(pickQuantity({ amount: undefined, unit: undefined }, GNOCCHI)).toEqual({ amount: 500, unit: "g" });
+  });
+});
+
+describe("fromStockUnit", () => {
+  /** The list reads "0.5 kg", not "500 g": the household shops in the unit it buys the thing in. */
+  test("converts out of the stock unit into the unit the ingredient is bought in", () => {
+    expect(fromStockUnit(500, { defaultUnit: "kg" })).toBe(0.5);
+    expect(fromStockUnit(1500, { defaultUnit: "l" })).toBe(1.5);
+  });
+
+  test("leaves a quantity already in its stock unit alone", () => {
+    expect(fromStockUnit(347, { defaultUnit: "g" })).toBe(347);
+  });
+
+  /** No shop sells 1.3 onions, and this number is what goes on the list and comes back off it. */
+  test("rounds pieces up to a whole", () => {
+    expect(fromStockUnit(1.3, { defaultUnit: "pcs" })).toBe(2);
+    expect(fromStockUnit(2, { defaultUnit: "pcs" })).toBe(2);
+  });
+
+  test("is the inverse of toStockUnit within one kind of unit", () => {
+    const flour = { defaultUnit: "kg" } as const;
+
+    expect(fromStockUnit(toStockUnit(2, "kg", flour)!, flour)).toBe(2);
   });
 });

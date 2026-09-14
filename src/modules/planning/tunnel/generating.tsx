@@ -1,3 +1,4 @@
+import { useAtom } from "jotai";
 import { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -11,10 +12,12 @@ import { useTranslations } from "translations";
 
 import { CUISKO, CUISKO_VIDEO } from "~/lib/mascots";
 
-import { generatedMeals, MEAL_IMAGE, TILE_IMAGE } from "../_hooks/placeholders";
+import { shuffleSeedAtom } from "../_hooks/atoms";
+import { MEAL_IMAGE, TILE_IMAGE } from "../_hooks/placeholders";
+import { usePlanDraft } from "../_hooks/usePlanDraft";
 import { useTunnel } from "./_hooks/useTunnel";
 
-/** Dishes the fake generation reports, and how long each one takes to "cook". */
+/** Dishes the counter reports, and how long each one takes to "cook". */
 const DISHES = 3;
 const DISH_MS = 900;
 
@@ -75,13 +78,37 @@ DriftingPlate.displayName = "DriftingPlate";
  * The wait, made legible.
  *
  * A counter rather than a spinner: "2 of 3 dishes" says the work is finite and how far in it is,
- * where a spinner only says something is happening. The timer is fake, and the count is the shape
- * a real generation's progress will report.
+ * where a spinner only says something is happening. The timer is still paced rather than measured —
+ * the query reports no progress — so the count holds on its last dish until the week has landed.
  */
 export const TunnelGenerating = () => {
   const t = useTranslations("Planning");
-  const { next, setMeals, days, slots, commitPreferences } = useTunnel();
+  const { next, setMeals, commitPreferences } = useTunnel();
   const [cooked, setCooked] = useState(0);
+
+  /**
+   * Rolled once per run, so the reactive draft cannot reshuffle itself — see `usePlanDraft`.
+   *
+   * In an atom as well as in state, because the two answer different questions. The roll is this
+   * mount's and the draft uses it from the first frame; the atom is where `commit` reads it from two
+   * screens later, so the plan can record which shuffle produced this week. Published in an effect
+   * rather than during render — writing a shared atom mid-render updates the other components
+   * subscribed to it while React is still rendering this one.
+   *
+   * Read back rather than only written, so a remount inside the same run (Android's back button off
+   * the review step) regenerates the week it already showed instead of drawing a new one.
+   * `resetTunnelAtom` empties it, which is what makes the NEXT run a different week.
+   */
+  const [storedSeed, setSeed] = useAtom(shuffleSeedAtom);
+  const [rolled] = useState(Math.random);
+  const seed = storedSeed ?? rolled;
+
+  useEffect(() => {
+    if (storedSeed === null) setSeed(rolled);
+  }, [storedSeed, rolled, setSeed]);
+
+  const { meals, isGenerating } = usePlanDraft({ seed });
+  const isDone = cooked >= DISHES && !isGenerating;
 
   /** Stops once the last dish lands, rather than ticking on against a value that cannot move. */
   useEffect(() => {
@@ -109,27 +136,28 @@ export const TunnelGenerating = () => {
 
   useEffect(() => {
     finish.current = () => {
-      setMeals(generatedMeals(new Date(), days, slots));
+      setMeals(meals);
 
       /**
        * Where the run leaves something behind: the caller's own constraints and the household's
        * kitchen and plan defaults, written once, here, rather than per step — a tunnel abandoned
        * halfway has asserted nothing.
        *
-       * **It moves inside the generate mutation when that exists**, which is one round trip and
-       * atomic with the generation. Until then the generation is fake and these two writes are the
-       * only real thing the tunnel does, so they sit beside it rather than inside it.
+       * **It moves inside `commit` when that exists**, which is one round trip and atomic with the
+       * plan. The draft does not read these rows — the run's constraints go up as arguments — so
+       * writing them here cannot re-run the query that produced the week.
        */
       commitPreferences();
     };
-  }, [setMeals, days, slots, commitPreferences]);
+  }, [setMeals, meals, commitPreferences]);
 
   /**
-   * Runs exactly once, on the dish that completes the count: `cooked` only ever climbs to `DISHES`
-   * and stops there, and `next` is referentially stable by construction.
+   * Runs exactly once, when the count is full and the week has landed: `isDone` only turns true
+   * once — the count stops at `DISHES`, and a draft that has arrived never goes back to pending —
+   * and `next` is referentially stable by construction.
    */
   useEffect(() => {
-    if (cooked < DISHES) return;
+    if (!isDone) return;
 
     finish.current();
 
@@ -137,7 +165,7 @@ export const TunnelGenerating = () => {
     const timer = setTimeout(next, DISH_MS);
 
     return () => clearTimeout(timer);
-  }, [cooked, next]);
+  }, [isDone, next]);
 
   return (
     <View style={styles.page}>
