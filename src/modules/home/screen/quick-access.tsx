@@ -36,7 +36,7 @@ export const QuickAccess = () => {
         />
         <ActionRow
           variant="flat"
-          onPress={() => router.push("/groceries")}
+          onPress={() => router.push({ pathname: "/groceries", params: { section: "cellar" } })}
           content={t("QuickAccess.cellar")}
           contentIcon={Store}
           subtitle={t("QuickAccess.in_stock_x_items", { count: STORED_ITEMS })}

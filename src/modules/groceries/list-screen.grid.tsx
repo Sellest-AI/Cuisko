@@ -12,6 +12,7 @@ import { NO_EMOJI } from "@shared/ingredients";
 
 import {
   formatQuantity,
+  orderSections,
   rowsOf,
   type PendingFailure,
   type PendingIngredient,
@@ -29,7 +30,8 @@ const HEADER_TRANSITION = LinearTransition.duration(200);
 
 /**
  * The three sections, in the order stock runs through them: what is missing, what the household
- * owns, and what it has bought before but has neither of.
+ * owns, and what it has bought before but has neither of. The order of record — an arrival can
+ * promote one of them to the top (`GroceryGrid`'s `lead`), the rest keep this order.
  *
  * Presentation only. What a tap in each one *does* is fixed by the model, not chosen here: a row
  * carries the intent of the section it sits in, so "Recently Bought" can only ever put something
@@ -37,20 +39,16 @@ const HEADER_TRANSITION = LinearTransition.duration(200);
  * is decided by the plan, not the clock — a plate still waiting for it puts it back on the list,
  * and nothing waiting sends it to memory — which is why the cellar needs no second gesture.
  */
-const SECTIONS: {
-  section: Section;
-  labelKey: TranslationKeys<"Groceries">;
-  icon?: IconComponent;
-  color: string;
-}[] = [
-    { section: "to-buy", labelKey: "Sections.to_buy", icon: PlusIcon, color: theme.colors.primary.base },
-    { section: "cellar", labelKey: "Sections.cellar", icon: CheckIcon, color: theme.colors.secondary.base },
-    {
-      section: "recently-bought",
-      labelKey: "Sections.recently_bought",
-      color: theme.colors.neutral.muted,
-    },
-  ];
+const DEFAULT_ORDER: Section[] = ["to-buy", "cellar", "recently-bought"];
+
+const SECTION_DEFS: Record<
+  Section,
+  { labelKey: TranslationKeys<"Groceries">; icon?: IconComponent; color: string }
+> = {
+  "to-buy": { labelKey: "Sections.to_buy", icon: PlusIcon, color: theme.colors.primary.base },
+  cellar: { labelKey: "Sections.cellar", icon: CheckIcon, color: theme.colors.secondary.base },
+  "recently-bought": { labelKey: "Sections.recently_bought", color: theme.colors.neutral.muted },
+};
 
 /**
  * A card says which of three things it is: still missing, owned, or only remembered — and an
@@ -97,6 +95,9 @@ const SectionHeader = ({
   </Animated.View>
 );
 
+/** `lead` is the section the shopper arrived asking for — promoted to the top, if it has anything to show. */
+type GroceryGridProps = { lead?: Section };
+
 /**
  * The three lists, as one grid.
  *
@@ -114,7 +115,7 @@ const SectionHeader = ({
  *
  * An empty section draws no header. There is nothing to say about a cellar you have not filled.
  */
-export const GroceryGrid = () => {
+export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const { width } = useWindowDimensions();
   const { sections, submit } = useGroceryList();
   const { pending, dismiss } = usePendingIngredients();
@@ -137,7 +138,9 @@ export const GroceryGrid = () => {
     });
   };
 
-  const rows: Row[] = SECTIONS.flatMap(({ section, labelKey, icon, color }) => {
+  const rows: Row[] = orderSections(DEFAULT_ORDER, lead).flatMap((section) => {
+    const { labelKey, icon, color } = SECTION_DEFS[section];
+
     // Ghosts count towards "is this section empty", or the first unknown ingredient a shopper
     // types would draw a card with no heading over it. Which section they land in is the model's
     // call, not this loop's: a ghost waits under the heading its intent aimed it at.
