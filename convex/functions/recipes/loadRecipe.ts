@@ -92,6 +92,17 @@ export type RecipeDetail = RecipeCard & {
    * corrected. `totalsOf` refuses a partial total, and so does this — see `_nutritionOf`.
    */
   nutrition?: RecipeNutrition;
+  /**
+   * Whether the reader wrote it, and whether they kept it — present only when a `viewerId` was
+   * given, which the client-facing `getOne.authed` does and internal callers do not.
+   *
+   * Reads are open to any signed-in cook (ADR 0014), so the screen can no longer take ownership
+   * for granted: `isOwned` is what gates the pencil and the editor, and it is derived here rather
+   * than shipped as `userId` so the payload still names nobody. `isFavorited` rides the same
+   * payload rather than a second subscription — one round trip per screen open.
+   */
+  isOwned?: boolean;
+  isFavorited?: boolean;
 };
 
 /**
@@ -217,13 +228,14 @@ const _chefOf = async (ctx: LoadCtx, userId?: Id<"users">): Promise<RecipeChef |
 /**
  * The recipe itself, or where to find it.
  *
- * `ownedQueryI18n` has already loaded the row to prove the caller owns it, so passing the document
- * spares a second read of a row that is already in hand. A caller holding only an id — an internal
- * action, a scheduled job — hands over the id and this fetches it.
+ * A caller that already holds the row — a mutation that just wrote it — passes the document and
+ * spares a second read. A caller holding only an id — the router, an internal action, a scheduled
+ * job — hands over the id and this fetches it.
  *
  * ⚠️ **Neither branch is an authorization check**, and the id branch is the one that can look like
- * one. Ownership is the router builder's (`ownedQuery*`), never this function's: `loadRecipe` will
- * happily resolve any recipe in the table for anybody who asks.
+ * one. A recipe is readable by any signed-in cook (ADR 0014), and what is NOT — editing, listing —
+ * is gated where it happens, never here: `loadRecipe` will happily resolve any recipe in the table
+ * for anybody who asks.
  */
 type RecipeOrId = Doc<"recipes"> | Id<"recipes">;
 
@@ -238,25 +250,51 @@ const _resolve = async (ctx: LoadCtx, target: RecipeOrId): Promise<Doc<"recipes"
 };
 
 /**
+ * The reader's relation to the recipe, or nothing when nobody in particular is reading.
+ *
+ * One point read on `by_user_and_recipe`. `isOwned` compares against the stored `userId` here so
+ * that the id itself never has to leave the server.
+ */
+const _flagsOf = async (
+  ctx: LoadCtx,
+  recipe: Doc<"recipes">,
+  viewerId?: Id<"users">,
+): Promise<Pick<RecipeDetail, "isOwned" | "isFavorited">> => {
+  if (!viewerId) return {};
+
+  const favorite = await ctx.db
+    .query("recipeFavorites")
+    .withIndex("by_user_and_recipe", (q) => q.eq("userId", viewerId).eq("recipeId", recipe._id))
+    .first();
+
+  return { isOwned: recipe.userId === viewerId, isFavorited: favorite !== null };
+};
+
+/**
  * One recipe, resolved into the language the caller is reading in.
  *
  * `instructions` arrives parsed rather than as the stored blob. The parser is `@shared/recipes`, so
  * either side could run it — doing it here means it runs once per fetch instead of once per render,
  * and the two screens that consume this both need the groups rather than the text.
+ *
+ * `viewerId` is who is reading, when that matters: with it the payload carries `isOwned` and
+ * `isFavorited`; without it, neither. It is not an authorization argument — see `_resolve`.
  */
 export const loadRecipe = async (
   ctx: LoadCtx,
-  { recipe: target, locale }: { recipe: RecipeOrId; locale: Locale },
+  { recipe: target, locale, viewerId }: { recipe: RecipeOrId; locale: Locale; viewerId?: Id<"users"> },
 ): Promise<RecipeDetail> => {
   const recipe = await _resolve(ctx, target);
 
-  const [{ lines, lineCount }, chef, cover] = await Promise.all([
+  const [{ lines, lineCount }, chef, cover, flags] = await Promise.all([
     _linesOf(ctx, recipe._id, locale),
     _chefOf(ctx, recipe.userId),
     coverOf(ctx, recipe),
+    _flagsOf(ctx, recipe, viewerId),
   ]);
 
   return {
+    ...flags,
     ...toRecipeCard(recipe, locale, cover, null),
     coverImageLargeUrl: cover?.sizes.large.url,
     description: resolvei18n(recipe.description, locale),

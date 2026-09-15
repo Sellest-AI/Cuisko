@@ -88,7 +88,14 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
         /** The placeholder while loading too, so the frame has a photo before the recipe arrives. */
         headerBackgroundImage={recipe?.coverImageLargeUrl ?? COVER_PLACEHOLDER}
         contentNegativeSpace={CONTENT_NEGATIVE_SPACE}
-        headerContent={<RecipeHeader recipeId={id} tags={recipe?.tags ?? []} />}
+        headerContent={
+          <RecipeHeader
+            recipeId={id}
+            tags={recipe?.tags ?? []}
+            isOwned={recipe?.isOwned}
+            isFavorited={recipe?.isFavorited}
+          />
+        }
         contentHeader={
           <>
             <View style={styles.lip} />

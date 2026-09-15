@@ -7,7 +7,7 @@
   "Chrome": {
     "start_cooking": "Passer en cuisine",
     "not_found_title": "Cette recette est introuvable",
-    "not_found_body": "Elle a peut-être été supprimée, ou elle appartient à quelqu'un d'autre.",
+    "not_found_body": "Elle a peut-être été supprimée, ou le lien est incorrect.",
     "not_found_action": "Retour à mes recettes"
   },
   "Overview": {
@@ -49,6 +49,8 @@
     "empty": "Cette recette n'a pas encore d'étapes écrites."
   },
   "Editor": {
+    "not_found_title": "Rien à modifier ici",
+    "not_found_body": "Cette recette a peut-être été supprimée, ou elle appartient à quelqu'un d'autre. Seul son auteur peut la modifier.",
     "new_title": "Nouvelle recette",
     "edit_title": "Modifier la recette",
     "image": "Choisir une image",

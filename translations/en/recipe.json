@@ -7,7 +7,7 @@
   "Chrome": {
     "start_cooking": "Start cooking",
     "not_found_title": "This recipe is not here",
-    "not_found_body": "It may have been deleted, or it belongs to another cook.",
+    "not_found_body": "It may have been deleted, or the link is wrong.",
     "not_found_action": "Back to my recipes"
   },
   "Overview": {
@@ -47,6 +47,8 @@
     "empty": "This recipe has no method written down yet."
   },
   "Editor": {
+    "not_found_title": "Nothing to edit here",
+    "not_found_body": "This recipe may have been deleted, or it belongs to another cook. Only its author can edit it.",
     "new_title": "New recipe",
     "edit_title": "Edit recipe",
     "image": "Choose an image",

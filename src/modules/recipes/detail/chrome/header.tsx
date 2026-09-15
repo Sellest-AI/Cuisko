@@ -8,14 +8,21 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 import type { Tag } from "@shared/tags";
 
-import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
+import type { Id } from "~/lib/convex/api";
 import { TAG_EMOJI } from "~/lib/vocabulary";
 
+import { useSetRecipeFavorite } from "../../_hooks/useSetRecipeFavorite";
+import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
+
 type Props = {
-  /** The recipe the pencil opens. Absent only before the route parameter has arrived. */
+  /** The recipe the heart and the pencil act on. Absent only before the route parameter has arrived. */
   recipeId?: string;
   /** Stored keys, not words — the chip's glyph and its wording are this component's to look up. */
   tags: Tag[];
+  /** From the `getOne` payload. The pencil renders only when this is exactly true. */
+  isOwned?: boolean;
+  /** From the `getOne` payload. Drives the heart's variant; absent until the recipe has arrived. */
+  isFavorited?: boolean;
 };
 
 /**
@@ -34,23 +41,50 @@ const VISIBLE_TAGS = 3;
  * because the parallax header scales and translates this whole view as the page scrolls — a flow
  * layout would reflow under the transform instead of moving with it.
  *
- * It takes the tags rather than fetching them. The chrome above it already holds the recipe, and
- * this view is re-rendered by the parallax on every scroll frame — a subscription here would be a
- * second reader of one cache entry for data its parent had in hand.
+ * It takes the tags and the two flags rather than fetching them. The chrome above it already holds
+ * the recipe, and this view is re-rendered by the parallax on every scroll frame — a subscription
+ * here would be a second reader of one cache entry for data its parent had in hand. The favorite
+ * WRITE is called from here, though: a mutation is not a subscription, and the heart is the only
+ * thing that sends it.
  */
-export const RecipeHeader = ({ recipeId, tags }: Props) => {
+export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) => {
   const t = useTranslations("Vocabulary");
+  const { set } = useSetRecipeFavorite();
+
+  /**
+   * Guarded on the flag having arrived, not only on the id: before the payload lands there is no
+   * state to send the opposite of, and a tap then would favorite or unfavorite at random.
+   */
+  const onHeart =
+    recipeId && isFavorited !== undefined
+      ? () => set(recipeId as Id<"recipes">, !isFavorited)
+      : undefined;
 
   return (
     <View style={styles.header}>
       <View style={styles.actions}>
         {/*
-          * Inert, both of them. Favouriting has a table (`recipeFavorites`) and no router reaching
-          * it; sharing has no link to share while a recipe is only ever the cook's own.
+          * The kept state is the brand disc, not `danger`: that variant is documented as
+          * destructive and is the only place in the app that fills a control with red.
           */}
-        <ButtonIcon variant="neutral" size="sm">{Heart}</ButtonIcon>
+        <ButtonIcon
+          onPress={onHeart}
+          disabled={onHeart === undefined}
+          variant={isFavorited ? "primary" : "neutral"}
+          size="sm"
+        >
+          {Heart}
+        </ButtonIcon>
+        {/*
+          * Inert. A recipe is readable by any signed-in cook (ADR 0014), so a link CAN now be
+          * shared — the button, its payload and its copy are a slice of their own.
+          */}
         <ButtonIcon variant="neutral" size="sm">{Share2}</ButtonIcon>
-        {recipeId && (
+        {/*
+          * Only the author gets the pencil. The read no longer proves ownership, and offering to
+          * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit.
+          */}
+        {recipeId && isOwned === true && (
           <ButtonIcon
             onPress={() => router.push(`/recipe/edit/${recipeId}`)}
             variant="neutral"

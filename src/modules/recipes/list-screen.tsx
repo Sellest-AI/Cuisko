@@ -13,8 +13,10 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslations } from "translations";
 
+import { useFavoriteRecipes } from "./_hooks/useFavoriteRecipes";
 import { useRecipeList } from "./_hooks/useRecipeList";
 import { EmptyState } from "./_components/empty-state";
+import { FavoritesShelf } from "./_components/favorites-shelf";
 import { COVER_PLACEHOLDER } from "./constants";
 
 type Props = {
@@ -28,6 +30,13 @@ export const RecipesScreen = ({ style }: Props) => {
 
   const [query, setQuery] = useState("");
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
+  const { favorites } = useFavoriteRecipes();
+
+  /**
+   * Hidden while a term narrows the grid: the shelf is not a search surface, and a row of
+   * favorites that ignores the box would read as matches that are not.
+   */
+  const showsShelf = !isSearching && favorites.length > 0;
 
   return (
     <>
@@ -48,10 +57,12 @@ export const RecipesScreen = ({ style }: Props) => {
         onEndReachedThreshold={0.5}
         /**
          * Nothing while the first answer is in flight. An empty state shown for the half second
-         * before the recipes land tells a cook who has twenty that they have none.
+         * before the recipes land tells a cook who has twenty that they have none. Nothing either
+         * when the shelf is up: a cook with favorites and no recipes of their own is not looking
+         * at an empty page.
          */
         ListEmptyComponent={
-          isLoading ? null : isSearching ? (
+          isLoading || showsShelf ? null : isSearching ? (
             <EmptyState
               icon={Search}
               title={t("no_matches_title")}
@@ -88,6 +99,18 @@ export const RecipesScreen = ({ style }: Props) => {
               onRightPress={() => setQuery("")}
               style={styles.search}
             />
+            {showsShelf && (
+              <FavoritesShelf
+                title={t("favorites")}
+                recipes={favorites.map((recipe) => ({
+                  id: recipe.id,
+                  title: recipe.title,
+                  subtitle: tVocabulary(`Cuisines.${recipe.cuisine}`),
+                  coverImageUrl: recipe.coverImageUrl,
+                }))}
+                style={styles.shelf}
+              />
+            )}
             {recipes.length !== 0 && <Text.Lg>{t("yours")}</Text.Lg>}
           </SafeAreaView>
         }
@@ -136,6 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[24],
     width: "100%"
   },
+  shelf: { marginBottom: theme.spacing[24] },
   /** Enough to read as "settling", not enough to make the cook wait to read what is there. */
   stale: { opacity: 0.5 },
 })

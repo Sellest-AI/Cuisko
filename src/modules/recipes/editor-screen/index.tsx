@@ -4,7 +4,7 @@ import { ActivityIndicator, View, StyleSheet, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 
-import { CircleAlert, ForkKnifeIcon } from "@ui/icons";
+import { ArrowLeft, CircleAlert, ForkKnife, ForkKnifeIcon } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
@@ -25,6 +25,7 @@ import { EditorActions } from "./actions";
 import { CreatingOverlay } from "./creating-overlay";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
+import { EmptyState } from "../_components/empty-state";
 import { Servings } from "../_components/servings";
 import { serializeIngredients } from "@shared/ingredients";
 
@@ -77,7 +78,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
   const [ingredients, setIngredients] = useState(imported?.ingredients ?? "");
   const [instructions, setInstructions] = useState(imported?.instructions ?? "");
 
-  const { recipe, isLoading } = useRecipeDraft(recipeId);
+  const { recipe, isLoading, isMissing } = useRecipeDraft(recipeId);
 
   /**
    * Consumed once, then cleared — and the clearing is load-bearing rather than tidiness: without
@@ -187,6 +188,27 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
       <View style={[style, styles.loading]}>
         <ActivityIndicator color={theme.colors.primary.base} />
       </View>
+    );
+
+  /**
+   * Only when asked to edit something: a new recipe has no id and is never missing. Reads are open
+   * to any signed-in cook (ADR 0014), so `useRecipeDraft` is what decides that a recipe which
+   * exists is still not this cook's to edit, and this is where that decision is drawn.
+   */
+  if (recipeId && isMissing)
+    return (
+      <SafeAreaView style={[style, styles.loading]}>
+        <EmptyState
+          icon={ForkKnife}
+          title={t("Editor.not_found_title")}
+          body={t("Editor.not_found_body")}
+          action={{
+            label: t("Chrome.not_found_action"),
+            icon: ArrowLeft,
+            onPress: () => (router.canGoBack() ? router.back() : router.replace("/")),
+          }}
+        />
+      </SafeAreaView>
     );
 
   return (

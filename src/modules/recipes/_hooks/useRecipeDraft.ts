@@ -14,6 +14,12 @@ import { useQueryCached } from "~/lib/convex/client";
  * Same query as `useRecipe`, same skip-on-no-id shape, because both are `getOne.authed` and Convex
  * deduplicates the subscription — opening the editor on a recipe already open elsewhere costs
  * nothing extra.
+ *
+ * **The editor's guard lives here.** The read is open to any signed-in cook (ADR 0014), so the
+ * query answering is no longer proof the recipe is the caller's to edit. A recipe that arrives
+ * with `isOwned` false is folded into `isMissing`: a crafted `/recipe/edit/[foreignId]` gets the
+ * missing state, not a form whose save `updateOne` would refuse anyway. The real gate is that
+ * refusal; this one spares the cook a form they cannot submit.
  */
 export const useRecipeDraft = (id: string | undefined) => {
   const locale = useLocale();
@@ -23,9 +29,11 @@ export const useRecipeDraft = (id: string | undefined) => {
     id ? { id: id as Id<"recipes">, locale } : "skip",
   );
 
+  const isForeign = query.data !== undefined && query.data.isOwned !== true;
+
   return {
-    recipe: query.data,
+    recipe: isForeign ? undefined : query.data,
     isLoading: Boolean(id) && query.data === undefined && query.error === undefined,
-    isMissing: !id || query.error !== undefined,
+    isMissing: !id || query.error !== undefined || isForeign,
   };
 };

@@ -34,7 +34,8 @@ const seedUser = (name: string) =>
     return userId;
   });
 
-const seedRecipe = (userId: Id<"users">) =>
+/** `userId` optional so a catalog recipe — one nobody wrote — can be seeded the same way. */
+const seedRecipe = (userId?: Id<"users">) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
       title: { values: { en: "Onion soup", fr: "Soupe à l'oignon" }, meta: {} },
@@ -116,20 +117,88 @@ describe("router/recipes/getOne", () => {
   });
 
   /**
-   * The check `ownedQueryI18n` exists for. The id is a valid recipe and the caller is a valid user
-   * — the only thing wrong is that it is not theirs, which is exactly the request a hand-written
-   * ownership check forgets to refuse.
+   * The INVERSE of the test that used to sit here. Until ADR 0014 this refused a stranger's recipe
+   * by id; now a recipe is readable by any signed-in cook, because that is what sharing a link
+   * means. What a stranger cannot do is edit it (`updateOne`'s test) or find it in their own list
+   * (`getAll`'s and `search`'s). This pins the read as open on purpose, so a reader who assumes an
+   * open read must be an IDOR does not "fix" it.
    */
-  test("refuses another cook's recipe, by id", async () => {
+  test("gives another cook's recipe to any signed-in caller", async () => {
     const ownerId = await seedUser("Franck");
     const strangerId = await seedUser("Stranger");
     const recipeId = await seedRecipe(ownerId);
 
+    const recipe = await t
+      .withIdentity(asUser(strangerId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+
+    expect(recipe.title).toBe("Onion soup");
+  });
+
+  /** The planning review links to catalog recipes; a read that refused them landed on "not found". */
+  test("gives a catalog recipe, which nobody owns", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe();
+
+    const recipe = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+
+    expect(recipe.title).toBe("Onion soup");
+    expect(recipe.isOwned).toBe(false);
+  });
+
+  test("reports a missing recipe rather than answering with nothing", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+    await t.run((ctx) => ctx.db.delete(recipeId));
+
     await expect(
       t
-        .withIdentity(asUser(strangerId))
+        .withIdentity(asUser(userId))
         .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" }),
     ).rejects.toThrow();
+  });
+
+  /** What the screen gates the pencil and the editor on, now that the read itself does not. */
+  test("says whether the caller wrote it", async () => {
+    const ownerId = await seedUser("Franck");
+    const strangerId = await seedUser("Stranger");
+    const recipeId = await seedRecipe(ownerId);
+
+    const asOwner = await t
+      .withIdentity(asUser(ownerId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+    const asStranger = await t
+      .withIdentity(asUser(strangerId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+
+    expect(asOwner.isOwned).toBe(true);
+    expect(asStranger.isOwned).toBe(false);
+  });
+
+  test("says whether the caller kept it, and only the caller", async () => {
+    const userId = await seedUser("Franck");
+    const otherId = await seedUser("Other");
+    const recipeId = await seedRecipe(userId);
+
+    const before = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+    expect(before.isFavorited).toBe(false);
+
+    await t.run((ctx) => ctx.db.insert("recipeFavorites", { userId, recipeId }));
+
+    const after = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+    expect(after.isFavorited).toBe(true);
+
+    /** Somebody else's favorite is not the caller's — the flag is per reader, never per recipe. */
+    const asOther = await t
+      .withIdentity(asUser(otherId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+    expect(asOther.isFavorited).toBe(false);
   });
 
   test("gives the owner their recipe", async () => {
@@ -208,8 +277,12 @@ describe("router/recipes/getOne", () => {
     expect(french.ingredients.map((line) => line.name)).toEqual(["Oignon", "Beurre"]);
   });
 
-  /** The blob is for the index, not for anyone downstream — several kilobytes of it per recipe. */
-  test("does not ship the search blob", async () => {
+  /**
+   * The blob is for the index, not for anyone downstream — several kilobytes of it per recipe. And
+   * `userId` matters more now that strangers read: the payload says whether the reader owns the
+   * recipe, never who does.
+   */
+  test("does not ship the search blob, nor the owner's id", async () => {
     const userId = await seedUser("Franck");
     const recipeId = await seedRecipe(userId);
 
@@ -243,7 +316,7 @@ describe("router/recipes/getOne", () => {
     });
 
     /** The one field `authed` withholds, and the reason a caller acting for a cook can compare it. */
-    test("carries the userId the client-facing export withholds", async () => {
+    test("carries the userId the client-facing export withholds, and no viewer flags", async () => {
       const ownerId = await seedUser("Franck");
       const recipeId = await seedRecipe(ownerId);
 
@@ -253,6 +326,9 @@ describe("router/recipes/getOne", () => {
       });
 
       expect(recipe.userId).toBe(ownerId);
+      /** Nobody in particular is reading, so there is nobody the flags could be about. */
+      expect(recipe).not.toHaveProperty("isOwned");
+      expect(recipe).not.toHaveProperty("isFavorited");
     });
 
     test("reports a missing recipe rather than answering with nothing", async () => {
