@@ -1,6 +1,7 @@
 {
   "title": "Recettes",
   "search_placeholder": "Rechercher une recette",
+  "favorites": "Tes recettes favorites",
   "yours": "Tes recettes",
   "empty_title": "Aucune recette",
   "empty_body": "Écris ta première recette et tu la retrouveras ici.",

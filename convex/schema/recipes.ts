@@ -139,9 +139,18 @@ export const recipeIngredients = defineTable({
   .index("by_ingredient", ["ingredientId"]);
 
 
+/**
+ * A cook's private shelf: one row per recipe they favorited, whoever wrote it.
+ *
+ * A join table, so no `updatedAt` (S5b) and no `position` — the shelf is ordered by
+ * `_creationTime`, newest favorite first. Nothing counts these rows and no surface shows another
+ * cook's: favorites are curation, not a feed (PRODUCT.md anti-goal #3).
+ */
 export const recipeFavorites = defineTable({
   recipeId: v.id("recipes"),
   userId: v.id("users"),
 })
   .index("by_user", ["userId"])
-  .index("by_recipe", ["recipeId"]);
+  .index("by_recipe", ["recipeId"])
+  /** The point read both hot paths make: "has this cook favorited this recipe?" */
+  .index("by_user_and_recipe", ["userId", "recipeId"]);

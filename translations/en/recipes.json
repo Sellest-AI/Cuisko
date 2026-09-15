@@ -1,6 +1,7 @@
 {
   "title": "Recipes",
   "search_placeholder": "Search a recipe",
+  "favorites": "Your favorite recipes",
   "yours": "Your recipes",
   "empty_title": "No recipes yet",
   "empty_body": "Write your first one and it will be waiting here.",

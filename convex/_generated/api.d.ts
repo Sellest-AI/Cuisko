@@ -95,6 +95,7 @@ import type * as functions_preferences_save from "../functions/preferences/save.
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
 import type * as functions_recipes_generateRecipe from "../functions/recipes/generateRecipe.js";
+import type * as functions_recipes_listFavorites from "../functions/recipes/listFavorites.js";
 import type * as functions_recipes_listForUser from "../functions/recipes/listForUser.js";
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
 import type * as functions_recipes_loadRecipe from "../functions/recipes/loadRecipe.js";
@@ -107,6 +108,7 @@ import type * as functions_recipes_resolveRecipeIngredients from "../functions/r
 import type * as functions_recipes_saveRecipe from "../functions/recipes/saveRecipe.js";
 import type * as functions_recipes_saveTranslations from "../functions/recipes/saveTranslations.js";
 import type * as functions_recipes_searchForUser from "../functions/recipes/searchForUser.js";
+import type * as functions_recipes_setFavorite from "../functions/recipes/setFavorite.js";
 import type * as functions_recipes_toModelRecipe from "../functions/recipes/toModelRecipe.js";
 import type * as functions_recipes_updateRecipe from "../functions/recipes/updateRecipe.js";
 import type * as functions_users_isAuthorized from "../functions/users/isAuthorized.js";
@@ -166,10 +168,12 @@ import type * as router_preferences_save from "../router/preferences/save.js";
 import type * as router_recipes_createOne from "../router/recipes/createOne.js";
 import type * as router_recipes_generateImages from "../router/recipes/generateImages.js";
 import type * as router_recipes_getAll from "../router/recipes/getAll.js";
+import type * as router_recipes_getFavorites from "../router/recipes/getFavorites.js";
 import type * as router_recipes_getOne from "../router/recipes/getOne.js";
 import type * as router_recipes_importOne from "../router/recipes/importOne.js";
 import type * as router_recipes_importOneNode from "../router/recipes/importOneNode.js";
 import type * as router_recipes_search from "../router/recipes/search.js";
+import type * as router_recipes_setFavorite from "../router/recipes/setFavorite.js";
 import type * as router_recipes_translateOne from "../router/recipes/translateOne.js";
 import type * as router_recipes_updateOne from "../router/recipes/updateOne.js";
 import type * as router_users_getAccount from "../router/users/getAccount.js";
@@ -280,6 +284,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
   "functions/recipes/generateRecipe": typeof functions_recipes_generateRecipe;
+  "functions/recipes/listFavorites": typeof functions_recipes_listFavorites;
   "functions/recipes/listForUser": typeof functions_recipes_listForUser;
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
   "functions/recipes/loadRecipe": typeof functions_recipes_loadRecipe;
@@ -292,6 +297,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/saveRecipe": typeof functions_recipes_saveRecipe;
   "functions/recipes/saveTranslations": typeof functions_recipes_saveTranslations;
   "functions/recipes/searchForUser": typeof functions_recipes_searchForUser;
+  "functions/recipes/setFavorite": typeof functions_recipes_setFavorite;
   "functions/recipes/toModelRecipe": typeof functions_recipes_toModelRecipe;
   "functions/recipes/updateRecipe": typeof functions_recipes_updateRecipe;
   "functions/users/isAuthorized": typeof functions_users_isAuthorized;
@@ -351,10 +357,12 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/createOne": typeof router_recipes_createOne;
   "router/recipes/generateImages": typeof router_recipes_generateImages;
   "router/recipes/getAll": typeof router_recipes_getAll;
+  "router/recipes/getFavorites": typeof router_recipes_getFavorites;
   "router/recipes/getOne": typeof router_recipes_getOne;
   "router/recipes/importOne": typeof router_recipes_importOne;
   "router/recipes/importOneNode": typeof router_recipes_importOneNode;
   "router/recipes/search": typeof router_recipes_search;
+  "router/recipes/setFavorite": typeof router_recipes_setFavorite;
   "router/recipes/translateOne": typeof router_recipes_translateOne;
   "router/recipes/updateOne": typeof router_recipes_updateOne;
   "router/users/getAccount": typeof router_users_getAccount;

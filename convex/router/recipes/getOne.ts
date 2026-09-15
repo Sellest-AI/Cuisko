@@ -1,27 +1,29 @@
 import { loadRecipe } from "@convex/functions/recipes/loadRecipe";
-import { internalQuery, ownedQueryI18n } from "@convex/procedures";
+import { authQueryI18n, internalQuery } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
 /**
- * One recipe the caller owns, in full.
+ * One recipe, in full, for any signed-in cook — theirs or not.
  *
- * `ownedQueryI18n` is what makes the ownership check unforgettable rather than remembered: it takes
- * the `id` argument, loads the row, asserts the caller owns it, and hands it over as `ctx.doc`.
- * The handler below has no path that runs without that having happened, so there is no version of
- * this file that reads a stranger's recipe by passing their id.
+ * `authQueryI18n` rather than `ownedQueryI18n`, and that is the access model, not an oversight
+ * (ADR 0014): a recipe is readable by id by anyone signed in, which is what sharing a link and
+ * favoriting a catalog recipe both mean. What stays gated is gated where it happens — `updateOne`
+ * checks ownership before a write, `getAll` and `search` list only the caller's own. The payload
+ * carries `isOwned` for the screen to hide the pencil, and never the owner's `userId`.
  */
-export const authed = ownedQueryI18n("recipes")({
-  args: {},
-  handler: (ctx) => loadRecipe(ctx, { recipe: ctx.doc, locale: ctx.i18n.locale }),
+export const authed = authQueryI18n({
+  args: { id: v.id("recipes") },
+  handler: (ctx, { id }) =>
+    loadRecipe(ctx, { recipe: id, locale: ctx.i18n.locale, viewerId: ctx.userId }),
 });
 
 /**
  * The same recipe, for a trusted internal caller rather than the cook who owns it — a cron, an
  * admin tool, or a public action (like `updateOne`) acting on a recipe id it was handed.
  *
- * `userId` rides along here and nowhere else: `loadRecipe`/`authed` deliberately never expose it
- * (see the `⚠️` on `loadRecipe`), because a client-facing payload has no business carrying it. This
+ * `userId` rides along here and nowhere else: `authed` deliberately never exposes it, because a
+ * client-facing payload has no business carrying it — it ships the derived `isOwned` instead. This
  * export is not client-facing — `internal.*` is never reachable from outside a Convex deployment —
  * so the same omission would just be a caller reaching for `ctx.db.get` a second time to get the
  * one field `loadRecipe` withheld.

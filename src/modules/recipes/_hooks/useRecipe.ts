@@ -35,8 +35,9 @@ export const useRecipe = (id: string | undefined) => {
 
   /**
    * An id from a route parameter is a string until the server says otherwise. The cast is what
-   * every screen would otherwise write for itself; the query is `ownedQueryI18n`, so a string that
-   * names nothing — or names somebody else's recipe — comes back as an error rather than a row.
+   * every screen would otherwise write for itself; a string that names nothing comes back as an
+   * error rather than a row. One that names somebody else's recipe comes back as the recipe: reads
+   * are open to any signed-in cook (ADR 0014), and the payload's `isOwned` says which it was.
    */
   const query = useQueryCached(
     api.router.recipes.getOne.authed,
@@ -129,11 +130,11 @@ export const useRecipe = (id: string | undefined) => {
      */
     isLoading: hasId && query.data === undefined && query.error === undefined,
     /**
-     * No id to ask about, or the backend refused the one we had — not found, or not the caller's.
+     * No id to ask about, or the backend refused the one we had: the recipe is not there.
      *
-     * The two are one state on purpose: they are the same thing to a cook, who arrived at a page
-     * for a recipe that is not theirs to read, and telling them which of the two it was would
-     * confirm that somebody else's recipe exists.
+     * Not "not the caller's" — a recipe that exists is readable whoever wrote it, which is what
+     * lets a shared link and a favorited catalog recipe open at all. The editor is the screen that
+     * still cares, and `useRecipeDraft` is where that guard lives.
      */
     isMissing: !hasId || query.error !== undefined,
   };
