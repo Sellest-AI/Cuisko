@@ -6,18 +6,9 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-const CARD_PLACEHOLDER = require("assets/placeholders/empty-placeholder.jpg");
+import { useWeekIdeas } from "~/modules/planning/hooks";
 
-/**
- * Placeholder until the week's picks come from Convex. The ids are stand-ins for the document id
- * the query will carry, and are here so the card already routes by the recipe it shows — three
- * cards sharing one hardcoded destination is a bug that only appears once the data is real.
- */
-const SPOTLIGHT = [
-  { id: "pizza-atomica", title: "Pizza Atomica", subtitle: "Italian" },
-  { id: "asparagus-salad", title: "Asparagus Salad", subtitle: "Italian" },
-  { id: "pasta-carbonara", title: "Pasta Carbonara", subtitle: "Italian" },
-];
+const CARD_PLACEHOLDER = require("assets/placeholders/empty-placeholder.jpg");
 
 const CARD_WIDTH = 200;
 
@@ -27,9 +18,16 @@ const CARD_WIDTH = 200;
  * The title offers ideas rather than announcing a selection: the plan above it is the only thing
  * on this page the user has committed to, and a second list that looks like a second plan reads as
  * one more thing to keep up with (PRODUCT.md, anti-goal 4).
+ *
+ * Nothing to show, no section: loading and a genuinely empty pool look the same, because an empty
+ * shelf with a title is a promise the page cannot keep.
  */
 export const WeeklySpotlight = () => {
   const t = useTranslations("Home");
+  const tVocabulary = useTranslations("Vocabulary");
+  const { ideas } = useWeekIdeas();
+
+  if (ideas.length === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -40,14 +38,14 @@ export const WeeklySpotlight = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.gutter, styles.cards]}
       >
-        {SPOTLIGHT.map((recipe) => (
+        {ideas.map((card) => (
           <CardRecipe
-            key={recipe.id}
-            title={recipe.title}
-            subtitle={recipe.subtitle}
-            imageSrc={CARD_PLACEHOLDER}
+            key={card.id}
+            title={card.title}
+            subtitle={tVocabulary(`Cuisines.${card.cuisine}`)}
+            imageSrc={card.coverImageUrl ? { uri: card.coverImageUrl } : CARD_PLACEHOLDER}
             style={{ width: CARD_WIDTH }}
-            onPress={() => router.push(`/recipe/${recipe.id}`)}
+            onPress={() => router.push(`/recipe/${card.id}`)}
           />
         ))}
       </ScrollView>

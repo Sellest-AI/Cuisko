@@ -4,7 +4,7 @@ import type { RecipeDraft } from "@convex/lib/scraping/toRecipeDraft";
 import { type ActionCtx, authAction, internalAction } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { vRecipeDraft } from "@convex/schema/recipePayloads";
-import { httpUrlOf } from "@shared/urls";
+import { canonicalUrlOf } from "@shared/urls";
 import { ConvexError, v } from "convex/values";
 
 /**
@@ -31,13 +31,19 @@ const _extract = async (ctx: ActionCtx, url: string): Promise<RecipeDraft> => {
    * Validated here as well as on the screen, because a client is not a gate: this export is
    * callable without it. `INVALID_INPUT` before any fetch is also the only refusal that costs
    * nothing, which is what makes it worth stating twice.
+   *
+   * Canonicalized in the same breath: the trackers a share button appended are not part of the
+   * page, so the fetch is made without them and the draft records the spelling every later write
+   * will match against. The mapper stays URL-blind; this boundary is where the address is owned.
    */
-  const target = httpUrlOf(url);
+  const target = canonicalUrlOf(url);
   if (!target) {
     throw new ConvexError({ code: "INVALID_INPUT" as const, message: "Not a web address" });
   }
 
-  return await ctx.runAction(internal.router.recipes.importOneNode._internal, { url: target });
+  const draft = await ctx.runAction(internal.router.recipes.importOneNode._internal, { url: target });
+
+  return { ...draft, sourceUrl: target };
 };
 
 export const authed = authAction({

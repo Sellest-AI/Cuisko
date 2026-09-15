@@ -9,3 +9,29 @@ export const compareDateTimes = (date1: Date, date2: Date): number => {
   const d2 = date2.getTime();
   return d1 - d2;
 }
+
+/**
+ * The local Monday of `date`'s week, as `YYYY-MM-DD` — the key a week of ideas seeds from.
+ * Built from local parts deliberately: `toISOString()` is UTC and shifts the day for any
+ * device past midnight of its offset.
+ */
+export const weekKeyOf = (date: Date): string => {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - ((date.getDay() + 6) % 7));
+  const month = `${monday.getMonth() + 1}`.padStart(2, "0");
+  const day = `${monday.getDate()}`.padStart(2, "0");
+  return `${monday.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * FNV-1a over `key`, as a fraction in [0, 1) — the shuffle seed a week of ideas derives from.
+ * Deterministic by design: the same week must redraw the same picks wherever it is asked from,
+ * so this is integer hash math rather than `Math.random()`.
+ */
+export const seedOfWeekKey = (key: string): number => {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < key.length; index++) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0) / 2 ** 32;
+}

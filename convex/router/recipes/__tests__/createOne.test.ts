@@ -84,6 +84,19 @@ beforeEach(() => {
   resolveRun.mockResolvedValue({ links: [], complete: true });
 });
 
+/**
+ * A cook who gets past the gate. `usersExtended` too: `resolveUser` reads the role off it, and a
+ * user without one is UNAUTHENTICATED — the rejection tests never notice because they never get
+ * past the gate.
+ */
+const seedUser = () =>
+  t.run(async (ctx) => {
+    const user = await ctx.db.insert("users", { name: "Franck" });
+    await ctx.db.insert("usersExtended", { userId: user, role: "USER", updatedAt: Date.now() });
+
+    return user;
+  });
+
 describe("router/recipes/createOne", () => {
   /**
    * The gate, and the only assertion this file can make about `authed` without a model in the
@@ -124,14 +137,7 @@ describe("router/recipes/createOne", () => {
    * test at all, and a router that resolved the lines then persisted an empty set would be green.
    */
   test("stores the links the resolver answered with as the recipe's ingredient rows", async () => {
-    // `usersExtended` too: `resolveUser` reads the role off it, and a user without one is
-    // UNAUTHENTICATED — the tests above never noticed because they never get past the gate.
-    const userId = await t.run(async (ctx) => {
-      const user = await ctx.db.insert("users", { name: "Franck" });
-      await ctx.db.insert("usersExtended", { userId: user, role: "USER", updatedAt: Date.now() });
-
-      return user;
-    });
+    const userId = await seedUser();
 
     const onionId = await t.run((ctx) =>
       ctx.db.insert("ingredients", {
@@ -165,5 +171,62 @@ describe("router/recipes/createOne", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.ingredientId).toBe(onionId);
     expect(rows[0]!.quantity).toBe(2);
+  });
+
+  /**
+   * The seam this slice adds: an imported draft's address rides `createOne` to the row, and rides
+   * it AROUND the agent — the URL is where the recipe came from, not text to revise, and a model
+   * handed it would have to be told to ignore it.
+   */
+  describe("sourceUrl", () => {
+    test("lands on the row, canonical, when the draft carries one", async () => {
+      const userId = await seedUser();
+
+      const recipeId: Id<"recipes"> = await t
+        .withIdentity(asUser(userId))
+        .action(api.router.recipes.createOne.authed, {
+          ...FREE_TEXT,
+          sourceUrl: "https://example.com/soupe?utm_source=fb",
+        });
+
+      const row = await t.run((ctx) => ctx.db.get(recipeId));
+      expect(row!.sourceUrl).toBe("https://example.com/soupe");
+    });
+
+    test("stays absent on a recipe typed by hand", async () => {
+      const userId = await seedUser();
+
+      const recipeId: Id<"recipes"> = await t
+        .withIdentity(asUser(userId))
+        .action(api.router.recipes.createOne.authed, FREE_TEXT);
+
+      const row = await t.run((ctx) => ctx.db.get(recipeId));
+      expect(row!.sourceUrl).toBeUndefined();
+    });
+
+    test("stores nothing for text that is not a web address, without refusing the recipe", async () => {
+      const userId = await seedUser();
+
+      const recipeId: Id<"recipes"> = await t
+        .withIdentity(asUser(userId))
+        .action(api.router.recipes.createOne.authed, { ...FREE_TEXT, sourceUrl: "   " });
+
+      const row = await t.run((ctx) => ctx.db.get(recipeId));
+      expect(row!.sourceUrl).toBeUndefined();
+    });
+
+    test("never reaches the agent", async () => {
+      const userId = await seedUser();
+
+      await t
+        .withIdentity(asUser(userId))
+        .action(api.router.recipes.createOne.authed, {
+          ...FREE_TEXT,
+          sourceUrl: "https://example.com/soupe",
+        });
+
+      expect(sanitizeRun).toHaveBeenCalledTimes(1);
+      expect(sanitizeRun.mock.calls[0]![1]).not.toHaveProperty("sourceUrl");
+    });
   });
 });

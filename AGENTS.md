@@ -341,7 +341,7 @@ result as if it had returned.
 - `pnpm verify` is green.
 - **Only when you are asked to commit**: The architecture review above ran and reported clean, or the user approved the exceptions.
 - Every new non-`anon` Convex export has a test asserting the wrong caller is rejected.
-- Every new `_model/` file has a test in its `__tests__/`, every test file sits in a `__tests__/`, and none sits where nothing runs it (C10).
+- Every new `_model/` file has a test in its `__tests__/`, every test file sits in a `__tests__/`, none sits where nothing runs it, and every `convex-test` file calling through `api.` / `internal.` warms its module in a `beforeAll` (C10).
 - Any `docs/` page the change invalidated has been updated.
 - The slice's plan file is **deleted** — with any decision worth keeping promoted to an ADR or to
   `docs/CONVENTIONS.md` first. A plan that outlives its build is a specification nobody maintains,

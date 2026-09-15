@@ -26,3 +26,7 @@ Files camelCase. Indexes named `by_<field>[_and_<field>]`.
 Every `ctx.db.query()` uses an index. Never `.filter()` with `.paginate()`.
 A new foreign key ships with its cascade index AND its `CASCADE` entry in `functions/cascade.ts`.
 Errors are `ConvexError({ code })`, never bare `Error`.
+
+A test that calls a function through `api.` / `internal.` preloads it in a `beforeAll` — copy the
+block from any `router/**/__tests__/` file, filtering on `/convex/<path>.` (ADR 0008, C10). The
+glob is lazy, so without it the first test pays the whole module graph against its own timeout.

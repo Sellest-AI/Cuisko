@@ -1,5 +1,5 @@
 /**
- * C10 — every test file is actually run, and every `_model/` has one.
+ * C10 — every test file is actually run, warms what it globs, and every `_model/` has one.
  *
  * A test that no runner collects is worse than no test: it reports nothing, and it reads to the
  * next author as coverage that already exists. This repo shipped that exact state — the runner's
@@ -19,7 +19,7 @@
  * someone who looks beside a file, finds nothing, and writes the second copy.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { listFiles, relative, report, ROOT } from "./_lib.mjs";
@@ -106,4 +106,34 @@ for (const file of testFilesOnDisk) {
   });
 }
 
-report("C10 every test runs, sits in __tests__/, and every _model/ has one", findings);
+/* ── 4. A convex-test file calling through the lazy glob warms its module first ────────── */
+
+/**
+ * `convex-test` takes `import.meta.glob` loaders and resolves them on the first call that needs
+ * them, so a file calling `api.` / `internal.` charges the whole module graph beneath that call
+ * to its first test, against that test's 5s timeout (ADR 0008, "The first test pays for the
+ * import"). It fails silently while it passes — 2s and 2ms print the same tick — and grows with
+ * the backend, so it surfaces as a timeout on somebody's unrelated commit.
+ *
+ * Text only: this sees that a `beforeAll` exists, not that it loads the right module. A test that
+ * imports its subject directly (the `functions/` tests) pays at module load, outside any timer,
+ * and is not asked for one.
+ */
+for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
+  const source = readFileSync(file, "utf8");
+  if (!source.includes("convexTest(")) continue;
+  if (!/\b(api|internal)\.[A-Za-z_]/.test(source)) continue;
+  if (/\bbeforeAll\(/.test(source)) continue;
+
+  findings.push({
+    file: relative(file),
+    message: "Calls a Convex function through the lazy glob with no beforeAll warm-up.",
+    fix:
+      "Preload the module under test before any test is timed: " +
+      "`beforeAll(() => Promise.all(Object.entries(modules)" +
+      ".filter(([p]) => p.startsWith(\"/convex/<path>.\")).map(([, load]) => load())))`. " +
+      "Filter on that file's own module — never load the whole glob.",
+  });
+}
+
+report("C10 every test runs, sits in __tests__/, warms its glob, and every _model/ has one", findings);

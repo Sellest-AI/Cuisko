@@ -257,3 +257,53 @@ export const fromStockUnit = (amount: number, ingredient: { defaultUnit: Unit })
 
   return Math.ceil(amount);
 };
+
+/** The families grocery list rows merge within — see `mergeGroupOf`. */
+export type MergeGroup = "mass" | "volume";
+
+/**
+ * The family a grocery list row may merge within, or `null` for a unit that never merges.
+ *
+ * Mass: kg · g · mg · oz · lb, ordered by grams. Volume: l · ml · cl, ordered by millilitres.
+ * `pcs` is out because pieces have no reliable conversion — the rule `toStockUnit` lives by. `cs`
+ * and `cc` are out by product decision: spoons are cooking measures, not shopping units, and
+ * planning never writes them to the list, so there is nothing for them to merge with today.
+ *
+ * This is the policy; `convertQuantity` is the maths, and it will happily convert a spoon to
+ * millilitres — which is why callers gate on this before converting.
+ */
+export const mergeGroupOf = (unit: Unit): MergeGroup | null => {
+  if (unit in GRAMS_PER_MASS_UNIT) return "mass";
+  if (unit === "ml" || unit === "cl" || unit === "l") return "volume";
+
+  return null;
+};
+
+/**
+ * Where a unit sits on its family's ladder — grams for mass, millilitres for volume — or
+ * `undefined` for `pcs`. Two units of the same family compare by this, and the bigger one is the
+ * unit a merged row is written in.
+ */
+export const unitScale = (unit: Unit): number | undefined => {
+  if (unit in GRAMS_PER_MASS_UNIT) return GRAMS_PER_MASS_UNIT[unit as keyof typeof GRAMS_PER_MASS_UNIT];
+  if (unit in ML_PER_VOLUME_UNIT) return ML_PER_VOLUME_UNIT[unit as keyof typeof ML_PER_VOLUME_UNIT];
+
+  return undefined;
+};
+
+/**
+ * A quantity rewritten in another unit of the same dimension, or `undefined` when the two units
+ * differ in dimension or either is `pcs`.
+ *
+ * Pure ratio, no ingredient data: 1 kg is 1000 g whatever it is a kilogram of. Crossing dimensions
+ * needs a density or a piece weight, and that is `toStockUnit`'s job, not this one's.
+ */
+export const convertQuantity = (quantity: number, from: Unit, to: Unit): number | undefined => {
+  if (_dimensionOf(from) !== _dimensionOf(to)) return undefined;
+
+  const fromScale = unitScale(from);
+  const toScale = unitScale(to);
+  if (fromScale === undefined || toScale === undefined) return undefined;
+
+  return (quantity * fromScale) / toScale;
+};

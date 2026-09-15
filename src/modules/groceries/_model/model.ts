@@ -292,6 +292,27 @@ const INTENT_FOR: Record<Section, Intent> = {
   "recently-bought": "relist",
 };
 
+/**
+ * The order the sections render in, with `lead` promoted when the shopper arrived asking for it.
+ * A lead the caller's list does not hold is no lead at all — a param naming a section this page
+ * does not show must not invent a place for itself.
+ */
+export const orderSections = (sections: Section[], lead?: Section): Section[] =>
+  lead !== undefined && sections.includes(lead)
+    ? [lead, ...sections.filter((section) => section !== lead)]
+    : sections;
+
+/**
+ * What a `section` URL param is allowed to mean. Expo Router hands repeated params back as an
+ * array, so the raw value is wider than the union; anything that is not exactly one of the three
+ * sections is no preference, and the page keeps its default order.
+ */
+export const sectionFromParam = (value: string | string[] | undefined): Section | undefined => {
+  const first = Array.isArray(value) ? value[0] : value;
+
+  return first === "to-buy" || first === "cellar" || first === "recently-bought" ? first : undefined;
+};
+
 export type QuantityOption = {
   amount: number;
   unit: Unit;

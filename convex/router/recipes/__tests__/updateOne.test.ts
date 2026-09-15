@@ -54,9 +54,10 @@ const seedUser = (name: string) =>
 const SEED_INSTRUCTIONS = "Base\n- Émincer les oignons.";
 const UNCHANGED_INSTRUCTIONS = serializeInstructions(parseInstructions(SEED_INSTRUCTIONS));
 
-const seedRecipe = (userId: Id<"users">) =>
+const seedRecipe = (userId: Id<"users">, sourceUrl?: string) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      sourceUrl,
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
       instructions: { values: { fr: SEED_INSTRUCTIONS }, meta: {} },
@@ -249,5 +250,22 @@ describe("router/recipes/updateOne", () => {
 
     const rows = await t.run((ctx) => ctx.db.query("recipes").collect());
     expect(rows).toHaveLength(1);
+  });
+
+  /**
+   * The round trip that has to survive: `updateOne` does not accept `sourceUrl` on purpose — a
+   * cook cannot set or clear where a recipe came from — so an edit must leave the stored one
+   * exactly as it was. `updateRecipe` patches an explicit field list; this pins that it stays so.
+   */
+  test("preserves the row's sourceUrl across an edit", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId, "https://example.com/soupe");
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, ingredients: "2 oignons" });
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row!.sourceUrl).toBe("https://example.com/soupe");
   });
 });

@@ -146,3 +146,59 @@ describe("3 — every test sits in a __tests__/ folder", () => {
     expect(output).toContain("convex/functions/ingredients/__tests__/ingredientCatalog.test.ts");
   });
 });
+
+describe("4 — a convex-test file calling through the lazy glob warms its module first", () => {
+  const file = "convex/router/recipes/__tests__/getOne.test.ts";
+  const viaGlob = `
+    const modules = import.meta.glob("/convex/**/*.*s");
+    const t = convexTest(schema, modules);
+    it('x', () => t.query(api.router.recipes.getOne.authed, {}));
+  `;
+
+  it("rejects a file that calls api.* with no beforeAll", () => {
+    const { code, output } = runC10({ [file]: viaGlob }, [file]);
+
+    expect(code).toBe(1);
+    expect(output).toContain(file);
+    expect(output).toContain("Calls a Convex function through the lazy glob with no beforeAll warm-up");
+  });
+
+  it("rejects internal.* the same way — the migrations test was that shape", () => {
+    const { code, output } = runC10(
+      { [file]: viaGlob.replace("api.router", "internal.router") },
+      [file],
+    );
+
+    expect(code).toBe(1);
+    expect(output).toContain("no beforeAll warm-up");
+  });
+
+  it("accepts the same file once it carries a beforeAll", () => {
+    const { code } = runC10({ [file]: `beforeAll(() => load());\n${viaGlob}` }, [file]);
+
+    expect(code).toBe(0);
+  });
+
+  it("does not ask a file that imports its subject directly to warm anything", () => {
+    const direct = "convex/functions/recipes/__tests__/loadRecipe.test.ts";
+    const { code } = runC10(
+      {
+        [direct]: `
+          const modules = import.meta.glob("/convex/**/*.*s");
+          const t = convexTest(schema, modules);
+          it('x', () => t.run((ctx) => loadRecipe(ctx, {})));
+        `,
+      },
+      [direct],
+    );
+
+    expect(code).toBe(0);
+  });
+
+  it("leaves tests outside convex/ alone — the glob is a convex-test concern", () => {
+    const hook = "src/modules/recipes/_hooks/__tests__/useRecipes.test.ts";
+    const { code } = runC10({ [hook]: "it('x', () => api.router.recipes.getOne);" }, [hook]);
+
+    expect(code).toBe(0);
+  });
+});

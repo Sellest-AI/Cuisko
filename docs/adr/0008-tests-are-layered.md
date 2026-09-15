@@ -24,6 +24,10 @@ MUST: give every file in `src/modules/*/_model/` a test — in that folder's `__
 MUST: keep a rejection test for every access-gated Convex export ([0003](./0003-ownership-via-procedure.md), A6).
 MUST: exercise a hook by mounting it — `renderHook` with the module's own store — never by
       re-implementing what it composes.
+MUST: preload the module under test in a `beforeAll` when a `convex-test` file reaches a function
+      through `api.` / `internal.` — filter the glob on `/convex/<path>.` (the trailing dot keeps
+      a `"use node"` sibling out), never load the whole glob. See "The first test pays for the
+      import" below 📐 C10.
 MUST NOT: mock a module of this repo inside `test/setup.dom.ts`. That file carries browser APIs
           jsdom omits, and nothing else.
 MUST NOT: leave a test file no project collects. A test that never runs reports nothing and reads
@@ -100,6 +104,44 @@ and this ADR reversed a MUST it had stated. Recorded rather than quietly rewritt
 exemption was defensible and the reason it lost is the part worth keeping: a rule a script can
 check beats a rule that reads better.
 
+## The first test pays for the import
+
+Every `convex-test` file hands the runner `import.meta.glob("/convex/**/*.*s")` — **lazy** loaders,
+one per backend module. A test that calls a function through `api.` / `internal.` makes the runner
+resolve that path, and the module graph beneath it is transformed and instantiated on that call:
+charged to whichever test made it, against that test's own 5s timeout. Almost always the first test
+in the file, whatever its subject.
+
+This fails in the one way a suite cannot see. 2.2s and 2ms both print a green tick, and the cost
+grows with the backend rather than with the test, so it surfaces as a timeout on somebody's
+unrelated commit and is dismissed as a flake. Measured twice: `router/media/images/uploadMany` at
+3.6s under `pnpm verify` load on 11 September 2026, which gave every router test its warm-up; then
+`__tests__/migrations.test.ts` at 2.2s idle and 5s under load four days later, a file the router
+sweep had not covered.
+
+The fix is five lines, and it is per file: a `beforeAll` that loads the module under test through
+the same glob, so the import lands before any test is timed.
+
+```ts
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/router/recipes/getOne."))
+      .map(([, load]) => load()),
+  ),
+);
+```
+
+Two details carry weight. The trailing dot in `getOne.` keeps a `"use node"` sibling (`getOneNode.ts`)
+out of the edge-runtime project. And it warms **that file's own module**, never the whole glob:
+every globbing file importing the entire backend measured four times slower than the cold suite.
+
+A test that imports its subject directly — the `functions/` tests, which call `loadRecipe(ctx, …)`
+rather than `api.…` — pays the import at module load, outside any timer, and needs no warm-up.
+C10 rule 4 checks the shape: a `convex-test` file that references `api.` or `internal.` carries a
+`beforeAll`. It reads text, so it cannot tell a warm-up that loads the wrong module from one that
+loads the right one; that is what the filter path in the snippet is for.
+
 ## Not yet — flow tests
 
 Deliberately absent, with a trigger rather than an intention: **Maestro, when the first slice is
@@ -117,7 +159,8 @@ Until then this ADR claims no flow coverage, which is the point of writing the g
 ## Verify
 
 ```bash
-pnpm check:tests   # C10 — every test file is collected by a project; every _model/ has a test
+pnpm check:tests   # C10 — every test file is collected by a project; every _model/ has a test;
+                   #       every convex-test file calling through api./internal. warms its module
 pnpm test          # all three projects
 ```
 
