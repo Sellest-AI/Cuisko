@@ -61,7 +61,7 @@ type Coverage = { covered: Need[]; missing: Need[]; partial: number; taken: Map<
  * scored against the butter the first line left. A partially covered line is `missing` — the
  * remainder is bought — but it still takes what the cellar had, because that part gets cooked.
  */
-const _coverageOf = (candidate: Candidate, stock: Stock): Coverage => {
+export const coverageOf = (candidate: Candidate, stock: Stock): Coverage => {
   const taken = new Map<Id<"ingredients">, number>();
   const covered: Need[] = [];
   const missing: Need[] = [];
@@ -147,7 +147,7 @@ export const selectMeals = (
     let best: { candidate: Candidate; coverage: Coverage; score: number; tie: number } | undefined;
 
     for (const candidate of _eligible(candidates, picked, ownPicked >= ownCap)) {
-      const coverage = _coverageOf(candidate, left);
+      const coverage = coverageOf(candidate, left);
       const lines = candidate.needs.filter((need) => need.kind !== "pinch").length || 1;
       const score = coverage.covered.filter((need) => need.kind !== "pinch").length / lines;
       const tie = coverage.partial / lines;

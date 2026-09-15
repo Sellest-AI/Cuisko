@@ -75,6 +75,8 @@ import type * as functions_planning_availableStock from "../functions/planning/a
 import type * as functions_planning_candidatePool from "../functions/planning/candidatePool.js";
 import type * as functions_planning_cellarLots from "../functions/planning/cellarLots.js";
 import type * as functions_planning_commitPlan from "../functions/planning/commitPlan.js";
+import type * as functions_planning_draftMeal from "../functions/planning/draftMeal.js";
+import type * as functions_planning_draftMealOf from "../functions/planning/draftMealOf.js";
 import type * as functions_planning_dropMeal from "../functions/planning/dropMeal.js";
 import type * as functions_planning_limits from "../functions/planning/limits.js";
 import type * as functions_planning_loadHouseholdMeal from "../functions/planning/loadHouseholdMeal.js";
@@ -158,6 +160,7 @@ import type * as router_media_images_uploadOne from "../router/media/images/uplo
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
 import type * as router_planning_commit from "../router/planning/commit.js";
 import type * as router_planning_getDraft from "../router/planning/getDraft.js";
+import type * as router_planning_getDraftMeal from "../router/planning/getDraftMeal.js";
 import type * as router_planning_getMany from "../router/planning/getMany.js";
 import type * as router_planning_getOne from "../router/planning/getOne.js";
 import type * as router_planning_getPaginated from "../router/planning/getPaginated.js";
@@ -267,6 +270,8 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/candidatePool": typeof functions_planning_candidatePool;
   "functions/planning/cellarLots": typeof functions_planning_cellarLots;
   "functions/planning/commitPlan": typeof functions_planning_commitPlan;
+  "functions/planning/draftMeal": typeof functions_planning_draftMeal;
+  "functions/planning/draftMealOf": typeof functions_planning_draftMealOf;
   "functions/planning/dropMeal": typeof functions_planning_dropMeal;
   "functions/planning/limits": typeof functions_planning_limits;
   "functions/planning/loadHouseholdMeal": typeof functions_planning_loadHouseholdMeal;
@@ -350,6 +355,7 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
   "router/planning/commit": typeof router_planning_commit;
   "router/planning/getDraft": typeof router_planning_getDraft;
+  "router/planning/getDraftMeal": typeof router_planning_getDraftMeal;
   "router/planning/getMany": typeof router_planning_getMany;
   "router/planning/getOne": typeof router_planning_getOne;
   "router/planning/getPaginated": typeof router_planning_getPaginated;
