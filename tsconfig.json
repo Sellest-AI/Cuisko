@@ -23,5 +23,6 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.mts", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules", "convex", "dist", ".expo"]
+  // The worktrees other sessions open inside the repo — a full copy of the tree each.
+  "exclude": ["node_modules", "convex", "dist", ".expo", ".claude/worktrees"]
 }

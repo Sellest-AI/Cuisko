@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
@@ -122,12 +122,23 @@ beforeAll(() =>
   ),
 );
 
+/**
+ * A change to the text schedules the translation with `runAfter(0)`, which nothing here asserts
+ * on. The timers are faked so it never fires against an instance that is already gone — the
+ * reason is spelled out in `createOne.test.ts`, which shares the shape.
+ */
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
   sanitizeRun.mockReset();
   sanitizeRun.mockResolvedValue(RECIPE);
   resolveRun.mockReset();
   resolveRun.mockResolvedValue({ links: [], complete: true });
+});
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
 });
 
 describe("router/recipes/updateOne", () => {

@@ -14,6 +14,8 @@ config.resolver.blockList = [
     ? config.resolver.blockList
     : [config.resolver.blockList]),
   /[\/]\.history[\/]/,
+  // Same shape: the worktrees other sessions open under .claude/ are a full copy of the tree.
+  /[\/]\.claude[\/]worktrees[\/]/,
 ]
 
 // moti -> framer-motion -> @motionone/dom requires tslib as CJS, but tslib's package.json

@@ -16,6 +16,9 @@ module.exports = defineConfig([
       "android/**",
       "ios/**",
       "node_modules/**",
+      // Worktrees other sessions open inside the repo (git-excluded via .git/info/exclude); each
+      // carries its own convex/_generated, which would otherwise fail the hook for everyone.
+      ".claude/worktrees/**",
     ],
   },
 
