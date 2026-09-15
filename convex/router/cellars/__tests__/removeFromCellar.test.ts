@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import { UNDO_WINDOW_MS } from "@shared/groceries";
+import type { Unit } from "@shared/ingredients";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
@@ -48,7 +49,17 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
       updatedAt: Date.now(),
     });
 
-    return { userId, householdId, ingredientId };
+    const flourId = await ctx.db.insert("ingredients", {
+      name: { values: { en: "Flour" }, meta: {} },
+      category: "GRAIN",
+      emoji: "🌾",
+      defaultUnit: "g",
+      defaultQuantity: 1000,
+      nutrition: { calories: 364, protein: 10, fat: 1, carbohydrates: 76 },
+      updatedAt: Date.now(),
+    });
+
+    return { userId, householdId, ingredientId, flourId };
   });
 
 /** The scaffolding a ledger claim hangs off: one plan, one plate on it, from a one-recipe library. */
@@ -106,6 +117,7 @@ const seedBoughtClaim = async (
   ingredientId: Id<"ingredients">,
   cellarItemId: Id<"cellarItems">,
   settledAt: number,
+  bought: { quantity: number; unit: Unit } = { quantity: 4, unit: "pcs" },
 ) => {
   const plannedMealId = await seedPlate(t, householdId);
 
@@ -113,11 +125,11 @@ const seedBoughtClaim = async (
     ctx.db.insert("plannedMealIngredients", {
       plannedMealId,
       ingredientId,
-      sourceQuantity: 4,
-      sourceUnit: "pcs",
-      quantity: 4,
-      unit: "pcs",
-      groceryQuantity: 4,
+      sourceQuantity: bought.quantity,
+      sourceUnit: bought.unit,
+      quantity: bought.quantity,
+      unit: bought.unit,
+      groceryQuantity: bought.quantity,
       groceryListItemId: undefined,
       cellarItemId,
       updatedAt: settledAt,
@@ -427,6 +439,41 @@ describe("router/cellars/removeFromCellar", () => {
 
       const claim = await ctx.db.get(claimId);
       expect(claim!.groceryListItemId).toBeUndefined();
+    });
+  });
+
+  /**
+   * The restore merges into whatever row of the family the list holds, and that row may be in
+   * another unit — a kg row the shopper typed while the purchase was in g. The claim's figure is
+   * in the unit of the row it names, so it follows the restore by the same ratio the quantity did.
+   */
+  test("converts a re-linked claim's groceryQuantity when the restore lands on a row in another unit", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, flourId } = await seedHousehold(t);
+
+    const lotId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId: flourId, unit: "g", quantity: 500, updatedAt: Date.now() }),
+    );
+    const rowId = await t.run((ctx) =>
+      ctx.db.insert("groceryListItems", { householdId, ingredientId: flourId, unit: "kg", quantity: 1, updatedAt: Date.now() }),
+    );
+    const claimId = await seedBoughtClaim(t, householdId, flourId, lotId, Date.now(), { quantity: 500, unit: "g" });
+
+    await t.withIdentity(asUser(userId)).mutation(api.router.cellars.removeFromCellar.authed, {
+      householdId,
+      ingredientId: flourId,
+      unit: "g",
+      quantity: 500,
+      restoreToList: 500,
+    });
+
+    await t.run(async (ctx) => {
+      const groceryList = await ctx.db.query("groceryListItems").collect();
+      expect(groceryList).toMatchObject([{ _id: rowId, unit: "kg", quantity: 1.5 }]);
+
+      const claim = await ctx.db.get(claimId);
+      expect(claim).toMatchObject({ groceryListItemId: rowId, groceryQuantity: 0.5 });
+      expect(claim!.cellarItemId).toBeUndefined();
     });
   });
 });

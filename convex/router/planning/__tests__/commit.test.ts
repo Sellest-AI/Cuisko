@@ -189,6 +189,44 @@ describe("router/planning/commit", () => {
     expect(list).toEqual([]);
   });
 
+  /**
+   * The round trip across units. The shopper typed "1 kg" by hand before the week was kept; the
+   * week's 400 g line merges into that row rather than opening a second tile, its ledger records
+   * the 0.4 kg that landed, and dropping the plate strikes exactly that back off — the shopper's
+   * own kilogram is what is left.
+   */
+  test("merges into a row the shopper holds in another unit, and dropping the plate gives back exactly what landed", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+    const { recipeId, ingredientId } = await seedRecipe("Pain");
+    await t.run((ctx) =>
+      ctx.db.insert("groceryListItems", { householdId, ingredientId, quantity: 1, unit: "kg", updatedAt: Date.now() }),
+    );
+
+    const mealPlanId = await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.planning.commit.authed, args(householdId, recipeId, { servings: 4 }));
+
+    const kept = await t.run(async (ctx) => ({
+      list: await ctx.db.query("groceryListItems").collect(),
+      ledger: await ctx.db.query("plannedMealIngredients").collect(),
+      meals: (await ctx.db.query("plannedMeals").collect()).filter((meal) => meal.mealPlanId === mealPlanId),
+    }));
+
+    expect(kept.list).toMatchObject([{ ingredientId, unit: "kg", quantity: 1.4 }]);
+    expect(kept.ledger).toMatchObject([{ quantity: 400, unit: "g", groceryQuantity: 0.4, groceryListItemId: kept.list[0]!._id }]);
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.planning.removeOne.authed, { householdId, mealId: kept.meals[0]!._id, today: TODAY });
+
+    const list = await t.run((ctx) => ctx.db.query("groceryListItems").collect());
+    expect(list).toMatchObject([{ unit: "kg" }]);
+    // Within float noise: 1.4 - 0.4 is not exactly 1, and the list's copy is rounded for display.
+    expect(list[0]!.quantity).toBeCloseTo(1, 9);
+  });
+
   test("refuses two plates on the same day and slot", async () => {
     const householdId = await seedHousehold();
     const userId = await seedUser();

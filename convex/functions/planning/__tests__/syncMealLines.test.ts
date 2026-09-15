@@ -352,4 +352,66 @@ describe("functions/planning/syncMealLines", () => {
       expect(await listOf(home)).toMatchObject([{ quantity: 300 }]);
     });
   });
+
+  /**
+   * The list may already hold the ingredient in another unit of the same family — a shopper typed
+   * "1 kg" by hand — and the planner's line then merges into that row rather than opening a
+   * second. What the ledger records is the share that landed, in the row's unit, so backing the
+   * meal out later subtracts a number the row can actually be read in.
+   */
+  describe("landing on a row held in another unit", () => {
+    const list = (householdId: Id<"households">, ingredientId: Id<"ingredients">, unit: Unit, quantity: number) =>
+      t.run((ctx) => ctx.db.insert("groceryListItems", { householdId, ingredientId, unit, quantity, updatedAt: Date.now() }));
+
+    test("merges a g plan line into a kg row and records its groceryQuantity in kg", async () => {
+      const home = await household();
+      const meal = await plate(home);
+      const flour = await ingredient({ defaultUnit: "g" });
+      await list(home, flour, "kg", 1);
+
+      await sync(home, meal, [{ need: { ingredientId: flour, quantity: 500, unit: "g", kind: "measured", amount: 500 } }]);
+
+      expect(await listOf(home)).toMatchObject([{ unit: "kg", quantity: 1.5 }]);
+      expect(await ledgerOf(meal)).toMatchObject([{ quantity: 500, unit: "g", groceryQuantity: 0.5 }]);
+    });
+
+    /** The whole point of recording the landed figure: the back-out is exact in the row's unit. */
+    test("backing the meal out subtracts the kg figure, leaving what the shopper typed", async () => {
+      const home = await household();
+      const meal = await plate(home);
+      const flour = await ingredient({ defaultUnit: "g" });
+      await list(home, flour, "kg", 1);
+
+      await sync(home, meal, [{ need: { ingredientId: flour, quantity: 500, unit: "g", kind: "measured", amount: 500 } }]);
+      await sync(home, meal, []);
+
+      expect(await listOf(home)).toMatchObject([{ unit: "kg", quantity: 1 }]);
+    });
+
+    /** A jar bought onto a row the shopper opened in kg is a jar in kg, on the list and in the ledger. */
+    test("buys a pinch onto an off-default row in that row's unit", async () => {
+      const home = await household();
+      const meal = await plate(home);
+      const thyme = await ingredient({ category: "HERB", defaultUnit: "g", defaultQuantity: 20 });
+      await list(home, thyme, "kg", 1);
+
+      await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "cc", kind: "pinch" } }]);
+
+      expect(await listOf(home)).toMatchObject([{ unit: "kg", quantity: 1.02 }]);
+      expect(await ledgerOf(meal)).toMatchObject([{ quantity: 0, groceryQuantity: 0.02 }]);
+    });
+
+    /** The plan's kg line outranks the shopper's g row: the row moves up, and both numbers move with it. */
+    test("moves a g row up to kg when the plan shops in kg", async () => {
+      const home = await household();
+      const meal = await plate(home);
+      const flour = await ingredient({ defaultUnit: "kg" });
+      await list(home, flour, "g", 500);
+
+      await sync(home, meal, [{ need: { ingredientId: flour, quantity: 1000, unit: "g", kind: "measured", amount: 1000 } }]);
+
+      expect(await listOf(home)).toMatchObject([{ unit: "kg", quantity: 1.5 }]);
+      expect(await ledgerOf(meal)).toMatchObject([{ groceryQuantity: 1 }]);
+    });
+  });
 });

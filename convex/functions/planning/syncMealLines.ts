@@ -251,7 +251,13 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
       stock.set(line.need.ingredientId, 0);
     }
 
-    const groceryListItemId = buying
+    /**
+     * Recorded as what LANDED, not as what was asked for: the list may already hold this
+     * ingredient in another unit of the same family, in which case the write merged into that row
+     * and `contribution` is this line's share in that row's unit — the unit `_backOut` will
+     * subtract in. `buying.quantity` is in `defaultUnit` and would be the wrong number there.
+     */
+    const landed = buying
       ? await addToGroceryList(ctx, {
         householdId,
         ingredientId: line.need.ingredientId,
@@ -267,8 +273,8 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
       sourceUnit: line.need.unit,
       quantity: split.quantity,
       unit: split.unit,
-      groceryQuantity: buying?.quantity,
-      groceryListItemId,
+      groceryQuantity: landed?.contribution,
+      groceryListItemId: landed?.id,
       cellarItemId: split.reservedStock ? lots.get(line.need.ingredientId) : undefined,
       owned: line.owned,
       updatedAt: Date.now(),
