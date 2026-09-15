@@ -10,8 +10,8 @@ import { householdMutation } from "@convex/procedures";
  *
  * `householdMutation`, so membership is the authorization: the plan, its plates and the list it
  * feeds all belong to the household, and `ctx.householdId` is the only one this call can write to.
- * There is no `userId` argument — the caller's own recipes are `ctx.userId`'s, which is what lets
- * `commitPlan` refuse a plate naming somebody else's private recipe.
+ * A plate may name any recipe that exists, whoever wrote it (ADR 0014): the catalog is shared,
+ * and planning a recipe changes nothing of it.
  *
  * Only the *choices* come up: which dish on which day, for how many, and what the shopper says is
  * already in the kitchen. Every quantity is recomputed server-side against the cellar as it stands —
@@ -34,5 +34,5 @@ export const authed = householdMutation({
     owned: v.array(v.object({ ingredientId: v.id("ingredients"), unit: vUnit })),
   },
   handler: (ctx, args) =>
-    commitPlan(ctx, { ...args, householdId: ctx.householdId, userId: ctx.userId }),
+    commitPlan(ctx, { ...args, householdId: ctx.householdId }),
 });
