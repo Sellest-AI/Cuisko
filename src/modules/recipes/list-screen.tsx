@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[24],
     width: "100%"
   },
-  shelf: { marginBottom: theme.spacing[24] },
+  shelf: { marginBottom: theme.spacing[4] },
   /** Enough to read as "settling", not enough to make the cook wait to read what is there. */
   stale: { opacity: 0.5 },
 })

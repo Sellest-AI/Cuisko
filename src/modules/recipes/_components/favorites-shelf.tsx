@@ -68,10 +68,12 @@ const styles = StyleSheet.create({
   /** Out past the page gutter (`list-screen`'s `paddingHorizontal`) and back in, per row. */
   bleed: {
     marginHorizontal: -theme.spacing[16],
-    marginTop: theme.spacing[16],
+    marginTop: theme.spacing[8],
   },
   cards: {
     paddingHorizontal: theme.spacing[16],
+    paddingTop: theme.spacing[8],
+    paddingBottom: theme.spacing[20],
     gap: theme.spacing[12],
   },
 });

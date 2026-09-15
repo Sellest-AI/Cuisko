@@ -142,9 +142,10 @@ export const ButtonPill = ({
           styles.borderRadius,
           { gap, borderColor },
           { padding, paddingLeft, paddingRight },
-          { paddingHorizontal, paddingVertical, minHeight, justifyContent },
+          { paddingHorizontal, paddingVertical, minHeight },
+          { justifyContent: justifyContent ?? styles.base.justifyContent },
           elevated && styles.elevated,
-          color
+          color,
         ]}>
         {elevated && <LinearGradient
           colors={gradient}
