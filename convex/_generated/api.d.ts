@@ -89,6 +89,7 @@ import type * as functions_planning_rescaleMeal from "../functions/planning/resc
 import type * as functions_planning_scaleLines from "../functions/planning/scaleLines.js";
 import type * as functions_planning_selectMeals from "../functions/planning/selectMeals.js";
 import type * as functions_planning_syncMealLines from "../functions/planning/syncMealLines.js";
+import type * as functions_planning_weekIdeas from "../functions/planning/weekIdeas.js";
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
 import type * as functions_preferences_getPlanningSeed from "../functions/preferences/getPlanningSeed.js";
 import type * as functions_preferences_save from "../functions/preferences/save.js";
@@ -157,6 +158,7 @@ import type * as router_planning_getDraft from "../router/planning/getDraft.js";
 import type * as router_planning_getMany from "../router/planning/getMany.js";
 import type * as router_planning_getOne from "../router/planning/getOne.js";
 import type * as router_planning_getPaginated from "../router/planning/getPaginated.js";
+import type * as router_planning_getWeekIdeas from "../router/planning/getWeekIdeas.js";
 import type * as router_planning_planOne from "../router/planning/planOne.js";
 import type * as router_planning_removeOne from "../router/planning/removeOne.js";
 import type * as router_planning_setServings from "../router/planning/setServings.js";
@@ -274,6 +276,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/scaleLines": typeof functions_planning_scaleLines;
   "functions/planning/selectMeals": typeof functions_planning_selectMeals;
   "functions/planning/syncMealLines": typeof functions_planning_syncMealLines;
+  "functions/planning/weekIdeas": typeof functions_planning_weekIdeas;
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;
   "functions/preferences/getPlanningSeed": typeof functions_preferences_getPlanningSeed;
   "functions/preferences/save": typeof functions_preferences_save;
@@ -342,6 +345,7 @@ declare const fullApi: ApiFromModules<{
   "router/planning/getMany": typeof router_planning_getMany;
   "router/planning/getOne": typeof router_planning_getOne;
   "router/planning/getPaginated": typeof router_planning_getPaginated;
+  "router/planning/getWeekIdeas": typeof router_planning_getWeekIdeas;
   "router/planning/planOne": typeof router_planning_planOne;
   "router/planning/removeOne": typeof router_planning_removeOne;
   "router/planning/setServings": typeof router_planning_setServings;
