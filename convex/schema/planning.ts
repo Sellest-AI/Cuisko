@@ -59,12 +59,15 @@ export const plannedMealIngredients = defineTable({
   quantity: v.number(),
   unit: vUnit,
   /**
-   * What went onto the grocery list for this line, **in the unit that list row holds** — the
-   * ingredient's `defaultUnit`, not this row's `unit`; an unmeasured line is the exception, bought
-   * in the recipe's own words because that is the only unit it has. The household shops in
-   * "3 onions" and reserves in grams, and the two are different numbers: this one is the rounded,
-   * merged figure that actually landed, which is what backing the meal out has to give back. The
-   * unit is not stored beside it because `groceryListItemId` names the row that holds it.
+   * What went onto the grocery list for this line, **in the unit that list row holds** — not this
+   * row's `unit`, and not necessarily the ingredient's `defaultUnit` either: the write lands on
+   * whatever row of the same family the list already carries, and a row may sit in another unit
+   * of that family because a shopper typed it so. The household shops in "3 onions" and reserves
+   * in grams, and the two are different numbers: this one is the rounded, converted, merged figure
+   * that actually landed, which is what backing the meal out has to give back. The unit is not
+   * stored beside it because `groceryListItemId` names the row that holds it — an invariant
+   * `addToGroceryList` keeps when it moves a row up the unit ladder, by rewriting the row's claims
+   * in the same stroke.
    */
   groceryQuantity: v.optional(v.number()),
   groceryListItemId: v.optional(v.id("groceryListItems")),
