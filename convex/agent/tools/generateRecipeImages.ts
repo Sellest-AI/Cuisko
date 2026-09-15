@@ -122,7 +122,7 @@ const SHOTS = {
   plate: {
     width: 512,
     height: 512,
-    promptSuffix: "Shot from directly overhead at exactly 90 degrees, a true top-down view in which the plate appears as a perfect circle, the whole round plate visible and centred with an even margin of empty background on every side, the plate filling about 85% of the frame, isolated on a plain solid neon GREEN background (#00FF00), soft even diffused studio lighting, a faint soft shadow just around the rim, nothing outside the plate: no cutlery, no napkin, no crumbs, no stray garnish, crisp focus across the whole plate, true-to-life appetizing colours, professional food photography, square 1:1 aspect ratio, high resolution. No text, no watermark, no people, no hands.",
+    promptSuffix: "Shot from directly overhead at exactly 90 degrees, a true top-down view in which the plate appears as a perfect circle, the whole round plate visible and centred with an even margin of empty background on every side, the plate filling about 85% of the frame, isolated on a plain solid neon ORANGE background (#FF6D2D), soft even diffused studio lighting, a faint soft shadow just around the rim, nothing outside the plate: no cutlery, no napkin, no crumbs, no stray garnish, crisp focus across the whole plate, true-to-life appetizing colours, professional food photography, square 1:1 aspect ratio, high resolution. No text, no watermark, no people, no hands.",
     promptUpsampling: false,
   },
 } as const;
