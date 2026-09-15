@@ -76,6 +76,9 @@ export const vRecipeLink = v.object({
  * untitled scrape seeds `""` for the cook to fill in. Folding the two together would mean the next
  * change to what an edit must carry silently changed what an import returns.
  *
+ * `sourceUrl` is the page the draft was read from, canonical, and optional because the mapper
+ * that builds the draft is URL-blind: `importOne` attaches it after the scrape.
+ *
  * `RecipeDraft` in `lib/scraping/toRecipeDraft.ts` is the TypeScript half of this shape.
  */
 export const vRecipeDraft = v.object({
@@ -84,6 +87,7 @@ export const vRecipeDraft = v.object({
   servings: v.number(),
   ingredients: v.string(),
   instructions: v.string(),
+  sourceUrl: v.optional(v.string()),
 });
 
 /**

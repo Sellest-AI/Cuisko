@@ -167,7 +167,15 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         ingredients,
         instructions,
       })
-      : create({ title, description, servings, ingredients, instructions });
+      : create({
+        title,
+        description,
+        servings,
+        ingredients,
+        instructions,
+        // Where the draft came from, when it came from somewhere. `undefined` for a typed recipe.
+        sourceUrl: imported?.sourceUrl,
+      });
 
   /**
    * Held back rather than rendered empty: see `seededFor` above. An empty editable form is
