@@ -1,6 +1,6 @@
 import migrationsTest from "@convex-dev/migrations/test";
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import { internal } from "@convex/_generated/api";
 import schema from "../schema";
@@ -8,6 +8,19 @@ import { cascadeDelete } from "../functions/cascade";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
+
+/**
+ * Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts.
+ * Cold, the first test here paid 2.2s for `migrations.ts` and the component graph beneath it, and
+ * timed out under `pnpm verify` load; warmed, it pays the same as its neighbours.
+ */
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/migrations."))
+      .map(([, load]) => load()),
+  ),
+);
 
 let t: ReturnType<typeof convexTest>;
 
