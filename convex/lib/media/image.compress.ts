@@ -58,11 +58,24 @@ const compression1k: Level = {
   ]
 }
 
+const compression512: Level = {
+  resolution: 512,
+  targetSizeKb: 220,
+  initialQuality: 96,
+  compressionStrength: [
+    { sizeKb: 2 * 1024, initialQuality: 88 },
+    { sizeKb: 1 * 1024, initialQuality: 90 },
+    { sizeKb: 0.5 * 1024, initialQuality: 92 },
+    { sizeKb: 0.2 * 1024, initialQuality: 94 },
+  ]
+}
+
 const compressions: Level[] = [
   compression8k,
   compression4k,
   compression2k,
-  compression1k
+  compression1k,
+  compression512,
 ];
 
 export const getCompression = (resolution: number, sizeKb: number): Compression => {
