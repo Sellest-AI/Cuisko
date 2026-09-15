@@ -101,7 +101,8 @@
       "pick": "Choisir un plat",
       "search": "Chercher une recette…",
       "selected": "Choisi",
-      "no_match": "Aucun plat de ce nom",
+      "no_match": "Aucun plat ne correspond, ni par son nom ni par ce qu'il contient",
+      "no_recipes": "Pas encore de recette. Écris-en une, ou cherche dans le catalogue",
       "missing": "Cette assiette n'est plus au programme",
       "edit_failed_title": "Le changement n'a pas pu être enregistré",
       "edit_failed_body": "L'assiette est revenue à ce qu'elle était. Un repas déjà cuisiné, ou dont le jour est passé, ne peut plus être modifié."

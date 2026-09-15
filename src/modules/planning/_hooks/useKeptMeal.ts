@@ -8,8 +8,8 @@ import { useHousehold } from "~/modules/households/hooks";
 import { keptMealCardOf, startOfDay, type MealCard } from "../_model/model";
 
 /**
- * One plate of the kept week, and the two edits the server takes on it: its portions, and
- * whether it stays.
+ * One plate of the kept week, and the three edits the server takes on it: its portions, the dish
+ * on it, and whether it stays.
  *
  * Reads the plate itself (`getOne`) rather than taking it from the list that was tapped, because
  * the sheet is a route of its own and mounts with nothing but an id — and because the read is
@@ -32,6 +32,7 @@ export const useKeptMeal = (mealId: string | undefined) => {
 
   const { mutate: rescale } = useMutation(api.router.planning.setServings.authed);
   const { mutate: drop } = useMutation(api.router.planning.removeOne.authed);
+  const { mutate: plan } = useMutation(api.router.planning.planOne.authed);
 
   /**
    * The portions the slider shows while the server has not yet agreed to them. A step slider fires
@@ -93,6 +94,45 @@ export const useKeptMeal = (mealId: string | undefined) => {
     }
   }, [householdId, mealId, drop]);
 
+  /**
+   * A different dish on the same plate.
+   *
+   * There is no "swap" on the server: `planOne` puts a dish on a day and slot, and replaces what
+   * was there — `dropMeal` then `commitPlan`, so the old plate's claims go back before the new
+   * one's are weighed. The plate therefore comes back under a NEW id, and the sheet that opened on
+   * the old one closes on `true` rather than watching its plate vanish. Portions are the ones the
+   * slider shows, so a dish swapped mid-drag lands cooked for what the cook just asked.
+   *
+   * Resolves `false` rather than throwing, for the reason `remove` gives: a cooked plate cannot be
+   * replaced, and the sheet must stay open saying so.
+   */
+  const setRecipe = useCallback(
+    async (recipeId: string): Promise<boolean> => {
+      const servings = pending ?? meal?.servings;
+      if (!householdId || !meal || servings === undefined) return false;
+
+      try {
+        await plan({
+          householdId,
+          recipeId: recipeId as Id<"recipes">,
+          date: startOfDay(meal.date).getTime(),
+          slot: meal.slot,
+          servings,
+          today: startOfDay(new Date()).getTime(),
+        });
+        setFailed(false);
+
+        return true;
+      } catch (error) {
+        if (__DEV__) console.warn("[useKeptMeal] setRecipe failed", error);
+        setFailed(true);
+
+        return false;
+      }
+    },
+    [householdId, meal, pending, plan],
+  );
+
   return {
     meal,
     servings: pending ?? meal?.servings,
@@ -106,6 +146,7 @@ export const useKeptMeal = (mealId: string | undefined) => {
     /** The last write was refused, and the plate is as the server last had it. */
     failed,
     setServings,
+    setRecipe,
     remove,
   };
 };

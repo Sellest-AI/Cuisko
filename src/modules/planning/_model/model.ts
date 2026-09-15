@@ -9,7 +9,6 @@
 import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
 import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, type MealSlot } from "@shared/mealSlots";
-import { foldAccents } from "@shared/translations";
 
 import type { ImageProps } from "@ui/image";
 
@@ -457,27 +456,6 @@ export type Plate = {
 };
 
 /**
- * A dish, served on that plate — the kept week's shape.
- *
- * The one place a `PlannedMeal` is built from a `Recipe`, so putting a dish on an empty slot and
- * swapping the dish already on one cannot disagree about what a plate made of that recipe is. The
- * ingredients are copied rather than shared: two plates of the same dish holding the catalogue's
- * own array would edit each other.
- *
- * The editing functions below take a meal already built rather than a recipe, so they serve the
- * draft too, whose plates are a different shape — the builder is the caller's.
- */
-export const plannedMealOf = (plate: Plate, recipe: Recipe): PlannedMeal => ({
-  ...recipe,
-  ingredients: [...recipe.ingredients],
-  id: plate.id,
-  recipeId: recipe.id,
-  date: plate.date,
-  slot: plate.slot,
-  servings: plate.servings,
-});
-
-/**
  * A dish put on a slot that had none.
  *
  * The counterpart to `removeMeal`, and the reason removing is not a dead end: a plate dropped from
@@ -588,22 +566,6 @@ export const openDates = (today: Date, meals: Dated[]): Date[] => {
   for (let date = start; date.getTime() <= last; date = addDays(date, 1)) dates.push(date);
 
   return dates;
-};
-
-/** Case as well as accents — a recipe title is matched, not indexed, so nothing else reads it. */
-const _fold = (value: string) => foldAccents(value).toLowerCase();
-
-/**
- * Whether a title answers what was typed.
- *
- * Accent- and case-insensitive: `Gnocchis à poêler` has to be found by typing `poeler`, because
- * the recipes are French and the keyboard reaching for them frequently is not. An empty query
- * matches everything — a search box nobody has typed in is not a filter.
- */
-export const matchesQuery = (text: string, query: string) => {
-  const needle = _fold(query.trim());
-
-  return needle.length === 0 || _fold(text).includes(needle);
 };
 
 const _categoryRank = (id: string) => {
@@ -814,3 +776,17 @@ export const toggleTaste = <T extends string>(tastes: T[], id: T, max = MAX_TAST
 export const COOKING_TIMES = ["any", "20", "30", "60"] as const;
 
 export type CookingTime = (typeof COOKING_TIMES)[number];
+
+/**
+ * A draft plate as the server answers it, made the draft's own: its day a `Date`, its id the plate
+ * it fills.
+ *
+ * The one place a server plate becomes a `DraftMeal`, so a week `getDraft` generated and a dish
+ * `getDraftMeal` swapped in cannot disagree about what a plate on that day and slot is called —
+ * which is what lets the sheet find the plate it just created, and the review step replace one.
+ */
+export const draftMealOf = (meal: Omit<DraftMeal, "id" | "date"> & { date: number }): DraftMeal => {
+  const date = new Date(meal.date);
+
+  return { ...meal, id: plateIdFor(date, meal.slot), date };
+};

@@ -169,4 +169,45 @@ describe("useKeptMeal", () => {
     expect(await went).toBe(true);
     expect(result.current.failed).toBe(false);
   });
+  /**
+   * There is no swap on the server: the dish is put on the plate's own day and slot through
+   * `planOne`, which replaces what was there. The portions are the slider's, not the fixture's.
+   */
+  it("swaps the dish through planOne, on the plate's day and slot, for the portions shown", async () => {
+    const { result } = kept("meal-1");
+
+    act(() => void result.current.setServings(4));
+
+    let landed: Promise<boolean> | undefined;
+    act(() => { landed = result.current.setRecipe("recipe-new"); });
+
+    const swap = state.writes[1]!;
+    expect(swap.name).toContain("planOne");
+    expect(swap.args).toMatchObject({ householdId: "household-1", recipeId: "recipe-new", slot: "lunch", servings: 4 });
+    expect(swap.args.date).toBe(keptMeal("meal-1", 1, "lunch").date);
+    expect(typeof swap.args.today).toBe("number");
+
+    await settle(swap);
+
+    expect(await landed).toBe(true);
+    expect(result.current.failed).toBe(false);
+  });
+
+  it("resolves false and says so when the swap is refused", async () => {
+    const { result } = kept("meal-1");
+
+    let landed: Promise<boolean> | undefined;
+    act(() => { landed = result.current.setRecipe("recipe-new"); });
+    await settle(state.writes[0]!, "refused");
+
+    expect(await landed).toBe(false);
+    expect(result.current.failed).toBe(true);
+  });
+
+  it("swaps nothing without a plate to swap on", async () => {
+    const { result } = kept(undefined);
+
+    expect(await result.current.setRecipe("recipe-new")).toBe(false);
+    expect(state.writes).toHaveLength(0);
+  });
 });
