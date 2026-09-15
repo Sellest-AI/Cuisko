@@ -17,8 +17,14 @@ export const ROOT = process.env.CHECK_ROOT
   ? path.resolve(process.env.CHECK_ROOT)
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-// `.claude` holds the worktrees other sessions open inside the repo, each a full copy of the tree.
-const IGNORED_DIRS = new Set(["node_modules", "_generated", ".git", ".history", ".expo", "dist", ".claude"]);
+const IGNORED_DIRS = new Set(["node_modules", "_generated", ".git", ".history", ".expo", "dist"]);
+
+/**
+ * The worktrees other sessions open inside the repo, each a full copy of the tree. Matched as a
+ * path rather than added to the set above: `worktrees` is too ordinary a name to skip wherever it
+ * appears, and `.claude` itself holds agent definitions and settings that are not copies.
+ */
+const _isWorktreeRoot = (dir, entry) => entry === "worktrees" && path.basename(dir) === ".claude";
 
 /** All files under `dir` matching `ext`, recursively. Returns absolute paths. */
 export const listFiles = (dir, ext = ".ts") => {
@@ -30,7 +36,7 @@ export const listFiles = (dir, ext = ".ts") => {
   }
 
   return entries.flatMap((entry) => {
-    if (IGNORED_DIRS.has(entry)) return [];
+    if (IGNORED_DIRS.has(entry) || _isWorktreeRoot(dir, entry)) return [];
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) return listFiles(full, ext);
     return full.endsWith(ext) ? [full] : [];

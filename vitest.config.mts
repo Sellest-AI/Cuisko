@@ -20,6 +20,8 @@ const AUTOMATIC_EXCLUDE = [
   "**/dist/**",
   "**/.expo/**",
   "**/.history/**",
+  // The worktrees other sessions open inside the repo: a full copy of the tree, tests included.
+  "**/.claude/worktrees/**",
   "**/*.manual.test.ts",
 ] as const;
 
@@ -170,6 +172,7 @@ export default defineConfig({
           name: "manual",
           environment: "node",
           include: ["**/*.manual.test.ts"],
+          exclude: ["**/node_modules/**", "**/.claude/worktrees/**"],
           // Dozens of model calls plus a judge, and a cold route on OpenRouter can take a minute
           // alone.
           testTimeout: 20 * 60_000,
@@ -229,6 +232,6 @@ export default defineConfig({
         },
       },
     ],
-    exclude: ["**/node_modules/**", "**/dist/**", "**/.expo/**", "**/.history/**"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.expo/**", "**/.history/**", "**/.claude/worktrees/**"],
   },
 });
