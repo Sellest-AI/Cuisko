@@ -220,6 +220,9 @@ thing anyone has to remember.
 
 - every file in `src/modules/*/_model/` has a test in that folder's `__tests__/` 📐 C10
 - every access-gated Convex export has a rejection test 📐 C5
+- every `convex-test` file that calls through `api.` / `internal.` preloads its module in a
+  `beforeAll` — the glob is lazy, and the first test would otherwise pay the import against its
+  own timeout ([ADR 0008](./adr/0008-tests-are-layered.md), "The first test pays for the import") 📐 C10
 
 Coverage targets are not a rule ([§9](#9-rules-deliberately-not-made)). What replaces them is
 altitude: assert a domain rule against a plain object in `_model/`, and spend a mount only on what

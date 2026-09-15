@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { getFunctionName } from "convex/server";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
@@ -11,6 +11,15 @@ import schema from "../../../schema";
 // silently go missing. A leading `/` is resolved against the Vite root, giving every key the same
 // `/convex/` prefix. `*.*s` (not `*.ts`) so the generated `.js` modules come along too.
 const modules = import.meta.glob("/convex/**/*.*s");
+
+/** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/router/users/getAccount."))
+      .map(([, load]) => load()),
+  ),
+);
 
 describe("router/users/getAccount", () => {
   /**
