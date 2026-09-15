@@ -1,13 +1,17 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  convertQuantity,
   formatQuantity,
   fromStockUnit,
+  mergeGroupOf,
   pickQuantity,
   serializeIngredients,
   stockUnitOf,
   toGrams,
   toStockUnit,
+  UNITS,
+  unitScale,
 } from "../ingredients";
 
 describe("stockUnitOf", () => {
@@ -167,5 +171,76 @@ describe("fromStockUnit", () => {
     const flour = { defaultUnit: "kg" } as const;
 
     expect(fromStockUnit(toStockUnit(2, "kg", flour)!, flour)).toBe(2);
+  });
+});
+
+describe("mergeGroupOf", () => {
+  test("puts every mass unit, metric and imperial, in one family", () => {
+    for (const unit of ["kg", "g", "mg", "oz", "lb"] as const) expect(mergeGroupOf(unit)).toBe("mass");
+  });
+
+  test("puts l, ml and cl in one family", () => {
+    for (const unit of ["l", "ml", "cl"] as const) expect(mergeGroupOf(unit)).toBe("volume");
+  });
+
+  /** Pieces cannot convert; spoons are cooking measures the list never holds. */
+  test("never merges pieces or spoons", () => {
+    for (const unit of ["pcs", "cs", "cc"] as const) expect(mergeGroupOf(unit)).toBeNull();
+  });
+
+  test("rules on every unit there is", () => {
+    for (const unit of UNITS) expect([null, "mass", "volume"]).toContain(mergeGroupOf(unit));
+  });
+});
+
+describe("unitScale", () => {
+  /** The order a merged row's unit moves in: up this ladder, never down. */
+  test("ranks mass by grams and volume by millilitres", () => {
+    expect(unitScale("kg")! > unitScale("lb")!).toBe(true);
+    expect(unitScale("lb")! > unitScale("oz")!).toBe(true);
+    expect(unitScale("oz")! > unitScale("g")!).toBe(true);
+    expect(unitScale("g")! > unitScale("mg")!).toBe(true);
+    expect(unitScale("l")! > unitScale("cl")!).toBe(true);
+    expect(unitScale("cl")! > unitScale("ml")!).toBe(true);
+  });
+
+  test("has no place for pieces", () => {
+    expect(unitScale("pcs")).toBeUndefined();
+  });
+});
+
+describe("convertQuantity", () => {
+  test("converts between every pair of mass units", () => {
+    expect(convertQuantity(1, "kg", "g")).toBe(1000);
+    expect(convertQuantity(500, "g", "kg")).toBe(0.5);
+    expect(convertQuantity(1, "g", "mg")).toBe(1000);
+    expect(convertQuantity(1, "lb", "oz")).toBeCloseTo(16);
+    expect(convertQuantity(1, "kg", "lb")).toBeCloseTo(2.2046, 3);
+  });
+
+  test("converts between every pair of l, ml and cl", () => {
+    expect(convertQuantity(1, "l", "ml")).toBe(1000);
+    expect(convertQuantity(1, "l", "cl")).toBe(100);
+    expect(convertQuantity(25, "cl", "ml")).toBe(250);
+    expect(convertQuantity(500, "ml", "l")).toBe(0.5);
+  });
+
+  /** The maths is pure; `mergeGroupOf` is what keeps a spoon off the list, not this. */
+  test("still converts a spoon, because the arithmetic does not know it is a spoon", () => {
+    expect(convertQuantity(2, "cs", "ml")).toBe(30);
+    expect(convertQuantity(1, "cc", "cl")).toBe(0.5);
+  });
+
+  test("refuses a piece and refuses to cross dimensions", () => {
+    expect(convertQuantity(3, "pcs", "g")).toBeUndefined();
+    expect(convertQuantity(3, "g", "pcs")).toBeUndefined();
+    expect(convertQuantity(3, "pcs", "pcs")).toBeUndefined();
+    expect(convertQuantity(3, "g", "ml")).toBeUndefined();
+    expect(convertQuantity(3, "l", "kg")).toBeUndefined();
+  });
+
+  test("returns the same value on the identity", () => {
+    expect(convertQuantity(347, "g", "g")).toBe(347);
+    expect(convertQuantity(1.5, "l", "l")).toBe(1.5);
   });
 });

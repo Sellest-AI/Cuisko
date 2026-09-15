@@ -1,7 +1,7 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 import { UNDO_WINDOW_MS } from "@shared/groceries";
-import type { Unit } from "@shared/ingredients";
+import { convertQuantity, type Unit } from "@shared/ingredients";
 import { ConvexError } from "convex/values";
 
 import { addToGroceryList } from "./addToGroceryList";
@@ -86,7 +86,7 @@ export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<vo
   }
 
   if (restored > 0) {
-    const groceryRowId = await addToGroceryList(ctx, {
+    const landed = await addToGroceryList(ctx, {
       householdId: args.householdId,
       ingredientId: args.ingredientId,
       unit: args.unit,
@@ -97,9 +97,18 @@ export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<vo
     // shelf, so the claim is missing again — the shape it had when the week was committed,
     // pointing at the list and at no lot. Dropping the meal later now takes its groceryQuantity
     // back off the restored row, instead of finding a pointer that names nothing.
+    //
+    // Every captured claim carries its groceryQuantity in `args.unit`: `addToCellar` strikes only
+    // rows of the unit it buys in, and a claim's figure is in the unit of the row it named. When
+    // the restore merged into a row of another unit, the claims follow it by that one ratio, so
+    // the figure stays in the unit of the row the pointer names. Same unit, same figure — `pcs`
+    // has no ratio to itself, and the common case must not go through one.
+    const crossUnit = landed.unit !== args.unit;
+
     for (const claim of settledClaims) {
       await ctx.db.patch(claim._id, {
-        groceryListItemId: groceryRowId,
+        groceryListItemId: landed.id,
+        groceryQuantity: crossUnit ? convertQuantity(claim.groceryQuantity!, args.unit, landed.unit) : claim.groceryQuantity,
         cellarItemId: undefined,
         updatedAt: Date.now(),
       });
