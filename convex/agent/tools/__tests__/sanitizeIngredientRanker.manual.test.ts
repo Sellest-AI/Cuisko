@@ -82,7 +82,7 @@ import {
  * control there is for telling those two apart.
  */
 const CANDIDATES: Candidate[] = [
-  // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] }, // the incumbent
+  { name: "deepseek/deepseek-v4-flash-0731", modes: [false] }, // the incumbent
   { name: "qwen/qwen3.7-flash", modes: [false] },
   // { name: "nex-agi/nex-n2-mini", modes: [false] },
   // { name: "ibm-granite/granite-4.1-8b", modes: [false] },
