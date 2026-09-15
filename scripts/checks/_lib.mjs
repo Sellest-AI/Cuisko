@@ -17,7 +17,8 @@ export const ROOT = process.env.CHECK_ROOT
   ? path.resolve(process.env.CHECK_ROOT)
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-const IGNORED_DIRS = new Set(["node_modules", "_generated", ".git", ".history", ".expo", "dist"]);
+// `.claude` holds the worktrees other sessions open inside the repo, each a full copy of the tree.
+const IGNORED_DIRS = new Set(["node_modules", "_generated", ".git", ".history", ".expo", "dist", ".claude"]);
 
 /** All files under `dir` matching `ext`, recursively. Returns absolute paths. */
 export const listFiles = (dir, ext = ".ts") => {

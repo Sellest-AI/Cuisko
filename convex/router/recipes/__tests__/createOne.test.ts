@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
@@ -76,12 +76,29 @@ beforeAll(() =>
   ),
 );
 
+/**
+ * `authed` schedules two follow-ups with `runAfter(0)` — the translation and the images — and
+ * nothing in this file asserts on either. Left alone they fire on a real timer a few ms after the
+ * test that scheduled them, against an instance that is already gone, and Vitest reports the
+ * rejection as an unhandled error against this file — only under load, when the whole suite runs
+ * in the pre-commit hook, and never when the file runs alone.
+ *
+ * Only the timer functions are faked, so `Date.now()` stays real for the `updatedAt` columns the
+ * seeds write; and the pending timers are dropped after each test rather than run, since running
+ * them would call the model and the image service for real. The two paths have their own tests.
+ */
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
   sanitizeRun.mockReset();
   sanitizeRun.mockResolvedValue(RECIPE);
   resolveRun.mockReset();
   resolveRun.mockResolvedValue({ links: [], complete: true });
+});
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
 });
 
 /**
