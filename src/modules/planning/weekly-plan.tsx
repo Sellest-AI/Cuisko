@@ -10,6 +10,7 @@ import { resolveLocale, useTranslations } from "translations";
 
 import { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
 import { MEAL_STATUS } from "./_components/meal-status";
+import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 
 const TOGGLE_ICON_SIZE = 14;
 
@@ -70,6 +71,7 @@ export const WeeklyPlan = () => {
         style={styles.carousel}
         items={meals.map((meal) => ({
           ...meal,
+          imageSrc: meal.imageSrc ?? EMPTY_PLATE_IMAGE,
           subtitle: t(MEAL_STATUS[meal.status].key)
         }))}
         selectedIndex={selectedMealIndex}

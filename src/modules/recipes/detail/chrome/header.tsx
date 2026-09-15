@@ -3,7 +3,7 @@ import { router } from "expo-router";
 
 import { Badge } from "@ui/badge";
 import { ButtonIcon } from "@ui/button-icon";
-import { Heart, Share2, SquarePen } from "@ui/icons";
+import { CalendarPlus, Heart, Share2, SquarePen } from "@ui/icons";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import type { Tag } from "@shared/tags";
@@ -62,24 +62,16 @@ export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) =>
 
   return (
     <View style={styles.header}>
-      <View style={styles.actions}>
-        {/*
-          * The kept state is the brand disc, not `danger`: that variant is documented as
-          * destructive and is the only place in the app that fills a control with red.
-          */}
+      <View style={[styles.actions, styles.leftActions]}>
         <ButtonIcon
-          onPress={onHeart}
-          disabled={onHeart === undefined}
-          variant={isFavorited ? "primary" : "neutral"}
+          onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId } })}
+          variant="neutral"
           size="sm"
         >
-          {Heart}
+          {CalendarPlus}
         </ButtonIcon>
-        {/*
-          * Inert. A recipe is readable by any signed-in cook (ADR 0014), so a link CAN now be
-          * shared — the button, its payload and its copy are a slice of their own.
-          */}
-        <ButtonIcon variant="neutral" size="sm">{Share2}</ButtonIcon>
+      </View>
+      <View style={[styles.actions, styles.rightActions]}>
         {/*
           * Only the author gets the pencil. The read no longer proves ownership, and offering to
           * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit.
@@ -93,6 +85,23 @@ export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) =>
             {SquarePen}
           </ButtonIcon>
         )}
+        {/*
+          * Inert. A recipe is readable by any signed-in cook (ADR 0014), so a link CAN now be
+          * shared — the button, its payload and its copy are a slice of their own.
+          */}
+        <ButtonIcon variant="neutral" size="sm">{Share2}</ButtonIcon>
+        {/*
+          * The kept state is the brand disc, not `danger`: that variant is documented as
+          * destructive and is the only place in the app that fills a control with red.
+          */}
+        <ButtonIcon
+          onPress={onHeart}
+          disabled={onHeart === undefined}
+          variant={isFavorited ? "primary" : "neutral"}
+          size="sm"
+        >
+          {Heart}
+        </ButtonIcon>
       </View>
       <View style={styles.tags}>
         {tags.slice(0, VISIBLE_TAGS).map((tag) => (
@@ -117,11 +126,17 @@ const styles = StyleSheet.create({
   actions: {
     position: "absolute",
     top: SCREEN_PADDING,
-    right: SCREEN_PADDING,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-end",
     gap: theme.spacing[12],
+  },
+  rightActions: {
+    right: SCREEN_PADDING,
+    justifyContent: "flex-end",
+  },
+  leftActions: {
+    left: SCREEN_PADDING,
+    justifyContent: "flex-start",
   },
   tags: {
     position: "absolute",
