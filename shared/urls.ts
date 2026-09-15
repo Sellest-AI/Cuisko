@@ -52,3 +52,46 @@ export const httpUrlOf = (text: string): string | undefined => {
 
   return url.href;
 };
+
+/**
+ * The query parameters a share button adds and a page never reads: campaign tags and the click
+ * ids each ad network appends on the way out. A recipe page with them stripped is the same page,
+ * which is what makes them noise a canonical spelling has to drop. `utm_*` is matched by prefix
+ * because the set is open-ended; the rest are named because each is one network's fixed key.
+ */
+const TRACKING_PARAMS = new Set(["fbclid", "gclid", "msclkid", "dclid", "twclid", "sclid", "igshid"]);
+
+const _isTrackingParam = (name: string): boolean =>
+  name.toLowerCase().startsWith("utm_") || TRACKING_PARAMS.has(name.toLowerCase());
+
+/**
+ * The pasted text as the ONE spelling this app stores for a web page, or `undefined`.
+ *
+ * `httpUrlOf` first — refusal, paste artefacts and bare-host completion are its business — and
+ * then two strips on top: the tracking params above, and the fragment always, since `#comments`
+ * names a place on the page rather than a different page. Every other param is KEPT: a site's own
+ * params (`?id=1234`, `?page=2`) are what make its URL resolve, and guessing which ones matter is
+ * how a canonical URL stops pointing at the recipe.
+ *
+ * Idempotent, so a caller can apply it again without checking whether it already was — which is
+ * what lets the persist re-canonicalize what a client hands it rather than trust the client did.
+ */
+export const canonicalUrlOf = (text: string): string | undefined => {
+  const href = httpUrlOf(text);
+  if (!href) return undefined;
+
+  const url = new URL(href);
+  url.hash = "";
+
+  for (const name of [...url.searchParams.keys()]) {
+    if (_isTrackingParam(name)) url.searchParams.delete(name);
+  }
+
+  // Re-serialized ALWAYS, not only when a delete happened to: a delete rewrites the whole query in
+  // `URLSearchParams`' encoding, so without this a page pasted with a tracker would be stored as
+  // `?q=1+2` and the same page pasted without one as `?q=1%202` — two spellings, one page. It also
+  // drops a bare trailing `?`.
+  url.search = url.searchParams.toString();
+
+  return url.href;
+};

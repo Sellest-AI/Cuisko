@@ -6,17 +6,11 @@ import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
 import { type ActionCtx, authActionI18n, internalAction, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
 import { vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
-import { v } from "convex/values";
+import { type ObjectType, v } from "convex/values";
 
 type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };
 
-type Args = {
-  title?: string;
-  description?: string;
-  servings: number;
-  ingredients: string;
-  instructions: string;
-};
+type Args = ObjectType<typeof sharedArgs>;
 
 /**
  * Generating is what the cook waits for; translating is not, so it is scheduled rather than
@@ -28,16 +22,17 @@ type Args = {
  * moment the route changes. The cost falls over time on its own — every row the resolver invents
  * and every alias it remembers is one the next import finds for free.
  */
-const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
+const handler = async (ctx: Context, { sourceUrl, ...text }: Args): Promise<Id<"recipes">> => {
   const locale = ctx.i18n.locale;
 
-  const { recipe, links } = await generateRecipe(ctx, { ...args, locale });
+  const { recipe, links } = await generateRecipe(ctx, { ...text, locale });
 
   const recipeId = await ctx.runMutation(internal.router.recipes.createOne._internal_persist, {
     userId: ctx.userId,
     locale,
     recipe,
     links,
+    sourceUrl,
   });
 
   await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
@@ -59,6 +54,7 @@ const sharedArgs = {
   servings: v.number(),
   ingredients: v.string(),
   instructions: v.string(),
+  sourceUrl: v.optional(v.string()),
 };
 
 export const authed = authActionI18n({
@@ -73,7 +69,13 @@ export const _internal = internalAction({
 });
 
 export const _internal_persist = internalMutation({
-  args: { userId: v.id("users"), locale: vLocale, recipe: vSanitizedRecipe, links: v.array(vRecipeLink) },
+  args: {
+    userId: v.id("users"),
+    locale: vLocale,
+    recipe: vSanitizedRecipe,
+    links: v.array(vRecipeLink),
+    sourceUrl: v.optional(v.string()),
+  },
   handler: (ctx, args): Promise<Id<"recipes">> => saveRecipe(ctx, args),
 });
 

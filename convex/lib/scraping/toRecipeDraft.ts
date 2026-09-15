@@ -47,6 +47,11 @@ export type RecipeDraft = {
   /** One line per ingredient. The editor's textarea, which `createOne` splits back on "\n". */
   ingredients: string;
   instructions: string;
+  /**
+   * The page it came from, canonical. Not set by `toRecipeDraft`, which never sees a URL — the
+   * import action attaches it, which keeps this mapper testable against a fixture alone.
+   */
+  sourceUrl?: string;
 };
 
 const _linesOf = (groups: ScrapedGroup[]): string[] =>

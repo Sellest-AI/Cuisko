@@ -10,12 +10,24 @@ const modules = import.meta.glob("/convex/**/*.*s");
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
 
+/**
+ * The two halves of `importOneNode` that leave the process, replaced wholesale — no `importOriginal`,
+ * so `recipe-scrapers` and its Node-only dependency graph are never loaded into this runtime. What
+ * this lets the last test see is the boundary above them: the address `_extract` hands down for the
+ * fetch, and the draft it hands back up.
+ */
+const fetchPage = vi.hoisted(() => vi.fn());
+const scrapePage = vi.hoisted(() => vi.fn());
+
+vi.mock("@convex/lib/scraping/fetchPage", () => ({ fetchPage }));
+vi.mock("@convex/lib/scraping/scrapePage", () => ({ scrapePage }));
+
 let t: ReturnType<typeof convexTest>;
 
 /**
  * Deliberately narrow — see resolve.test.ts for the measurement. `importOneNode` is left out of the
- * warm set on purpose: it is a `"use node"` module and nothing in this file should reach it, which
- * is half of what the second test below proves.
+ * warm set on purpose: it is a `"use node"` module and the refusal tests must never reach it, which
+ * is half of what they prove. Only the last test crosses into it, over the mocks above.
  */
 beforeAll(() =>
   Promise.all(
@@ -34,6 +46,16 @@ beforeEach(() => {
    * that the fetch happened to fail.
    */
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("no network in tests"))));
+  fetchPage.mockReset();
+  fetchPage.mockResolvedValue("<html></html>");
+  scrapePage.mockReset();
+  scrapePage.mockResolvedValue({
+    title: "Tarte",
+    description: "",
+    yields: "4 servings",
+    ingredients: [{ name: null, items: [{ value: "1 pâte" }] }],
+    instructions: [{ name: null, items: [{ value: "Cuire." }] }],
+  });
 });
 
 describe("router/recipes/importOne", () => {
@@ -77,5 +99,30 @@ describe("router/recipes/importOne", () => {
     test("refuses javascript, before any fetch", () => refuses("javascript:alert(1)"));
 
     test("refuses empty text, before any fetch", () => refuses("   "));
+  });
+
+  /**
+   * The seam this slice adds. The draft is what the editor seeds itself from and later hands to
+   * `createOne`, so the address it carries is the one that reaches the row — and it is the CANONICAL
+   * one, trackers and fragment gone, because that spelling is what a later dedupe will key on. The
+   * fetch is made with the same spelling: a share button's params are not part of the page.
+   */
+  test("hands back the draft carrying the canonical form of the requested url", async () => {
+    const user = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", { name: "Cook" });
+      await ctx.db.insert("usersExtended", { userId, role: "USER", updatedAt: Date.now() });
+
+      return userId;
+    });
+
+    const draft = await t
+      .withIdentity(asUser(user))
+      .action(api.router.recipes.importOne.authed, {
+        url: "https://example.com/tarte?id=7&utm_source=fb&fbclid=x#comments",
+      });
+
+    expect(draft.sourceUrl).toBe("https://example.com/tarte?id=7");
+    expect(draft.title).toBe("Tarte");
+    expect(fetchPage).toHaveBeenCalledWith("https://example.com/tarte?id=7");
   });
 });

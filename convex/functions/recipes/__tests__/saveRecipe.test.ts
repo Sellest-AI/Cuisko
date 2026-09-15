@@ -95,13 +95,14 @@ const recipe = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe =>
   ingredients,
 });
 
-const save = (ingredients: SanitizedRecipe["ingredients"]) =>
+const save = (ingredients: SanitizedRecipe["ingredients"], sourceUrl?: string) =>
   t.run((ctx) =>
     saveRecipe(ctx, {
       userId: userId as Id<"users">,
       locale: "fr",
       recipe: recipe(ingredients),
       links: linksOf(ingredients),
+      sourceUrl,
     }),
   );
 
@@ -281,5 +282,37 @@ describe("functions/recipes/saveRecipe", () => {
     expect(rows.map((row) => row.position)).toEqual([0, 1, 2]);
     expect(rows.map((row) => row.quantity)).toEqual([2, 2, 1]);
     expect(rows[0]!.ingredientId).toBe(rows[2]!.ingredientId);
+  });
+
+  /**
+   * The persist is the last writer before the column, and the column is a future dedupe key: a
+   * caller that skipped the import's canonicalization — `createOne.authed` called by hand — must
+   * not be able to store a second spelling of the same page.
+   */
+  test("writes sourceUrl in canonical form, trackers stripped, even when the caller passes them", async () => {
+    const recipeId = await save(
+      [{ name: "oignon", quantity: 2, unit: "pcs" }],
+      "https://example.com/tarte?utm_source=fb&id=12#comments",
+    );
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.sourceUrl).toBe("https://example.com/tarte?id=12");
+  });
+
+  test("stores no sourceUrl for a recipe that came from nowhere", async () => {
+    const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.sourceUrl).toBeUndefined();
+  });
+
+  test("stores a sourceUrl that is not a web address as absent, rather than refusing the recipe", async () => {
+    const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }], "not a url");
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.sourceUrl).toBeUndefined();
   });
 });

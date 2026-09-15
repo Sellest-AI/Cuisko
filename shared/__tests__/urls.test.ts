@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { httpUrlOf } from "../urls";
+import { canonicalUrlOf, httpUrlOf } from "../urls";
 
 describe("httpUrlOf", () => {
   it("keeps an address that already says https", () => {
@@ -45,5 +45,50 @@ describe("httpUrlOf", () => {
   it("refuses nothing at all", () => {
     expect(httpUrlOf("")).toBeUndefined();
     expect(httpUrlOf("   ")).toBeUndefined();
+  });
+});
+
+describe("canonicalUrlOf", () => {
+  it("strips utm_* and the click-id params a share button appends", () => {
+    expect(
+      canonicalUrlOf(
+        "https://example.com/tarte?utm_source=fb&utm_medium=social&fbclid=abc&gclid=123",
+      ),
+    ).toBe("https://example.com/tarte");
+  });
+
+  it("strips the fragment, which names a place on the page and not a page", () => {
+    expect(canonicalUrlOf("https://example.com/tarte#comments")).toBe("https://example.com/tarte");
+  });
+
+  it("keeps a site's own params, since they are what make its URL resolve", () => {
+    expect(canonicalUrlOf("https://example.com/recette?id=1234&utm_campaign=x&page=2")).toBe(
+      "https://example.com/recette?id=1234&page=2",
+    );
+  });
+
+  it("spells the kept params the same way whether or not a tracker was stripped beside them", () => {
+    expect(canonicalUrlOf("https://example.com/r?q=1%202&utm_source=x")).toBe(
+      canonicalUrlOf("https://example.com/r?q=1%202"),
+    );
+    expect(canonicalUrlOf("https://example.com/r?")).toBe("https://example.com/r");
+  });
+
+  it("is idempotent", () => {
+    const once = canonicalUrlOf("https://example.com/tarte?utm_source=fb&id=1#top")!;
+
+    expect(canonicalUrlOf(once)).toBe(once);
+  });
+
+  it("is undefined for anything that is not a web address", () => {
+    expect(canonicalUrlOf("javascript:alert(1)")).toBeUndefined();
+    expect(canonicalUrlOf("dinner")).toBeUndefined();
+    expect(canonicalUrlOf("")).toBeUndefined();
+  });
+
+  it("completes a bare host to https, as httpUrlOf does", () => {
+    expect(canonicalUrlOf("marmiton.org/recettes/gateau?utm_source=x")).toBe(
+      "https://marmiton.org/recettes/gateau",
+    );
   });
 });

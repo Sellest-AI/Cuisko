@@ -110,10 +110,23 @@ export const recipes = defineTable({
   coverImageId: v.optional(v.id("images")),
   plateImageId: v.optional(v.id("images")),
 
+  /**
+   * The web page this recipe was imported from, in the ONE spelling `canonicalUrlOf` produces —
+   * trackers and fragment stripped — and absent on a recipe typed by hand.
+   *
+   * Locale-free metadata with a single writer, `saveRecipe`: the agent never sees it and the
+   * translation path never touches it, so it cannot drift out of step with anything. Nothing
+   * displays it yet; it is the fact attribution, re-import and dedupe will stand on.
+   */
+  sourceUrl: v.optional(v.string()),
+
   updatedAt: v.number(), // S5
 })
   .index("by_user", ["userId"])
   .index("by_user_id_and_shuffle_key", ["userId", "shuffleKey"])
+  // "Which recipe of this cook already came from this page" — the dedupe / re-import question.
+  // No query reads it yet; it is declared with the column so the answer is indexed from day one.
+  .index("by_user_and_source_url", ["userId", "sourceUrl"])
   .index("by_difficulty", ["difficulty"])
   // Answer "which recipe points at this image", which is what detaches it when the image is deleted
   // (CASCADE.images in functions/cascade.ts). Nothing reads them on a normal path.
