@@ -4,11 +4,13 @@ import { searchForUser } from "@convex/functions/recipes/searchForUser";
 import { authQueryI18n } from "@convex/procedures";
 
 /**
- * The caller's own recipes, narrowed by a term — matched against the recipe's name and against the
- * ingredients in it, with names ranked first. The merge and the ranking are `searchForUser`'s.
+ * Every recipe matching a term — the caller's, the seeded catalog's and other cooks' — ranked for
+ * the caller: their own first, then the ones that keep their diet, names before ingredients
+ * inside each. The merge and the ranking are `searchForUser`'s.
  *
- * Like `getAll`, it takes no `userId`: the owner is `ctx.userId`, so no argument exists that could
- * search somebody else's recipes.
+ * `authQueryI18n` and not an owned builder, deliberately: a recipe is readable by any signed-in
+ * cook (ADR 0014), and a search is a read. It takes no `userId`: the caller is `ctx.userId`, and
+ * that is who the answer is ranked for.
  */
 export const authed = authQueryI18n({
   args: { query: v.string() },

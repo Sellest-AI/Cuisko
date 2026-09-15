@@ -95,6 +95,7 @@ import type * as functions_preferences_getPlanningSeed from "../functions/prefer
 import type * as functions_preferences_save from "../functions/preferences/save.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
+import type * as functions_recipes_dietFacet from "../functions/recipes/dietFacet.js";
 import type * as functions_recipes_generateRecipe from "../functions/recipes/generateRecipe.js";
 import type * as functions_recipes_listFavorites from "../functions/recipes/listFavorites.js";
 import type * as functions_recipes_listForUser from "../functions/recipes/listForUser.js";
@@ -286,6 +287,7 @@ declare const fullApi: ApiFromModules<{
   "functions/preferences/save": typeof functions_preferences_save;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
+  "functions/recipes/dietFacet": typeof functions_recipes_dietFacet;
   "functions/recipes/generateRecipe": typeof functions_recipes_generateRecipe;
   "functions/recipes/listFavorites": typeof functions_recipes_listFavorites;
   "functions/recipes/listForUser": typeof functions_recipes_listForUser;
