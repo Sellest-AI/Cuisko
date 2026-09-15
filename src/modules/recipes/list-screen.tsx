@@ -1,4 +1,4 @@
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle, Keyboard } from "react-native";
 import { colors, theme } from "theme";
 import { Text } from "@ui/text";
 import { ForkKnife, ForkKnifeIcon, Search, X } from "@ui/icons";
@@ -96,7 +96,7 @@ export const RecipesScreen = ({ style }: Props) => {
               onChangeText={setQuery}
               placeholder={t("search_placeholder")}
               rightIcon={query.length > 0 ? X : Search}
-              onRightPress={() => setQuery("")}
+              onRightPress={() => { Keyboard.dismiss(); setQuery(""); }}
               style={styles.search}
             />
             {showsShelf && (
@@ -111,7 +111,8 @@ export const RecipesScreen = ({ style }: Props) => {
                 style={styles.shelf}
               />
             )}
-            {recipes.length !== 0 && <Text.Lg>{t("yours")}</Text.Lg>}
+            {/* A mixed result set is not "your recipes": the heading says which of the two the grid is. */}
+            {recipes.length !== 0 && <Text.Lg>{t(isSearching ? "matches" : "yours")}</Text.Lg>}
           </SafeAreaView>
         }
         keyExtractor={({ id }) => id}
