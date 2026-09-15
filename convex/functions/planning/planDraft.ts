@@ -3,17 +3,15 @@ import { ConvexError } from "convex/values";
 import type { Id } from "@convex/_generated/dataModel";
 import { getImage } from "@convex/functions/media/getImage";
 import { toRecipeCard } from "@convex/functions/recipes/recipeCard";
-import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import type { Allergen } from "@shared/allergens";
-import type { Category } from "@shared/categories";
 import type { Diet } from "@shared/diets";
-import type { Unit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 
 import { availableStock } from "./availableStock";
 import { candidatePool, OWN_SHARE } from "./candidatePool";
+import { draftMealOf, type DraftMeal } from "./draftMealOf";
 import { isDistinct, MAX_DAYS, MAX_SERVINGS } from "./limits";
 import { selectMeals, type Plate } from "./selectMeals";
 
@@ -30,30 +28,6 @@ type Args = {
   today: number;
   diet: Diet;
   avoids: Allergen[];
-};
-
-export type DraftIngredient = {
-  ingredientId: Id<"ingredients">;
-  name: string;
-  emoji: string;
-  category: Category;
-  imageUrl?: string;
-  /** The recipe's own words, scaled to the plate — "2 pcs", not the grams stock is counted in. */
-  amount: number;
-  unit: Unit;
-  covered: boolean;
-};
-
-/** One plate of a week nobody has agreed to yet: what the review step draws and `commit` will persist. */
-export type DraftMeal = {
-  recipeId: Id<"recipes">;
-  date: number;
-  slot: MealSlot;
-  servings: number;
-  title: string;
-  minutes?: number;
-  imageUrl?: string;
-  ingredients: DraftIngredient[];
 };
 
 /**
@@ -131,32 +105,16 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
     ).then((entries) => new Map(entries)),
   ]);
 
-  return selected.map(({ plate, candidate, covered }) => {
-    const { card } = cards.get(candidate.recipeId)!;
-    const isCovered = new Set(covered);
-
-    return {
+  return selected.map(({ plate, candidate, covered }) =>
+    draftMealOf({
+      plate,
       recipeId: candidate.recipeId,
-      date: plate.date,
-      slot: plate.slot,
-      servings: plate.servings,
-      title: card.title,
-      minutes: card.minutes,
-      imageUrl: card.plateImageUrl,
-      ingredients: candidate.needs.map((need) => {
-        const ingredient = pool.ingredients.get(need.ingredientId)!;
-
-        return {
-          ingredientId: need.ingredientId,
-          name: resolvei18n(ingredient.name, args.locale),
-          emoji: ingredient.emoji,
-          category: ingredient.category,
-          imageUrl: ingredientImages.get(need.ingredientId),
-          amount: need.quantity,
-          unit: need.unit,
-          covered: isCovered.has(need),
-        };
-      }),
-    };
-  });
+      card: cards.get(candidate.recipeId)!.card,
+      needs: candidate.needs,
+      covered,
+      ingredients: pool.ingredients,
+      ingredientImages,
+      locale: args.locale,
+    }),
+  );
 };

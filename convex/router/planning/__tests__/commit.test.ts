@@ -117,13 +117,31 @@ describe("router/planning/commit", () => {
     ).rejects.toThrow();
   });
 
-  /** The plate ids arrive from the client, so a crafted commit must not copy a private recipe into a week. */
-  test("rejects a plate naming another user's private recipe", async () => {
+  /** The catalog is shared (ADR 0014): a plate may name another cook's recipe, and the plate holds only its id. */
+  test("commits a plate naming another cook's recipe", async () => {
     const householdId = await seedHousehold();
     const userId = await seedUser();
     await join(householdId, userId);
     const strangerId = await seedUser();
-    const { recipeId } = await seedRecipe("Secret", strangerId);
+    const { recipeId } = await seedRecipe("Shared", strangerId);
+
+    const mealPlanId = await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.planning.commit.authed, args(householdId, recipeId));
+
+    const meals = await t.run(async (ctx) =>
+      (await ctx.db.query("plannedMeals").collect()).filter((meal) => meal.mealPlanId === mealPlanId),
+    );
+
+    expect(meals).toMatchObject([{ recipeId }]);
+  });
+
+  test("rejects a plate naming a recipe that does not exist", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+    const { recipeId } = await seedRecipe("Gone");
+    await t.run((ctx) => ctx.db.delete(recipeId));
 
     await expect(
       t.withIdentity(asUser(userId)).mutation(api.router.planning.commit.authed, args(householdId, recipeId)),

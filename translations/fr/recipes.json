@@ -3,8 +3,9 @@
   "search_placeholder": "Rechercher une recette",
   "favorites": "Tes recettes favorites",
   "yours": "Tes recettes",
+  "matches": "Résultats",
   "empty_title": "Aucune recette",
   "empty_body": "Écris ta première recette et tu la retrouveras ici.",
   "no_matches_title": "Aucun résultat",
-  "no_matches_body": "Aucune de tes recettes ne correspond à « {{query}} », ni par son nom ni par ce qu'elle contient."
+  "no_matches_body": "Aucune recette ne correspond à « {{query}} », ni par son nom ni par ce qu'elle contient."
 }

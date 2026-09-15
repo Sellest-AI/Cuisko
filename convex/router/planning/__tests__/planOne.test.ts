@@ -131,13 +131,15 @@ describe("router/planning/planOne", () => {
     expect(await platesOf(householdId)).toEqual([]);
   });
 
-  test("rejects another user's private recipe", async () => {
+  /** The catalog is shared (ADR 0014): another cook's recipe lands on the plate like any other. */
+  test("plans another cook's recipe", async () => {
     const { userId, householdId } = await seedMember();
     const elsewhere = await seedMember();
-    const { recipeId } = await seedRecipe("Secret", elsewhere.userId);
+    const { recipeId } = await seedRecipe("Shared", elsewhere.userId);
 
-    await expect(planOne(userId, householdId, recipeId)).rejects.toThrow();
-    expect(await platesOf(householdId)).toEqual([]);
+    await planOne(userId, householdId, recipeId);
+
+    expect(await platesOf(householdId)).toMatchObject([{ recipeId }]);
   });
 
   /** A plan of one plate, with no shuffle behind it, and the missing 200 g on the list. */

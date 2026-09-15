@@ -100,7 +100,8 @@
       "pick": "Pick a meal",
       "search": "Search recipes…",
       "selected": "Selected",
-      "no_match": "No dish by that name",
+      "no_match": "No dish matches, by name or by what is in it",
+      "no_recipes": "No recipes yet. Write one, or search the catalog",
       "missing": "That plate is no longer in the plan",
       "edit_failed_title": "The change couldn't be saved",
       "edit_failed_body": "The plate is back to what it was. A meal already cooked, or whose day has passed, can't be changed any more."

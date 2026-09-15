@@ -23,7 +23,6 @@ export type CommittedPlate = {
 
 type Args = {
   householdId: Id<"households">;
-  userId: Id<"users">;
   plates: CommittedPlate[];
   /** How many the run was planned for. Stored on the plan; a plate carries its own `servings`. */
   people: number;
@@ -65,21 +64,20 @@ const _isValidRequest = ({ plates, people, seed }: Args) => {
 };
 
 /**
- * The recipes the plates name, refusing any the caller is not entitled to plan.
+ * The recipes the plates name, each read once however many plates repeat it.
  *
- * The catalog (`userId` unset) and the caller's own, and nothing else: the ids arrive from the
- * client, and without this check a crafted `commit` would copy another household's private recipe
- * into a week — ingredient lines and all — which is the boundary `candidatePool` keeps by never
- * relaxing the first field of its index.
+ * Any recipe that exists may be planned, whoever wrote it: a recipe is readable by any signed-in
+ * cook (ADR 0014), and planning one copies nothing of it — the plate holds an id, and its lines
+ * are re-read from the recipe at commit time. What a cook is protected against is a stranger
+ * *editing* their recipe, and that gate is on the write path, not here.
  */
-const _recipesFor = async (ctx: MutationCtx, plates: CommittedPlate[], userId: Id<"users">) => {
+const _recipesFor = async (ctx: MutationCtx, plates: CommittedPlate[]) => {
   const recipes = new Map<Id<"recipes">, Doc<"recipes">>();
 
   for (const recipeId of new Set(plates.map((plate) => plate.recipeId))) {
     const recipe = await ctx.db.get(recipeId);
 
     if (!recipe) throw new ConvexError({ code: "NOT_FOUND", message: "No such recipe." });
-    if (recipe.userId !== undefined && recipe.userId !== userId) throw new ConvexError({ code: "FORBIDDEN" });
 
     recipes.set(recipeId, recipe);
   }
@@ -111,7 +109,7 @@ export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"meal
   if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_INPUT" });
 
   const plates = _inOrder(args.plates);
-  const recipes = await _recipesFor(ctx, plates, args.userId);
+  const recipes = await _recipesFor(ctx, plates);
   /** Every plate's recipe lines, read once however many plates repeat the dish. */
   const lines = new Map<Id<"recipes">, ResolvedLine[]>();
 

@@ -9,7 +9,6 @@ import { dropMeal } from "./dropMeal";
 
 type Args = {
   householdId: Id<"households">;
-  userId: Id<"users">;
   recipeId: Id<"recipes">;
   /** Local-day timestamp, the client's — "Tuesday" has to mean its Tuesday. */
   date: number;
@@ -50,7 +49,6 @@ export const planMeal = async (ctx: MutationCtx, args: Args): Promise<Id<"mealPl
 
   return commitPlan(ctx, {
     householdId: args.householdId,
-    userId: args.userId,
     plates: [{ recipeId: args.recipeId, date: args.date, slot: args.slot, servings: args.servings }],
     people: args.servings,
     today: args.today,

@@ -6,8 +6,7 @@ import type { Taste } from "@shared/tastes";
 
 import type { Constraint } from "../_model/constraints";
 
-import { MAX_DAYS, type CookingTime, type DraftMeal, type MealSlot, type PlannedMeal } from "../_model/model";
-import { PLACEHOLDER_MEALS } from "./placeholders";
+import { MAX_DAYS, type CookingTime, type DraftMeal, type MealSlot } from "../_model/model";
 
 /**
  * What the tunnel OFFERS a household that has never answered.
@@ -125,22 +124,11 @@ export const seeksAtom = atom<NutritionPreference[] | null>(null);
 export const cookingTimeAtom = atom<CookingTime>("any");
 
 /**
- * What is left of the placeholder week: the plates the meal sheet mints on an EMPTY slot of the
- * kept week, which nothing reads.
- *
- * The kept week itself lives in Convex now — the list and home read it (`usePlanningList`,
- * `useWeeklyPlan`), and a plate opened from the list is edited on the server (`useKeptMeal`). Only
- * filling an empty slot still lands here, until `planOne` writes it; that slice deletes this atom
- * and the placeholders with it.
- */
-export const planMealsAtom = atom<PlannedMeal[]>(PLACEHOLDER_MEALS);
-
-/**
  * Filled by the generating step, read by the review step, spent by the grocery step.
  *
- * Deliberately *not* `planMealsAtom`: a week the user is still reviewing has not been agreed to,
- * and writing the generation straight into the plan would replace a week they were keeping with
- * one they had not yet said yes to.
+ * Deliberately not the kept week, which lives in Convex: a week the user is still reviewing has
+ * not been agreed to, and writing the generation straight into the plan would replace a week they
+ * were keeping with one they had not yet said yes to.
  *
  * The last step commits it through `usePlanCommit`; a run's reset drops whatever was left
  * uncommitted. What a second week then does to the days already planned — replace them or merge

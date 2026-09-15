@@ -7,7 +7,7 @@ import { useQueryCached } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 import { runConstraintsOf } from "../_model/constraints";
-import { planDates, plateIdFor, startOfDay, type DraftMeal } from "../_model/model";
+import { draftMealOf, planDates, startOfDay, type DraftMeal } from "../_model/model";
 import { constraintsAtom, daysAtom, peopleAtom, slotsAtom } from "./atoms";
 
 /**
@@ -21,8 +21,7 @@ import { constraintsAtom, daysAtom, peopleAtom, slotsAtom } from "./atoms";
  * (`runConstraintsOf`), rather than letting the server read the stored preferences the generating
  * step is writing at the same moment.
  *
- * Each meal lands as the server sent it, with its day made a `Date` and its plate named by
- * `plateIdFor` — see `DraftMeal`.
+ * Each meal lands as the server sent it, made the draft's own by `draftMealOf` — see `DraftMeal`.
  */
 export const usePlanDraft = ({ seed }: { seed: number }) => {
   const locale = useLocale();
@@ -51,15 +50,7 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
 
   const { data, isPending, isError } = useQueryCached(api.router.planning.getDraft.authed, args);
 
-  const meals = useMemo(
-    (): DraftMeal[] =>
-      (data ?? []).map((meal) => {
-        const date = new Date(meal.date);
-
-        return { ...meal, id: plateIdFor(date, meal.slot), date };
-      }),
-    [data],
-  );
+  const meals = useMemo((): DraftMeal[] => (data ?? []).map(draftMealOf), [data]);
 
   return {
     meals,

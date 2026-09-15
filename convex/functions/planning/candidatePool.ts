@@ -3,6 +3,8 @@ import type { QueryCtx } from "@convex/procedures";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
 
+import { suitsDiet } from "@convex/functions/recipes/dietFacet";
+
 import { scaleLines } from "./scaleLines";
 import type { Candidate } from "./selectMeals";
 
@@ -39,20 +41,6 @@ const CANDIDATES_PER_PLATE = 3;
 
 /** Mirrors `selectMeals`' own-share cap, so the caller's recipes are loaded only as deep as they can be used. */
 export const OWN_SHARE = 0.3;
-
-/** The recipe facet a diet is promised by. `dietTagsOf` nests them, so one flag per diet is complete. */
-const _suitsDiet = (recipe: Doc<"recipes">, diet: Diet) => {
-  switch (diet) {
-    case "vegan":
-      return recipe.isVegan;
-    case "vegetarian":
-      return recipe.isVegetarian;
-    case "pescatarian":
-      return recipe.isPescatarian;
-    case "omnivore":
-      return true;
-  }
-};
 
 /** The span `randomShuffleKey` draws from: every unsigned 32-bit integer. */
 const SHUFFLE_KEY_SPAN = 2 ** 32;
@@ -155,7 +143,7 @@ export const candidatePool = async (ctx: PoolCtx, { userId, seed, servings, plat
   const wanted = plates * CANDIDATES_PER_PLATE;
 
   const [catalog, mine] = await Promise.all([_window(ctx, undefined, seed), _window(ctx, userId, seed)]);
-  const suits = (recipe: Doc<"recipes">) => _suitsDiet(recipe, diet);
+  const suits = (recipe: Doc<"recipes">) => suitsDiet(recipe, diet);
 
   await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false }, pool);
 

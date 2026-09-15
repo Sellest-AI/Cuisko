@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { useCallback, useMemo } from "react";
+import { Keyboard, Platform, StyleSheet, View } from "react-native";
 
 import { Badge } from "@ui/badge";
 import { CardChoice } from "@ui/cards/choice";
-import { CheckIcon, DatabaseX, Search, Trash2 } from "@ui/icons";
+import { CheckIcon, DatabaseX, Search, Trash2, X } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { Input } from "@ui/input";
 import { ModalScrollView } from "@ui/modal-scroll-view";
@@ -14,12 +14,13 @@ import { useTranslations } from "translations";
 
 import { useModalAction } from "~/modules/navigation/modal-action";
 
-import { MEAL_STATUS } from "./_components/meal-status";
 import { SectionLabel } from "./_components/section-label";
+import type { MealChoice } from "./_hooks/useMealCatalog";
 import { useMealEditor, type MealScope, type MealTarget } from "./_hooks/useMealEditor";
-import { MAX_SERVINGS, parseDateParam, parseMealSlot, type Recipe } from "./_model/model";
+import { MAX_SERVINGS, parseDateParam, parseMealSlot } from "./_model/model";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
+import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 
 const COLUMNS = 2;
 const GUTTER = theme.spacing[16];
@@ -44,20 +45,15 @@ const Nothing = ({ label }: { label: string }) => (
   </View>
 );
 
-/** The pill under a tile: what this dish would cost the kitchen, or that it is the one on the plate. */
-const RecipeBadge = ({ recipe, selected }: { recipe: Recipe; selected: boolean }) => {
+/** The pill under the one tile that is already on the plate. The others carry none: a search card is not weighed against the cellar. */
+const SelectedBadge = () => {
   const t = useTranslations("Planning");
-  const status = MEAL_STATUS[recipe.status];
 
-  if (selected) return <Badge
-    icon={CheckIcon}
-    variant="neutral"
-    textColor={theme.colors.neutral.foreground}
-  >
-    {t("Tunnel.Meal.selected")}
-  </Badge>;
-
-  return <Badge icon={status.icon} variant={status.badge}>{t(status.key)}</Badge>;
+  return (
+    <Badge icon={CheckIcon} variant="neutral" textColor={theme.colors.neutral.foreground}>
+      {t("Tunnel.Meal.selected")}
+    </Badge>
+  );
 };
 
 type EditorProps = {
@@ -65,11 +61,15 @@ type EditorProps = {
   servings: number;
   /** The dish on the plate. Absent while the slot is still empty — nothing is marked selected. */
   selectedRecipeId?: string;
-  recipes: Recipe[];
+  recipes: MealChoice[];
+  /** Whether a term is narrowing the grid, which decides what an empty grid means. */
+  isSearching: boolean;
+  /** True while the tiles on screen are the previous term's, and a better set is in flight. */
+  isStale: boolean;
   query: string;
   setQuery: (query: string) => void;
   setServings: (servings: number) => void;
-  choose: (recipe: Recipe) => void;
+  choose: (recipe: MealChoice) => void;
   /** The server refused the last edit and the plate is back to what it was. */
   failed?: boolean;
 };
@@ -78,6 +78,8 @@ const Editor = ({
   servings,
   selectedRecipeId,
   recipes,
+  isSearching,
+  isStale,
   query,
   setQuery,
   setServings,
@@ -85,19 +87,6 @@ const Editor = ({
   failed = false,
 }: EditorProps) => {
   const t = useTranslations("Planning");
-  /**
-   * The dish on the plate when the sheet opened. Pinned rather than read live, so tapping a tile
-   * does not reshuffle the grid under the finger that tapped it — on an empty slot there is
-   * nothing to pin, and the catalogue keeps the order it came in.
-   */
-  const [pinnedRecipeId] = useState(selectedRecipeId);
-
-  const ordered = useMemo(
-    () => [...recipes].sort((first, second) =>
-      Number(second.id === pinnedRecipeId) - Number(first.id === pinnedRecipeId)),
-    [recipes, pinnedRecipeId],
-  );
-
 
   return (
     <ModalScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
@@ -108,24 +97,28 @@ const Editor = ({
       )}
       <SectionLabel label={t("Tunnel.Meal.portions")} value={String(servings)} />
       <StepSlider value={servings} max={MAX_SERVINGS} onChange={setServings} />
-      <SectionLabel
-        label={t(selectedRecipeId ? "Tunnel.Meal.change" : "Tunnel.Meal.pick")}
-        value={String(recipes.length)}
-      />
+      <SectionLabel label={t(selectedRecipeId ? "Tunnel.Meal.change" : "Tunnel.Meal.pick")} />
       <Input
         value={query}
         onChangeText={setQuery}
         placeholder={t("Tunnel.Meal.search")}
-        rightIcon={Search}
+        rightIcon={query.length > 2 ? X : Search}
+        onRightPress={() => { setQuery(""); Keyboard.dismiss(); }}
         style={styles.search}
       />
+      {/* An empty grid under a term is a dead end; under an empty box it is a library with nothing in it yet. */}
       {recipes.length === 0 ? (
-        <Text.Base color={theme.colors.muted}>{t("Tunnel.Meal.no_match")}</Text.Base>
+        <View style={styles.emptyText}>
+          <Text.Base color={theme.colors.muted} style={{ textAlign: "center" }}>
+            {t(isSearching ? "Tunnel.Meal.no_match" : "Tunnel.Meal.no_recipes")}
+          </Text.Base>
+        </View>
       ) : (
         <FlashList
           numColumns={COLUMNS}
-          data={ordered}
-          style={styles.grid}
+          data={recipes}
+          /** Dimmed while the tiles are the previous term's — see `isStale`. */
+          style={isStale ? { ...styles.grid, ...styles.stale } : styles.grid}
           scrollEnabled={false}
           renderItem={({ item: recipe, index }) => {
             const selected = recipe.id === selectedRecipeId;
@@ -135,19 +128,20 @@ const Editor = ({
                 paddingRight: index % COLUMNS === 0 ? GAP / 2 : 0,
                 paddingLeft: index % COLUMNS === 1 ? GAP / 2 : 0,
                 paddingBottom: GAP,
+                flex: 1
               }}>
                 <CardChoice
                   key={recipe.id}
                   tone="neutral"
                   label={recipe.title}
-                  imageSrc={recipe.imageSrc}
+                  imageSrc={recipe.imageSrc ?? EMPTY_PLATE_IMAGE}
                   selected={selected}
                   elevated={selected}
                   onPress={() => choose(recipe)}
                   onLongPress={() => router.push(`/recipe/${recipe.id}`)}
                   imageStyle={{ height: TILE_IMAGE_HEIGHT }}
-                  badge={<RecipeBadge recipe={recipe} selected={selected} />}
-                  style={{ padding: theme.spacing[12], width: "100%" }}
+                  badge={selected ? <SelectedBadge /> : undefined}
+                  style={{ padding: theme.spacing[12], width: "100%", flex: 1 }}
                 />
               </View>
             );
@@ -162,9 +156,9 @@ const Editor = ({
  * The plate the list tapped: cooked for how many, made of what, or dropped from the week — and on
  * an empty slot, the same sheet with nothing on it yet.
  *
- * Picking a dish does not close the sheet. The three questions are one visit — a user swapping a
- * dish is the one most likely to want the portions changed with it, and a sheet that shuts on the
- * first answer makes them open it again to give the second.
+ * Picking a dish closes the sheet: the portions are set on the slider above the grid first, and
+ * the dish is the last answer. It closes only once the dish landed — a refused swap keeps the
+ * sheet open, with the banner saying why.
  *
  * A route of its own rather than a sheet inside the review step, so the planning screen can reach
  * the same plate later. Its params are therefore untrusted, and validated before a hook runs.
@@ -185,10 +179,11 @@ const Sheet = ({ target, scope, onClose }: {
     if (await remove()) onClose();
   }, [remove, onClose]);
 
-  const choose = useCallback((recipe: Recipe) => {
-    editor.choose(recipe);
-    onClose();
-  }, [editor, onClose]);
+  const { choose: pick } = editor;
+
+  const choose = useCallback(async (recipe: MealChoice) => {
+    if (await pick(recipe)) onClose();
+  }, [pick, onClose]);
 
   /** Nothing to throw away until a dish is on the plate, so the slot opens without the action. */
   useModalAction(meal ? { icon: Trash2, onPress: destroy, variant: "danger" } : null);
@@ -258,7 +253,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  emptyText: {
+    paddingVertical: theme.spacing[32],
+    maxWidth: 280,
+    textAlign: "center",
+    alignItems: "center",
+    alignSelf: "center",
+  },
   search: { marginBottom: theme.spacing[12] },
   banner: { marginBottom: theme.spacing[16] },
-  grid: { width: "100%" }
+  grid: { width: "100%" },
+  stale: { opacity: 0.5 },
 });

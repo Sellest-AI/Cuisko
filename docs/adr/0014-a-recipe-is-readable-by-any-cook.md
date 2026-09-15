@@ -16,9 +16,11 @@ supersedes: []
   stays the flag the screen reads.
 - The write gate MUST NOT move. `updateOne` keeps its ownership check before a write, and every
   future mutation on a recipe document does the same (ADR 0003).
-- Discovery is NOT gated by this record. `getAll` and `search` list only the caller's own recipes
-  today, and that is scope, not a rule: searching every recipe and seeing who wrote it is a slice
-  of its own, and nothing here stands in its way.
+- Discovery follows the read. `search` spans every recipe — the caller's, the seeded catalog's and
+  other cooks' — and ranks rather than filters: the caller's own first, then the ones that keep
+  their stored diet, names before ingredients inside each band (`searchForUser`). `getAll` stays
+  the caller's own list, because it is the list they wrote, not a search. Seeing who wrote a match
+  is still a slice of its own: an author ships as a name (ADR 0010), not as a `userId`.
 - The editor MUST guard itself, since its read is no longer owner-only: `useRecipeDraft` folds
   `isOwned === false` into the missing state, so a crafted `/recipe/edit/[foreignId]` deep link
   renders as missing, not as an editable form. The detail header hides the pencil unless

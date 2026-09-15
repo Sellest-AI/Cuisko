@@ -82,21 +82,21 @@ describe("router/recipes/search", () => {
   });
 
   /**
-   * The claim that matters for a search route specifically. `getAll` can only leak a whole list,
-   * which is obvious; a search leaks one row at a time, to whoever guesses a word in it — so the
-   * stranger's recipe below is one the term matches, and the correct answer is still nothing.
+   * The catalog is shared (ADR 0014): another cook's recipe is an answer, ranked after the
+   * caller's own. The ranking itself is pinned in `functions/recipes/__tests__/searchForUser.test.ts`;
+   * this only pins that the route reaches past the caller.
    */
-  test("does not return another cook's matching recipe", async () => {
+  test("returns another cook's matching recipe, after the caller's own", async () => {
     const userId = await seedUser("Franck");
     const strangerId = await seedUser("Stranger");
     await seedRecipe(strangerId, "Tomato soup", "tomato");
-    await seedRecipe(userId, "Bean stew", "beans");
+    await seedRecipe(userId, "Bean stew", "tomato beans");
 
     const found = await t
       .withIdentity(asUser(userId))
       .query(api.router.recipes.search.authed, { query: "tomato", locale: "en" });
 
-    expect(found).toEqual([]);
+    expect(found.map((recipe) => recipe.title)).toEqual(["Bean stew", "Tomato soup"]);
   });
 
   test("returns the caller's own match", async () => {

@@ -10,7 +10,7 @@ import { toGrams, type Unit } from "@shared/ingredients";
 import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
-import { coverOf, type RecipeCard, toRecipeCard } from "./recipeCard";
+import { coverOf, plateOf, type RecipeCard, toRecipeCard } from "./recipeCard";
 
 type LoadCtx = Pick<QueryCtx, "db">;
 
@@ -84,6 +84,12 @@ export type RecipeDetail = RecipeCard & {
    * on which payload it arrived in. Absent in the same cases as the card's.
    */
   coverImageLargeUrl?: string;
+  /**
+   * The plate at its large size, for the header that spans the screen, beside the card's medium
+   * `plateImageUrl`. Two fields rather than one, so a name never means a different file depending
+   * on which payload it arrived in. Absent in the same cases as the card's.
+   */
+  plateImageLargeUrl?: string;
   /**
    * What the recipe adds up to, or nothing at all.
    *
@@ -286,17 +292,19 @@ export const loadRecipe = async (
 ): Promise<RecipeDetail> => {
   const recipe = await _resolve(ctx, target);
 
-  const [{ lines, lineCount }, chef, cover, flags] = await Promise.all([
+  const [{ lines, lineCount }, chef, cover, plate, flags] = await Promise.all([
     _linesOf(ctx, recipe._id, locale),
     _chefOf(ctx, recipe.userId),
     coverOf(ctx, recipe),
+    plateOf(ctx, recipe),
     _flagsOf(ctx, recipe, viewerId),
   ]);
 
   return {
     ...flags,
-    ...toRecipeCard(recipe, locale, cover, null),
+    ...toRecipeCard(recipe, locale, cover, plate),
     coverImageLargeUrl: cover?.sizes.large.url,
+    plateImageLargeUrl: plate?.sizes.large.url,
     description: resolvei18n(recipe.description, locale),
     instructions: parseInstructions(resolvei18n(recipe.instructions, locale)),
     servings: recipe.servings,

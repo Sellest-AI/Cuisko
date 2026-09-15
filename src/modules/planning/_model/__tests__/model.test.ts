@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   addMeal,
+  draftMealOf,
   buildRows,
   dayStatusFor,
   groceriesFor,
@@ -13,14 +14,12 @@ import {
   keptMealCardOf,
   openDates,
   type KeptMeal,
-  matchesQuery,
   ownedLinesOf,
   MAX_SERVINGS,
   MAX_TASTES,
   parseDateParam,
   parseMealSlot,
   planDates,
-  plannedMealOf,
   planSections,
   plateIdFor,
   removeMeal,
@@ -35,6 +34,7 @@ import {
   type DraftMeal,
   type MealIngredient,
   type MealSlot,
+  type Plate,
   type PlannedMeal,
   type Recipe,
 } from "../model";
@@ -65,6 +65,17 @@ const RISOTTO: Recipe = {
   id: "risotto", title: "Risotto aux cèpes", minutes: 45, servings: 2,
   status: "shopping-needed", emoji: "🍚", ingredients: [BEEF],
 };
+
+/** A dish served on a plate, the way a caller of `addMeal` / `replaceMeal` builds one. */
+const plated = (plate: Plate, recipe: Recipe): PlannedMeal => ({
+  ...recipe,
+  ingredients: [...recipe.ingredients],
+  id: plate.id,
+  recipeId: recipe.id,
+  date: plate.date,
+  slot: plate.slot,
+  servings: plate.servings,
+});
 
 const TOMATO_LINE: DraftIngredient = {
   ingredientId: "tomato", name: "Tomates", category: "VEGETABLE", emoji: "🍅",
@@ -445,7 +456,7 @@ describe("addMeal", () => {
   const plate = { id: "2026-08-13:dinner", date: day(1), slot: "dinner" as MealSlot, servings: 3 };
 
   it("puts the dish on the slot asked for, leaving the rest of the week alone", () => {
-    const week = addMeal([meal("a", "lunch")], plannedMealOf(plate, RISOTTO));
+    const week = addMeal([meal("a", "lunch")], plated(plate, RISOTTO));
 
     expect(week.map((entry) => entry.id)).toEqual(["a", "2026-08-13:dinner"]);
     expect(week[1]).toMatchObject({
@@ -459,12 +470,12 @@ describe("addMeal", () => {
 
   /** The same guard `setMealServings` applies: a route param could ask for a plate for nobody. */
   it("clamps the portions it is created for", () => {
-    expect(addMeal([], plannedMealOf({ ...plate, servings: 0 }, RISOTTO))[0]?.servings).toBe(1);
-    expect(addMeal([], plannedMealOf({ ...plate, servings: 99 }, RISOTTO))[0]?.servings).toBe(MAX_SERVINGS);
+    expect(addMeal([], plated({ ...plate, servings: 0 }, RISOTTO))[0]?.servings).toBe(1);
+    expect(addMeal([], plated({ ...plate, servings: 99 }, RISOTTO))[0]?.servings).toBe(MAX_SERVINGS);
   });
 
   it("copies the recipe's ingredients rather than sharing the array with it", () => {
-    const [added] = addMeal([], plannedMealOf(plate, RISOTTO));
+    const [added] = addMeal([], plated(plate, RISOTTO));
 
     added?.ingredients.push(TOMATO);
 
@@ -473,7 +484,7 @@ describe("addMeal", () => {
 
   /** The plate a removal left behind is the plate the sheet fills, so the two ids have to agree. */
   it("is findable by the id its own slot implies", () => {
-    const week = addMeal([], plannedMealOf({ ...plate, id: plateIdFor(day(1), "dinner") }, RISOTTO));
+    const week = addMeal([], plated({ ...plate, id: plateIdFor(day(1), "dinner") }, RISOTTO));
 
     expect(removeMeal(week, plateIdFor(day(1), "dinner"))).toEqual([]);
   });
@@ -498,7 +509,7 @@ describe("setMealServings", () => {
 
 describe("replaceMeal", () => {
   it("takes the dish from the recipe", () => {
-    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plannedMealOf(plate, RISOTTO));
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plated(plate, RISOTTO));
 
     expect(swapped).toMatchObject({
       title: "Risotto aux cèpes",
@@ -511,14 +522,14 @@ describe("replaceMeal", () => {
   /** The plate is what the week is built on: move it and every other meal shifts around it. */
   it("keeps the plate's own id, day, slot and portions", () => {
     const plate = meal("a", "dinner", 3);
-    const [swapped] = replaceMeal([plate], "a", (target) => plannedMealOf(target, RISOTTO));
+    const [swapped] = replaceMeal([plate], "a", (target) => plated(target, RISOTTO));
 
     expect(swapped).toMatchObject({ id: "a", slot: "dinner", servings: 4 });
     expect(swapped && isSameDay(swapped.date, day(3))).toBe(true);
   });
 
   it("copies the recipe's ingredients rather than sharing the array with it", () => {
-    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plannedMealOf(plate, RISOTTO));
+    const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => plated(plate, RISOTTO));
 
     swapped?.ingredients.push(TOMATO);
 
@@ -528,7 +539,7 @@ describe("replaceMeal", () => {
   /** The builder hands back a plate, and a builder is caller code: its portions are clamped all the same. */
   it("clamps the portions the builder returns", () => {
     const [swapped] = replaceMeal([meal("a", "lunch")], "a", (plate) => ({
-      ...plannedMealOf(plate, RISOTTO),
+      ...plated(plate, RISOTTO),
       servings: 99,
     }));
 
@@ -553,24 +564,23 @@ describe("toMealCard", () => {
   });
 });
 
-describe("matchesQuery", () => {
-  it("ignores case and accents in both directions", () => {
-    expect(matchesQuery("Gnocchis à poêler", "poeler")).toBe(true);
-    expect(matchesQuery("Gnocchis a poeler", "POÊLER")).toBe(true);
+describe("draftMealOf", () => {
+  const answer = {
+    recipeId: "recipe-a", date: day(1).getTime(), slot: "dinner" as MealSlot, servings: 3,
+    title: "Soupe", minutes: 20, ingredients: [TOMATO_LINE],
+  };
+
+  it("names the plate by its day and slot, and makes the day a Date", () => {
+    const meal = draftMealOf(answer);
+
+    expect(meal.id).toBe(plateIdFor(day(1), "dinner"));
+    expect(isSameDay(meal.date, day(1))).toBe(true);
+    expect(meal).toMatchObject({ recipeId: "recipe-a", slot: "dinner", servings: 3, title: "Soupe" });
   });
 
-  it("matches on any part of the title, not only its start", () => {
-    expect(matchesQuery("Riz aux champignons", "champi")).toBe(true);
-  });
-
-  /** A search box nobody has typed in is not a filter. */
-  it("matches everything for an empty or blank query", () => {
-    expect(matchesQuery("Magret de canard", "")).toBe(true);
-    expect(matchesQuery("Magret de canard", "   ")).toBe(true);
-  });
-
-  it("rejects a title that does not contain it", () => {
-    expect(matchesQuery("Magret de canard", "risotto")).toBe(false);
+  /** The id a swap lands under is the id the review step already holds for that plate, whatever the dish. */
+  it("names two dishes on the same day and slot the same", () => {
+    expect(draftMealOf({ ...answer, recipeId: "recipe-b" }).id).toBe(draftMealOf(answer).id);
   });
 });
 

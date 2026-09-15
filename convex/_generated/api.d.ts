@@ -75,6 +75,8 @@ import type * as functions_planning_availableStock from "../functions/planning/a
 import type * as functions_planning_candidatePool from "../functions/planning/candidatePool.js";
 import type * as functions_planning_cellarLots from "../functions/planning/cellarLots.js";
 import type * as functions_planning_commitPlan from "../functions/planning/commitPlan.js";
+import type * as functions_planning_draftMeal from "../functions/planning/draftMeal.js";
+import type * as functions_planning_draftMealOf from "../functions/planning/draftMealOf.js";
 import type * as functions_planning_dropMeal from "../functions/planning/dropMeal.js";
 import type * as functions_planning_limits from "../functions/planning/limits.js";
 import type * as functions_planning_loadHouseholdMeal from "../functions/planning/loadHouseholdMeal.js";
@@ -95,6 +97,7 @@ import type * as functions_preferences_getPlanningSeed from "../functions/prefer
 import type * as functions_preferences_save from "../functions/preferences/save.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
+import type * as functions_recipes_dietFacet from "../functions/recipes/dietFacet.js";
 import type * as functions_recipes_generateRecipe from "../functions/recipes/generateRecipe.js";
 import type * as functions_recipes_listFavorites from "../functions/recipes/listFavorites.js";
 import type * as functions_recipes_listForUser from "../functions/recipes/listForUser.js";
@@ -157,6 +160,7 @@ import type * as router_media_images_uploadOne from "../router/media/images/uplo
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
 import type * as router_planning_commit from "../router/planning/commit.js";
 import type * as router_planning_getDraft from "../router/planning/getDraft.js";
+import type * as router_planning_getDraftMeal from "../router/planning/getDraftMeal.js";
 import type * as router_planning_getMany from "../router/planning/getMany.js";
 import type * as router_planning_getOne from "../router/planning/getOne.js";
 import type * as router_planning_getPaginated from "../router/planning/getPaginated.js";
@@ -266,6 +270,8 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/candidatePool": typeof functions_planning_candidatePool;
   "functions/planning/cellarLots": typeof functions_planning_cellarLots;
   "functions/planning/commitPlan": typeof functions_planning_commitPlan;
+  "functions/planning/draftMeal": typeof functions_planning_draftMeal;
+  "functions/planning/draftMealOf": typeof functions_planning_draftMealOf;
   "functions/planning/dropMeal": typeof functions_planning_dropMeal;
   "functions/planning/limits": typeof functions_planning_limits;
   "functions/planning/loadHouseholdMeal": typeof functions_planning_loadHouseholdMeal;
@@ -286,6 +292,7 @@ declare const fullApi: ApiFromModules<{
   "functions/preferences/save": typeof functions_preferences_save;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
+  "functions/recipes/dietFacet": typeof functions_recipes_dietFacet;
   "functions/recipes/generateRecipe": typeof functions_recipes_generateRecipe;
   "functions/recipes/listFavorites": typeof functions_recipes_listFavorites;
   "functions/recipes/listForUser": typeof functions_recipes_listForUser;
@@ -348,6 +355,7 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
   "router/planning/commit": typeof router_planning_commit;
   "router/planning/getDraft": typeof router_planning_getDraft;
+  "router/planning/getDraftMeal": typeof router_planning_getDraftMeal;
   "router/planning/getMany": typeof router_planning_getMany;
   "router/planning/getOne": typeof router_planning_getOne;
   "router/planning/getPaginated": typeof router_planning_getPaginated;
