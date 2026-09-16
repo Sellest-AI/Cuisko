@@ -5,10 +5,18 @@ import { generateIngredientImage } from "@convex/agent/tools/generateIngredientI
 import { internalAction } from "@convex/procedures";
 import { ConvexError, v } from "convex/values";
 
+/**
+ * Generates an ingredient's icon and persists it, replacing any image the row already had.
+ *
+ * `hint` exists for a manual re-run from the dashboard when the first image came out wrong: a
+ * sentence like "a cut of meat, not the pasta" that the prompt-writing agent reads as authoritative.
+ * The automatic call from `resolveIngredient` never sets it.
+ */
 export const _internal = internalAction({
   args: {
     ingredientId: v.id("ingredients"),
     userId: v.id("users"),
+    hint: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"images">> => {
     const ingredient = await ctx.runQuery(api.router.ingredients.getIngredient.anon, {
@@ -19,7 +27,8 @@ export const _internal = internalAction({
     const output = await generateIngredientImage.run({ ...ctx, userId: args.userId }, {
       names: { fr: [], en: [ingredient.name] },
       aliases: ingredient.aliases ? { fr: [], en: ingredient.aliases } : undefined,
-      category: ingredient.category
+      category: ingredient.category,
+      hint: args.hint,
     });
 
     const baseImage = await ctx.runAction(internal.router.media.images.uploadMany._internal, {

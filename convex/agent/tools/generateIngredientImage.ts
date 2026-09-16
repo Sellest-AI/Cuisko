@@ -19,6 +19,12 @@ const _inputSchema = z.object({
   names: _perLocale(z.array(z.string())),
   aliases: z.optional(_perLocale(z.array(z.string()))),
   category: z.optional(z.enum(CATEGORIES)),
+  /**
+   * A short sentence from a human that disambiguates the item when its name alone misleads —
+   * "cheveux d'ange" is a pasta shape AND a cut of meat, and the prompter picks the wrong one.
+   * Forwarded verbatim to the prompt-writing agent, which treats it as authoritative.
+   */
+  hint: z.optional(z.string()),
 })
 
 const INSTRUCTIONS = `You are a prompt-writing agent. Your ONLY job is to take the name of an ingredient or product
@@ -31,6 +37,10 @@ Your output should describe ONLY:
 1. The object itself (shape, color, texture, material, condition — fresh, sliced, whole, etc.)
 2. Any container/packaging it realistically needs (see rules below)
 3. Small accurate details that make it recognizable (droplets, foam, peel, wrapper, cap, etc.)
+
+The input may carry a "Hint:" line written by a human who has seen a wrong result. It is
+authoritative: when the name is ambiguous or you would otherwise guess, the hint decides what the
+item is and how it looks. Follow it over your own reading of the name, but keep every rule below.
 
 --- CATEGORY RULES ---
 
@@ -207,6 +217,7 @@ export const generateIngredientImage = createTool({
         `Product: ${Object.values(args.names).flat().join(", ")}`,
         args.aliases ? `Aliases: ${Object.values(args.aliases).flat().join(", ")}` : undefined,
         args.category ? `Category: ${args.category}` : undefined,
+        args.hint ? `Hint: ${args.hint}` : undefined,
       ].filter(notEmpty).join("\n"),
     }, { storageOptions: { saveMessages: "none" } })
 
@@ -217,7 +228,7 @@ export const generateIngredientImage = createTool({
       model: "prunaai/z-image-turbo",
       prompt: [
         prompt.text,
-        "Rendered in 3D volumetric style, photorealistic materials and textures, soft studio lighting with gentle contact shadow beneath the object, subtle glossy or matte finish depending on material, rounded volumetric proportions typical of emoji design, centered composition, isolated on a plain solid white background (#FFFFFF), no text, no watermark, no label, no blank white label panel or band wrapped around the object, no extra props, no shadows on the background itself, square 1:1 aspect ratio, high-resolution product-photography quality. IMPORTANT : inanimate object only, no face, no eyes."
+        "Rendered in 3D volumetric style, photorealistic materials and textures, soft studio lighting with gentle contact shadow beneath the object, subtle glossy or matte finish depending on material, rounded volumetric proportions typical of emoji design, centered composition, isolated on a plain solid white background (#FFFFFF), no text, no watermark, no label, no extra props, no shadows on the background itself, square 1:1 aspect ratio, high-resolution product-photography quality. IMPORTANT : inanimate object only, no face, no eyes, no band wrapped around the object."
       ].join(" ")
     })
 
