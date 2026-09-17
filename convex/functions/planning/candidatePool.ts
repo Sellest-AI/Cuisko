@@ -36,8 +36,13 @@ const WINDOW = 500;
 /**
  * How many candidates each plate is chosen from. The window is cheap, the lines are not — about ten
  * reads per recipe — so lines are loaded for this many survivors and no more.
+ *
+ * Six rather than three because `selectMeals` ranks on shared purchases, and a recipe that shares
+ * the basket has to be in the pool to be found: at three per plate the pool rarely held one. A
+ * two-slot week loads about a hundred recipes (84 from the catalog, up to 24 of the caller's own),
+ * around a thousand documents against a 16,384 scan budget.
  */
-const CANDIDATES_PER_PLATE = 3;
+export const CANDIDATES_PER_PLATE = 6;
 
 /** Mirrors `selectMeals`' own-share cap, so the caller's recipes are loaded only as deep as they can be used. */
 export const OWN_SHARE = 0.3;
