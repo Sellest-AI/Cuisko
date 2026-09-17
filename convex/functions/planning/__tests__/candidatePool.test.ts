@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
+import type { Equipment } from "@shared/equipments";
 import type { Timings } from "@shared/recipes";
 
 import schema from "../../../schema";
@@ -28,10 +29,19 @@ type RecipeFacts = {
   allergens?: Allergen[] | null;
   /** Left empty by default: most of the catalog is untimed, and that is the case worth defaulting to. */
   timings?: Timings;
+  /** The alternatives the recipe can be made with; empty is "pans and a knife". */
+  equipments?: Equipment[];
 };
 
 /** A recipe of one line. Keys are 32-bit integers, as `randomShuffleKey` draws them. */
-const recipe = ({ shuffleKey, userId, isVegan = true, allergens: classified = [], timings = {} }: RecipeFacts) =>
+const recipe = ({
+  shuffleKey,
+  userId,
+  isVegan = true,
+  allergens: classified = [],
+  timings = {},
+  equipments = [],
+}: RecipeFacts) =>
   t.run(async (ctx) => {
     const allergens = classified ?? undefined;
     const ingredientId = await ctx.db.insert("ingredients", {
@@ -49,7 +59,7 @@ const recipe = ({ shuffleKey, userId, isVegan = true, allergens: classified = []
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },
       servings: 2,
-      equipments: [],
+      equipments,
       difficulty: 1,
       tags: [],
       cuisine: "french",
@@ -85,10 +95,27 @@ const poolFor = (
     diet = "omnivore",
     avoids = [],
     maxMinutes,
-  }: { seed?: number; plates?: number; diet?: Diet; avoids?: Allergen[]; maxMinutes?: number } = {},
+    equipments,
+  }: {
+    seed?: number;
+    plates?: number;
+    diet?: Diet;
+    avoids?: Allergen[];
+    maxMinutes?: number;
+    equipments?: Equipment[];
+  } = {},
 ) =>
   t.run(async (ctx) => {
-    const pool = await candidatePool(ctx, { userId, seed, servings: 2, plates, diet, avoids, maxMinutes });
+    const pool = await candidatePool(ctx, {
+      userId,
+      seed,
+      servings: 2,
+      plates,
+      diet,
+      avoids,
+      maxMinutes,
+      equipments,
+    });
     return pool.candidates.map(({ recipeId, isMine }) => ({ recipeId, isMine }));
   });
 
@@ -201,5 +228,42 @@ describe("functions/planning/candidatePool", () => {
     const quick = await recipe({ shuffleKey: 2, timings: { cooking: 10 } });
 
     expect(idsOf(await poolFor(me))).toEqual([slow, quick]);
+  });
+
+  test("drops a recipe needing an appliance the kitchen lacks", async () => {
+    const me = await user();
+    await recipe({ shuffleKey: 1, equipments: ["oven"] });
+    const stovetop = await recipe({ shuffleKey: 2, equipments: ["pressure cooker"] });
+
+    expect(idsOf(await poolFor(me, { equipments: ["pressure cooker"] }))).toEqual([stovetop]);
+  });
+
+  /** The list is alternatives — "in the slow cooker, or covered in the oven" — so one in common is enough. */
+  test("keeps a recipe one of whose alternatives the kitchen owns", async () => {
+    const me = await user();
+    const either = await recipe({ shuffleKey: 1, equipments: ["slow cooker", "oven"] });
+
+    expect(idsOf(await poolFor(me, { equipments: ["oven"] }))).toEqual([either]);
+  });
+
+  /**
+   * Not the untimed rule: an empty list is the sanitizer's answer, "pans and a knife", so it passes
+   * even a kitchen that ticked nothing at all.
+   */
+  test("keeps a recipe needing nothing, whatever the kitchen", async () => {
+    const me = await user();
+    const pans = await recipe({ shuffleKey: 1 });
+    await recipe({ shuffleKey: 2, equipments: ["microwave"] });
+
+    expect(idsOf(await poolFor(me, { equipments: [] }))).toEqual([pans]);
+  });
+
+  /** A kitchen nobody asked about filters nothing — `weekIdeas` for a household never asked. */
+  test("admits every recipe when no kitchen is given", async () => {
+    const me = await user();
+    const oven = await recipe({ shuffleKey: 1, equipments: ["oven"] });
+    const pans = await recipe({ shuffleKey: 2 });
+
+    expect(idsOf(await poolFor(me))).toEqual([oven, pans]);
   });
 });

@@ -8,6 +8,7 @@ import type { Locale } from "@convex/schema/i18n";
 import type { Allergen } from "@shared/allergens";
 import { ceilingMinutesOf, type CookingTime } from "@shared/cookingTimes";
 import type { Diet } from "@shared/diets";
+import type { Equipment } from "@shared/equipments";
 import type { MealSlot } from "@shared/mealSlots";
 
 import { availableStock } from "./availableStock";
@@ -34,6 +35,12 @@ type Args = {
    * infinite one, so an unfiltered run takes the path it took before the time step did anything.
    */
   cookingTime?: CookingTime;
+  /**
+   * What the kitchen owns. An argument rather than a read of `households.equipments`, for the same
+   * reason as the diet: `saveDefaults` writes that column at the moment this query runs. Absent
+   * means nobody asked, which filters nothing — see `candidatePool`.
+   */
+  equipments?: Equipment[];
 };
 
 /**
@@ -59,8 +66,8 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
  * Stock first, then the pool, then the pure selection, then names and images for what was picked.
  * A tunnel abandoned at review has asserted nothing, so this is a query and not a mutation.
  *
- * Everything that decides the draft is an argument — the seed, the days, the run's diet, allergens
- * and cooking time — rather than read from the stored preferences, which the same generating step is
+ * Everything that decides the draft is an argument — the seed, the days, the run's diet, allergens,
+ * cooking time and kitchen — rather than read from the stored preferences, which the same generating step is
  * writing at the same moment. Reading them would re-run this query on its own write and reshuffle
  * the week under a user already reviewing it.
  *
@@ -88,6 +95,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
       // The margin is applied here, once, so the pool filters on minutes and never on vocabulary.
       // An absent answer and `any` are the same thing, and both reach the pool as no ceiling.
       maxMinutes: ceilingMinutesOf(args.cookingTime ?? "any") ?? undefined,
+      equipments: args.equipments,
     }),
   ]);
 

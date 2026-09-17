@@ -4,7 +4,7 @@ import { Provider, createStore } from "jotai";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { constraintsAtom, daysAtom, planAfterAtom } from "../atoms";
+import { constraintsAtom, daysAtom, equipmentsAtom, planAfterAtom } from "../atoms";
 import { usePlanDraft } from "../usePlanDraft";
 import { dayOffset } from "./fixtures";
 
@@ -55,7 +55,7 @@ const draft = () =>
     wrapper: ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>,
   });
 
-const asked = () => (state.draftArgs.at(-1) as { dates: number[] } | undefined)?.dates;
+const asked = () => state.draftArgs.at(-1) as { dates: number[]; equipments: string[] } | undefined;
 
 describe("usePlanDraft", () => {
   it("asks for nothing until the tunnel has seeded where the week starts", () => {
@@ -70,7 +70,17 @@ describe("usePlanDraft", () => {
 
     const { result } = draft();
 
-    expect(asked()).toEqual([dayOffset(5), dayOffset(6), dayOffset(7)]);
+    expect(asked()?.dates).toEqual([dayOffset(5), dayOffset(6), dayOffset(7)]);
     expect(result.current.isGenerating).toBe(false);
+  });
+
+  /** The utensils step's answer, as ticked, so the server never has to read a row being written. */
+  it("sends the kitchen the tunnel collected", () => {
+    store.set(planAfterAtom, new Date(dayOffset(4)));
+    store.set(equipmentsAtom, ["microwave"]);
+
+    draft();
+
+    expect(asked()?.equipments).toEqual(["microwave"]);
   });
 });

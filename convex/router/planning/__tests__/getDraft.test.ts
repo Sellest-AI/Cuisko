@@ -157,4 +157,19 @@ describe("router/planning/getDraft", () => {
       }),
     ).rejects.toThrow();
   });
+
+  /** The validator is built from `EQUIPMENTS`, so a word the vocabulary does not know never reaches the pool. */
+  test("refuses an appliance outside the vocabulary", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+
+    await expect(
+      t.withIdentity(asUser(userId)).query(api.router.planning.getDraft.authed, {
+        ...args(householdId),
+        // A type-level lie on purpose: the point is what the runtime validator does with it.
+        equipments: ["airfryer" as "air fryer"],
+      }),
+    ).rejects.toThrow();
+  });
 });
