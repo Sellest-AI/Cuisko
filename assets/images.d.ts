@@ -38,3 +38,9 @@ declare module "*.webm" {
   const asset: number | string;
   export default asset;
 }
+
+/* A Lottie animation. Metro only bundles it once `lottie` is in `assetExts` (metro.config.js). */
+declare module "*.lottie" {
+  const asset: number | string;
+  export default asset;
+}

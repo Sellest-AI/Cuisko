@@ -6,6 +6,10 @@ require("./scripts/limit-open-files.cjs")
 
 const config = getDefaultConfig(__dirname)
 
+// lottie-react-native plays `.lottie` files, but Metro only bundles extensions it knows as assets —
+// without this it reads the zip as a JavaScript module and the bundle fails.
+config.resolver.assetExts.push("lottie")
+
 // The VS Code Local History extension writes a timestamped copy of every saved file into
 // .history/. It is git-ignored, but Metro does not read .gitignore, so the crawler picks up
 // every copy and the file map grows on every save.

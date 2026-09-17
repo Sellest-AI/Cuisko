@@ -181,9 +181,11 @@ export const useTunnel = () => {
 
   const next = useCallback(() => {
     const following = TUNNEL_STEPS[stepRef.current + 1];
+    const isGenerating = TUNNEL_STEPS[stepRef.current] === "generating";
 
     /** Past the last step the tunnel is spent, so leave it rather than stacking another screen. */
     if (!following) return router.dismissTo("/planning");
+    if (isGenerating) return router.replace(routeFor(following));
 
     router.push(routeFor(following));
   }, []);

@@ -96,7 +96,6 @@ describe("useUpdateRecipe", () => {
 
     await waitFor(() => expect(result.current.isUpdating).toBe(false));
     expect(result.current.error).toBe(failure);
-    expect(result.current.progress).toBe(0);
     expect(state.replaced).toEqual([]);
   });
 });

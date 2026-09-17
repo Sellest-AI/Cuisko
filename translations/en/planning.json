@@ -86,9 +86,15 @@
       "any": "No constraint"
     },
     "Generating": {
-      "title": "Cooking up your week",
-      "subtitle": "Good things simmer. Give me a minute.",
-      "progress": "dishes plated"
+      "step_cellar": "Opening your cellar door",
+      "step_cheese": "Sniffing the cheese drawer",
+      "step_leftovers": "Negotiating with the leftovers",
+      "step_vegetables": "Hiding the vegetables in the sauce",
+      "step_dates": "Checking the use-by dates",
+      "step_pasta": "Avoiding pasta three nights in a row",
+      "step_tasting": "Tasting, just to be sure",
+      "step_plating": "Plating your week",
+      "footer": "Good things simmer. Give me a minute."
     },
     "Review": {
       "title": "Planning",

@@ -20,11 +20,10 @@ type Status = "idle" | "importing" | "failed";
 /**
  * Reading a recipe off a page the cook found, and handing it to the editor.
  *
- * **No progress ring, deliberately.** `useCreateRecipe` has one because a sanitize agent runs for
- * something like fifteen seconds while reporting nothing, and `phaseAt` labels what it is doing.
- * The import runs none of that: it is one fetch and one parse, so it either lands in a couple of
- * seconds or hits the fetch timeout. A disabled button with a spinner says everything true about
- * that wait, and `useProgressSweep` stays the property of the wait it was measured against.
+ * **No loading screen, deliberately.** Saving in the editor gets one because a sanitize agent runs
+ * for something like fifteen seconds while reporting nothing. The import runs none of that: it is
+ * one fetch and one parse, so it either lands in a couple of seconds or hits the fetch timeout. A
+ * disabled button with a spinner says everything true about that wait.
  *
  * **It navigates on success, and nothing has been written yet.** The draft goes into
  * `importedDraftAtom` and the editor seeds itself from it, so what the cook lands on is a form they

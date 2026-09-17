@@ -6,6 +6,7 @@ import { router } from "expo-router";
 
 import { ArrowLeft, CircleAlert, ForkKnife, ForkKnifeIcon } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
+import { AnimatePresence } from "@ui/motion";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
@@ -114,24 +115,10 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
     setInstructions(serializeInstructions(recipe.instructions));
   }, [recipe, recipeId]);
 
-  const {
-    create,
-    isCreating,
-    progress: creatingProgress,
-    phase: creatingPhase,
-    error: creatingError,
-  } = useCreateRecipe();
-  const {
-    update,
-    isUpdating,
-    progress: updatingProgress,
-    phase: updatingPhase,
-    error: updatingError,
-  } = useUpdateRecipe();
+  const { create, isCreating, error: creatingError } = useCreateRecipe();
+  const { update, isUpdating, error: updatingError } = useUpdateRecipe();
 
   const isSaving = recipeId ? isUpdating : isCreating;
-  const progress = recipeId ? updatingProgress : creatingProgress;
-  const phase = recipeId ? updatingPhase : creatingPhase;
   const error = recipeId ? updatingError : creatingError;
 
   const canSaveNew = ingredients.trim().length > 10 && instructions.trim().length > 10;
@@ -286,7 +273,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         onSave={onSave}
         onCancel={() => router.back()}
       />
-      {isSaving && <CreatingOverlay progress={progress} phase={phase} />}
+      <AnimatePresence>{isSaving && <CreatingOverlay />}</AnimatePresence>
     </>
   );
 };

@@ -16,7 +16,7 @@ import { usePlanCommit } from "../_hooks/usePlanCommit";
 import { useTunnel, TUNNEL_STEPS } from "./_hooks/useTunnel";
 import { tunnelScrollY } from "./_hooks/useTunnelScrollHandler";
 import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
-import { StepProgress } from "./_components/step-progress";
+import { StepProgress } from "@ui/step-progress";
 import { TunnelBar } from "./_components/tunnel-bar";
 
 /**
