@@ -3,6 +3,7 @@ import type { QueryCtx } from "@convex/procedures";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
 import { canBeMadeWith, type Equipment } from "@shared/equipments";
+import { matchesSeeks, type NutritionPreference } from "@shared/preferences";
 import { totalMinutesOf } from "@shared/recipes";
 
 import { suitsDiet } from "@convex/functions/recipes/dietFacet";
@@ -35,6 +36,12 @@ type Args = {
    * `households.equipments` draws with its optional column.
    */
   equipments?: Equipment[];
+  /**
+   * The nutrition tags every recipe must carry — the caller's own `seeks`, never a household
+   * aggregate, since two people's wishes cannot be added (`AggregatedConstraints`). Required, unlike
+   * the ceiling: every caller has an answer, and `[]` is the one that filters nothing.
+   */
+  seeks: NutritionPreference[];
 };
 
 /** A candidate, with the documents the draft is shaped from so nothing is read twice. */
@@ -155,15 +162,15 @@ const _loadUntil = async (
  * The recipes a week may be drawn from, already scaled to the plates' servings, in shuffled order.
  *
  * Both halves are index reads on `by_user_id_and_shuffle_key` — the global catalog (`userId`
- * unset) and the caller's own. Diet and the time ceiling are filtered on the recipe row, which is
- * free; allergens need the lines, so they are read only for the survivors, and only until there
+ * unset) and the caller's own. Diet, the time ceiling and the sought tags are filtered on the
+ * recipe row, which is free; allergens need the lines, so they are read only for the survivors, and only until there
  * are enough to choose from. The catalog comes first, and the caller's own fill whatever it could
  * not: the own-share
  * cap in `selectMeals` is a ceiling, and a short catalog must still yield a week.
  */
 export const candidatePool = async (
   ctx: PoolCtx,
-  { userId, seed, servings, plates, diet, avoids, maxMinutes, equipments }: Args,
+  { userId, seed, servings, plates, diet, avoids, maxMinutes, equipments, seeks }: Args,
 ): Promise<Pool> => {
   const pool: Pool = { candidates: [], recipes: new Map(), ingredients: new Map() };
   const wanted = plates * CANDIDATES_PER_PLATE;
@@ -182,6 +189,9 @@ export const candidatePool = async (
    *
    * If the catalog ever becomes well-timed enough that excluding the unknown is the honest reading
    * of a ceiling, this is the one line to flip — copy the shape of the allergen check.
+   *
+   * `matchesSeeks` two lines down reads absence the other way, and on purpose: a recipe without
+   * `high-protein` is one `computeTags` measured or refused to claim, and neither is high-protein.
    */
   const fitsTime = (recipe: Doc<"recipes">) => {
     if (maxMinutes === undefined) return true;
@@ -199,8 +209,9 @@ export const candidatePool = async (
   const isMakeable = (recipe: Doc<"recipes">) =>
     equipments === undefined || canBeMadeWith(recipe.equipments, equipments);
 
-  // All three are decided on the recipe row, before a single line is read, so they cost nothing.
-  const suits = (recipe: Doc<"recipes">) => suitsDiet(recipe, diet) && fitsTime(recipe) && isMakeable(recipe);
+  // All four are decided on the recipe row, before a single line is read, so they cost nothing.
+  const suits = (recipe: Doc<"recipes">) =>
+    suitsDiet(recipe, diet) && fitsTime(recipe) && isMakeable(recipe) && matchesSeeks(recipe.tags, seeks);
 
   await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false }, pool);
 

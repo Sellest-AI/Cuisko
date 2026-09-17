@@ -4,7 +4,7 @@ import { planDraft } from "@convex/functions/planning/planDraft";
 import { vEquipments } from "@convex/schema/cellars";
 import { vMealSlots } from "@convex/schema/households";
 import { vCookingTime } from "@convex/schema/planningPayloads";
-import { vAllergens, vDiet } from "@convex/schema/preferences";
+import { vAllergens, vDiet, vNutritionPreferences } from "@convex/schema/preferences";
 import { householdQueryI18n } from "@convex/procedures";
 
 /**
@@ -27,6 +27,7 @@ export const authed = householdQueryI18n({
     avoids: vAllergens,
     cookingTime: v.optional(vCookingTime),
     equipments: v.optional(vEquipments),
+    seeks: v.optional(vNutritionPreferences),
   },
   handler: (ctx, args) =>
     planDraft(ctx, {

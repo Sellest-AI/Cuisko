@@ -33,8 +33,12 @@ const ONE_PLATE = { plates: 1, servings: 1 };
  * The household's constraint set: the strictest diet of everyone who answered, and every allergen
  * anyone avoids. The same aggregation the planning tunnel defaults to, so home never suggests
  * what the planner would reject. A member with no row contributes nothing, as in `getPlanningSeed`.
+ *
+ * `seeks` is the caller's own row and nobody else's — the one preference that is never
+ * aggregated, since two people's wishes cannot be added (`AggregatedConstraints`). A caller with
+ * no row seeks nothing, which filters nothing.
  */
-const _householdConstraints = async (ctx: IdeasCtx, householdId: Id<"households">) => {
+const _householdConstraints = async (ctx: IdeasCtx, householdId: Id<"households">, userId: Id<"users">) => {
   const memberships = await ctx.db
     .query("householdUsers")
     .withIndex("by_household", (q) => q.eq("householdId", householdId))
@@ -46,6 +50,7 @@ const _householdConstraints = async (ctx: IdeasCtx, householdId: Id<"households"
   return {
     diet: strictestDietOf(answered.map((row) => row.diet)),
     avoids: sortAllergens(answered.flatMap((row) => row.avoids)),
+    seeks: answered.find((row) => row.userId === userId)?.seeks ?? [],
   };
 };
 
@@ -61,8 +66,8 @@ export const weekIdeas = async (
   ctx: IdeasCtx,
   { householdId, userId, locale, weekKey }: Args,
 ): Promise<RecipeCard[]> => {
-  const [{ diet, avoids }, household] = await Promise.all([
-    _householdConstraints(ctx, householdId),
+  const [{ diet, avoids, seeks }, household] = await Promise.all([
+    _householdConstraints(ctx, householdId, userId),
     ctx.db.get(householdId),
   ]);
 
@@ -74,6 +79,7 @@ export const weekIdeas = async (
     diet,
     avoids,
     equipments: household?.equipments,
+    seeks,
     ...ONE_PLATE,
   });
 

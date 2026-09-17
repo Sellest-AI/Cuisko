@@ -8,7 +8,15 @@ import { useHousehold } from "~/modules/households/hooks";
 
 import { runConstraintsOf } from "../_model/constraints";
 import { draftMealOf, startOfDay, type DraftMeal } from "../_model/model";
-import { constraintsAtom, cookingTimeAtom, equipmentsAtom, peopleAtom, planDatesAtom, slotsAtom } from "./atoms";
+import {
+  constraintsAtom,
+  cookingTimeAtom,
+  equipmentsAtom,
+  peopleAtom,
+  planDatesAtom,
+  seeksAtom,
+  slotsAtom,
+} from "./atoms";
 
 /**
  * A week generated from the real library and the household's cellar, for the tunnel's answers.
@@ -25,7 +33,9 @@ import { constraintsAtom, cookingTimeAtom, equipmentsAtom, peopleAtom, planDates
  * (`runConstraintsOf`), rather than letting the server read the stored preferences the generating
  * step is writing at the same moment. The cooking time goes up the same way and for a stronger
  * reason: no table holds it, and none should — see `@shared/cookingTimes`. The kitchen goes up too,
- * for the first reason: `saveDefaults` writes `households.equipments` at that same moment.
+ * for the first reason: `saveDefaults` writes `households.equipments` at that same moment. The
+ * focus step's `seeks` goes up beside them rather than folded into the constraints, because it is
+ * the caller's alone and never the household's — see `AggregatedConstraints`.
  *
  * Each meal lands as the server sent it, made the draft's own by `draftMealOf` — see `DraftMeal`.
  */
@@ -38,6 +48,7 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
   const constraints = useAtomValue(constraintsAtom);
   const cookingTime = useAtomValue(cookingTimeAtom);
   const equipments = useAtomValue(equipmentsAtom);
+  const seeks = useAtomValue(seeksAtom);
   const [today] = useState(() => startOfDay(new Date()));
 
   /**
@@ -57,9 +68,11 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
       today: today.getTime(),
       cookingTime,
       equipments,
+      // `null` is a seed that has not landed; the guard above already waits on `constraints`, which lands with it.
+      seeks: seeks ?? [],
       ...runConstraintsOf(constraints),
     };
-  }, [householdId, constraints, cookingTime, equipments, locale, seed, people, today, dates, slots]);
+  }, [householdId, constraints, cookingTime, equipments, seeks, locale, seed, people, today, dates, slots]);
 
   const { data, isPending, isError } = useQueryCached(api.router.planning.getDraft.authed, args);
 

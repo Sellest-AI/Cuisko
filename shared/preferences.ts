@@ -2,7 +2,7 @@ import { type Allergen } from "./allergens";
 import { type Diet } from "./diets";
 import { type Equipment } from "./equipments";
 import { type MealSlot } from "./mealSlots";
-import { type ComputedTag } from "./tags";
+import { type ComputedTag, type Tag } from "./tags";
 
 /**
  * The nutrition tags a person can ASK FOR — the `seeks` half of a user's preferences.
@@ -56,6 +56,24 @@ export const EXCLUSIVE_PREFERENCES = [
   "low-calorie",
   "high-calorie",
 ] as const satisfies readonly NutritionPreference[];
+
+/**
+ * Whether a recipe carrying `tags` is what someone seeking `seeks` asked for.
+ *
+ * Every sought tag must be present — "high-protein and low-carb" means both, and a recipe that
+ * fits one of them is not what was asked. Nothing sought matches everything, so an unanswered
+ * focus step leaves the pool as it was.
+ *
+ * ⚠️ **A recipe with no nutrition tags matches nothing sought.** This is the opposite of the
+ * untimed-recipe rule in `candidatePool`, and both are honest to what absence means in their
+ * field: an untimed recipe is one nobody timed, but a recipe without `high-protein` is one
+ * `computeTags` either measured and found wanting, or refused to claim — and either way it is not
+ * high-protein. The exclusive pair needs no branch here: no recipe carries both (500 kcal against
+ * 850, see `nutritionTagsOf`), so seeking both matches nothing, which is what a contradiction
+ * should do.
+ */
+export const matchesSeeks = (tags: readonly Tag[], seeks: readonly NutritionPreference[]): boolean =>
+  seeks.every((sought) => tags.includes(sought));
 
 /**
  * One person's answers — what `save` writes and what a screen holds while they are being edited.

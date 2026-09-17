@@ -10,6 +10,7 @@ import { ceilingMinutesOf, type CookingTime } from "@shared/cookingTimes";
 import type { Diet } from "@shared/diets";
 import type { Equipment } from "@shared/equipments";
 import type { MealSlot } from "@shared/mealSlots";
+import type { NutritionPreference } from "@shared/preferences";
 
 import { availableStock } from "./availableStock";
 import { candidatePool, OWN_SHARE } from "./candidatePool";
@@ -41,6 +42,11 @@ type Args = {
    * means nobody asked, which filters nothing — see `candidatePool`.
    */
   equipments?: Equipment[];
+  /**
+   * The caller's nutrition wishes for the run — the focus step's answer. Optional so a client that
+   * sends none gets the week it got before the step reached the pool; absent means `[]`.
+   */
+  seeks?: NutritionPreference[];
 };
 
 /**
@@ -67,7 +73,7 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
  * A tunnel abandoned at review has asserted nothing, so this is a query and not a mutation.
  *
  * Everything that decides the draft is an argument — the seed, the days, the run's diet, allergens,
- * cooking time and kitchen — rather than read from the stored preferences, which the same generating step is
+ * cooking time, kitchen and nutrition wishes — rather than read from the stored preferences, which the same generating step is
  * writing at the same moment. Reading them would re-run this query on its own write and reshuffle
  * the week under a user already reviewing it.
  *
@@ -96,6 +102,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
       // An absent answer and `any` are the same thing, and both reach the pool as no ceiling.
       maxMinutes: ceilingMinutesOf(args.cookingTime ?? "any") ?? undefined,
       equipments: args.equipments,
+      seeks: args.seeks ?? [],
     }),
   ]);
 

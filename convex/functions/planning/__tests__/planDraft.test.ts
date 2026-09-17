@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Equipment } from "@shared/equipments";
 import type { MealSlot } from "@shared/mealSlots";
+import type { NutritionPreference } from "@shared/preferences";
 
 import schema from "../../../schema";
 import { planDraft } from "../planDraft";
@@ -65,7 +66,14 @@ const setup = () =>
     return { userId, householdId, ingredientId, recipeId };
   });
 
-type Request = { seed?: number; servings?: number; dates?: number[]; slots?: MealSlot[]; equipments?: Equipment[] };
+type Request = {
+  seed?: number;
+  servings?: number;
+  dates?: number[];
+  slots?: MealSlot[];
+  equipments?: Equipment[];
+  seeks?: NutritionPreference[];
+};
 
 const draft = (ids: { userId: Id<"users">; householdId: Id<"households"> }, request: Request = {}) =>
   t.run((ctx) =>
@@ -126,6 +134,14 @@ describe("functions/planning/planDraft", () => {
 
     expect(await draft(ids, { equipments: ["microwave"] })).toEqual([]);
     expect(await draft(ids, { equipments: ["oven"] })).toHaveLength(1);
+  });
+
+  /** The fixture recipe carries no tag, so a seek that reaches the pool leaves nothing to plan from. */
+  test("hands the run's seeks to the pool", async () => {
+    const ids = await setup();
+
+    expect(await draft(ids, { seeks: ["high-protein"] })).toEqual([]);
+    expect(await draft(ids, { seeks: [] })).toHaveLength(1);
   });
 
   test("answers an empty week, not a throw, when there are no slots", async () => {
