@@ -80,10 +80,11 @@ describe("functions/planning/selectMeals", () => {
         recipe("third", [measured(TOMATO, 300)]),
       ],
       stock([[TOMATO, 100]]),
-      2,
+      1,
     );
 
-    expect(names(meals)).toEqual(["second", "first"]);
+    // "second" beats "first" on the partial line, and "third" on pool order.
+    expect(names(meals)).toEqual(["second"]);
   });
 
   /** A partial line is bought, but the part the cellar held is cooked, and gone for the next plate. */
@@ -105,6 +106,148 @@ describe("functions/planning/selectMeals", () => {
     expect(meals[0]?.missing).toEqual([measured(TOMATO, 300)]);
     // The sauce's 200 g of tomato went into the sauce, so the salad's 100 g must be bought.
     expect(meals[1]?.missing).toContainEqual(measured(TOMATO, 100));
+  });
+
+  describe("the basket", () => {
+    const FETA = id<"ingredients">("feta");
+    const OLIVES = id<"ingredients">("olives");
+    const LENTILS = id<"ingredients">("lentils");
+
+    /** The chain: a random first plate, then the plate that cooks with what the first one buys. */
+    test("prefers the recipe that shares what an earlier plate buys", () => {
+      const meals = pick(
+        [
+          recipe("salad", [measured(TOMATO, 300), measured(FETA, 100)]),
+          recipe("dal", [measured(LENTILS, 200), measured(RICE, 100)]),
+          recipe("pie", [measured(FETA, 200), measured(OLIVES, 50)]),
+        ],
+        stock(),
+        2,
+      );
+
+      expect(names(meals)).toEqual(["salad", "pie"]);
+      // Still bought: the basket knows feta is coming, not how much of the block will be spare.
+      expect(meals[1]?.missing).toContainEqual(measured(FETA, 200));
+    });
+
+    test("ranks a line the cellar holds above a line the basket holds", () => {
+      const meals = pick(
+        [
+          recipe("salad", [measured(TOMATO, 300), measured(LENTILS, 100)]),
+          recipe("sauce", [measured(TOMATO, 300), measured(FETA, 100)]),
+          recipe("risotto", [measured(RICE, 100), measured(OLIVES, 50)]),
+        ],
+        stock([
+          [LENTILS, 100],
+          [RICE, 100],
+        ]),
+        2,
+      );
+
+      // Plate 1: salad and risotto both half in the cellar, pool order picks the salad.
+      // Plate 2: the sauce is half in the basket, the risotto half in the cupboard. Owned beats bought.
+      expect(names(meals)).toEqual(["salad", "risotto"]);
+    });
+
+    /** Fewer new rows on the list beats more shared rows: shares of the recipe's own lines. */
+    test("prefers one purchase reused out of two over two reused out of seven", () => {
+      const seven = [TOMATO, FETA, OLIVES, LENTILS, RICE, id<"ingredients">("lamb"), id<"ingredients">("mint")];
+      const meals = pick(
+        [
+          recipe("salad", [measured(TOMATO, 300), measured(FETA, 100)]),
+          recipe("feast", seven.map((ingredient) => measured(ingredient, 100))),
+          recipe("toast", [measured(FETA, 50), measured(id<"ingredients">("bread"), 2)]),
+        ],
+        stock(),
+        2,
+      );
+
+      expect(names(meals)).toEqual(["salad", "toast"]);
+    });
+
+    test("leaves pinches out of the basket", () => {
+      const meals = pick(
+        [
+          recipe("stew", [measured(LENTILS, 200), pinch(THYME)]),
+          recipe("roast", [measured(RICE, 100), pinch(THYME)]),
+          recipe("dal", [measured(LENTILS, 100), measured(OLIVES, 50)]),
+        ],
+        stock(),
+        2,
+      );
+
+      // The roast shares the stew's thyme, the dal shares its lentils; only the lentils count.
+      expect(names(meals)).toEqual(["stew", "dal"]);
+    });
+
+    test("stops crediting a purchase after the reuse cap", () => {
+      const withTomato = (name: string) => recipe(name, [measured(TOMATO, 100), measured(id<"ingredients">(name), 1)]);
+      const meals = pick(
+        [withTomato("a"), withTomato("b"), withTomato("c"), withTomato("d"), recipe("dal", [measured(LENTILS, 1)]), withTomato("e")],
+        stock(),
+        6,
+      );
+
+      // a buys; b, c, d reuse; the cap is spent, so the dal keeps its place ahead of e.
+      expect(names(meals)).toEqual(["a", "b", "c", "d", "dal", "e"]);
+    });
+
+    test("puts a line that could not be measured in the basket", () => {
+      const unmeasured: Need = { ingredientId: TOMATO, quantity: 2, unit: "pcs", kind: "unmeasured" };
+      const meals = pick(
+        [recipe("salad", [unmeasured]), recipe("dal", [measured(LENTILS, 200)]), recipe("sauce", [measured(TOMATO, 300)])],
+        stock(),
+        2,
+      );
+
+      // Two tomatoes are bought whatever the unit says, so the sauce cooks with them.
+      expect(names(meals)).toEqual(["salad", "sauce"]);
+    });
+
+    test("puts the bought remainder of a partially covered line in the basket", () => {
+      const meals = pick(
+        [recipe("salad", [measured(TOMATO, 300)]), recipe("dal", [measured(LENTILS, 200)]), recipe("sauce", [measured(TOMATO, 300)])],
+        stock([[TOMATO, 100]]),
+        2,
+      );
+
+      // The salad takes the 100 g and buys 200 g more; that purchase is what the sauce shares.
+      expect(names(meals)).toEqual(["salad", "sauce"]);
+    });
+
+    test("spends one reuse per ingredient, however many lines name it", () => {
+      const twice = (name: string) => recipe(name, [measured(TOMATO, 100), measured(TOMATO, 50), measured(id<"ingredients">(name), 1)]);
+      const meals = pick(
+        [twice("a"), twice("b"), twice("c"), recipe("dal", [measured(LENTILS, 1)]), twice("d"), twice("e")],
+        stock(),
+        6,
+      );
+
+      // Counted per line, b and c would spend the cap alone and d would fall behind the dal.
+      expect(names(meals)).toEqual(["a", "b", "c", "d", "dal", "e"]);
+    });
+
+    test("gives a repeat no credit for sharing its own purchases", () => {
+      const meals = pick(
+        [recipe("salad", [measured(TOMATO, 300)]), recipe("dal", [measured(LENTILS, 200)])],
+        stock(),
+        3,
+      );
+
+      // The third plate is a repeat either way; without the basket it is pool order, the salad.
+      expect(names(meals)).toEqual(["salad", "dal", "salad"]);
+    });
+
+    test("is deterministic for a given pool order", () => {
+      const pool = [
+        recipe("salad", [measured(TOMATO, 300), measured(FETA, 100)]),
+        recipe("dal", [measured(LENTILS, 200), measured(RICE, 100)]),
+        recipe("pie", [measured(FETA, 200), measured(OLIVES, 50)]),
+        recipe("bowl", [measured(RICE, 100), measured(OLIVES, 50)]),
+      ];
+
+      expect(names(pick(pool, stock(), 4))).toEqual(names(pick(pool, stock(), 4)));
+    });
   });
 
   test("does not repeat a recipe until the pool is exhausted", () => {

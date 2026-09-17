@@ -6,7 +6,7 @@ import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
 
 import schema from "../../../schema";
-import { candidatePool } from "../candidatePool";
+import { CANDIDATES_PER_PLATE, candidatePool } from "../candidatePool";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -146,8 +146,8 @@ describe("functions/planning/candidatePool", () => {
 
   test("loads lines only until each plate has its candidates", async () => {
     const me = await user();
-    for (let key = 1; key <= 5; key++) await recipe({ shuffleKey: key });
+    for (let key = 1; key <= CANDIDATES_PER_PLATE + 2; key++) await recipe({ shuffleKey: key });
 
-    expect(await poolFor(me, { plates: 1 })).toHaveLength(3);
+    expect(await poolFor(me, { plates: 1 })).toHaveLength(CANDIDATES_PER_PLATE);
   });
 });
