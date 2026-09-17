@@ -4,6 +4,7 @@ import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import type { Cuisine } from "@shared/cuisines";
+import { totalMinutesOf } from "@shared/recipes";
 
 type CardCtx = Pick<QueryCtx, "db">;
 
@@ -41,21 +42,6 @@ export type RecipeCard = {
 };
 
 /**
- * The three timings as one number, because a card has room for one.
- *
- * Absent rather than zero when nothing is known: a card shows "—" for the first and "0 min" for
- * the second, and a recipe whose timings the model never filled in has not been declared instant.
- * A partial recipe still totals what it has — half an answer beats no answer on a card this small.
- */
-const _totalMinutes = (timings: Doc<"recipes">["timings"]) => {
-  const declared = [timings.preparation, timings.cooking, timings.resting].filter(
-    (minutes) => minutes !== undefined,
-  );
-
-  return declared.length > 0 ? declared.reduce((total, minutes) => total + minutes, 0) : undefined;
-};
-
-/**
  * The recipe's cover, read once.
  *
  * Separate from `toRecipeCard` so a caller that needs a second size of the same image, as
@@ -76,7 +62,7 @@ export const toRecipeCard = (
   id: recipe._id,
   title: resolvei18n(recipe.title, locale),
   cuisine: recipe.cuisine,
-  minutes: _totalMinutes(recipe.timings),
+  minutes: totalMinutesOf(recipe.timings),
   coverImageUrl: cover?.sizes.medium.url,
   plateImageUrl: plate?.sizes.medium.url,
 });

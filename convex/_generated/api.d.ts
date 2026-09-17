@@ -191,6 +191,7 @@ import type * as schema_ingredientPayloads from "../schema/ingredientPayloads.js
 import type * as schema_ingredients from "../schema/ingredients.js";
 import type * as schema_media from "../schema/media.js";
 import type * as schema_planning from "../schema/planning.js";
+import type * as schema_planningPayloads from "../schema/planningPayloads.js";
 import type * as schema_preferences from "../schema/preferences.js";
 import type * as schema_recipePayloads from "../schema/recipePayloads.js";
 import type * as schema_recipes from "../schema/recipes.js";
@@ -386,6 +387,7 @@ declare const fullApi: ApiFromModules<{
   "schema/ingredients": typeof schema_ingredients;
   "schema/media": typeof schema_media;
   "schema/planning": typeof schema_planning;
+  "schema/planningPayloads": typeof schema_planningPayloads;
   "schema/preferences": typeof schema_preferences;
   "schema/recipePayloads": typeof schema_recipePayloads;
   "schema/recipes": typeof schema_recipes;

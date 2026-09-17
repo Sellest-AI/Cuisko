@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
+import type { Timings } from "@shared/recipes";
 
 import schema from "../../../schema";
 import { CANDIDATES_PER_PLATE, candidatePool } from "../candidatePool";
@@ -25,10 +26,12 @@ type RecipeFacts = {
   isVegan?: boolean;
   /** `null` is an ingredient nobody has classified yet — stored as the field left unset. */
   allergens?: Allergen[] | null;
+  /** Left empty by default: most of the catalog is untimed, and that is the case worth defaulting to. */
+  timings?: Timings;
 };
 
 /** A recipe of one line. Keys are 32-bit integers, as `randomShuffleKey` draws them. */
-const recipe = ({ shuffleKey, userId, isVegan = true, allergens: classified = [] }: RecipeFacts) =>
+const recipe = ({ shuffleKey, userId, isVegan = true, allergens: classified = [], timings = {} }: RecipeFacts) =>
   t.run(async (ctx) => {
     const allergens = classified ?? undefined;
     const ingredientId = await ctx.db.insert("ingredients", {
@@ -50,7 +53,7 @@ const recipe = ({ shuffleKey, userId, isVegan = true, allergens: classified = []
       difficulty: 1,
       tags: [],
       cuisine: "french",
-      timings: {},
+      timings,
       search: { en: "", fr: "" },
       userId,
       shuffleKey,
@@ -76,10 +79,16 @@ const recipe = ({ shuffleKey, userId, isVegan = true, allergens: classified = []
 // `t.run` returns through Convex serialization, which has no Map — so only the candidates cross.
 const poolFor = (
   userId: Id<"users">,
-  { seed = 0, plates = 2, diet = "omnivore", avoids = [] }: { seed?: number; plates?: number; diet?: Diet; avoids?: Allergen[] } = {},
+  {
+    seed = 0,
+    plates = 2,
+    diet = "omnivore",
+    avoids = [],
+    maxMinutes,
+  }: { seed?: number; plates?: number; diet?: Diet; avoids?: Allergen[]; maxMinutes?: number } = {},
 ) =>
   t.run(async (ctx) => {
-    const pool = await candidatePool(ctx, { userId, seed, servings: 2, plates, diet, avoids });
+    const pool = await candidatePool(ctx, { userId, seed, servings: 2, plates, diet, avoids, maxMinutes });
     return pool.candidates.map(({ recipeId, isMine }) => ({ recipeId, isMine }));
   });
 
@@ -149,5 +158,48 @@ describe("functions/planning/candidatePool", () => {
     for (let key = 1; key <= CANDIDATES_PER_PLATE + 2; key++) await recipe({ shuffleKey: key });
 
     expect(await poolFor(me, { plates: 1 })).toHaveLength(CANDIDATES_PER_PLATE);
+  });
+  test("drops a recipe declaring more minutes than the ceiling allows", async () => {
+    const me = await user();
+    const quick = await recipe({ shuffleKey: 1, timings: { preparation: 10, cooking: 10 } });
+    await recipe({ shuffleKey: 2, timings: { preparation: 10, cooking: 50 } });
+
+    expect(idsOf(await poolFor(me, { maxMinutes: 24 }))).toEqual([quick]);
+  });
+
+  /** The ceiling is inclusive: a recipe landing exactly on it was asked for, not excluded by it. */
+  test("keeps a recipe sitting exactly on the ceiling", async () => {
+    const me = await user();
+    const exact = await recipe({ shuffleKey: 1, timings: { preparation: 24 } });
+
+    expect(idsOf(await poolFor(me, { maxMinutes: 24 }))).toEqual([exact]);
+  });
+
+  /** Resting counts, which is the whole reason a proved dough cannot be a Tuesday dinner. */
+  test("counts resting time against the ceiling", async () => {
+    const me = await user();
+    await recipe({ shuffleKey: 1, timings: { preparation: 5, cooking: 5, resting: 720 } });
+
+    expect(idsOf(await poolFor(me, { maxMinutes: 72 }))).toEqual([]);
+  });
+
+  /**
+   * Deliberately the opposite of the allergen rule: unknown passes a ceiling, because a mistimed
+   * dinner annoys a cook and an undeclared allergen harms one.
+   */
+  test("admits an untimed recipe under every ceiling", async () => {
+    const me = await user();
+    const untimed = await recipe({ shuffleKey: 1 });
+
+    expect(idsOf(await poolFor(me, { maxMinutes: 24 }))).toEqual([untimed]);
+  });
+
+  /** The `any` path: no ceiling asked for is no ceiling applied, not an infinite one. */
+  test("admits every recipe when no ceiling is given", async () => {
+    const me = await user();
+    const slow = await recipe({ shuffleKey: 1, timings: { cooking: 240 } });
+    const quick = await recipe({ shuffleKey: 2, timings: { cooking: 10 } });
+
+    expect(idsOf(await poolFor(me))).toEqual([slow, quick]);
   });
 });

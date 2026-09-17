@@ -6,6 +6,7 @@ import { toRecipeCard } from "@convex/functions/recipes/recipeCard";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import type { Allergen } from "@shared/allergens";
+import { ceilingMinutesOf, type CookingTime } from "@shared/cookingTimes";
 import type { Diet } from "@shared/diets";
 import type { MealSlot } from "@shared/mealSlots";
 
@@ -28,6 +29,11 @@ type Args = {
   today: number;
   diet: Diet;
   avoids: Allergen[];
+  /**
+   * How long the cook has this week. Optional, and absent means `any` — no ceiling rather than an
+   * infinite one, so an unfiltered run takes the path it took before the time step did anything.
+   */
+  cookingTime?: CookingTime;
 };
 
 /**
@@ -53,8 +59,8 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
  * Stock first, then the pool, then the pure selection, then names and images for what was picked.
  * A tunnel abandoned at review has asserted nothing, so this is a query and not a mutation.
  *
- * Everything that decides the draft is an argument — the seed, the days, the run's diet and
- * allergens — rather than read from the stored preferences, which the same generating step is
+ * Everything that decides the draft is an argument — the seed, the days, the run's diet, allergens
+ * and cooking time — rather than read from the stored preferences, which the same generating step is
  * writing at the same moment. Reading them would re-run this query on its own write and reshuffle
  * the week under a user already reviewing it.
  *
@@ -79,6 +85,9 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
       plates: plates.length,
       diet: args.diet,
       avoids: args.avoids,
+      // The margin is applied here, once, so the pool filters on minutes and never on vocabulary.
+      // An absent answer and `any` are the same thing, and both reach the pool as no ceiling.
+      maxMinutes: ceilingMinutesOf(args.cookingTime ?? "any") ?? undefined,
     }),
   ]);
 

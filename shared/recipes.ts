@@ -20,6 +20,35 @@
  */
 export const DEFAULT_SERVINGS = 2;
 
+/** The three numbers a recipe may declare about its own length, each of them optional. */
+export type Timings = { preparation?: number; cooking?: number; resting?: number };
+
+/**
+ * The three timings as one number — what a recipe card prints, and what a week's time ceiling is
+ * measured against.
+ *
+ * **All three are counted, including `resting`.** That question comes back every time somebody
+ * reads this, so it is answered here rather than at each call site: a twelve-hour dough proof
+ * therefore fails a 60-minute week, which is correct — that recipe cannot be made on a Tuesday
+ * evening, whatever its hands-on time. It also keeps the number filtered on identical to the number
+ * the cook reads on the card, which is the only way a filtered week can be explained to them.
+ *
+ * Absent rather than zero when nothing is declared: a card shows "—" for the first and "0 min" for
+ * the second, and a recipe the model never timed has not been declared instant. A partial recipe
+ * still totals what it has — half an answer beats no answer on a card this small.
+ *
+ * Shared rather than private to `recipeCard`, where it began, because the planner's ceiling needs
+ * the same number: a second sum is how the card and the filter start disagreeing about what a
+ * 60-minute recipe is.
+ */
+export const totalMinutesOf = (timings: Timings): number | undefined => {
+  const declared = [timings.preparation, timings.cooking, timings.resting].filter(
+    (minutes) => minutes !== undefined,
+  );
+
+  return declared.length > 0 ? declared.reduce((total, minutes) => total + minutes, 0) : undefined;
+};
+
 /** Ordered easiest to hardest. A level is this array's 1-based position — index 0 is level 1. */
 export const DIFFICULTIES = ["simple", "easy", "medium", "hard", "advanced"] as const;
 

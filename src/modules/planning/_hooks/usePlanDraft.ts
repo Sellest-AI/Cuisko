@@ -8,7 +8,7 @@ import { useHousehold } from "~/modules/households/hooks";
 
 import { runConstraintsOf } from "../_model/constraints";
 import { draftMealOf, planDates, startOfDay, type DraftMeal } from "../_model/model";
-import { constraintsAtom, daysAtom, peopleAtom, slotsAtom } from "./atoms";
+import { constraintsAtom, cookingTimeAtom, daysAtom, peopleAtom, slotsAtom } from "./atoms";
 
 /**
  * A week generated from the real library and the household's cellar, for the tunnel's answers.
@@ -19,7 +19,8 @@ import { constraintsAtom, daysAtom, peopleAtom, slotsAtom } from "./atoms";
  *
  * The run's diet and allergens go up as arguments, everything still ticked whoever it came from
  * (`runConstraintsOf`), rather than letting the server read the stored preferences the generating
- * step is writing at the same moment.
+ * step is writing at the same moment. The cooking time goes up the same way and for a stronger
+ * reason: no table holds it, and none should — see `@shared/cookingTimes`.
  *
  * Each meal lands as the server sent it, made the draft's own by `draftMealOf` — see `DraftMeal`.
  */
@@ -30,6 +31,7 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
   const slots = useAtomValue(slotsAtom);
   const people = useAtomValue(peopleAtom);
   const constraints = useAtomValue(constraintsAtom);
+  const cookingTime = useAtomValue(cookingTimeAtom);
   const [today] = useState(() => startOfDay(new Date()));
 
   /** Skipped until the constraint list is seeded: a draft for "nobody avoids anything" is not one to show. */
@@ -44,9 +46,10 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
       dates: planDates(today, days).map((date) => date.getTime()),
       slots,
       today: today.getTime(),
+      cookingTime,
       ...runConstraintsOf(constraints),
     };
-  }, [householdId, constraints, locale, seed, people, today, days, slots]);
+  }, [householdId, constraints, cookingTime, locale, seed, people, today, days, slots]);
 
   const { data, isPending, isError } = useQueryCached(api.router.planning.getDraft.authed, args);
 

@@ -769,13 +769,11 @@ export const toggleTaste = <T extends string>(tastes: T[], id: T, max = MAX_TAST
 /**
  * How long the user has to cook on an average evening this week.
  *
- * One answer, not several: these are nested — "under 20" is also under 30 — so a multi-select
- * would let the user assert a range and its own contradiction at once. `any` is the default
- * because a ceiling nobody asked for is a week of recipes quietly withheld.
+ * Re-exported rather than defined here: the Convex validator behind `getDraft` is built from the
+ * same literals the time step draws, and `src/` is unreachable from `convex/` — so the list lives
+ * in `@shared/cookingTimes`, which is also where the rule that it is never stored is written down.
  */
-export const COOKING_TIMES = ["any", "20", "30", "60"] as const;
-
-export type CookingTime = (typeof COOKING_TIMES)[number];
+export { COOKING_TIMES, type CookingTime } from "@shared/cookingTimes";
 
 /**
  * A draft plate as the server answers it, made the draft's own: its day a `Date`, its id the plate

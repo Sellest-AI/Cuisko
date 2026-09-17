@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { type InstructionGroup, parseInstructions, serializeInstructions } from "../recipes";
+import { type InstructionGroup, parseInstructions, serializeInstructions, totalMinutesOf } from "../recipes";
 
 /**
  * The contract, stated once: text is the stored form, so serializing is what must be stable.
@@ -189,5 +189,26 @@ describe("the round trip", () => {
   test("an empty recipe round-trips as empty rather than as one blank group", () => {
     expect(parseInstructions(serializeInstructions([]))).toEqual([]);
     expect(serializeInstructions([])).toBe("");
+  });
+});
+
+describe("totalMinutesOf", () => {
+  test("adds up the three timings a recipe declares", () => {
+    expect(totalMinutesOf({ preparation: 10, cooking: 20, resting: 5 })).toBe(35);
+  });
+
+  test("totals what it has when the recipe declares only some of them", () => {
+    expect(totalMinutesOf({ preparation: 10 })).toBe(10);
+    expect(totalMinutesOf({ cooking: 20, resting: 5 })).toBe(25);
+  });
+
+  /** Nobody timed it is not the same claim as it is instant — the card prints "—", not "0 min". */
+  test("gives nothing at all when the recipe declares none of them", () => {
+    expect(totalMinutesOf({})).toBeUndefined();
+  });
+
+  /** A declared zero is an answer, and `0` is falsy — the filter must not read it as undeclared. */
+  test("keeps a declared zero as zero rather than as undeclared", () => {
+    expect(totalMinutesOf({ cooking: 0 })).toBe(0);
   });
 });
