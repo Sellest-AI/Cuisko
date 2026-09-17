@@ -21,7 +21,7 @@ const measured = (ingredientId: Id<"ingredients">, amount: number): Need => ({
 const pinch = (ingredientId: Id<"ingredients">): Need => ({
   ingredientId,
   quantity: 1,
-  unit: "cc",
+  unit: "tsp",
   kind: "pinch",
 });
 

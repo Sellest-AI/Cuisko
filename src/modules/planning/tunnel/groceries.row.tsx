@@ -8,6 +8,8 @@ import { colors, theme } from "theme";
 
 import { formatQuantity } from "@shared/ingredients";
 
+import { useUnitLabel } from "~/hooks/useUnitLabel";
+
 import { MEAL_IMAGE } from "../_hooks/placeholders";
 import { type DraftMeal, type GroceryRow } from "../_model/model";
 import { useTranslations } from "translations";
@@ -35,6 +37,7 @@ const PRODUCE = {
  */
 export const TunnelGroceryRow = ({ row, meals, owned, onToggle }: Props) => {
   const t = useTranslations("Planning");
+  const unit = useUnitLabel();
 
   return (
     <View style={styles.row}>
@@ -60,7 +63,7 @@ export const TunnelGroceryRow = ({ row, meals, owned, onToggle }: Props) => {
             owned ? { opacity: 0.5 } : {}
           ]}>
             <Text.Base>
-              {formatQuantity(Math.ceil(row.amount), row.unit)}
+              {formatQuantity(Math.ceil(row.amount), row.unit, unit)}
             </Text.Base>
           </View>
         </View>

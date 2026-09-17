@@ -1,10 +1,15 @@
 import migrationsTest from "@convex-dev/migrations/test";
 import { convexTest } from "convex-test";
-import { beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { defineSchema } from "convex/server";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { internal } from "@convex/_generated/api";
 import schema from "../schema";
 import { cascadeDelete } from "../functions/cascade";
+import { cellarItems, groceryListItems, recentlyUsedIngredients } from "../schema/cellars";
+import { ingredients } from "../schema/ingredients";
+import { plannedMealIngredients } from "../schema/planning";
+import { recipeIngredients } from "../schema/recipes";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -88,5 +93,118 @@ describe("backfillRecipeShuffleKey", () => {
     expect(row?.shuffleKey).toBeUndefined();
 
     await t.run((ctx) => cascadeDelete(ctx, "recipes", recipeId));
+  });
+});
+/**
+ * The six tables the spoon rename touches, with schema validation off.
+ *
+ * Off because the state the migration exists for cannot otherwise be built: `vUnit` no longer
+ * holds the `cs` literal, so `convexTest(schema, …)` rejects the very row under test at insert.
+ * The table DEFINITIONS are the real ones — only the gate is relaxed — so a row here is shaped
+ * exactly like the rows on a deployment that has not been migrated yet, which is the point.
+ */
+const legacySchema = defineSchema(
+  {
+    ingredients,
+    groceryListItems,
+    cellarItems,
+    recentlyUsedIngredients,
+    plannedMealIngredients,
+    recipeIngredients,
+  },
+  { schemaValidation: false },
+);
+
+describe("renameSpoonUnits", () => {
+  let legacy: ReturnType<typeof convexTest>;
+
+  beforeEach(() => {
+    legacy = convexTest(legacySchema, modules);
+    migrationsTest.register(legacy);
+  });
+
+  /**
+   * The runner starts the FIRST migration and schedules the next, each one chaining the one after
+   * it. Nothing in `convex-test` runs a scheduled function by itself, so a bare `t.mutation` here
+   * migrates table one and silently leaves the other five — which is exactly how this test first
+   * passed on `recipeIngredients` while `plannedMealIngredients` kept its spoons.
+   */
+  const runAll = async () => {
+    vi.useFakeTimers();
+    try {
+      await legacy.mutation(internal.migrations.runRenameSpoonUnits, {});
+      await legacy.finishAllScheduledFunctions(vi.runAllTimers);
+    } finally {
+      vi.useRealTimers();
+    }
+  };
+
+  /** The stored codes went English so that no model could read `cc` as a cubic centimetre. */
+  test("rewrites cs to tbsp and cc to tsp, and leaves a row already on the new code alone", async () => {
+    const spoon = await legacy.run((ctx) =>
+      ctx.db.insert("recipeIngredients", {
+        recipeId: "r" as never,
+        ingredientId: "i" as never,
+        position: 0,
+        quantity: 2,
+        unit: "cs" as never,
+        updatedAt: Date.now(),
+      }),
+    );
+    const already = await legacy.run((ctx) =>
+      ctx.db.insert("recipeIngredients", {
+        recipeId: "r" as never,
+        ingredientId: "i" as never,
+        position: 1,
+        quantity: 1,
+        unit: "tbsp",
+        updatedAt: 1,
+      }),
+    );
+    const untouched = await legacy.run((ctx) =>
+      ctx.db.insert("cellarItems", {
+        householdId: "h" as never,
+        ingredientId: "i" as never,
+        unit: "g",
+        amount: 500,
+        updatedAt: 1,
+      }),
+    );
+
+    await runAll();
+
+    expect((await legacy.run((ctx) => ctx.db.get(spoon)))?.unit).toBe("tbsp");
+    expect((await legacy.run((ctx) => ctx.db.get(untouched)))?.unit).toBe("g");
+
+    /**
+     * Idempotency, asserted on `updatedAt` rather than on the unit: the code would read `tbsp`
+     * either way, so only the untouched timestamp distinguishes "skipped" from "rewritten to the
+     * value it already had". The migration is run more than once by construction.
+     */
+    expect(await legacy.run((ctx) => ctx.db.get(already))).toMatchObject({ unit: "tbsp", updatedAt: 1 });
+  });
+
+  /**
+   * The only table carrying two unit fields, and the reason this migration is six `define()` calls
+   * rather than a loop: a rename that moved `unit` and forgot `sourceUnit` would leave the recipe's
+   * own words spelled in a literal the schema no longer accepts, and the next write to that row
+   * would fail rather than the migration.
+   */
+  test("moves both unit fields on plannedMealIngredients", async () => {
+    const line = await legacy.run((ctx) =>
+      ctx.db.insert("plannedMealIngredients", {
+        plannedMealId: "m" as never,
+        ingredientId: "i" as never,
+        sourceQuantity: 1,
+        sourceUnit: "cc" as never,
+        quantity: 5,
+        unit: "cs" as never,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    await runAll();
+
+    expect(await legacy.run((ctx) => ctx.db.get(line))).toMatchObject({ sourceUnit: "tsp", unit: "tbsp" });
   });
 });

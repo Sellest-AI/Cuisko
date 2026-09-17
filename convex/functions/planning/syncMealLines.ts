@@ -111,7 +111,7 @@ const _split = (need: Need, ingredient: LineIngredient, stock: Stock): Split => 
 /**
  * What to buy for a line, in the unit the household shops in — or nothing.
  *
- * A pinch is bought at the ingredient's own `defaultQuantity`: you buy a jar of thyme, not the 1 cc
+ * A pinch is bought at the ingredient's own `defaultQuantity`: you buy a jar of thyme, not the 1 tsp
  * of it the recipe asks for. An unmeasured line is bought in the recipe's words, because that is the
  * only unit it has. Everything else converts out of the stock unit, where `pcs` rounds up.
  */

@@ -67,7 +67,7 @@ export type TranslatedRecipe<L extends Locale = Locale> = {
  *
  * NO QUANTITY, AND NO UNIT, and that is the whole point of this shape rather than an oversight.
  * A row's quantity is the recipe's TOTAL for that ingredient, which is not the number any one step
- * names — gochujang totalling 4 cs is 3 cs in one step and 1 cs in another. Sending it beside a
+ * names — gochujang totalling 4 tbsp is 3 tbsp in one step and 1 tbsp in another. Sending it beside a
  * list the prompt calls the authority is an invitation, and the bake-off took it: two unrelated
  * models rewrote "3 cda de gochujang" as 4, in four runs, and `CHECKS` caught every one. A rule
  * saying "ignore this field" competes with the field being there and loses; deleting the field

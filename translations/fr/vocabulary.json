@@ -130,5 +130,18 @@
     "CONDIMENT": "Condiments",
     "SWEETENER": "Sucrants",
     "OTHER": "Autres"
+  },
+  "Units": {
+    "pcs": "pcs",
+    "kg": "kg",
+    "g": "g",
+    "mg": "mg",
+    "cl": "cl",
+    "ml": "ml",
+    "l": "L",
+    "tbsp": "cs",
+    "tsp": "cc",
+    "oz": "oz",
+    "lb": "lb"
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Plus } from "@ui/icons";
@@ -7,10 +7,8 @@ import { Select } from "@ui/select";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { UNITS, unitLabel, type Unit } from "./_model/model";
-
-/** Built once: the vocabulary is fixed, and rebuilding it per render churns the Select's rows. */
-const UNIT_OPTIONS = UNITS.map((value) => ({ label: unitLabel(value), value }));
+import { useUnitLabel } from "~/hooks/useUnitLabel";
+import { UNITS, type Unit } from "./_model/model";
 
 type Props = {
   unit: Unit;
@@ -33,7 +31,17 @@ type Props = {
  */
 export const AmountInput = ({ unit, onUnitChange, onSubmit }: Props) => {
   const t = useTranslations("Groceries");
+  const unitWord = useUnitLabel();
   const [text, setText] = useState("");
+
+  /**
+   * Rebuilt only when the language is: the vocabulary itself is fixed, and a fresh array every
+   * churns the Select's rows. `useUnitLabel` is memoised on the locale for exactly this.
+   */
+  const unitOptions = useMemo(
+    () => UNITS.map((value) => ({ label: unitWord(value), value })),
+    [unitWord],
+  );
 
   /**
    * `parseFloat` is lax, so the guard has to be the strict half. `Number.isFinite` catches both the
@@ -67,7 +75,7 @@ export const AmountInput = ({ unit, onUnitChange, onSubmit }: Props) => {
         value={text}
       />
       {onUnitChange && (
-        <Select value={unit} options={UNIT_OPTIONS} onChange={onUnitChange} style={styles.unit} />
+        <Select value={unit} options={unitOptions} onChange={onUnitChange} style={styles.unit} />
       )}
     </View>
   );

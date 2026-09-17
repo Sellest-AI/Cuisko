@@ -52,8 +52,14 @@ import { UNDO_WINDOW_MS } from "@shared/groceries";
 import { type Unit } from "@shared/ingredients";
 import type { TranslationKeys } from "translations";
 
-/** The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too. */
-export { formatQuantity, isUnit, UNITS, unitLabel, type Unit } from "@shared/ingredients";
+/**
+ * The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too.
+ *
+ * `unitLabel` is deliberately NOT among them. It spells the stored English code, and every screen
+ * in this module wants the cook's word for it — `useUnitLabel`, passed to `formatQuantity`. Left
+ * re-exported it is the shorter import that renders `2 tbsp` to a French cook and looks right.
+ */
+export { formatQuantity, normalizeUnit, UNITS, type Unit } from "@shared/ingredients";
 
 /** Which section a tap came from. Each one can only move stock its own way. */
 export const INTENTS = ["buy", "remove", "relist"] as const;
@@ -336,8 +342,8 @@ const STEPS: Record<Unit, number[]> = {
   ml: [50, 100, 150, 200, 250, 300, 500, 750, 1000],
   l: [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5],
   pcs: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-  cs: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-  cc: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  tbsp: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  tsp: [1, 2, 3, 4, 5, 6, 7, 8, 9],
 };
 
 const OPTION_COUNT = 9;

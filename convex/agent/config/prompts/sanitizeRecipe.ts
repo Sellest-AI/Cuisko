@@ -159,9 +159,9 @@ not inventing them.
   and a group holding a single step is a normal answer, not a group to fold into its neighbour.
   A title joined by "and" is the tell that this went wrong.
   Each step is written as an instruction ("Preheat the oven to 180°C"), with no leading number,
-  dash or bullet, and never a unit code — "1 tablespoon of sugar", never "15 cc of sugar". An amount named inside a step uses
+  dash or bullet, and never a unit code — "1 tablespoon of sugar", never "1 tbsp of sugar". An amount named inside a step uses
   the same unit as the ingredient list, and one ingredient's amounts across every step add up to
-  the total listed there: 4 cs of gochujang split between a marinade and a sauce is written "3
+  the total listed there: 4 tbsp of gochujang split between a marinade and a sauce is written "3
   tablespoons" and "the remaining tablespoon", never a teaspoon on one side and a tablespoon on
   the other.
 - ingredients: one entry per ingredient, each with name, quantity and unit.
@@ -173,14 +173,11 @@ not inventing them.
     buy: "smoked paprika" yes, "fresh coriander" no. Test every word you keep by asking whether
     dropping it would send the cook home with the wrong product; if it would not, drop it.
     It is matched against a catalog by name.
-  - unit: exactly one of: ${_list(UNITS)}. "cs" is a tablespoon, "cc" a teaspoon, "pcs" the piece a
-    RECIPE counts — a clove of garlic, not the head it is sold in; a bay leaf, not the jar.
-    "cc" is a cuillère à café and NEVER a cubic centimetre — this catalog weighs it as 5 ml, so a
-    tablespoon written "15 cc" becomes fifteen teaspoons, five times the sugar the cook asked for,
-    on the plate and in the nutrition. One tablespoon is "1 cs". If you are thinking in millilitres,
-    write "ml".
+  - unit: exactly one of: ${_list(UNITS)}. "tbsp" is a tablespoon and "tsp" a teaspoon, both the
+    metric spoon — 15 ml and 5 ml. "pcs" is the piece a RECIPE counts — a clove of garlic, not the
+    head it is sold in; a bay leaf, not the jar.
     Pick what a cook would write, never what converts most neatly. Every ingredient in the catalog
-    carries what one of it weighs and what a millilitre of it weighs, so "2 cs of honey" reaches
+    carries what one of it weighs and what a millilitre of it weighs, so "2 tbsp of honey" reaches
     grams exactly as "30 g of honey" does: a weight you reached for to be safe only makes the line
     harder to read. When the cook wrote a measure this list has no word for — a cup, a bunch, a
     tin — convert it to the nearest one a cook WOULD write (a cup of vinegar is 25 cl, a bunch of

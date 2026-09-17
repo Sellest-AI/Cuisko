@@ -373,13 +373,13 @@ describe("router/cellars/addToGroceryList", () => {
     });
 
     /** Spoons are cooking measures: the maths could merge them, the product says not to. */
-    test("cs and cc keep their own rows next to a volume row", async () => {
+    test("tbsp and tsp keep their own rows next to a volume row", async () => {
       const t = convexTest(schema, modules);
       const { userId, householdId, flourId } = await seedHousehold(t);
       await seedRow(t, householdId, flourId, "ml", 200);
 
-      await add(t, userId, householdId, flourId, "cs", 2);
-      await add(t, userId, householdId, flourId, "cc", 1);
+      await add(t, userId, householdId, flourId, "tbsp", 2);
+      await add(t, userId, householdId, flourId, "tsp", 1);
 
       expect(await rowsOf(t)).toHaveLength(3);
     });

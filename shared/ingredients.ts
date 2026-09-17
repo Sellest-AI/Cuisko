@@ -26,17 +26,53 @@ export type IngredientSource = (typeof INGREDIENT_SOURCES)[number];
  * what a week's meals add up to, and a second copy of the labels is how the two drift apart.
  */
 
-export const UNITS = ["pcs", "kg", "g", "mg", "cl", "ml", "l", "cs", "cc", "oz", "lb"] as const;
+export const UNITS = ["pcs", "kg", "g", "mg", "cl", "ml", "l", "tbsp", "tsp", "oz", "lb"] as const;
 
 export type Unit = (typeof UNITS)[number];
 
 /**
+ * What a cook may TYPE for a unit that is not its stored code — the French spoons, for now.
+ *
+ * Stored codes are English (`tbsp`, `tsp`); input accepts a per-language spelling and normalises
+ * it on the way in. The two spoons used to be stored as `cs` and `cc`, and a French cook goes on
+ * writing them into the search bar, so dropping the aliases with the literals would reject a word
+ * the app itself taught them. This is the whole reason `normalizeUnit` returns a code rather than
+ * answering yes or no — see CONVENTIONS.md §3.3.
+ *
+ * ⚠️ A `Map`, not an object literal, and that is not a style choice. Every caller of
+ *    `normalizeUnit` hands it a string a person typed or a deep link carried, and an object
+ *    lookup answers for `Object.prototype` too — `aliases["constructor"]` is a FUNCTION, which is
+ *    truthy, so a sheet opened on `?unit=constructor` reached `STEPS[unit].filter(…)` on
+ *    `undefined` and crashed. A `Map` has no such keys to reach.
+ */
+const UNIT_ALIASES = new Map<string, Unit>([
+  ["cs", "tbsp"],
+  ["cc", "tsp"],
+]);
+
+/** Every spelling `normalizeUnit` accepts, for a caller that has to build a pattern out of them. */
+export const UNIT_INPUTS: readonly string[] = [...UNITS, ...UNIT_ALIASES.keys()];
+
+/**
+ * The canonical code for whatever was typed, or `undefined` when it is not a unit at all.
+ *
  * Case-insensitive on purpose: "500 KG" is a shopper writing in a hurry, not a different unit.
  * The navigation bar parses free text and the quantity sheet validates it — they have to agree,
  * or a quantity that parses in one is rejected by the other.
+ *
+ * ⚠️ A normaliser rather than the type guard this used to be, and the difference is load-bearing.
+ *    A guard narrows the caller's OWN string and hands it back, so a guard that says yes to "cs"
+ *    writes "cs" into the grocery flow — where `vUnit` no longer holds that literal and rejects it
+ *    at the mutation. The shopper types a word the bar accepted and the save fails. Callers must
+ *    use the RETURNED value, never the input.
  */
-export const isUnit = (value: string | undefined): value is Unit =>
-  value !== undefined && UNITS.some((unit) => unit === value.toLowerCase());
+export const normalizeUnit = (value: string | undefined): Unit | undefined => {
+  if (value === undefined) return undefined;
+
+  const lower = value.toLowerCase();
+
+  return UNITS.find((unit) => unit === lower) ?? UNIT_ALIASES.get(lower);
+};
 
 /**
  * Drawn for a tile that has no catalog row behind it to take a glyph from — a ghost line the
@@ -59,10 +95,18 @@ const UNIT_LABELS: Record<Unit, string> = {
   ml: "ml",
   l: "L",
   pcs: "pcs",
-  cs: "cs",
-  cc: "cc",
+  tbsp: "tbsp",
+  tsp: "tsp",
 };
 
+/**
+ * The stored code, spelled for a screen — `l` as `L`, and everything else as itself.
+ *
+ * Not a translation, and not the one the UI should reach for. The codes are English, so a French
+ * cook reading `2 tbsp` is reading a word from the wrong language; `Vocabulary.Units` in the
+ * locale files holds the one they expect, and `formatQuantity` takes a resolver so the module
+ * layer can supply it. This stays as the fallback for text nobody localises.
+ */
 export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
 
 /**
@@ -75,9 +119,18 @@ export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
  * ⚠️ Never use this for text that will be read back and re-parsed — `exactQuantity` is that one.
  *    Both the rounding and `unitLabel` (which spells `l` as `L`) are display decisions, and a round
  *    trip through them turns a stored `0.25` into `0.3` permanently.
+ *
+ * `label` is how the word gets localised without `shared/` ever importing `translations`: the
+ * module layer passes a resolver built from `t("Vocabulary.Units.<code>")` (`useUnitLabel`), and
+ * this file goes on knowing only the stored codes. The default is the English code itself, which
+ * is right for a caller with no locale to hand and wrong for anything a cook reads — a screen left
+ * on it renders `2 tbsp` to a French cook, silently.
  */
-export const formatQuantity = (amount: number, unit: Unit) =>
-  `${Number.isInteger(amount) ? amount : amount.toFixed(1)} ${unitLabel(unit)}`;
+export const formatQuantity = (
+  amount: number,
+  unit: Unit,
+  label: (unit: Unit) => string = unitLabel,
+) => `${Number.isInteger(amount) ? amount : amount.toFixed(1)} ${label(unit)}`;
 
 /**
  * The same pair, for text a MACHINE will read back — the editor's textarea, and the comparison that
@@ -134,16 +187,17 @@ const GRAMS_PER_MASS_UNIT = {
 /**
  * Millilitres in one of each volume unit.
  *
- * `cs` and `cc` are the French cuillère à soupe and cuillère à café, which are defined as 15 and
- * 5 ml — not as the US tablespoon/teaspoon, which are 14.79 and 4.93. The difference is under a
- * percent of a spoonful and nothing here would notice, but the number has to come from somewhere.
+ * `tbsp` and `tsp` are 15 and 5 ml — the metric spoon a French cook calls a cuillère à soupe or à
+ * café, not the US tablespoon/teaspoon, which are 14.79 and 4.93. The difference is under a
+ * percent of a spoonful and nothing here would notice, but the number has to come from somewhere,
+ * and the codes being English does not make the kitchen they are measured in American.
  */
 const ML_PER_VOLUME_UNIT = {
   ml: 1,
   cl: 10,
   l: 1000,
-  cs: 15,
-  cc: 5,
+  tbsp: 15,
+  tsp: 5,
 } as const satisfies Partial<Record<Unit, number>>;
 
 /**
@@ -198,7 +252,7 @@ export const stockUnitOf = (defaultUnit: Unit): StockUnit => STOCK_UNITS[_dimens
  *
  * Within one kind of unit this is arithmetic and needs nothing from the ingredient: 1 l of milk is
  * 1000 ml, 2 kg of flour 2000 g. Across kinds it goes through grams, and needs the ratios both ends
- * speak — 1 cs of butter bought in grams needs a density, 300 g of carrots bought by the piece
+ * speak — 1 tbsp of butter bought in grams needs a density, 300 g of carrots bought by the piece
  * needs a piece weight. Missing either is `undefined`, never a guess, for the reason `toGrams` is.
  */
 export const toStockUnit = (
@@ -265,8 +319,8 @@ export type MergeGroup = "mass" | "volume";
  * The family a grocery list row may merge within, or `null` for a unit that never merges.
  *
  * Mass: kg · g · mg · oz · lb, ordered by grams. Volume: l · ml · cl, ordered by millilitres.
- * `pcs` is out because pieces have no reliable conversion — the rule `toStockUnit` lives by. `cs`
- * and `cc` are out by product decision: spoons are cooking measures, not shopping units, and
+ * `pcs` is out because pieces have no reliable conversion — the rule `toStockUnit` lives by.
+ * `tbsp` and `tsp` are out by product decision: spoons are cooking measures, not shopping units, and
  * planning never writes them to the list, so there is nothing for them to merge with today.
  *
  * This is the policy; `convertQuantity` is the maths, and it will happily convert a spoon to

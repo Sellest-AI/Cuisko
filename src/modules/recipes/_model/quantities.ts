@@ -151,8 +151,8 @@ const MEASURES = new Map<string, Unit | undefined>([
   ["l", "l"], ["litre", "l"], ["litres", "l"], ["liter", "l"], ["liters", "l"],
   ["oz", "oz"], ["ounce", "oz"], ["ounces", "oz"],
   ["lb", "lb"], ["lbs", "lb"], ["pound", "lb"], ["pounds", "lb"],
-  ["cs", "cs"], ["tbsp", "cs"], ["tablespoon", "cs"], ["tablespoons", "cs"],
-  ["cc", "cc"], ["tsp", "cc"], ["teaspoon", "cc"], ["teaspoons", "cc"],
+  ["cs", "tbsp"], ["tbsp", "tbsp"], ["tablespoon", "tbsp"], ["tablespoons", "tbsp"],
+  ["cc", "tsp"], ["tsp", "tsp"], ["teaspoon", "tsp"], ["teaspoons", "tsp"],
   // measures with no stored unit behind them
   ["cuillere", undefined], ["cuilleres", undefined], ["soupe", undefined], ["cafe", undefined],
   ["pincee", undefined], ["pincees", undefined], ["pinch", undefined], ["pinches", undefined],

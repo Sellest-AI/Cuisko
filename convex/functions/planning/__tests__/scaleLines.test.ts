@@ -91,11 +91,11 @@ describe("functions/planning/scaleLines", () => {
 
   describe("staples", () => {
     test.each<[Category, Unit]>([
-      ["SPICE", "cc"],
+      ["SPICE", "tsp"],
       ["HERB", "pcs"],
-      ["CONDIMENT", "cs"],
-      ["OIL", "cs"],
-      ["SWEETENER", "cc"],
+      ["CONDIMENT", "tbsp"],
+      ["OIL", "tbsp"],
+      ["SWEETENER", "tsp"],
     ])("reads a %s in %s as a pinch, never measured", (category, unit) => {
       const [need] = scaleLines([line(1, unit, { category, gramsPerPiece: 5, gramsPerMl: 1 })], {
         recipeServings: 1,
@@ -105,14 +105,14 @@ describe("functions/planning/scaleLines", () => {
       expect(need?.kind).toBe("pinch");
     });
 
-    /** The recipe's words survive, so the meal screen can still say "2 cc". */
+    /** The recipe's words survive, so the meal screen can still say "2 tsp". */
     test("keeps the pinch's scaled amount for display", () => {
-      const [need] = scaleLines([line(1, "cc", { category: "SPICE" })], {
+      const [need] = scaleLines([line(1, "tsp", { category: "SPICE" })], {
         recipeServings: 2,
         servings: 4,
       });
 
-      expect(need).toMatchObject({ quantity: 2, unit: "cc" });
+      expect(need).toMatchObject({ quantity: 2, unit: "tsp" });
     });
 
     /** The unit decides, not the category: 200 g of sugar is a real quantity. */
@@ -126,7 +126,7 @@ describe("functions/planning/scaleLines", () => {
     });
 
     test("does not treat a spoonful of a non-staple as a pinch", () => {
-      const [need] = scaleLines([line(1, "cs", { category: "DAIRY", gramsPerMl: 1 })], {
+      const [need] = scaleLines([line(1, "tbsp", { category: "DAIRY", gramsPerMl: 1 })], {
         recipeServings: 1,
         servings: 1,
       });

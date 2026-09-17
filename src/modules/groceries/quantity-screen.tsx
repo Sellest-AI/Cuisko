@@ -8,8 +8,9 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { useModalAction } from "~/modules/navigation/modal-action";
-import { formatQuantity, isIntent, isUnit, unitLabel, type Intent, type Unit } from "./_model/model";
+import { formatQuantity, isIntent, normalizeUnit, type Intent, type Unit } from "./_model/model";
 import { useQuantityPicker } from "./_hooks/useQuantityPicker";
 import { useRemoveItem } from "./_hooks/useRemoveItem";
 import { AmountInput } from "./quantity-screen.amount-input";
@@ -58,6 +59,7 @@ const Picker = ({
   onLayout: (event: LayoutChangeEvent) => void;
 }) => {
   const t = useTranslations("Groceries");
+  const unitWord = useUnitLabel();
   const [entryUnit, setEntryUnit] = useState<Unit>(rowUnit);
 
   const { ingredient, prompt, options, owned, submit } = useQuantityPicker({
@@ -99,7 +101,7 @@ const Picker = ({
    */
   if (!ingredient) return <Nothing />;
 
-  const subtitle = [ingredient?.name, owned > 0 ? formatQuantity(owned, entryUnit) : undefined]
+  const subtitle = [ingredient?.name, owned > 0 ? formatQuantity(owned, entryUnit, unitWord) : undefined]
     .filter(Boolean)
     .join(" · ");
 
@@ -123,7 +125,7 @@ const Picker = ({
           <QuantityOption
             key={`${option.amount}:${option.unit}`}
             amount={option.amount}
-            unit={unitLabel(option.unit)}
+            unit={unitWord(option.unit)}
             caption={option.captionKey ? t(option.captionKey) : undefined}
             type={option.type}
             onPress={() => choose(option.amount)}
@@ -155,9 +157,15 @@ const Nothing = () => {
 export const QuantityScreen = ({ params, onClose, onLayout }: Props) => {
   const { ingredientId, unit, intent } = params;
 
-  if (!ingredientId || !isUnit(unit) || !isIntent(intent)) return <Nothing />;
+  /**
+   * The NORMALISED code, never the param: a deep link may spell the spoon `cs`, and handing that
+   * string on writes a literal `vUnit` no longer holds — the sheet would open and the save fail.
+   */
+  const rowUnit = normalizeUnit(unit);
 
-  return <Picker ingredientId={ingredientId} unit={unit} intent={intent} onClose={onClose} onLayout={onLayout} />;
+  if (!ingredientId || !rowUnit || !isIntent(intent)) return <Nothing />;
+
+  return <Picker ingredientId={ingredientId} unit={rowUnit} intent={intent} onClose={onClose} onLayout={onLayout} />;
 };
 
 const styles = StyleSheet.create({

@@ -74,6 +74,9 @@ const VOCABULARIES = [
   { block: "Allergens", source: "shared/allergens.ts", constant: "ALLERGENS" },
   { block: "Cuisines", source: "shared/cuisines.ts", constant: "CUISINES" },
   { block: "Categories", source: "shared/categories.ts", constant: "CATEGORIES" },
+  // The one source file here that is not single-purpose: `UNITS` sits in `shared/ingredients.ts`
+  // beside the conversions. A path and a constant name is all this check reads, so that works.
+  { block: "Units", source: "shared/ingredients.ts", constant: "UNITS" },
 ];
 
 /* ── The vocabularies, read from the source of truth ──────────────────────────────────── */

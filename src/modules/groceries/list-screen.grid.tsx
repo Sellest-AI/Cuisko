@@ -10,6 +10,8 @@ import { useTranslations, type TranslationKeys } from "translations";
 
 import { NO_EMOJI } from "@shared/ingredients";
 
+import { useUnitLabel } from "~/hooks/useUnitLabel";
+
 import {
   formatQuantity,
   orderSections,
@@ -120,6 +122,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const { sections, submit } = useGroceryList();
   const { pending, dismiss } = usePendingIngredients();
   const t = useTranslations("Groceries");
+  const unit = useUnitLabel();
   const router = useRouter();
 
   const itemWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
@@ -200,7 +203,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
 
         const type = variantFor(row.stock);
         const quantity = type === "memory" ? undefined :
-          formatQuantity(row.stock.amount, row.stock.unit);
+          formatQuantity(row.stock.amount, row.stock.unit, unit);
 
         return (
           <GroceryItem

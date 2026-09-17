@@ -8,6 +8,8 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 import { formatQuantity } from "@shared/ingredients";
 
+import { useUnitLabel } from "~/hooks/useUnitLabel";
+
 import { EmptyState } from "../_components/empty-state";
 import { NutritionCard } from "../_components/nutrition-card";
 import { RecipeScreen } from "../_components/recipe-screen";
@@ -22,6 +24,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
   const t = useTranslations("Recipe");
   /** An ingredient category is a shared vocabulary, so its words live with the rest of them. */
   const tVocabulary = useTranslations("Vocabulary");
+  const unit = useUnitLabel();
   const { width } = useWindowDimensions();
 
   /** Already scaled — the hook owns that, so no screen can draw a list for the wrong count. */
@@ -83,7 +86,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
               emoji: line.emoji,
               imageUrl: line.imageUrl,
               name: line.name,
-              quantity: formatQuantity(line.quantity, line.unit),
+              quantity: formatQuantity(line.quantity, line.unit, unit),
             }))}
             itemWidth={itemWidth}
           />

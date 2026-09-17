@@ -119,7 +119,7 @@ const seedPinchRecipe = () =>
       ingredientId,
       position: 0,
       quantity: 1,
-      unit: "cc",
+      unit: "tsp",
       updatedAt: Date.now(),
     });
     return { recipeId, ingredientId };
