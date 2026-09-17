@@ -2,6 +2,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
+import { canBeMadeWith, type Equipment } from "@shared/equipments";
 import { totalMinutesOf } from "@shared/recipes";
 
 import { suitsDiet } from "@convex/functions/recipes/dietFacet";
@@ -27,6 +28,13 @@ type Args = {
    * behaviour this function had before a ceiling existed.
    */
   maxMinutes?: number;
+  /**
+   * What the kitchen owns, in the vocabulary's words. Optional, and the two absences differ:
+   * `undefined` is a kitchen nobody asked about, which filters nothing; `[]` is one the cook said
+   * owns nothing listed, which keeps only recipes that need none of it — the same distinction
+   * `households.equipments` draws with its optional column.
+   */
+  equipments?: Equipment[];
 };
 
 /** A candidate, with the documents the draft is shaped from so nothing is read twice. */
@@ -155,7 +163,7 @@ const _loadUntil = async (
  */
 export const candidatePool = async (
   ctx: PoolCtx,
-  { userId, seed, servings, plates, diet, avoids, maxMinutes }: Args,
+  { userId, seed, servings, plates, diet, avoids, maxMinutes, equipments }: Args,
 ): Promise<Pool> => {
   const pool: Pool = { candidates: [], recipes: new Map(), ingredients: new Map() };
   const wanted = plates * CANDIDATES_PER_PLATE;
@@ -183,8 +191,16 @@ export const candidatePool = async (
     return total === undefined || total <= maxMinutes;
   };
 
-  // Both are decided on the recipe row, before a single line is read, so the ceiling costs nothing.
-  const suits = (recipe: Doc<"recipes">) => suitsDiet(recipe, diet) && fitsTime(recipe);
+  /**
+   * A recipe declaring no equipment passes too, and that is NOT the untimed rule above: an empty
+   * list is the sanitizer's answer ("pans and a knife"), not a field nobody filled —
+   * see `canBeMadeWith`.
+   */
+  const isMakeable = (recipe: Doc<"recipes">) =>
+    equipments === undefined || canBeMadeWith(recipe.equipments, equipments);
+
+  // All three are decided on the recipe row, before a single line is read, so they cost nothing.
+  const suits = (recipe: Doc<"recipes">) => suitsDiet(recipe, diet) && fitsTime(recipe) && isMakeable(recipe);
 
   await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false }, pool);
 

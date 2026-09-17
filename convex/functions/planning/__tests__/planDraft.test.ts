@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
+import type { Equipment } from "@shared/equipments";
 import type { MealSlot } from "@shared/mealSlots";
 
 import schema from "../../../schema";
@@ -64,7 +65,7 @@ const setup = () =>
     return { userId, householdId, ingredientId, recipeId };
   });
 
-type Request = { seed?: number; servings?: number; dates?: number[]; slots?: MealSlot[] };
+type Request = { seed?: number; servings?: number; dates?: number[]; slots?: MealSlot[]; equipments?: Equipment[] };
 
 const draft = (ids: { userId: Id<"users">; householdId: Id<"households"> }, request: Request = {}) =>
   t.run((ctx) =>
@@ -116,6 +117,15 @@ describe("functions/planning/planDraft", () => {
     const [meal] = await draft(ids);
 
     expect(meal!.ingredients[0]!.covered).toBe(true);
+  });
+
+  /** The kitchen reaches the pool: the one recipe needs an oven, and a kitchen without one plans nothing. */
+  test("draws only recipes the kitchen can make", async () => {
+    const ids = await setup();
+    await t.run((ctx) => ctx.db.patch(ids.recipeId, { equipments: ["oven"] }));
+
+    expect(await draft(ids, { equipments: ["microwave"] })).toEqual([]);
+    expect(await draft(ids, { equipments: ["oven"] })).toHaveLength(1);
   });
 
   test("answers an empty week, not a throw, when there are no slots", async () => {

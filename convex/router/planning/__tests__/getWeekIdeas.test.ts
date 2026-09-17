@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import type { Equipment } from "@shared/equipments";
+
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
@@ -50,10 +52,15 @@ type RecipeOptions = {
   allergens?: ("gluten" | "milk")[] | null;
   isVegan?: boolean;
   userId?: Id<"users">;
+  /** The alternatives the recipe can be made with; empty is "pans and a knife". */
+  equipments?: Equipment[];
 };
 
 /** A recipe of one line. Catalog when `userId` is unset, the caller's own otherwise. */
-const seedRecipe = (title: string, { shuffleKey, allergens = [], isVegan = true, userId }: RecipeOptions) =>
+const seedRecipe = (
+  title: string,
+  { shuffleKey, allergens = [], isVegan = true, userId, equipments = [] }: RecipeOptions,
+) =>
   t.run(async (ctx) => {
     const ingredientId = await ctx.db.insert("ingredients", {
       name: { values: { fr: title }, meta: {} },
@@ -71,7 +78,7 @@ const seedRecipe = (title: string, { shuffleKey, allergens = [], isVegan = true,
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },
       servings: 2,
-      equipments: [],
+      equipments,
       difficulty: 1,
       tags: [],
       cuisine: "french",
@@ -163,6 +170,23 @@ describe("router/planning/getWeekIdeas", () => {
     const ideas = await ideasFor(userId, householdId);
 
     expect(ideas.map((card) => card.id)).toEqual([soupId]);
+  });
+
+  /**
+   * The kitchen is the household's row, not a member's: a shelf must not suggest a roast to a
+   * kitchen without an oven. A recipe needing nothing passes, and a household never asked (the
+   * column unset) is not filtered at all — the shelf it had before it answered.
+   */
+  test("filters on the household's stored kitchen, and only once it has answered", async () => {
+    const { householdId, userId } = await seedMember();
+    const roastId = await seedRecipe("Rôti", { shuffleKey: 1_000_000_000, equipments: ["oven"] });
+    const soupId = await seedRecipe("Soupe", { shuffleKey: 2_000_000_000 });
+
+    expect((await ideasFor(userId, householdId)).map((card) => card.id)).toEqual([roastId, soupId]);
+
+    await t.run((ctx) => ctx.db.patch(householdId, { equipments: ["microwave"] }));
+
+    expect((await ideasFor(userId, householdId)).map((card) => card.id)).toEqual([soupId]);
   });
 
   /** The week is the seed: two visits in one week draw the same picks in the same order. */

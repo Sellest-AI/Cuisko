@@ -61,9 +61,21 @@ export const weekIdeas = async (
   ctx: IdeasCtx,
   { householdId, userId, locale, weekKey }: Args,
 ): Promise<RecipeCard[]> => {
-  const { diet, avoids } = await _householdConstraints(ctx, householdId);
+  const [{ diet, avoids }, household] = await Promise.all([
+    _householdConstraints(ctx, householdId),
+    ctx.db.get(householdId),
+  ]);
 
-  const pool = await candidatePool(ctx, { userId, seed: seedOfWeekKey(weekKey), diet, avoids, ...ONE_PLATE });
+  // The kitchen is the household's, so its row is the one place to read it from — and its optional
+  // column is the pool's optional argument: a household never asked is a shelf never filtered.
+  const pool = await candidatePool(ctx, {
+    userId,
+    seed: seedOfWeekKey(weekKey),
+    diet,
+    avoids,
+    equipments: household?.equipments,
+    ...ONE_PLATE,
+  });
 
   return Promise.all(
     pool.candidates.slice(0, IDEAS_COUNT).map(async ({ recipeId }) => {
