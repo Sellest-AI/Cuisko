@@ -54,7 +54,9 @@ hour ahead will not cream and the recipe fails; for an onion soup the slicing IS
 
 So the ingredient keeps only the ingredient ("butter", "flour", "onions"), and the action becomes a
 step, placed where its lead time demands: "softened" opens the recipe, "thinly sliced" belongs in
-the onion group. This is not rule 2 being broken — the cook did state the action, you are moving it
+the onion group. Becoming a step is not becoming a step of its own: when a step already handles
+that food at that moment, the action joins it rather than adding a line. This is not rule 2 being
+broken — the cook did state the action, you are moving it
 to where it can be followed.
 
 # Order the steps the way the cooking actually happens
@@ -139,8 +141,26 @@ not inventing them.
   halves are separated in time or make different components; keep them together when the cook does
   them in one go.
   Use one when the recipe genuinely has parts; a recipe that is one run
-  of steps is ONE group with no title, not five groups of one step. Each step is one action, written as an instruction ("Preheat
-  the oven to 180°C"), with no leading number, dash or bullet. An amount named inside a step uses
+  of steps is ONE group with no title, not five groups of one step.
+  A step is one stretch of work the cook does without putting the recipe down. It is not one verb.
+  Peeling, rinsing and slicing the same potatoes is ONE step, and so is bringing the milk to the
+  boil with the garlic and the seasoning already in it. Chained actions on the same food, at the
+  same station, done in one breath, are one sentence: "Peel the potatoes, rinse them whole, then
+  slice them thinly and do not rinse them again, so they keep their starch."
+  Split only where the cook actually stops — a wait they have to time ("simmer for 15 minutes"), a
+  move to a different component or a different pan, or a decision they have to make. A step that
+  exists only because the previous sentence ended is not a step.
+  The failure to avoid is the list of tiny motions: fifteen entries for a gratin reads as a
+  checklist, buries the three moments that decide whether it works, and loses the cook's place
+  every time they look up. A home dish lands around five to eight steps and a long or
+  multi-component one rarely past twelve — the shape to aim for, not a quota. Never pad a short
+  recipe to reach it, and never merge two actions separated by a wait to come under it.
+  Merging steps never merges groups. Everything above applies INSIDE a group and stops at its
+  boundary: two components that were two groups stay two groups however short each one becomes,
+  and a group holding a single step is a normal answer, not a group to fold into its neighbour.
+  A title joined by "and" is the tell that this went wrong.
+  Each step is written as an instruction ("Preheat the oven to 180°C"), with no leading number,
+  dash or bullet, and never a unit code — "1 tablespoon of sugar", never "15 cc of sugar". An amount named inside a step uses
   the same unit as the ingredient list, and one ingredient's amounts across every step add up to
   the total listed there: 4 cs of gochujang split between a marinade and a sauce is written "3
   tablespoons" and "the remaining tablespoon", never a teaspoon on one side and a tablespoon on
@@ -155,7 +175,10 @@ not inventing them.
     dropping it would send the cook home with the wrong product; if it would not, drop it.
     It is matched against a catalog by name.
   - unit: exactly one of: ${_list(UNITS)}. "cs" is a tablespoon, "cc" a teaspoon, "pcs" the piece a
-    RECIPE counts — a clove of garlic, not the head it is sold in; a bay leaf, not the jar.
+    RECIPE counts. "cc" is a cuillère à café and NEVER a cubic centimetre — this catalog weighs it
+    as 5 ml, so a tablespoon written "15 cc" becomes fifteen teaspoons, five times the sugar the
+    cook asked for, on the plate and in the nutrition. One tablespoon is "1 cs". If you are
+    thinking in millilitres, write "ml" — a clove of garlic, not the head it is sold in; a bay leaf, not the jar.
     Pick what a cook would write, never what converts most neatly. Every ingredient in the catalog
     carries what one of it weighs and what a millilitre of it weighs, so "2 cs of honey" reaches
     grams exactly as "30 g of honey" does: a weight you reached for to be safe only makes the line
