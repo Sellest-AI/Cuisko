@@ -12,7 +12,6 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import {
   buildRows,
-  planDates,
   planSections,
   toDateParam,
   toMealCard,
@@ -50,7 +49,7 @@ const _openPlate = (row: PlanningRow<MealCard>) =>
 /** What it picked, before the list is drawn from it. */
 export const TunnelReview = () => {
   const t = useTranslations("Planning");
-  const { meals, slots, days } = useTunnel();
+  const { meals, slots, dates } = useTunnel();
   const onScroll = useTunnelScrollHandler();
 
   const today = useMemo(() => new Date(), []);
@@ -58,11 +57,12 @@ export const TunnelReview = () => {
   /**
    * The days the tunnel was asked for, whichever of them still hold a plate, with an empty one on
    * every slot that does not. Deleting is otherwise a one-way door: the row goes, and with it the
-   * only thing there was to tap.
+   * only thing there was to tap. The days come from the draft rather than being counted here again,
+   * because the week starts after the latest kept plate and only the draft knows which day that was.
    */
   const rows = useMemo(
-    () => buildRows(planSections(planDates(today, days), meals.map(toMealCard), today), today, { emptySlots: slots }),
-    [today, days, meals, slots],
+    () => buildRows(planSections(dates, meals.map(toMealCard), today), today, { emptySlots: slots }),
+    [today, dates, meals, slots],
   );
 
   return (

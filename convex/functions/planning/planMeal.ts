@@ -5,7 +5,6 @@ import type { MutationCtx } from "@convex/procedures";
 import type { MealSlot } from "@shared/mealSlots";
 
 import { commitPlan } from "./commitPlan";
-import { dropMeal } from "./dropMeal";
 
 type Args = {
   householdId: Id<"households">;
@@ -28,24 +27,15 @@ type Args = {
  * there is no run to describe.
  *
  * **A plate already on that day and slot is replaced**, not refused: the screen shows the dish it
- * will replace and asks first, so by the time this runs the answer is yes. Replacing is `dropMeal`
- * then `commitPlan`, in that order, so the old plate's claims are given back before the new one's
- * are weighed — or the cellar would be reserved for both. `dropMeal` also refuses a cooked plate,
- * which is the one thing on a slot that cannot be replaced.
+ * will replace and asks first, so by the time this runs the answer is yes. The replacing is
+ * `commitPlan`'s own rule, and so is its refusal of a cooked plate, which is the one thing on a
+ * slot that cannot be replaced.
  *
  * Yesterday is refused: a plate behind the household is a week it lived, and `availableStock` would
  * not count its reservations anyway.
  */
 export const planMeal = async (ctx: MutationCtx, args: Args): Promise<Id<"mealPlans">> => {
   if (args.date < args.today) throw new ConvexError({ code: "INVALID_INPUT", message: "The day has passed." });
-
-  const onThatDay = await ctx.db
-    .query("plannedMeals")
-    .withIndex("by_household_and_date", (q) => q.eq("householdId", args.householdId).eq("date", args.date))
-    .collect();
-  const replaced = onThatDay.find((meal) => meal.slot === args.slot);
-
-  if (replaced) await dropMeal(ctx, { householdId: args.householdId, mealId: replaced._id, today: args.today });
 
   return commitPlan(ctx, {
     householdId: args.householdId,

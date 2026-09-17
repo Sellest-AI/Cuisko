@@ -1,4 +1,4 @@
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { router, usePathname } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -9,7 +9,7 @@ import type { Taste } from "@shared/tastes";
 import { api } from "~/lib/convex/api";
 import { useMutation } from "~/lib/convex/client";
 
-import { MEAL_SLOTS, toggle, toggleTaste, type MealSlot } from "../../_model/model";
+import { MEAL_SLOTS, planAfter, startOfDay, toggle, toggleTaste, type MealSlot } from "../../_model/model";
 import {
   constraintsOf,
   isDietConstraint,
@@ -28,6 +28,8 @@ import {
   moodsAtom,
   noteAtom,
   peopleAtom,
+  planAfterAtom,
+  planDatesAtom,
   seeksAtom,
   slotsAtom,
 } from "../../_hooks/atoms";
@@ -95,8 +97,10 @@ export const useTunnel = () => {
   const [constraints, setConstraints] = useAtom(constraintsAtom);
   const [isSetupSeeded, setSetupSeeded] = useAtom(isSetupSeededAtom);
   const [meals, setMeals] = useAtom(draftMealsAtom);
+  const [after, setAfter] = useAtom(planAfterAtom);
+  const dates = useAtomValue(planDatesAtom);
 
-  const { seed, householdId, isLoading: isSeedLoading } = usePlanningSeed();
+  const { seed, lastDate, householdId, isLoading: isSeedLoading } = usePlanningSeed();
 
   const { mutate: savePreferences } = useMutation(api.router.preferences.save.authed);
   const { mutate: saveDefaults } = useMutation(api.router.households.saveDefaults.authed);
@@ -160,6 +164,20 @@ export const useTunnel = () => {
 
     setSetupSeeded(true);
   }, [seed, isSetupSeeded, setSetupSeeded, setEquipments, setPeople, setDays, setSlots]);
+
+  /**
+   * The day the week counts from, seeded once per run from the household's latest kept plate.
+   *
+   * `null` is the guard, as for the answers above, and for a stronger reason: `getLastDate` is
+   * reactive, so without the latch a plate kept from another device mid-review would move the whole
+   * week under the user. `today` is taken at the latch and not before, so it is the day the answer
+   * landed on. `resetTunnelAtom` puts it back to `null` for the next run.
+   */
+  useEffect(() => {
+    if (lastDate === undefined || after !== null) return;
+
+    setAfter(planAfter(startOfDay(new Date()), lastDate));
+  }, [lastDate, after, setAfter]);
 
   const index = TUNNEL_STEPS.findIndex((step) => path.endsWith(`/${step}`));
   const step = index === -1 ? 0 : index;
@@ -280,6 +298,8 @@ export const useTunnel = () => {
     /** Empty until the seed lands, which `isSeedLoading` is how a screen tells apart from "nothing". */
     constraints: constraints ?? [],
     meals,
+    /** The days the week covers — what the draft asks for and the review draws, empty rows included. */
+    dates,
     isSeedLoading,
     /**
      * Whether the step on screen is one the user may leave unanswered, and has. The bar reads it to

@@ -78,6 +78,7 @@ import type * as functions_planning_commitPlan from "../functions/planning/commi
 import type * as functions_planning_draftMeal from "../functions/planning/draftMeal.js";
 import type * as functions_planning_draftMealOf from "../functions/planning/draftMealOf.js";
 import type * as functions_planning_dropMeal from "../functions/planning/dropMeal.js";
+import type * as functions_planning_lastPlannedDate from "../functions/planning/lastPlannedDate.js";
 import type * as functions_planning_limits from "../functions/planning/limits.js";
 import type * as functions_planning_loadHouseholdMeal from "../functions/planning/loadHouseholdMeal.js";
 import type * as functions_planning_loadMealCard from "../functions/planning/loadMealCard.js";
@@ -161,6 +162,7 @@ import type * as router_media_images_uploadSizes from "../router/media/images/up
 import type * as router_planning_commit from "../router/planning/commit.js";
 import type * as router_planning_getDraft from "../router/planning/getDraft.js";
 import type * as router_planning_getDraftMeal from "../router/planning/getDraftMeal.js";
+import type * as router_planning_getLastDate from "../router/planning/getLastDate.js";
 import type * as router_planning_getMany from "../router/planning/getMany.js";
 import type * as router_planning_getOne from "../router/planning/getOne.js";
 import type * as router_planning_getPaginated from "../router/planning/getPaginated.js";
@@ -273,6 +275,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/draftMeal": typeof functions_planning_draftMeal;
   "functions/planning/draftMealOf": typeof functions_planning_draftMealOf;
   "functions/planning/dropMeal": typeof functions_planning_dropMeal;
+  "functions/planning/lastPlannedDate": typeof functions_planning_lastPlannedDate;
   "functions/planning/limits": typeof functions_planning_limits;
   "functions/planning/loadHouseholdMeal": typeof functions_planning_loadHouseholdMeal;
   "functions/planning/loadMealCard": typeof functions_planning_loadMealCard;
@@ -356,6 +359,7 @@ declare const fullApi: ApiFromModules<{
   "router/planning/commit": typeof router_planning_commit;
   "router/planning/getDraft": typeof router_planning_getDraft;
   "router/planning/getDraftMeal": typeof router_planning_getDraftMeal;
+  "router/planning/getLastDate": typeof router_planning_getLastDate;
   "router/planning/getMany": typeof router_planning_getMany;
   "router/planning/getOne": typeof router_planning_getOne;
   "router/planning/getPaginated": typeof router_planning_getPaginated;

@@ -245,6 +245,97 @@ describe("router/planning/commit", () => {
     expect(list[0]!.quantity).toBeCloseTo(1, 9);
   });
 
+  /**
+   * The invariant a week holds server-side: one plate per day and slot, whatever the client chose
+   * as dates. The old plate's ledger goes with it and its groceries are given back, so the list
+   * shops for the new dish alone.
+   */
+  test("replaces the plate already on a day and slot, and its claims with it", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+    const first = await seedRecipe("Soupe");
+    const second = await seedRecipe("Risotto");
+    const as = t.withIdentity(asUser(userId));
+
+    const firstPlanId = await as.mutation(api.router.planning.commit.authed, args(householdId, first.recipeId));
+    const secondPlanId = await as.mutation(api.router.planning.commit.authed, {
+      ...args(householdId, second.recipeId),
+      plates: [
+        { recipeId: second.recipeId, date: TODAY + DAY, slot: "lunch" as const, servings: 2 },
+        { recipeId: second.recipeId, date: TODAY + 2 * DAY, slot: "lunch" as const, servings: 2 },
+      ],
+    });
+
+    const kept = await t.run(async (ctx) => ({
+      plans: await ctx.db.query("mealPlans").collect(),
+      meals: await ctx.db.query("plannedMeals").collect(),
+      ledger: await ctx.db.query("plannedMealIngredients").collect(),
+      list: await ctx.db.query("groceryListItems").collect(),
+    }));
+
+    expect(kept.meals.map((meal) => [meal.date, meal.slot, meal.recipeId])).toEqual([
+      [TODAY + DAY, "lunch", second.recipeId],
+      [TODAY + 2 * DAY, "lunch", second.recipeId],
+    ]);
+    expect(kept.meals.every((meal) => meal.mealPlanId === secondPlanId)).toBe(true);
+    // The first plan lost its only plate, and a plan with no plate is not kept.
+    expect(kept.plans.map((plan) => plan._id)).toEqual([secondPlanId]);
+    expect(kept.plans.map((plan) => plan._id)).not.toContain(firstPlanId);
+    expect(kept.ledger.map((row) => row.ingredientId)).toEqual([second.ingredientId, second.ingredientId]);
+    expect(kept.list).toMatchObject([{ ingredientId: second.ingredientId, quantity: 400, unit: "g" }]);
+  });
+
+  test("leaves a plate on another slot of the same day alone", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+    const first = await seedRecipe("Soupe");
+    const second = await seedRecipe("Risotto");
+    const as = t.withIdentity(asUser(userId));
+
+    await as.mutation(api.router.planning.commit.authed, args(householdId, first.recipeId));
+    await as.mutation(api.router.planning.commit.authed, {
+      ...args(householdId, second.recipeId),
+      plates: [{ recipeId: second.recipeId, date: TODAY + DAY, slot: "dinner" as const, servings: 2 }],
+    });
+
+    const meals = await t.run((ctx) => ctx.db.query("plannedMeals").collect());
+
+    expect(meals.map((meal) => [meal.slot, meal.recipeId]).sort()).toEqual([
+      ["dinner", second.recipeId],
+      ["lunch", first.recipeId],
+    ]);
+  });
+
+  /** A cooked plate is a record the cook step settles against: the week is refused whole, not written around it. */
+  test("refuses a week that would replace a cooked plate, and writes none of it", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+    const first = await seedRecipe("Soupe");
+    const second = await seedRecipe("Risotto");
+    const as = t.withIdentity(asUser(userId));
+
+    await as.mutation(api.router.planning.commit.authed, args(householdId, first.recipeId));
+    const [cooked] = await t.run((ctx) => ctx.db.query("plannedMeals").collect());
+    await t.run((ctx) => ctx.db.patch(cooked!._id, { status: "cooked", updatedAt: Date.now() }));
+
+    await expect(
+      as.mutation(api.router.planning.commit.authed, {
+        ...args(householdId, second.recipeId),
+        plates: [
+          { recipeId: second.recipeId, date: TODAY + DAY, slot: "lunch" as const, servings: 2 },
+          { recipeId: second.recipeId, date: TODAY + 2 * DAY, slot: "lunch" as const, servings: 2 },
+        ],
+      }),
+    ).rejects.toThrow();
+
+    const meals = await t.run((ctx) => ctx.db.query("plannedMeals").collect());
+
+    expect(meals).toMatchObject([{ recipeId: first.recipeId, status: "cooked" }]);
+  });
+
   test("refuses two plates on the same day and slot", async () => {
     const householdId = await seedHousehold();
     const userId = await seedUser();
