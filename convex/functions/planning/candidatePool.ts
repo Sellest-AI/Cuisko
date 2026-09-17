@@ -2,6 +2,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
+import { totalMinutesOf } from "@shared/recipes";
 
 import { suitsDiet } from "@convex/functions/recipes/dietFacet";
 
@@ -18,6 +19,14 @@ type Args = {
   plates: number;
   diet: Diet;
   avoids: Allergen[];
+  /**
+   * The longest a recipe may declare itself to be, margin already applied by `ceilingMinutesOf`.
+   *
+   * Optional because "any" is the absence of a ceiling rather than an infinite one, and because
+   * `weekIdeas` has no tunnel run behind it to read an answer from: omitting it keeps exactly the
+   * behaviour this function had before a ceiling existed.
+   */
+  maxMinutes?: number;
 };
 
 /** A candidate, with the documents the draft is shaped from so nothing is read twice. */
@@ -138,17 +147,44 @@ const _loadUntil = async (
  * The recipes a week may be drawn from, already scaled to the plates' servings, in shuffled order.
  *
  * Both halves are index reads on `by_user_id_and_shuffle_key` — the global catalog (`userId`
- * unset) and the caller's own. Diet is filtered on the recipe row, which is free; allergens need
- * the lines, so they are read only for the survivors, and only until there are enough to choose
- * from. The catalog comes first, and the caller's own fill whatever it could not: the own-share
+ * unset) and the caller's own. Diet and the time ceiling are filtered on the recipe row, which is
+ * free; allergens need the lines, so they are read only for the survivors, and only until there
+ * are enough to choose from. The catalog comes first, and the caller's own fill whatever it could
+ * not: the own-share
  * cap in `selectMeals` is a ceiling, and a short catalog must still yield a week.
  */
-export const candidatePool = async (ctx: PoolCtx, { userId, seed, servings, plates, diet, avoids }: Args): Promise<Pool> => {
+export const candidatePool = async (
+  ctx: PoolCtx,
+  { userId, seed, servings, plates, diet, avoids, maxMinutes }: Args,
+): Promise<Pool> => {
   const pool: Pool = { candidates: [], recipes: new Map(), ingredients: new Map() };
   const wanted = plates * CANDIDATES_PER_PLATE;
 
   const [catalog, mine] = await Promise.all([_window(ctx, undefined, seed), _window(ctx, userId, seed)]);
-  const suits = (recipe: Doc<"recipes">) => suitsDiet(recipe, diet);
+
+  /**
+   * ⚠️ **An untimed recipe passes every ceiling.** `undefined` means nobody timed it, not that it
+   * is instant — so the honest answer to "does this fit in 30 minutes?" is "unknown", and unknown
+   * is admitted here.
+   *
+   * This is deliberately the OPPOSITE of the allergen rule in `_loadUntil` above, where an
+   * unclassified ingredient is excluded, and the difference is what is at stake: a mistimed dinner
+   * annoys a cook, an undeclared allergen harms one. It also protects the pool, since the catalog
+   * holds recipes the model never timed and a strict rule would thin every filtered week.
+   *
+   * If the catalog ever becomes well-timed enough that excluding the unknown is the honest reading
+   * of a ceiling, this is the one line to flip — copy the shape of the allergen check.
+   */
+  const fitsTime = (recipe: Doc<"recipes">) => {
+    if (maxMinutes === undefined) return true;
+
+    const total = totalMinutesOf(recipe.timings);
+
+    return total === undefined || total <= maxMinutes;
+  };
+
+  // Both are decided on the recipe row, before a single line is read, so the ceiling costs nothing.
+  const suits = (recipe: Doc<"recipes">) => suitsDiet(recipe, diet) && fitsTime(recipe);
 
   await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false }, pool);
 
