@@ -1,4 +1,4 @@
-import { UNITS } from "./ingredients";
+import { UNIT_INPUTS } from "./ingredients";
 import { foldAccents, STOPWORDS, type Locale } from "./translations";
 
 /**
@@ -48,7 +48,16 @@ const ALL_TRIGGERS = new Set([...CHAT_TRIGGERS.en, ...CHAT_TRIGGERS.fr]);
 
 const ALL_STOPWORDS = new Set([...STOPWORDS.en, ...STOPWORDS.fr]);
 
-const ALL_UNITS = new Set<string>(UNITS);
+/**
+ * Every spelling a shopper may type, not the stored codes — the same list the navigation bar's
+ * parser builds its pattern from, and it has to be the same one.
+ *
+ * `UNITS` alone reads a French cook's own spoon as a content word: "2 cs huile olive vierge" then
+ * reaches four of them, tips over `SENTENCE_MIN_WORDS`, and goes to the assistant instead of the
+ * shopping list. That is a routing failure with no error behind it — the bar simply answers the
+ * wrong question — and it is what made the codes going English cost anything at all here.
+ */
+const ALL_UNITS = new Set<string>(UNIT_INPUTS);
 
 /**
  * How many content words it takes before this reads as a sentence rather than as a shopping item.

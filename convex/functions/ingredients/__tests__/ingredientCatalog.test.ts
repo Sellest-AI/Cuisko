@@ -37,7 +37,7 @@ describe("catalog weights", () => {
     const spooned = ["salt", "flour-all-purpose", "white-sugar", "honey", "black-pepper", "butter"];
 
     for (const slug of spooned) {
-      expect(toGrams(1, "cs", bySlug(slug))).toBeGreaterThan(0);
+      expect(toGrams(1, "tbsp", bySlug(slug))).toBeGreaterThan(0);
     }
   });
 

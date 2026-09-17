@@ -540,7 +540,7 @@ const GRAMS_PER_ML: Record<string, number> = {
   "black-pepper": 0.45, cinnamon: 0.45, cumin: 0.45, paprika: 0.46, turmeric: 0.5,
   "ginger-ground": 0.5, nutmeg: 0.5, "chili-powder": 0.5, "cayenne-pepper": 0.5,
   "coriander-ground": 0.45, cloves: 0.5, cardamom: 0.45, "dried-oregano": 0.2, "dried-basil": 0.2,
-  // Fresh herbs, chopped — "1 cs of parsley". Light enough that the imprecision costs nothing.
+  // Fresh herbs, chopped — "1 tbsp of parsley". Light enough that the imprecision costs nothing.
   basil: 0.25, parsley: 0.25, cilantro: 0.25, mint: 0.25, thyme: 0.3, rosemary: 0.3,
   "oregano-fresh": 0.25, dill: 0.25, chives: 0.25, sage: 0.25,
   // Liquids

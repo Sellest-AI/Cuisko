@@ -23,10 +23,10 @@ type Args = {
 const PINCH_CATEGORIES: ReadonlySet<Category> = new Set(["SPICE", "HERB", "CONDIMENT", "OIL", "SWEETENER"]);
 
 /**
- * The units that make a staple a pinch. The unit decides, not the category alone: 1 cc of cinnamon
+ * The units that make a staple a pinch. The unit decides, not the category alone: 1 tsp of cinnamon
  * is a pinch, and 200 g of sugar in the same cake is a real quantity measured like any other.
  */
-const PINCH_UNITS: ReadonlySet<Unit> = new Set(["cs", "cc", "pcs"]);
+const PINCH_UNITS: ReadonlySet<Unit> = new Set(["tbsp", "tsp", "pcs"]);
 
 /**
  * Absorbs the float noise a ratio leaves behind before rounding a piece count up. Without it, a

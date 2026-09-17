@@ -143,9 +143,10 @@ export const modelRecipeSchema = z.object({
       quantity: z.number()
         .describe(`Always a number. Estimate it when the cook wrote "to taste" or "a drizzle".`),
       unit: z.enum(UNITS).describe(
-        `"cs" is a tablespoon, "cc" a teaspoon, "pcs" the piece a RECIPE counts — a clove of ` +
-        "garlic, not the head it is sold in; a bay leaf, not the jar. Pick what a cook would " +
-        "write, never what converts most neatly: the catalog knows what one piece and one " +
+        `"tbsp" and "tsp" are the metric tablespoon and teaspoon, 15 ml and 5 ml. "pcs" is the ` +
+        "piece a RECIPE counts — a clove of garlic, not the head it is sold in; a bay leaf, not " +
+        "the jar. Pick what a cook would write, never what converts most neatly: the catalog " +
+        "knows what one piece and one " +
         "millilitre of each ingredient weigh, so a spoonful reaches grams as exactly as a gram " +
         "does. Reaching for a weight to be safe makes the line harder to read and no more exact.",
       ),

@@ -5,6 +5,7 @@ import {
   formatQuantity,
   fromStockUnit,
   mergeGroupOf,
+  normalizeUnit,
   pickQuantity,
   serializeIngredients,
   stockUnitOf,
@@ -14,11 +15,51 @@ import {
   unitScale,
 } from "../ingredients";
 
+describe("normalizeUnit", () => {
+  test("gives back the stored code for a code", () => {
+    expect(normalizeUnit("tbsp")).toBe("tbsp");
+    expect(normalizeUnit("g")).toBe("g");
+  });
+
+  /**
+   * The French spoons are what this vocabulary used to STORE, so a cook who learned them from the
+   * app goes on typing them. They resolve to the English code rather than being rejected — and
+   * rather than being handed back as themselves, which is what a type guard would have done and
+   * what `vUnit` would then refuse at the mutation.
+   */
+  test("resolves the French spoon spellings onto the stored English codes", () => {
+    expect(normalizeUnit("cs")).toBe("tbsp");
+    expect(normalizeUnit("cc")).toBe("tsp");
+  });
+
+  test("is case-insensitive, because a shopper writing in a hurry means the same unit", () => {
+    expect(normalizeUnit("CC")).toBe("tsp");
+    expect(normalizeUnit("KG")).toBe("kg");
+  });
+
+  test("refuses a word that is not a unit, and an absent one", () => {
+    expect(normalizeUnit("nope")).toBeUndefined();
+    expect(normalizeUnit("")).toBeUndefined();
+    expect(normalizeUnit(undefined)).toBeUndefined();
+  });
+
+  /**
+   * Every caller hands this a string a person typed or a deep link carried, so the alias table is
+   * asked about arbitrary words. Held in an object literal it answered for `Object.prototype` as
+   * well — `aliases.constructor` is a function, which is truthy, so the sheet opened on
+   * `?unit=constructor` and `STEPS[unit].filter(…)` threw on `undefined`. Hence the `Map`.
+   */
+  test("refuses a prototype key rather than answering with a function", () => {
+    for (const key of ["constructor", "valueOf", "toString", "hasOwnProperty", "__proto__"])
+      expect(normalizeUnit(key)).toBeUndefined();
+  });
+});
+
 describe("stockUnitOf", () => {
   test("counts an ingredient in the base unit of the kind it is bought in", () => {
     expect(stockUnitOf("kg")).toBe("g");
     expect(stockUnitOf("l")).toBe("ml");
-    expect(stockUnitOf("cs")).toBe("ml");
+    expect(stockUnitOf("tbsp")).toBe("ml");
     expect(stockUnitOf("pcs")).toBe("pcs");
   });
 });
@@ -36,7 +77,7 @@ describe("toStockUnit", () => {
     // Carrots bought by the piece, written in grams: 300 g at 150 g each.
     expect(toStockUnit(300, "g", { defaultUnit: "pcs", gramsPerPiece: 150 })).toBe(2);
     // Butter bought in grams, written in spoons: 15 ml at 0.91 g/ml.
-    expect(toStockUnit(1, "cs", { defaultUnit: "g", gramsPerMl: 0.91 })).toBeCloseTo(13.65);
+    expect(toStockUnit(1, "tbsp", { defaultUnit: "g", gramsPerMl: 0.91 })).toBeCloseTo(13.65);
   });
 
   test("refuses to cross kinds when a ratio is missing", () => {
@@ -56,8 +97,8 @@ describe("toGrams", () => {
 
   test("converts a volume through the ingredient's density", () => {
     // A tablespoon of olive oil: 15ml at 0.91 g/ml.
-    expect(toGrams(1, "cs", { gramsPerMl: 0.91 })).toBeCloseTo(13.65);
-    expect(toGrams(1, "cc", { gramsPerMl: 0.91 })).toBeCloseTo(4.55);
+    expect(toGrams(1, "tbsp", { gramsPerMl: 0.91 })).toBeCloseTo(13.65);
+    expect(toGrams(1, "tsp", { gramsPerMl: 0.91 })).toBeCloseTo(4.55);
     expect(toGrams(25, "cl", { gramsPerMl: 1 })).toBe(250);
   });
 
@@ -67,7 +108,7 @@ describe("toGrams", () => {
 
   test("refuses a volume with no density rather than assuming water", () => {
     // Honey is 1.42 g/ml — assuming 1.0 would understate the line by 40%.
-    expect(toGrams(1, "cs", {})).toBeUndefined();
+    expect(toGrams(1, "tbsp", {})).toBeUndefined();
     expect(toGrams(1, "l", { gramsPerPiece: 150 })).toBeUndefined();
   });
 
@@ -87,9 +128,9 @@ describe("serializeIngredients", () => {
   });
 
   test("keeps a fractional quantity exactly as stored", () => {
-    const text = serializeIngredients([{ name: "olive oil", quantity: 1.5, unit: "cs" }]);
+    const text = serializeIngredients([{ name: "olive oil", quantity: 1.5, unit: "tbsp" }]);
 
-    expect(text).toBe("1.5 cs olive oil");
+    expect(text).toBe("1.5 tbsp olive oil");
   });
 
   /**
@@ -98,10 +139,10 @@ describe("serializeIngredients", () => {
    * feeds `recipeChangesOf`'s comparison, the rounded value is what a later save would persist.
    */
   test("does not round a quantity the display formatter would round", () => {
-    const text = serializeIngredients([{ name: "cumin", quantity: 0.25, unit: "cc" }]);
+    const text = serializeIngredients([{ name: "cumin", quantity: 0.25, unit: "tsp" }]);
 
-    expect(text).toBe("0.25 cc cumin");
-    expect(formatQuantity(0.25, "cc")).toBe("0.3 cc");
+    expect(text).toBe("0.25 tsp cumin");
+    expect(formatQuantity(0.25, "tsp")).toBe("0.3 tsp");
   });
 
   /** `unitLabel` spells `l` as `L`; the stored code is what a re-parse has to see. */
@@ -185,7 +226,7 @@ describe("mergeGroupOf", () => {
 
   /** Pieces cannot convert; spoons are cooking measures the list never holds. */
   test("never merges pieces or spoons", () => {
-    for (const unit of ["pcs", "cs", "cc"] as const) expect(mergeGroupOf(unit)).toBeNull();
+    for (const unit of ["pcs", "tbsp", "tsp"] as const) expect(mergeGroupOf(unit)).toBeNull();
   });
 
   test("rules on every unit there is", () => {
@@ -227,8 +268,8 @@ describe("convertQuantity", () => {
 
   /** The maths is pure; `mergeGroupOf` is what keeps a spoon off the list, not this. */
   test("still converts a spoon, because the arithmetic does not know it is a spoon", () => {
-    expect(convertQuantity(2, "cs", "ml")).toBe(30);
-    expect(convertQuantity(1, "cc", "cl")).toBe(0.5);
+    expect(convertQuantity(2, "tbsp", "ml")).toBe(30);
+    expect(convertQuantity(1, "tsp", "cl")).toBe(0.5);
   });
 
   test("refuses a piece and refuses to cross dimensions", () => {

@@ -1,5 +1,5 @@
 import { isGrade } from "@shared/ingredientMatch";
-import { isUnit, UNITS, type Unit } from "@shared/ingredients";
+import { normalizeUnit, UNIT_INPUTS, type Unit } from "@shared/ingredients";
 import { foldAccents, STOPWORDS } from "@shared/translations";
 import { distance } from "fastest-levenshtein";
 import { useMemo } from "react";
@@ -42,8 +42,11 @@ const GLOBAL_STOPWORDS = new Set([...STOPWORDS.en, ...STOPWORDS.fr]);
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// Units sorted longest first: "kg" has to be tested before "g".
-const UNITS_PATTERN = [...UNITS]
+// Every spelling a shopper may type, not just the stored codes: a French cook writes "2 cs", and
+// a pattern built from UNITS alone would leave the spoon in the search words. `normalizeUnit` is
+// what turns whichever one they wrote into the code that gets stored.
+// Sorted longest first: "kg" has to be tested before "g".
+const UNITS_PATTERN = [...UNIT_INPUTS]
   .sort((a, b) => b.length - a.length)
   .map(escapeRegExp)
   .join("|");
@@ -140,11 +143,11 @@ const parseQuantity = (
     const amount = parseAmount(match[1]!);
     if (amount === null) continue;
 
-    const matchedUnit = match[2];
-    if (matchedUnit) return { amount, unit: matchedUnit.toLowerCase() as Unit };
+    const inline = normalizeUnit(match[2]);
+    if (inline) return { amount, unit: inline };
 
-    const next = tokens[i + 1];
-    if (isUnit(next)) return { amount, unit: next.toLowerCase() as Unit };
+    const next = normalizeUnit(tokens[i + 1]);
+    if (next) return { amount, unit: next };
 
     return { amount, unit: null };
   }
@@ -160,7 +163,7 @@ const toWords = (tokens: string[]) =>
   tokens
     // A grade goes out of the SEARCH words and stays in `rest`, which is the same split
     // `searchTerms` makes on the server: "95/5" identifies the mince, and no index ever stored it.
-    .filter((token) => !isQuantity(token) && !isGrade(token) && !isUnit(token))
+    .filter((token) => !isQuantity(token) && !isGrade(token) && normalizeUnit(token) === undefined)
     .filter((token) => !isStopword(token))
     .map(normalizeWord)
     .filter((word) => word.length > 1);
@@ -241,7 +244,7 @@ export const readInput = (text: string) => {
    * find a row we already hold, and it is exactly wrong for asking a dictionary about a word we do
    * not, where "pommes de terre" must not arrive as "pomme terre".
    */
-  const rest = tokens.filter((token) => !isQuantity(token) && !isUnit(token)).join(" ");
+  const rest = tokens.filter((token) => !isQuantity(token) && normalizeUnit(token) === undefined).join(" ");
 
   return { amount, unit, words, rest, query: words.join(" ") };
 };

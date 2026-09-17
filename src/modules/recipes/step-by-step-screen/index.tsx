@@ -11,6 +11,7 @@ import { ParallaxScrollView } from "@ui/parallax-scroll-view";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { theme } from "theme";
 
+import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { RecipeScreen } from "../_components/recipe-screen";
@@ -74,6 +75,7 @@ type Props = {
  */
 export const StepByStepScreen = ({ id, onClose }: Props) => {
   const { height } = useWindowDimensions();
+  const unit = useUnitLabel();
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
   const [index, setIndex] = useState(0);
   const [previousIndex, setPreviousIndex] = useState(0);
@@ -154,7 +156,7 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
                 emoji: line.emoji,
                 imageUrl: line.imageUrl,
                 name: line.name,
-                quantity: formatQuantity(line.quantity, line.unit),
+                quantity: formatQuantity(line.quantity, line.unit, unit),
               }))}
             />}
             {step && <StepCard
@@ -173,7 +175,7 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
                 emoji: mention.line.emoji,
                 imageUrl: mention.line.imageUrl,
                 name: mention.line.name,
-                quantity: formatQuantity(mention.amount, mention.unit),
+                quantity: formatQuantity(mention.amount, mention.unit, unit),
               }))}
               isLast={isLast}
             />}

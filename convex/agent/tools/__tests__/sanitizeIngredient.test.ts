@@ -406,17 +406,17 @@ describe("toSanitizedIngredient", () => {
     // over a missing density is the worse trade — water's 1.0 is wrong by at most a third for
     // anything a recipe pours.
     const noDensity = _answer({
-      facts: _facts({ defaultUnit: "cs", gramsPerPiece: null, gramsPerMl: null }),
+      facts: _facts({ defaultUnit: "tbsp", gramsPerPiece: null, gramsPerMl: null }),
     });
     const facts = _new(noDensity);
 
-    expect(facts.defaultUnit).toBe("cs");
+    expect(facts.defaultUnit).toBe("tbsp");
     expect(facts.gramsPerMl).toBe(1);
   });
 
   it("keeps the model's own density when it gave one", () => {
     const weighable = _answer({
-      facts: _facts({ defaultUnit: "cs", gramsPerPiece: null, gramsPerMl: 0.91 }),
+      facts: _facts({ defaultUnit: "tbsp", gramsPerPiece: null, gramsPerMl: 0.91 }),
     });
 
     // The repair above is a net, not a default: a stated density must never be overwritten by it.

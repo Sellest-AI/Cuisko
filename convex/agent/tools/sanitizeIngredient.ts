@@ -172,8 +172,9 @@ const _modelFactsSchema = z
       "sulphites.",
     ),
     defaultUnit: z.enum(UNITS).describe(
-      `The unit a recipe writes this in. "cs" is a tablespoon, "cc" a teaspoon, "pcs" a ` +
-      "countable single thing. What a cook would write, not what converts most neatly.",
+      `The unit a recipe writes this in. "tbsp" and "tsp" are the metric tablespoon and teaspoon, ` +
+      '15 ml and 5 ml; "pcs" is a countable single thing. What a cook would write, not what ' +
+      "converts most neatly.",
     ),
     defaultQuantity: z.number().positive().describe("How much one recipe line typically calls for."),
     gramsPerPiece: z.number().positive().nullable().optional().describe(

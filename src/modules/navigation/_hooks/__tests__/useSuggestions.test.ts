@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rankSuggestions, type Suggestion } from "../useSuggestions";
+import { rankSuggestions, readInput, type Suggestion } from "../useSuggestions";
 
 /**
  * The ranking, tested against a fixture rather than against the catalog.
@@ -145,6 +145,27 @@ describe("quantity", () => {
   it("keeps the grade in the words the resolver is asked about", () => {
     expect(rank("boeuf hache 95/5").rest).toBe("boeuf hache 95/5");
     expect(rank("boeuf haché 5%").rest).toBe("boeuf haché 5%");
+  });
+
+  /**
+   * The stored codes are English, and a French cook types the spelling the app used to store.
+   * `readInput` must hand back `tbsp` — the CODE — because what it returns is written straight
+   * into the grocery flow, where `vUnit` no longer holds `cs` and the save would fail.
+   */
+  it("reads a French spoon as the English code it is stored under", () => {
+    expect(rank("2 cs huile")).toMatchObject({ amount: 2, unit: "tbsp" });
+    expect(rank("1 cc sel")).toMatchObject({ amount: 1, unit: "tsp" });
+    expect(rank("2cs huile")).toMatchObject({ amount: 2, unit: "tbsp" });
+  });
+
+  /**
+   * And it must still be recognised as a UNIT, or it survives into the terms the catalog is
+   * searched with — "cs" against an index that has never held it, diluting the one word that
+   * would have matched.
+   */
+  it("keeps a French spoon out of the words the catalog is searched with", () => {
+    expect(readInput("2 cs huile").words).not.toContain("cs");
+    expect(rank("2 cs huile").rest).toBe("huile");
   });
 
   it("keeps the grade out of the words the catalog is searched with", () => {

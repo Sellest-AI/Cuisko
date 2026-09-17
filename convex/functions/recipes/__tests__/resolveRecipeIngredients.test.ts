@@ -199,7 +199,7 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
   test("reports incomplete when a walk threw", async () => {
     gather.mockRejectedValue(new Error("Open Food Facts is down"));
 
-    await expect(resolveFull([{ name: "nuoc-mâm", quantity: 1, unit: "cs" }]))
+    await expect(resolveFull([{ name: "nuoc-mâm", quantity: 1, unit: "tbsp" }]))
       .resolves.toMatchObject({ complete: false });
   });
 
@@ -261,7 +261,7 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
     );
 
     const links = await resolve([
-      { name: "nuoc-mâm", quantity: 1, unit: "cs" },
+      { name: "nuoc-mâm", quantity: 1, unit: "tbsp" },
       { name: "oignon", quantity: 2, unit: "pcs" },
     ]);
 
@@ -405,7 +405,7 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
 
     const links = await resolve([
       { name: "oignon", quantity: 2, unit: "pcs" },
-      { name: "huile d'olive", quantity: 2, unit: "cs" },
+      { name: "huile d'olive", quantity: 2, unit: "tbsp" },
     ]);
 
     expect(walked(gather)).toEqual(["oignon", "huile d'olive"]);

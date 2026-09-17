@@ -68,8 +68,92 @@ export const backfillRecipeShuffleKey = migrations.define({
   },
 });
 
+/**
+ * Rewrites the two French spoon codes onto their English equivalents: `cs` → `tbsp`, `cc` → `tsp`.
+ *
+ * **Run this BEFORE the deploy that narrows `UNITS`.** Convex validates the schema against the
+ * documents already in each table, so `vUnit` losing the `cs` literal while a row still holds one
+ * fails the deploy outright. Widen the union, run this, then narrow — the order is the whole point
+ * of the migration existing, since a tablespoon is a tablespoon and no value changes.
+ *
+ * Six tables rather than the two that hold a spoon today (`recipeIngredients` and
+ * `plannedMealIngredients`, 56 rows between them on dev). The other four were counted and held
+ * none — the catalog writes `g` and `ml` from lookup data, and spoons only enter through a recipe
+ * somebody saved — but a migration's job is to be safe on a deployment nobody has counted, and a
+ * `define()` over a table with nothing to change costs one pass and returns nothing.
+ *
+ * Idempotent, because it will be run more than once: a row already on the new code returns
+ * `undefined` and is not written. Kept after it has run for the reason `backfillRecipeSearch`
+ * gives above — deleting a migration that has run somewhere and not everywhere is how the two
+ * diverge, and `plannedMealIngredients` moves two fields, which is not a rule anyone reconstructs.
+ */
+const SPOONS = { cs: "tbsp", cc: "tsp" } as const;
+
+type Spoon = keyof typeof SPOONS;
+
+const renamed = (unit: string): "tbsp" | "tsp" | undefined => SPOONS[unit as Spoon];
+
+export const renameSpoonUnitsInRecipeIngredients = migrations.define({
+  table: "recipeIngredients",
+  migrateOne: (_ctx, row) => {
+    const unit = renamed(row.unit);
+    if (unit) return { unit };
+  },
+});
+
+/** The only table carrying two of them: what the recipe asked for, and what the plate needs. */
+export const renameSpoonUnitsInPlannedMealIngredients = migrations.define({
+  table: "plannedMealIngredients",
+  migrateOne: (_ctx, row) => {
+    const unit = renamed(row.unit);
+    const sourceUnit = renamed(row.sourceUnit);
+    if (unit || sourceUnit) return { ...(unit && { unit }), ...(sourceUnit && { sourceUnit }) };
+  },
+});
+
+export const renameSpoonUnitsInIngredients = migrations.define({
+  table: "ingredients",
+  migrateOne: (_ctx, row) => {
+    const defaultUnit = renamed(row.defaultUnit);
+    if (defaultUnit) return { defaultUnit };
+  },
+});
+
+export const renameSpoonUnitsInGroceryListItems = migrations.define({
+  table: "groceryListItems",
+  migrateOne: (_ctx, row) => {
+    const unit = renamed(row.unit);
+    if (unit) return { unit };
+  },
+});
+
+export const renameSpoonUnitsInCellarItems = migrations.define({
+  table: "cellarItems",
+  migrateOne: (_ctx, row) => {
+    const unit = renamed(row.unit);
+    if (unit) return { unit };
+  },
+});
+
+export const renameSpoonUnitsInRecentlyUsedIngredients = migrations.define({
+  table: "recentlyUsedIngredients",
+  migrateOne: (_ctx, row) => {
+    const unit = renamed(row.unit);
+    if (unit) return { unit };
+  },
+});
+
 export const runBackfillRecipeSearch = migrations.runner([internal.migrations.backfillRecipeSearch]);
 
 export const runBackfillRecipeShuffleKey = migrations.runner([
   internal.migrations.backfillRecipeShuffleKey,
+]);
+
+export const runRenameSpoonUnits = migrations.runner([
+  internal.migrations.renameSpoonUnitsInRecipeIngredients,
+  internal.migrations.renameSpoonUnitsInPlannedMealIngredients,
+  internal.migrations.renameSpoonUnitsInIngredients,
+  internal.migrations.renameSpoonUnitsInGroceryListItems,
+  internal.migrations.renameSpoonUnitsInCellarItems,
+  internal.migrations.renameSpoonUnitsInRecentlyUsedIngredients,
 ]);

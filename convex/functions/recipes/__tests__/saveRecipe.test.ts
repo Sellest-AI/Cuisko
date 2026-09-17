@@ -273,7 +273,7 @@ describe("functions/recipes/saveRecipe", () => {
   test("keeps both lines when the same ingredient appears twice with different amounts", async () => {
     const recipeId = await save([
       { name: "oignon", quantity: 2, unit: "pcs" },
-      { name: "huile d'olive", quantity: 2, unit: "cs" },
+      { name: "huile d'olive", quantity: 2, unit: "tbsp" },
       { name: "oignon", quantity: 1, unit: "pcs" },
     ]);
 

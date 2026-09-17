@@ -179,7 +179,7 @@ const CRITERIA = [
   "brand belong, and a list of near-identical restatements of the name does not. An empty list " +
   "is a weak answer here, given how many words this bottle goes by, but it is not a wrong one.",
   "Is it measured the way a cook writes it? A dash of this is a spoonful, not 100 g, so " +
-  `defaultUnit should be "cs", "cc" or "ml" with a defaultQuantity a recipe line would really ` +
+  `defaultUnit should be "tbsp", "tsp" or "ml" with a defaultQuantity a recipe line would really ` +
   "carry, and a density near 1.1. An entrant that reached for grams to make the arithmetic easy " +
   "has made the line harder to read and no more exact.",
   `Category and emoji: it is a CONDIMENT — not an OIL, not an OTHER, not a SPICE — and the emoji ` +

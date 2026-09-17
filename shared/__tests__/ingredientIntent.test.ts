@@ -87,6 +87,18 @@ describe("the sentence heuristic", () => {
     expect(readIntent("500 g de farine de ble complete", MISSED)).toEqual({ kind: "unknown" });
     expect(readIntent("1,5kg de pommes de terre", MISSED)).toEqual({ kind: "unknown" });
   });
+
+  /**
+   * A unit is whatever a shopper may WRITE, not whatever is stored. The codes went English, and a
+   * French cook goes on typing `cs` — counted as a content word it tips this phrase over the
+   * threshold and the bar answers with the assistant instead of the shopping list. No error, no
+   * symptom: just the wrong one of the three things the bar can do.
+   */
+  test("does not count a unit spelled the way a French cook writes it", () => {
+    expect(readIntent("2 cs huile olive vierge", MISSED)).toEqual({ kind: "unknown" });
+    expect(readIntent("2 tbsp huile olive vierge", MISSED)).toEqual({ kind: "unknown" });
+    expect(readIntent("1 cc sel fin de guerande", MISSED)).toEqual({ kind: "unknown" });
+  });
 });
 
 describe("what is left", () => {

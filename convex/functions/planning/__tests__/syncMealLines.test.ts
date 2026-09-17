@@ -206,11 +206,11 @@ describe("functions/planning/syncMealLines", () => {
     const meal = await plate(home);
     const thyme = await ingredient({ category: "HERB", defaultUnit: "g", defaultQuantity: 20 });
 
-    await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "cc", kind: "pinch" } }]);
+    await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "tsp", kind: "pinch" } }]);
 
     expect(await listOf(home)).toMatchObject([{ quantity: 20, unit: "g" }]);
     expect(await ledgerOf(meal)).toMatchObject([
-      { sourceQuantity: 1, sourceUnit: "cc", quantity: 0, groceryQuantity: 20 },
+      { sourceQuantity: 1, sourceUnit: "tsp", quantity: 0, groceryQuantity: 20 },
     ]);
   });
 
@@ -221,7 +221,7 @@ describe("functions/planning/syncMealLines", () => {
   test("buys a missing pinch once for the whole week, however many plates ask for it", async () => {
     const home = await household();
     const thyme = await ingredient({ category: "HERB", defaultUnit: "g", defaultQuantity: 20 });
-    const need: Need = { ingredientId: thyme, quantity: 1, unit: "cc", kind: "pinch" };
+    const need: Need = { ingredientId: thyme, quantity: 1, unit: "tsp", kind: "pinch" };
     const stock: [Id<"ingredients">, number][] = [];
 
     // One `stock` would normally carry across the plates; here each call reads what the last wrote.
@@ -238,7 +238,7 @@ describe("functions/planning/syncMealLines", () => {
     const home = await household();
     const meal = await plate(home);
     const thyme = await ingredient({ category: "HERB", defaultQuantity: 20 });
-    const need: Need = { ingredientId: thyme, quantity: 1, unit: "cc", kind: "pinch" };
+    const need: Need = { ingredientId: thyme, quantity: 1, unit: "tsp", kind: "pinch" };
 
     await sync(home, meal, [{ need }, { need }]);
 
@@ -252,7 +252,7 @@ describe("functions/planning/syncMealLines", () => {
     const meal = await plate(home);
     const thyme = await ingredient({ category: "HERB" });
 
-    const left = await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "cc", kind: "pinch" } }], [[thyme, 0]]);
+    const left = await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "tsp", kind: "pinch" } }], [[thyme, 0]]);
 
     expect(await listOf(home)).toEqual([]);
     expect(await ledgerOf(meal)).toMatchObject([{ quantity: 0 }]);
@@ -395,7 +395,7 @@ describe("functions/planning/syncMealLines", () => {
       const thyme = await ingredient({ category: "HERB", defaultUnit: "g", defaultQuantity: 20 });
       await list(home, thyme, "kg", 1);
 
-      await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "cc", kind: "pinch" } }]);
+      await sync(home, meal, [{ need: { ingredientId: thyme, quantity: 1, unit: "tsp", kind: "pinch" } }]);
 
       expect(await listOf(home)).toMatchObject([{ unit: "kg", quantity: 1.02 }]);
       expect(await ledgerOf(meal)).toMatchObject([{ quantity: 0, groceryQuantity: 0.02 }]);

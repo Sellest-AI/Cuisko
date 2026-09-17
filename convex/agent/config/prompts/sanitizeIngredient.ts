@@ -274,8 +274,9 @@ Not translations — those are the names above. Three or four is plenty; an empt
 # How it is measured
 
 - defaultUnit: exactly one of: ${_list(UNITS)} — the unit a recipe writes this ingredient in.
-  "cs" is a tablespoon, "cc" a teaspoon, "pcs" a countable single thing (an onion, a clove of
-  garlic, a bay leaf). Pick what a cook would write, not what converts most neatly.
+  "tbsp" and "tsp" are the metric tablespoon and teaspoon, 15 ml and 5 ml. "pcs" is a countable
+  single thing (an onion, a clove of garlic, a bay leaf). Pick what a cook would write, not what
+  converts most neatly.
 - defaultQuantity: how much of it one recipe line typically calls for, in that unit.
 - gramsPerPiece: what ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove. Leave
   it out for anything that has no single one of it (flour, oil, milk).
@@ -283,7 +284,7 @@ Not translations — those are the names above. Three or four is plenty; an empt
   pourable, and give it whenever the unit is a volume. Leave it out only for something nobody
   could pour (a chicken, a carrot).
 - ⚠️ The unit you chose MUST be weighable: choose "pcs" and you MUST give gramsPerPiece; choose a
-  volume ("ml", "cl", "l", "cs", "cc") and you MUST give gramsPerMl. Nutrition is stored per 100g,
+  volume ("ml", "cl", "l", "tbsp", "tsp") and you MUST give gramsPerMl. Nutrition is stored per 100g,
   so a line whose unit cannot reach grams contributes NOTHING to a recipe's totals — a dish quietly
   missing its olive oil reads as a health food. If you cannot weigh the unit, pick "g" instead.
 

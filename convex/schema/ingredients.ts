@@ -172,7 +172,7 @@ export const ingredients = defineTable({
    * What one of this ingredient weighs, for the units that do not carry a weight themselves.
    *
    * `nutrition` below is per 100g, so every quantity has to reach grams before it can be counted —
-   * and "2 onions" or "1 cs of oil" cannot get there on arithmetic alone. `gramsPerPiece` weighs a
+   * and "2 onions" or "1 tbsp of oil" cannot get there on arithmetic alone. `gramsPerPiece` weighs a
    * single one (150 for an onion); `gramsPerMl` is the density, and it is the difference between
    * oil at 0.91 and honey at 1.42 — assuming 1.0 understates honey by 40%.
    *

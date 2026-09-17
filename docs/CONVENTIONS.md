@@ -418,6 +418,36 @@ numeric registry id, Vite to a URL string. `expo-image` accepts either.
 | `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                            |
 | Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
 
+**A stored vocabulary token is English; the word a cook reads is a translation key.** That much is
+S11, and it costs nothing for tags, diets and cuisines because the user TAPS a chip — nothing is
+typed, so nothing has to be understood on the way in. `UNITS` is the first vocabulary a cook also
+*types*, and it needs the other half of the rule: **input accepts a per-language spelling and
+normalises it to the stored token before anything stores it.**
+
+```ts
+// shared/ingredients.ts
+const UNIT_ALIASES = new Map<string, Unit>([["cs", "tbsp"], ["cc", "tsp"]]);
+
+normalizeUnit("cs")  // → "tbsp", the STORED code. Never the caller's own string.
+```
+
+**A `Map`, not an object literal.** The table is asked about whatever a person typed or a deep link
+carried, and an object answers for `Object.prototype` too: `aliases["constructor"]` is a function,
+which is truthy, so the value reaches a caller that then indexes a total `Record<Unit, …>` with it
+and throws. A `Map` has no such keys to reach.
+
+The codes went English because `cc` is not merely unfamiliar to a language model, it is *familiar
+and wrong* — the cubic centimetre, 1 ml. A recipe came back asking for `15 cc` of brown sugar; the
+catalog weighs `cc` at 5 ml, so that line reached the plate as fifteen teaspoons, five times what
+the cook wrote, and nothing flagged it. A prompt sentence can argue with a wrong prior but cannot
+remove it.
+
+**A normaliser, never a type guard**, and that shape is forced rather than chosen. A guard narrows
+the string the caller already holds and hands it back, so `isUnit("cs")` returning true writes
+`"cs"` into a mutation whose `vUnit` no longer carries that literal: the search bar accepts a word
+and the save fails. Callers use the returned token. Every alias in the table is a spelling the app
+itself once stored, so deleting it as dead French is deleting a word the app taught people to type.
+
 **Key naming.** Namespaces and groups are `PascalCase`; the text keys under them are `snake_case`.
 A key whose string interpolates a value marks it with `_x_` — the key alone then tells you, at the
 call site, that the string takes a variable.

@@ -120,7 +120,7 @@ describe("totalsOf", () => {
   });
 
   test("reports nothing at all when a line could not be weighed", () => {
-    // The oil was written as "1 cs" and the catalog has no density for it.
+    // The oil was written as "1 tbsp" and the catalog has no density for it.
     expect(totalsOf([...DISH.slice(0, 2), { facts: OIL, produce: false }], 4)).toBeUndefined();
   });
 
