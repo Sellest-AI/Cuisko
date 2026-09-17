@@ -292,15 +292,27 @@ export const startOfDay = (date: Date) => {
 };
 
 /**
- * The days a fresh plan covers: tomorrow onwards.
+ * The days a plan covers: the day after `after`, onwards.
  *
- * Today is not one of them — a plan made at dinner time cannot shop for a lunch already eaten, so
- * the offer starts on the first day it can still be kept. Shared with the generation rather than
- * each side counting its own days, because a plan whose list covers a day its meals do not would
- * hide a meal at one end and offer an unfillable day at the other.
+ * `after` is the later of today and the household's latest kept plate, so a week continues the one
+ * already there rather than stacking a second lunch on days that have one. Today itself is never
+ * offered — a plan made at dinner time cannot shop for a lunch already eaten, so the offer starts
+ * on the first day it can still be kept. Shared with the generation rather than each side counting
+ * its own days, because a plan whose list covers a day its meals do not would hide a meal at one
+ * end and offer an unfillable day at the other.
  */
-export const planDates = (today: Date, days: number): Date[] =>
-  Array.from({ length: days }, (_, index) => addDays(today, index + 1));
+export const planDates = (after: Date, days: number): Date[] =>
+  Array.from({ length: days }, (_, index) => addDays(after, index + 1));
+
+/**
+ * The day a new week counts from: today, or the latest kept plate when that is further on.
+ *
+ * `lastDate` is the server's answer as a local-day timestamp, or `null` for a household that has
+ * never kept a plate; either way a day behind today falls back to today, so the week never starts
+ * in the past.
+ */
+export const planAfter = (today: Date, lastDate: number | null): Date =>
+  lastDate === null || lastDate <= today.getTime() ? today : startOfDay(new Date(lastDate));
 
 /**
  * How far a day has got, from where it sits against today.

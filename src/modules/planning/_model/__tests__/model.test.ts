@@ -19,6 +19,7 @@ import {
   MAX_TASTES,
   parseDateParam,
   parseMealSlot,
+  planAfter,
   planDates,
   planSections,
   plateIdFor,
@@ -199,9 +200,33 @@ describe("buildRows", () => {
   });
 });
 
+describe("planAfter", () => {
+  it("counts from today when the household has never kept a plate", () => {
+    expect(planAfter(TODAY, null)).toEqual(TODAY);
+  });
+
+  it("counts from the latest kept plate when it lies ahead", () => {
+    expect(planAfter(TODAY, day(4).getTime())).toEqual(day(4));
+  });
+
+  it("falls back to today when the latest plate is today or already lived", () => {
+    expect(planAfter(TODAY, TODAY.getTime())).toEqual(TODAY);
+    expect(planAfter(TODAY, day(-3).getTime())).toEqual(TODAY);
+  });
+
+  /** A timestamp drifted off midnight — another device's zone — still lands on a local day. */
+  it("pins a timestamp inside a day to that day's midnight", () => {
+    expect(planAfter(TODAY, day(4).getTime() + 3 * 3_600_000)).toEqual(day(4));
+  });
+});
+
 describe("planDates / planSections", () => {
   it("plans from tomorrow, not from a day already half eaten", () => {
     expect(planDates(TODAY, 3)).toEqual([day(1), day(2), day(3)]);
+  });
+
+  it("continues the week already kept: the first day is the one after the latest plate", () => {
+    expect(planDates(day(4), 2)).toEqual([day(5), day(6)]);
   });
 
   it("keeps a day the user has emptied, so there is still something to fill", () => {

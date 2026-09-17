@@ -7,6 +7,7 @@ import { MEAL_SLOTS, type MealSlot } from "@shared/mealSlots";
 
 import { availableStock } from "./availableStock";
 import { cellarLots } from "./cellarLots";
+import { dropMeal } from "./dropMeal";
 import { isDistinct, isServings, MAX_DAYS } from "./limits";
 import { recipeLines, type ResolvedLine } from "./recipeLines";
 import { scaleLines } from "./scaleLines";
@@ -90,6 +91,30 @@ const _inOrder = (plates: CommittedPlate[]) =>
   [...plates].sort((a, b) => a.date - b.date || MEAL_SLOTS.indexOf(a.slot) - MEAL_SLOTS.indexOf(b.slot));
 
 /**
+ * Drops whatever plate already holds a day and slot the week is about to write.
+ *
+ * Each date is read once for all its plates. `dropMeal` refuses a cooked plate, and the refusal
+ * is the week's: a cooked meal is a record the cook step settles against, and a week that would
+ * have to overwrite one is refused whole rather than written around it.
+ */
+const _dropReplaced = async (ctx: MutationCtx, { householdId, plates, today }: Args) => {
+  for (const date of new Set(plates.map((plate) => plate.date))) {
+    const onThatDay = await ctx.db
+      .query("plannedMeals")
+      .withIndex("by_household_and_date", (q) => q.eq("householdId", householdId).eq("date", date))
+      .collect();
+
+    for (const plate of plates) {
+      if (plate.date !== date) continue;
+
+      const replaced = onThatDay.find((meal) => meal.slot === plate.slot);
+
+      if (replaced) await dropMeal(ctx, { householdId, mealId: replaced._id, today });
+    }
+  }
+};
+
+/**
  * Writes a week the user has agreed to: the plan, its plates, their ledger, and the shopping they
  * imply.
  *
@@ -102,6 +127,13 @@ const _inOrder = (plates: CommittedPlate[]) =>
  * **Plates are written in the order the week is eaten**, because the stock the second plate is scored
  * against is what the first one left — the rule that made the draft, applied to the real cellar.
  *
+ * **A plate already on a day and slot the week writes is replaced**, not kept beside the new one:
+ * two plates the household cannot tell apart is not a week, and both would reserve the cellar and
+ * shop. The drop comes before the stock is read, so the old plate's claims are back in the cellar
+ * the new one is weighed against — or it would be reserved for both. The tunnel starts its week
+ * after the latest kept plate, so from there this only fires in a race; the recipe screen's
+ * `planMeal` reaches it on purpose, after asking.
+ *
  * The plan's `startDate`, `days` and `slots` are derived from the plates rather than sent, so a week
  * the user dropped meals from in review cannot describe itself as one it is not.
  */
@@ -110,6 +142,8 @@ export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"meal
 
   const plates = _inOrder(args.plates);
   const recipes = await _recipesFor(ctx, plates);
+
+  await _dropReplaced(ctx, args);
   /** Every plate's recipe lines, read once however many plates repeat the dish. */
   const lines = new Map<Id<"recipes">, ResolvedLine[]>();
 

@@ -6,7 +6,7 @@ import type { Taste } from "@shared/tastes";
 
 import type { Constraint } from "../_model/constraints";
 
-import { MAX_DAYS, type CookingTime, type DraftMeal, type MealSlot } from "../_model/model";
+import { MAX_DAYS, planDates, type CookingTime, type DraftMeal, type MealSlot } from "../_model/model";
 
 /**
  * What the tunnel OFFERS a household that has never answered.
@@ -131,10 +131,30 @@ export const cookingTimeAtom = atom<CookingTime>("any");
  * were keeping with one they had not yet said yes to.
  *
  * The last step commits it through `usePlanCommit`; a run's reset drops whatever was left
- * uncommitted. What a second week then does to the days already planned — replace them or merge
- * into them — is still a product call, not a plumbing one: `commit` writes beside what is there.
+ * uncommitted. A second week lands after the days already planned — `usePlanDraft` starts it past
+ * the latest kept plate — and `commit` replaces whatever it still finds on a day and slot it writes.
  */
 export const draftMealsAtom = atom<DraftMeal[]>([]);
+
+/**
+ * The day the week counts from: today, or the household's latest kept plate when that is further on.
+ *
+ * `null` until `getLastDate` has answered, then latched once per run by `useTunnel` beside the other
+ * seeded answers — the query underneath is reactive, and a plate kept from another device mid-review
+ * must not move the week under the user. `resetTunnelAtom` clears it so the next run re-reads.
+ */
+export const planAfterAtom = atom<Date | null>(null);
+
+/**
+ * The days the week covers, counted once from `planAfterAtom` and `daysAtom`; empty until the start
+ * is known. The one list both sides read — the draft asks the server for exactly these days, and the
+ * review draws a row for each of them, a day the user emptied included.
+ */
+export const planDatesAtom = atom((get) => {
+  const after = get(planAfterAtom);
+
+  return after ? planDates(after, get(daysAtom)) : [];
+});
 
 /** Rows the user says are already in the kitchen, so the list stops asking for them. */
 export const ownedRowsAtom = atom<string[]>([]);
@@ -168,6 +188,7 @@ export const shuffleSeedAtom = atom<number | null>(null);
  */
 export const resetTunnelAtom = atom(null, (_get, set) => {
   set(draftMealsAtom, []);
+  set(planAfterAtom, null);
   set(ownedRowsAtom, []);
   set(shuffleSeedAtom, null);
   set(moodsAtom, []);
