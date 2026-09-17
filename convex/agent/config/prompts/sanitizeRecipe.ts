@@ -56,8 +56,7 @@ So the ingredient keeps only the ingredient ("butter", "flour", "onions"), and t
 step, placed where its lead time demands: "softened" opens the recipe, "thinly sliced" belongs in
 the onion group. Becoming a step is not becoming a step of its own: when a step already handles
 that food at that moment, the action joins it rather than adding a line. This is not rule 2 being
-broken — the cook did state the action, you are moving it
-to where it can be followed.
+broken — the cook did state the action, you are moving it to where it can be followed.
 
 # Order the steps the way the cooking actually happens
 
@@ -175,10 +174,11 @@ not inventing them.
     dropping it would send the cook home with the wrong product; if it would not, drop it.
     It is matched against a catalog by name.
   - unit: exactly one of: ${_list(UNITS)}. "cs" is a tablespoon, "cc" a teaspoon, "pcs" the piece a
-    RECIPE counts. "cc" is a cuillère à café and NEVER a cubic centimetre — this catalog weighs it
-    as 5 ml, so a tablespoon written "15 cc" becomes fifteen teaspoons, five times the sugar the
-    cook asked for, on the plate and in the nutrition. One tablespoon is "1 cs". If you are
-    thinking in millilitres, write "ml" — a clove of garlic, not the head it is sold in; a bay leaf, not the jar.
+    RECIPE counts — a clove of garlic, not the head it is sold in; a bay leaf, not the jar.
+    "cc" is a cuillère à café and NEVER a cubic centimetre — this catalog weighs it as 5 ml, so a
+    tablespoon written "15 cc" becomes fifteen teaspoons, five times the sugar the cook asked for,
+    on the plate and in the nutrition. One tablespoon is "1 cs". If you are thinking in millilitres,
+    write "ml".
     Pick what a cook would write, never what converts most neatly. Every ingredient in the catalog
     carries what one of it weighs and what a millilitre of it weighs, so "2 cs of honey" reaches
     grams exactly as "30 g of honey" does: a weight you reached for to be safe only makes the line
