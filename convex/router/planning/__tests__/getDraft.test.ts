@@ -145,6 +145,20 @@ describe("router/planning/getDraft", () => {
     expect(week.map((meal) => meal.recipeId)).toEqual([soupId, soupId]);
   });
 
+  test("refuses a seek outside the nutrition vocabulary", async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+
+    await expect(
+      t.withIdentity(asUser(userId)).query(api.router.planning.getDraft.authed, {
+        ...args(householdId),
+        // The validator is the boundary; the type is bypassed to reach it.
+        seeks: ["quick" as unknown as "high-protein"],
+      }),
+    ).rejects.toThrow();
+  });
+
   test("refuses a request for more than a week", async () => {
     const householdId = await seedHousehold();
     const userId = await seedUser();

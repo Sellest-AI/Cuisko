@@ -2,6 +2,8 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import type { Equipment } from "@shared/equipments";
+import type { NutritionPreference } from "@shared/preferences";
+import type { Tag } from "@shared/tags";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
@@ -43,8 +45,12 @@ const seedHousehold = () =>
 const join = (householdId: Id<"households">, userId: Id<"users">) =>
   t.run((ctx) => ctx.db.insert("householdUsers", { householdId, userId }));
 
-const seedPreferences = (userId: Id<"users">, diet: "vegan" | "omnivore", avoids: ("gluten" | "milk")[]) =>
-  t.run((ctx) => ctx.db.insert("userPreferences", { userId, diet, avoids, seeks: [], updatedAt: Date.now() }));
+const seedPreferences = (
+  userId: Id<"users">,
+  diet: "vegan" | "omnivore",
+  avoids: ("gluten" | "milk")[],
+  seeks: NutritionPreference[] = [],
+) => t.run((ctx) => ctx.db.insert("userPreferences", { userId, diet, avoids, seeks, updatedAt: Date.now() }));
 
 type RecipeOptions = {
   shuffleKey: number;
@@ -54,12 +60,13 @@ type RecipeOptions = {
   userId?: Id<"users">;
   /** The alternatives the recipe can be made with; empty is "pans and a knife". */
   equipments?: Equipment[];
+  tags?: Tag[];
 };
 
 /** A recipe of one line. Catalog when `userId` is unset, the caller's own otherwise. */
 const seedRecipe = (
   title: string,
-  { shuffleKey, allergens = [], isVegan = true, userId, equipments = [] }: RecipeOptions,
+  { shuffleKey, allergens = [], isVegan = true, userId, equipments = [], tags = [] }: RecipeOptions,
 ) =>
   t.run(async (ctx) => {
     const ingredientId = await ctx.db.insert("ingredients", {
@@ -80,7 +87,7 @@ const seedRecipe = (
       servings: 2,
       equipments,
       difficulty: 1,
-      tags: [],
+      tags,
       cuisine: "french",
       timings: { cooking: 20 },
       search: { en: "", fr: "" },
@@ -187,6 +194,25 @@ describe("router/planning/getWeekIdeas", () => {
     await t.run((ctx) => ctx.db.patch(householdId, { equipments: ["microwave"] }));
 
     expect((await ideasFor(userId, householdId)).map((card) => card.id)).toEqual([soupId]);
+  });
+
+  /**
+   * `seeks` is the one preference that is never aggregated: the shelf honours the caller's own and
+   * ignores a housemate's, exactly as the tunnel seeds the focus step from `mine` alone.
+   */
+  test("filters on the caller's own seeks, never a housemate's", async () => {
+    const { householdId, userId } = await seedMember();
+    const housemateId = await seedUser();
+    await join(householdId, housemateId);
+    await seedPreferences(userId, "omnivore", [], ["high-protein"]);
+    await seedPreferences(housemateId, "omnivore", [], ["low-calorie"]);
+    const leanId = await seedRecipe("Poulet", { shuffleKey: 1_000_000_000, tags: ["high-protein"] });
+    await seedRecipe("Soupe", { shuffleKey: 2_000_000_000, tags: ["low-calorie"] });
+    await seedRecipe("Mystère", { shuffleKey: 3_000_000_000 });
+
+    const ideas = await ideasFor(userId, householdId);
+
+    expect(ideas.map((card) => card.id)).toEqual([leanId]);
   });
 
   /** The week is the seed: two visits in one week draw the same picks in the same order. */

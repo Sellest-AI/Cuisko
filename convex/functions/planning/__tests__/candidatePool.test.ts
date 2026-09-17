@@ -5,7 +5,9 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
 import type { Equipment } from "@shared/equipments";
+import type { NutritionPreference } from "@shared/preferences";
 import type { Timings } from "@shared/recipes";
+import type { Tag } from "@shared/tags";
 
 import schema from "../../../schema";
 import { CANDIDATES_PER_PLATE, candidatePool } from "../candidatePool";
@@ -31,6 +33,8 @@ type RecipeFacts = {
   timings?: Timings;
   /** The alternatives the recipe can be made with; empty is "pans and a knife". */
   equipments?: Equipment[];
+  /** Left empty by default: a recipe `computeTags` could not weigh, which is the case the seeks rule is about. */
+  tags?: Tag[];
 };
 
 /** A recipe of one line. Keys are 32-bit integers, as `randomShuffleKey` draws them. */
@@ -41,6 +45,7 @@ const recipe = ({
   allergens: classified = [],
   timings = {},
   equipments = [],
+  tags = [],
 }: RecipeFacts) =>
   t.run(async (ctx) => {
     const allergens = classified ?? undefined;
@@ -61,7 +66,7 @@ const recipe = ({
       servings: 2,
       equipments,
       difficulty: 1,
-      tags: [],
+      tags,
       cuisine: "french",
       timings,
       search: { en: "", fr: "" },
@@ -96,6 +101,7 @@ const poolFor = (
     avoids = [],
     maxMinutes,
     equipments,
+    seeks = [],
   }: {
     seed?: number;
     plates?: number;
@@ -103,6 +109,7 @@ const poolFor = (
     avoids?: Allergen[];
     maxMinutes?: number;
     equipments?: Equipment[];
+    seeks?: NutritionPreference[];
   } = {},
 ) =>
   t.run(async (ctx) => {
@@ -115,6 +122,7 @@ const poolFor = (
       avoids,
       maxMinutes,
       equipments,
+      seeks,
     });
     return pool.candidates.map(({ recipeId, isMine }) => ({ recipeId, isMine }));
   });
@@ -265,5 +273,41 @@ describe("functions/planning/candidatePool", () => {
     const pans = await recipe({ shuffleKey: 2 });
 
     expect(idsOf(await poolFor(me))).toEqual([oven, pans]);
+  });
+
+  test("drops a recipe lacking a sought tag", async () => {
+    const me = await user();
+    const lean = await recipe({ shuffleKey: 1, tags: ["high-protein"] });
+    await recipe({ shuffleKey: 2, tags: ["low-carb"] });
+
+    expect(idsOf(await poolFor(me, { seeks: ["high-protein"] }))).toEqual([lean]);
+  });
+
+  /** AND, not OR: a recipe fitting one of two wishes was not what was asked for. */
+  test("keeps only a recipe carrying every sought tag", async () => {
+    const me = await user();
+    const both = await recipe({ shuffleKey: 1, tags: ["high-protein", "low-carb"] });
+    await recipe({ shuffleKey: 2, tags: ["high-protein"] });
+
+    expect(idsOf(await poolFor(me, { seeks: ["high-protein", "low-carb"] }))).toEqual([both]);
+  });
+
+  /**
+   * The inverse of the untimed rule three tests up: an untagged recipe is one `computeTags` could
+   * not weigh or found wanting, and neither is high-protein. See `matchesSeeks`.
+   */
+  test("drops an untagged recipe once anything is sought", async () => {
+    const me = await user();
+    await recipe({ shuffleKey: 1 });
+
+    expect(idsOf(await poolFor(me, { seeks: ["high-protein"] }))).toEqual([]);
+  });
+
+  test("seeking nothing keeps the pool as it was, untagged recipes included", async () => {
+    const me = await user();
+    const bare = await recipe({ shuffleKey: 1 });
+    const tagged = await recipe({ shuffleKey: 2, tags: ["low-calorie"] });
+
+    expect(idsOf(await poolFor(me, { seeks: [] }))).toEqual([bare, tagged]);
   });
 });

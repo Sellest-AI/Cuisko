@@ -4,7 +4,7 @@ import { Provider, createStore } from "jotai";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { constraintsAtom, daysAtom, equipmentsAtom, planAfterAtom } from "../atoms";
+import { constraintsAtom, daysAtom, equipmentsAtom, planAfterAtom, seeksAtom } from "../atoms";
 import { usePlanDraft } from "../usePlanDraft";
 import { dayOffset } from "./fixtures";
 
@@ -55,7 +55,8 @@ const draft = () =>
     wrapper: ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>,
   });
 
-const asked = () => state.draftArgs.at(-1) as { dates: number[]; equipments: string[] } | undefined;
+const asked = () =>
+  state.draftArgs.at(-1) as { dates: number[]; equipments: string[]; seeks: string[] } | undefined;
 
 describe("usePlanDraft", () => {
   it("asks for nothing until the tunnel has seeded where the week starts", () => {
@@ -82,5 +83,17 @@ describe("usePlanDraft", () => {
     draft();
 
     expect(asked()?.equipments).toEqual(["microwave"]);
+  });
+
+  /** The focus step's answer reaches the week; before the seed lands it reads as nothing sought. */
+  it("sends the focus step's seeks, and none before they are seeded", () => {
+    store.set(planAfterAtom, new Date(dayOffset(4)));
+
+    draft();
+    expect(asked()?.seeks).toEqual([]);
+
+    store.set(seeksAtom, ["high-protein"]);
+    draft();
+    expect(asked()?.seeks).toEqual(["high-protein"]);
   });
 });
