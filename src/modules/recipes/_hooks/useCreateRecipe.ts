@@ -6,9 +6,6 @@ import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
-import { DEFAULT_ESTIMATE_MS, phaseAt } from "../_model/progress";
-import { useProgressSweep } from "./useProgressSweep";
-
 /** Everything the editor collected. The locale is the hook's to add, not the screen's to know. */
 export type RecipeDraft = Omit<
   FunctionArgs<typeof api.router.recipes.createOne.authed>,
@@ -35,10 +32,9 @@ const _omitBlank = (value?: string) => value?.trim() || undefined;
 /**
  * Writing the recipe, and the wait that comes with it.
  *
- * The action is a single `await` on an agent that reports nothing, so the progress here is
- * estimated rather than measured — see `_model/progress.ts` for why that is honest and where the
- * cap comes from. Everything this hook adds around it is the clock: when it started, what the
- * curve says now, and when to stop asking.
+ * The action is a single `await` on an agent that reports nothing, so this hook reports nothing
+ * either: only whether the write is running, and why it failed. What the cook watches meanwhile is
+ * the screen's business, and makes no claim about how far along the agent is.
  *
  * **It navigates on success, and that is deliberate.** `createOne` schedules the translation rather
  * than awaiting it, so the id comes back with the recipe existing in one language only — there is
@@ -48,21 +44,19 @@ const _omitBlank = (value?: string) => value?.trim() || undefined;
  * A failure leaves the cook on their own typed text with nothing lost. That is also why the overlay
  * covers the editor rather than replacing it, and why there is no `creating` route.
  */
-export const useCreateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimateMs?: number } = {}) => {
+export const useCreateRecipe = () => {
   const locale = useLocale();
   const { action } = useAction(api.router.recipes.createOne.authed);
 
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<unknown>(null);
-  const { progress, setProgress, start } = useProgressSweep(status === "creating", estimateMs);
 
   const create = useCallback(
     async (draft: RecipeDraft) => {
       /**
        * One write at a time, guarded here rather than by whoever drew the button.
        *
-       * A second call before the first resolves would restart the clock — the ring visibly jumping
-       * backwards — and run the sanitize agent twice, leaving the cook two copies of one recipe and
+       * A second call before the first resolves would run the sanitize agent twice, leaving the cook two copies of one recipe and
        * two `replace` calls racing for the route. The editor disables its actions, but this hook is
        * the module's public API and the next screen to call it should inherit the guarantee rather
        * than have to remember the discipline.
@@ -70,7 +64,6 @@ export const useCreateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimate
       if (status === "creating") return;
 
       setError(null);
-      start();
       setStatus("creating");
 
       try {
@@ -81,25 +74,20 @@ export const useCreateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimate
           locale,
         });
 
-        /** The only place 1 is ever reached: the curve itself is capped well below it. */
-        setProgress(1);
         setStatus("done");
         router.replace(`/recipe/${recipeId}`);
       } catch (caught) {
         setError(caught);
         setStatus("failed");
-        setProgress(0);
       }
     },
-    [action, locale, status, start, setProgress],
+    [action, locale, status],
   );
 
   return {
     create,
     /** `done` counts: the recipe exists, but the editor is still the thing on screen. */
     isCreating: status === "creating" || status === "done",
-    progress,
-    phase: phaseAt(progress),
     error,
   };
 };

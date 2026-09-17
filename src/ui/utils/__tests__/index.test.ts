@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCompact, formatRating } from "../index";
+import { curvedStepDuration, formatCompact, formatRating, inverseLogCurve, logCurve } from "../index";
 
 describe("formatCompact", () => {
   it("leaves counts below a thousand alone", () => {
@@ -34,5 +34,38 @@ describe("formatRating", () => {
     expect(formatRating(4)).toBe("4.0");
     expect(formatRating(4.25)).toBe("4.3");
     expect(formatRating(4.34)).toBe("4.3");
+  });
+});
+
+describe("logCurve", () => {
+  it("is pinned at both ends, so a full bar is exactly full", () => {
+    expect(logCurve(0)).toBe(0);
+    expect(logCurve(1)).toBeCloseTo(1, 10);
+  });
+
+  it("front-loads progress: the first fifth fills more than a fifth", () => {
+    expect(logCurve(0.2)).toBeGreaterThan(0.2);
+  });
+
+  it("is undone by inverseLogCurve", () => {
+    [0, 0.25, 0.5, 0.8, 1].forEach((ratio) => {
+      expect(inverseLogCurve(logCurve(ratio))).toBeCloseTo(ratio, 10);
+    });
+  });
+});
+
+describe("curvedStepDuration", () => {
+  const COUNT = 4;
+  const DURATION_MS = 12_000;
+  const durations = Array.from({ length: COUNT }, (_, position) => curvedStepDuration(position, COUNT, DURATION_MS));
+
+  it("adds up to exactly one pass, so a looping sequence restarts on the beat", () => {
+    expect(durations.reduce((sum, duration) => sum + duration, 0)).toBeCloseTo(DURATION_MS, 6);
+  });
+
+  it("gives each step longer than the one before", () => {
+    durations.slice(1).forEach((duration, index) => {
+      expect(duration).toBeGreaterThan(durations[index]!);
+    });
   });
 });

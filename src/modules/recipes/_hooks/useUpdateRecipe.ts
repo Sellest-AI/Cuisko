@@ -6,9 +6,6 @@ import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
-import { DEFAULT_ESTIMATE_MS, phaseAt } from "../_model/progress";
-import { useProgressSweep } from "./useProgressSweep";
-
 /** Everything the editor collected, plus which recipe it is rewriting. */
 export type RecipeEdit = Omit<FunctionArgs<typeof api.router.recipes.updateOne.authed>, "locale">;
 
@@ -19,8 +16,7 @@ type Status = "idle" | "updating" | "done" | "failed";
  * Rewriting a recipe, and the wait that comes with it.
  *
  * `useCreateRecipe`'s sibling rather than a branch inside it: the two write to different actions
- * and navigate for different reasons on success, and the one thing they share — the estimated
- * clock — already moved out to `useProgressSweep`. Folding this back into `useCreateRecipe` behind
+ * and navigate for different reasons on success. Folding this back into `useCreateRecipe` behind
  * an `if (recipeId)` would make one hook answer two questions, and the editor screen already knows
  * which of the two it means to ask.
  *
@@ -28,13 +24,12 @@ type Status = "idle" | "updating" | "done" | "failed";
  * nothing that still has to be waited on once the row is patched, so there is nothing left for the
  * editor to hold open for.
  */
-export const useUpdateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimateMs?: number } = {}) => {
+export const useUpdateRecipe = () => {
   const locale = useLocale();
   const { action } = useAction(api.router.recipes.updateOne.authed);
 
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<unknown>(null);
-  const { progress, setProgress, start } = useProgressSweep(status === "updating", estimateMs);
 
   const update = useCallback(
     async (edit: RecipeEdit) => {
@@ -42,29 +37,24 @@ export const useUpdateRecipe = ({ estimateMs = DEFAULT_ESTIMATE_MS }: { estimate
       if (status === "updating") return;
 
       setError(null);
-      start();
       setStatus("updating");
 
       try {
         const recipeId = await action({ ...edit, locale });
 
-        setProgress(1);
         setStatus("done");
         router.replace(`/recipe/${recipeId}`);
       } catch (caught) {
         setError(caught);
         setStatus("failed");
-        setProgress(0);
       }
     },
-    [action, locale, status, start, setProgress],
+    [action, locale, status],
   );
 
   return {
     update,
     isUpdating: status === "updating" || status === "done",
-    progress,
-    phase: phaseAt(progress),
     error,
   };
 };

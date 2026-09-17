@@ -5,15 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCreateRecipe } from "../useCreateRecipe";
 
 /**
- * The seam `_model/progress.test.ts` cannot reach.
- *
- * That file proves the curve is honest given an elapsed time. It says nothing about the hook that
- * drives it: whether one press is one write, whether the route changes on success, and whether a
- * failure hands the cook back their form instead of stranding them under the overlay.
+ * The hook's promises: one press is one write, the route changes on success, and a failure hands
+ * the cook back their form instead of stranding them under the overlay.
  *
  * Convex is mocked at `~/lib/convex/client`, the one module a `_hooks/` file may reach it through,
  * and the action is left hanging so a test can hold the wait open and act during it. Everything
- * above that line is the real thing — the real sweep, the real state machine.
+ * above that line is the real thing — the real state machine.
  */
 const state = vi.hoisted(() => ({
   /** How many times the action was actually invoked. The whole point of the guard. */
@@ -88,7 +85,7 @@ describe("useCreateRecipe", () => {
 
   /**
    * The overlay covers the editor rather than replacing it, so lifting it is what returns the cook
-   * to their own typed text. A failure that left `isCreating` true would strand them under a ring
+   * to their own typed text. A failure that left `isCreating` true would strand them under a wait
    * that never finishes.
    */
   it("lifts the wait and surfaces the reason when the write fails", async () => {
@@ -102,21 +99,6 @@ describe("useCreateRecipe", () => {
 
     await waitFor(() => expect(result.current.isCreating).toBe(false));
     expect(result.current.error).toBe(failure);
-    expect(result.current.progress).toBe(0);
     expect(state.replaced).toEqual([]);
-  });
-
-  it("only ever reaches a full ring once the recipe exists", async () => {
-    const { result } = renderHook(() => useCreateRecipe());
-
-    act(() => void result.current.create(DRAFT));
-    await waitFor(() => expect(result.current.isCreating).toBe(true));
-
-    /** Mid-wait the sweep is under way and capped — the last tenth belongs to the action. */
-    expect(result.current.progress).toBeLessThan(1);
-
-    await act(async () => state.settle!.resolve("recipe-1"));
-
-    expect(result.current.progress).toBe(1);
   });
 });

@@ -76,9 +76,14 @@
     "unreachable_body": "It may be down, or it may not let us in. Try again, or write the recipe out instead."
   },
   "Creating": {
-    "reading": "Reading your recipe",
-    "matching": "Finding your ingredients",
-    "finishing": "Almost there",
+    "step_glasses": "Putting on our reading glasses",
+    "step_handwriting": "Deciphering the chef's handwriting",
+    "step_onions": "Counting the onions twice",
+    "step_salt": "Arguing over a pinch of salt",
+    "step_grandma": "Asking grandma for a second opinion",
+    "step_tidy": "Putting the steps back in order",
+    "step_flour": "Wiping flour off the screen",
+    "step_plating": "Plating it nicely",
     "reassurance": "This can take up to a minute. We are polishing your recipe and tidying its steps.",
     "error_title": "Your recipe was not saved",
     "error_body": "Something went wrong while reading it. Everything you typed is still here — try saving again."

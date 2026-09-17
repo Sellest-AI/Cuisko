@@ -78,9 +78,14 @@
     "unreachable_body": "Il est peut-être indisponible, ou il refuse notre visite. Réessayez, ou saisissez la recette à la main."
   },
   "Creating": {
-    "reading": "Lecture de ta recette",
-    "matching": "Recherche de tes ingrédients",
-    "finishing": "Presque fini",
+    "step_glasses": "On chausse nos lunettes de lecture",
+    "step_handwriting": "On déchiffre l'écriture du chef",
+    "step_onions": "On compte les oignons deux fois",
+    "step_salt": "Débat houleux sur la pincée de sel",
+    "step_grandma": "On demande l'avis de mamie",
+    "step_tidy": "On remet les étapes dans l'ordre",
+    "step_flour": "On essuie la farine sur l'écran",
+    "step_plating": "On dresse l'assiette joliment",
     "reassurance": "Cela peut prendre jusqu'à une minute. On peaufine ta recette et on met ses étapes au propre.",
     "error_title": "Ta recette n'a pas été enregistrée",
     "error_body": "Un problème est survenu pendant la lecture. Tout ce que tu as écrit est encore là — réessaie d'enregistrer."

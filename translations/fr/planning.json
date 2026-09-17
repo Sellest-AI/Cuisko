@@ -87,9 +87,15 @@
       "any": "Sans contrainte"
     },
     "Generating": {
-      "title": "On mijote ta semaine",
-      "subtitle": "Les bonnes choses prennent le temps. Une minute.",
-      "progress": "plats dressés"
+      "step_cellar": "On ouvre la porte de ton cellier",
+      "step_cheese": "On renifle le tiroir à fromages",
+      "step_leftovers": "On négocie avec les restes",
+      "step_vegetables": "On cache les légumes dans la sauce",
+      "step_dates": "On vérifie les dates de péremption",
+      "step_pasta": "On évite les pâtes trois soirs de suite",
+      "step_tasting": "On goûte, pour être sûr",
+      "step_plating": "On dresse ta semaine",
+      "footer": "Les bonnes choses prennent le temps. Une minute."
     },
     "Review": {
       "title": "Planning",
