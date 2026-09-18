@@ -50,7 +50,7 @@
 
 import type { Category } from "@shared/categories";
 import { UNDO_WINDOW_MS } from "@shared/groceries";
-import { type Unit } from "@shared/ingredients";
+import { roundQuantity, type Unit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 import type { TranslationKeys } from "translations";
 
@@ -61,7 +61,7 @@ import type { TranslationKeys } from "translations";
  * in this module wants the cook's word for it — `useUnitLabel`, passed to `formatQuantity`. Left
  * re-exported it is the shorter import that renders `2 tbsp` to a French cook and looks right.
  */
-export { formatQuantity, normalizeUnit, UNITS, type Unit } from "@shared/ingredients";
+export { formatQuantity, normalizeUnit, roundQuantity, UNITS, type Unit } from "@shared/ingredients";
 
 /** Which section a tap came from. Each one can only move stock its own way. */
 export const INTENTS = ["buy", "remove", "relist"] as const;
@@ -404,7 +404,7 @@ export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent): Quant
   const ceiling = intent === "remove" ? stock.owned : null;
 
   const ladder = STEPS[unit]
-    .filter((step) => step !== amount && (ceiling === null || step <= ceiling))
+    .filter((step) => roundQuantity(step, unit) !== roundQuantity(amount, unit) && (ceiling === null || step <= ceiling))
     .map((step): QuantityOption => ({ amount: step, unit }));
 
   const suggestion: QuantityOption[] = amount > 0 ? [{ amount, unit, captionKey, type }] : [];

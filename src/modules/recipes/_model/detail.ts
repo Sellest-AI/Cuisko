@@ -33,7 +33,8 @@ export type RecipeLine = {
  * Linear, and deliberately naive: a recipe for two does not become a recipe for four by doubling
  * the salt, and no cook believes it does. Modelling that would need a per-ingredient scaling curve
  * the catalog does not carry, and the honest version of this is the one a cook can check in their
- * head. `formatQuantity` already keeps one decimal so a halved recipe does not read `0.5000000001`.
+ * head. `formatQuantity` already cuts to the unit's precision so a halved recipe does not read
+ * `0.5000000001`.
  *
  * Scaling to the servings the recipe was written for returns the quantities untouched, which is
  * what makes the stepper's resting position identical to not having a stepper at all.

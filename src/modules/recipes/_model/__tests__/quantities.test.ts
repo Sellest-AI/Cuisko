@@ -67,8 +67,9 @@ describe("scaleInstruction", () => {
   });
 
   test("reads fractions and comma decimals, and writes back in the same notation", () => {
+    /** A centilitre is a whole number on the ingredients tab, so 0,75 reads 1 in the method too. */
     expect(scaleInstruction("Versez 1,5 cl d'huile d'olive", LINES, 4, 2)).toBe(
-      "Versez 0,8 cl d'huile d'olive",
+      "Versez 1 cl d'huile d'olive",
     );
     expect(scaleInstruction("Versez 1/2 cuillère d'huile d'olive", LINES, 4, 8)).toBe(
       "Versez 1 cuillère d'huile d'olive",
@@ -77,7 +78,12 @@ describe("scaleInstruction", () => {
 
   /** A cook reads a recipe, not arithmetic — and to the precision the ingredients tab uses. */
   test("rounds what does not divide evenly", () => {
-    expect(scaleInstruction("Ajoutez 200 g de farine", LINES, 3, 1)).toBe("Ajoutez 66.7 g de farine");
+    expect(scaleInstruction("Ajoutez 200 g de farine", LINES, 3, 1)).toBe("Ajoutez 67 g de farine");
+  });
+
+  /** A bare count has no unit to take a precision from, so it keeps the single decimal. */
+  test("keeps one decimal on a number the sentence gave no unit", () => {
+    expect(scaleInstruction("Faites revenir 2 oignons", LINES, 3, 1)).toBe("Faites revenir 0.7 oignons");
   });
 
   /**
