@@ -64,7 +64,9 @@ const WINDOW = 500;
  * Six rather than three because `selectMeals` ranks on shared purchases, and a recipe that shares
  * the basket has to be in the pool to be found: at three per plate the pool rarely held one. A
  * two-slot week loads about a hundred recipes (84 from the catalog, up to 24 of the caller's own),
- * around a thousand documents against a 16,384 scan budget.
+ * a few thousand documents against a 32,000 scan budget. The tighter budget is the 4,096 index
+ * ranges a query may read — every `db.get` on an ingredient is one — which is why `_ingredientOf`
+ * caches on the read.
  */
 export const CANDIDATES_PER_PLATE = 6;
 
@@ -104,6 +106,31 @@ const _window = async (ctx: PoolCtx, userId: Id<"users"> | undefined, seed: numb
 };
 
 /**
+ * One ingredient, read from the database at most once per pool.
+ *
+ * The cache fills on the read, not on the recipe surviving: the ingredient that gets a recipe
+ * rejected — the butter in a dairy-free week — is exactly the one every next rejected recipe would
+ * ask for again, and each `db.get` spends one of the 4,096 index ranges a query is allowed. Deleted
+ * ingredients are remembered too, so a dangling line costs one read rather than one per recipe.
+ */
+const _ingredientOf = async (
+  ctx: PoolCtx,
+  ingredientId: Id<"ingredients">,
+  pool: Pool,
+  deleted: Set<Id<"ingredients">>,
+) => {
+  const cached = pool.ingredients.get(ingredientId);
+  if (cached) return cached;
+  if (deleted.has(ingredientId)) return null;
+
+  const ingredient = await ctx.db.get(ingredientId);
+  if (ingredient) pool.ingredients.set(ingredientId, ingredient);
+  else deleted.add(ingredientId);
+
+  return ingredient;
+};
+
+/**
  * Load lines for `recipes`, in order, until `limit` of them survive the allergen check.
  *
  * Sequential on purpose: the point of the limit is to stop reading, and a `Promise.all` over the
@@ -113,7 +140,12 @@ const _loadUntil = async (
   ctx: PoolCtx,
   recipes: Doc<"recipes">[],
   limit: number,
-  { servings, avoids, isMine }: { servings: number; avoids: Allergen[]; isMine: boolean },
+  {
+    servings,
+    avoids,
+    isMine,
+    deleted,
+  }: { servings: number; avoids: Allergen[]; isMine: boolean; deleted: Set<Id<"ingredients">> },
   pool: Pool,
 ) => {
   let loaded = 0;
@@ -128,13 +160,13 @@ const _loadUntil = async (
 
     if (lines.length === 0) continue;
 
-    const ingredients = await Promise.all(
-      lines.map(async ({ ingredientId }) => pool.ingredients.get(ingredientId) ?? (await ctx.db.get(ingredientId))),
-    );
+    // Distinct first: a recipe listing the same ingredient twice would otherwise race two reads of it.
+    const ingredientIds = [...new Set(lines.map(({ ingredientId }) => ingredientId))];
+    const found = await Promise.all(ingredientIds.map((id) => _ingredientOf(ctx, id, pool, deleted)));
 
     // A deleted ingredient is an unknown one, and a line nothing can describe cannot be planned.
-    if (ingredients.some((ingredient) => ingredient === null)) continue;
-    const rows = ingredients as Doc<"ingredients">[];
+    if (found.some((ingredient) => ingredient === null)) continue;
+    const rows = lines.map(({ ingredientId }) => pool.ingredients.get(ingredientId)!);
 
     // Unknown means excluded: `undefined` is "never classified", the one row that could carry it.
     if (
@@ -144,7 +176,6 @@ const _loadUntil = async (
       continue;
     }
 
-    for (const row of rows) pool.ingredients.set(row._id, row);
     pool.recipes.set(recipe._id, recipe);
     pool.candidates.push({
       recipeId: recipe._id,
@@ -173,6 +204,7 @@ export const candidatePool = async (
   { userId, seed, servings, plates, diet, avoids, maxMinutes, equipments, seeks }: Args,
 ): Promise<Pool> => {
   const pool: Pool = { candidates: [], recipes: new Map(), ingredients: new Map() };
+  const deleted = new Set<Id<"ingredients">>();
   const wanted = plates * CANDIDATES_PER_PLATE;
 
   const [catalog, mine] = await Promise.all([_window(ctx, undefined, seed), _window(ctx, userId, seed)]);
@@ -213,10 +245,10 @@ export const candidatePool = async (
   const suits = (recipe: Doc<"recipes">) =>
     suitsDiet(recipe, diet) && fitsTime(recipe) && isMakeable(recipe) && matchesSeeks(recipe.tags, seeks);
 
-  await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false }, pool);
+  await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false, deleted }, pool);
 
   const ownWanted = Math.max(wanted - pool.candidates.length, Math.floor(OWN_SHARE * plates) * CANDIDATES_PER_PLATE);
-  await _loadUntil(ctx, mine.filter(suits), ownWanted, { servings, avoids, isMine: true }, pool);
+  await _loadUntil(ctx, mine.filter(suits), ownWanted, { servings, avoids, isMine: true, deleted }, pool);
 
   return pool;
 };
