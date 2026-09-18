@@ -28,7 +28,7 @@
  */
 
 import { CONFIDENT, scoreCandidate } from "@shared/ingredientMatch";
-import type { Unit } from "@shared/ingredients";
+import { roundQuantity, type Unit } from "@shared/ingredients";
 import type { InstructionGroup } from "@shared/recipes";
 import { foldAccents } from "@shared/translations";
 
@@ -370,15 +370,19 @@ export const readInstruction = (
 /**
  * A scaled amount, written back the way the cook writes numbers.
  *
- * One decimal, trailing zero gone — the same precision `formatQuantity` gives the ingredients
- * tab, so a scaled recipe does not round one way in its list and another in its method. A cook
- * reading `66.66666666666667` on a card has been shown arithmetic instead of a recipe. The separator is
- * the one the original number used, so a French method scaled from "1,5" reads "0,75" rather than
- * switching to a point mid-sentence — `_model/` has no locale, and the text itself is the only
- * honest source for that.
+ * Cut to the same precision `formatQuantity` gives the ingredients tab, so a scaled recipe does not
+ * read `3 g` in its list and `2,5 g` in its method — a cook weighing from one and reading the other
+ * has been handed two answers. The sentence's own unit is what decides, when it spelled one; a bare
+ * count ("4 tomates") has none to take a precision from and keeps a single decimal, raised the same
+ * way so the two halves of a method do not disagree about which direction a number moves.
+ *
+ * A cook reading `66.66666666666667` on a card has been shown arithmetic instead of a recipe. The
+ * separator is the one the original number used, so a French method scaled from "1,5" reads "0,75"
+ * rather than switching to a point mid-sentence — `_model/` has no locale, and the text itself is
+ * the only honest source for that.
  */
-const _write = (value: number, original: string): string => {
-  const text = String(Math.round(value * 10) / 10);
+const _write = (value: number, original: string, unit?: Unit): string => {
+  const text = String(unit ? roundQuantity(value, unit) : Math.ceil(value * 10 - 1e-9) / 10);
 
   return original.includes(",") ? text.replace(".", ",") : text;
 };
@@ -408,7 +412,7 @@ export const scaleInstruction = (
 
   return readInstruction(instruction, lines)
     .map((segment) =>
-      segment.amount === undefined ? segment.text : _write(segment.amount * factor, segment.text),
+      segment.amount === undefined ? segment.text : _write(segment.amount * factor, segment.text, segment.unit),
     )
     .join("");
 };

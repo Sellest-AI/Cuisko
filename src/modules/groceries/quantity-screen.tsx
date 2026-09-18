@@ -10,7 +10,7 @@ import { useTranslations } from "translations";
 
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { useModalAction } from "~/modules/navigation/modal-action";
-import { formatQuantity, isIntent, normalizeUnit, type Intent, type Unit } from "./_model/model";
+import { formatQuantity, isIntent, normalizeUnit, roundQuantity, type Intent, type Unit } from "./_model/model";
 import { useQuantityPicker } from "./_hooks/useQuantityPicker";
 import { useRemoveItem } from "./_hooks/useRemoveItem";
 import { AmountInput } from "./quantity-screen.amount-input";
@@ -121,10 +121,13 @@ const Picker = ({
         onSubmit={choose}
       />
       <View style={styles.grid}>
+        {/* Shown at the unit's precision, submitted exact: the "needed" tile is a plate's claim of
+            33.333 g that reads "34 g", and writing back the 34 would over-buy — or, rounded the other
+            way, leave the gap open — by a fraction of a gram on every purchase against a scaled claim. */}
         {options.map((option) => (
           <QuantityOption
             key={`${option.amount}:${option.unit}`}
-            amount={option.amount}
+            amount={roundQuantity(option.amount, option.unit)}
             unit={unitWord(option.unit)}
             caption={option.captionKey ? t(option.captionKey) : undefined}
             type={option.type}

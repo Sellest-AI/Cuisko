@@ -7,6 +7,7 @@ import {
   mergeGroupOf,
   normalizeUnit,
   pickQuantity,
+  roundQuantity,
   serializeIngredients,
   stockUnitOf,
   toGrams,
@@ -114,6 +115,66 @@ describe("toGrams", () => {
 
   test("refuses a piece with no weight per piece", () => {
     expect(toGrams(2, "pcs", { gramsPerMl: 1 })).toBeUndefined();
+  });
+});
+
+describe("roundQuantity", () => {
+  /** The bug this exists for: 100 g for three, cooked for one, read `33.333333333333336 g` on a tile. */
+  test("raises a gram amount to a whole number", () => {
+    expect(roundQuantity(100 / 3, "g")).toBe(34);
+    expect(roundQuantity(33.1, "g")).toBe(34);
+  });
+
+  /** Up, never down: every amount on screen is bought, weighed or taken out, and short is worse. */
+  test("never gives back less than it was handed", () => {
+    expect(roundQuantity(0.2, "g")).toBe(1);
+    expect(roundQuantity(1.21, "kg")).toBe(1.3);
+  });
+
+  test("keeps one decimal on the units a shopper buys in tenths", () => {
+    expect(roundQuantity(1.256, "kg")).toBe(1.3);
+    expect(roundQuantity(0.75, "l")).toBe(0.8);
+    expect(roundQuantity(0.25, "tsp")).toBe(0.3);
+  });
+
+  /**
+   * A ceiling amplifies float noise instead of absorbing it — `13.200000000000003` would read
+   * `13.3 kg` — so the epsilon guard is what makes the direction safe to apply.
+   */
+  test("takes the float noise off a difference rather than rounding it up", () => {
+    expect(roundQuantity(33.3 - 20.1, "kg")).toBe(13.2);
+    expect(roundQuantity(0.1 + 0.2, "l")).toBe(0.3);
+    expect(roundQuantity((100 / 3) * 3, "g")).toBe(100);
+  });
+
+  test("returns a number that prints without a trailing zero", () => {
+    expect(String(roundQuantity(2.04, "kg"))).toBe("2.1");
+    expect(String(roundQuantity(33.34, "g"))).toBe("34");
+  });
+
+  /** 33 g owed on an ingredient shopped by the kilo is 0.033 kg — a need, not nothing. */
+  test("never shows a positive amount as nothing", () => {
+    expect(roundQuantity(0.033, "kg")).toBe(0.1);
+    expect(roundQuantity(0.4, "ml")).toBe(1);
+    expect(roundQuantity(0.2, "pcs")).toBe(1);
+  });
+
+  test("leaves zero and the whole numbers alone", () => {
+    expect(roundQuantity(0, "kg")).toBe(0);
+    expect(roundQuantity(500, "g")).toBe(500);
+    expect(roundQuantity(2, "pcs")).toBe(2);
+  });
+});
+
+describe("formatQuantity", () => {
+  test("shows the amount at its unit's precision", () => {
+    expect(formatQuantity(100 / 3, "g")).toBe("34 g");
+    expect(formatQuantity(1.256, "kg")).toBe("1.3 kg");
+    expect(formatQuantity(2, "kg")).toBe("2 kg");
+  });
+
+  test("spells the unit through the resolver it is given", () => {
+    expect(formatQuantity(1.5, "tbsp", () => "c. à s.")).toBe("1.5 c. à s.");
   });
 });
 

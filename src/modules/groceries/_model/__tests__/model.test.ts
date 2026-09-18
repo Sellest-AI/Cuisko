@@ -8,6 +8,7 @@ import {
   orderSections,
   peelReceipts,
   putInCellar,
+  quantityOptions,
   reduceLines,
   rememberStock,
   rowsOf,
@@ -276,6 +277,38 @@ describe("rows that need no sheet", () => {
 
     expect(sections["to-buy"][0]?.intent).toBe("buy");
     expect(sections.cellar[0]?.intent).toBe("remove");
+  });
+});
+
+describe("what the sheet offers", () => {
+  const flour = { ingredientId: "flour", unit: "g" } as const;
+  const owing = (claimed: number, owned: number): Snapshot => ({
+    ...base,
+    ingredients: [{ id: "flour", name: "Farine", emoji: "🌾" }],
+    lines: [{ id: "f1", ...flour, meal: { id: "2026-01-06:dinner", title: "Pain" }, amount: claimed, createdAt: NOW, updatedAt: NOW }],
+    cellar: [{ id: "cf", ...flour, amount: owned, updatedAt: NOW }],
+  });
+  const tiles = (snapshot: Snapshot) => quantityOptions(stockFor(snapshot, flour), "g", "buy").map((option) => option.amount);
+
+  /**
+   * The tiles are drawn at the unit's precision, so two amounts that read the same ARE the same to
+   * the shopper: a gap of 49.6 g shows as "50 g", and a preset "50 g" beside it would be the same
+   * tile twice with only one of them highlighted. Compared exactly, 49.6 and 50 would both survive.
+   */
+  it("drops a preset that would read the same as the suggestion", () => {
+    const [suggested, ...presets] = tiles(owing(149.6, 100));
+
+    expect(suggested).toBeCloseTo(49.6);
+    expect(presets).toEqual([100, 150, 200, 250, 300, 400, 500, 750]);
+  });
+
+  /** Float noise off a claim is the other way a preset could slip past an exact comparison. */
+  it("drops a preset the suggestion differs from only by float noise", () => {
+    expect(tiles(owing(150.00000000000003, 100))).toEqual([50.00000000000003, 100, 150, 200, 250, 300, 400, 500, 750]);
+  });
+
+  it("keeps a preset the suggestion genuinely differs from", () => {
+    expect(tiles(owing(160, 100))).toEqual([60, 50, 100, 150, 200, 250, 300, 400, 500]);
   });
 });
 

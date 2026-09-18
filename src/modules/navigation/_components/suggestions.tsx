@@ -4,7 +4,9 @@ import { theme } from "theme";
 import { Text } from "@ui/text";
 import { GroceryItem } from "@ui/cards/grocery-item";
 import { useTranslations } from "translations";
-import { pickQuantity, type Unit } from "@shared/ingredients";
+import { formatQuantity, pickQuantity, roundQuantity, type Unit } from "@shared/ingredients";
+
+import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { useSuggestions } from "../_hooks/useSuggestions";
 
 const SHARED_PADDING = theme.spacing[16];
@@ -17,6 +19,7 @@ type Props = {
 
 export const Suggestions = ({ value, style, onSelect }: Props) => {
   const t = useTranslations("Navigation");
+  const unitWord = useUnitLabel();
   const { suggestions, amount, unit } = useSuggestions(value);
 
   return (
@@ -45,7 +48,10 @@ export const Suggestions = ({ value, style, onSelect }: Props) => {
           // neither. Read per card rather than once for the list: "2" against gnocchi and against a
           // lemon is two packets and two lemons, and one shared unit for every row could only be
           // right for one.
-          const { amount: quantity, unit: measure } = pickQuantity({ amount, unit }, suggestion);
+          // Rounded once, then both shown and written: a card reading "0.1 kg" that puts 0.03 kg
+          // on the shelf is the shopper being answered with a number they never chose.
+          const { amount: typed, unit: measure } = pickQuantity({ amount, unit }, suggestion);
+          const quantity = roundQuantity(typed, measure);
 
           return (
             <GroceryItem
@@ -54,7 +60,7 @@ export const Suggestions = ({ value, style, onSelect }: Props) => {
               emoji={suggestion.emoji}
               imageUrl={suggestion.imageUrl}
               style={{ backgroundColor: theme.colors.surface.elevated }}
-              quantity={`${quantity} ${measure}`}
+              quantity={formatQuantity(quantity, measure, unitWord)}
               onPress={() => onSelect?.({
                 id: suggestion.id,
                 amount: quantity,
