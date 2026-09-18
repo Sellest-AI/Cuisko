@@ -159,6 +159,56 @@ describe("functions/planning/candidatePool", () => {
     expect(idsOf(await poolFor(me, { avoids: ["gluten"] }))).toEqual([salad]);
   });
 
+  /**
+   * The ingredient that rejects a recipe is the one every next rejected recipe asks for again, and
+   * each `db.get` is one of the 4,096 index ranges a query may read. Cached on the read, not on the
+   * recipe surviving — so three rejected recipes sharing the flour cost one read of it, not three.
+   */
+  test("reads a shared ingredient once, even when every recipe carrying it is rejected", async () => {
+    const me = await user();
+    const flour = await t.run((ctx) =>
+      ctx.db.insert("ingredients", {
+        name: { values: { fr: "farine" }, meta: {} },
+        category: "VEGETABLE",
+        emoji: "🌾",
+        allergens: ["gluten"],
+        defaultUnit: "g",
+        defaultQuantity: 500,
+        nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
+        updatedAt: Date.now(),
+      }),
+    );
+    for (const shuffleKey of [1, 2, 3]) {
+      const recipeId = await recipe({ shuffleKey });
+      await t.run((ctx) =>
+        ctx.db.insert("recipeIngredients", {
+          recipeId,
+          ingredientId: flour,
+          position: 1,
+          quantity: 100,
+          unit: "g",
+          updatedAt: Date.now(),
+        }),
+      );
+    }
+
+    const reads = await t.run(async (ctx) => {
+      const gets = new Map<string, number>();
+      const db = Object.create(ctx.db) as typeof ctx.db;
+      db.get = ((id: Id<"ingredients">) => {
+        gets.set(id, (gets.get(id) ?? 0) + 1);
+        return ctx.db.get(id);
+      }) as typeof ctx.db.get;
+      const pool = await candidatePool(
+        { db },
+        { userId: me, seed: 0, servings: 2, plates: 2, diet: "omnivore", avoids: ["gluten"], seeks: [] },
+      );
+      return { candidates: pool.candidates.length, flourReads: gets.get(flour) ?? 0 };
+    });
+
+    expect(reads).toEqual({ candidates: 0, flourReads: 1 });
+  });
+
   /** Unknown means excluded — but only when there is something to avoid. */
   test("drops an unclassified ingredient only when the run avoids something", async () => {
     const me = await user();
