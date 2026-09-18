@@ -4,6 +4,7 @@ import { ActivityIndicator, View, StyleSheet, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 
+import { Image } from "@ui/image";
 import { ArrowLeft, CircleAlert, ForkKnife, ForkKnifeIcon } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { AnimatePresence } from "@ui/motion";
@@ -15,6 +16,7 @@ import { DEFAULT_SERVINGS, serializeInstructions } from "@shared/recipes";
 
 import type { Id } from "~/lib/convex/api";
 
+import { computedTagsOf, detailsOf, type EditorDetails, sameDetails } from "../_model/editor";
 import { importedDraftAtom } from "../_hooks/atoms";
 import { useCreateRecipe } from "../_hooks/useCreateRecipe";
 import { useRecipeDraft } from "../_hooks/useRecipeDraft";
@@ -24,6 +26,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { SCREEN_PADDING } from "../constants";
 import { EditorActions } from "./actions";
 import { CreatingOverlay } from "./creating-overlay";
+import { EditorDetailFields } from "./details";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
 import { EmptyState } from "../_components/empty-state";
@@ -78,6 +81,8 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
   const [servings, setServings] = useState(imported?.servings ?? DEFAULT_SERVINGS);
   const [ingredients, setIngredients] = useState(imported?.ingredients ?? "");
   const [instructions, setInstructions] = useState(imported?.instructions ?? "");
+  /** What the agent guessed and the cook may correct — edit only, so absent until a recipe is seeded. */
+  const [details, setDetails] = useState<EditorDetails | undefined>(undefined);
 
   const { recipe, isLoading, isMissing } = useRecipeDraft(recipeId);
 
@@ -113,6 +118,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
     setServings(recipe.servings);
     setIngredients(serializeIngredients(recipe.ingredients));
     setInstructions(serializeInstructions(recipe.instructions));
+    setDetails(detailsOf(recipe));
   }, [recipe, recipeId]);
 
   const { create, isCreating, error: creatingError } = useCreateRecipe();
@@ -134,28 +140,22 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
     description !== recipe?.description ||
     ingredients !== serializeIngredients(recipe?.ingredients ?? []) ||
     instructions !== serializeInstructions(recipe?.instructions ?? []) ||
-    servings !== recipe?.servings;
+    servings !== recipe?.servings ||
+    (recipe !== undefined && details !== undefined && !sameDetails(details, detailsOf(recipe)));
 
   const canSaveExisting =
     title.trim().length > 3 &&
     description.trim().length > 3 &&
     ingredients.trim().length > 10 &&
     instructions.trim().length > 10 &&
+    details !== undefined &&
     isEdited;
 
   const canSave = recipeId ? canSaveExisting : canSaveNew;
 
-  const onSave = () =>
-    recipeId
-      ? update({
-        recipeId: recipeId as Id<"recipes">,
-        title,
-        description,
-        servings,
-        ingredients,
-        instructions,
-      })
-      : create({
+  const onSave = () => {
+    if (!recipeId)
+      return create({
         title,
         description,
         servings,
@@ -164,6 +164,19 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         // Where the draft came from, when it came from somewhere. `undefined` for a typed recipe.
         sourceUrl: imported?.sourceUrl,
       });
+
+    // `canSaveExisting` already refuses a save before the seed, so this only narrows the type.
+    if (details)
+      return update({
+        recipeId: recipeId as Id<"recipes">,
+        title,
+        description,
+        servings,
+        ingredients,
+        instructions,
+        ...details,
+      });
+  };
 
   /**
    * Held back rather than rendered empty: see `seededFor` above. An empty editable form is
@@ -229,7 +242,19 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
             {t("Creating.error_body")}
           </InfoBanner>
         )}
-        <ImagePicker label={t("Editor.image")} style={styles.image} />
+        <View>
+          <ImagePicker
+            label={t("Editor.image")}
+            style={styles.image}
+            imageSrc={recipe?.coverImageLargeUrl}
+          />
+          {recipe?.plateImageLargeUrl && (
+            <Image
+              source={{ uri: recipe?.plateImageLargeUrl }}
+              style={styles.plate}
+            />
+          )}
+        </View>
         <EditorField
           label={t("Editor.title")}
           hint={recipeId ? undefined : t("Editor.optional")}
@@ -265,6 +290,21 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
           style={styles.field}
           multiline
         />
+        {/*
+          * Edit only: a create has no computed tags to show and no row to correct, and the model
+          * fills these in on the first save — which is the point of pasting a recipe and saving.
+          */}
+        {recipe && details && (
+          <>
+            <View style={styles.divider} />
+            <EditorDetailFields
+              details={details}
+              computedTags={computedTagsOf(recipe.tags)}
+              onChange={setDetails}
+              style={styles.field}
+            />
+          </>
+        )}
         <SafeAreaView edges={{ top: "off", bottom: "additive" }} />
       </KeyboardAwareScrollView>
       <EditorActions
@@ -305,6 +345,13 @@ const styles = StyleSheet.create({
    */
   error: { marginBottom: theme.spacing[20] },
   image: { marginBottom: theme.spacing[4] },
+  plate: {
+    width: 72,
+    height: 72,
+    position: "absolute",
+    bottom: -theme.spacing[24],
+    right: theme.spacing[24],
+  },
   field: { marginTop: theme.spacing[20] },
   /** Splits what the recipe *is* from what it is made of; a rule, not a section break. */
   divider: {

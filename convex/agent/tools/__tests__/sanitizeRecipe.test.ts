@@ -38,6 +38,13 @@ describe("toSanitizedRecipe", () => {
     expect(toSanitizedRecipe(_answer({ timings })).timings).toEqual({ preparation: 5 });
   });
 
+  /** The schema asks for a positive number, not an integer; the app only reads whole minutes. */
+  it("rounds a fractional timing rather than storing it", () => {
+    const timings = { preparation: 7.5, cooking: 0.3 };
+
+    expect(toSanitizedRecipe(_answer({ timings })).timings).toEqual({ preparation: 8, cooking: 1 });
+  });
+
   it("survives a timings object with nothing in it", () => {
     expect(toSanitizedRecipe(_answer({ timings: {} })).timings).toEqual({});
   });

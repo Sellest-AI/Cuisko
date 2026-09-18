@@ -9,7 +9,8 @@ import type { Taste } from "@shared/tastes";
 import { api } from "~/lib/convex/api";
 import { useMutation } from "~/lib/convex/client";
 
-import { MEAL_SLOTS, planAfter, startOfDay, toggle, toggleTaste, type MealSlot } from "../../_model/model";
+import { toggle } from "@shared/helpers";
+import { MEAL_SLOTS, planAfter, startOfDay, toggleTaste, type MealSlot } from "../../_model/model";
 import {
   constraintsOf,
   isDietConstraint,

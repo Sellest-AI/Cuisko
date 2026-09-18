@@ -41,6 +41,11 @@ const EDIT = {
   servings: 2,
   ingredients: "2 onions",
   instructions: "Cook them.",
+  tags: ["soup" as const],
+  equipments: [],
+  difficulty: 2 as const,
+  cuisine: "french" as const,
+  timings: { cooking: 30 },
 };
 
 beforeEach(() => {

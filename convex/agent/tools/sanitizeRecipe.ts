@@ -6,6 +6,7 @@ import {
   DIFFICULTY_LEVELS,
   type DifficultyLevel,
   type InstructionGroup,
+  wholeTimingsOf,
 } from "@shared/recipes";
 import { EQUIPMENTS, type Equipment } from "@shared/equipments";
 import { SUPPORTED_LOCALES } from "@shared/translations";
@@ -159,17 +160,22 @@ export const modelRecipeSchema = z.object({
 /**
  * The model's answer as a `SanitizedRecipe`.
  *
- * There is no normalizer here, and that is the point: `parseModelOutput` reads the schema above to
- * know which fields are allowed to be absent, so `"null"`, `"45 minutes"`, a `0` that fails
- * `.positive()` and a key the model left out are all handled by the four `.optional()` already
- * written up there. A cuisine outside `CUISINES` still throws.
+ * Absence needs no normalizer: `parseModelOutput` reads the schema above to know which fields are
+ * allowed to be absent, so `"null"`, `"45 minutes"`, a `0` that fails `.positive()` and a key the
+ * model left out are all handled by the four `.optional()` already written up there. A cuisine
+ * outside `CUISINES` still throws.
+ *
+ * The one thing done after parsing is rounding the timings. It cannot live in the schema — `.int()`
+ * would DROP a `7.5` rather than round it — and the app only ever reads and writes whole minutes.
  *
  * The return annotation is what pins the contract — adding a cuisine to `CUISINES` and forgetting
  * it in `modelRecipeSchema` is a compile error here, rather than a recipe the database rejects at
  * insert time, in production, on the one line nobody tested.
  */
-export const toSanitizedRecipe = (raw: unknown): SanitizedRecipe =>
-  parseModelOutput(modelRecipeSchema, raw);
+export const toSanitizedRecipe = (raw: unknown): SanitizedRecipe => {
+  const recipe = parseModelOutput(modelRecipeSchema, raw);
+  return { ...recipe, timings: wholeTimingsOf(recipe.timings) };
+};
 
 const _inputSchema = z.object({
   locale: z

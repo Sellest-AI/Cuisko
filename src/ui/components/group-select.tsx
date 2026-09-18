@@ -1,6 +1,6 @@
 import { View, StyleSheet, ViewStyle } from "react-native";
 import { Text } from "@ui/text";
-import { Check, Icon, MorphIcon } from "./icons";
+import { Check, Icon, Lock, MorphIcon } from "./icons";
 import { Pressable } from "./pressable";
 import { theme } from "theme";
 
@@ -21,6 +21,12 @@ type Props = {
      */
     caption?: string,
     selected?: boolean,
+    /**
+     * A chip that reads as set but is not the cook's to change — drawn solid, with a lock where a
+     * check would be, and never answering a tap. For a value that follows from something else on
+     * the same screen: showing it says where it came from, where hiding it reads as a bug.
+     */
+    locked?: boolean,
   }[]
   /**
    * Which chip was tapped. Required, not optional: selection is drawn from `items[].selected`,
@@ -41,9 +47,9 @@ export const GroupSelect = ({ style, items, label, labelColor, onSelect }: Props
       {label && <Text.Lg color={labelColor}>{label}</Text.Lg>}
       <View style={styles.buttonsGrid}>
         {items.map((item) => {
-          const icon = item.selected ? Check : item.icon;
-          const textColor = item.selected ? SELECTED_TEXT : theme.colors.neutral.base;
-          const iconColor = item.selected ? SELECTED_TEXT : theme.colors.neutral.elevated;
+          const icon = item.locked ? Lock : item.selected ? Check : item.icon;
+          const textColor = item.selected && !item.locked ? SELECTED_TEXT : theme.colors.neutral.base;
+          const iconColor = item.selected && !item.locked ? SELECTED_TEXT : theme.colors.neutral.elevated;
 
           const textIcon = typeof icon === "string" ? (
             <Text.Base color={iconColor}>
@@ -54,8 +60,16 @@ export const GroupSelect = ({ style, items, label, labelColor, onSelect }: Props
           return (
             <Pressable
               key={item.value}
-              onPress={() => onSelect(item.value)}
-              style={[styles.button, item.selected && styles.buttonSelected]}
+              onPress={() => {
+                if (!item.locked) onSelect(item.value);
+              }}
+              disabled={item.locked}
+              accessibilityState={{ selected: item.selected || item.locked, disabled: item.locked }}
+              style={[
+                styles.button,
+                item.selected && styles.buttonSelected,
+                item.locked && styles.buttonLocked,
+              ]}
             >
               {textIcon}
               {(icon && !textIcon) && <MorphIcon
@@ -115,5 +129,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary.subtle,
     borderColor: theme.colors.primary.elevated,
     borderStyle: "solid",
-  }
+  },
+  /** Solid like a selected chip, since it IS set — but neutral, so it does not read as the cook's pick. */
+  buttonLocked: {
+    borderColor: theme.colors.neutral.subtle,
+    borderStyle: "solid",
+  },
 })

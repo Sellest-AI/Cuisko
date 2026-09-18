@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { type InstructionGroup, parseInstructions, serializeInstructions, totalMinutesOf } from "../recipes";
+import {
+  type InstructionGroup,
+  parseInstructions,
+  serializeInstructions,
+  totalMinutesOf,
+  wholeTimingsOf,
+} from "../recipes";
 
 /**
  * The contract, stated once: text is the stored form, so serializing is what must be stable.
@@ -210,5 +216,24 @@ describe("totalMinutesOf", () => {
   /** A declared zero is an answer, and `0` is falsy — the filter must not read it as undeclared. */
   test("keeps a declared zero as zero rather than as undeclared", () => {
     expect(totalMinutesOf({ cooking: 0 })).toBe(0);
+  });
+});
+
+describe("wholeTimingsOf", () => {
+  test("rounds a fraction the agent answered with to the nearest minute", () => {
+    expect(wholeTimingsOf({ preparation: 7.5, cooking: 12.4, resting: 30 })).toEqual({
+      preparation: 8,
+      cooking: 12,
+      resting: 30,
+    });
+  });
+
+  /** A stated timing that rounded to 0 would read as "not stated" — and 0 is what the schema refuses. */
+  test("never rounds a stated timing down to zero", () => {
+    expect(wholeTimingsOf({ cooking: 0.3 })).toEqual({ cooking: 1 });
+  });
+
+  test("writes no key for a timing that is absent", () => {
+    expect(Object.keys(wholeTimingsOf({ cooking: 20 }))).toEqual(["cooking"]);
   });
 });

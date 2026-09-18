@@ -1,14 +1,29 @@
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { ModelRecipe } from "@convex/functions/recipes/toModelRecipe";
+import type { Cuisine } from "@shared/cuisines";
+import type { Equipment } from "@shared/equipments";
 import { serializeIngredients } from "@shared/ingredients";
-import { parseInstructions, serializeInstructions } from "@shared/recipes";
+import {
+  type DifficultyLevel,
+  MAX_TIMING_MINUTES,
+  parseInstructions,
+  serializeInstructions,
+  type Timings,
+  wholeTimingsOf,
+} from "@shared/recipes";
+import type { AuthoredTag } from "@shared/tags";
 import type { Locale } from "@shared/translations";
 import { ConvexError } from "convex/values";
 
 /**
- * The free text an edit carries — every field the cook can change, and nothing else.
+ * What an edit carries — every field the cook can change, and nothing else. `vRecipeEdit` in
+ * `schema/recipePayloads.ts` is the validator half of this shape.
  *
- * Exported because `updateOne` composes its own arguments from it rather than restating the five
+ * Two kinds of field. The first five are free text (and a count) the agent may revise when it runs.
+ * The last five are the ones the agent guessed on the first save and the cook now states by hand —
+ * closed vocabularies and numbers, so none of them is ever translated or re-analyzed.
+ *
+ * Exported because `updateOne` composes its own arguments from it rather than restating the
  * fields: two copies of this shape can disagree, and the one that drifts would be the validator.
  */
 export type RecipeEdit = {
@@ -17,7 +32,45 @@ export type RecipeEdit = {
   servings: number;
   ingredients: string;
   instructions: string;
+  tags: AuthoredTag[];
+  equipments: Equipment[];
+  difficulty: DifficultyLevel;
+  cuisine: Cuisine;
+  timings: Timings;
 };
+
+/**
+ * The five fields the cook sets by hand, and which win over the agent's answer whatever it says.
+ *
+ * Timings rounded here because the editor sends the stored ones back untouched, and a row saved
+ * before the agent's answer was rounded may still hold `7.5`.
+ */
+const _handSetOf = ({ tags, equipments, difficulty, cuisine, timings }: RecipeEdit) => ({
+  tags,
+  equipments,
+  difficulty,
+  cuisine,
+  timings: wholeTimingsOf(timings),
+});
+
+/**
+ * The row the model is shown as "the recipe as it stands", with the cook's five fields written over
+ * it.
+ *
+ * Without it the prompt would describe the recipe the cook just corrected: retag a dish as a
+ * starter and rewrite its ingredients in the same save, and the model re-derives the tags while
+ * being told it is still a main. `reviseRecipe` re-forces the five anyway — this makes the model
+ * better informed, it does not make it the authority.
+ *
+ * ⚠️ Applied only to what the MODEL sees, never to what `recipeChangesOf` compares against. Overlay
+ *    the stored row before that comparison and every edit compares equal to itself, and the agent
+ *    never runs again. Nothing fails loudly if this is wrong — the prompt just gets worse context —
+ *    so `updateOne.test.ts` asserts the `outdated` the model receives.
+ */
+const _editedContextOf = (outdated: ModelRecipe, args: RecipeEdit): ModelRecipe => ({
+  ...outdated,
+  ..._handSetOf(args),
+});
 
 /**
  * What `sanitizeRecipe.run` takes, built from the edit and the row it revises.
@@ -33,7 +86,7 @@ export const sanitizeArgsOf = (args: RecipeEdit, outdated: ModelRecipe, locale: 
   servings: args.servings,
   ingredients: args.ingredients.split("\n").map((line) => line.trim()).filter(Boolean),
   instructions: args.instructions,
-  outdated,
+  outdated: _editedContextOf(outdated, args),
 });
 
 /**
@@ -48,11 +101,28 @@ export const assertFilledIn = (args: Pick<RecipeEdit, "title" | "description">) 
     throw new ConvexError({ code: "INVALID_ARGUMENT", message: "Title and description are required." });
 };
 
+const _isTiming = (minutes: number | undefined) =>
+  minutes === undefined || (minutes > 0 && Math.round(minutes) <= MAX_TIMING_MINUTES);
+
+/**
+ * The timings, held to what the editor's own parser would accept: above zero, at most a week. Same
+ * reasoning as `assertFilledIn` — `v.number()` lets a client send `-5` or `1e9`, and that number is
+ * summed into what the planner filters a week on.
+ *
+ * A fraction is not refused: `_handSetOf` rounds it. Refusing it would lock the cook out of any row
+ * the agent timed as `7.5` — the editor sends that value back on every save, whatever was edited.
+ */
+export const assertTimingsInRange = ({ timings }: Pick<RecipeEdit, "timings">) => {
+  if (![timings.preparation, timings.cooking, timings.resting].every(_isTiming))
+    throw new ConvexError({ code: "INVALID_ARGUMENT", message: "Timings must be above zero and at most a week." });
+};
+
 export type RecipeChanges = {
   /**
-   * Whether the ingredient list changed — the one edit that needs the agent: difficulty, cuisine,
-   * timings and the computed tags are all derived from the ingredients, and re-deriving them from
-   * text nobody touched would be answering a question that was not asked.
+   * Whether the ingredient list changed — the one edit that needs the agent, since it is what turns
+   * ingredient text into structured lines. Re-deriving them from text nobody touched would be
+   * answering a question that was not asked. (The computed tags follow the lines on every write
+   * regardless — `deriveRecipeFields` recomputes them without the agent.)
    */
   requiresNewAnalysis: boolean;
   /** Whether any translated field changed, and the recipe's other locale is therefore stale. */
@@ -69,13 +139,6 @@ export type RecipeChanges = {
  */
 const _instructionsOf = (outdated: ModelRecipe) =>
   outdated.instructions.map((group) => ({ ...group, title: group.title ?? undefined }));
-
-/** Same normalization as `_instructionsOf`, for the other three fields `modelRecipeSchema` allows `null` on. */
-const _timingsOf = (outdated: ModelRecipe): SanitizedRecipe["timings"] => ({
-  preparation: outdated.timings.preparation ?? undefined,
-  cooking: outdated.timings.cooking ?? undefined,
-  resting: outdated.timings.resting ?? undefined,
-});
 
 /**
  * What the cook's edit actually touched, against the row it is revising.
@@ -104,11 +167,11 @@ export const recipeChangesOf = (args: RecipeEdit, outdated: ModelRecipe): Recipe
  * reflects the new ingredients (title, description and instructions included, since `sanitizeRecipe`
  * always returns a complete recipe), and it must win over the cook's raw text sitting underneath it.
  *
- * `servings` is the one exception, and so it is re-forced AFTER that spread. It is the only field
- * here the cook sets by number rather than by prose: they typed `6`, and no amount of re-deriving
- * the ingredients makes the agent's opinion about how many that feeds more correct than the answer
- * they gave. `createOne` does the same thing at its own persist call — the two paths must not
- * disagree about who owns this field.
+ * `servings` and the five hand-set fields are the exception, and so they are re-forced AFTER that
+ * spread. The cook stated each of them by hand rather than in prose — they typed `6`, they tapped
+ * "starter" — and no amount of re-deriving the ingredients makes the agent's opinion more correct
+ * than the answer they gave. `createOne` does the same for `servings` at its own persist call; the
+ * two paths must not disagree about who owns that field.
  */
 export const reviseRecipe = (
   args: RecipeEdit,
@@ -124,8 +187,8 @@ export const reviseRecipe = (
     title: args.title,
     description: args.description,
     instructions: parseInstructions(args.instructions),
-    timings: _timingsOf(outdated),
     ...analyzed,
     servings: args.servings,
+    ..._handSetOf(args),
   };
 };

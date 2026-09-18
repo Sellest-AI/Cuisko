@@ -34,7 +34,21 @@ const unchangedEdit = (): RecipeEdit => ({
   instructions: serializeInstructions(
     OUTDATED.instructions.map((group) => ({ ...group, title: group.title ?? undefined })),
   ),
+  tags: ["soup"],
+  equipments: ["oven"],
+  difficulty: 2,
+  cuisine: "french",
+  timings: { preparation: 15, cooking: 30 },
 });
+
+/** The cook's hand-set fields, every value distinct from both the row and `ANALYZED`. */
+const HAND_SET = {
+  tags: ["starter", "comfort-food"],
+  equipments: ["blender"],
+  difficulty: 1,
+  cuisine: "japanese",
+  timings: { preparation: 25, resting: 60 },
+} satisfies Partial<RecipeEdit>;
 
 /** What the agent hands back when it does run — every value distinct from both the row and the edit. */
 const ANALYZED: SanitizedRecipe = {
@@ -51,6 +65,17 @@ const ANALYZED: SanitizedRecipe = {
 };
 
 describe("recipeChangesOf", () => {
+  /**
+   * The decision that saves the model call: none of the five is an ingredient, and all five are
+   * locale-free, so an edit made only below the ingredient list needs neither agent.
+   */
+  test("asks for nothing when only the hand-set fields changed", () => {
+    expect(recipeChangesOf({ ...unchangedEdit(), ...HAND_SET }, OUTDATED)).toEqual({
+      requiresNewAnalysis: false,
+      requiresTranslation: false,
+    });
+  });
+
   test("asks for nothing when the edit changed nothing", () => {
     expect(recipeChangesOf(unchangedEdit(), OUTDATED)).toEqual({
       requiresNewAnalysis: false,
@@ -97,15 +122,30 @@ describe("reviseRecipe", () => {
     expect(revised.servings).toBe(6);
   });
 
-  /** `servings` is the exception, not the rule — everything else the agent re-derived must win. */
-  test("lets the agent win on every field it actually re-derived", () => {
+  /** The prose and the ingredients are the agent's to revise; the hand-set fields below are not. */
+  test("lets the agent win on the text and ingredients it re-derived", () => {
     const revised = reviseRecipe(unchangedEdit(), OUTDATED, ANALYZED);
 
-    expect(revised.difficulty).toBe(ANALYZED.difficulty);
-    expect(revised.cuisine).toBe(ANALYZED.cuisine);
-    expect(revised.equipments).toEqual(ANALYZED.equipments);
-    expect(revised.timings).toEqual(ANALYZED.timings);
+    expect(revised.title).toBe(ANALYZED.title);
+    expect(revised.description).toBe(ANALYZED.description);
+    expect(revised.instructions).toEqual(ANALYZED.instructions);
     expect(revised.ingredients).toEqual(ANALYZED.ingredients);
+  });
+
+  /**
+   * The same argument as `servings`, for the five fields the cook sets by tapping rather than by
+   * writing: an agent that re-derived "main" does not get to overwrite a cook who said "starter".
+   */
+  test("keeps the cook's five hand-set fields even when the agent returned its own", () => {
+    const revised = reviseRecipe({ ...unchangedEdit(), ...HAND_SET }, OUTDATED, ANALYZED);
+
+    expect(revised).toMatchObject(HAND_SET);
+  });
+
+  test("writes the cook's five hand-set fields when no agent ran", () => {
+    const revised = reviseRecipe({ ...unchangedEdit(), ...HAND_SET }, OUTDATED, undefined);
+
+    expect(revised).toMatchObject(HAND_SET);
   });
 
   /** With no agent run, the cook's own prose is the answer, layered over the row underneath. */

@@ -136,3 +136,14 @@ export async function retryPromise<T>(
 
   throw failure;
 }
+
+/**
+ * Turn an id on or off in a list of them, keeping the order they were picked in.
+ *
+ * Generic in the id so a caller holding a narrower one keeps it: the setup step's slots are
+ * `MealSlot`, and a `string` here would let a typo'd slot compile. Shared rather than kept in one
+ * module's `_model/` because every chip row that answers "which of these" needs it — the planning
+ * tunnel, the preferences sheet and the recipe editor — and the second copy is where they would drift.
+ */
+export const toggle = <T extends string>(list: readonly T[], id: T): T[] =>
+  list.includes(id) ? list.filter((entry) => entry !== id) : [...list, id];

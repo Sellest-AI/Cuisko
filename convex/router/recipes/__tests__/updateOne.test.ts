@@ -87,6 +87,23 @@ const UNCHANGED = {
   servings: 4,
   ingredients: "",
   instructions: UNCHANGED_INSTRUCTIONS,
+  tags: ["soup" as const],
+  equipments: [],
+  difficulty: 2 as const,
+  cuisine: "french" as const,
+  timings: { preparation: 15 },
+};
+
+/**
+ * The five fields the cook sets by hand, every value distinct from both `seedRecipe` and `RECIPE`
+ * (what the mocked agent answers) — so an assertion on any of them can only pass if the cook won.
+ */
+const HAND_SET = {
+  tags: ["starter" as const, "comfort-food" as const],
+  equipments: ["blender" as const],
+  difficulty: 4 as const,
+  cuisine: "japanese" as const,
+  timings: { cooking: 90, resting: 20 },
 };
 
 const RECIPE = {
@@ -117,7 +134,7 @@ const RECIPE = {
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne"))
+      .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne."))
       .map(([, load]) => load()),
   ),
 );
@@ -278,5 +295,158 @@ describe("router/recipes/updateOne", () => {
 
     const row = await t.run((ctx) => ctx.db.get(recipeId));
     expect(row!.sourceUrl).toBe("https://example.com/soupe");
+  });
+
+  /**
+   * The slice's promise: correcting what the agent guessed costs no model call. None of the five is
+   * an ingredient and all five are locale-free, so the row takes them as they are.
+   */
+  test("writes an edit touching only the hand-set fields without calling the agent", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, ...HAND_SET });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row).toMatchObject({
+      equipments: HAND_SET.equipments,
+      difficulty: HAND_SET.difficulty,
+      cuisine: HAND_SET.cuisine,
+      timings: HAND_SET.timings,
+    });
+    expect(row!.tags).toEqual(expect.arrayContaining(HAND_SET.tags));
+    expect(row!.tags).not.toContain("soup");
+    expect(row!.title.meta.fr!.status).toBe("edited");
+  });
+
+  /** A tag the cook set survives the agent rerunning in the same save — `reviseRecipe` re-forces it. */
+  test("keeps the cook's hand-set fields over the agent's when the ingredients changed too", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, {
+        ...UNCHANGED,
+        recipeId,
+        ...HAND_SET,
+        ingredients: "2 oignons",
+      });
+
+    expect(sanitizeRun).toHaveBeenCalledTimes(1);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row!.title.values.fr).toBe(RECIPE.title);
+    expect(row).toMatchObject({
+      equipments: HAND_SET.equipments,
+      difficulty: HAND_SET.difficulty,
+      cuisine: HAND_SET.cuisine,
+      timings: HAND_SET.timings,
+    });
+    expect(row!.tags).toEqual(expect.arrayContaining(HAND_SET.tags));
+  });
+
+  /**
+   * Rule 1 of the slice, and the only thing standing under it: the overlay changes nothing but a
+   * prompt string, so if it broke the model would simply get worse context and no other test would
+   * notice. The model must be told the recipe as the cook now states it, not as it was stored.
+   */
+  test("hands the model the cook's hand-set fields as the recipe as it stands", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, {
+        ...UNCHANGED,
+        recipeId,
+        ...HAND_SET,
+        ingredients: "2 oignons",
+      });
+
+    const { outdated } = sanitizeRun.mock.calls[0]![1] as { outdated: Record<string, unknown> };
+    expect(outdated).toMatchObject(HAND_SET);
+  });
+
+  /**
+   * The ordering the overlay depends on: `recipeChangesOf` compares the edit against the STORED
+   * row, and the overlay is applied only afterwards. Overlay first and the edit would compare equal
+   * to itself — the agent would never run again, whatever the cook rewrote.
+   */
+  test("still reaches the agent when an ingredient edit carries hand-set fields", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, {
+        ...UNCHANGED,
+        recipeId,
+        ...HAND_SET,
+        ingredients: "3 oignons",
+      });
+
+    expect(sanitizeRun).toHaveBeenCalledTimes(1);
+  });
+
+  /** Computed tags fall out of the ingredients; `vRecipeEdit.tags` is `AUTHORED_TAGS` so no client can set one. */
+  test("rejects a computed tag sent by a client", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+
+    await expect(
+      t.withIdentity(asUser(userId)).action(api.router.recipes.updateOne.authed, {
+        ...UNCHANGED,
+        recipeId,
+        // @ts-expect-error — the point of the test: the validator refuses what the type already does.
+        tags: ["gluten-free"],
+      }),
+    ).rejects.toThrow();
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+  });
+
+  /** `v.number()` alone would store these, and they are summed into what the planner filters on. */
+  test.each([
+    { preparation: -5 },
+    { cooking: 0 },
+    { cooking: 7 * 24 * 60 + 1 },
+  ])("rejects a timing its own editor could never produce: %j", async (timings) => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+
+    await expect(
+      t
+        .withIdentity(asUser(userId))
+        .action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, timings }),
+    ).rejects.toThrow();
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row!.timings).toEqual({ preparation: 15 });
+  });
+
+  /**
+   * A row the agent timed as `7.5` before its answer was rounded: the editor sends that value back
+   * untouched on every save, so refusing it would lock the cook out of editing the title.
+   */
+  test("saves an edit carrying a fractional timing from the stored row, rounded", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+    await t.run((ctx) => ctx.db.patch(recipeId, { timings: { preparation: 7.5 } }));
+
+    await t.withIdentity(asUser(userId)).action(api.router.recipes.updateOne.authed, {
+      ...UNCHANGED,
+      recipeId,
+      title: "Soupe à l'oignon gratinée",
+      timings: { preparation: 7.5 },
+    });
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row!.title.values.fr).toBe("Soupe à l'oignon gratinée");
+    expect(row!.timings).toEqual({ preparation: 8 });
   });
 });

@@ -42,10 +42,12 @@ type Regenerated = {
  *
  * Two things here are decisions and not steps.
  *
- * **The agent runs only if the ingredients moved.** Difficulty, cuisine, timings and equipment are
- * all derived from the ingredients, so an edit that only retitled the recipe has nothing for the
- * model to re-derive — `recipeChangesOf` is what says so, and `reviseRecipe` carries the cook's
- * text through untouched when it does. This is the decision that saves money.
+ * **The agent runs only if the ingredients moved.** It is what turns ingredient text into lines,
+ * quantities and units, so an edit that only retitled the recipe has nothing for the model to
+ * re-derive — `recipeChangesOf` is what says so, and `reviseRecipe` carries the cook's text through
+ * untouched when it does. This is the decision that saves money. Difficulty, cuisine, timings,
+ * equipment and authored tags are the agent's only on the first save; from then on they are the
+ * cook's, and even a rerun does not overwrite them.
  *
  * **Every ingredient line is resolved again, including the ones the edit never touched.** An
  * earlier design passed the row's existing links through to skip those walks; it could not work,
