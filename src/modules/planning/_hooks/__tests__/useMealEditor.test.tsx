@@ -30,7 +30,7 @@ const state = vi.hoisted(() => ({
     setRecipe: vi.fn(async () => true),
     remove: vi.fn(async () => true),
   },
-  catalogArgs: undefined as { query: string; pinned: string | undefined } | undefined,
+  catalogArgs: undefined as { query: string; pinned: string | undefined; alternatives: unknown } | undefined,
   writes: [] as { name: string; args: Record<string, unknown> }[],
   queries: [] as { name: string; args: Record<string, unknown> }[],
   answer: undefined as Record<string, unknown> | undefined,
@@ -63,8 +63,8 @@ vi.mock("~/lib/convex/client", () => ({
 vi.mock("../useKeptMeal", () => ({ useKeptMeal: () => state.kept }));
 
 vi.mock("../useMealCatalog", () => ({
-  useMealCatalog: (query: string, pinned: string | undefined) => {
-    state.catalogArgs = { query, pinned };
+  useMealCatalog: (query: string, pinned: string | undefined, alternatives: unknown) => {
+    state.catalogArgs = { query, pinned, alternatives };
 
     return { recipes: [], isSearching: false, isLoading: false, isStale: false };
   },
@@ -79,7 +79,7 @@ const answerFor = (date: Date, slot: string, servings: number) => ({
 });
 
 const draftPlate = (id: string, date: Date, slot: "lunch" | "dinner"): DraftMeal => ({
-  id, recipeId: "recipe-old", date, slot, servings: 2, title: "Ancien", ingredients: [],
+  id, recipeId: "recipe-old", date, slot, servings: 2, title: "Ancien", ingredients: [], alternatives: [],
 });
 
 let store: ReturnType<typeof createStore>;
@@ -119,6 +119,13 @@ describe("useMealEditor", () => {
       editor({ kind: "meal", mealId: "meal-1" }, "plan");
 
       expect(state.catalogArgs?.pinned).toBe("recipe-old");
+    });
+
+    /** A kept plate was never ranked, so the grid is the library alone. */
+    it("hands the grid no alternatives", () => {
+      editor({ kind: "meal", mealId: "meal-1" }, "plan");
+
+      expect(state.catalogArgs?.alternatives).toBeUndefined();
     });
 
     it("swaps through the kept plate's own seam", async () => {
@@ -180,6 +187,22 @@ describe("useMealEditor", () => {
       expect(plate!.ingredients).toHaveLength(1);
       /** The swap changed the dish, not the plate: the same id, now holding the new recipe. */
       expect(result.current.meal?.recipeId).toBe("recipe-new");
+    });
+
+    it("hands the grid the plate's alternatives, as tiles, in their order", () => {
+      store.set(draftMealsAtom, [{
+        ...draftPlate(plateId, DAY, "lunch"),
+        alternatives: [
+          { recipeId: "recipe-b", title: "Salade", imageUrl: "salade.png" },
+          { recipeId: "recipe-c", title: "Gratin" },
+        ],
+      }]);
+      editor({ kind: "meal", mealId: plateId }, "draft");
+
+      expect(state.catalogArgs?.alternatives).toEqual([
+        { id: "recipe-b", title: "Salade", imageSrc: { uri: "salade.png" } },
+        { id: "recipe-c", title: "Gratin", imageSrc: undefined },
+      ]);
     });
 
     it("leaves the atom alone and says so when the read is refused", async () => {

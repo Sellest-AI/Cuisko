@@ -90,7 +90,7 @@ const BEEF_LINE: DraftIngredient = {
 const BEEF_TO_BUY: DraftIngredient = { ...BEEF_LINE, covered: false };
 
 const draft = (id: string, slot: MealSlot, ingredients: DraftIngredient[] = [TOMATO_LINE]): DraftMeal => ({
-  id, title: id, servings: 4, date: day(0), recipeId: `recipe-${id}`, slot, ingredients,
+  id, title: id, servings: 4, date: day(0), recipeId: `recipe-${id}`, slot, ingredients, alternatives: [],
 });
 
 const section = (offset: number, meals: PlannedMeal[]): DaySection => ({
@@ -605,6 +605,14 @@ describe("draftMealOf", () => {
   /** The id a swap lands under is the id the review step already holds for that plate, whatever the dish. */
   it("names two dishes on the same day and slot the same", () => {
     expect(draftMealOf({ ...answer, recipeId: "recipe-b" }).id).toBe(draftMealOf(answer).id);
+  });
+
+  /** `getDraft` ranks runners-up; `getDraftMeal` answers one dish and sends none. */
+  it("keeps the alternatives a generated plate carries, and gives a swapped one none", () => {
+    const alternative = { recipeId: "recipe-b", title: "Salade" };
+
+    expect(draftMealOf({ ...answer, alternatives: [alternative] }).alternatives).toEqual([alternative]);
+    expect(draftMealOf(answer).alternatives).toEqual([]);
   });
 });
 

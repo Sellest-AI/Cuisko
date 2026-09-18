@@ -14,7 +14,7 @@ import type { NutritionPreference } from "@shared/preferences";
 
 import { availableStock } from "./availableStock";
 import { candidatePool, OWN_SHARE } from "./candidatePool";
-import { draftMealOf, type DraftMeal } from "./draftMealOf";
+import { draftMealOf, type DraftPlate } from "./draftMealOf";
 import { isDistinct, MAX_DAYS, MAX_SERVINGS } from "./limits";
 import { selectMeals, type Plate } from "./selectMeals";
 
@@ -69,7 +69,9 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
 /**
  * A generated week, written nowhere.
  *
- * Stock first, then the pool, then the pure selection, then names and images for what was picked.
+ * Stock first, then the pool, then the pure selection, then names and images for what was picked
+ * and for each plate's alternatives. An alternative costs its plate picture and nothing else: its
+ * recipe is already in the pool, and its lines are left for `getDraftMeal` to read if it is chosen.
  * A tunnel abandoned at review has asserted nothing, so this is a query and not a mutation.
  *
  * Everything that decides the draft is an argument — the seed, the days, the run's diet, allergens,
@@ -80,7 +82,7 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
  * An empty pool yields an empty week, not a throw: there is nothing wrong with the request, only
  * nothing to plan it from.
  */
-export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]> => {
+export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftPlate[]> => {
   if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_INPUT" });
 
   const plates: Plate[] = args.dates.flatMap((date) =>
@@ -108,7 +110,9 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
 
   const selected = selectMeals(pool.candidates, stock, plates, { ownShare: OWN_SHARE });
 
-  const recipeIds = [...new Set(selected.map(({ candidate }) => candidate.recipeId))];
+  const recipeIds = [
+    ...new Set(selected.flatMap(({ candidate, alternatives }) => [candidate, ...alternatives].map(({ recipeId }) => recipeId))),
+  ];
   const ingredientIds = [...new Set(selected.flatMap(({ candidate }) => candidate.needs.map((need) => need.ingredientId)))];
 
   // Each read once, however many plates repeat a recipe or a line repeats an ingredient.
@@ -129,8 +133,8 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
     ).then((entries) => new Map(entries)),
   ]);
 
-  return selected.map(({ plate, candidate, covered }) =>
-    draftMealOf({
+  return selected.map(({ plate, candidate, covered, alternatives }) => ({
+    ...draftMealOf({
       plate,
       recipeId: candidate.recipeId,
       card: cards.get(candidate.recipeId)!.card,
@@ -140,5 +144,10 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftMeal[]>
       ingredientImages,
       locale: args.locale,
     }),
-  );
+    alternatives: alternatives.map(({ recipeId }) => {
+      const { card } = cards.get(recipeId)!;
+
+      return { recipeId, title: card.title, imageUrl: card.plateImageUrl };
+    }),
+  }));
 };

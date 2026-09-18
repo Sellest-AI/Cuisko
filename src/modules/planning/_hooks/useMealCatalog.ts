@@ -11,6 +11,9 @@ export type MealChoice = {
   imageSrc?: ImageSource;
 };
 
+/** One identity for "none", so a sheet without alternatives does not rebuild the grid every render. */
+const NO_ALTERNATIVES: MealChoice[] = [];
+
 /** The plate's picture where there is one, the cover otherwise; the screen draws the empty plate for neither. */
 const _imageOf = (recipe: { plateImageUrl?: string; coverImageUrl?: string }): ImageSource | undefined => {
   const url = recipe.plateImageUrl ?? recipe.coverImageUrl;
@@ -19,8 +22,8 @@ const _imageOf = (recipe: { plateImageUrl?: string; coverImageUrl?: string }): I
 };
 
 /**
- * The dishes the meal sheet offers: the one already on the plate first, then the cook's own
- * library, or what a term narrows the whole catalog to.
+ * The dishes the meal sheet offers: the one already on the plate first, then the plate's
+ * alternatives, then the cook's own library — or, under a term, what it narrows the catalog to.
  *
  * **The grid is the recipes page's grid.** `useRecipeList` is what decides whether an empty box
  * shows the cook's own recipes or a term's ranked matches, and the ranking — own first, the cook's
@@ -36,25 +39,35 @@ const _imageOf = (recipe: { plateImageUrl?: string; coverImageUrl?: string }): I
  * While the pinned recipe is still being asked for, the list stands alone rather than waiting: a
  * grid that appears is better than one that blinks in later, and the pinned tile takes the front
  * when it lands.
+ *
+ * **Alternatives follow the pinned tile while no term narrows the grid.** They are the runners-up
+ * a generated plate was ranked with, handed in already ranked; a term means the cook wants
+ * something else, so the matches stand alone. Keyed on `isSearching` rather than on the raw text,
+ * so they leave exactly when the grid turns into matches and not a debounce earlier. Each recipe
+ * is drawn once: the pinned tile wins, then the alternative, then the list.
  */
-export const useMealCatalog = (query: string, pinnedRecipeId?: string) => {
+export const useMealCatalog = (query: string, pinnedRecipeId?: string, alternatives: MealChoice[] = NO_ALTERNATIVES) => {
   const list = useRecipeList(query);
   const pinned = useRecipe(pinnedRecipeId);
 
   const recipes = useMemo((): MealChoice[] => {
-    const choices = list.recipes.map((recipe) => ({
-      id: recipe.id,
-      title: recipe.title,
-      imageSrc: _imageOf(recipe),
-    }));
-
-    if (!pinned.recipe) return choices;
-
-    return [
-      { id: pinned.recipe.id, title: pinned.recipe.title, imageSrc: _imageOf(pinned.recipe) },
-      ...choices.filter((choice) => choice.id !== pinned.recipe?.id),
+    const head: MealChoice[] = [
+      ...(pinned.recipe ? [{ id: pinned.recipe.id, title: pinned.recipe.title, imageSrc: _imageOf(pinned.recipe) }] : []),
+      ...(list.isSearching ? [] : alternatives),
     ];
-  }, [list.recipes, pinned.recipe]);
+    const drawn = new Set<string>();
+    const choices = [
+      ...head,
+      ...list.recipes.map((recipe) => ({ id: recipe.id, title: recipe.title, imageSrc: _imageOf(recipe) })),
+    ];
+
+    return choices.filter((choice) => {
+      if (drawn.has(choice.id)) return false;
+      drawn.add(choice.id);
+
+      return true;
+    });
+  }, [list.recipes, list.isSearching, pinned.recipe, alternatives]);
 
   return {
     recipes,
