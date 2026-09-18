@@ -13,7 +13,7 @@ import { MEAL_SLOTS, type MealSlot } from "@shared/mealSlots";
 
 import { matchesRef, type Plate, type Snapshot, type StockRow } from "./model";
 
-export const SORTS = ["standard", "by-plan", "by-category"] as const;
+export const SORTS = ["standard", "by-category", "by-plan"] as const;
 export type Sort = (typeof SORTS)[number];
 
 export const isSort = (value: string): value is Sort => SORTS.some((sort) => sort === value);

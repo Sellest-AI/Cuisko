@@ -42,7 +42,7 @@ const outline = (groups: ReturnType<typeof groupToBuy>) =>
 
 describe("the sort vocabulary", () => {
   it("is closed, and a route param is only a sort if it is in it", () => {
-    expect(SORTS).toEqual(["standard", "by-plan", "by-category"]);
+    expect(SORTS).toEqual(["standard", "by-category", "by-plan"]);
     expect(isSort("by-plan")).toBe(true);
     expect(isSort("by-recipe")).toBe(false);
   });

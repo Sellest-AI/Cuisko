@@ -97,7 +97,7 @@ const REASON_KEY: Record<PendingFailure, TranslationKeys<"Groceries">> = {
 
 type Row =
   | { kind: "header"; id: string; label: string; icon?: IconComponent; color: string }
-  | { kind: "subheader"; id: string; heading: NonNullable<ToBuyHeading> }
+  | { kind: "subheader"; id: string; heading: NonNullable<ToBuyHeading>; first: boolean }
   | { kind: "item"; stock: StockRow }
   | { kind: "ghost"; ghost: PendingIngredient };
 
@@ -130,7 +130,7 @@ const SectionHeader = ({
  * A plate is named by its dish and dated by its day and slot: "Lasagna" alone would not tell
  * Monday's from Friday's, and telling them apart is the whole reason the view exists.
  */
-const SubHeader = ({ heading }: { heading: NonNullable<ToBuyHeading> }) => {
+const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; style?: ViewStyle }) => {
   const t = useTranslations("Groceries");
   const tPlanning = useTranslations("Planning");
   const tVocabulary = useTranslations("Vocabulary");
@@ -141,8 +141,11 @@ const SubHeader = ({ heading }: { heading: NonNullable<ToBuyHeading> }) => {
       : heading.kind === "category" ? tVocabulary(`Categories.${heading.category}`)
         : t("Groups.unplanned");
 
+  const day = heading.kind === "plate"
+    ? heading.date.toLocaleDateString(locale, { weekday: "long", day: "numeric" })
+    : "";
   const caption = heading.kind === "plate"
-    ? `${heading.date.toLocaleDateString(locale, { weekday: "long", day: "numeric" })} · ${tPlanning(`Meal.${heading.slot}`)}`
+    ? `${day.charAt(0).toLocaleUpperCase(locale) + day.slice(1)}  ·  ${tPlanning(`Meal.${heading.slot}`)}`
     : undefined;
 
   return (
@@ -150,10 +153,14 @@ const SubHeader = ({ heading }: { heading: NonNullable<ToBuyHeading> }) => {
       layout={HEADER_TRANSITION}
       entering={SUBHEADER_ENTERING}
       exiting={SUBHEADER_EXITING}
-      style={styles.subheader}
+      style={[styles.subheader, style]}
     >
-      <Text.Base weight={600}>{title}</Text.Base>
-      {caption && <Text.Sm color={theme.colors.neutral.muted}>{caption}</Text.Sm>}
+      <Text.Base weight={600} color={theme.colors.neutral.muted} numberOfLines={1}>
+        {title}
+      </Text.Base>
+      {caption && <Text.Sm color={theme.colors.neutral.muted} numberOfLines={1} style={styles.subheaderCaption}>
+        {caption}
+      </Text.Sm>}
     </Animated.View>
   );
 };
@@ -224,8 +231,12 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
     const groups: ToBuyGroup[] =
       toBuy.length === 0 && ghosts.length > 0 ? [{ id: "to-buy", heading: null, rows: [] }] : toBuy;
 
+    // `first` is the first group of "To Buy", not the first row of the grid: a promoted `lead`
+    // can push this section down, and its opening sub-header still sits under its own header.
     return groups.flatMap((group, index): Row[] => [
-      ...(group.heading ? [{ kind: "subheader" as const, id: `header:to-buy:${group.id}`, heading: group.heading }] : []),
+      ...(group.heading
+        ? [{ kind: "subheader" as const, id: `header:to-buy:${group.id}`, heading: group.heading, first: index === 0 }]
+        : []),
       ...(index === 0 ? ghosts : []),
       ...group.rows.map((stock): Row => ({ kind: "item", stock })),
     ]);
@@ -262,7 +273,11 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
               : undefined}
           />
 
-        if (row.kind === "subheader") return <SubHeader key={row.id} heading={row.heading} />
+        if (row.kind === "subheader") return <SubHeader
+          key={row.id}
+          heading={row.heading}
+          style={row.first ? { marginTop: theme.spacing[8] } : undefined}
+        />
 
         /**
          * The quantity slot carries what is happening instead of an amount, because that is the
@@ -336,7 +351,15 @@ const styles = StyleSheet.create({
   },
   subheader: {
     width: "100%",
-    marginTop: theme.spacing[16],
-    marginBottom: theme.spacing[4],
+    marginTop: theme.spacing[24],
+    marginBottom: theme.spacing[6],
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    gap: theme.spacing[24],
   },
+  subheaderCaption: {
+    flexShrink: 0,
+    marginBottom: theme.spacing[2],
+  }
 });
