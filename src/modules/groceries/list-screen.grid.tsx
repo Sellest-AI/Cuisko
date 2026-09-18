@@ -1,27 +1,33 @@
 import { useRouter } from "expo-router";
+import type { ReactNode } from "react";
 import { StyleSheet, useWindowDimensions, View, ViewStyle } from "react-native";
-import Animated, { LinearTransition } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
 import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
 import { CheckIcon, IconComponent, PlusIcon } from "@ui/icons";
+import { Select } from "@ui/select";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations, type TranslationKeys } from "translations";
 
 import { NO_EMOJI } from "@shared/ingredients";
 
+import { useLocale } from "~/hooks/useLocale";
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 
 import {
   formatQuantity,
   orderSections,
   rowsOf,
+  type GroceryRow,
   type PendingFailure,
   type PendingIngredient,
   type Section,
   type StockRow,
 } from "./_model/model";
+import { SORTS, type Sort, type ToBuyGroup, type ToBuyHeading } from "./_model/sort";
 import { useGroceryList } from "./_hooks/useGroceryList";
+import { useGrocerySort } from "./_hooks/useGrocerySort";
 import { usePendingIngredients } from "./_hooks/usePendingIngredients";
 
 const COLUMNS = 3;
@@ -29,6 +35,16 @@ const GAP = theme.spacing[8];
 const GUTTER = theme.spacing[16];
 
 const HEADER_TRANSITION = LinearTransition.duration(200);
+/** A sub-heading fades rather than flies: it has no earlier box to fly from, only a sort change. */
+const SUBHEADER_ENTERING = FadeIn.duration(180);
+const SUBHEADER_EXITING = FadeOut.duration(120);
+
+/** The selector's wording per sort — the vocabulary is the model's, the words are not. */
+const SORT_KEY: Record<Sort, TranslationKeys<"Groceries">> = {
+  standard: "Sort.standard",
+  "by-plan": "Sort.by_plan",
+  "by-category": "Sort.by_category",
+};
 
 /**
  * The three sections, in the order stock runs through them: what is missing, what the household
@@ -81,21 +97,66 @@ const REASON_KEY: Record<PendingFailure, TranslationKeys<"Groceries">> = {
 
 type Row =
   | { kind: "header"; id: string; label: string; icon?: IconComponent; color: string }
+  | { kind: "subheader"; id: string; heading: NonNullable<ToBuyHeading> }
   | { kind: "item"; stock: StockRow }
   | { kind: "ghost"; ghost: PendingIngredient };
 
-/** Full width, so it breaks the row it lands on and the next card starts a fresh line. */
+/**
+ * Full width, so it breaks the row it lands on and the next card starts a fresh line.
+ *
+ * `trailing` is the far end of the row — the sort selector, on "To Buy" — and it lives inside the
+ * header rather than beside it so the two share one box: the header keeps its key across a sort
+ * change, and the selector keeps its mounted instance with it.
+ */
 const SectionHeader = ({
   label,
   icon: Icon,
   color,
+  trailing,
   style,
-}: Omit<Extract<Row, { kind: "header" }>, "kind" | "id"> & { style?: ViewStyle }) => (
+}: Omit<Extract<Row, { kind: "header" }>, "kind" | "id"> & { trailing?: ReactNode; style?: ViewStyle }) => (
   <Animated.View layout={HEADER_TRANSITION} style={[styles.section, style]}>
-    <Text.Lg>{label}</Text.Lg>
-    {Icon && <Icon size={20} color={color} />}
+    <View style={styles.sectionTitle}>
+      <Text.Lg>{label}</Text.Lg>
+      {Icon && <Icon size={20} color={color} />}
+    </View>
+    {trailing}
   </Animated.View>
 );
+
+/**
+ * A heading inside "To Buy": the plate, the aisle, or what no plate asked for.
+ *
+ * A plate is named by its dish and dated by its day and slot: "Lasagna" alone would not tell
+ * Monday's from Friday's, and telling them apart is the whole reason the view exists.
+ */
+const SubHeader = ({ heading }: { heading: NonNullable<ToBuyHeading> }) => {
+  const t = useTranslations("Groceries");
+  const tPlanning = useTranslations("Planning");
+  const tVocabulary = useTranslations("Vocabulary");
+  const locale = useLocale();
+
+  const title =
+    heading.kind === "plate" ? heading.title
+      : heading.kind === "category" ? tVocabulary(`Categories.${heading.category}`)
+        : t("Groups.unplanned");
+
+  const caption = heading.kind === "plate"
+    ? `${heading.date.toLocaleDateString(locale, { weekday: "long", day: "numeric" })} · ${tPlanning(`Meal.${heading.slot}`)}`
+    : undefined;
+
+  return (
+    <Animated.View
+      layout={HEADER_TRANSITION}
+      entering={SUBHEADER_ENTERING}
+      exiting={SUBHEADER_EXITING}
+      style={styles.subheader}
+    >
+      <Text.Base weight={600}>{title}</Text.Base>
+      {caption && <Text.Sm color={theme.colors.neutral.muted}>{caption}</Text.Sm>}
+    </Animated.View>
+  );
+};
 
 /** `lead` is the section the shopper arrived asking for — promoted to the top, if it has anything to show. */
 type GroceryGridProps = { lead?: Section };
@@ -115,15 +176,23 @@ type GroceryGridProps = { lead?: Section };
  * "To Buy" and down into the cellar. Only the leftover row of a part-bought ingredient — which
  * cannot share that key with the row beside it — enters and leaves, and fades when it does.
  *
+ * "To Buy" is drawn from `toBuy` — the section as the chosen sort reads it — and the other two
+ * from `sections`. A grouped view only adds sub-headings between the same keyed cards, so
+ * switching sort is a reflow, not a remount; the one exception is a per-plate copy of a shared
+ * row, which is a new key and fades in the way a leftover row already does.
+ *
  * An empty section draws no header. There is nothing to say about a cellar you have not filled.
  */
 export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const { width } = useWindowDimensions();
-  const { sections, submit } = useGroceryList();
+  const { sections, toBuy, submit } = useGroceryList();
+  const { sort, setSort } = useGrocerySort();
   const { pending, dismiss } = usePendingIngredients();
   const t = useTranslations("Groceries");
   const unit = useUnitLabel();
   const router = useRouter();
+
+  const sortOptions = SORTS.map((value) => ({ value, label: t(SORT_KEY[value]) }));
 
   const itemWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
 
@@ -141,23 +210,40 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
     });
   };
 
+  const toRow = (row: GroceryRow): Row =>
+    row.kind === "ghost"
+      ? { kind: "ghost" as const, ghost: row.ghost }
+      : { kind: "item" as const, stock: row.stock };
+
+  /**
+   * "To Buy", grouped. Ghosts lead the first group — they have neither a plate nor an aisle yet —
+   * and when there is nothing but ghosts, one plain group is drawn for them to lead.
+   */
+  const toBuyRows = (): Row[] => {
+    const ghosts = rowsOf("to-buy", { ...sections, "to-buy": [] }, pending).map(toRow);
+    const groups: ToBuyGroup[] =
+      toBuy.length === 0 && ghosts.length > 0 ? [{ id: "to-buy", heading: null, rows: [] }] : toBuy;
+
+    return groups.flatMap((group, index): Row[] => [
+      ...(group.heading ? [{ kind: "subheader" as const, id: `header:to-buy:${group.id}`, heading: group.heading }] : []),
+      ...(index === 0 ? ghosts : []),
+      ...group.rows.map((stock): Row => ({ kind: "item", stock })),
+    ]);
+  };
+
   const rows: Row[] = orderSections(DEFAULT_ORDER, lead).flatMap((section) => {
     const { labelKey, icon, color } = SECTION_DEFS[section];
 
     // Ghosts count towards "is this section empty", or the first unknown ingredient a shopper
     // types would draw a card with no heading over it. Which section they land in is the model's
     // call, not this loop's: a ghost waits under the heading its intent aimed it at.
-    const items = rowsOf(section, sections, pending);
+    const items = section === "to-buy" ? toBuyRows() : rowsOf(section, sections, pending).map(toRow);
 
     if (items.length === 0) return [];
 
     return [
       { kind: "header" as const, id: `header:${section}`, label: t(labelKey), icon, color },
-      ...items.map((row): Row =>
-        row.kind === "ghost"
-          ? { kind: "ghost" as const, ghost: row.ghost }
-          : { kind: "item" as const, stock: row.stock },
-      ),
+      ...items,
     ];
   });
 
@@ -171,7 +257,12 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
             icon={row.icon}
             color={row.color}
             style={index === 0 ? { marginTop: 0 } : undefined}
+            trailing={row.id === "header:to-buy"
+              ? <Select value={sort} onChange={setSort} options={sortOptions} />
+              : undefined}
           />
+
+        if (row.kind === "subheader") return <SubHeader key={row.id} heading={row.heading} />
 
         /**
          * The quantity slot carries what is happening instead of an amount, because that is the
@@ -233,8 +324,19 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: theme.spacing[8],
     marginTop: theme.spacing[28],
+    marginBottom: theme.spacing[4],
+  },
+  sectionTitle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[8],
+  },
+  subheader: {
+    width: "100%",
+    marginTop: theme.spacing[16],
     marginBottom: theme.spacing[4],
   },
 });

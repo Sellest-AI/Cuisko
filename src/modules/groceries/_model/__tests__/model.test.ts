@@ -35,7 +35,7 @@ const CARROTS = { ingredientId: "carrots", unit: "pcs" } as const;
  * already owned, so five are missing.
  */
 const base: Snapshot = {
-  ingredients: [{ id: "carrots", name: "Carottes", emoji: "🥕" }],
+  ingredients: [{ id: "carrots", name: "Carottes", emoji: "🥕", category: "VEGETABLE" }],
   lines: [
     { id: "l1", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) },
     { id: "l2", ...CARROTS, meal: { id: "2026-01-07:lunch", title: "Soupe" }, amount: 4, createdAt: ago(60_000), updatedAt: ago(60_000) },
@@ -43,6 +43,7 @@ const base: Snapshot = {
   cellar: [{ id: "c1", ...CARROTS, amount: 1, updatedAt: ago(60_000) }],
   receipts: [],
   history: [],
+  plates: [],
   now: NOW,
 };
 
@@ -579,7 +580,7 @@ describe("what the household is remembered as buying", () => {
   /** The reason for all of it: two rows drew the same ingredient into memory twice. */
   it("shows the ingredient in memory once", () => {
     const sections = buildSections({
-      ingredients: [{ id: "tomatoes", name: "Tomates", emoji: "🍅" }],
+      ingredients: [{ id: "tomatoes", name: "Tomates", emoji: "🍅", category: "VEGETABLE" }],
       lines: [],
       cellar: [],
       receipts: [
@@ -587,6 +588,7 @@ describe("what the household is remembered as buying", () => {
         { id: "r2", ...BY_KILO, amount: 1, at: ago(UNDO_WINDOW_MS + 1_000), settled: 0, surplus: 1 },
       ],
       history: remember(BY_KILO, 1, true)(remember(TOMATOES, 300, true)([])),
+      plates: [],
       now: NOW,
     });
 
@@ -614,8 +616,8 @@ describe("when a row was last touched", () => {
   it("orders the cellar by what was touched most recently", () => {
     const sections = buildSections({
       ingredients: [
-        { id: "carrots", name: "Carottes", emoji: "🥕" },
-        { id: "bread", name: "Pain", emoji: "🥖" },
+        { id: "carrots", name: "Carottes", emoji: "🥕", category: "VEGETABLE" },
+        { id: "bread", name: "Pain", emoji: "🥖", category: "GRAIN" },
       ],
       lines: [],
       cellar: [
@@ -624,6 +626,7 @@ describe("when a row was last touched", () => {
       ],
       receipts: [],
       history: [],
+      plates: [],
       now: NOW,
     });
 
@@ -642,8 +645,8 @@ describe("when a row was last touched", () => {
   it("orders to-buy by what was touched most recently", () => {
     const sections = buildSections({
       ingredients: [
-        { id: "carrots", name: "Carottes", emoji: "🥕" },
-        { id: "bread", name: "Pain", emoji: "🥖" },
+        { id: "carrots", name: "Carottes", emoji: "🥕", category: "VEGETABLE" },
+        { id: "bread", name: "Pain", emoji: "🥖", category: "GRAIN" },
       ],
       lines: [
         { id: "l1", ...CARROTS, amount: 1, createdAt: ago(60_000), updatedAt: ago(60_000) },
@@ -652,6 +655,7 @@ describe("when a row was last touched", () => {
       cellar: [],
       receipts: [],
       history: [],
+      plates: [],
       now: NOW,
     });
 

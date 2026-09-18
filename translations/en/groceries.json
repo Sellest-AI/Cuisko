@@ -5,6 +5,14 @@
     "cellar": "Cellar",
     "recently_bought": "Recently Bought"
   },
+  "Sort": {
+    "standard": "All",
+    "by_plan": "By meal",
+    "by_category": "By aisle"
+  },
+  "Groups": {
+    "unplanned": "Not planned"
+  },
   "Quantity": {
     "custom_amount": "Type your own amount",
     "nothing_to_adjust": "Nothing to adjust.",

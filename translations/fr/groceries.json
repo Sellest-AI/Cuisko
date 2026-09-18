@@ -5,6 +5,14 @@
     "cellar": "Le cellier",
     "recently_bought": "Achetés récemment"
   },
+  "Sort": {
+    "standard": "Tout",
+    "by_plan": "Par repas",
+    "by_category": "Par rayon"
+  },
+  "Groups": {
+    "unplanned": "Hors repas"
+  },
   "Quantity": {
     "custom_amount": "Entrez votre quantité",
     "nothing_to_adjust": "Rien à ajuster.",

@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 
 import { type PendingIngredient, type Receipt } from "../_model/model";
+import { type Sort } from "../_model/sort";
 
 /**
  * The one set in this domain that is not in the database.
@@ -46,3 +47,17 @@ export const receiptsAtom = atom<Receipt[]>([]);
  * `usePendingIngredients` changes, and nothing that draws a ghost does.
  */
 export const pendingIngredientsAtom = atom<PendingIngredient[]>([]);
+
+/**
+ * How "To Buy" is being read: plain, per plate, or per aisle.
+ *
+ * The third set in this domain that is not in the database, and the simplest case of the three:
+ * a sort is a way of looking at the list, not a fact about the household, and the other person in
+ * the kitchen has no reason to see it change. Session-only, on purpose — it opens plain, and a
+ * reload opens it plain again.
+ *
+ * Jotai rather than component state for the same reason as the other two: the grid reads it, and
+ * the navigation bar — a different route — resets it when the shopper adds something, so the new
+ * card lands on the list they expect and not under a heading three screens down.
+ */
+export const sortAtom = atom<Sort>("standard");
