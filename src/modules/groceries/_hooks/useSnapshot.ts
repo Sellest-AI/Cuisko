@@ -1,3 +1,4 @@
+import type { FunctionReturnType } from "convex/server";
 import { useAtomValue } from "jotai";
 import { useMemo } from "react";
 
@@ -14,6 +15,7 @@ import {
   type GroceryLine,
   type HistoryEntry,
   type Ingredient,
+  type Plate,
   type Snapshot,
 } from "../_model/model";
 import { useLiveWindow } from "./useLiveWindow";
@@ -57,6 +59,18 @@ const _toHistoryEntry = (row: Doc<"recentlyUsedIngredients">): HistoryEntry => (
   at: new Date(row.updatedAt),
 });
 
+/**
+ * A plate as the by-plan view reads it. `date` is the plate's local-day timestamp, which the
+ * heading prints and the sort orders by; the claims travel untouched — an id and an amount.
+ */
+const _toPlate = (row: FunctionReturnType<typeof api.router.cellars.getPlatesOnList.authed>[number]): Plate => ({
+  id: row.id,
+  title: row.title,
+  date: new Date(row.date),
+  slot: row.slot,
+  claims: row.claims,
+});
+
 const EMPTY: never[] = [];
 
 /**
@@ -77,6 +91,10 @@ const EMPTY: never[] = [];
  * one the shopper wrote themselves — an instruction rather than a claim. `claimed` is therefore 0
  * and `toBuy` is the plain total until the recipe→grocery link is built. The distinction is kept
  * in the model, not dropped, because that link is what it is for.
+ *
+ * **`plates` is not that link.** It is read for the by-plan view alone — which plate still claims
+ * which row, and how much of it — and changes nothing about what the list asks for. It is cached,
+ * not held: a plate that vanishes for a round trip only collapses a sub-heading, never the grid.
  */
 export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
   const locale = useLocale();
@@ -88,6 +106,10 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
   const lines = useQueryCached(api.router.cellars.getGroceryList.authed, scope);
   const cellar = useQueryCached(api.router.cellars.getCellar.authed, scope);
   const history = useQueryCached(api.router.cellars.getRecentlyUsed.authed, scope);
+  const plates = useQueryCached(
+    api.router.cellars.getPlatesOnList.authed,
+    householdId ? { householdId, locale } : "skip",
+  );
 
   const ids = useMemo(() => {
     const rows = [...(lines.data ?? []), ...(cellar.data ?? []), ...(history.data ?? [])];
@@ -134,13 +156,15 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
           id: row._id,
           name: row.name,
           emoji: row.emoji,
-          imageUrl: row.image?.sizes.thumbnail.url
+          imageUrl: row.image?.sizes.thumbnail.url,
+          category: row.category,
         }),
       ),
       lines: (lines.data ?? EMPTY).map(_toLine),
       cellar: (cellar.data ?? EMPTY).map(_toCellarEntry),
       receipts,
       history: (history.data ?? EMPTY).map(_toHistoryEntry),
+      plates: (plates.data ?? EMPTY).map(_toPlate),
       now,
       /**
        * The names are not waited for: `useQueryHeld` keeps the previous ones on screen while the
@@ -152,6 +176,6 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
        */
       isLoading: isResolvingHousehold || (!!householdId && (lines.isPending || cellar.isPending || history.isPending)),
     }),
-    [ingredients.data, lines.data, lines.isPending, cellar.data, cellar.isPending, history.data, history.isPending, receipts, now, isResolvingHousehold, householdId],
+    [ingredients.data, lines.data, lines.isPending, cellar.data, cellar.isPending, history.data, history.isPending, plates.data, receipts, now, isResolvingHousehold, householdId],
   );
 };

@@ -38,6 +38,7 @@ import type * as env from "../env.js";
 import type * as functions_cascade from "../functions/cascade.js";
 import type * as functions_cellars_addToCellar from "../functions/cellars/addToCellar.js";
 import type * as functions_cellars_addToGroceryList from "../functions/cellars/addToGroceryList.js";
+import type * as functions_cellars_platesOnList from "../functions/cellars/platesOnList.js";
 import type * as functions_cellars_removeFromCellar from "../functions/cellars/removeFromCellar.js";
 import type * as functions_cellars_removeFromGroceryList from "../functions/cellars/removeFromGroceryList.js";
 import type * as functions_cellars_removeFromRecentlyUsed from "../functions/cellars/removeFromRecentlyUsed.js";
@@ -138,6 +139,7 @@ import type * as router_cellars_addToCellar from "../router/cellars/addToCellar.
 import type * as router_cellars_addToGroceryList from "../router/cellars/addToGroceryList.js";
 import type * as router_cellars_getCellar from "../router/cellars/getCellar.js";
 import type * as router_cellars_getGroceryList from "../router/cellars/getGroceryList.js";
+import type * as router_cellars_getPlatesOnList from "../router/cellars/getPlatesOnList.js";
 import type * as router_cellars_getRecentlyUsed from "../router/cellars/getRecentlyUsed.js";
 import type * as router_cellars_removeFromCellar from "../router/cellars/removeFromCellar.js";
 import type * as router_cellars_removeFromGroceryList from "../router/cellars/removeFromGroceryList.js";
@@ -236,6 +238,7 @@ declare const fullApi: ApiFromModules<{
   "functions/cascade": typeof functions_cascade;
   "functions/cellars/addToCellar": typeof functions_cellars_addToCellar;
   "functions/cellars/addToGroceryList": typeof functions_cellars_addToGroceryList;
+  "functions/cellars/platesOnList": typeof functions_cellars_platesOnList;
   "functions/cellars/removeFromCellar": typeof functions_cellars_removeFromCellar;
   "functions/cellars/removeFromGroceryList": typeof functions_cellars_removeFromGroceryList;
   "functions/cellars/removeFromRecentlyUsed": typeof functions_cellars_removeFromRecentlyUsed;
@@ -336,6 +339,7 @@ declare const fullApi: ApiFromModules<{
   "router/cellars/addToGroceryList": typeof router_cellars_addToGroceryList;
   "router/cellars/getCellar": typeof router_cellars_getCellar;
   "router/cellars/getGroceryList": typeof router_cellars_getGroceryList;
+  "router/cellars/getPlatesOnList": typeof router_cellars_getPlatesOnList;
   "router/cellars/getRecentlyUsed": typeof router_cellars_getRecentlyUsed;
   "router/cellars/removeFromCellar": typeof router_cellars_removeFromCellar;
   "router/cellars/removeFromGroceryList": typeof router_cellars_removeFromGroceryList;

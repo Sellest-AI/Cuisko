@@ -11,7 +11,7 @@ import { Suggestions } from "./_components/suggestions";
 import { pickQuantity, type Unit } from "@shared/ingredients";
 import { useSuggestions } from "./_hooks/useSuggestions";
 import { useNavigationBar } from "./_hooks/useNavigationBar";
-import { useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
+import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
 import { readIntent } from "@shared/ingredientIntent";
 import type { AssistantMode } from "./_hooks/useNavigationBar";
@@ -56,6 +56,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
 
   const { apply } = useStockActions();
   const { add: addUnknown } = usePendingIngredients();
+  const { setSort } = useGrocerySort();
 
   const { mode, setInputRef } = useNavigationBar();
   const ref = useRef<TextInput>(null);
@@ -69,10 +70,16 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
    *
    * Already on the page, only the param moves — a push would stack a second groceries screen
    * under the back gesture.
+   *
+   * The list goes back to its plain reading first. A shopper who just typed "yuzu" is looking for
+   * the yuzu card, and under a per-meal or per-aisle heading it could be anywhere down the page;
+   * on the plain list it is on top. Only an add does this — a tap on a card in the grid is the
+   * shopper walking the store in the order they chose, and must not lose it.
    */
   const showGroceries = (intent: "buy" | "relist") => {
     const section = intent === "buy" ? "cellar" : "to-buy";
 
+    setSort("standard");
     if (pathname.startsWith("/groceries")) router.setParams({ section });
     else router.push({ pathname: "/groceries", params: { section } });
   }

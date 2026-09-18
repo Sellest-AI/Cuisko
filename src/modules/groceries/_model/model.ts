@@ -48,8 +48,10 @@
  * No React and no Jotai here; `atoms.ts` holds the state and the hooks call into this.
  */
 
+import type { Category } from "@shared/categories";
 import { UNDO_WINDOW_MS } from "@shared/groceries";
 import { type Unit } from "@shared/ingredients";
+import type { MealSlot } from "@shared/mealSlots";
 import type { TranslationKeys } from "translations";
 
 /**
@@ -90,6 +92,8 @@ export type Ingredient = {
   /** Stand-in for the produce photo until real ones exist. */
   emoji: string;
   imageUrl?: string;
+  /** The aisle — what the "by category" view of the list groups under. */
+  category: Category;
 };
 
 /** One claim on one ingredient. The unit is whoever asked for it, not normalised. */
@@ -187,12 +191,33 @@ export type HistoryEntry = {
   at: Date;
 };
 
+/**
+ * One dish on one day that is still waiting on the shop, and its share of each list row.
+ *
+ * A plate and not a recipe: lasagna on Monday and lasagna on Friday are two of these, because a
+ * shopper doing Monday's groceries wants Monday's 200 g of parmesan and none of Friday's. That is
+ * what `claims` holds — the plate's own amount against a list row, where the row itself only knows
+ * the merged total.
+ *
+ * Read by the "by plan" view alone. Deliberately NOT the same thing as `GroceryLine.meal`: that
+ * field decides whether the cellar may answer a line (`stockFor`), and a plate here changes nothing
+ * about what the list asks for — only about how it is read.
+ */
+export type Plate = {
+  id: string;
+  title: string;
+  date: Date;
+  slot: MealSlot;
+  claims: { lineId: string; amount: number }[];
+};
+
 export type Snapshot = {
   ingredients: Ingredient[];
   lines: GroceryLine[];
   cellar: CellarEntry[];
   receipts: Receipt[];
   history: HistoryEntry[];
+  plates: Plate[];
   now: Date;
 };
 

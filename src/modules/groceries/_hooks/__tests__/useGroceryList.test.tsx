@@ -4,6 +4,7 @@ import { Provider } from "jotai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGroceryList } from "../useGroceryList";
+import { useGrocerySort } from "../useGrocerySort";
 import { useStockActions } from "../useStockActions";
 import type { StockRow } from "../../_model/model";
 
@@ -23,6 +24,7 @@ const state = vi.hoisted(() => ({
   groceryList: [] as Record<string, unknown>[],
   cellar: [] as Record<string, unknown>[],
   recentlyUsed: [] as Record<string, unknown>[],
+  plates: [] as Record<string, unknown>[],
   ingredients: undefined as Record<string, unknown>[] | undefined,
   calls: [] as { name: string; args: Record<string, unknown> }[],
   /** What `useQueryHeld` is holding, so a re-render can outlive a query going back in flight. */
@@ -50,6 +52,7 @@ const answer = (fn: unknown) => {
   if (name.includes("getGroceryList")) return { data: state.groceryList, isPending: false };
   if (name.includes("getCellar")) return { data: state.cellar, isPending: false };
   if (name.includes("getRecentlyUsed")) return { data: state.recentlyUsed, isPending: false };
+  if (name.includes("getPlatesOnList")) return { data: state.plates, isPending: false };
   if (name.includes("ingredients/list")) return { data: state.ingredients, isPending: false };
 
   throw new Error(`Unmocked query: ${name}`);
@@ -109,9 +112,9 @@ const line = (quantity: number) => ({
 
 const shelf = (quantity: number) => ({ ...line(quantity), _id: `cellar-${quantity}` });
 
-/** Both hooks in one render, so a tap and the list it changes are read from the same tree. */
+/** All three hooks in one render, so a tap or a sort and the list it changes are read from the same tree. */
 const groceries = () =>
-  renderHook(() => ({ ...useGroceryList(), ...useStockActions() }), { wrapper: Provider });
+  renderHook(() => ({ ...useGroceryList(), ...useStockActions(), ...useGrocerySort() }), { wrapper: Provider });
 
 const rowIn = (rows: StockRow[], id: string): StockRow => {
   const row = rows.find((candidate) => candidate.id === id);
@@ -126,7 +129,8 @@ beforeEach(() => {
   state.groceryList = [];
   state.cellar = [];
   state.recentlyUsed = [];
-  state.ingredients = [{ _id: CARROT, name: "Carottes", emoji: "🥕" }];
+  state.plates = [];
+  state.ingredients = [{ _id: CARROT, name: "Carottes", emoji: "🥕", category: "VEGETABLE" }];
   state.calls = [];
   state.held = undefined;
   state.rejectNext = false;
@@ -165,8 +169,8 @@ describe("useGroceryList", () => {
     const newer = { ...line(2), _id: "line-new", updatedAt: at };
     state.groceryList = [older, newer];
     state.ingredients = [
-      { _id: CARROT, name: "Carottes", emoji: "🥕" },
-      { _id: "leek-id", name: "Poireaux", emoji: "🥬" },
+      { _id: CARROT, name: "Carottes", emoji: "🥕", category: "VEGETABLE" },
+      { _id: "leek-id", name: "Poireaux", emoji: "🥬", category: "VEGETABLE" },
     ];
 
     const { result } = groceries();
@@ -192,6 +196,35 @@ describe("useGroceryList", () => {
     rerender();
 
     expect(rowIn(result.current.sections["to-buy"], `${CARROT}:pcs`).name).toBe("Carottes");
+  });
+});
+
+describe("useGroceryList — sorted", () => {
+  it("reads To Buy the way the atom says, and regroups when it changes", () => {
+    state.groceryList = [line(4)];
+
+    const { result } = groceries();
+    expect(result.current.toBuy.map((group) => group.id)).toEqual(["to-buy"]);
+
+    act(() => result.current.setSort("by-category"));
+
+    expect(result.current.toBuy.map((group) => group.id)).toEqual(["category:VEGETABLE"]);
+    expect(result.current.toBuy[0]!.rows[0]!.amount).toBe(4);
+  });
+
+  /** The plate arrives as the wire sends it — a number for the day — and reaches the group as a heading. */
+  it("groups by plate from what the plates query returned", () => {
+    state.groceryList = [line(4)];
+    state.plates = [{ id: "plate-1", title: "Soupe", date: at, slot: "dinner", claims: [{ lineId: "line-4", amount: 3 }] }];
+
+    const { result } = groceries();
+    act(() => result.current.setSort("by-plan"));
+
+    expect(result.current.toBuy.map((group) => [group.id, group.rows.map((row) => row.amount)])).toEqual([
+      ["plate:plate-1", [3]],
+      ["unplanned", [1]],
+    ]);
+    expect(result.current.toBuy[0]!.heading).toEqual({ kind: "plate", title: "Soupe", date: new Date(at), slot: "dinner" });
   });
 });
 
