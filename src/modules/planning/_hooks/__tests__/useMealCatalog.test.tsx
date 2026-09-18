@@ -82,6 +82,29 @@ describe("useMealCatalog", () => {
     expect(result.current.recipes.map((choice) => choice.id)).toEqual(["z", "a", "b"]);
   });
 
+  describe("alternatives", () => {
+    const alternatives = [
+      { id: "x", title: "Plat x" },
+      { id: "b", title: "Plat b" },
+      { id: "z", title: "Plat z" },
+    ];
+
+    it("follows the pinned dish, before the list, each recipe once", () => {
+      state.pinned = { recipe: card("z") };
+      const { result } = renderHook(() => useMealCatalog("", "z", alternatives));
+
+      expect(result.current.recipes.map((choice) => choice.id)).toEqual(["z", "x", "b", "a"]);
+    });
+
+    /** A term means the cook wants something else: the matches stand alone. */
+    it("steps aside while a term narrows the grid", () => {
+      state.list = { ...state.list, isSearching: true };
+      const { result } = renderHook(() => useMealCatalog("soupe", undefined, alternatives));
+
+      expect(result.current.recipes.map((choice) => choice.id)).toEqual(["a", "b"]);
+    });
+  });
+
   it("prefers the plate picture, falls back to the cover, and leaves a dish with neither to the screen", () => {
     state.list.recipes = [
       card("both", { plateImageUrl: "plate.png", coverImageUrl: "cover.png" }),

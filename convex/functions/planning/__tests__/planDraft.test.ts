@@ -144,6 +144,34 @@ describe("functions/planning/planDraft", () => {
     expect(await draft(ids, { seeks: [] })).toHaveLength(1);
   });
 
+  /** The recipe that lost the plate is offered on it, as a tile: an id, a title in the locale, no lines. */
+  test("offers each plate its runners-up, named in the caller's locale", async () => {
+    const ids = await setup();
+    const soupId = await t.run(async (ctx) => {
+      const recipe = await ctx.db.get(ids.recipeId);
+      const { _id, _creationTime, ...fields } = recipe!;
+      const soupId = await ctx.db.insert("recipes", {
+        ...fields,
+        title: { values: { fr: "Soupe de tomates" }, meta: {} },
+        shuffleKey: 3_000_000_000,
+      });
+      await ctx.db.insert("recipeIngredients", {
+        recipeId: soupId,
+        ingredientId: ids.ingredientId,
+        position: 0,
+        quantity: 200,
+        unit: "g",
+        updatedAt: Date.now(),
+      });
+      return soupId;
+    });
+
+    const [meal] = await draft(ids);
+
+    expect(meal!.recipeId).toBe(soupId);
+    expect(meal!.alternatives).toEqual([{ recipeId: ids.recipeId, title: "Salade de tomates", imageUrl: undefined }]);
+  });
+
   test("answers an empty week, not a throw, when there are no slots", async () => {
     const ids = await setup();
 

@@ -32,6 +32,21 @@ export type DraftMeal = {
   ingredients: DraftIngredient[];
 };
 
+/**
+ * A dish the swap sheet offers first for a generated plate: one of the plate's runners-up.
+ *
+ * A tile's worth and no more. Its lines are asked for by `getDraftMeal` when it is tapped, so the
+ * week reads no ingredient for a dish that may never be chosen.
+ */
+export type DraftAlternative = {
+  recipeId: Id<"recipes">;
+  title: string;
+  imageUrl?: string;
+};
+
+/** A plate of a generated week: the dish on it, and the ones that came closest — see `selectMeals`. */
+export type DraftPlate = DraftMeal & { alternatives: DraftAlternative[] };
+
 type Args = {
   plate: Plate;
   recipeId: Id<"recipes">;

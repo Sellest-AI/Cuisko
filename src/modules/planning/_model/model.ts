@@ -90,6 +90,13 @@ export type DraftIngredient = {
   covered: boolean;
 };
 
+/** A dish the swap sheet offers first for a generated plate: one of the plate's runners-up. */
+export type DraftAlternative = {
+  recipeId: string;
+  title: string;
+  imageUrl?: string;
+};
+
 /**
  * A plate of the week the tunnel generated and nobody has agreed to yet.
  *
@@ -110,6 +117,11 @@ export type DraftMeal = {
   minutes?: number;
   imageUrl?: string;
   ingredients: DraftIngredient[];
+  /**
+   * The dishes that came closest to this plate when the week was generated, best first. Empty on a
+   * plate the cook swapped or created: `getDraftMeal` answers one dish, not a ranking.
+   */
+  alternatives: DraftAlternative[];
 };
 
 /**
@@ -784,9 +796,13 @@ export { COOKING_TIMES, type CookingTime } from "@shared/cookingTimes";
  * The one place a server plate becomes a `DraftMeal`, so a week `getDraft` generated and a dish
  * `getDraftMeal` swapped in cannot disagree about what a plate on that day and slot is called —
  * which is what lets the sheet find the plate it just created, and the review step replace one.
+ *
+ * Only `getDraft` sends alternatives; a dish `getDraftMeal` answers lands with none.
  */
-export const draftMealOf = (meal: Omit<DraftMeal, "id" | "date"> & { date: number }): DraftMeal => {
+export const draftMealOf = (
+  meal: Omit<DraftMeal, "id" | "date" | "alternatives"> & { date: number; alternatives?: DraftAlternative[] },
+): DraftMeal => {
   const date = new Date(meal.date);
 
-  return { ...meal, id: plateIdFor(date, meal.slot), date };
+  return { ...meal, id: plateIdFor(date, meal.slot), date, alternatives: meal.alternatives ?? [] };
 };

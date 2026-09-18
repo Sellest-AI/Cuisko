@@ -346,4 +346,74 @@ describe("functions/planning/selectMeals", () => {
   test("yields no plate rather than throwing on an empty pool", () => {
     expect(pick([], stock(), 7)).toEqual([]);
   });
+
+  describe("alternatives", () => {
+    const alternatives = (meal: ReturnType<typeof selectMeals>[number] | undefined) =>
+      meal?.alternatives.map((candidate) => candidate.recipeId);
+
+    /** Scored like the winner: a full cellar line, then a partial one, then pool order. */
+    test("offers four runners-up per plate, best first", () => {
+      const [meal] = pick(
+        [
+          recipe("plain", [measured(RICE, 100)]),
+          recipe("other", [measured(RICE, 100)]),
+          recipe("partial", [measured(TOMATO, 300)]),
+          recipe("covered", [measured(TOMATO, 100)]),
+          recipe("half", [measured(TOMATO, 100), measured(RICE, 100)]),
+          recipe("last", [measured(RICE, 100)]),
+        ],
+        stock([[TOMATO, 200]]),
+        1,
+      );
+
+      expect(meal?.candidate.recipeId).toBe("covered");
+      expect(alternatives(meal)).toEqual(["half", "partial", "plain", "other"]);
+    });
+
+    /** A runner-up for the first plate that a later plate picked is already on the week. */
+    test("offers no recipe the week picked, including a later plate's", () => {
+      const meals = pick(
+        [
+          recipe("salad", [measured(TOMATO, 300)]),
+          recipe("sauce", [measured(TOMATO, 100)]),
+          recipe("dal", [measured(RICE, 100)]),
+          recipe("bowl", [measured(RICE, 100)]),
+        ],
+        stock([
+          [TOMATO, 300],
+          [RICE, 100],
+        ]),
+        2,
+      );
+
+      expect(names(meals)).toEqual(["salad", "dal"]);
+      expect(alternatives(meals[0])).toEqual(["sauce", "bowl"]);
+      expect(alternatives(meals[1])).toEqual(["bowl", "sauce"]);
+    });
+
+    test("offers fewer than four on a short pool", () => {
+      const [meal] = pick([recipe("salad", [measured(TOMATO, 1)]), recipe("dal", [measured(RICE, 1)])], stock(), 1);
+
+      expect(alternatives(meal)).toEqual(["dal"]);
+    });
+
+    test("offers none once repeats begin and every recipe is on the week", () => {
+      const meals = pick([recipe("salad", [measured(TOMATO, 1)]), recipe("dal", [measured(RICE, 1)])], stock(), 3);
+
+      expect(meals.map((meal) => meal.alternatives)).toEqual([[], [], []]);
+    });
+
+    /** The plate's own eligibility: past the own-share cap, the caller's recipes are not offered either. */
+    test("follows the plate's own-share cap", () => {
+      const meals = pick(
+        [recipe("mine", [measured(TOMATO, 1)], true), recipe("also-mine", [measured(TOMATO, 1)], true), recipe("dal", [measured(RICE, 1)])],
+        stock([[TOMATO, 10]]),
+        1,
+        0,
+      );
+
+      expect(names(meals)).toEqual(["dal"]);
+      expect(alternatives(meals[0])).toEqual([]);
+    });
+  });
 });

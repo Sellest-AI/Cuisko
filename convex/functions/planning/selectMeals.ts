@@ -45,7 +45,17 @@ export type Stock = Map<Id<"ingredients">, number>;
 
 export type Plate = { date: number; slot: MealSlot; servings: number };
 
-export type SelectedMeal = { plate: Plate; candidate: Candidate; covered: Need[]; missing: Need[] };
+export type SelectedMeal = {
+  plate: Plate;
+  candidate: Candidate;
+  covered: Need[];
+  missing: Need[];
+  /** The plate's runners-up, best first, none of them a recipe the week picked — see `selectMeals`. */
+  alternatives: Candidate[];
+};
+
+/** How many runners-up a plate offers the swap sheet. */
+export const ALTERNATIVES_PER_PLATE = 4;
 
 type Options = {
   /** The most of the week, as a fraction of its plates, that may come from the caller's own recipes. */
@@ -171,6 +181,13 @@ const _reused = (missing: Need[], basket: Basket) =>
  * already cooked would share every line with the basket by construction; it is scored on the
  * cellar alone, so a repeat is still the last resort and never a preference.
  *
+ * **Each plate keeps its runners-up.** Every eligible candidate is scored anyway, so the ones that
+ * came closest are the swap sheet's first offer, at no read. They are ranked like the winner and
+ * against the same stock and basket, then, once the week is drawn, every recipe it picked is
+ * dropped from them — a runner-up already on the week is not an alternative. A plate keeps
+ * `ALTERNATIVES_PER_PLATE + plates.length` before that filter, since it removes at most one
+ * recipe per plate. Once repeats begin every recipe is in the week, so a plate may offer none.
+ *
  * Pure, and it copies `stock` rather than consuming it. An empty pool yields no plates, not a throw:
  * a week that cannot be drawn is the caller's to explain.
  */
@@ -187,29 +204,27 @@ export const selectMeals = (
   const ownCap = Math.floor(ownShare * plates.length);
   const picked = new Set<Id<"recipes">>();
   const cooked = new Set<Id<"recipes">>();
+  const kept = ALTERNATIVES_PER_PLATE + plates.length;
   let ownPicked = 0;
 
-  return plates.map((plate) => {
+  const drawn = plates.map((plate) => {
     // Every recipe has been used: the pool is genuinely exhausted, and repeats begin.
     if (picked.size === candidates.length) picked.clear();
 
-    let best: { candidate: Candidate; coverage: Coverage; reused: Need[]; score: number; tie: number } | undefined;
+    const ranked = _eligible(candidates, picked, ownPicked >= ownCap)
+      .map((candidate) => {
+        const coverage = coverageOf(candidate, left);
+        const lines = _scored(candidate.needs).length || 1;
+        const reused = cooked.has(candidate.recipeId) ? [] : _reused(coverage.missing, basket);
+        const score = (_scored(coverage.covered).length + BASKET_WEIGHT * reused.length) / lines;
 
-    for (const candidate of _eligible(candidates, picked, ownPicked >= ownCap)) {
-      const coverage = coverageOf(candidate, left);
-      const lines = _scored(candidate.needs).length || 1;
-      const reused = cooked.has(candidate.recipeId) ? [] : _reused(coverage.missing, basket);
-      const score = (_scored(coverage.covered).length + BASKET_WEIGHT * reused.length) / lines;
-      const tie = coverage.partial / lines;
-
-      // Strictly greater, so an equal score keeps the earlier candidate — the shuffled order.
-      if (!best || score > best.score || (score === best.score && tie > best.tie)) {
-        best = { candidate, coverage, reused, score, tie };
-      }
-    }
+        return { candidate, coverage, reused, score, tie: coverage.partial / lines };
+      })
+      // The sort is stable, so an equal score and tie keep the earlier candidate — the shuffled order.
+      .sort((a, b) => b.score - a.score || b.tie - a.tie);
 
     // `_eligible` never returns an empty pool while `candidates` is non-empty.
-    const { candidate, coverage, reused } = best!;
+    const { candidate, coverage, reused } = ranked[0]!;
 
     picked.add(candidate.recipeId);
     cooked.add(candidate.recipeId);
@@ -225,6 +240,19 @@ export const selectMeals = (
       basket.set(ingredientId, basket.get(ingredientId)! + 1);
     }
 
-    return { plate, candidate, covered: coverage.covered, missing: coverage.missing };
+    return {
+      plate,
+      candidate,
+      covered: coverage.covered,
+      missing: coverage.missing,
+      runnersUp: ranked.slice(1, 1 + kept).map((entry) => entry.candidate),
+    };
   });
+
+  const week = new Set(drawn.map((meal) => meal.candidate.recipeId));
+
+  return drawn.map(({ runnersUp, ...meal }) => ({
+    ...meal,
+    alternatives: runnersUp.filter((runnerUp) => !week.has(runnerUp.recipeId)).slice(0, ALTERNATIVES_PER_PLATE),
+  }));
 };

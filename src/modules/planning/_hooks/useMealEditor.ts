@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
@@ -82,11 +82,23 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
    */
   const [draftServings, setDraftServings] = useState(people);
 
-  const meal = isKept
-    ? kept.meal
-    : target.kind === "meal" ? drafted.find((candidate) => candidate.id === target.mealId) : undefined;
+  const draftPlate = !isKept && target.kind === "meal"
+    ? drafted.find((candidate) => candidate.id === target.mealId)
+    : undefined;
+  const meal = isKept ? kept.meal : draftPlate;
 
-  const catalog = useMealCatalog(query, meal?.recipeId);
+  /** Only a generated plate was ranked; a kept plate and an empty slot have no runners-up to offer. */
+  const alternatives = useMemo(
+    (): MealChoice[] | undefined =>
+      draftPlate?.alternatives.map((alternative) => ({
+        id: alternative.recipeId,
+        title: alternative.title,
+        imageSrc: alternative.imageUrl ? { uri: alternative.imageUrl } : undefined,
+      })),
+    [draftPlate?.alternatives],
+  );
+
+  const catalog = useMealCatalog(query, meal?.recipeId, alternatives);
 
   const { mutate: plan } = useMutation(api.router.planning.planOne.authed);
   const [failed, setFailed] = useState(false);
