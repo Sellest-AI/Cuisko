@@ -6,11 +6,11 @@ import { useTranslations } from "translations";
 
 import { ALLERGENS, sortAllergens, type Allergen } from "@shared/allergens";
 import { DIETS, type Diet } from "@shared/diets";
+import { toggle } from "@shared/helpers";
 import { NUTRITION_PREFERENCES, type NutritionPreference } from "@shared/preferences";
 
 import { ALLERGEN_EMOJI, DIET_EMOJI, TAG_EMOJI } from "~/lib/vocabulary";
 
-import { toggle } from "./_model/model";
 import { resolveSeeks } from "./_model/preferences";
 import { usePreferences } from "./_hooks/usePreferences";
 

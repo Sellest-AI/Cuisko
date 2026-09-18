@@ -29,11 +29,28 @@ export const vInstructionGroups = v.array(
 );
 
 /**
+ * The fields the agent guesses and the cook may correct, stated once for both payloads that carry
+ * them — `vRecipeEdit` and `vSanitizedRecipe` below.
+ *
+ * `vAuthoredTags` is `AUTHORED_TAGS`, not `TAGS`: the computed half falls out of the ingredients,
+ * so neither a model nor a client can be the one to send it.
+ */
+const vAuthoredTags = v.array(v.union(...AUTHORED_TAGS.map(v.literal)));
+const vDifficulty = v.union(...DIFFICULTY_LEVELS.map(v.literal));
+const vCuisine = v.union(...CUISINES.map(v.literal));
+const vTimings = v.object({
+  preparation: v.optional(v.number()),
+  cooking: v.optional(v.number()),
+  resting: v.optional(v.number()),
+});
+
+/**
  * The free text a cook's edit carries, as `updateOne` accepts it off the wire.
  *
  * Every field required, unlike `createOne`'s — a create may be handed a bare idea and let the agent
  * name it, but an edit reopens a recipe that already has a title, so a missing one is a client bug
- * rather than a blank to fill in. `assertFilledIn` is what refuses the whitespace-only version this
+ * rather than a blank to fill in. The same goes for the five fields below `instructions`: the agent
+ * guessed them on the first save, and an edit is where the cook corrects them. `assertFilledIn` is what refuses the whitespace-only version this
  * validator cannot see.
  *
  * Kept here rather than in the router so that it and `RecipeEdit` — the TypeScript half, in
@@ -46,6 +63,11 @@ export const vRecipeEdit = {
   servings: v.number(),
   ingredients: v.string(),
   instructions: v.string(),
+  tags: vAuthoredTags,
+  equipments: vEquipments,
+  difficulty: vDifficulty,
+  cuisine: vCuisine,
+  timings: vTimings,
 };
 
 /**
@@ -69,8 +91,9 @@ export const vRecipeLink = v.object({
 /**
  * A scraped page as the editor's fields, on its way to a form rather than to a mutation.
  *
- * The same shape as `vRecipeEdit` above, and kept separate from it on purpose: they answer to
- * different things. `vRecipeEdit` is what an edit of an existing recipe must carry, and it is
+ * The free-text half of `vRecipeEdit` above, and kept separate from it on purpose: they answer to
+ * different things. An import has none of the five guessed fields yet — the agent fills those in on
+ * the first save. `vRecipeEdit` is what an edit of an existing recipe must carry, and it is
  * required-everywhere because that recipe already has a title. This is what an IMPORT returns, and
  * its `title` is required for the opposite reason — a text field cannot hold `undefined`, so an
  * untitled scrape seeds `""` for the cook to fill in. Folding the two together would mean the next
@@ -99,23 +122,16 @@ export const vRecipeDraft = v.object({
  * is `functions/recipes/resolveRecipeIngredients.ts`, which runs in the ACTION and hands its answer
  * to the mutation as `vRecipeLink` above. Keeping the payload in this shape is what lets
  * `saveRecipe` be the one place that knows how a generation becomes a document.
- *
- * `tags` is `AUTHORED_TAGS`, not `TAGS`: the computed half falls out of the ingredients, so a model
- * cannot be the one to send it.
  */
 export const vSanitizedRecipe = v.object({
   title: v.string(),
   description: v.string(),
   servings: v.number(),
-  difficulty: v.union(...DIFFICULTY_LEVELS.map(v.literal)),
-  cuisine: v.union(...CUISINES.map(v.literal)),
-  tags: v.array(v.union(...AUTHORED_TAGS.map(v.literal))),
+  difficulty: vDifficulty,
+  cuisine: vCuisine,
+  tags: vAuthoredTags,
   equipments: vEquipments,
-  timings: v.object({
-    preparation: v.optional(v.number()),
-    cooking: v.optional(v.number()),
-    resting: v.optional(v.number()),
-  }),
+  timings: vTimings,
   instructions: vInstructionGroups,
   ingredients: v.array(v.object({ name: v.string(), quantity: v.number(), unit: vUnit })),
 });

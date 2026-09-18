@@ -25,7 +25,7 @@ export {
   CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
   BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck,
   ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
-  FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe
+  FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,

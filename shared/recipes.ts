@@ -24,6 +24,36 @@ export const DEFAULT_SERVINGS = 2;
 export type Timings = { preparation?: number; cooking?: number; resting?: number };
 
 /**
+ * The longest a single timing may be, in minutes: seven days.
+ *
+ * A 24-hour marinade is a real recipe; a week of resting is a typo. Shared because both ends of an
+ * edit enforce it — the editor's duration field refuses to parse past it, and `updateOne` refuses to
+ * store past it, since a client is a request the server cannot see the code of.
+ */
+export const MAX_TIMING_MINUTES = 7 * 24 * 60;
+
+/** A positive duration as whole minutes — never below 1, since a stated timing does not round to "not stated". */
+const _wholeMinutes = (minutes: number) => Math.max(1, Math.round(minutes));
+
+/**
+ * The timings as whole minutes, the only unit the app reads or writes.
+ *
+ * The agent's schema asks for a positive number, not an integer, so a model can answer `7.5`. Left
+ * as it is, that value would reach the editor, be sent back unchanged on the next save, and fail the
+ * whole-minutes check on an edit that never touched it. Rounded at both ends instead: where the
+ * agent's answer is read, and where an edit arrives — the second covers rows stored before the first.
+ *
+ * Absent stays absent: a key is only written when it holds a value.
+ */
+export const wholeTimingsOf = (timings: Timings): Timings => {
+  const whole: Timings = {};
+  if (timings.preparation !== undefined) whole.preparation = _wholeMinutes(timings.preparation);
+  if (timings.cooking !== undefined) whole.cooking = _wholeMinutes(timings.cooking);
+  if (timings.resting !== undefined) whole.resting = _wholeMinutes(timings.resting);
+  return whole;
+};
+
+/**
  * The three timings as one number — what a recipe card prints, and what a week's time ceiling is
  * measured against.
  *

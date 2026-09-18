@@ -61,6 +61,14 @@
     "ingredients_placeholder": "- 1 whole chicken\n- 1 lemon\n- 4 sprigs of thyme\n- 3 cloves of garlic\n- 2 spoons of olive oil",
     "instructions": "Instructions",
     "instructions_placeholder": "Prep\n- Heat the oven to 200°C\n- Halve the lemon and slip it inside the chicken with the thyme\n\nRoast\n- Rub the chicken with the oil, salt and pepper\n- Roast for 1 hour 15, basting halfway through\n- Rest for 10 minutes before carving",
+    "utensils": "Utensils",
+    "tags": "Tags",
+    "computed_tags": "From the ingredients",
+    "timings": "Timings",
+    "duration_placeholder": "1h30 or 45 min",
+    "minute_unit": "min",
+    "difficulty": "Difficulty",
+    "cuisine": "Cuisine",
     "save": "Save recipe"
   },
   "Import": {

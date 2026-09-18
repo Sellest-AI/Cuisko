@@ -8,6 +8,7 @@
 
 import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
+import { toggle } from "@shared/helpers";
 import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, type MealSlot } from "@shared/mealSlots";
 
 import type { ImageProps } from "@ui/image";
@@ -756,17 +757,6 @@ export const plateIdFor = (date: Date, slot: MealSlot) => `${toDateParam(date)}:
  * worse than none at all.
  */
 export const MAX_TASTES = 4;
-
-/**
- * Turn an id on or off in a list of them, keeping the order they were picked in.
- *
- * Generic in the id so a caller holding a narrower one keeps it: the setup step's slots are
- * `MealSlot`, and a `string` here would let a typo'd slot compile. Lives in the model rather than
- * beside either caller because both the tunnel and the preferences sheet need it, and the second
- * copy is where the two would drift.
- */
-export const toggle = <T extends string>(list: readonly T[], id: T): T[] =>
-  list.includes(id) ? list.filter((entry) => entry !== id) : [...list, id];
 
 /**
  * The same, under a ceiling: the pick that would overflow it is refused.

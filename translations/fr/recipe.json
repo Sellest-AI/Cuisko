@@ -63,6 +63,14 @@
     "ingredients_placeholder": "- 1 poulet entier\n- 1 citron\n- 4 branches de thym\n- 3 gousses d'ail\n- 2 cuillères d'huile d'olive",
     "instructions": "Instructions",
     "instructions_placeholder": "Préparation\n- Préchauffe le four à 200 °C\n- Coupe le citron en deux et glisse-le dans le poulet avec le thym\n\nCuisson\n- Frotte le poulet avec l'huile, le sel et le poivre\n- Enfourne 1 h 15 en arrosant à mi-cuisson\n- Laisse reposer 10 minutes avant de découper",
+    "utensils": "Ustensiles",
+    "tags": "Tags",
+    "computed_tags": "Déduits des ingrédients",
+    "timings": "Temps",
+    "duration_placeholder": "1h30 ou 45 min",
+    "minute_unit": "min",
+    "difficulty": "Difficulté",
+    "cuisine": "Cuisine",
     "save": "Enregistrer la recette"
   },
   "Import": {

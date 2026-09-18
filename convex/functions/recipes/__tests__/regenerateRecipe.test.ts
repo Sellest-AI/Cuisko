@@ -74,6 +74,11 @@ const UNCHANGED: RecipeEdit = {
   servings: stored.servings,
   ingredients: serializeIngredients(stored.ingredients),
   instructions: serializeInstructions(STORED_INSTRUCTIONS),
+  tags: ["soup"],
+  equipments: [],
+  difficulty: 2,
+  cuisine: "french",
+  timings: { preparation: 15 },
 };
 
 /** What the mocked agent answers with when it does run. */
@@ -128,9 +133,10 @@ describe("functions/recipes/regenerateRecipe", () => {
 
     expect(sanitizeRun).toHaveBeenCalledTimes(1);
     expect(analyzed).toBe(true);
-    // The agent's revision wins over the cook's raw text — except `servings`, which the cook set by
-    // number and `reviseRecipe` re-forces after the spread.
-    expect(recipe.difficulty).toBe(3);
+    // The agent's revision wins over the cook's raw text — except `servings` and the five hand-set
+    // fields, which the cook stated directly and `reviseRecipe` re-forces after the spread.
+    expect(recipe.title).toBe(ANALYZED.title);
+    expect(recipe.difficulty).toBe(UNCHANGED.difficulty);
     expect(recipe.servings).toBe(UNCHANGED.servings);
   });
 

@@ -1,6 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { assertFilledIn, type RecipeEdit } from "@convex/functions/recipes/recipeChangesOf";
+import { assertFilledIn, assertTimingsInRange, type RecipeEdit } from "@convex/functions/recipes/recipeChangesOf";
 import { regenerateRecipe } from "@convex/functions/recipes/regenerateRecipe";
 import { updateRecipe } from "@convex/functions/recipes/updateRecipe";
 import { type ActionCtx, authActionI18n, internalMutation } from "@convex/procedures";
@@ -17,10 +17,12 @@ type Args = RecipeEdit & { recipeId: Id<"recipes"> };
  *
  * Mirrors `createOne` in one respect and departs from it in another. `outdated` is the same idea:
  * the model revises the row it is handed rather than generating one from nothing. But an edit that
- * did not touch the ingredients has nothing for the agent to re-derive — difficulty, cuisine,
- * timings and equipment all come from the ingredients — so `recipeChangesOf` decides whether to
- * spend a model call at all. `updateRecipe` learns which branch ran through `analyzed`, because a
- * field the model never saw is the cook's own words, not a machine's.
+ * did not touch the ingredients has nothing for the agent to re-derive, so `recipeChangesOf`
+ * decides whether to spend a model call at all. Difficulty, cuisine, timings, equipment and authored
+ * tags are guessed on the first save and the cook's from then on — a rerun never overwrites them.
+ *
+ * `updateRecipe` learns which branch ran through `analyzed`, because a field the model never saw is
+ * the cook's own words, not a machine's.
  *
  * ⚠️ The ownership check below is hand-written, and ADR 0003 §"Actions" is why it is allowed to be.
  *    An action has `runQuery`, not `db`, so no `ownedAction` builder can exist to make it
@@ -33,6 +35,7 @@ type Args = RecipeEdit & { recipeId: Id<"recipes"> };
 const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
   const locale = ctx.i18n.locale;
   assertFilledIn(args);
+  assertTimingsInRange(args);
 
   const stored = await ctx.runQuery(internal.router.recipes.getOne._internal, { id: args.recipeId, locale });
   if (stored.userId !== ctx.userId) throw new ConvexError({ code: "FORBIDDEN" });
