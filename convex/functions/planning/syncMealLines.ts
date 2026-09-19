@@ -139,7 +139,7 @@ const _toBuy = ({ need, ingredient }: MealLine, split: Split): { quantity: numbe
  *
  * Never below zero: the row may hold less than this line put on it, because somebody edited it.
  */
-const _backOut = async (ctx: MutationCtx, row: Doc<"plannedMealIngredients">) => {
+export const backOut = async (ctx: MutationCtx, row: Doc<"plannedMealIngredients">) => {
   if (!row.groceryListItemId || !row.groceryQuantity) return;
 
   const item = await ctx.db.get(row.groceryListItemId);
@@ -152,7 +152,7 @@ const _backOut = async (ctx: MutationCtx, row: Doc<"plannedMealIngredients">) =>
 };
 
 /** The household's plates still ahead of it, other than this one, in the order the week is eaten. */
-const _laterPlates = async (ctx: MutationCtx, householdId: Id<"households">, plannedMealId: Id<"plannedMeals">, from: number) => {
+export const laterPlates = async (ctx: MutationCtx, householdId: Id<"households">, plannedMealId: Id<"plannedMeals">, from: number) => {
   const plates = await ctx.db
     .query("plannedMeals")
     .withIndex("by_household_and_date", (q) => q.eq("householdId", householdId).gte("date", from))
@@ -172,7 +172,7 @@ const _laterPlates = async (ctx: MutationCtx, householdId: Id<"households">, pla
  * plate reading ready with its pinch bought by nobody, so the claim is handed on instead. A jar
  * already bought has no row to hand on; the pointer was detached when it went.
  */
-const _heirOf = async (
+export const heirOf = async (
   ctx: MutationCtx,
   row: Doc<"plannedMealIngredients">,
   plates: () => Promise<Doc<"plannedMeals">[]>,
@@ -215,10 +215,10 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
 
   /** Read once, and only if a jar has to find an heir — a fresh plate has nothing to back out. */
   let later: Promise<Doc<"plannedMeals">[]> | undefined;
-  const laterPlates = () => (later ??= _laterPlates(ctx, householdId, plannedMealId, from));
+  const plates = () => (later ??= laterPlates(ctx, householdId, plannedMealId, from));
 
   for (const row of existing) {
-    const heir = await _heirOf(ctx, row, laterPlates);
+    const heir = await heirOf(ctx, row, plates);
 
     if (heir) {
       await ctx.db.patch(heir._id, {
@@ -229,7 +229,7 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
       // The jar stays on the list, so a plate rewritten below still finds the ingredient present.
       if (!stock.has(row.ingredientId)) stock.set(row.ingredientId, 0);
     } else {
-      await _backOut(ctx, row);
+      await backOut(ctx, row);
     }
 
     await ctx.db.delete(row._id);
@@ -254,7 +254,7 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
     /**
      * Recorded as what LANDED, not as what was asked for: the list may already hold this
      * ingredient in another unit of the same family, in which case the write merged into that row
-     * and `contribution` is this line's share in that row's unit — the unit `_backOut` will
+     * and `contribution` is this line's share in that row's unit — the unit `backOut` will
      * subtract in. `buying.quantity` is in `defaultUnit` and would be the wrong number there.
      */
     const landed = buying

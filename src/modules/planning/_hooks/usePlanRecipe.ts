@@ -4,12 +4,12 @@ import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
 import { useMutation, useQueryCached } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
+import { clampServings } from "@shared/servings";
 
 import {
   addDays,
   isSameDay,
   keptMealCardOf,
-  MAX_SERVINGS,
   startOfDay,
   type MealCard,
   type MealSlot,
@@ -35,7 +35,7 @@ type Args = {
 };
 
 /** The slider cannot ask for a half portion, but a route param could; one plate is the floor. */
-const _clampServings = (servings: number) => Math.min(Math.max(Math.round(servings), 1), MAX_SERVINGS);
+const _clampServings = clampServings;
 
 /**
  * Putting one recipe on one plate of the kept week — the recipe screen's "add to my list".

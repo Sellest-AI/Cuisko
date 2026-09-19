@@ -19,18 +19,12 @@ export const MAX_DAYS = 7;
  */
 export const MAX_RANGE_DAYS = 9;
 
-/** The most one plate is cooked for: a plate is a meal, not a batch for a freezer. */
-export const MAX_SERVINGS = 8;
+/**
+ * How many a plate is cooked for — `shared/servings.ts`'s rule, re-exported so the planning writes
+ * keep reading their ceilings from one file. It moved when the recipe stepper, which feeds the cook
+ * step, had to stop where the server refuses, and `src/` cannot reach this folder.
+ */
+export { isServings, MAX_SERVINGS } from "@shared/servings";
 
 /** A repeated date, slot or plate is refused rather than deduplicated — see `planDraft`. */
 export const isDistinct = <T>(values: T[]) => new Set(values).size === values.length;
-
-/**
- * A whole number of places at the table, from one through `MAX_SERVINGS`.
- *
- * The predicate a plate's `servings` and a plan's `people` both have to answer — and refusing
- * non-integers is also what refuses `NaN`, which fails every comparison and would otherwise scale
- * every line of a recipe into `NaN`.
- */
-export const isServings = (servings: number) =>
-  Number.isInteger(servings) && servings >= 1 && servings <= MAX_SERVINGS;

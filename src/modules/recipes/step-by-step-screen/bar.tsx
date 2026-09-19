@@ -21,6 +21,10 @@ type Props = {
   onPrevious: () => void;
   onNext: () => void;
   onFinish: () => void;
+  /** The finish is in flight: the button waits, so a second tap cannot spend the cellar twice. */
+  isFinishing?: boolean;
+  /** The finish was refused, and the cook is still here to be told so. */
+  finishFailed?: boolean;
   /**
    * How tall the bar ended up. It floats over the page rather than sitting in it, so the page has
    * to be told how much of itself to keep clear — and that height changes on the last step.
@@ -38,7 +42,9 @@ const FADE_HEIGHT = 40;
  */
 const FINISH_DELAY_SECONDS = 3;
 
-const UpdateCellarButton = ({ onPress, style }: { onPress: () => void; style: ViewStyle }) => {
+type UpdateCellarButtonProps = { onPress: () => void; style: ViewStyle; isLoading: boolean };
+
+const UpdateCellarButton = ({ onPress, style, isLoading }: UpdateCellarButtonProps) => {
   const t = useTranslations("Recipe");
   const [timer, setTimer] = useState(FINISH_DELAY_SECONDS);
 
@@ -67,6 +73,7 @@ const UpdateCellarButton = ({ onPress, style }: { onPress: () => void; style: Vi
       onPress={onPress}
       style={style}
       disabled={disabled}
+      isLoading={isLoading}
     >
       {updateCellarText}
     </ButtonPill>
@@ -80,7 +87,7 @@ const UpdateCellarButton = ({ onPress, style }: { onPress: () => void; style: Vi
  * offer, and the one thing left to do is tell the app what the cooking consumed. A "Next" that
  * quietly did that would be the app spending someone's ingredients behind a navigation word.
  */
-export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, onHeight }: Props) => {
+export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, isFinishing = false, finishFailed = false, onHeight }: Props) => {
   const t = useTranslations("Recipe");
 
   return (
@@ -102,9 +109,20 @@ export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, onHeigh
       >
         {isLast ? (
           <>
-            <InfoBanner variant="secondary" title={t("Cooking.cellar_title")} icon={DatabaseX} style={styles.banner}>
-              {t("Cooking.cellar_body")}
-            </InfoBanner>
+            {/*
+              * The same banner, turned: the failure is about the thing the banner was promising,
+              * and it is where the cook is already looking. The button stays live underneath so
+              * the answer to a refused write is a second tap, not a lost dinner.
+              */}
+            {finishFailed ? (
+              <InfoBanner variant="warning" title={t("Cooking.cellar_failed_title")} icon={DatabaseX} style={styles.banner}>
+                {t("Cooking.cellar_failed_body")}
+              </InfoBanner>
+            ) : (
+              <InfoBanner variant="secondary" title={t("Cooking.cellar_title")} icon={DatabaseX} style={styles.banner}>
+                {t("Cooking.cellar_body")}
+              </InfoBanner>
+            )}
             <View style={styles.controls}>
               <ButtonIcon
                 elevated
@@ -119,6 +137,7 @@ export const StepBar = ({ isFirst, isLast, onPrevious, onNext, onFinish, onHeigh
               <UpdateCellarButton
                 style={styles.finish}
                 onPress={onFinish}
+                isLoading={isFinishing}
               />
             </View>
           </>
