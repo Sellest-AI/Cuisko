@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Keyboard, Platform, StyleSheet, View } from "react-native";
 
 import { Badge } from "@ui/badge";
@@ -169,7 +169,7 @@ const Sheet = ({ target, scope, onClose }: {
   onClose: () => void;
 }) => {
   const t = useTranslations("Planning");
-  const { meal, missing, isLoading, failed, remove, ...editor } = useMealEditor(target, scope);
+  const { meal, missing, isCooked, isLoading, failed, remove, ...editor } = useMealEditor(target, scope);
 
   /**
    * Removing leaves nothing to come back to, so the sheet goes with it — once the plate has
@@ -185,11 +185,19 @@ const Sheet = ({ target, scope, onClose }: {
     if (await pick(recipe)) onClose();
   }, [pick, onClose]);
 
+  /**
+   * A cooked plate is not editable: the list offers no menu on one, and a link that reaches it
+   * anyway — a deep link, or the plate cooked while the sheet was open — sends the sheet back.
+   */
+  useEffect(() => {
+    if (isCooked) onClose();
+  }, [isCooked, onClose]);
+
   /** Nothing to throw away until a dish is on the plate, so the slot opens without the action. */
-  useModalAction(meal ? { icon: Trash2, onPress: destroy, variant: "danger" } : null);
+  useModalAction(meal && !isCooked ? { icon: Trash2, onPress: destroy, variant: "danger" } : null);
 
   /** The plate is being asked for; an empty sheet beats a spinner that lands and leaves in a blink. */
-  if (isLoading) return <View style={styles.page} />;
+  if (isLoading || isCooked) return <View style={styles.page} />;
 
   /** A stale link, or the moment between removing the plate and the dismissal landing. */
   if (missing) return <Nothing label={t("Tunnel.Meal.missing")} />;
