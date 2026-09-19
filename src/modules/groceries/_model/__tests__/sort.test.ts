@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSections, type GroceryLine, type Plate, type Snapshot, type StockRef } from "../model";
+import {
+  ALPHABETICAL_ORDERING_DELAY_MS,
+  buildSections,
+  type GroceryLine,
+  type Plate,
+  type Snapshot,
+  type StockRef,
+} from "../model";
 import { groupToBuy, isSort, SORTS } from "../sort";
 
 const NOW = new Date("2026-08-10T12:00:00Z");
@@ -11,7 +18,8 @@ const day = (offset: number) => new Date(NOW.getTime() + offset * DAY);
 const PARMESAN = { ingredientId: "parmesan", unit: "g" } as const;
 const CARROTS = { ingredientId: "carrots", unit: "pcs" } as const;
 
-const line = (id: string, ref: StockRef, amount: number, age = 60_000): GroceryLine =>
+/** Settled by default: past the delay by a margin, so retuning the delay does not unsettle the fixture. */
+const line = (id: string, ref: StockRef, amount: number, age = ALPHABETICAL_ORDERING_DELAY_MS + 1_000): GroceryLine =>
   ({ id, ...ref, amount, createdAt: ago(age), updatedAt: ago(age) });
 
 /**

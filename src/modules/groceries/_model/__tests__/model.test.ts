@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ALPHABETICAL_ORDERING_DELAY_MS,
   adjustCellar,
   buildSections,
   dropIngredientLines,
@@ -29,6 +30,9 @@ import {
 const NOW = new Date("2026-08-10T12:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms);
 
+/** Old enough to have settled into alphabetical order, by a margin, whatever the delay is tuned to. */
+const SETTLED = ALPHABETICAL_ORDERING_DELAY_MS + 1_000;
+
 const CARROTS = { ingredientId: "carrots", unit: "pcs" } as const;
 
 /**
@@ -38,10 +42,10 @@ const CARROTS = { ingredientId: "carrots", unit: "pcs" } as const;
 const base: Snapshot = {
   ingredients: [{ id: "carrots", name: "Carottes", emoji: "🥕", category: "VEGETABLE" }],
   lines: [
-    { id: "l1", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) },
-    { id: "l2", ...CARROTS, meal: { id: "2026-01-07:lunch", title: "Soupe" }, amount: 4, createdAt: ago(60_000), updatedAt: ago(60_000) },
+    { id: "l1", ...CARROTS, meal: { id: "2026-01-06:dinner", title: "Ratatouille" }, amount: 2, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) },
+    { id: "l2", ...CARROTS, meal: { id: "2026-01-07:lunch", title: "Soupe" }, amount: 4, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) },
   ],
-  cellar: [{ id: "c1", ...CARROTS, amount: 1, updatedAt: ago(60_000) }],
+  cellar: [{ id: "c1", ...CARROTS, amount: 1, updatedAt: ago(SETTLED) }],
   receipts: [],
   history: [],
   plates: [],
@@ -104,7 +108,7 @@ describe("asking for something outright", () => {
   /** `base` holds one carrot in the cellar, so a netted line of 1 would show nothing. */
   const asking = (amount: number, lines = base.lines) => ({
     ...base,
-    lines: [...lines, { id: "own", ...CARROTS, amount, createdAt: ago(60_000), updatedAt: ago(60_000) }],
+    lines: [...lines, { id: "own", ...CARROTS, amount, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) }],
   });
 
   it("is not netted against the cellar", () => {
@@ -126,12 +130,12 @@ describe("stock arriving", () => {
 
   const sets = (lines: GroceryLine[], owned = 0) => ({
     lines,
-    cellar: owned > 0 ? [{ id: "c1", ...CARROTS, amount: owned, updatedAt: ago(60_000) }] : [],
+    cellar: owned > 0 ? [{ id: "c1", ...CARROTS, amount: owned, updatedAt: ago(SETTLED) }] : [],
     receipts: [],
     history: [],
   });
 
-  const OWN: GroceryLine = { id: "own", ...CARROTS, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) };
+  const OWN: GroceryLine = { id: "own", ...CARROTS, amount: 2, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) };
   const PLATE: GroceryLine = base.lines[0]!;
 
   it("moves nothing on a non-amount", () => {
@@ -316,7 +320,7 @@ describe("what the sheet offers", () => {
 describe("writing to a set", () => {
   /** Two rows sharing an id, which is what a counted id generator produces against seeded data. */
   const collided = [
-    { id: "cellar-1", ingredientId: "carrots", unit: "pcs", amount: 1, updatedAt: ago(60_000) },
+    { id: "cellar-1", ingredientId: "carrots", unit: "pcs", amount: 1, updatedAt: ago(SETTLED) },
     { id: "cellar-1", ingredientId: "garlic", unit: "pcs", amount: 1, updatedAt: ago(1_000) },
   ] as const;
 
@@ -337,8 +341,8 @@ describe("writing to a set", () => {
   it("keeps the same guarantee for the memory", () => {
     const after = rememberStock(
       [
-        { id: "history-1", ingredientId: "pasta", unit: "g", amount: 500, at: ago(60_000) },
-        { id: "history-1", ingredientId: "butter", unit: "g", amount: 250, at: ago(60_000) },
+        { id: "history-1", ingredientId: "pasta", unit: "g", amount: 500, at: ago(SETTLED) },
+        { id: "history-1", ingredientId: "butter", unit: "g", amount: 250, at: ago(SETTLED) },
       ],
       { ref: { ingredientId: "butter", unit: "g" }, amount: 125, at: NOW, id: "unused", overwriteAmount: true },
     );
@@ -356,7 +360,7 @@ describe("writing to a set", () => {
    */
   it("leaves a remembered amount alone when the write is not a purchase", () => {
     const ref = { ingredientId: "butter", unit: "g" } as const;
-    const existing = [{ id: "history-1", ...ref, amount: 250, at: ago(60_000) }];
+    const existing = [{ id: "history-1", ...ref, amount: 250, at: ago(SETTLED) }];
 
     expect(
       rememberStock(existing, { ref, amount: 125, at: NOW, id: "unused", overwriteAmount: false }),
@@ -378,7 +382,7 @@ describe("writing to a set", () => {
 describe("taking stock out of the cellar", () => {
   const held = (amount: number, receipts: Receipt[] = [], lines: GroceryLine[] = []) => ({
     lines,
-    cellar: [{ id: "c1", ...CARROTS, amount, updatedAt: ago(60_000) }],
+    cellar: [{ id: "c1", ...CARROTS, amount, updatedAt: ago(SETTLED) }],
     receipts,
     history: [],
   });
@@ -430,7 +434,7 @@ describe("taking stock out of the cellar", () => {
   });
 
   it("keeps a remembered purchase amount across later removals", () => {
-    const start = { ...held(4), history: [{ id: "h0", ...CARROTS, amount: 6, at: ago(60_000) }] };
+    const start = { ...held(4), history: [{ id: "h0", ...CARROTS, amount: 6, at: ago(SETTLED) }] };
 
     expect(takeFromCellar(start, take(4))?.history[0]?.amount).toBe(6);
   });
@@ -438,7 +442,7 @@ describe("taking stock out of the cellar", () => {
 
 describe("striking an ingredient off the list", () => {
   const lines: GroceryLine[] = [
-    { id: "l1", ...CARROTS, meal: { id: "d1", title: "Ratatouille" }, amount: 2, createdAt: ago(60_000), updatedAt: ago(60_000) },
+    { id: "l1", ...CARROTS, meal: { id: "d1", title: "Ratatouille" }, amount: 2, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) },
     { id: "l2", ...CARROTS, meal: { id: "d2", title: "Soupe" }, amount: 4, createdAt: ago(30_000), updatedAt: ago(30_000) },
     { id: "l3", ingredientId: "onions", unit: "g", amount: 200, createdAt: ago(30_000), updatedAt: ago(30_000) },
   ];
@@ -458,12 +462,12 @@ describe("striking an ingredient off the list", () => {
  * through hand-built snapshots. Each case here is one that got past the tests once.
  */
 describe("what a purchase does to the list", () => {
-  const PLATE = { id: "plate", ...CARROTS, meal: { id: "m", title: "M" }, amount: 8, createdAt: ago(60_000), updatedAt: ago(60_000) };
-  const OWN = { id: "own", ...CARROTS, amount: 3, createdAt: ago(60_000), updatedAt: ago(60_000) };
+  const PLATE = { id: "plate", ...CARROTS, meal: { id: "m", title: "M" }, amount: 8, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) };
+  const OWN = { id: "own", ...CARROTS, amount: 3, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) };
 
   const start = (lines: GroceryLine[], owned = 0) => ({
     lines,
-    cellar: owned > 0 ? [{ id: "c1", ...CARROTS, amount: owned, updatedAt: ago(60_000) }] : [],
+    cellar: owned > 0 ? [{ id: "c1", ...CARROTS, amount: owned, updatedAt: ago(SETTLED) }] : [],
     receipts: [],
     history: [],
   });
@@ -637,7 +641,7 @@ describe("when a row was last touched", () => {
    * the key walk built them.
    */
   it("reports the newest thing that happened to it, not the clock", () => {
-    expect(carrots({ ...base, lines: [], history: [] }).touchedAt).toEqual(ago(60_000));
+    expect(carrots({ ...base, lines: [], history: [] }).touchedAt).toEqual(ago(SETTLED));
   });
 
   it("falls back to the clock only when nothing has happened to it at all", () => {
@@ -654,7 +658,7 @@ describe("when a row was last touched", () => {
       ],
       lines: [],
       cellar: [
-        { id: "c1", ...CARROTS, amount: 1, updatedAt: ago(60_000) },
+        { id: "c1", ...CARROTS, amount: 1, updatedAt: ago(SETTLED) },
         { id: "c2", ingredientId: "bread", unit: "pcs", amount: 1, updatedAt: ago(1_000) },
       ],
       receipts: [],
@@ -682,8 +686,8 @@ describe("when a row was last touched", () => {
         { id: "bread", name: "Pain", emoji: "🥖", category: "GRAIN" },
       ],
       lines: [
-        { id: "l1", ...CARROTS, amount: 1, createdAt: ago(60_000), updatedAt: ago(60_000) },
-        { id: "l2", ingredientId: "bread", unit: "pcs", amount: 1, createdAt: ago(60_000), updatedAt: ago(1_000) },
+        { id: "l1", ...CARROTS, amount: 1, createdAt: ago(SETTLED), updatedAt: ago(SETTLED) },
+        { id: "l2", ingredientId: "bread", unit: "pcs", amount: 1, createdAt: ago(SETTLED), updatedAt: ago(1_000) },
       ],
       cellar: [],
       receipts: [],
