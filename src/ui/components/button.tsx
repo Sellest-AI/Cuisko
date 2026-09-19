@@ -37,12 +37,7 @@ export const Button = ({
     elevated={elevated}
     isLoading={isLoading}
     disabled={disabled}
-    /**
-     * With nothing beside it the label sits in the middle: the pill's row spreads its parts to the
-     * ends, which is right for a label between two icons and leaves a lone label hugging one edge
-     * of a button wider than its text.
-     */
-    style={StyleSheet.flatten([styles.button, !leftIcon && !rightIcon && styles.labelOnly, style])}
+    style={StyleSheet.flatten([styles.button, style])}
     leftContent={leftIcon ? ({ color }) => <MorphIcon icon={leftIcon} size={18} color={color} /> : undefined}
     rightContent={rightIcon ? ({ color }) => <MorphIcon icon={rightIcon} size={18} color={color} /> : undefined}
     size="md"
@@ -57,5 +52,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[12],
     gap: theme.spacing[8],
   },
-  labelOnly: { justifyContent: "center" },
 })
