@@ -1,9 +1,9 @@
-import { ColorValue, StyleSheet, View, ViewStyle } from "react-native";
+import { ColorValue, LayoutChangeEvent, StyleSheet, View, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme, colors } from "theme";
 import { Pressable } from "./pressable";
 import { Text } from "./text";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Icon } from "./icons";
 import { ButtonIcon } from "./button-icon";
 import { BlurView } from "./blur-view";
@@ -119,6 +119,36 @@ export const ButtonPill = ({
 
   const gap = styleGap ?? styles.base.gap;
 
+  /**
+   * The label is centred on the pill, not on the space left between its sides. Auto margins put
+   * it in the middle of that space, which is off-centre whenever one side is wider than the other
+   * (an icon on the left, nothing on the right). The narrower side is padded by the difference —
+   * but only out of free space, so a pill that hugs its content never grows to balance itself.
+   * A caller passing `justifyContent` has chosen its own layout and gets neither.
+   */
+  const [widths, setWidths] = useState({ row: 0, left: 0, label: 0, right: 0 });
+  const measure = (part: keyof typeof widths) => (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setWidths((current) => current[part] === width ? current : { ...current, [part]: width });
+  };
+
+  const hasLeft = Boolean(leftIcon || leftContent);
+  const hasRight = Boolean(rightIcon || rightContent);
+  const isCentred = justifyContent === undefined;
+
+  let balanceLeft = 0;
+  let balanceRight = 0;
+  if (isCentred && typeof paddingLeft === "number" && typeof paddingRight === "number" && typeof gap === "number") {
+    // A neutral pill is a BlurView, which moves its border onto a child and so does not inset by it.
+    const borderInset = variant === "neutral" ? 0 : styles.base.borderWidth * 2;
+    const leftExtent = paddingLeft + (hasLeft ? widths.left + gap : 0);
+    const rightExtent = paddingRight + (hasRight ? widths.right + gap : 0);
+    const freeSpace = widths.row - borderInset - leftExtent - rightExtent - widths.label;
+    const balance = Math.min(Math.abs(leftExtent - rightExtent), Math.max(0, freeSpace));
+    if (leftExtent < rightExtent) balanceLeft = balance;
+    else balanceRight = balance;
+  }
+
   const isDisabled = disabled || isLoading;
   const containerOpacity = isDisabled ? 0.5 : 1;
   const textOpacity = isDisabled ? 0.7 : 1;
@@ -137,12 +167,17 @@ export const ButtonPill = ({
     >
       <ViewComponent
         tint="light"
+        onLayout={measure("row")}
         style={[
           styles.base,
           styles.borderRadius,
           { gap, borderColor },
           { padding, paddingLeft, paddingRight },
           { paddingHorizontal, paddingVertical, minHeight },
+          (balanceLeft > 0 || balanceRight > 0) && {
+            paddingLeft: (paddingLeft as number) + balanceLeft,
+            paddingRight: (paddingRight as number) + balanceRight,
+          },
           { justifyContent: justifyContent ?? styles.base.justifyContent },
           elevated && styles.elevated,
           color,
@@ -153,42 +188,43 @@ export const ButtonPill = ({
           end={{ x: 1, y: -10 }}
           style={[styles.absolute, styles.borderRadius]}
         />}
-        {leftContent && <View style={{ position: "relative" }}>
-          {typeof leftContent === "function" ? leftContent({ color: color.color as string }) : leftContent}
-        </View>}
-        {leftIcon && <ButtonIcon
-          variant={elevated ? `${variant}-subtle` : variant}
-          elevated={true}
-          composite={!onLeftPress}
-          size={size === "sm" ? "xs" : "sm"}
-          isLoading={isLoading}
-          onPress={onLeftPress}
-        >
-          {leftIcon}
-        </ButtonIcon>}
-        {typeof children === "string" ? (
-          <Text.Base
-            style={{
-              color: color.color,
-              fontWeight: 600,
-              opacity: textOpacity,
-            }}
+        {hasLeft && <View style={styles.side} onLayout={measure("left")}>
+          {leftIcon ? <ButtonIcon
+            variant={elevated ? `${variant}-subtle` : variant}
+            elevated={true}
+            composite={!onLeftPress}
+            size={size === "sm" ? "xs" : "sm"}
+            isLoading={isLoading}
+            onPress={onLeftPress}
           >
-            {children}
-          </Text.Base>
-        ) : (children)}
-        {rightIcon && <ButtonIcon
-          variant={elevated ? `${variant}-subtle` : variant}
-          elevated={true}
-          composite={!onRightPress}
-          size={size === "sm" ? "xs" : "sm"}
-          isLoading={isLoading}
-          onPress={onRightPress}
-        >
-          {rightIcon}
-        </ButtonIcon>}
-        {rightContent && <View style={{ position: "relative" }}>
-          {typeof rightContent === "function" ? rightContent({ color: color.color as string }) : rightContent}
+            {leftIcon}
+          </ButtonIcon> : typeof leftContent === "function" ? leftContent({ color: color.color as string }) : leftContent}
+        </View>}
+        <View style={isCentred && styles.label} onLayout={measure("label")}>
+          {typeof children === "string" ? (
+            <Text.Base
+              style={{
+                color: color.color,
+                fontWeight: 600,
+                opacity: textOpacity,
+                textAlign: "center",
+              }}
+            >
+              {children}
+            </Text.Base>
+          ) : (children)}
+        </View>
+        {hasRight && <View style={styles.side} onLayout={measure("right")}>
+          {rightIcon ? <ButtonIcon
+            variant={elevated ? `${variant}-subtle` : variant}
+            elevated={true}
+            composite={!onRightPress}
+            size={size === "sm" ? "xs" : "sm"}
+            isLoading={isLoading}
+            onPress={onRightPress}
+          >
+            {rightIcon}
+          </ButtonIcon> : typeof rightContent === "function" ? rightContent({ color: color.color as string }) : rightContent}
         </View>}
       </ViewComponent>
     </Pressable>
@@ -208,6 +244,13 @@ const styles = StyleSheet.create({
   },
   borderRadius: {
     borderRadius: theme.radius.full,
+  },
+  side: {
+    position: "relative",
+  },
+  label: {
+    marginHorizontal: "auto",
+    flexShrink: 1,
   },
   absolute: {
     position: "absolute",
