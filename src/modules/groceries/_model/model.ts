@@ -84,7 +84,7 @@ export { UNDO_WINDOW_MS };
  * clock `_compare` reads is state, and `useLiveWindow` has to be told to advance it at this
  * distance from each touch. The two would otherwise agree only by coincidence.
  */
-export const ALPHABETICAL_ORDERING_DELAY_MS = 30 * 1000;
+export const ALPHABETICAL_ORDERING_DELAY_MS = 60 * 1000;
 
 export type Ingredient = {
   id: string;
