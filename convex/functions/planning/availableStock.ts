@@ -11,8 +11,8 @@ type Amount = { ingredientId: Id<"ingredients">; quantity: number; unit: Unit };
  *
  * The cellar, minus every line of every meal already planned from `from` onward — plus the presence
  * of anything a planned meal has already put on the grocery list, because a jar on the list covers
- * the pinches still to come. Only `planned` meals reserve: nothing in this slice decrements the
- * cellar when a meal is cooked, so counting a cooked or past meal would hold stock hostage forever.
+ * the pinches still to come. Only `planned` meals reserve: a cooked meal has already spent what it
+ * reserved (`cookMeal`), and a past one never will, so counting either would hold stock hostage forever.
  *
  * Every ingredient the cellar holds is a key, even when none of it converts or all of it is
  * reserved — see `Stock` for why presence and amount are answered separately. Amounts floor at 0:

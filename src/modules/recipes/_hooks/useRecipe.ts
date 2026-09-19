@@ -1,6 +1,8 @@
 import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
 
+import { clampServings } from "@shared/servings";
+
 import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
 import { useQueryCached } from "~/lib/convex/client";
@@ -8,9 +10,6 @@ import { useQueryCached } from "~/lib/convex/client";
 import { scaleNutrition, scaleTo } from "../_model/detail";
 import { scaleInstructions } from "../_model/quantities";
 import { servingsAtom } from "./atoms";
-
-/** A recipe for nobody is not a recipe; the minus stops here rather than wrapping to zero. */
-const MIN_SERVINGS = 1;
 
 /**
  * One recipe, in the language the cook is reading in, scaled to the number of people they asked for.
@@ -66,16 +65,18 @@ export const useRecipe = (id: string | undefined) => {
   const servings = (chosen?.id === recipe?.id ? chosen?.servings : undefined) ?? recipe?.servings ?? 1;
 
   /**
-   * The floor lives here rather than at the two steppers that call this.
+   * The bounds live here rather than at the two steppers that call this.
    *
    * Both of them used to clamp for themselves — one against a named `MIN_SERVINGS`, the other
    * against a bare `1` written inline — which is the same rule stated twice and, at the second
    * site, stated without saying why. Clamping at the setter means a third caller cannot get it
-   * wrong, and the steppers go back to describing what they draw.
+   * wrong, and the steppers go back to describing what they draw. The ceiling is the server's own
+   * (`isServings`): the number this holds is what the cook step sends, and a stepper that could
+   * reach 12 would hand the last tap of a recipe an error instead of a cellar.
    */
   const setServings = useCallback(
     (next: number) => {
-      if (recipe) setChosen({ id: recipe.id, servings: Math.max(MIN_SERVINGS, Math.round(next)) });
+      if (recipe) setChosen({ id: recipe.id, servings: clampServings(next) });
     },
     [recipe, setChosen],
   );

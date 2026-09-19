@@ -15,6 +15,7 @@ import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { RecipeScreen } from "../_components/recipe-screen";
+import { useCookRecipe } from "../_hooks/useCookRecipe";
 import { useRecipe } from "../_hooks/useRecipe";
 import { flattenSteps } from "../_model/detail";
 import { ingredientsIn } from "../_model/quantities";
@@ -77,6 +78,7 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
   const { height } = useWindowDimensions();
   const unit = useUnitLabel();
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
+  const { cook, isCooking, failed } = useCookRecipe();
   const [index, setIndex] = useState(0);
   const [previousIndex, setPreviousIndex] = useState(0);
 
@@ -219,9 +221,12 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
         onPrevious={() => { setIndex((current) => Math.max(0, current - 1)); setPreviousIndex(index) }}
         onNext={() => { setIndex((current) => Math.min(lastIndex, current + 1)); setPreviousIndex(index); }}
         /**
-         * TODO: onFinish update the cellar
+         * The screen closes only once the server has agreed: a modal dismissed over a write that
+         * then fails would leave the cook believing their cellar moved when it did not.
          */
-        onFinish={onClose}
+        onFinish={async () => { if (recipe && (await cook(recipe.id, servings))) onClose(); }}
+        isFinishing={isCooking}
+        finishFailed={failed}
         onHeight={setBarHeight}
       />
     </View>

@@ -8,6 +8,8 @@
 
 import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
+import { startOfDay } from "@shared/clock";
+import { clampServings, MAX_SERVINGS } from "@shared/servings";
 import { toggle } from "@shared/helpers";
 import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, type MealSlot } from "@shared/mealSlots";
 
@@ -227,12 +229,10 @@ export const MEAL_SLOTS: MealSlot[] = [...MEAL_SLOT_VOCABULARY];
 export const MAX_DAYS = 7;
 
 /**
- * The most a single plate is cooked for.
- *
- * Separate from the household size the setup step asks: a plate can be cooked for more than the
- * table when the point is leftovers, which is the whole reason portions are editable per meal.
+ * The most a single plate is cooked for — `shared/servings.ts`'s number, re-exported so the screens
+ * that size their sliders by it keep reading it from where the rest of the domain lives.
  */
-export const MAX_SERVINGS = 8;
+export { MAX_SERVINGS };
 
 /**
  * Fixed order, so a category never changes place when a meal is toggled off in the review step —
@@ -291,18 +291,15 @@ export const addDays = (date: Date, days: number) => {
 };
 
 /**
- * Local midnight of that day.
+ * Local midnight, re-exported from where it now lives.
  *
- * Exported because the two hooks that talk to the server both need it: a plan's dates and its
- * `today` are local-day timestamps — "Tuesday" has to mean the user's Tuesday — and a second copy
- * beside either of them is where the draft and the commit would start disagreeing about which day
- * it is.
+ * It moved to `shared/` when the cook step needed the same day beside an hour (`localClock`), and
+ * the recipes module cannot reach this folder. Both hooks that talk to the server keep importing it
+ * from here, where the rest of the domain lives — a plan's dates and its `today` are local-day
+ * timestamps, and a second spelling of midnight is where the draft and the commit would start
+ * disagreeing about which day it is.
  */
-export const startOfDay = (date: Date) => {
-  const copy = new Date(date);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-};
+export { startOfDay };
 
 /**
  * The days a plan covers: the day after `after`, onwards.
@@ -469,8 +466,7 @@ const _replaceOne = <M extends Plate>(meals: M[], mealId: string, change: (meal:
  * Clamped rather than trusted: the slider cannot ask for a half portion or a zero one, but this is
  * what a route param or a future text field would reach next, and a plate for nobody is not a plate.
  */
-const _clampServings = (servings: number) =>
-  Math.min(Math.max(Math.round(servings), 1), MAX_SERVINGS);
+const _clampServings = clampServings;
 
 /** The place at the table, without the dish: everything a plate knows that a recipe does not. */
 export type Plate = {

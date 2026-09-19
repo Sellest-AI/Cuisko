@@ -108,7 +108,9 @@
     "update_cellar": "Mettre à jour ma cave",
     "update_cellar_pending": "Mettre à jour ma cave ({{seconds, number}})",
     "cellar_title": "Ta cave, mise à jour pour toi",
-    "cellar_body": "Tout ce que cette recette a utilisé sort de ta cave, pour que ta prochaine liste ne demande que ce qui manque vraiment."
+    "cellar_body": "Tout ce que cette recette a utilisé sort de ta cave, pour que ta prochaine liste ne demande que ce qui manque vraiment.",
+    "cellar_failed_title": "Ta cave n’a pas pu être mise à jour",
+    "cellar_failed_body": "Rien n’a bougé. Vérifie ta connexion et réessaie."
   },
   "Difficulties": {
     "simple": "Très facile",

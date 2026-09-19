@@ -38,6 +38,7 @@ import type * as env from "../env.js";
 import type * as functions_cascade from "../functions/cascade.js";
 import type * as functions_cellars_addToCellar from "../functions/cellars/addToCellar.js";
 import type * as functions_cellars_addToGroceryList from "../functions/cellars/addToGroceryList.js";
+import type * as functions_cellars_consumeFromCellar from "../functions/cellars/consumeFromCellar.js";
 import type * as functions_cellars_platesOnList from "../functions/cellars/platesOnList.js";
 import type * as functions_cellars_removeFromCellar from "../functions/cellars/removeFromCellar.js";
 import type * as functions_cellars_removeFromGroceryList from "../functions/cellars/removeFromGroceryList.js";
@@ -76,6 +77,7 @@ import type * as functions_planning_availableStock from "../functions/planning/a
 import type * as functions_planning_candidatePool from "../functions/planning/candidatePool.js";
 import type * as functions_planning_cellarLots from "../functions/planning/cellarLots.js";
 import type * as functions_planning_commitPlan from "../functions/planning/commitPlan.js";
+import type * as functions_planning_cookMeal from "../functions/planning/cookMeal.js";
 import type * as functions_planning_draftMeal from "../functions/planning/draftMeal.js";
 import type * as functions_planning_draftMealOf from "../functions/planning/draftMealOf.js";
 import type * as functions_planning_dropMeal from "../functions/planning/dropMeal.js";
@@ -84,6 +86,7 @@ import type * as functions_planning_limits from "../functions/planning/limits.js
 import type * as functions_planning_loadHouseholdMeal from "../functions/planning/loadHouseholdMeal.js";
 import type * as functions_planning_loadMealCard from "../functions/planning/loadMealCard.js";
 import type * as functions_planning_mealsBetween from "../functions/planning/mealsBetween.js";
+import type * as functions_planning_nearestPlate from "../functions/planning/nearestPlate.js";
 import type * as functions_planning_pageMeals from "../functions/planning/pageMeals.js";
 import type * as functions_planning_planDraft from "../functions/planning/planDraft.js";
 import type * as functions_planning_planMeal from "../functions/planning/planMeal.js";
@@ -162,6 +165,7 @@ import type * as router_media_images_uploadMany from "../router/media/images/upl
 import type * as router_media_images_uploadOne from "../router/media/images/uploadOne.js";
 import type * as router_media_images_uploadSizes from "../router/media/images/uploadSizes.js";
 import type * as router_planning_commit from "../router/planning/commit.js";
+import type * as router_planning_cookOne from "../router/planning/cookOne.js";
 import type * as router_planning_getDraft from "../router/planning/getDraft.js";
 import type * as router_planning_getDraftMeal from "../router/planning/getDraftMeal.js";
 import type * as router_planning_getLastDate from "../router/planning/getLastDate.js";
@@ -238,6 +242,7 @@ declare const fullApi: ApiFromModules<{
   "functions/cascade": typeof functions_cascade;
   "functions/cellars/addToCellar": typeof functions_cellars_addToCellar;
   "functions/cellars/addToGroceryList": typeof functions_cellars_addToGroceryList;
+  "functions/cellars/consumeFromCellar": typeof functions_cellars_consumeFromCellar;
   "functions/cellars/platesOnList": typeof functions_cellars_platesOnList;
   "functions/cellars/removeFromCellar": typeof functions_cellars_removeFromCellar;
   "functions/cellars/removeFromGroceryList": typeof functions_cellars_removeFromGroceryList;
@@ -276,6 +281,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/candidatePool": typeof functions_planning_candidatePool;
   "functions/planning/cellarLots": typeof functions_planning_cellarLots;
   "functions/planning/commitPlan": typeof functions_planning_commitPlan;
+  "functions/planning/cookMeal": typeof functions_planning_cookMeal;
   "functions/planning/draftMeal": typeof functions_planning_draftMeal;
   "functions/planning/draftMealOf": typeof functions_planning_draftMealOf;
   "functions/planning/dropMeal": typeof functions_planning_dropMeal;
@@ -284,6 +290,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/loadHouseholdMeal": typeof functions_planning_loadHouseholdMeal;
   "functions/planning/loadMealCard": typeof functions_planning_loadMealCard;
   "functions/planning/mealsBetween": typeof functions_planning_mealsBetween;
+  "functions/planning/nearestPlate": typeof functions_planning_nearestPlate;
   "functions/planning/pageMeals": typeof functions_planning_pageMeals;
   "functions/planning/planDraft": typeof functions_planning_planDraft;
   "functions/planning/planMeal": typeof functions_planning_planMeal;
@@ -362,6 +369,7 @@ declare const fullApi: ApiFromModules<{
   "router/media/images/uploadOne": typeof router_media_images_uploadOne;
   "router/media/images/uploadSizes": typeof router_media_images_uploadSizes;
   "router/planning/commit": typeof router_planning_commit;
+  "router/planning/cookOne": typeof router_planning_cookOne;
   "router/planning/getDraft": typeof router_planning_getDraft;
   "router/planning/getDraftMeal": typeof router_planning_getDraftMeal;
   "router/planning/getLastDate": typeof router_planning_getLastDate;
