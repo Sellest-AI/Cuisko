@@ -124,6 +124,7 @@ import type * as functions_users_isAuthorized from "../functions/users/isAuthori
 import type * as functions_users_loadUser from "../functions/users/loadUser.js";
 import type * as http from "../http.js";
 import type * as http_verified from "../http/verified.js";
+import type * as lib_authRedirect from "../lib/authRedirect.js";
 import type * as lib_i18n_index from "../lib/i18n/index.js";
 import type * as lib_media_node from "../lib/media/node.js";
 import type * as lib_nanoid from "../lib/nanoid.js";
@@ -328,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "functions/users/loadUser": typeof functions_users_loadUser;
   http: typeof http;
   "http/verified": typeof http_verified;
+  "lib/authRedirect": typeof lib_authRedirect;
   "lib/i18n/index": typeof lib_i18n_index;
   "lib/media/node": typeof lib_media_node;
   "lib/nanoid": typeof lib_nanoid;

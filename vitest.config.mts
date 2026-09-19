@@ -64,6 +64,9 @@ const dotEnvLocal = (): Record<string, string> => {
  */
 const CONVEX_TEST_ENV = {
   CONVEX_SITE_URL: "https://cuisko-test.convex.site",
+  SITE_URL: "http://localhost:8081",
+  AUTH_GOOGLE_ID: "test-google-client-id",
+  AUTH_GOOGLE_SECRET: "test-google-client-secret",
   SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
   OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
   REPLICATE_API_KEY: "test-replicate-api-key-0123456789abcdef",
