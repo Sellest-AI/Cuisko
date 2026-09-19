@@ -113,7 +113,8 @@
             "photo"
           ]
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},

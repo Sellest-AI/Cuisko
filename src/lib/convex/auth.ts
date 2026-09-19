@@ -1,14 +1,17 @@
 import { useAuthActions as useConvexAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { atom, useAtom } from "jotai";
 import { useCallback, useState } from "react";
+import { Platform } from "react-native";
 
 import { convexAuthStorage } from "./storage";
 
-/** The Password provider's two entry points. Same form, different intent. */
-export type AuthFlow = "signIn" | "signUp";
+export type Credentials = { email: string; password: string };
 
-export type Credentials = { email: string; password: string; flow: AuthFlow };
+/** The OAuth providers the auth screen offers. Ids match the provider ids in `convex/auth.ts`. */
+export type OAuthProvider = "google" | "apple";
 
 /**
  * True only while a sign-in or sign-out is mid-flight.
@@ -47,12 +50,62 @@ export const useAuthActions = () => {
   const { setAuthenticating } = useAuthenticated();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * Connects with a password, whether or not the account exists yet.
+   *
+   * The Password provider cannot do this alone: its `signIn` flow rejects an unknown email and its
+   * `signUp` flow rejects a known one. So `signIn` goes first and `signUp` is the fallback. The
+   * server's errors are opaque on purpose (no enumeration oracle), so the fallback runs on any
+   * `signIn` failure; for a known email with a wrong password, `signUp` then fails too, and
+   * that second error is the one the caller sees.
+   */
   const signIn = useCallback(
-    async ({ email, password, flow }: Credentials) => {
+    async ({ email, password }: Credentials) => {
       setIsSubmitting(true);
       setAuthenticating(true);
       try {
-        await convex.signIn("password", { email, password, flow });
+        try {
+          await convex.signIn("password", { email, password, flow: "signIn" });
+        } catch {
+          await convex.signIn("password", { email, password, flow: "signUp" });
+        }
+      } finally {
+        setIsSubmitting(false);
+        setAuthenticating(false);
+      }
+    },
+    [convex, setAuthenticating],
+  );
+
+  /**
+   * One path for sign-in and sign-up alike: an OAuth provider creates the account on first use,
+   * and `afterUserCreatedOrUpdated` in `convex/auth.ts` gives it its extended row either way.
+   *
+   * On web, `signIn` navigates the window to the provider itself and the page never comes back
+   * here. On native it resolves with a `redirect` URL instead, which has to be opened in an auth
+   * session; Convex sends the browser back to `cuisko://?code=…`, and that code is handed to a
+   * second `signIn` to finish.
+   *
+   * Closing the sheet resolves quietly — changing your mind is not an error. A return without a
+   * `code` throws, because that is the provider refusing (consent declined), and the caller's
+   * error line should say so.
+   */
+  const signInWithProvider = useCallback(
+    async (provider: OAuthProvider) => {
+      setIsSubmitting(true);
+      setAuthenticating(true);
+      try {
+        const redirectTo = Linking.createURL("/");
+        const { redirect } = await convex.signIn(provider, { redirectTo });
+        if (Platform.OS === "web" || !redirect) return;
+
+        const session = await WebBrowser.openAuthSessionAsync(redirect.toString(), redirectTo);
+        if (session.type !== "success") return;
+
+        const code = new URL(session.url).searchParams.get("code");
+        if (!code) throw new Error(`${provider} sign-in returned without a code`);
+
+        await convex.signIn(provider, { code });
       } finally {
         setIsSubmitting(false);
         setAuthenticating(false);
@@ -75,7 +128,7 @@ export const useAuthActions = () => {
     }
   }, [convex, setAuthenticating]);
 
-  return { isSubmitting, signIn, signOut };
+  return { isSubmitting, signIn, signInWithProvider, signOut };
 };
 
 export { useAuthToken, useConvexAuth };

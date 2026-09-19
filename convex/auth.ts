@@ -1,7 +1,10 @@
 import { Password } from "@convex-dev/auth/providers/Password";
+import Google from "@auth/core/providers/google";
 import { convexAuth } from "@convex-dev/auth/server";
 
 import type { MutationCtx } from "./procedures";
+import { env } from "./env";
+import { resolveAuthRedirect } from "./lib/authRedirect";
 
 /**
  * Authentication, owned by @convex-dev/auth.
@@ -15,19 +18,17 @@ import type { MutationCtx } from "./procedures";
  * `convex/router/**`, which is our API surface. This file is a mount point for someone else's.
  */
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Password],
+  providers: [Password,
+    Google({
+      clientId: env.AUTH_GOOGLE_ID,
+      clientSecret: env.AUTH_GOOGLE_SECRET,
+    })
+  ],
 
   callbacks: {
+    /** Only SITE_URL and the app's `cuisko://` scheme — see `lib/authRedirect.ts`. */
     async redirect({ redirectTo }) {
-      const url = new URL(redirectTo);
-
-      if (url.protocol === "http:" || url.protocol === "https:") {
-        // Web
-        return redirectTo;
-      } else {
-        // Mobile (scheme://)
-        return redirectTo;
-      }
+      return resolveAuthRedirect(redirectTo, env.SITE_URL);
     },
     /**
      * Creates the extended row the moment an account exists.

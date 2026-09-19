@@ -18,6 +18,11 @@ import { z } from "zod";
 const schema = z.object({
   /** Set automatically by Convex on every deployment. */
   CONVEX_SITE_URL: z.url(),
+  /** The public URL of the site: the only web origin a sign-in may redirect to (`lib/authRedirect.ts`). */
+  SITE_URL: z.url(),
+  /** Google OAuth credentials, read by `auth.ts`. */
+  AUTH_GOOGLE_ID: z.string().min(1),
+  AUTH_GOOGLE_SECRET: z.string().min(1),
   /** Authenticates `server` procedures. `npx convex env set SERVER_PRIVATE_KEY ...` */
   SERVER_PRIVATE_KEY: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(32),
@@ -41,6 +46,7 @@ const schema = z.object({
 });
 
 const parsed = schema.safeParse({
+  SITE_URL: process.env.SITE_URL,
   SERVER_PRIVATE_KEY: process.env.SERVER_PRIVATE_KEY,
   CONVEX_SITE_URL: process.env.CONVEX_SITE_URL,
   RUNPOD_API_KEY: process.env.RUNPOD_API_KEY,
@@ -52,6 +58,9 @@ const parsed = schema.safeParse({
   S3_APP_KEY_ID: process.env.S3_APP_KEY_ID,
   S3_APP_KEY: process.env.S3_APP_KEY,
   S3_DEFAULT_BUCKET: process.env.S3_DEFAULT_BUCKET,
+  // Google
+  AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
+  AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
 });
 
 if (!parsed.success) {
