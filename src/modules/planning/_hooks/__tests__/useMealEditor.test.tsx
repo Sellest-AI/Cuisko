@@ -21,7 +21,9 @@ const DAY = new Date(2026, 7, 13);
 const state = vi.hoisted(() => ({
   householdId: "household-1" as string | undefined,
   kept: {
-    meal: undefined as { id: string; recipeId: string; date: Date; slot: string; servings: number } | undefined,
+    meal: undefined as
+      | { id: string; recipeId: string; date: Date; slot: string; servings: number; status?: string }
+      | undefined,
     isLoading: false,
     isMissing: false,
     failed: false,
@@ -135,6 +137,18 @@ describe("useMealEditor", () => {
       expect(state.kept.setRecipe).toHaveBeenCalledWith("recipe-new");
       expect(state.writes).toHaveLength(0);
       expect(state.queries).toHaveLength(0);
+    });
+
+    /** The sheet closes on a cooked plate, and this flag is the only thing it has to go on. */
+    it("reports a cooked plate as cooked, and only that one", () => {
+      const { result, rerender } = editor({ kind: "meal", mealId: "meal-1" }, "plan");
+
+      expect(result.current.isCooked).toBe(false);
+
+      state.kept.meal = { ...state.kept.meal!, status: "cooked" };
+      rerender();
+
+      expect(result.current.isCooked).toBe(true);
     });
   });
 

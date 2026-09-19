@@ -39,6 +39,8 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
   const status = row.kind === "meal" ? row.meal.status : "empty";
 
   const isToday = row.date.toLocaleDateString(locale) === new Date().toLocaleDateString(locale);
+  const hasTrailing = variant === "review" || status !== "cooked";
+  const maxTitleLength = hasTrailing ? 17 : 23;
 
   return (
     <View style={[styles.row, style]}>
@@ -55,7 +57,7 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
       {row.kind === "meal" ? (
         <CardMeal
           style={styles.card}
-          title={row.meal.title.slice(0, 17).trim().concat(row.meal.title.length > 17 ? "…" : "")}
+          title={row.meal.title.slice(0, maxTitleLength).trim().concat(row.meal.title.length > maxTitleLength ? "…" : "")}
           duration={row.meal.minutes === undefined ? undefined : t("Meal.x_minutes", { count: row.meal.minutes })}
           servings={row.meal.servings}
           slot={slot}
@@ -66,7 +68,8 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
           emoji={row.meal.emoji}
           imageSrc={row.meal.imageSrc ?? MEAL_IMAGE}
           onPress={onPress}
-          trailingIcon={variant === "review" ? ArrowLeftRight : EllipsisVertical}
+          /** A cooked plate is history: nothing left to re-portion, swap or drop, so no menu to open. */
+          trailingIcon={!hasTrailing ? undefined : variant === "review" ? ArrowLeftRight : EllipsisVertical}
           onTrailingPress={onTrailingPress}
         />
       ) : (
