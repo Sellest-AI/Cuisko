@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, ViewStyle, useWindowDimensions, LayoutChangeEvent } from "react-native";
+import { View, StyleSheet, ViewStyle, useWindowDimensions, LayoutChangeEvent, Platform } from "react-native";
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -20,7 +20,8 @@ import { FlashList, FlashListProps, FlashListRef } from "@shopify/flash-list";
 import { Image, ImageProps } from "@ui/image";
 import { theme } from "theme";
 import { Text } from "@ui/text";
-import { BlurView } from "@ui/blur-view";
+import { BlurScope, BlurTarget, BlurView } from "@ui/blur-view";
+import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { Pressable } from "@ui/pressable";
 import { ButtonIcon } from "@ui/button-icon";
 import { ArrowLeftRight, Icon, MorphIcon } from "@ui/icons";
@@ -363,7 +364,29 @@ type PlateItemProps = {
   scrollX: SharedValue<number>
 }
 
+/** Where the badge landed inside the item, in layout coordinates with its centring applied. */
+type BadgeFrame = { left: number, top: number, width: number, height: number };
+
 const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
+  /** The badge frosts the plate under it, so the plate is what the badge's blur samples. */
+  const cover = useBlurTarget();
+
+  /**
+   * On Android the target is a second copy of the plate, clipped to the badge's own rectangle and
+   * drawn inside it at the opposite offset, so its pixels lie exactly over the visible plate's.
+   * Android samples a target by the *screen* distance between the blur and the target's origin,
+   * and the whole item is scaled by the carousel — any distance comes out scaled while the sample
+   * does not, and a side plate's badge showed the plate shifted by a third of that distance. A
+   * distance of zero is exact at every scale. A copy rather than the plate itself because the
+   * native target clips its children: a plate placed outside the badge's rectangle disappears.
+   * The copy is invisible in practice — under the badge, over identical pixels — and the image
+   * cache serves it. The badge is centred by a translate of half its width, which `onLayout`
+   * does not include, hence the subtraction. iOS and web sample under the badge on their own.
+   */
+  const [badge, setBadge] = useState<BadgeFrame | null>(null);
+  const onBadgeLayout = ({ nativeEvent: { layout } }: LayoutChangeEvent) =>
+    setBadge({ left: layout.x - layout.width / 2, top: layout.y, width: layout.width, height: layout.height });
+
   const animatedStyle = useAnimatedStyle(() => {
     /** 0 when this plate is centred, ±1 when it is one slot away. */
     const distance = Math.abs(scrollX.value / SNAP - index);
@@ -392,25 +415,49 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
             transform: [{ translateX: -16 }, { translateY: -16 }],
           }}
         />}
-        <BlurView
-          tint="light"
-          style={[styles.itemBadge, styles.itemBadgePosition, { minWidth: _badgeMinWidth(plate) }]}
-        >
-          <Text.Base
-            numberOfLines={1}
+        {/* The icon is not copied: it sits at the plate's centre, nowhere near the badge. */}
+        {Platform.OS === "android" && badge && (
+          <BlurTarget target={cover} style={[styles.plateTarget, badge]}>
+            {/*
+              * Inside the target, not on it: the plate is a PNG with transparent surroundings,
+              * and the sampler paints the *window* background under transparent pixels — which
+              * is whatever the phone's theme says, not the page. An opaque page-coloured layer
+              * under the copy makes the sample the page's own colour, and it hides under the badge.
+              */}
+            <View style={[StyleSheet.absoluteFill, {
+              backgroundColor: theme.colors.neutral.elevated,
+              // The target is the badge's rectangle; the badge is a pill, so its corners stay clear.
+              borderRadius: styles.itemBadge.borderRadius,
+            }]} />
+            <Image
+              source={plate.imageSrc}
+              contentFit="contain"
+              style={[styles.plate, { position: "absolute", left: -badge.left, top: -badge.top }]}
+            />
+          </BlurTarget>
+        )}
+        <BlurScope target={cover}>
+          <BlurView
+            tint="extraLight"
+            onLayout={onBadgeLayout}
+            style={[styles.itemBadge, styles.itemBadgePosition, { minWidth: _badgeMinWidth(plate) }]}
           >
-            {plate.title.length > MAX_TITLE_LENGTH ? plate.title.slice(0, MAX_TITLE_LENGTH) + "…" : plate.title}
-          </Text.Base>
-          {plate.subtitle ? (
-            <Text.Sm
-              color={theme.colors.muted}
-              style={{ marginTop: 1, minWidth: "auto" }}
+            <Text.Base
               numberOfLines={1}
             >
-              {plate.subtitle}
-            </Text.Sm>
-          ) : null}
-        </BlurView>
+              {plate.title.length > MAX_TITLE_LENGTH ? plate.title.slice(0, MAX_TITLE_LENGTH) + "…" : plate.title}
+            </Text.Base>
+            {plate.subtitle ? (
+              <Text.Sm
+                color={theme.colors.muted}
+                style={{ marginTop: 1, minWidth: "auto" }}
+                numberOfLines={1}
+              >
+                {plate.subtitle}
+              </Text.Sm>
+            ) : null}
+          </BlurView>
+        </BlurScope>
         {plate.onReplace && <ButtonIcon
           onPress={plate.onReplace}
           composite={false}
@@ -438,6 +485,10 @@ const styles = StyleSheet.create({
   plate: {
     width: PLATE_SIZE,
     height: PLATE_SIZE
+  },
+  /** Sized and placed by the badge's measured frame. */
+  plateTarget: {
+    position: "absolute",
   },
   itemBadgePosition: {
     position: "absolute",

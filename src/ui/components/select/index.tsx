@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import {
   Modal,
   Pressable as NativePressable,
+  Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -25,10 +26,10 @@ import { BlurView } from "../blur-view";
  * design *wants* our own tokens. Sharing the fallback also means one implementation to keep
  * honest instead of two.
  *
- * There is no blur here on purpose. `surface.elevated` is translucent and assumes something
- * frosted behind it; a Modal has nothing behind it to sample, and Android's blur is not worth
- * what it costs. So the sheet is opaque `background` separated by shadow, which reads the same
- * on both platforms.
+ * On Android the sheet is opaque `background`, separated from the page by its shadow.
+ * `surface.elevated` is translucent and assumes something frosted behind it; a Modal has nothing
+ * behind it to sample there, and giving the popover a surface of its own to sample is not worth
+ * what it costs. Web keeps the translucent surface, which its `backdrop-filter` can honour.
  */
 export const Select = <T extends string>({
   options,
@@ -168,7 +169,7 @@ const ENTER_MS = 160;
 const styles = StyleSheet.create({
   popover: {
     position: "absolute",
-    backgroundColor: colors.surface.elevated,
+    backgroundColor: Platform.OS === "android" ? colors.background : colors.surface.elevated,
     borderRadius: theme.radius.md,
     borderColor: colors.border.default,
     borderWidth: 2,

@@ -3,7 +3,7 @@ import { View, StyleSheet, ViewStyle, TextInput } from "react-native";
 import { theme } from "theme";
 import { ButtonIcon } from "./button-icon";
 import { Icon } from "./icons";
-import { BlurView } from "./blur-view";
+import { BlurScope, BlurView } from "./blur-view";
 
 type Props = {
   style?: ViewStyle,
@@ -70,55 +70,61 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
           highlightOnFocus && isFocused && styles.bordersFocused,
         ]}
       />
-      {leftIcon && <ButtonIcon
-        variant={"neutral-subtle"}
-        elevated={true}
-        composite
-        size="sm"
-        onPress={onLeftPress}
-      >
-        {leftIcon}
-      </ButtonIcon>}
-      <TextInput
-        ref={ref}
-        inputMode={type === "numeric" ? "numeric" :
-          type === "decimal" ? "decimal" :
-            type === "email" ? "email" : "text"}
-        placeholder={placeholder}
-        placeholderTextColor={placeholderColor}
-        onFocus={() => { setIsFocused(true); onFocus?.(); }}
-        onBlur={() => { setIsFocused(false); onBlur?.(); }}
-        value={value}
-        onChangeText={onChangeText}
-        onSubmitEditing={(e) => {
-          // Necessary for native + web platforms
-          const _value = (e.nativeEvent as unknown as { text: string }).text ??
-            e.currentTarget.nodeValue ?? value;
-          onSubmit?.(_value);
-        }}
-        autoCorrect={false}
-        autoCapitalize="sentences"
-        returnKeyType="search"
-        style={[
-          styles.input,
-          theme.font.base,
-          { fontWeight: 400 },
-          { color: color.color },
-        ]}
-      />
-      {rightIcon && <ButtonIcon
-        variant={"neutral-subtle"}
-        elevated={true}
-        composite={!onRightPress}
-        size="sm"
-        onPress={onRightPress}
-        isLoading={isLoading}
-      >
-        {rightIcon}
-      </ButtonIcon>}
-      {rightContent && <View style={{ position: "relative" }}>
-        {rightContent}
-      </View>}
+      {/*
+        * The discs sit on this field's own surface, so they must not sample the page behind it —
+        * see `BlurScope`. The surface above is a sibling, not their parent, hence the explicit scope.
+        */}
+      <BlurScope target={null}>
+        {leftIcon && <ButtonIcon
+          variant={"neutral-subtle"}
+          elevated={true}
+          composite
+          size="sm"
+          onPress={onLeftPress}
+        >
+          {leftIcon}
+        </ButtonIcon>}
+        <TextInput
+          ref={ref}
+          inputMode={type === "numeric" ? "numeric" :
+            type === "decimal" ? "decimal" :
+              type === "email" ? "email" : "text"}
+          placeholder={placeholder}
+          placeholderTextColor={placeholderColor}
+          onFocus={() => { setIsFocused(true); onFocus?.(); }}
+          onBlur={() => { setIsFocused(false); onBlur?.(); }}
+          value={value}
+          onChangeText={onChangeText}
+          onSubmitEditing={(e) => {
+            // Necessary for native + web platforms
+            const _value = (e.nativeEvent as unknown as { text: string }).text ??
+              e.currentTarget.nodeValue ?? value;
+            onSubmit?.(_value);
+          }}
+          autoCorrect={false}
+          autoCapitalize="sentences"
+          returnKeyType="search"
+          style={[
+            styles.input,
+            theme.font.base,
+            { fontWeight: 400 },
+            { color: color.color },
+          ]}
+        />
+        {rightIcon && <ButtonIcon
+          variant={"neutral-subtle"}
+          elevated={true}
+          composite={!onRightPress}
+          size="sm"
+          onPress={onRightPress}
+          isLoading={isLoading}
+        >
+          {rightIcon}
+        </ButtonIcon>}
+        {rightContent && <View style={{ position: "relative" }}>
+          {rightContent}
+        </View>}
+      </BlurScope>
     </View>
   )
 }

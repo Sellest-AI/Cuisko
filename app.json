@@ -20,6 +20,8 @@
     },
     "android": {
       "package": "com.cuisko.app",
+      "userInterfaceStyle": "light",
+      "backgroundColor": "#FFFCFA",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",

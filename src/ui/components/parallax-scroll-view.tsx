@@ -1,8 +1,10 @@
 import { useFocusEffect } from "expo-router";
 import { ComponentProps, ReactNode, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Animated, Dimensions, Platform, ScrollView, View, ViewStyle } from "react-native";
+import { Animated, Dimensions, Platform, ScrollView, StyleSheet, View, ViewStyle } from "react-native";
 import Reanimated, { interpolate, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { Image } from "./image";
+import { BlurScope, BlurTarget } from "./blur-view";
+import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "./safe-area-view";
 import { colors } from "~/global/theme";
@@ -90,6 +92,13 @@ export const ParallaxScrollView = ({
   }, []));
 
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  /**
+   * Whatever `headerContent` frosts — a button, a tag — frosts the photo under it, so the photo and
+   * its gradients are the target and the content slot is the scope. The split is already the
+   * tree's: the background is drawn before the scroll view and the content inside it.
+   */
+  const cover = useBlurTarget();
 
   // For content inside ScrollView: counteract natural scroll to create parallax
   // eslint-disable-next-line react-hooks/refs
@@ -204,70 +213,72 @@ export const ParallaxScrollView = ({
         }, headerAnimatedStyle]}
         pointerEvents="none"
       >
-        <Animated.View style={[{
-          position: "absolute",
-          inset: 0,
-          opacity: headerBackgroundImageOpacity,
-          transform: [{ scale: headerBackgroundScale }],
-        }]}>
-          {headerBackground && <View style={{
+        <BlurTarget target={cover} style={StyleSheet.absoluteFill}>
+          <Animated.View style={[{
             position: "absolute",
             inset: 0,
-          }}>
-            {headerBackground}
-          </View>}
-          {headerBackgroundImage && (
-            <AnimatedImage
-              /**
-               * A url is cached; anything else (a bundled `require`) is already a source and goes
-               * through untouched. Stringifying it would ask the network for "12".
-               */
-              source={typeof headerBackgroundImage === "string"
-                ? { uri: headerBackgroundImage, cache: "force-cache" }
-                : headerBackgroundImage}
-              style={[{
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                paddingTop: layoutToggle,
-              },
-                headerBackgroundImageStyle,
-              { opacity: 1 }
-              ]}
-              blurRadius={headerBackgroundImageStyle?.blurRadius ?? 0}
-              // DISABLED: reanimated wraps react native component and not expo image
-              // Expo image causes black bar on ios
-              contentPosition={headerBackgroundImagePosition}
-              contentFit="cover"
-            />
-          )}
-        </Animated.View>
-        {headerBackgroundGradient && <Animated.View style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: -1,
-          height: "50%",
-        }}>
-          <LinearGradient
-            colors={["transparent", "rgba(0, 0, 0, 0.3)"]}
-            style={{
-              width: "100%",
-              height: "100%"
-            }}
-          />
-        </Animated.View>}
-        {headerBackgroundGradient && <LinearGradient
-          colors={["rgba(0, 0, 0, 0.3)", "transparent"]}
-          style={{
+            opacity: headerBackgroundImageOpacity,
+            transform: [{ scale: headerBackgroundScale }],
+          }]}>
+            {headerBackground && <View style={{
+              position: "absolute",
+              inset: 0,
+            }}>
+              {headerBackground}
+            </View>}
+            {headerBackgroundImage && (
+              <AnimatedImage
+                /**
+                 * A url is cached; anything else (a bundled `require`) is already a source and goes
+                 * through untouched. Stringifying it would ask the network for "12".
+                 */
+                source={typeof headerBackgroundImage === "string"
+                  ? { uri: headerBackgroundImage, cache: "force-cache" }
+                  : headerBackgroundImage}
+                style={[{
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  paddingTop: layoutToggle,
+                },
+                  headerBackgroundImageStyle,
+                { opacity: 1 }
+                ]}
+                blurRadius={headerBackgroundImageStyle?.blurRadius ?? 0}
+                // DISABLED: reanimated wraps react native component and not expo image
+                // Expo image causes black bar on ios
+                contentPosition={headerBackgroundImagePosition}
+                contentFit="cover"
+              />
+            )}
+          </Animated.View>
+          {headerBackgroundGradient && <Animated.View style={{
             position: "absolute",
             left: 0,
             right: 0,
-            top: 0,
-            height: "30%",
-            opacity: 0.8
-          }}
-        />}
+            bottom: -1,
+            height: "50%",
+          }}>
+            <LinearGradient
+              colors={["transparent", "rgba(0, 0, 0, 0.3)"]}
+              style={{
+                width: "100%",
+                height: "100%"
+              }}
+            />
+          </Animated.View>}
+          {headerBackgroundGradient && <LinearGradient
+            colors={["rgba(0, 0, 0, 0.3)", "transparent"]}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: 0,
+              height: "30%",
+              opacity: 0.8
+            }}
+          />}
+        </BlurTarget>
       </Reanimated.View>
 
       {/* Scrollable Content */}
@@ -306,7 +317,9 @@ export const ParallaxScrollView = ({
             pointerEvents="box-none"
             edges={{ bottom: "off", ...headerContentEdges }}
           >
-            {headerContent}
+            <BlurScope target={cover}>
+              {headerContent}
+            </BlurScope>
           </SafeAreaView>
         </Animated.View>
 
