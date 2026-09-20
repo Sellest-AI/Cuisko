@@ -52,7 +52,7 @@ export const HomeHeader = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingLeft: theme.spacing[24],
+    paddingLeft: theme.spacing[16],
     paddingTop: theme.spacing[8],
     paddingRight: theme.spacing[16],
     flexDirection: "row",
