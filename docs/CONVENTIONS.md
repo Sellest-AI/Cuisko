@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C12)              |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C13)              |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept

@@ -298,7 +298,7 @@ module.exports = defineConfig([
     rules: {
       // `avoidEscape` lets a string that CONTAINS a double quote keep its single ones. Without it
       // the rule's own fixer rewrites `'v.id("users")'` as `"v.id(\"users\")"`, which is the shape
-      // most of the C1–C12 tests are made of: their fixtures are source code, and their assertions
+      // most of the C1–C13 tests are made of: their fixtures are source code, and their assertions
       // quote the messages the checks print. Escaping all of it costs readability on every line and
       // buys nothing — the rule still forbids single quotes anywhere they are merely a preference.
       quotes: ["error", "double", { allowTemplateLiterals: true, avoidEscape: true }],

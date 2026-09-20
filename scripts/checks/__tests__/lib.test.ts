@@ -1,5 +1,5 @@
 /**
- * `_lib.mjs` — the shared floor under C1-C12.
+ * `_lib.mjs` — the shared floor under C1-C13.
  *
  * This is the highest-leverage file in `scripts/checks/`, and the one whose failure is hardest
  * to see.

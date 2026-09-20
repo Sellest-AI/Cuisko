@@ -1,6 +1,6 @@
 ---
 id: 0003
-applies_to: ["convex/router/**/*.ts", "convex/procedures.ts"]
+applies_to: ["convex/router/**/*.ts", "convex/procedures.ts", "convex/functions/assistant/**/*.ts"]
 status: accepted
 supersedes: []
 ---
@@ -10,7 +10,9 @@ supersedes: []
 MUST: use `ownedQuery('<table>')` / `ownedMutation('<table>')` for any procedure that takes a
       document id and acts on that caller's own document. The document arrives as `ctx.doc`.
 MUST NOT: re-implement the ownership check inline (`if (doc.userId !== ctx.userId)`) in a
-          `router/` file. **Except in an action — see "Actions" below.**
+          `router/` file. **Two exceptions, each with its own section below:** an action, which
+          has no `ctx.db` for the builder to load through, and a resource whose table belongs to an
+          installed Convex component rather than to our schema, which `OwnedTable` cannot name.
 MUST NOT: import or call `isAuthorized` from `convex/router/**` (lint R7). Direct calls belong in
           `convex/functions/**`, where a batch operation or an already-loaded document needs
           checking.
@@ -104,6 +106,56 @@ An action taking a document id is rare. If that stops being true, the answer is 
 **Adding one is a decision, not a detail.** Say so in the commit body, and add the rejection test in
 the same commit.
 
+## Component-owned resources
+
+**A document that lives in an installed component cannot be guarded by a builder, in a query or a
+mutation as much as in an action.** The reason is different from the action's, and it is a type
+error rather than a missing `ctx.db`: `OwnedTable` is `Extract<TableNames, …>`, and `TableNames`
+is our schema. A table the `@convex-dev/agent` component owns is not in it, so
+`ownedQuery('threads')` does not fail at runtime — it does not compile. The `Extract` that makes
+the union self-checking for our tables is exactly what puts a component's tables out of reach.
+
+The first such resource is a conversation thread. A `threadId` is a client-supplied string that
+names somebody's private conversation, the component answers whoever names it, and threads are
+never deleted — so a leaked id reads that conversation for good. The comparison has to be written
+by hand, and this ADR opens by explaining what happens to hand-written comparisons.
+
+The mitigation that *is* available is to make the hand-written check a chokepoint rather than a
+convention:
+
+MUST: write the comparison in exactly one function, and have every reader of the resource call it
+      before reading anything. There is no second way in.
+MUST: return `null` from it rather than throwing, for every failure — missing, malformed, not
+      yours. The three are one answer to a caller ("there is no conversation here"), so nothing in
+      the return value or an error message tells an attacker which ids are real. Failing closed is
+      what makes this safe: a genuine fault can only ever cost a conversation, never expose one.
+MUST: give each router entry point a rejection test asserting another user's id is refused, as
+      for an action.
+MUST NOT: reach the resource from anywhere else — not through the component's own query and not
+      through an `Agent` method that takes the id. Check C13 enforces this.
+
+Live instance: [`functions/assistant/ownedThread.ts`](../../convex/functions/assistant/ownedThread.ts)
+is the chokepoint; [`threadMessages.ts`](../../convex/functions/assistant/threadMessages.ts) and
+[`openThread.ts`](../../convex/functions/assistant/openThread.ts) are its only callers, and both do
+nothing when it answers `null`. The rejection tests are in `router/assistant/__tests__/`.
+
+### What C13 checks, and why that is not a contradiction
+
+The section above says a hand-written comparison is not enforceable by code, and C13 is a script.
+Both are true, because they check different things. Whether `ownedThread` compares the *right*
+field is semantic, and no script can see it — that is the cost the section above names, and it is
+paid here too. Whether anything reaches a thread *without* `ownedThread` is structural: an
+allowlist of files may reference `components.agent` at all (everywhere else its only legal use is
+as the argument of `new Agent(…)`, so an alias or a destructuring cannot slip past) or call the
+`Agent` reader methods that take a `threadId` (`listMessages`, `syncStreams`,
+`getThreadMetadata`), and nothing else may. That
+is the same kind of rule as lint R7 — router/ may not import `isAuthorized` — and like R7 it fails
+closed: a new reader anywhere is a finding until it is either routed through the chokepoint or
+audited and added to the list, in that commit, on purpose.
+
+So the surface that must stay small is not "every place that reads a thread"; it is the allowlist,
+and adding a line to it is the review.
+
 ## Verify
 
 ```bash
@@ -111,6 +163,7 @@ pnpm typecheck        # ownedQuery/ownedMutation signatures; OwnedTable membersh
 pnpm lint             # R7 — router/ may not import isAuthorized
 pnpm check:exports    # C1 — `authed` accepts owned* as well as auth* builders
 pnpm check:authtests  # C5 — each gated export has a rejection test
+pnpm check:threads    # C13 — a thread is reached only through ownedThread and its allowlisted callers
 ```
 
 ## See also

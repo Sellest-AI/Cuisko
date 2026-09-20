@@ -136,7 +136,7 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C12 scripts, which had no runner at all until this project existed.
+       * The C1-C13 scripts, which had no runner at all until this project existed.
        *
        * Plain node: these tests spawn the real script as a subprocess and assert its exit code, so
        * nothing here needs a DOM, an alias or the Convex runtime.
