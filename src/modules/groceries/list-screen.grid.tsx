@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanim
 
 import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
 import { CheckIcon, IconComponent, PlusIcon } from "@ui/icons";
+import { Pressable } from "@ui/pressable";
 import { Select } from "@ui/select";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -129,12 +130,17 @@ const SectionHeader = ({
  *
  * A plate is named by its dish and dated by its day and slot: "Lasagna" alone would not tell
  * Monday's from Friday's, and telling them apart is the whole reason the view exists.
+ *
+ * A plate's name opens its recipe: a shopper wondering why the list wants thyme for the lasagna
+ * has the answer one tap away, on the page that lists it. The other two headings name nothing
+ * that has a page.
  */
 const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; style?: ViewStyle }) => {
   const t = useTranslations("Groceries");
   const tPlanning = useTranslations("Planning");
   const tVocabulary = useTranslations("Vocabulary");
   const locale = useLocale();
+  const router = useRouter();
 
   const title =
     heading.kind === "plate" ? heading.title
@@ -155,9 +161,15 @@ const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; sty
       exiting={SUBHEADER_EXITING}
       style={[styles.subheader, style]}
     >
-      <Text.Base weight={600} color={theme.colors.neutral.muted} numberOfLines={1}>
-        {title}
-      </Text.Base>
+      {heading.kind === "plate"
+        ? <Pressable onPress={() => router.push(`/recipe/${heading.recipeId}`)} style={styles.subheaderTitle}>
+          <Text.Base weight={600} color={theme.colors.neutral.muted} numberOfLines={1}>
+            {title}
+          </Text.Base>
+        </Pressable>
+        : <Text.Base weight={600} color={theme.colors.neutral.muted} numberOfLines={1}>
+          {title}
+        </Text.Base>}
       {caption && <Text.Sm color={theme.colors.neutral.muted} numberOfLines={1} style={styles.subheaderCaption}>
         {caption}
       </Text.Sm>}
@@ -358,8 +370,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: theme.spacing[24],
   },
+  /**
+   * Takes the room the caption leaves, so a long dish name is what gets the ellipsis. `flex` and
+   * not `flexShrink`: the shared Pressable forwards only the former to the flex item it renders.
+   */
+  subheaderTitle: {
+    flex: 1,
+  },
   subheaderCaption: {
     flexShrink: 0,
     marginBottom: theme.spacing[2],
-  }
+  },
 });

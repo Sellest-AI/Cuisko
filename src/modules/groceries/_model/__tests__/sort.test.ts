@@ -36,8 +36,8 @@ const base: Snapshot = {
   receipts: [],
   history: [],
   plates: [
-    { id: "friday", title: "Lasagnes", date: day(4), slot: "lunch", claims: [{ lineId: "l-parmesan", amount: 100 }] },
-    { id: "monday", title: "Lasagnes", date: day(0), slot: "dinner", claims: [{ lineId: "l-parmesan", amount: 200 }] },
+    { id: "friday", recipeId: "lasagna", title: "Lasagnes", date: day(4), slot: "lunch", claims: [{ lineId: "l-parmesan", amount: 100 }] },
+    { id: "monday", recipeId: "lasagna", title: "Lasagnes", date: day(0), slot: "dinner", claims: [{ lineId: "l-parmesan", amount: 200 }] },
   ],
   now: NOW,
 };
@@ -109,7 +109,7 @@ describe("by plan", () => {
     const snapshot = {
       ...base,
       lines: [line("l-parmesan", PARMESAN, 150)],
-      plates: [...base.plates, { id: "sunday", title: "Soupe", date: day(6), slot: "lunch" as const, claims: [] }],
+      plates: [...base.plates, { id: "sunday", recipeId: "soup", title: "Soupe", date: day(6), slot: "lunch" as const, claims: [] }],
     };
 
     expect(outline(groupToBuy(toBuyOf(snapshot), "by-plan", snapshot))).toEqual([
@@ -151,7 +151,7 @@ describe("by plan", () => {
   it("carries the plate's title, day and slot on the heading, and none of that on unplanned", () => {
     const [monday, , unplanned] = groupToBuy(toBuyOf(base), "by-plan", base);
 
-    expect(monday!.heading).toEqual({ kind: "plate", title: "Lasagnes", date: day(0), slot: "dinner" });
+    expect(monday!.heading).toEqual({ kind: "plate", recipeId: "lasagna", title: "Lasagnes", date: day(0), slot: "dinner" });
     expect(unplanned!.heading).toEqual({ kind: "unplanned" });
   });
 });

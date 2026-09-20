@@ -19,6 +19,8 @@ type Args = {
  */
 export type PlateOnList = {
   id: Id<"plannedMeals">;
+  /** The dish behind the plate, so a heading can open the recipe it names. */
+  recipeId: Id<"recipes">;
   title: string;
   date: number;
   slot: MealSlot;
@@ -69,6 +71,7 @@ export const platesOnList = async (ctx: PlatesCtx, { householdId, locale }: Args
 
   return [...plates.values()].map((plate) => ({
     id: plate._id,
+    recipeId: plate.recipeId,
     title: titles.get(plate.recipeId)!,
     date: plate.date,
     slot: plate.slot,

@@ -65,6 +65,7 @@ const _toHistoryEntry = (row: Doc<"recentlyUsedIngredients">): HistoryEntry => (
  */
 const _toPlate = (row: FunctionReturnType<typeof api.router.cellars.getPlatesOnList.authed>[number]): Plate => ({
   id: row.id,
+  recipeId: row.recipeId,
   title: row.title,
   date: new Date(row.date),
   slot: row.slot,
