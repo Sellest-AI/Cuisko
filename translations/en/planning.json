@@ -26,6 +26,7 @@
   },
   "Status": {
     "cooked": "Cooked",
+    "skipped": "Skipped",
     "ready": "All set",
     "shopping_needed": "Short a few",
     "empty": "Open slot"

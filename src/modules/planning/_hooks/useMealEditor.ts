@@ -9,6 +9,7 @@ import { useHousehold } from "~/modules/households/hooks";
 import {
   addMeal,
   draftMealOf,
+  isSettled,
   plateIdFor,
   removeMeal,
   replaceMeal,
@@ -182,8 +183,8 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
      * it has just removed. An empty slot with nothing chosen yet is not missing — it is the point.
      */
     missing: isKept ? kept.isMissing : target.kind === "meal" && !meal,
-    /** Only a kept plate can have been cooked — a draft is a week nobody has started yet. */
-    isCooked: kept.meal?.status === "cooked",
+    /** Only a kept plate can be settled — cooked, or skipped — a draft is a week nobody has started yet. */
+    isSettled: kept.meal !== undefined && isSettled(kept.meal.status),
     /** The server refused the last edit, and the plate is back to what it was. */
     failed: kept.failed || failed,
     servings: (isKept ? kept.servings : meal?.servings) ?? draftServings,

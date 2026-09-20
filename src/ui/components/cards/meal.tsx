@@ -9,13 +9,14 @@ import { ButtonIcon } from "@ui/button-icon";
 import { colors, theme } from "theme";
 
 /**
- * How far a plate has got. The union drives colour and icon so the four states stay exhaustive and
+ * How far a plate has got. The union drives colour and icon so the five states stay exhaustive and
  * consistent wherever the card is drawn; the label itself arrives as a prop, because `src/ui/**`
  * may not read translations (ADR 0002).
  *
- * `empty` is not a failure — it is a plate nobody has filled yet, and it reads as an invitation.
+ * Neither `empty` nor `skipped` is a failure — one is a plate nobody has filled yet and reads as an
+ * invitation, the other a plate nobody cooked, drawn as quietly as an empty one.
  */
-export type MealStatus = "cooked" | "ready" | "shopping-needed" | "empty";
+export type MealStatus = "cooked" | "skipped" | "ready" | "shopping-needed" | "empty";
 
 type Props = {
   title: string;

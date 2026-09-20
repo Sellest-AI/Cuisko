@@ -197,6 +197,38 @@ export const heirOf = async (
 };
 
 /**
+ * Takes a ledger row's claim off the grocery list, the one way every closing of a plate does it.
+ *
+ * A jar the row bought for the week is handed to the first later plate living off it (`heirOf`),
+ * and anything else is given back to the list row (`backOut`). Dropping, re-portioning, cooking
+ * and skipping a plate all close its claims through this and nothing else, so the arithmetic is
+ * written once — ADR 0013. `plates` is lazy: a plate with no jar never reads the week.
+ *
+ * Returns whether the jar was handed on, which is the one thing a caller decides differently: a
+ * re-scale keeps the ingredient present for the lines it is about to write.
+ */
+export const releaseClaim = async (
+  ctx: MutationCtx,
+  row: Doc<"plannedMealIngredients">,
+  plates: () => Promise<Doc<"plannedMeals">[]>,
+): Promise<boolean> => {
+  const heir = await heirOf(ctx, row, plates);
+
+  if (!heir) {
+    await backOut(ctx, row);
+    return false;
+  }
+
+  await ctx.db.patch(heir._id, {
+    groceryQuantity: row.groceryQuantity,
+    groceryListItemId: row.groceryListItemId,
+    updatedAt: Date.now(),
+  });
+
+  return true;
+};
+
+/**
  * Makes a planned meal's ledger equal `lines`, and moves the grocery list by the difference.
  *
  * **The only writer of `plannedMealIngredients`**, and the only place the grocery list learns what a
@@ -218,19 +250,8 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
   const plates = () => (later ??= laterPlates(ctx, householdId, plannedMealId, from));
 
   for (const row of existing) {
-    const heir = await heirOf(ctx, row, plates);
-
-    if (heir) {
-      await ctx.db.patch(heir._id, {
-        groceryQuantity: row.groceryQuantity,
-        groceryListItemId: row.groceryListItemId,
-        updatedAt: Date.now(),
-      });
-      // The jar stays on the list, so a plate rewritten below still finds the ingredient present.
-      if (!stock.has(row.ingredientId)) stock.set(row.ingredientId, 0);
-    } else {
-      await backOut(ctx, row);
-    }
+    // The jar stays on the list, so a plate rewritten below still finds the ingredient present.
+    if (await releaseClaim(ctx, row, plates) && !stock.has(row.ingredientId)) stock.set(row.ingredientId, 0);
 
     await ctx.db.delete(row._id);
   }

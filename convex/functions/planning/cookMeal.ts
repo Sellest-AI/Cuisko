@@ -10,7 +10,7 @@ import { currentSlot, nearestPlate } from "./nearestPlate";
 import { recipeLines } from "./recipeLines";
 import { scaleLines } from "./scaleLines";
 import type { Need } from "./selectMeals";
-import { backOut, heirOf, laterPlates, type LineIngredient } from "./syncMealLines";
+import { laterPlates, type LineIngredient, releaseClaim } from "./syncMealLines";
 
 type Args = Clock & {
   householdId: Id<"households">;
@@ -47,13 +47,7 @@ const _settleLedger = async (
   const takes = [...consumed];
 
   for (const row of ledger) {
-    const heir = await heirOf(ctx, row, plates);
-
-    if (heir) {
-      await ctx.db.patch(heir._id, { groceryQuantity: row.groceryQuantity, groceryListItemId: row.groceryListItemId, updatedAt: Date.now() });
-    } else {
-      await backOut(ctx, row);
-    }
+    await releaseClaim(ctx, row, plates);
 
     const at = takes.findIndex((take) => take.ingredientId === row.ingredientId);
     const [take] = at === -1 ? [] : takes.splice(at, 1);

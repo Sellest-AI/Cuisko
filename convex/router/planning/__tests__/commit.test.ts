@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
@@ -25,8 +25,21 @@ const TODAY = 1_700_000_000_000;
 
 let t: ReturnType<typeof convexTest>;
 
+/**
+ * `commit` books a skip job for every plate it writes (`skipAt`), and with `TODAY` in 2023 every
+ * one of them is already due: left on a real timer it fires a few ms into the test and closes the
+ * plate under the assertion — only under load, and never when the file runs alone. Only the timer
+ * functions are faked, so `Date.now()` stays real for the `updatedAt` columns the seeds write, and
+ * the pending timers are dropped after each test rather than run; `skipOne.test.ts` runs the job.
+ */
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+});
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
 });
 
 const seedUser = () =>

@@ -3,6 +3,7 @@ import { facetsOf } from "@shared/tags";
 
 import { components, internal } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
+import { skipAt } from "./functions/planning/skipMeal";
 import { recipeSearchText } from "./functions/recipes/recipeSearchText";
 import { randomShuffleKey } from "./lib/nanoid";
 
@@ -143,6 +144,27 @@ export const renameSpoonUnitsInRecentlyUsedIngredients = migrations.define({
   },
 });
 
+/**
+ * Books the skip job for every plate planned before `commitPlan` started booking one.
+ *
+ * A plate is closed by the clock a day after its day (`skipMeal`), and the job doing it is
+ * scheduled when the plate is written. Plates written before that have no job, so a plate from
+ * a week ago stays `planned` and keeps its groceries on the list forever — the bug this lands
+ * with. One job per plate still `planned`, whatever its date: a time already past fires at once,
+ * a future one waits like the ones `commitPlan` books.
+ *
+ * Patches nothing, so it is safe to re-run: the cost is one extra job per plate, and the job
+ * checks the plate's status before it writes.
+ */
+export const scheduleSkips = migrations.define({
+  table: "plannedMeals",
+  migrateOne: async (ctx, plate) => {
+    if (plate.status !== "planned") return;
+
+    await ctx.scheduler.runAt(skipAt(plate.date), internal.router.planning.skipOne._internal, { mealId: plate._id });
+  },
+});
+
 export const runBackfillRecipeSearch = migrations.runner([internal.migrations.backfillRecipeSearch]);
 
 export const runBackfillRecipeShuffleKey = migrations.runner([
@@ -157,3 +179,5 @@ export const runRenameSpoonUnits = migrations.runner([
   internal.migrations.renameSpoonUnitsInCellarItems,
   internal.migrations.renameSpoonUnitsInRecentlyUsedIngredients,
 ]);
+
+export const runScheduleSkips = migrations.runner([internal.migrations.scheduleSkips]);

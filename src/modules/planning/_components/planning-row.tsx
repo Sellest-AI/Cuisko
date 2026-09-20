@@ -5,7 +5,7 @@ import { DayMarker } from "@ui/day-marker";
 import { ArrowLeftRight, EllipsisVertical, Plus } from "@ui/icons";
 import { resolveLocale, useTranslations } from "translations";
 
-import type { MealCard, PlanningRow } from "../_model/model";
+import { isSettled, type MealCard, type PlanningRow } from "../_model/model";
 import { EMPTY_PLATE_IMAGE, MEAL_IMAGE } from "../_hooks/placeholders";
 import { MEAL_STATUS } from "./meal-status";
 
@@ -39,7 +39,7 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
   const status = row.kind === "meal" ? row.meal.status : "empty";
 
   const isToday = row.date.toLocaleDateString(locale) === new Date().toLocaleDateString(locale);
-  const hasTrailing = variant === "review" || status !== "cooked";
+  const hasTrailing = variant === "review" || !isSettled(status);
   const maxTitleLength = hasTrailing ? 17 : 23;
 
   return (
@@ -68,7 +68,7 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
           emoji={row.meal.emoji}
           imageSrc={row.meal.imageSrc ?? MEAL_IMAGE}
           onPress={onPress}
-          /** A cooked plate is history: nothing left to re-portion, swap or drop, so no menu to open. */
+          /** A settled plate is history: nothing left to re-portion, swap or drop, so no menu to open. */
           trailingIcon={!hasTrailing ? undefined : variant === "review" ? ArrowLeftRight : EllipsisVertical}
           onTrailingPress={onTrailingPress}
         />

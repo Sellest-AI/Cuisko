@@ -5,19 +5,25 @@ status: accepted
 supersedes: []
 ---
 
-# A plate is planned through one path and cooked through one, and only what is ahead holds stock
+# A plate is planned through one path, cooked through one, skipped through one, and only what is ahead holds stock
 
 - EVERY write that puts a dish on a plate ahead of the household MUST go through `commitPlan`,
-  whether it is a week from the tunnel or one plate from a recipe screen. A cooked plate is the one
-  other thing that can be written, and `cookMeal` is its only writer: it settles the plate the clock
-  says was cooked, or records one on today when no plate was. No third writer of `plannedMeals` MUST
-  exist.
+  whether it is a week from the tunnel or one plate from a recipe screen. A plate leaves `planned`
+  two ways, each with one writer: `cookMeal` settles the plate the clock says was cooked, or
+  records one on today when no plate was; `skipMeal` closes a plate nobody cooked, run by the
+  scheduler at `skipAt(date)`. No fourth writer of `plannedMeals` MUST exist.
+- `commitPlan` MUST book `skipOne._internal` at `skipAt(plate.date)` for every plate it writes, and
+  `skipMeal` MUST do nothing unless the plate is still `planned`. Nothing cancels the job: a plate
+  cooked, dropped or replaced in the meantime is found settled or gone, and left alone. `skipAt` is
+  the plate's day plus the day after in full — `cookMeal`'s own reach, so a plate is never skipped
+  while it can still be cooked.
 - `syncMealLines` MUST be the only writer of a planned plate's `plannedMealIngredients` and of the
   grocery delta a plate implies. Re-portioning, removing and replacing a plate MUST be expressed as
-  a call to it, never as a second arithmetic over the ledger. Cooking closes that ledger — the
-  grocery claims come off through `syncMealLines`' own back-out, the rows keep what was taken and
-  lose their pointers — and a cooked plate's ledger MUST NOT be re-derived: it is the last record of
-  what was eaten once the cellar and list rows are gone.
+  a call to it, never as a second arithmetic over the ledger. Cooking and skipping close that
+  ledger — the grocery claims come off through `releaseClaim`, the one heir-or-back-out pass, the
+  rows stay and lose their pointers — and a settled plate's ledger MUST NOT be re-derived: a
+  cooked plate's is the last record of what was eaten once the cellar and list rows are gone, a
+  skipped plate's the record of what was planned.
 - `consumeFromCellar` MUST be the only thing that spends the cellar for a recipe. It takes what the
   recipe asks at the servings cooked, from the lot the plate reserved first, and a pinch takes
   nothing.
@@ -30,8 +36,8 @@ supersedes: []
   the last planned day and never on `today`: the earliest plannable day is one there is time to shop
   for. A single plate from a recipe screen MAY land on `today`.
 - A plate already on a day and slot MUST be replaced by dropping it first, so its claims are given
-  back before the new plate's are weighed. A cooked plate MUST NOT be replaced or dropped: its
-  ledger is the record.
+  back before the new plate's are weighed. A cooked or skipped plate MUST NOT be replaced, dropped
+  or re-portioned: it is the week's history, and the screens lock it the same way.
 - Which plate a cook settles is the server's to say, from the recipe and the client's local day and
   hour — never a plate id from the screen, which cannot know whether it was opened from a plate or
   from the library. The rule is `nearestPlate`'s: today's slot in progress first, then the nearest
@@ -61,10 +67,18 @@ Reservations by future plates only is the rule most likely to be "fixed" by some
 read this: counting every planned plate looks more complete, and holds a household's rice hostage
 to a dinner it ate last month.
 
+Skipping exists because the other two endings do not cover a plate the household simply walked
+past: it stayed `planned`, kept its groceries on the list a week later, and read as short of them
+on the planning screen. A per-plate job booked at write time closes it, and the job is written to
+be safe to fire on anything — a status check, then the same `releaseClaim` cooking uses — so that
+no writer has to remember to cancel it. The word on the screen is deliberately quiet: a skipped
+plate is a fact of the week, never a miss (PRODUCT.md, anti-goal 4).
+
 ## Verify
 
 `pnpm test` — `convex/router/planning/__tests__/{commit,planOne,setServings,removeOne}.test.ts` pin
 the planning path and the replacement order; `cookOne.test.ts` pins the cooking path, that a cooked
 plate's claims leave the list by its own share, and that an unplanned cook touches the list not at
-all; `convex/functions/planning/__tests__/availableStock.test.ts`
+all; `skipOne.test.ts` pins that a skipped plate's claims leave the list, that a cooked one is left
+alone, and that `commit` books the job at `skipAt`; `convex/functions/planning/__tests__/availableStock.test.ts`
 pins that a past plate reserves nothing.

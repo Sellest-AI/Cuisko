@@ -26,10 +26,19 @@ export type ImageSource = ImageProps["source"];
 export type { MealSlot };
 
 /**
- * Where a meal has got to. `empty` is not a failure state — a day nobody cooked is empty, and
- * PRODUCT.md's third anti-goal is explicit that the plan never shows a deviation as a miss.
+ * Where a meal has got to. Neither `empty` nor `skipped` is a failure state — a day nobody cooked
+ * is empty, a plate nobody cooked is skipped, and PRODUCT.md's fourth anti-goal is explicit that
+ * the plan never shows a deviation as a miss.
  */
-export type MealStatus = "cooked" | "ready" | "shopping-needed" | "empty";
+export type MealStatus = "cooked" | "skipped" | "ready" | "shopping-needed" | "empty";
+
+/**
+ * A plate the week is done with: cooked, or closed by the clock. Nothing is left to re-portion,
+ * swap or drop, so the row offers no menu and the meal sheet sends itself back. One predicate
+ * rather than a `=== "cooked"` in each of those places, which is how a second settled state would
+ * be locked in one and editable in the other.
+ */
+export const isSettled = (status: MealStatus): boolean => status === "cooked" || status === "skipped";
 
 /** How far the day as a whole has got — the shape `DayMarker` already draws. */
 export type DayStatus = "complete" | "pending" | "empty";

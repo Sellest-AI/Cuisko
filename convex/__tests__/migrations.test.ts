@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "@convex/_generated/api";
 import schema from "../schema";
 import { cascadeDelete } from "../functions/cascade";
+import { skipAt } from "../functions/planning/skipMeal";
 import { cellarItems, groceryListItems, recentlyUsedIngredients } from "../schema/cellars";
 import { ingredients } from "../schema/ingredients";
 import { plannedMealIngredients } from "../schema/planning";
@@ -95,6 +96,54 @@ describe("backfillRecipeShuffleKey", () => {
     await t.run((ctx) => cascadeDelete(ctx, "recipes", recipeId));
   });
 });
+describe("scheduleSkips", () => {
+  const DAY = 86_400_000;
+
+  const insertPlate = async (status: "planned" | "cooked", date: number) => {
+    const recipeId = await insertRecipe();
+    return t.run(async (ctx) => {
+      const householdId = await ctx.db.insert("households", { name: "Home", inviteCode: "ABC123", updatedAt: Date.now() });
+      const mealPlanId = await ctx.db.insert("mealPlans", {
+        householdId, startDate: date, days: 1, slots: ["lunch"], people: 2, updatedAt: Date.now(),
+      });
+      return ctx.db.insert("plannedMeals", {
+        mealPlanId, householdId, recipeId, date, slot: "lunch", servings: 2, status, updatedAt: Date.now(),
+      });
+    });
+  };
+
+  const jobsFor = (mealId: string) =>
+    t.run(async (ctx) => {
+      const jobs = await ctx.db.system.query("_scheduled_functions").collect();
+      return jobs.filter((job) => job.name === "router/planning/skipOne:_internal" && job.args[0]?.mealId === mealId);
+    });
+
+  /**
+   * Plates written before `commitPlan` booked the job have none, so the one from a week ago keeps
+   * its groceries on the list forever. Every plate still `planned` gets one — a past time fires at
+   * once, a future one waits — and a plate already settled has nothing left to close.
+   */
+  test("books the skip job for every planned plate, past or ahead, and none for a cooked one", async () => {
+    const lastWeek = Date.now() - 7 * DAY;
+    const past = await insertPlate("planned", lastWeek);
+    const ahead = await insertPlate("planned", Date.now() + 3 * DAY);
+    const cooked = await insertPlate("cooked", lastWeek);
+
+    // The past plate's job is already due; faked timers keep it from firing on a real one mid-test.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await t.mutation(internal.migrations.runScheduleSkips, {});
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+
+    expect(await jobsFor(past)).toMatchObject([{ scheduledTime: skipAt(lastWeek) }]);
+    expect(await jobsFor(ahead)).toHaveLength(1);
+    expect(await jobsFor(cooked)).toEqual([]);
+  });
+});
+
 /**
  * The six tables the spoon rename touches, with schema validation off.
  *

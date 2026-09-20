@@ -23,7 +23,7 @@ export type { LucideIcon as IconComponent } from "lucide-react-native";
 export {
   ArrowRight, LoaderCircle, Check, CircleDashed, ChevronDown, ChevronUp, ArrowLeftRight,
   CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
-  BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck,
+  BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck, CircleMinus,
   ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
   FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock
 } from "lucide";
@@ -34,7 +34,7 @@ export {
   Plus as PlusIcon, ListPlus as ListPlusIcon, Store as StoreIcon, ReceiptText as ReceiptTextIcon,
   BadgePercent as BadgePercentIcon, X as XIcon, ArrowLeft as ArrowLeftIcon, Sparkles as SparklesIcon,
   Sun as SunIcon, Moon as MoonIcon, Minus as MinusIcon, Calendar as CalendarIcon,
-  CircleAlert as CircleAlertIcon, CircleCheck as CircleCheckIcon, ThumbsUp as ThumbsUpIcon,
+  CircleAlert as CircleAlertIcon, CircleCheck as CircleCheckIcon, CircleMinus as CircleMinusIcon, ThumbsUp as ThumbsUpIcon,
   EllipsisVertical as EllipsisVerticalIcon, SlidersHorizontal as SlidersHorizontalIcon,
   Smile as SmileIcon, Search as SearchIcon, Trash2 as Trash2Icon, MessageCircleWarning as MessageCircleWarningIcon,
   Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,

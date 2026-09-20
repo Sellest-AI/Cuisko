@@ -27,6 +27,7 @@
   },
   "Status": {
     "cooked": "Cuisiné",
+    "skipped": "Non cuisiné",
     "ready": "Tout prêt",
     "shopping_needed": "Il manque un peu",
     "empty": "Assiette libre"

@@ -31,10 +31,11 @@ export const dropMeal = async (ctx: MutationCtx, { householdId, mealId, today }:
 
   /**
    * A cooked meal's ledger is the record the cook step will settle against — dropping the plate
-   * would drop that arithmetic with it.
+   * would drop that arithmetic with it. A skipped plate is the week's history the same way: what
+   * sat on a past day stays on it.
    */
   if (meal.status !== "planned")
-    throw new ConvexError({ code: "INVALID_INPUT", message: "The meal is already cooked." });
+    throw new ConvexError({ code: "INVALID_INPUT", message: "The meal is already cooked or skipped." });
 
   // No lines: the back-out pass is the whole job here, and nothing is written in their place.
   await syncMealLines(ctx, {

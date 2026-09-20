@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
 
+import { internal } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 import type { Unit } from "@shared/ingredients";
@@ -11,6 +12,7 @@ import { dropMeal } from "./dropMeal";
 import { isDistinct, isServings, MAX_DAYS } from "./limits";
 import { recipeLines, type ResolvedLine } from "./recipeLines";
 import { scaleLines } from "./scaleLines";
+import { skipAt } from "./skipMeal";
 import { ownedTickKey, syncMealLines, type MealLine } from "./syncMealLines";
 
 /** One plate the user is keeping: which dish, which day, which meal of it, and for how many. */
@@ -194,6 +196,13 @@ export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"meal
     }));
 
     await syncMealLines(ctx, { householdId: args.householdId, plannedMealId, lines: mealLines, stock, lots, from: args.today });
+
+    /**
+     * The plate's other ending, booked with it: a plate nobody cooks by the day after its day is
+     * closed by the clock (`skipMeal`). The job checks the plate's status before it writes, so a
+     * plate cooked or dropped in the meantime is left alone and nothing here needs cancelling.
+     */
+    await ctx.scheduler.runAt(skipAt(plate.date), internal.router.planning.skipOne._internal, { mealId: plannedMealId });
   }
 
   return mealPlanId;

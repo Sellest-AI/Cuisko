@@ -8,10 +8,11 @@ type CardCtx = Pick<QueryCtx, "db">;
 /**
  * Where a plate has got to, as the screens draw it.
  *
- * `cooked` is stored. The other two are derived: a planned plate is waiting on the shop while any of
- * its lines still points at a row on the household's grocery list, and ready once none does.
+ * `cooked` and `skipped` are stored. The other two are derived: a planned plate is waiting on the
+ * shop while any of its lines still points at a row on the household's grocery list, and ready
+ * once none does.
  */
-export type PlannedMealStatus = "cooked" | "ready" | "shopping-needed";
+export type PlannedMealStatus = "cooked" | "skipped" | "ready" | "shopping-needed";
 
 /**
  * A plate of the kept week as a list draws it: where it sits, how far it has got, and the recipe as
@@ -94,7 +95,7 @@ export const toPlannedMealCards = async (ctx: CardCtx, args: Args): Promise<Plan
     date: meal.date,
     slot: meal.slot,
     servings: meal.servings,
-    status: meal.status === "cooked" ? "cooked" : waiting.has(meal._id) ? "shopping-needed" : "ready",
+    status: meal.status !== "planned" ? meal.status : waiting.has(meal._id) ? "shopping-needed" : "ready",
     recipe: cards.get(meal.recipeId)!,
   }));
 };

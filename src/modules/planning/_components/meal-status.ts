@@ -5,6 +5,7 @@ import {
   CheckIcon,
   CircleAlertIcon,
   CircleDashedIcon,
+  CircleMinusIcon,
   ThumbsUpIcon,
   type IconComponent,
 } from "@ui/icons";
@@ -24,6 +25,8 @@ import type { MealStatus } from "../_model/model";
  */
 export const MEAL_STATUS = {
   cooked: { icon: CheckIcon, key: "Status.cooked", badge: "subtle" },
+  /** Neutral on purpose: a plate nobody cooked is a fact of the week, never a miss (PRODUCT.md, anti-goal 4). */
+  skipped: { icon: CircleMinusIcon, key: "Status.skipped", badge: "neutral" },
   ready: { icon: ThumbsUpIcon, key: "Status.ready", badge: "success" },
   "shopping-needed": { icon: CircleAlertIcon, key: "Status.shopping_needed", badge: "warning" },
   empty: { icon: CircleDashedIcon, key: "Status.empty", badge: "neutral" },

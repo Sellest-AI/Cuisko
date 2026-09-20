@@ -139,16 +139,16 @@ describe("useMealEditor", () => {
       expect(state.queries).toHaveLength(0);
     });
 
-    /** The sheet closes on a cooked plate, and this flag is the only thing it has to go on. */
-    it("reports a cooked plate as cooked, and only that one", () => {
+    /** The sheet closes on a settled plate, and this flag is the only thing it has to go on. */
+    it("reports a cooked plate as settled, and only that one", () => {
       const { result, rerender } = editor({ kind: "meal", mealId: "meal-1" }, "plan");
 
-      expect(result.current.isCooked).toBe(false);
+      expect(result.current.isSettled).toBe(false);
 
       state.kept.meal = { ...state.kept.meal!, status: "cooked" };
       rerender();
 
-      expect(result.current.isCooked).toBe(true);
+      expect(result.current.isSettled).toBe(true);
     });
   });
 

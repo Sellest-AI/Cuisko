@@ -11,6 +11,7 @@ import {
   indexOfDate,
   inEatingOrder,
   isSameDay,
+  isSettled,
   keptMealCardOf,
   openDates,
   type KeptMeal,
@@ -268,6 +269,17 @@ describe("dayStatusFor", () => {
   it("calls today pending whatever time of day either side carries", () => {
     expect(dayStatusFor(new Date(2026, 7, 12, 23, 59), new Date(2026, 7, 12, 0, 1))).toBe("pending");
     expect(dayStatusFor(new Date(2026, 7, 12, 0, 1), new Date(2026, 7, 12, 23, 59))).toBe("pending");
+  });
+});
+
+describe("isSettled", () => {
+  /** Both are history; the row hides its menu and the sheet sends itself back on either. */
+  it("locks a cooked plate and one the clock skipped, and nothing still ahead", () => {
+    expect(isSettled("cooked")).toBe(true);
+    expect(isSettled("skipped")).toBe(true);
+    expect(isSettled("ready")).toBe(false);
+    expect(isSettled("shopping-needed")).toBe(false);
+    expect(isSettled("empty")).toBe(false);
   });
 });
 

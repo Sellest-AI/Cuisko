@@ -4,9 +4,15 @@ import { v } from "convex/values";
 import { vMealSlot, vMealSlots } from "./households";
 import { vUnit } from "./ingredients";
 
+/**
+ * `planned` is the only state that reserves stock or shops. `cooked` is written by `cookMeal`,
+ * `skipped` by `skipMeal` when the clock closes a plate nobody cooked — see ADR 0013. Both are
+ * history: neither is re-portioned, replaced or dropped.
+ */
 export const vPlannedMealStatus = v.union(
   v.literal("planned"),
   v.literal("cooked"),
+  v.literal("skipped"),
 );
 
 /**
