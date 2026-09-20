@@ -8,10 +8,10 @@
 
 import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
-import { startOfDay } from "@shared/clock";
+import { localClock, startOfDay } from "@shared/clock";
 import { clampServings, MAX_SERVINGS } from "@shared/servings";
 import { toggle } from "@shared/helpers";
-import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, type MealSlot } from "@shared/mealSlots";
+import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, SLOT_HOURS, type MealSlot } from "@shared/mealSlots";
 
 import type { ImageProps } from "@ui/image";
 
@@ -332,6 +332,17 @@ export const planDates = (after: Date, days: number): Date[] =>
  */
 export const planAfter = (today: Date, lastDate: number | null): Date =>
   lastDate === null || lastDate <= today.getTime() ? today : startOfDay(new Date(lastDate));
+
+/**
+ * Which plate the clock points at: lunch until the evening, dinner from `SLOT_HOURS.dinner` on.
+ *
+ * The threshold is the one the server's cook step already measures against, read through the same
+ * decimal `hour` `localClock` produces, so 17:59 and 18:00 fall on the sides the server would put
+ * them. The only reader is the home carousel's starting slot; the toggle beside it is still the
+ * user's to flip.
+ */
+export const mealSlotAt = (now: Date): MealSlot =>
+  (localClock(now).hour >= SLOT_HOURS.dinner ? "dinner" : "lunch");
 
 /**
  * How far a day has got, from where it sits against today.

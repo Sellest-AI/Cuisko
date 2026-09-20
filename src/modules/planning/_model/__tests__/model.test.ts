@@ -18,6 +18,7 @@ import {
   ownedLinesOf,
   MAX_SERVINGS,
   MAX_TASTES,
+  mealSlotAt,
   parseDateParam,
   parseMealSlot,
   planAfter,
@@ -269,6 +270,15 @@ describe("dayStatusFor", () => {
   it("calls today pending whatever time of day either side carries", () => {
     expect(dayStatusFor(new Date(2026, 7, 12, 23, 59), new Date(2026, 7, 12, 0, 1))).toBe("pending");
     expect(dayStatusFor(new Date(2026, 7, 12, 0, 1), new Date(2026, 7, 12, 23, 59))).toBe("pending");
+  });
+});
+
+describe("mealSlotAt", () => {
+  it("points at lunch until the evening, then at dinner", () => {
+    expect(mealSlotAt(new Date(2026, 7, 12, 8, 0))).toBe("lunch");
+    expect(mealSlotAt(new Date(2026, 7, 12, 17, 59))).toBe("lunch");
+    expect(mealSlotAt(new Date(2026, 7, 12, 18, 0))).toBe("dinner");
+    expect(mealSlotAt(new Date(2026, 7, 12, 23, 59))).toBe("dinner");
   });
 });
 

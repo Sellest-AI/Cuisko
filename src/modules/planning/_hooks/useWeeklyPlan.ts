@@ -15,6 +15,7 @@ import {
   inEatingOrder,
   isSameDay,
   keptMealCardOf,
+  mealSlotAt,
   startOfDay,
   toDateParam,
   type MealSlot,
@@ -93,7 +94,8 @@ export const useWeeklyPlan = () => {
   );
 
   const [selectedDate, setSelectedDate] = useState(today);
-  const [mealType, setMealType] = useState<MealSlot>("lunch");
+  /** Opened in the evening, the carousel starts on dinner: that is the plate still to cook. */
+  const [mealType, setMealType] = useState<MealSlot>(() => mealSlotAt(new Date()));
 
   const selectedDayIndex = useMemo(() => days.findIndex((day) => isSameDay(day.date, selectedDate)), [days, selectedDate]);
 

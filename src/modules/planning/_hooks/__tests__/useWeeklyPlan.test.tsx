@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { getFunctionName } from "convex/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWeeklyPlan } from "../useWeeklyPlan";
 import { toDateParam } from "../../_model/model";
@@ -104,6 +104,21 @@ describe("useWeeklyPlan", () => {
     act(() => result.current.toggleMealType());
     expect(result.current.mealType).toBe("lunch");
     expect(result.current.selectedMealIndex).toBe(0);
+  });
+
+  /** Opened in the evening, the toggle starts on dinner — that is the plate still to cook. */
+  describe("the starting slot", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("is lunch in the morning and dinner from 18:00", () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+
+      vi.setSystemTime(new Date(2026, 7, 12, 9, 0));
+      expect(week().result.current.mealType).toBe("lunch");
+
+      vi.setSystemTime(new Date(2026, 7, 12, 20, 0));
+      expect(week().result.current.mealType).toBe("dinner");
+    });
   });
 
   /** A day tap is the way into the planning screen — a route, not a filter on the carousel. */
