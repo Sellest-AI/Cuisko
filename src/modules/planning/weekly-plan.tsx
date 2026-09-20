@@ -11,6 +11,7 @@ import { resolveLocale, useTranslations } from "translations";
 import { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
 import { MEAL_STATUS } from "./_components/meal-status";
 import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
+import { router } from "expo-router";
 
 const TOGGLE_ICON_SIZE = 14;
 
@@ -72,7 +73,8 @@ export const WeeklyPlan = () => {
         items={meals.map((meal) => ({
           ...meal,
           imageSrc: meal.imageSrc ?? EMPTY_PLATE_IMAGE,
-          subtitle: t(MEAL_STATUS[meal.status].key)
+          subtitle: t(MEAL_STATUS[meal.status].key),
+          onPress: () => router.push(`/recipe/${meal.recipeId}`),
         }))}
         selectedIndex={selectedMealIndex}
         onSelect={selectMeal}
