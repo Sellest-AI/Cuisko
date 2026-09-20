@@ -3,6 +3,7 @@
   "import_recipe": "Importer une recette",
   "Suggestions": {
     "title": "Suggestions",
-    "subtitle": "Ajoute-le à ta liste de courses"
+    "subtitle": "Ajoute-le à ta liste de courses",
+    "recipes_subtitle": "Ouvre une de ces recettes"
   }
 }

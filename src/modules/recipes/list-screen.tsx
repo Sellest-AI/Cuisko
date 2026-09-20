@@ -20,15 +20,23 @@ import { FavoritesShelf } from "./_components/favorites-shelf";
 import { COVER_PLACEHOLDER } from "./constants";
 
 type Props = {
-  style?: ViewStyle
+  style?: ViewStyle,
+  /**
+   * The term the box opens on, when the cook arrived here having already typed one.
+   *
+   * **Seeded once, and deliberately not tracked.** The box is theirs the moment the screen is up:
+   * a param that kept being read would overwrite what they typed next, and clearing the box would
+   * put the old term straight back.
+   */
+  initialQuery?: string,
 }
 
-export const RecipesScreen = ({ style }: Props) => {
+export const RecipesScreen = ({ style, initialQuery }: Props) => {
   const t = useTranslations("Recipes");
   /** A cuisine is a shared vocabulary, so its words live with the rest of them. */
   const tVocabulary = useTranslations("Vocabulary");
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
   const { favorites } = useFavoriteRecipes();
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rankSuggestions, readInput, type Suggestion } from "../useSuggestions";
+import { coversTitle, rankSuggestions, readInput, type Suggestion } from "../useSuggestions";
 
 /**
  * The ranking, tested against a fixture rather than against the catalog.
@@ -30,6 +30,10 @@ const CATALOGUE: Suggestion[] = [
   },
   { id: "sweet-potatoes", name: "Patates douces", emoji: "🍠", defaultUnit: "pcs", defaultQuantity: 1 },
   { id: "green-tea", name: "Thé vert", emoji: "🍵", defaultUnit: "pcs", defaultQuantity: 1 },
+  // The pair the coverage rule is about: a shopper types "beurre", and the catalog only ever
+  // answers with a narrower one. Neither row is named by the word that finds it.
+  { id: "butter", name: "Beurre doux", emoji: "🧈", defaultUnit: "g", defaultQuantity: 250 },
+  { id: "salted-butter", name: "Beurre demi-sel", emoji: "🧈", defaultUnit: "g", defaultQuantity: 250 },
   // The row this file's default-unit case is about: a packet, never a countable one of them.
   { id: "gnocchi", name: "Gnocchis", emoji: "🥟", defaultUnit: "g", defaultQuantity: 500 },
 ];
@@ -173,5 +177,76 @@ describe("quantity", () => {
     // dilutes the two terms that would have. Same split `searchTerms` makes on the server.
     expect(rank("boeuf hache 95/5").suggestions).toEqual([]);
     expect(matchOf("1/2 kg patates")).toBe("potatoes");
+  });
+});
+
+/**
+ * Gate 1 of the navigation bar's ruling: does the catalog account for the whole input?
+ *
+ * What makes this worth its own suite is that it is asymmetric on purpose, and the two directions
+ * read almost the same in a diff. Words the LABEL carries and nobody typed are free; words the
+ * shopper typed and no label explains are what tips the bar into offering recipes.
+ */
+describe("coverage", () => {
+  const isCovered = (text: string) => rank(text).isFullyCovered;
+
+  it("covers a word the catalog only answers with a narrower one", () => {
+    // Nothing in the catalog is called "beurre" on its own — the two rows are "beurre doux" and
+    // "beurre demi-sel". The shopper is still naming a food, so this must stay an ingredient.
+    expect(isCovered("beurre")).toBe(true);
+    expect(idsOf("beurre")).toEqual(expect.arrayContaining(["butter", "salted-butter"]));
+  });
+
+  it("covers an input that names the narrower row outright", () => {
+    expect(isCovered("beurre demi-sel")).toBe(true);
+  });
+
+  it("does not cover a word no label explains", () => {
+    // The shape "boeuf bourguignon" has: one word the catalog knows, one it has never held. The
+    // fixture holds no beef, so tomatoes stand in for the same two-word split.
+    expect(isCovered("tomates farcies")).toBe(false);
+  });
+
+  it("covers an input whose stopwords the labels drop too", () => {
+    expect(isCovered("pommes de terre")).toBe(true);
+  });
+
+  it("covers a typo, which scores below 1 and must not read as a leftover word", () => {
+    // The whole reason `covered` counts words instead of summing `score`: this totals ~0.8.
+    expect(isCovered("tomtes")).toBe(true);
+  });
+
+  it("covers nothing when nothing was typed", () => {
+    expect(isCovered("")).toBe(false);
+    expect(isCovered("500g")).toBe(false);
+  });
+});
+
+/**
+ * Gate 2: the same rule, pointed at a recipe's name instead of a catalog label.
+ *
+ * Pure and fixture-free — it is handed the title, so it needs neither the catalog nor a database.
+ */
+describe("coversTitle", () => {
+  it("covers a title the input names outright", () => {
+    expect(coversTitle("boeuf bourguignon", "Boeuf bourguignon")).toBe(true);
+  });
+
+  it("ignores the words the title adds", () => {
+    expect(coversTitle("boeuf bourguignon", "Boeuf bourguignon de ma grand-mère")).toBe(true);
+  });
+
+  it("refuses a title that shares nothing with the input", () => {
+    // The case the whole client-side filter exists for: this recipe came back because the search
+    // scans the ingredient blob and the cook typed "huile", not because it answers the input.
+    expect(coversTitle("huile olive vierge extra", "Tarte au citron")).toBe(false);
+  });
+
+  it("refuses a title that answers only part of the input", () => {
+    expect(coversTitle("boeuf bourguignon", "Boeuf aux carottes")).toBe(false);
+  });
+
+  it("refuses everything when nothing was typed", () => {
+    expect(coversTitle("", "Boeuf bourguignon")).toBe(false);
   });
 });

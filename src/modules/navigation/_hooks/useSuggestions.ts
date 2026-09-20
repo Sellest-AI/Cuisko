@@ -183,21 +183,33 @@ const similarity = (a: string, b: string) => {
  * How well a label answers what was typed, which is what orders the list.
  * A prefix scores 1 ("tomat" -> "tomate"), a containment 0.9, and anything else falls back to
  * fuzzy similarity so a typo still finds its ingredient.
+ *
+ * **`covered` is not `score` rounded, and the two answer different questions.** `score` orders the
+ * list and is deliberately fractional — a containment is worth 0.9, a typo as little as 0.75 — so
+ * a label that answers every word typed can still total less than the word count. `covered` counts
+ * the words that found an answer at all, which is the only form the "did this label account for
+ * everything?" question can be asked in. Comparing `score / words.length` to 1 instead would read
+ * every typo as a word the catalog could not explain.
  */
 const scoreLabel = (words: string[], label: string) => {
   const labelWords = label.split(" ");
 
-  return words.reduce((total, word) => {
-    let best = 0;
-    for (const labelWord of labelWords) {
-      if (labelWord.startsWith(word)) {
-        best = 1;
-        break;
+  return words.reduce(
+    (total, word) => {
+      let best = 0;
+      for (const labelWord of labelWords) {
+        if (labelWord.startsWith(word)) {
+          best = 1;
+          break;
+        }
+        best = Math.max(best, labelWord.includes(word) ? 0.9 : similarity(word, labelWord));
       }
-      best = Math.max(best, labelWord.includes(word) ? 0.9 : similarity(word, labelWord));
-    }
-    return best >= FUZZY_WORD_THRESHOLD ? total + best : total;
-  }, 0);
+      return best >= FUZZY_WORD_THRESHOLD
+        ? { score: total.score + best, covered: total.covered + 1 }
+        : total;
+    },
+    { score: 0, covered: 0 },
+  );
 };
 
 /**
@@ -211,18 +223,19 @@ const scoreLabel = (words: string[], label: string) => {
 const bestLabel = (words: string[], labels: string[]) =>
   labels.reduce(
     (best, label) => {
-      const score = scoreLabel(words, label);
+      const { score, covered } = scoreLabel(words, label);
       const wins = score > best.score || (score === best.score && label.length < best.label.length);
-      return wins ? { score, label } : best;
+      return wins ? { score, covered, label } : best;
     },
-    { score: 0, label: labels[0] ?? "" }
+    { score: 0, covered: 0, label: labels[0] ?? "" }
   );
+
 
 /* -------------------------------------------------------------------------- */
 /* Hook                                                                       */
 /* -------------------------------------------------------------------------- */
 
-/** Below this the catalog is not asked at all — two letters cannot narrow ~200 rows usefully. */
+/** Below this the catalog is not asked at all — one letter cannot narrow ~200 rows usefully. */
 const MIN_SEARCH_LENGTH = 2;
 
 /**
@@ -250,6 +263,29 @@ export const readInput = (text: string) => {
 };
 
 /**
+ * Whether every word typed is accounted for by this one title — the rule `bestLabel` applies to a
+ * catalog label, applied to a recipe's name.
+ *
+ * **The leftovers only count on one side.** Words the title carries and the cook did not type are
+ * free, which is what keeps "beurre" an ingredient when the catalog answers `beurre doux`; words
+ * the cook typed and nothing accounts for are what makes "boeuf bourguignon" stop being a request
+ * for beef. Asking the question the other way round would invert both.
+ *
+ * Exported because the navigation bar filters a page of recipes with it — see `useBarSuggestions`.
+ * It is the second half of that gate, and it lives here rather than in the recipes module so that
+ * it cannot drift from the `words`, the stopwords and the thresholds it shares with the first half.
+ */
+export const coversTitle = (text: string, title: string) => {
+  const { words } = readInput(text);
+  if (!words.length) return false;
+
+  const label = normalizeName(title);
+  if (!label) return false;
+
+  return scoreLabel(words, label).covered === words.length;
+};
+
+/**
  * Orders a set of candidates against what was typed, and decides whether Enter may commit one.
  *
  * **The server narrows; this ranks.** A search index answers "which rows contain these terms",
@@ -268,11 +304,26 @@ export const rankSuggestions = (text: string, candidates: Suggestion[]) => {
     labels: toLabels(suggestion),
   }));
 
-  const suggestions = entries
-    .map((entry) => ({ ...entry, ...bestLabel(words, entry.labels) }))
+  const scored = entries.map((entry) => ({ ...entry, ...bestLabel(words, entry.labels) }));
+
+  const suggestions = scored
     .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score || a.label.length - b.label.length)
     .map((entry) => entry.suggestion);
+
+  /**
+   * Whether the catalog accounts for the whole input, which is what decides that this is a
+   * shopping item at all rather than the name of a dish.
+   *
+   * Any one label answering every word is enough — the labels compete for the ordering, but this
+   * question is about the catalog as a whole. "beurre" is covered by `beurre doux` even though the
+   * shopper typed neither word of "doux"; "boeuf bourguignon" is covered by nothing, because no
+   * label explains "bourguignon".
+   *
+   * False on an empty input, and deliberately: a shopper who has typed nothing has not typed
+   * something the catalog failed to explain.
+   */
+  const isFullyCovered = words.length > 0 && scored.some((entry) => entry.covered === words.length);
 
   // Strict match: the whole input against a whole label. Comparing word by word would let
   // "tomate" match "Tomates cerises".
@@ -313,6 +364,7 @@ export const rankSuggestions = (text: string, candidates: Suggestion[]) => {
     suggestions,
     hasSuggestions: suggestions.length > 0,
     matchingSuggestion,
+    isFullyCovered,
   };
 };
 

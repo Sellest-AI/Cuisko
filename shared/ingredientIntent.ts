@@ -16,6 +16,7 @@ import { foldAccents, STOPWORDS, type Locale } from "./translations";
 export type Intent =
   | { kind: "chat"; reason: "trigger" | "question" | "sentence" }
   | { kind: "ingredient" }
+  | { kind: "recipe" }
   | { kind: "unknown" };
 
 /**
@@ -97,24 +98,35 @@ const _contentWords = (tokens: string[]) =>
 /**
  * Free text from the navigation bar → what to do with it.
  *
- * `hasCatalogHit` is passed in rather than looked up: the rules belong to the caller, and a pure
- * function that cannot reach a database is one a fixture can pin. The bar passes whether
- * `rankSuggestions` found a confident match, which is the same evidence Enter used to act on
- * alone.
+ * `hasCatalogHit` and `hasRecipeHit` are passed in rather than looked up: the rules belong to the
+ * caller, and a pure function that cannot reach a database is one a fixture can pin. The bar
+ * passes whether `rankSuggestions` found a confident match, and whether its ruling came out as
+ * recipes — the very evidence the panel is drawn from, so that Enter cannot disagree with the list
+ * the cook is looking at.
  *
  * **The rule order is the contract**, not an implementation detail:
  *
  * 1. a question mark, anywhere — the one punctuation mark that means only one thing
  * 2. a trigger word in first position
  * 3. the catalog knows it
- * 4. it is long enough to be a sentence
- * 5. otherwise: unknown, and the resolver gets a turn
+ * 4. a recipe is named by it
+ * 5. it is long enough to be a sentence
+ * 6. otherwise: unknown, and the resolver gets a turn
  *
  * Explicit intent beats a catalog hit, which is why `"? tomate"` is a question ABOUT tomatoes
  * rather than a tomato. Reversing 2 and 3 would make every question containing a food name add
  * that food instead of answering.
+ *
+ * 4 sits below 3 and not above it for the same reason, one step further down: a word the catalog
+ * holds is a shopping item even when a dish shares its name. And it sits ABOVE 5 because a dish
+ * name is not a sentence — "boeuf bourguignon" would otherwise fall to the resolver, which invents
+ * the ingredient it cannot find and leaves a dish in the food catalog under its own name.
  */
-export const readIntent = (text: string, hasCatalogHit: boolean): Intent => {
+export const readIntent = (
+  text: string,
+  hasCatalogHit: boolean,
+  hasRecipeHit = false,
+): Intent => {
   const trimmed = text.trim();
   if (!trimmed) return { kind: "unknown" };
 
@@ -124,6 +136,8 @@ export const readIntent = (text: string, hasCatalogHit: boolean): Intent => {
   if (tokens[0] && ALL_TRIGGERS.has(tokens[0])) return { kind: "chat", reason: "trigger" };
 
   if (hasCatalogHit) return { kind: "ingredient" };
+
+  if (hasRecipeHit) return { kind: "recipe" };
 
   if (_contentWords(tokens).length >= SENTENCE_MIN_WORDS)
     return { kind: "chat", reason: "sentence" };

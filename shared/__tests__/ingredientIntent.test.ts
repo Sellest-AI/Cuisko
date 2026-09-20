@@ -6,6 +6,8 @@ import { CHAT_TRIGGERS, readIntent } from "../ingredientIntent";
 const MATCHED = true;
 /** The catalog answered nothing. */
 const MISSED = false;
+/** The bar's panel is showing recipes: a dish is named by this, and the catalog could not explain it. */
+const NAMES_A_DISH = true;
 
 describe("the rule order", () => {
   /**
@@ -115,5 +117,54 @@ describe("what is left", () => {
   test("treats empty and blank text as unknown", () => {
     expect(readIntent("", MISSED)).toEqual({ kind: "unknown" });
     expect(readIntent("   ", MATCHED)).toEqual({ kind: "unknown" });
+  });
+});
+
+/**
+ * The fourth kind, and where it sits: below the catalog, above the word count.
+ *
+ * What Enter does has to match the list the cook is looking at, so the bar hands its own ruling in
+ * rather than letting this re-derive one. Everything here is about the ORDER, which is the only
+ * part a diff cannot show.
+ */
+describe("a dish by name", () => {
+  test("goes to the recipes page", () => {
+    expect(readIntent("boeuf bourguignon", MISSED, NAMES_A_DISH)).toEqual({ kind: "recipe" });
+  });
+
+  /**
+   * The case that stops a dish becoming an ingredient. Two content words is under the sentence
+   * threshold, so before this rule existed it fell to `unknown` — and the resolver, which invents
+   * the row it cannot find, left "boeuf bourguignon" in the food catalog with a generated picture.
+   */
+  test("beats the sentence heuristic in both directions", () => {
+    expect(readIntent("boeuf bourguignon", MISSED)).toEqual({ kind: "unknown" });
+    expect(readIntent("gratin dauphinois aux cepes frais", MISSED, NAMES_A_DISH)).toEqual({
+      kind: "recipe",
+    });
+  });
+
+  /** A food the catalog holds is a shopping item, even when a dish is named the same thing. */
+  test("loses to a catalog hit", () => {
+    expect(readIntent("tomate", MATCHED, NAMES_A_DISH)).toEqual({ kind: "ingredient" });
+  });
+
+  /** And an explicit question still beats both, the way it beats a catalog hit. */
+  test("loses to an explicit question and to a trigger", () => {
+    expect(readIntent("? boeuf bourguignon", MISSED, NAMES_A_DISH)).toEqual({
+      kind: "chat",
+      reason: "question",
+    });
+    // "recette" is a trigger in first position, so this asks the assistant for one rather than
+    // searching the library. Deliberate: the cook led with the question.
+    expect(readIntent("recette de boeuf bourguignon", MISSED, NAMES_A_DISH)).toEqual({
+      kind: "chat",
+      reason: "trigger",
+    });
+  });
+
+  /** Absent, it changes nothing — every caller that never saw a recipe behaves as it always did. */
+  test("defaults to off", () => {
+    expect(readIntent("boeuf bourguignon", MISSED)).toEqual({ kind: "unknown" });
   });
 });

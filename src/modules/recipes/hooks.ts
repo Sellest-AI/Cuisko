@@ -8,3 +8,9 @@
  */
 export { useRecipe } from "./_hooks/useRecipe";
 export { useRecipeList } from "./_hooks/useRecipeList";
+/**
+ * The navigation bar asks whether a dish by the typed name exists, and narrows what comes back to
+ * the titles the input covers. It takes the matches alone rather than `useRecipeList`, which would
+ * also subscribe it to the cook's whole paginated library for an answer it never draws.
+ */
+export { useRecipeMatches } from "./_hooks/useRecipeMatches";
