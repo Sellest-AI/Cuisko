@@ -123,5 +123,5 @@ const styles = StyleSheet.create({
   },
   /** Under the field it is about, so the reason sits where the cook is already looking. */
   error: { marginTop: theme.spacing[16] },
-  write: { minHeight: 64 },
+  write: { minHeight: 64, justifyContent: "space-between" },
 });
