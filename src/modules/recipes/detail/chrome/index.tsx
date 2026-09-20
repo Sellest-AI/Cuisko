@@ -13,6 +13,7 @@ import { CONTENT_NEGATIVE_SPACE, COVER_PLACEHOLDER } from "../../constants";
 import { RecipeHeader } from "./header";
 import { RecipeIntro } from "./intro";
 import { RecipeTabs, RecipeTab } from "./tabs";
+import { TabSwipe } from "./swipe";
 import { ChromeNavigationBar } from "./navigation-bar";
 import { useRecipe } from "../../_hooks/useRecipe";
 import { EmptyState } from "../../_components/empty-state";
@@ -40,6 +41,11 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
     { key: "ingredients", label: t("Tabs.ingredients"), icon: ForkKnife, onPress: () => router.replace(`/recipe/${id}/ingredients`) },
     { key: "instructions", label: t("Tabs.instructions"), icon: ListOrdered, onPress: () => router.replace(`/recipe/${id}/instructions`) },
   ], [id, t]);
+
+  /** The tab on either side of the active one, in the row's order. Absent at the row's ends. */
+  const activeIndex = tabs.findIndex((tab) => tab.key === active);
+  const previous = tabs[activeIndex - 1];
+  const next = tabs[activeIndex + 1];
 
   /**
    * Only a refusal gets the empty state. A recipe still in flight is NOT missing, and saying so
@@ -122,11 +128,14 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
         {/*
           * The switch between tabs, which used to be the route navigator's to play. It lives here
           * now that the layout hands over a plain `Slot` — keyed on the active tab, so arriving
-          * remounts rather than crossfading one tab's content into another's.
+          * remounts rather than crossfading one tab's content into another's. Wrapped in the swipe
+          * so a drag across the content is the other way between the three, next to the row.
           */}
-        <m.View key={active}>
-          {children}
-        </m.View>
+        <TabSwipe onPrevious={previous?.onPress} onNext={next?.onPress}>
+          <m.View key={active}>
+            {children}
+          </m.View>
+        </TabSwipe>
       </ParallaxScrollView>
       <ChromeNavigationBar
         onBack={() => router.back()}
