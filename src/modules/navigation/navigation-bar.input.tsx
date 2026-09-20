@@ -9,7 +9,7 @@ import { AnimatePresence, m } from "@ui/motion";
 import { BlurView } from "~/ui/components/blur-view";
 import { Suggestions } from "./_components/suggestions";
 import { pickQuantity, type Unit } from "@shared/ingredients";
-import { useSuggestions } from "./_hooks/useSuggestions";
+import { useBarSuggestions } from "./_hooks/useBarSuggestions";
 import { useNavigationBar } from "./_hooks/useNavigationBar";
 import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
@@ -51,7 +51,15 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   const [inputHeight, setInputHeight] = useState(0);
   const [value, setValue] = useState("");
 
-  const { hasSuggestions, matchingSuggestion, rest, unit, amount } = useSuggestions(value);
+  /**
+   * Called once, here, and handed down to the panel. Calling it there as well would give the two
+   * their own debounce timers and their own held answers — and the panel mounts later than the
+   * row, so they would not even start together. Enter would then be able to disagree with the
+   * list the cook is looking at, which is the one thing this pairing must never do.
+   */
+  const bar = useBarSuggestions(value);
+  const { kind, ingredient, hasSuggestions } = bar;
+  const { matchingSuggestion, rest, unit, amount } = ingredient;
   const showSuggestions = focused && hasSuggestions;
 
   const { apply } = useStockActions();
@@ -142,8 +150,11 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
             ]}
           />
           <Suggestions
-            value={value}
-            style={{ paddingTop: theme.spacing[16] }}
+            bar={bar}
+            style={{
+              paddingTop: theme.spacing[16],
+              paddingBottom: NAVIGATION_BAR_HEIGHT,
+            }}
             onSelect={(suggestion) => {
               setValue("");
               onBlur?.();
@@ -153,6 +164,15 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
               setTimeout(() => {
                 submitSuggestion(suggestion.id, suggestion.unit, suggestion.amount);
               }, 200);
+            }}
+            onSelectRecipe={(recipeId) => {
+              setValue("");
+              onBlur?.();
+              ref.current?.blur();
+
+              // Same delay, and for the same reason the ingredient branch has one: the panel is
+              // mid-exit, and pushing a screen under it drops the animation.
+              setTimeout(() => router.push(`/recipe/${recipeId}`), 200);
             }}
           />
         </m.View>}
@@ -179,7 +199,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
              * asks about tomatoes instead of buying one, and a food we have never held reaches the
              * resolver instead of the assistant's mockup.
              */
-            const intent = readIntent(value, matchingSuggestion !== null);
+            const intent = readIntent(value, matchingSuggestion !== null, kind === "recipe");
 
             // The row answers when the shopper did not, both halves together — an amount without
             // its unit is not half a quantity. On the unknown branch there is no row yet, so the
@@ -189,6 +209,11 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
               const quantity = pickQuantity({ amount, unit }, matchingSuggestion);
               submitSuggestion(matchingSuggestion.id, quantity.unit, quantity.amount);
             }
+            else if (intent.kind === "recipe")
+              // The whole input, not `rest`: the recipes page searches names, and a quantity the
+              // cook never typed is not in one. `value` is also what the box showed, so the term
+              // the page opens on is the term they submitted.
+              router.push({ pathname: "/recipes", params: { q: value.trim() } });
             else if (intent.kind === "unknown" && rest)
               submitUnknown(rest, unit, amount);
             else if (intent.kind === "chat")
@@ -225,7 +250,6 @@ const styles = StyleSheet.create({
    */
   suggestionsContainer: {
     marginHorizontal: -theme.spacing[6],
-    paddingBottom: NAVIGATION_BAR_HEIGHT,
     overflow: "hidden",
   },
   suggestionsContainerRadius: {

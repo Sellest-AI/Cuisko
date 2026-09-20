@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 
-import { useDebounce } from "~/hooks/useDebounce";
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
-import { usePaginatedQueryCached, useQueryHeld } from "~/lib/convex/client";
+import { usePaginatedQueryCached } from "~/lib/convex/client";
+
+import { useRecipeMatches } from "./useRecipeMatches";
 
 /**
  * How many recipes a page carries.
@@ -13,9 +14,6 @@ import { usePaginatedQueryCached, useQueryHeld } from "~/lib/convex/client";
  * rather than like a button.
  */
 const PAGE_SIZE = 24;
-
-/** Below this the box has narrowed nothing: one letter cannot usefully cut a cook's own list. */
-const MIN_SEARCH_LENGTH = 2;
 
 /**
  * The recipes under the box: the cook's own list, or what a term narrows it to.
@@ -33,16 +31,11 @@ const MIN_SEARCH_LENGTH = 2;
  * one every time the box is cleared, and clearing the box is the most common thing that happens to
  * it — so the list is kept warm and the matches are drawn over it instead.
  *
- * Two separate things stop the grid flickering, and each needs its own fix. Debouncing stops a
- * query per keystroke; it does not stop the grid emptying when the settled term finally changes,
- * because the cache is keyed on the arguments and has no entry for the new ones yet. `useQueryHeld`
- * is what keeps the previous matches on screen until the better ones arrive, and `isStale` is how a
- * caller can still tell which of the two it is looking at.
+ * The debouncing, the minimum term length and the holding that stop the grid flickering all belong
+ * to `useRecipeMatches` now — this hook only chooses which of the two answers the grid draws.
  */
 export const useRecipeList = (query: string) => {
   const locale = useLocale();
-  const settled = useDebounce(query).trim();
-  const isSearching = settled.length >= MIN_SEARCH_LENGTH;
 
   const list = usePaginatedQueryCached(
     api.router.recipes.getAll.authed,
@@ -50,10 +43,15 @@ export const useRecipeList = (query: string) => {
     { initialNumItems: PAGE_SIZE },
   );
 
-  const found = useQueryHeld(
-    api.router.recipes.search.authed,
-    isSearching ? { query: settled, locale } : "skip",
-  );
+  /**
+   * The matching half is `useRecipeMatches` and not a second copy of it here, because the
+   * navigation bar now asks the very same question. Two debounces against one query would be two
+   * places for the settled term, the minimum length and the holding to drift apart — and the two
+   * surfaces would then rank the same search differently, which is what this module already
+   * refuses to let happen between its own two screens.
+   */
+  const matches = useRecipeMatches(query);
+  const { isSearching } = matches;
 
   /**
    * Stable, because the grid hands it to `onEndReached` — a new function every render would make
@@ -63,7 +61,7 @@ export const useRecipeList = (query: string) => {
   const fetchMore = useCallback(() => loadMore(PAGE_SIZE), [loadMore]);
 
   return {
-    recipes: isSearching ? (found.data ?? []) : list.results,
+    recipes: isSearching ? matches.recipes : list.results,
     /**
      * Whether a term is narrowing the grid — which is not the same as the box holding text, since
      * a single letter narrows nothing and the term is debounced besides.
@@ -77,9 +75,9 @@ export const useRecipeList = (query: string) => {
      * The first answer only. A later page arriving underneath a grid that is already drawn is not
      * the screen loading, and reporting it as such would blank content the cook is reading.
      */
-    isLoading: isSearching ? found.data === undefined : list.status === "LoadingFirstPage",
+    isLoading: isSearching ? matches.isLoading : list.status === "LoadingFirstPage",
     /** True only while a previous set of matches stands in for one still in flight. */
-    isStale: isSearching && found.isStale,
+    isStale: matches.isStale,
     /**
      * Always false while searching. A search answers with its best matches rather than with a page,
      * so there is no next cursor — and scrolling past the last match must not quietly start
