@@ -5,6 +5,7 @@ import { getLocales } from "expo-localization"
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "@shared/translations";
 
 // Import all translations at build time
+import enAssistant from "./en/assistant.json";
 import enAuth from "./en/auth.json";
 import enCommon from "./en/common.json";
 import enGroceries from "./en/groceries.json";
@@ -14,6 +15,7 @@ import enPlanning from "./en/planning.json";
 import enRecipe from "./en/recipe.json";
 import enRecipes from "./en/recipes.json";
 import enVocabulary from "./en/vocabulary.json";
+import frAssistant from "./fr/assistant.json";
 import frAuth from "./fr/auth.json";
 import frCommon from "./fr/common.json";
 import frGroceries from "./fr/groceries.json";
@@ -47,6 +49,7 @@ i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
+        Assistant: enAssistant,
         Auth: enAuth,
         Common: enCommon,
         Groceries: enGroceries,
@@ -60,6 +63,7 @@ i18n.use(initReactI18next).init({
     },
     fr: {
       translation: {
+        Assistant: frAssistant,
         Auth: frAuth,
         Common: frCommon,
         Groceries: frGroceries,

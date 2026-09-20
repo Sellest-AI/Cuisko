@@ -32,13 +32,13 @@ export const Message = ({ from = "user", style, content, children, parsers }: Pr
       style,
     ]}>
       {!isUser && <View style={{
-        width: 12,
+        width: 16,
         height: 12,
         borderRadius: theme.radius.full,
         marginTop: theme.spacing[6]
       }}
       >
-        <Text.Sm style={{ fontSize: 12, lineHeight: 6 }}>
+        <Text.Sm style={{ fontSize: 12, lineHeight: 12 }}>
           🦊
         </Text.Sm>
       </View>}

@@ -38,9 +38,20 @@ export type SuggestionKind = "ingredient" | "recipe";
  * Gate 3 is also why this returns `kind` beside the ingredient bag rather than a union of the two:
  * the bar still submits through the ingredient path while showing recipes, so `rest`, `amount`,
  * `unit` and `matchingSuggestion` have to stay reachable whichever list is on screen.
+ *
+ * **`enabled: false` turns the whole thing off, queries included.** On the assistant screen the bar
+ * is a chat box: a shopper typing "tomates" there is writing a sentence, not reaching for the
+ * catalog, and a panel offering to put tomatoes on their list is an interruption with nothing
+ * behind it.
+ *
+ * It is a parameter rather than something the caller works around by passing `""`, and the
+ * difference is not style. Empty text happens to skip every query today, so the panel would be
+ * empty — but "empty" is exactly the input a bar would one day answer with recently-used foods, and
+ * on that day the suggestions would come back on the assistant screen with nothing in the diff to
+ * explain why. Stated here, the intent survives that change.
  */
-export const useBarSuggestions = (text: string) => {
-  const ingredient = useSuggestions(text);
+export const useBarSuggestions = (text: string, enabled = true) => {
+  const ingredient = useSuggestions(enabled ? text : "");
 
   /**
    * Asked even while gate 1 is going to win, because a hook cannot be called conditionally — and
@@ -54,7 +65,7 @@ export const useBarSuggestions = (text: string) => {
    * holds titles as they are written: `query` normalises "pommes de terre" into "pomme terre",
    * which is right for finding a catalog row by typo and wrong for finding a name.
    */
-  const matches = useRecipeMatches(ingredient.rest);
+  const matches = useRecipeMatches(enabled ? ingredient.rest : "");
   const { recipes: candidates, term } = matches;
 
   /**
@@ -74,8 +85,16 @@ export const useBarSuggestions = (text: string) => {
   return {
     kind,
     ingredient,
-    recipes,
-    /** Whether there is anything at all to draw — the bar opens its panel on this. */
-    hasSuggestions: kind === "recipe" ? recipes.length > 0 : ingredient.hasSuggestions,
+    recipes: enabled ? recipes : [],
+    /**
+     * Whether there is anything at all to draw — the bar opens its panel on this.
+     *
+     * `enabled` is asserted here rather than left to the starved queries above. Feeding the two
+     * hooks an empty string stops them ASKING, which is the saving; it does not promise they
+     * answer with nothing, and a hook that one day responds to an empty bar with recently-used
+     * foods would put the panel straight back on the assistant screen. Off means off, stated once.
+     */
+    hasSuggestions:
+      enabled && (kind === "recipe" ? recipes.length > 0 : ingredient.hasSuggestions),
   };
 };

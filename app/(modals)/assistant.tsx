@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams } from "expo-router";
 import { Platform, StyleSheet } from "react-native";
 import { theme } from "~/global/theme";
 import { AssistantScreen } from "~/modules/assistant/screen";
@@ -13,9 +14,19 @@ export default function Assistant() {
    */
   useDeclaredModalSheet(MODAL_MAX_DETENT);
 
+  /**
+   * The question the navigation bar was holding when it decided this screen should answer it.
+   *
+   * A route param rather than shared state, because it belongs to this opening of the modal and
+   * nothing else — an atom would still be holding yesterday's question the next time the assistant
+   * is opened from anywhere. Expo gives a repeated param as an array; only one is ever sent.
+   */
+  const { q } = useLocalSearchParams<{ q?: string | string[] }>();
+  const question = Array.isArray(q) ? q[0] : q;
+
   if (Platform.OS === "ios")
     return <>
-      <AssistantScreen />
+      <AssistantScreen question={question} />
       <NavigationBar />
     </>;
 
@@ -26,6 +37,6 @@ export default function Assistant() {
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
     />
-    <AssistantScreen />
+    <AssistantScreen question={question} />
   </>
 }

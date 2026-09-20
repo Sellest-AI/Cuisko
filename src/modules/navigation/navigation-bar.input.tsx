@@ -13,6 +13,7 @@ import { Suggestions } from "./_components/suggestions";
 import { pickQuantity, type Unit } from "@shared/ingredients";
 import { useBarSuggestions } from "./_hooks/useBarSuggestions";
 import { useNavigationBar } from "./_hooks/useNavigationBar";
+import { useAskCuisko } from "~/modules/assistant/hooks";
 import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
 import { type Intent } from "@shared/inputIntent";
@@ -49,6 +50,17 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   const t = useTranslations("Navigation");
   const pathname = usePathname();
 
+  /**
+   * On `/assistant` the bar stops being a search box and becomes the conversation's only input.
+   *
+   * That changes three things at once, and they are one decision rather than three: no suggestions
+   * panel, no queries behind it, and no `readIntent` on Enter. Somebody who has opened the
+   * assistant has already said what they want the words to do — offering to put "tomates" on their
+   * grocery list mid-sentence is the bar arguing with them, and running a model to re-derive an
+   * intent they stated by navigating is paying for an answer we already have.
+   */
+  const isChatOnly = pathname.startsWith("/assistant");
+
   // The suggestions panel is laid out above the input and then pulled back down over it, so it
   // needs the input's height. Measured rather than assumed: the row grows with the font scale.
   const [inputHeight, setInputHeight] = useState(0);
@@ -60,10 +72,16 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
    * row, so they would not even start together. Enter would then be able to disagree with the
    * list the cook is looking at, which is the one thing this pairing must never do.
    */
-  const bar = useBarSuggestions(value);
+  const bar = useBarSuggestions(value, !isChatOnly);
   const { kind, ingredient, hasSuggestions } = bar;
   const { matchingSuggestion, rest, unit, amount } = ingredient;
   const showSuggestions = focused && hasSuggestions;
+
+  /**
+   * Taken from the assistant module's door — the bar sends and never draws, which is why this is
+   * `useAskCuisko` and not the hook the screen uses.
+   */
+  const { ask } = useAskCuisko();
 
   const { apply } = useStockActions();
   const { add: addUnknown } = usePendingIngredients();
@@ -154,8 +172,11 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
     else if ((intent.kind === "unknown" || intent.kind === "ingredient") && rest)
       submitUnknown(rest, unit, amount);
     else if (intent.kind === "chat")
-      router.push("/assistant");
+      // The whole input, not `rest`: a question is not a quantity, and `rest` has had any leading
+      // amount stripped out of it.
+      router.push({ pathname: "/assistant", params: { q: value.trim() } });
   }
+
 
   /**
    * Clears the box and gives up the bar, the way selecting a suggestion already does.
@@ -166,6 +187,22 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   const release = () => {
     setValue("");
     onBlur?.();
+  }
+
+  /**
+   * Enter, on the assistant screen: straight into the thread.
+   *
+   * **Neither `route` nor `useInputIntent` is involved.** That decision exists to pick between
+   * three destinations, and the shopper picked one by being here — so running it would spend a
+   * model call to be told "chat", and could come back with "ingredient" for a one-word message
+   * and put it on the grocery list instead of sending it. A question typed into a conversation is
+   * a message, whatever the words look like in isolation.
+   *
+   * Emptiness is not checked: `ask` ignores blank input, so a stray Enter costs only the clearing.
+   */
+  const sendToChat = () => {
+    void ask(value);
+    release();
   }
 
   return (
@@ -259,6 +296,10 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           }
           style={{ width: "100%" }}
           onSubmit={() => {
+            // In a conversation there is nothing to work out: the words are a message. This
+            // returns before `isChecking` is even consulted, because nothing is ever checked here.
+            if (isChatOnly) return sendToChat();
+
             // A second Enter while the first is still being confirmed would route twice — once on
             // each answer — and put the same word on the list twice.
             if (isChecking) return;

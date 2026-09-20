@@ -1,186 +1,131 @@
-import { View, StyleSheet, ViewStyle, ScrollView } from "react-native";
-import { theme } from "theme";
-import { Text } from "@ui/text";
-import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
-import { ForkKnife, SparklesIcon } from "@ui/icons";
+import { useCallback, useEffect, useRef } from "react";
+import { type ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { useTranslations } from "translations";
+
+import { SparklesIcon } from "@ui/icons";
 import { Message } from "@ui/message";
-import { ButtonPill } from "@ui/button-pill";
-import { Image } from "@ui/image";
-import { CardRecipe } from "@ui/cards/recipe";
-import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
+import { ModalScrollView } from "@ui/modal-scroll-view";
+import { Text } from "@ui/text";
+import { theme } from "theme";
 
-const FOOD_EXAMPLES = [
-  { name: "tomato", emoji: "🍅" },
-  { name: "chicken", emoji: "🍗" },
-  { name: "broccoli", emoji: "🥦" },
-  { name: "rice", emoji: "🍚" },
-  { name: "pasta", emoji: "🍝" },
-  { name: "cheese", emoji: "🧀" },
-  { name: "beef", emoji: "🥩" },
-  { name: "fish", emoji: "🐟" },
-  { name: "potato", emoji: "🥔" },
-  { name: "carrot", emoji: "🥕" },
-];
+import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
-const RECIPES = [
-  { title: "Pizza Atomica", subtitle: "Italian" },
-  { title: "Asparagus Salad", subtitle: "Italian" },
-  { title: "Pasta Carbonara", subtitle: "Italian" },
-];
-
-const foodParser = {
-  // Regex to match any of the food examples, case insensitive, and plural forms (e.g., "tomatoes" for "tomatoe")
-  condition: `\\b((?:${FOOD_EXAMPLES.map((f) => f.name).join("|")})s?)\\b`,
-  parse: (text: string) => {
-    const regex = new RegExp(`\\b((?:${FOOD_EXAMPLES.map((f) => f.name).join("|")})s?)\\b`, "gi");
-    const parts = text.split(regex);
-
-    return parts.map((part, index) => {
-      if (regex.test(part)) {
-        const food = FOOD_EXAMPLES.find((f) => f.name.toLowerCase() === part.toLowerCase().replace(/s$/, ""));
-
-        return (
-          <Text.Base key={index} style={{ color: theme.colors.primary.base, fontWeight: "bold" }}>
-            <View style={{
-              width: 20, height: 20, backgroundColor: theme.colors.neutral.subtle,
-              borderRadius: theme.radius.full, alignItems: "center", justifyContent: "center",
-              marginRight: 4
-            }}>
-              <Text.Sm style={{ lineHeight: 10, fontSize: 10 }}>
-                {food?.emoji}
-              </Text.Sm>
-            </View>
-            {part}
-          </Text.Base>
-        );
-      }
-      return part;
-    });
-  },
-}
+import { RecipeRow } from "./screen.recipe-row";
+import { useAssistantChat } from "./_hooks/useAssistantChat";
 
 type Props = {
-  style?: ViewStyle,
-}
+  style?: ViewStyle;
+  /**
+   * A question typed into the navigation bar, which routed here instead of answering itself.
+   *
+   * Sent once on mount rather than pre-filled into a box, because the shopper already pressed
+   * Enter — asking them to press it again would be the screen forgetting what it was opened with.
+   */
+  question?: string;
+};
 
-export const AssistantScreen = ({ style }: Props) => {
+export const AssistantScreen = ({ style, question }: Props) => {
+  const t = useTranslations("Assistant");
+  const { messages, ask, isThinking } = useAssistantChat();
+
+  /**
+   * The question the bar arrived with, sent exactly once.
+   *
+   * A ref rather than a dependency on `question`, because the effect must not re-fire: `ask` is
+   * recreated whenever the thread id changes, and the thread id changes as a direct result of
+   * sending — so a dependency array holding it would send the same question a second time the
+   * moment the first one landed.
+   */
+  const asked = useRef(false);
+
+  useEffect(() => {
+    if (!question || asked.current) return;
+
+    asked.current = true;
+    void ask(question);
+  }, [question, ask]);
+
+  const scroller = useRef<ScrollView>(null);
+
+  /**
+   * Follows the conversation down as it grows.
+   *
+   * On content size rather than on a message arriving, because an answer streaming in changes the
+   * height many times per message — watching the list length would pin the view at the top of a
+   * long answer and leave the reader to chase it.
+   */
+  const followToBottom = useCallback(() => {
+    scroller.current?.scrollToEnd({ animated: true });
+  }, []);
+
   return (
-    <ScrollView
-      style={[{ marginTop: 4 }, style]}
+    <ModalScrollView
+      ref={scroller}
+      style={[styles.sheet, style]}
       contentContainerStyle={styles.page}
-      showsVerticalScrollIndicator={false}
+      onContentSizeChange={followToBottom}
+      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <View style={styles.title}>
           <SparklesIcon size={20} />
-          <Text.H4 color="currentColor">Cuisko</Text.H4>
+          <Text.H4 color="currentColor">{t("title")}</Text.H4>
         </View>
       </View>
-      <View style={{
-        gap: theme.spacing[28],
-      }}>
-        <Message
-          from="user"
-          content="Hello Cuisko, can you help me find a recipe for dinner tonight?"
-          parsers={[foodParser]}
-          style={{ paddingRight: theme.spacing[16] }}
-        />
-        <Message
-          from="assistant"
-          content="Of course! What ingredients do you have on hand, or do you have a specific type of cuisine in mind?"
-          parsers={[foodParser]}
-          style={{ paddingLeft: theme.spacing[12] }}
-        >
-          <ButtonPill
-            onPress={() => console.log("Open Grocery List pressed")}
-            variant="secondary"
-            leftIcon={ForkKnife}
-            size="md"
-          >
-            Open Recipes
-          </ButtonPill>
-        </Message>
-        <Message
-          from="user"
-          content="I have chicken, 3 broccolis, and rice. I was thinking of something Asian-inspired."
-          parsers={[foodParser]}
-          style={{ paddingRight: theme.spacing[16] }}
-        />
-        <Message
-          from="assistant"
-          content="Great! How about a Chicken and Broccoli Stir-Fry with Rice? It's quick, easy, and delicious. Here are simple recipes:"
-          parsers={[foodParser]}
-          style={{ paddingLeft: theme.spacing[12] }}
-        >
-          <View style={{ flexDirection: "row", justifyContent: "flex-start", alignItems: "center", gap: theme.spacing[8] }}>
-            <Text.Lg color={theme.colors.foreground}>Recipes Found</Text.Lg>
-            <Text.Lg color={theme.colors.neutral.muted}>3</Text.Lg>
-          </View>
-        </Message>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{
-            marginTop: -24,
-          }}
-          contentContainerStyle={{
-            gap: theme.spacing[12],
-            paddingVertical: theme.spacing[12],
-            paddingHorizontal: theme.spacing[28],
-          }}
-        >
-          {RECIPES.map((recipe) => (
-            <CardRecipe
-              key={recipe.title}
-              title={recipe.title}
-              subtitle={recipe.subtitle}
-              imageSrc={COVER_PLACEHOLDER}
-              style={{ width: 220 }}
-            />
-          ))}
-        </ScrollView>
-        <Message
-          from="user"
-          content="That sounds perfect! Do you know how to make a pizza with tomato, cheese, and chicken?"
-          parsers={[foodParser]}
-          style={{
-            paddingRight: theme.spacing[16],
-            marginTop: -12
-          }}
-        >
-          <View style={{
-            alignSelf: "flex-end",
-            borderRadius: theme.radius.lg,
-            borderTopRightRadius: theme.radius.xs,
-            overflow: "hidden",
-            width: 200,
-            height: 200,
-            boxShadow: [
-              {
-                offsetX: 2,
-                offsetY: 6,
-                blurRadius: 10,
-                spreadDistance: 4,
-                color: "rgba(0, 0, 0, 0.05)",
-              },
-            ],
-          }}>
-            <Image
-              style={{
-                width: 200,
-                height: 200,
 
-              }}
-              source={COVER_PLACEHOLDER}
+      {/*
+        * There is no empty state, because there is no way to reach one: the only route onto this
+        * screen is the navigation bar submitting a question, and that question is sent on mount.
+        * A greeting written for a case that cannot happen is a screen nobody would ever see.
+        */}
+      <View style={styles.conversation}>
+        {messages.map((message) =>
+          message.from === "user" ? (
+            <Message
+              key={message.key}
+              from="user"
+              content={message.text}
+              style={styles.fromUser}
             />
-          </View>
-        </Message>
+          ) : (
+            <View key={message.key}>
+              {/*
+                * A turn that failed has nothing to say, so it says that plainly instead of
+                * drawing an empty bubble. Plainly is the point: PRODUCT.md puts the mascot aside
+                * when something has gone wrong, so this is an apology and not a joke.
+                */}
+              <Message
+                from="assistant"
+                content={message.hasFailed && !message.text ? t("failed") : message.text}
+                style={styles.fromAssistant}
+              />
+              {message.recipeIds.length > 0 && <View
+                style={styles.assistantTool}
+              >
+                <RecipeRow recipeIds={message.recipeIds} />
+              </View>}
+            </View>
+          ),
+        )}
+        {/*
+          * Drawn only in the gap the stream has not reached yet. Once the first token lands, the
+          * answer itself is the feedback and a second indicator beside it would read as a
+          * second turn.
+          */}
+        {isThinking && (
+          <Text.Base color={theme.colors.neutral.muted} style={styles.thinking}>
+            {t("thinking")}
+          </Text.Base>
+        )}
       </View>
-    </ScrollView>
-  )
-}
+    </ModalScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
+  sheet: {
+    marginTop: 4,
+  },
   page: {
     paddingBottom: NAVIGATION_BAR_OFFSET,
   },
@@ -197,4 +142,21 @@ const styles = StyleSheet.create({
     gap: theme.spacing[12],
     color: theme.colors.primary.base,
   },
-})
+  conversation: {
+    gap: theme.spacing[28],
+  },
+  fromUser: {
+    paddingRight: theme.spacing[16],
+  },
+  fromAssistant: {
+    marginLeft: theme.spacing[12],
+  },
+  assistantTool: {
+    marginLeft: theme.spacing[32],
+    marginTop: theme.spacing[12],
+    paddingRight: theme.spacing[32],
+  },
+  thinking: {
+    paddingLeft: theme.spacing[28],
+  },
+});

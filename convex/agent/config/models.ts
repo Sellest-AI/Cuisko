@@ -71,6 +71,18 @@ export const models = {
     model: OPENAI_GPT_5_6_LUNA,
     ...OPENAI_GPT_5_6_LUNA_OPTIONS
   },
+  /**
+   * The assistant a shopper talks to. Deepseek at low effort: it is answering cooking questions,
+   * not reasoning about a schema, and it is the only model here a person waits on in real time —
+   * so the trade runs the other way from `recipes`, where accuracy is worth the extra seconds.
+   *
+   * Named rather than pointed at `default`, so retuning the chat cannot move a sanitizer that
+   * happens to share its model today.
+   */
+  assistant: {
+    model: DEEPSEEK_V4_FLASH_0731,
+    ...DEEPSEEK_V4_FLASH_0731_OPTIONS
+  },
   translator: {
     model: DEEPSEEK_V4_FLASH_0731,
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS

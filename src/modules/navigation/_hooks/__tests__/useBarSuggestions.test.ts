@@ -148,3 +148,39 @@ describe("the debounce window", () => {
     expect(ruling.kind).toBe("recipe");
   });
 });
+
+describe("when the bar is disabled", () => {
+  /**
+   * The assistant screen turns the bar into a chat box, and a chat box does not offer to put words
+   * on a grocery list.
+   */
+  const disabled = (text: string) =>
+    renderHook(() => useBarSuggestions(text, false)).result.current;
+
+  it("offers nothing, however well the catalog matched", () => {
+    state.ingredient = { isFullyCovered: true, hasSuggestions: true };
+
+    expect(disabled("tomates").hasSuggestions).toBe(false);
+  });
+
+  it("offers nothing, however well the titles matched", () => {
+    state.matches.recipes = [{ id: "r1", title: "Tomates farcies" }];
+
+    const bar = disabled("tomates farcies");
+
+    expect(bar.recipes).toEqual([]);
+    expect(bar.hasSuggestions).toBe(false);
+  });
+
+  /**
+   * The point of the flag rather than passing `""` from the caller. Both queries happen to skip on
+   * empty text today, so a caller could fake this — until the day an empty bar answers with
+   * recently-used foods, when the suggestions would silently come back on the assistant screen.
+   * Asserting that nothing is ASKED, rather than that nothing comes back, is what survives that.
+   */
+  it("asks the recipe search for nothing at all", () => {
+    disabled("tomates farcies");
+
+    expect(state.asked).toBe("");
+  });
+});
