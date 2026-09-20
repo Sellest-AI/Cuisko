@@ -6,17 +6,15 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { router } from "expo-router";
+import { useStockCounts } from "~/modules/groceries/hooks";
 import { useNavigationBar } from "~/modules/navigation/hooks";
-
-/** Placeholder counts until the list and the cellar arrive from Convex. */
-const PENDING_ITEMS = 56;
-const STORED_ITEMS = 37;
 
 /** The things you reach for without going looking: what to add, and where things are kept. */
 export const QuickAccess = () => {
   const t = useTranslations("Home");
 
   const { focus } = useNavigationBar();
+  const { toBuy, inStock, isLoading } = useStockCounts();
 
   return (
     <View style={styles.container}>
@@ -29,7 +27,7 @@ export const QuickAccess = () => {
           onPress={() => router.push("/groceries")}
           content={t("QuickAccess.grocery_list")}
           contentIcon={ListPlus}
-          subtitle={t("QuickAccess.to_buy_x_items", { count: PENDING_ITEMS })}
+          subtitle={isLoading ? undefined : t("QuickAccess.to_buy_x_items", { count: toBuy })}
           leftIcon={Plus}
           onLeftIconPress={() => { focus("shopping-list") }}
           style={{ alignSelf: "stretch" }}
@@ -39,7 +37,7 @@ export const QuickAccess = () => {
           onPress={() => router.push({ pathname: "/groceries", params: { section: "cellar" } })}
           content={t("QuickAccess.cellar")}
           contentIcon={Store}
-          subtitle={t("QuickAccess.in_stock_x_items", { count: STORED_ITEMS })}
+          subtitle={isLoading ? undefined : t("QuickAccess.in_stock_x_items", { count: inStock })}
           leftIcon={Plus}
           onLeftIconPress={() => { focus("cellar") }}
           style={{ alignSelf: "stretch" }}
