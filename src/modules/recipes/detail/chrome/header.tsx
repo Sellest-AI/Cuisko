@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     position: "absolute",
-    top: SCREEN_PADDING,
+    top: SCREEN_PADDING / 2,
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[12],

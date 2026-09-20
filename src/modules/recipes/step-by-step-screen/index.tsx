@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     left: SCREEN_PADDING,
     right: SCREEN_PADDING,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: theme.spacing[8],
     justifyContent: "space-between",
   }
