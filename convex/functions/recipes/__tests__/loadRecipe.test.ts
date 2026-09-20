@@ -2,6 +2,8 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 
+import { avatarSeed } from "@shared/avatars";
+
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { loadRecipe } from "../loadRecipe";
@@ -432,8 +434,27 @@ describe("functions/recipes/loadRecipe", () => {
       await loadRecipe(ctx, { recipe: ownerless, locale: "en" }),
     ]);
 
-    expect(withChef.chef).toEqual({ name: "Franck" });
+    const ownerId = await t.run(async (ctx) => (await ctx.db.get(named))!.userId!);
+
+    expect(withChef.chef).toEqual({ name: "Franck", seed: avatarSeed(ownerId) });
     expect(withoutName.chef).toBeUndefined();
     expect(withoutOwner.chef).toBeUndefined();
+  });
+
+  /**
+   * The reason the seed is derived from `userId` rather than from the name beside it. Two cooks who
+   * happen to share a name are two people, and drawing them one face would say otherwise.
+   */
+  test("gives two chefs with the same name different seeds", async () => {
+    const one = await seedRecipe();
+    const other = await seedRecipe();
+
+    const [first, second] = await t.run(async (ctx) => [
+      await loadRecipe(ctx, { recipe: one, locale: "en" }),
+      await loadRecipe(ctx, { recipe: other, locale: "en" }),
+    ]);
+
+    expect(first.chef?.name).toBe(second.chef?.name);
+    expect(first.chef?.seed).not.toBe(second.chef?.seed);
   });
 });

@@ -1,4 +1,5 @@
 import { authQuery } from "@convex/procedures";
+import { avatarSeed } from "@shared/avatars";
 
 /**
  * The signed-in caller's own identity.
@@ -16,5 +17,12 @@ export const authed = authQuery({
     id: ctx.user._id,
     email: ctx.user.email ?? null,
     role: ctx.user.role,
+    /**
+     * The caller's own avatar, derived here rather than on the client that could derive it just as
+     * easily. A recipe's chef seed is built by the server too, and the two have to agree for the
+     * same cook to wear one face on both screens — two producers shipping on two release schedules
+     * is how they stop agreeing. See `shared/avatars.ts`.
+     */
+    avatarSeed: avatarSeed(ctx.user._id),
   }),
 });

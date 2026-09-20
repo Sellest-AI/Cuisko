@@ -1,5 +1,6 @@
 import { View, StyleSheet, useWindowDimensions } from "react-native";
 
+import { ANONYMOUS_AVATAR_SEED } from "@shared/avatars";
 import { Avatar } from "@ui/avatar";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -15,15 +16,6 @@ import { Difficulty } from "./difficulty";
 import { GroceryRow } from "./grocery-row";
 import { Timings, type Timing } from "./timings";
 import { IngredientGroup } from "../../_components/ingredient-group";
-
-/**
- * The face beside the chef's name, until a cook can have one of their own.
- *
- * `users` carries an `image` from the auth provider, but nothing uploads or resolves one yet, so
- * every recipe would draw a blank circle. Unlike the name below it, this does not degrade into
- * something honest — an absent avatar is a hole in the tile — so it stands in unconditionally.
- */
-const PLACEHOLDER_AVATAR = require("assets/placeholders/empty-placeholder.webp");
 
 const COLUMNS = 3;
 
@@ -73,7 +65,12 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
             />
           </View>
           <View style={[styles.tile, styles.chef]}>
-            <Avatar source={PLACEHOLDER_AVATAR} />
+            {/*
+              * An uncredited recipe wears the one anonymous face rather than none: the tile is
+              * labelled "Chef", and a label over a gap reads as the page having failed. Every
+              * uncredited recipe wears the same one, so it reads as a stand-in and not as an author.
+              */}
+            <Avatar seed={recipe.chef?.seed ?? ANONYMOUS_AVATAR_SEED} elevated />
             <View style={styles.chefName}>
               {/*
                 * An unnamed owner is credited generically rather than left blank: the tile is

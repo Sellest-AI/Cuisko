@@ -5,6 +5,7 @@ import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { getImage } from "@convex/functions/media/getImage";
+import { avatarSeed } from "@shared/avatars";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
 import { toGrams, type Unit } from "@shared/ingredients";
 import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
@@ -48,6 +49,14 @@ type RecipeIngredient = {
 /** Who wrote the recipe, for the line that credits them. Absent on a recipe with no owner. */
 type RecipeChef = {
   name: string;
+  /**
+   * What their avatar is drawn from, derived from `userId` — which itself still never ships.
+   *
+   * Computed here rather than on the client, although the client could: the home header draws the
+   * same face for the signed-in cook, and a second caller on a second release schedule is how the
+   * two stop matching. See `shared/avatars.ts`.
+   */
+  seed: string;
 };
 
 /**
@@ -228,7 +237,7 @@ const _chefOf = async (ctx: LoadCtx, userId?: Id<"users">): Promise<RecipeChef |
 
   const user = await ctx.db.get(userId);
 
-  return user?.name ? { name: user.name } : undefined;
+  return user?.name ? { name: user.name, seed: avatarSeed(userId) } : undefined;
 };
 
 /**

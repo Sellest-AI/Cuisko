@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
+import { avatarSeed } from "@shared/avatars";
+
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
 
@@ -47,6 +49,7 @@ describe("router/users/getMe", () => {
       id: userId,
       email: "f@example.com",
       role: "USER",
+      avatarSeed: avatarSeed(userId),
     });
   });
 
