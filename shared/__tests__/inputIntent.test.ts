@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { CHAT_TRIGGERS, readIntent } from "../ingredientIntent";
+import { CHAT_TRIGGERS, isGuess, readIntent } from "../inputIntent";
 
 /** The bar has already found a confident match for these. */
 const MATCHED = true;
@@ -166,5 +166,110 @@ describe("a dish by name", () => {
   /** Absent, it changes nothing — every caller that never saw a recipe behaves as it always did. */
   test("defaults to off", () => {
     expect(readIntent("boeuf bourguignon", MISSED)).toEqual({ kind: "unknown" });
+  });
+});
+
+/**
+ * Which rulings a model may be asked to redraw.
+ *
+ * The consequence of getting this wrong is not a bad route, it is a rule stopping being a rule: mark
+ * `question` or `trigger` as a guess and the navigation bar starts handing the model inputs whose
+ * answer the shopper already typed, which is the failure the rule order at the top of this file
+ * exists to prevent. So each of the six is named here, rather than the two being tested and the
+ * other four assumed.
+ */
+describe("isGuess", () => {
+  test("the two guesses are the word count and the fall-through", () => {
+    expect(isGuess({ kind: "unknown" })).toBe(true);
+    expect(isGuess({ kind: "chat", reason: "sentence" })).toBe(true);
+  });
+
+  test("nothing the shopper wrote on purpose is a guess", () => {
+    expect(isGuess({ kind: "chat", reason: "question" })).toBe(false);
+    expect(isGuess({ kind: "chat", reason: "trigger" })).toBe(false);
+    expect(isGuess({ kind: "ingredient" })).toBe(false);
+    expect(isGuess({ kind: "recipe" })).toBe(false);
+  });
+
+  /** An answer the model already gave is not a guess to send back to it — that would loop. */
+  test("the model's own ruling is not a guess", () => {
+    expect(isGuess({ kind: "chat", reason: "model" })).toBe(false);
+  });
+
+  /** The two branches the bar forwards, read off `readIntent` itself rather than hand-built. */
+  test("agrees with what readIntent returns for both branches", () => {
+    expect(isGuess(readIntent("boeuf bourguignon", MISSED))).toBe(true);
+    expect(isGuess(readIntent("huile olive vierge extra", MISSED))).toBe(true);
+    expect(isGuess(readIntent("tomate", MATCHED))).toBe(false);
+  });
+});
+
+/**
+ * French elision, which rule 2 could not see through until it was taught to.
+ *
+ * The tokenizer splits on the apostrophe, so every question opening with "c'est", "j'ai" or
+ * "qu'est-ce" used to arrive with a one-letter clitic in first position and its trigger word in
+ * second — where rule 2 does not look. The question then fell to rule 3, and since most of them
+ * name a food, the catalog answered and the question became a shopping item.
+ *
+ * That is why these are asserted with MATCHED: the bug needs a catalog hit to show itself, and a
+ * test that passed MISSED would pass on the fall-through no matter what rule 2 did.
+ */
+describe("elision", () => {
+  test("a question opening with c'est asks, even when the catalog knows a word in it", () => {
+    expect(readIntent("C'est quoi les calories des pates bolo", MATCHED)).toEqual({
+      kind: "chat",
+      reason: "trigger",
+    });
+  });
+
+  test.each([
+    ["qu'est-ce que je fais avec du poulet"],
+    ["j'ai plus de viande pour ma bolognaise"],
+    ["d'où vient le safran"],
+  ])("%s leads with its trigger", (input) => {
+    expect(readIntent(input, MATCHED)).toEqual({ kind: "chat", reason: "trigger" });
+  });
+
+  /** A phone keyboard produces ’ and a desktop one '. Fixing one and not the other fixes the web only. */
+  test("both apostrophes are the same apostrophe", () => {
+    expect(readIntent("c’est quoi le yuzu", MATCHED)).toEqual({ kind: "chat", reason: "trigger" });
+  });
+
+  /**
+   * The other half of the rule, and the reason the clitic list is short: dropping "l'" must not
+   * promote whatever follows into a trigger. Triggers are question words and verbs, so a food
+   * behind an elision is still a food.
+   */
+  test("a food behind an elision is still a food", () => {
+    expect(readIntent("l'ail", MATCHED)).toEqual({ kind: "ingredient" });
+    expect(readIntent("l'huile d'olive", MATCHED)).toEqual({ kind: "ingredient" });
+  });
+});
+
+/**
+ * The other half of the apostrophe, and the reason it is not the same fix.
+ *
+ * French glues a clitic to the FRONT of a separate word, so the repair is to drop it. English
+ * contracts at the BACK of ONE word, so the repair is to close the apostrophe up — "it's" is not
+ * "it" plus a word, it is one word that lost a letter. Split it instead and the question word ends
+ * up carrying an `s` while `it` carries the meaning, which is the mirror of the French bug.
+ *
+ * `whats` was already in the trigger list spelled exactly this way, from long before any of this —
+ * the closed form is the form the list has always been written in.
+ */
+describe("contraction", () => {
+  test.each([
+    ["it's too salty in my sauce"],
+    ["don't put garlic in it"],
+    ["what's a good substitute for butter"],
+    ["i'm out of flour for the cake"],
+  ])("%s asks, rather than shopping", (input) => {
+    expect(readIntent(input, MATCHED)).toEqual({ kind: "chat", reason: "trigger" });
+  });
+
+  /** A possessive is not a question: the dish keeps its apostrophe and stays a dish. */
+  test("a possessive in a dish name is not a trigger", () => {
+    expect(readIntent("shepherd's pie", MISSED)).toEqual({ kind: "unknown" });
   });
 });

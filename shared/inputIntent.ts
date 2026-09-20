@@ -9,12 +9,16 @@ import { foldAccents, STOPWORDS, type Locale } from "./translations";
  * placeholder until it answers. A two-way fork — the one this replaces — collapsed the last two
  * into "not a match", and everything the catalog did not already hold was simply lost.
  *
- * `chat` carries WHY it is a chat because the three reasons have different confidence: a trigger
- * word and a question mark are things the shopper wrote on purpose, while `sentence` is a guess
- * made from word count. Only the guess is worth revisiting when this reads something wrong.
+ * `chat` carries WHY it is a chat because the reasons have different confidence: a trigger word and
+ * a question mark are things the shopper wrote on purpose, while `sentence` is a guess made from
+ * word count and `model` is a judgment that replaced one of this function's two guesses.
+ *
+ * `model` is never returned by `readIntent` — it is what `classifyIntent` stamps on the answer it
+ * sends back, so a route that reads wrong can be traced to the rule that chose it without asking
+ * which layer was speaking.
  */
 export type Intent =
-  | { kind: "chat"; reason: "trigger" | "question" | "sentence" }
+  | { kind: "chat"; reason: "trigger" | "question" | "sentence" | "model" }
   | { kind: "ingredient" }
   | { kind: "recipe" }
   | { kind: "unknown" };
@@ -29,13 +33,26 @@ export type Intent =
  * Matched only in FIRST position, and that is the whole reason this list can be short. Matched
  * anywhere, French "ou" would turn "pommes ou poires" into a question and English "can" would be
  * one keystroke from doing the same. A shopper asking a question leads with the question.
+ *
+ * ⚠️ **Written as `_tokens` produces them, which means no apostrophes.** An entry like `"c'est"` or
+ * `"it's"` can never match anything — the tokenizer has already taken the apostrophe out by the time
+ * the comparison happens. The two languages lose it differently, and the entries below follow:
+ *
+ *   - **French elides**, gluing a clitic to the FRONT of a separate word: "c'est" is "ce" + "est",
+ *     and `ELISION_RE` drops the clitic, so the entry to have here is plain **`est`**.
+ *   - **English contracts** at the BACK of one word: "it's" is one word, so the apostrophe is simply
+ *     closed up and the entry to have here is **`its`** — which is why `whats` has always been
+ *     spelled that way.
  */
 export const CHAT_TRIGGERS: Record<Locale, readonly string[]> = {
   en: [
-    "what", "how", "why", "when", "where", "who", "which", "whats",
+    "what", "how", "why", "when", "where", "who", "which",
     "can", "could", "should", "would", "do", "does", "did", "is", "are", "am",
     "give", "show", "tell", "find", "make", "suggest", "help", "plan", "cook",
     "recipe", "recipes", "idea", "ideas", "i",
+    // Contractions, closed up the way `_tokens` leaves them. "im" and "id" are the ones to watch:
+    // both are real words elsewhere, but neither opens the name of a food.
+    "its", "whats", "hows", "wheres", "im", "ive", "id", "dont", "doesnt", "cant", "wont", "isnt",
   ],
   fr: [
     "quoi", "comment", "pourquoi", "quand", "ou", "qui", "quel", "quelle", "quels", "quelles",
@@ -75,10 +92,57 @@ const SENTENCE_MIN_WORDS = 4;
 const QUANTITY_RE = /^\d+(?:[.,]\d+)?(?:\/\d+)?[a-z]*$/;
 
 /**
+ * The clitics a language glues to the FRONT of a separate word with an apostrophe, per locale.
+ *
+ * **Without this, rule 2 cannot see a French question at all.** The tokenizer splits on the
+ * apostrophe, so "c'est quoi les calories des pâtes" arrives as `["c", "est", "quoi", …]` — the
+ * trigger word is in position 1, rule 2 only reads position 0, and the sentence falls through to
+ * rule 3, where "pâtes" hits the catalog and the question becomes pasta on the shopping list.
+ *
+ * Dropping the clitic restores exactly what rule 2 was written to assume: **a shopper asking a
+ * question leads with the question word.** "c'est" leads with one, it is just wearing a "c".
+ *
+ * **Data per locale, like `CHAT_TRIGGERS`, because this is grammar and grammar is per language.**
+ * Every locale that elides needs its own row, and the row is the whole of the work: Italian would be
+ * `["l", "un", "dell", "nell", "all", "dall", "quest"]` and Catalan close to French's. Merged into
+ * one pattern rather than selected by locale, for the reason the triggers are merged — `readIntent`
+ * is not told which language it is reading, and a shopper mid-sentence has not told anyone either.
+ *
+ * English is empty and that is not an oversight: it does not elide, it CONTRACTS at the back of one
+ * word ("it's", "don't"), which `_tokens` handles by closing the apostrophe up rather than by
+ * dropping anything. The two halves of that are what make `est` and `its` the correct entries above.
+ */
+const ELISIONS: Record<Locale, readonly string[]> = {
+  en: [],
+  fr: ["c", "j", "d", "n", "l", "m", "t", "s", "qu", "jusqu", "lorsqu", "puisqu", "quoiqu"],
+};
+
+/**
+ * Both apostrophes, because a phone keyboard produces `’` and a desktop one `'` — matching only the
+ * straight one would fix this on the web and leave it broken on the devices the app ships to.
+ *
+ * `\b` is what keeps it from reaching inside a word: there is no boundary before the "d" of
+ * "aujourd'hui", so that one keeps its apostrophe and is closed up by the step after instead.
+ */
+const ELISION_RE = new RegExp(
+  `\\b(${[...new Set([...ELISIONS.en, ...ELISIONS.fr])].join("|")})['’]`,
+  "g",
+);
+
+/**
+ * What is left of an apostrophe once the elisions are gone: a contraction, which is one word.
+ *
+ * Closed up rather than split, so "it's" becomes `its` and "what's" becomes `whats` — the form
+ * `CHAT_TRIGGERS` has always been written in. Splitting instead would put `s` in the tokens and
+ * leave "it" carrying the question, which is the mirror of the bug the elision rule fixes.
+ */
+const APOSTROPHE_RE = /['’]/g;
+
+/**
  * What is left once the shopping grammar is taken out: no quantities, no units, no stopwords.
  *
- * Unaccented and lowercased, so "Où" and "ou" are one trigger and the stopword lists match what a
- * French keyboard actually produces.
+ * Unaccented, lowercased and un-elided, so "Où" and "ou" are one trigger, "c'est" leads with the
+ * word it means to lead with, and the stopword lists match what a French keyboard actually produces.
  *
  * This is deliberately coarser than the navigation bar's own `readInput`, which parses fractions,
  * strips plurals and feeds a ranker. Counting words needs none of that, and a second parser that
@@ -86,6 +150,8 @@ const QUANTITY_RE = /^\d+(?:[.,]\d+)?(?:\/\d+)?[a-z]*$/;
  */
 const _tokens = (text: string) =>
   foldAccents(text.toLowerCase())
+    .replace(ELISION_RE, "")
+    .replace(APOSTROPHE_RE, "")
     .split(/[^\p{L}\p{N}.,/]+/u)
     .map((token) => token.replace(/^[.,/]+|[.,/]+$/g, ""))
     .filter(Boolean);
@@ -144,3 +210,19 @@ export const readIntent = (
 
   return { kind: "unknown" };
 };
+
+/**
+ * Whether this ruling is one of the two GUESSES above, rather than one of the four written rules.
+ *
+ * The two are rule 5, which counts words, and rule 6, which has run out of rules. Everything else
+ * read something the shopper put there on purpose — a question mark, a leading trigger word, a
+ * catalog hit, a recipe title — and is not up for revision.
+ *
+ * **This is the line a model may be asked to redraw, and it lives here so that only one thing knows
+ * where it is.** The navigation bar reads it to decide whether to ask, and
+ * `classifyIntent.manual.test.ts` reads it to prove that each of its fixtures still reaches the
+ * model at all. Two copies of this predicate would let a fixture drift into testing an input the
+ * bar never sends.
+ */
+export const isGuess = (intent: Intent) =>
+  intent.kind === "unknown" || (intent.kind === "chat" && intent.reason === "sentence");
