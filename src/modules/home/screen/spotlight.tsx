@@ -7,8 +7,7 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 
 import { useWeekIdeas } from "~/modules/planning/hooks";
-
-const CARD_PLACEHOLDER = require("assets/placeholders/empty-placeholder.jpg");
+import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
 
 const CARD_WIDTH = 200;
 
@@ -43,7 +42,7 @@ export const WeeklySpotlight = () => {
             key={card.id}
             title={card.title}
             subtitle={tVocabulary(`Cuisines.${card.cuisine}`)}
-            imageSrc={card.coverImageUrl ? { uri: card.coverImageUrl } : CARD_PLACEHOLDER}
+            imageSrc={card.coverImageUrl ? { uri: card.coverImageUrl } : COVER_PLACEHOLDER}
             style={{ width: CARD_WIDTH }}
             onPress={() => router.push(`/recipe/${card.id}`)}
           />

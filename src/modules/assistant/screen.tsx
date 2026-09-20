@@ -7,6 +7,7 @@ import { Message } from "@ui/message";
 import { ButtonPill } from "@ui/button-pill";
 import { Image } from "@ui/image";
 import { CardRecipe } from "@ui/cards/recipe";
+import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
 
 const FOOD_EXAMPLES = [
   { name: "tomato", emoji: "🍅" },
@@ -133,7 +134,7 @@ export const AssistantScreen = ({ style }: Props) => {
               key={recipe.title}
               title={recipe.title}
               subtitle={recipe.subtitle}
-              imageSrc={require("assets/placeholders/empty-placeholder.jpg")}
+              imageSrc={COVER_PLACEHOLDER}
               style={{ width: 220 }}
             />
           ))}
@@ -170,7 +171,7 @@ export const AssistantScreen = ({ style }: Props) => {
                 height: 200,
 
               }}
-              source={require("assets/placeholders/empty-placeholder.jpg")}
+              source={COVER_PLACEHOLDER}
             />
           </View>
         </Message>

@@ -30,7 +30,7 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
   const path = usePathname();
   const { id } = useLocalSearchParams<{ id?: string }>();
 
-  const { recipe, isMissing } = useRecipe(id);
+  const { recipe, isLoading, isMissing } = useRecipe(id);
 
   const active = path.startsWith(`/recipe/${id}/ingredients`) ? "ingredients"
     : path.startsWith(`/recipe/${id}/instructions`) ? "instructions"
@@ -91,8 +91,12 @@ export const RecipeChrome = ({ children }: { children: ReactNode }) => {
          * switch made halfway down the ingredients would drop you into the middle of the method.
          */
         scrollKey={active}
-        /** The placeholder while loading too, so the frame has a photo before the recipe arrives. */
-        headerBackgroundImage={recipe?.coverImageLargeUrl ?? COVER_PLACEHOLDER}
+        /**
+         * Nothing at all while the recipe loads. The placeholder is what a recipe without a cover
+         * settles on, so showing it early states that as fact and then contradicts itself the
+         * moment a real cover arrives.
+         */
+        headerBackgroundImage={isLoading ? undefined : (recipe?.coverImageLargeUrl ?? COVER_PLACEHOLDER)}
         contentNegativeSpace={CONTENT_NEGATIVE_SPACE}
         headerContent={
           <RecipeHeader
