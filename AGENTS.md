@@ -71,6 +71,7 @@ copy silently.
 | Never add a `v.id()` field without its cascade index **and** `CASCADE` entry           | 0007 |
 | Never leave a test file no Vitest project collects — a `.tsx` under `convex/` never runs | 0008 |
 | Never add a `_model/` file without its test in that folder's `__tests__/`              | 0008 |
+| Never recompute on the client a derived value the server already ships                 | 0015 |
 | Never write an empty `catch {}`                                                        | —    |
 | Never commit secrets, force-push, or `git commit` unless asked                         | —    |
 | Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                 | —    |

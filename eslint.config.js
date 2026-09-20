@@ -4,6 +4,27 @@
 const { defineConfig } = require("eslint/config");
 const expoConfig = require("eslint-config-expo/flat");
 
+// ── R9 — a value two screens must agree on has one producer (ADR 0015) ─────────────────────
+// Derivations the server computes and ships on a payload. The client receives the result; a
+// client that recomputes it is a second producer on a second release schedule, and the two
+// disagree for as long as an OTA update and a backend deploy are out of step.
+//
+// Banned by NAME, not by module, so a file may still import the module's other exports — the
+// uncredited face is a constant every screen needs, and lives beside the function that is barred.
+//
+// This list is the whole mechanism, and it is only as complete as the last person to add to it.
+// A derivation that gains a client caller without being listed here passes lint; ADR 0015 says
+// so plainly rather than implying the linter has this covered.
+const SERVER_ONLY_DERIVATIONS = [
+  {
+    name: "@shared/avatars",
+    importNames: ["avatarSeed"],
+    message:
+      "avatarSeed is computed by the server and arrives on the payload (ADR 0015) — read it from " +
+      "the query rather than deriving it. ANONYMOUS_AVATAR_SEED is not restricted.",
+  },
+];
+
 module.exports = defineConfig([
   ...expoConfig,
 
@@ -75,6 +96,8 @@ module.exports = defineConfig([
               message: "src/ui/ must not depend on application layers.",
             },
           ],
+          // ── R9 — a value two screens must agree on has one producer ──────────────────
+          paths: SERVER_ONLY_DERIVATIONS,
         },
       ],
     },
@@ -195,6 +218,8 @@ module.exports = defineConfig([
                 "root, or re-export the hook from its hooks.ts.",
             },
           ],
+          // ── R9 — a value two screens must agree on has one producer ──────────────────
+          paths: SERVER_ONLY_DERIVATIONS,
         },
       ],
     },
@@ -224,6 +249,8 @@ module.exports = defineConfig([
             },
           ],
           paths: [
+            // ── R9 — a value two screens must agree on has one producer ──────────────────
+            ...SERVER_ONLY_DERIVATIONS,
             {
               name: "~/lib/convex/client",
               message:

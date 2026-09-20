@@ -19,6 +19,7 @@ carries the command that proves it still holds.
 | [0012](./0012-a-lossy-index-ranks-its-claimants.md) | A lossy index ranks its claimants by what folding cost, never by source order | `convex/functions/ingredients/lookup/**`, `shared/ingredientMatch.ts` | `pnpm test` |
 | [0013](./0013-a-plate-is-planned-through-one-path.md) | A plate is planned through one path, and only what is ahead holds stock | `convex/functions/planning/**`, `convex/router/planning/**`, `convex/schema/planning.ts` | `pnpm test` |
 | [0014](./0014-a-recipe-is-readable-by-any-cook.md) | A recipe is readable by any signed-in cook; only editing is gated | `convex/router/recipes/*`, `convex/functions/recipes/**`, `src/modules/recipes/**` | `pnpm test` |
+| [0015](./0015-one-producer-for-a-shared-derivation.md) | A value two screens must agree on is computed by one side | `shared/**`, `convex/router/**`, `convex/functions/**`, `src/modules/**` | `pnpm lint` |
 `pnpm verify` runs all of them — on demand, in the pre-commit hook, and in CI.
 
 ## Format
