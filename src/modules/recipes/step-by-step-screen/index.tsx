@@ -61,6 +61,8 @@ type Props = {
   id?: string;
   /** The route's, because a screen cannot know what it was opened from. */
   onClose: () => void;
+  /** Where the dish goes once the server has taken the cook: the route's too, for the same reason. */
+  onCooked: () => void;
 };
 
 /**
@@ -74,7 +76,7 @@ type Props = {
  * everywhere else in the recipe: it drifts and scales under the content instead of scrolling off,
  * and a step whose ingredients run past the fold reads as one page rather than two panes.
  */
-export const StepByStepScreen = ({ id, onClose }: Props) => {
+export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
   const { height } = useWindowDimensions();
   const unit = useUnitLabel();
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
@@ -221,10 +223,10 @@ export const StepByStepScreen = ({ id, onClose }: Props) => {
         onPrevious={() => { setIndex((current) => Math.max(0, current - 1)); setPreviousIndex(index) }}
         onNext={() => { setIndex((current) => Math.min(lastIndex, current + 1)); setPreviousIndex(index); }}
         /**
-         * The screen closes only once the server has agreed: a modal dismissed over a write that
+         * The screen leaves only once the server has agreed: a modal dismissed over a write that
          * then fails would leave the cook believing their cellar moved when it did not.
          */
-        onFinish={async () => { if (recipe && (await cook(recipe.id, servings))) onClose(); }}
+        onFinish={async () => { if (recipe && (await cook(recipe.id, servings))) onCooked(); }}
         isFinishing={isCooking}
         finishFailed={failed}
         onHeight={setBarHeight}
