@@ -115,7 +115,7 @@ describe("router/cellars/getPlatesOnList", () => {
    */
   test("returns each planned plate with its own share of the list row, one recipe or not", async () => {
     const { userId, householdId } = await seedMember();
-    const { plateIds: [monday, friday] } = await seedPlates(householdId, [TODAY, TODAY + 4 * DAY]);
+    const { recipeId, plateIds: [monday, friday] } = await seedPlates(householdId, [TODAY, TODAY + 4 * DAY]);
     const ingredientId = await seedIngredient();
 
     const lineId = await t.run(async (ctx) => {
@@ -130,6 +130,8 @@ describe("router/cellars/getPlatesOnList", () => {
 
     expect(plates).toHaveLength(2);
     expect(plates.map((plate) => plate.title)).toEqual(["Lasagna", "Lasagna"]);
+    // Both name the recipe behind them, which is what a tap on the heading opens.
+    expect(plates.map((plate) => plate.recipeId)).toEqual([recipeId, recipeId]);
     expect(plates.find((plate) => plate.id === monday)!.claims).toEqual([{ lineId, amount: 200 }]);
     expect(plates.find((plate) => plate.id === friday)!.claims).toEqual([{ lineId, amount: 100 }]);
   });
