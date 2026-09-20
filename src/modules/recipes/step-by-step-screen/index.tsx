@@ -19,39 +19,10 @@ import { useCookRecipe } from "../_hooks/useCookRecipe";
 import { useRecipe } from "../_hooks/useRecipe";
 import { flattenSteps } from "../_model/detail";
 import { ingredientsIn } from "../_model/quantities";
-import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../constants";
+import { CONTENT_NEGATIVE_SPACE, COVER_PLACEHOLDER, SCREEN_PADDING } from "../constants";
 import { StepBar } from "./bar";
 import { PrepCard, StepCard } from "./card";
 import { StepMedia } from "./media";
-
-/**
- * What a step looks like beyond its text and what it calls for, until a step is a row rather than
- * a line.
- *
- * The instruction, the numbering and the ingredients are real: the first two come from the
- * recipe's own method, and the third is read out of the step's own words by `ingredientsIn` —
- * "Concassez 4 tomates" is the only place the schema records that this step uses tomatoes, since
- * `recipeSteps` does not exist. What is left here is what no amount of reading can recover — a
- * duration, a photo, a video are not written into the sentence.
- *
- * Cycled by position so consecutive steps do not all draw the same photo, which would read as the
- * page having failed to advance.
- */
-const PLACEHOLDER_STEP_CHROME = [
-  {
-    photo: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-  },
-  {
-    photo: "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-    hasVideo: true,
-  },
-  {
-    photo: "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-  },
-  {
-    photo: "https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80",
-  },
-];
 
 /** How much of the screen the photo takes at rest, leaving the card the rest of it. */
 const MEDIA_RATIO = 0.4;
@@ -120,7 +91,15 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
     );
   }
 
-  const chrome = PLACEHOLDER_STEP_CHROME[index % PLACEHOLDER_STEP_CHROME.length]!;
+  /**
+   * The photo behind every step is the recipe's cover, until a step has media of its own.
+   *
+   * Nothing records one yet: `recipeSteps` does not exist, and reading a picture or a clip out of
+   * the instruction's words is a paid lookup this slice does not make. So the header falls back
+   * the way the recipe's own chrome does — the cover, or the placeholder while there is no cover
+   * either — and `StepMedia` keeps its transport for the day a step brings a video.
+   */
+  const photo = recipe?.coverImageLargeUrl ?? COVER_PLACEHOLDER;
 
   return (
     <View style={styles.screen}>
@@ -130,9 +109,9 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
          * this, moving on from a scrolled step would drop you into the middle of the next one.
          */
         scrollKey={index}
-        headerBackgroundImage={chrome.photo}
+        headerBackgroundImage={photo}
         contentNegativeSpace={CONTENT_NEGATIVE_SPACE}
-        headerContent={<StepMedia hasVideo={chrome.hasVideo} height={height * MEDIA_RATIO} />}
+        headerContent={<StepMedia height={height * MEDIA_RATIO} />}
         contentHeader={<View style={styles.lip} />}
       >
         <RecipeScreen
