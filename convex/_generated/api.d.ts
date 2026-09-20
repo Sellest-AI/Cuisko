@@ -35,6 +35,7 @@ import type * as agent_utils_providerSchema from "../agent/utils/providerSchema.
 import type * as agent_utils_wrapAgent from "../agent/utils/wrapAgent.js";
 import type * as auth from "../auth.js";
 import type * as env from "../env.js";
+import type * as functions_assistant_classifyIntent from "../functions/assistant/classifyIntent.js";
 import type * as functions_cascade from "../functions/cascade.js";
 import type * as functions_cellars_addToCellar from "../functions/cellars/addToCellar.js";
 import type * as functions_cellars_addToGroceryList from "../functions/cellars/addToGroceryList.js";
@@ -138,8 +139,10 @@ import type * as lib_scraping_fetchPage from "../lib/scraping/fetchPage.js";
 import type * as lib_scraping_scrapePage from "../lib/scraping/scrapePage.js";
 import type * as lib_scraping_toRecipeDraft from "../lib/scraping/toRecipeDraft.js";
 import type * as lib_secrets from "../lib/secrets.js";
+import type * as lib_typesafe_ask from "../lib/typesafe/ask.js";
 import type * as migrations from "../migrations.js";
 import type * as procedures from "../procedures.js";
+import type * as router_assistant_classify from "../router/assistant/classify.js";
 import type * as router_cellars_addToCellar from "../router/cellars/addToCellar.js";
 import type * as router_cellars_addToGroceryList from "../router/cellars/addToGroceryList.js";
 import type * as router_cellars_getCellar from "../router/cellars/getCellar.js";
@@ -195,6 +198,7 @@ import type * as router_recipes_translateOne from "../router/recipes/translateOn
 import type * as router_recipes_updateOne from "../router/recipes/updateOne.js";
 import type * as router_users_getAccount from "../router/users/getAccount.js";
 import type * as router_users_getMe from "../router/users/getMe.js";
+import type * as schema_assistantPayloads from "../schema/assistantPayloads.js";
 import type * as schema_cellars from "../schema/cellars.js";
 import type * as schema_households from "../schema/households.js";
 import type * as schema_i18n from "../schema/i18n.js";
@@ -242,6 +246,7 @@ declare const fullApi: ApiFromModules<{
   "agent/utils/wrapAgent": typeof agent_utils_wrapAgent;
   auth: typeof auth;
   env: typeof env;
+  "functions/assistant/classifyIntent": typeof functions_assistant_classifyIntent;
   "functions/cascade": typeof functions_cascade;
   "functions/cellars/addToCellar": typeof functions_cellars_addToCellar;
   "functions/cellars/addToGroceryList": typeof functions_cellars_addToGroceryList;
@@ -345,8 +350,10 @@ declare const fullApi: ApiFromModules<{
   "lib/scraping/scrapePage": typeof lib_scraping_scrapePage;
   "lib/scraping/toRecipeDraft": typeof lib_scraping_toRecipeDraft;
   "lib/secrets": typeof lib_secrets;
+  "lib/typesafe/ask": typeof lib_typesafe_ask;
   migrations: typeof migrations;
   procedures: typeof procedures;
+  "router/assistant/classify": typeof router_assistant_classify;
   "router/cellars/addToCellar": typeof router_cellars_addToCellar;
   "router/cellars/addToGroceryList": typeof router_cellars_addToGroceryList;
   "router/cellars/getCellar": typeof router_cellars_getCellar;
@@ -402,6 +409,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/updateOne": typeof router_recipes_updateOne;
   "router/users/getAccount": typeof router_users_getAccount;
   "router/users/getMe": typeof router_users_getMe;
+  "schema/assistantPayloads": typeof schema_assistantPayloads;
   "schema/cellars": typeof schema_cellars;
   "schema/households": typeof schema_households;
   "schema/i18n": typeof schema_i18n;

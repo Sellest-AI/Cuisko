@@ -1,6 +1,8 @@
 import { View, StyleSheet, ViewStyle, Platform } from "react-native";
+import Animated from "react-native-reanimated";
 import { Input, type TextInput } from "@ui/input";
-import { Camera, MicIcon } from "@ui/icons";
+import { Camera, LoaderCircle, Mic, MorphIcon } from "@ui/icons";
+import { useSpin } from "@ui/hooks/useSpin";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { useEffect, useRef, useState } from "react";
@@ -13,7 +15,8 @@ import { useBarSuggestions } from "./_hooks/useBarSuggestions";
 import { useNavigationBar } from "./_hooks/useNavigationBar";
 import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
-import { readIntent } from "@shared/ingredientIntent";
+import { type Intent } from "@shared/inputIntent";
+import { useInputIntent } from "./_hooks/useInputIntent";
 import type { AssistantMode } from "./_hooks/useNavigationBar";
 
 const MIC_ICON_SIZE = 20;
@@ -66,6 +69,11 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   const { add: addUnknown } = usePendingIngredients();
   const { setSort } = useGrocerySort();
 
+  const { resolve, isChecking } = useInputIntent();
+  // Parked at 0 when it stops, and the morph below cross-fades at that same moment, so the jump
+  // back to a still microphone is invisible.
+  const spin = useSpin(isChecking);
+
   const { mode, setInputRef } = useNavigationBar();
   const ref = useRef<TextInput>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,6 +123,49 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
     const stockIntent = _stockIntent(mode);
     void addUnknown(text, stockIntent, unit, amount);
     showGroceries(stockIntent);
+  }
+
+  /**
+   * Where a settled intent goes. Three destinations, and they have not changed.
+   *
+   * Its own function because the decision is no longer in the same breath as the routing: an
+   * intent arrives from `useInputIntent` settled, whether it was settled by a rule or by the model,
+   * and this is the one place that knows what each kind opens.
+   *
+   * **`ingredient` with nothing to add is the resolver's job**, which is why it shares its branch
+   * with `unknown`. Enter only ever produces `ingredient` when the catalog matched, so that pairing
+   * never used to be reachable; the model produces it for a food the catalog has never held, which
+   * is precisely the case the resolver exists for.
+   */
+  const route = (intent: Intent) => {
+    // The row answers when the shopper did not, both halves together — an amount without its unit
+    // is not half a quantity.
+    if (intent.kind === "ingredient" && matchingSuggestion) {
+      const quantity = pickQuantity({ amount, unit }, matchingSuggestion);
+      submitSuggestion(matchingSuggestion.id, quantity.unit, quantity.amount);
+    }
+    else if (intent.kind === "recipe")
+      // The whole input, not `rest`: the recipes page searches names, and a quantity the cook never
+      // typed is not in one. `value` is also what the box showed, so the term the page opens on is
+      // the term they submitted.
+      router.push({ pathname: "/recipes", params: { q: value.trim() } });
+    // No row yet on this branch, so the blank travels and `usePendingIngredients` fills it from
+    // whatever the resolver comes back with.
+    else if ((intent.kind === "unknown" || intent.kind === "ingredient") && rest)
+      submitUnknown(rest, unit, amount);
+    else if (intent.kind === "chat")
+      router.push("/assistant");
+  }
+
+  /**
+   * Clears the box and gives up the bar, the way selecting a suggestion already does.
+   *
+   * The Input's own `onBlur` is web-only, so without this the bar keeps its mode for the next
+   * submission and the dismiss overlay stays mounted over the screen just pushed.
+   */
+  const release = () => {
+    setValue("");
+    onBlur?.();
   }
 
   return (
@@ -189,41 +240,50 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           placeholder={t("ask_anything").slice(0, 15).trim().concat("…")}
           leftIcon={Camera}
           onLeftPress={() => console.log("camera pressed")}
-          rightContent={<MicIcon size={MIC_ICON_SIZE} color={theme.colors.foreground} />}
+          /**
+           * The microphone, which becomes the wait while the bar is confirming what was typed.
+           *
+           * `MorphIcon` rather than a swap: the mic's own strokes travel into the ring and back, so
+           * a check that resolves quickly reads as the icon flexing rather than as a spinner
+           * appearing and vanishing. Same pairing `ButtonIcon` uses for its loading state — the mic
+           * cannot use `Input`'s `isLoading`, which drives `rightIcon`'s button and not this.
+           */
+          rightContent={
+            <Animated.View style={spin}>
+              <MorphIcon
+                icon={isChecking ? LoaderCircle : Mic}
+                size={MIC_ICON_SIZE}
+                color={theme.colors.foreground}
+              />
+            </Animated.View>
+          }
           style={{ width: "100%" }}
           onSubmit={() => {
+            // A second Enter while the first is still being confirmed would route twice — once on
+            // each answer — and put the same word on the list twice.
+            if (isChecking) return;
+
             /**
-             * Three things Enter can mean, and they are no longer decided by whether the catalog
-             * happened to answer. `readIntent` owns the rules and their order — an explicit
-             * question beats a match, a match beats the sentence heuristic — so that "? tomate"
-             * asks about tomatoes instead of buying one, and a food we have never held reaches the
-             * resolver instead of the assistant's mockup.
+             * What Enter means is `useInputIntent`'s to work out, from the rules and, for the two
+             * it can only guess at, from the model. All this has to do is hand over what the panel
+             * is showing, and route the answer.
+             *
+             * **`value` and not `rest`.** The resolver is asked about the food with the quantity
+             * taken out, but a quantity is the strongest evidence there is that a phrase names one
+             * — strip it and "500g yuzu" would be judged as bare "yuzu".
+             *
+             * Nothing is cleared until the answer lands. Most submissions settle locally and land
+             * in the same breath; the ones that ask keep their words on screen with the microphone
+             * spinning, because a bar that emptied itself first would look like it had swallowed
+             * the input for as long as the request took.
              */
-            const intent = readIntent(value, matchingSuggestion !== null, kind === "recipe");
-
-            // The row answers when the shopper did not, both halves together — an amount without
-            // its unit is not half a quantity. On the unknown branch there is no row yet, so the
-            // blank travels, and `usePendingIngredients` fills it the same way from what the
-            // resolver comes back with.
-            if (intent.kind === "ingredient" && matchingSuggestion) {
-              const quantity = pickQuantity({ amount, unit }, matchingSuggestion);
-              submitSuggestion(matchingSuggestion.id, quantity.unit, quantity.amount);
-            }
-            else if (intent.kind === "recipe")
-              // The whole input, not `rest`: the recipes page searches names, and a quantity the
-              // cook never typed is not in one. `value` is also what the box showed, so the term
-              // the page opens on is the term they submitted.
-              router.push({ pathname: "/recipes", params: { q: value.trim() } });
-            else if (intent.kind === "unknown" && rest)
-              submitUnknown(rest, unit, amount);
-            else if (intent.kind === "chat")
-              router.push("/assistant");
-
-            setValue("");
-            // Blurs the way selecting a suggestion already does. The Input's own onBlur is
-            // web-only, so without this the bar keeps its mode for the next submission and the
-            // dismiss overlay stays mounted over the screen just pushed.
-            onBlur?.();
+            void resolve(value, {
+              hasCatalogHit: matchingSuggestion !== null,
+              hasRecipeHit: kind === "recipe",
+            }).then((intent) => {
+              route(intent);
+              release();
+            });
           }}
           value={value}
           onChangeText={(text) => setValue(text)}

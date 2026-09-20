@@ -1,0 +1,36 @@
+/**
+ * The assistant shapes that cross a function boundary and are never a row.
+ *
+ * Nothing here has a table behind it, and that is the point of the file: the assistant judges, it
+ * does not store. It sits under `convex/schema/` for the reason `ingredientPayloads.ts` does — a
+ * payload in flight is described where the vocabulary it is built from lives.
+ */
+
+import { v } from "convex/values";
+
+/**
+ * `Intent`, as a validator.
+ *
+ * **The type is NOT inferred from this one**, which reverses this folder's usual direction (see
+ * `i18n.ts`, where `Infer` makes the validator the source). It has to: `Intent` is declared in
+ * `shared/inputIntent.ts` because `readIntent` runs on the client, and `src/**` may not import
+ * Convex (ADR 0002). A validator cannot live there, and the union cannot move here.
+ *
+ * So this mirrors it, and the mirror is pinned rather than trusted: `router/assistant/classify.ts`
+ * annotates its handler with `Infer<typeof vIntent>`, so a reason added to one and not the other is
+ * a typecheck failure at the seam rather than a runtime rejection in front of a shopper.
+ */
+export const vIntent = v.union(
+  v.object({
+    kind: v.literal("chat"),
+    reason: v.union(
+      v.literal("trigger"),
+      v.literal("question"),
+      v.literal("sentence"),
+      v.literal("model"),
+    ),
+  }),
+  v.object({ kind: v.literal("ingredient") }),
+  v.object({ kind: v.literal("recipe") }),
+  v.object({ kind: v.literal("unknown") }),
+);
