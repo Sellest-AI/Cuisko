@@ -205,6 +205,8 @@ export type HistoryEntry = {
  */
 export type Plate = {
   id: string;
+  /** The recipe the plate is of — what a tap on its heading opens. */
+  recipeId: string;
   title: string;
   date: Date;
   slot: MealSlot;

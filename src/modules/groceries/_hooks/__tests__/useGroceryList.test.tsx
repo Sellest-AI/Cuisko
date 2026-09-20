@@ -215,7 +215,7 @@ describe("useGroceryList — sorted", () => {
   /** The plate arrives as the wire sends it — a number for the day — and reaches the group as a heading. */
   it("groups by plate from what the plates query returned", () => {
     state.groceryList = [line(4)];
-    state.plates = [{ id: "plate-1", title: "Soupe", date: at, slot: "dinner", claims: [{ lineId: "line-4", amount: 3 }] }];
+    state.plates = [{ id: "plate-1", recipeId: "recipe-soup", title: "Soupe", date: at, slot: "dinner", claims: [{ lineId: "line-4", amount: 3 }] }];
 
     const { result } = groceries();
     act(() => result.current.setSort("by-plan"));
@@ -224,7 +224,7 @@ describe("useGroceryList — sorted", () => {
       ["plate:plate-1", [3]],
       ["unplanned", [1]],
     ]);
-    expect(result.current.toBuy[0]!.heading).toEqual({ kind: "plate", title: "Soupe", date: new Date(at), slot: "dinner" });
+    expect(result.current.toBuy[0]!.heading).toEqual({ kind: "plate", recipeId: "recipe-soup", title: "Soupe", date: new Date(at), slot: "dinner" });
   });
 });
 
