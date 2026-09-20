@@ -2,10 +2,11 @@ import { theme } from "theme";
 
 /**
  * What a recipe is drawn under while it has no cover: generation is still running, both renders
- * failed, or the recipe predates generated covers. The grid and the recipe page share it, so a
- * recipe does not look like two different dishes on the way from one to the other.
+ * failed, or the recipe predates generated covers. Every surface that draws a recipe card shares
+ * it — the grid, the recipe page, the home shelf, the bar's suggestions — so a recipe does not
+ * look like two different dishes on the way from one to the other.
  */
-export const COVER_PLACEHOLDER = require("assets/placeholders/empty-placeholder.jpg");
+export const COVER_PLACEHOLDER = require("assets/placeholders/recipe-placeholder.webp");
 
 /** The gutter every recipe screen sits in, and that its edge-to-edge rows pad their content by. */
 export const SCREEN_PADDING = theme.spacing[16];
