@@ -8,7 +8,7 @@ import { sectionFromParam } from "./_model/model";
 import { GroceryGrid } from "./list-screen.grid";
 
 import { SafeAreaView } from "@ui/safe-area-view";
-import { ReceiptTextIcon } from "@ui/icons";
+import { ReceiptTextIcon, StoreIcon } from "@ui/icons";
 import { RadialGradient } from "@ui/radial-gradient";
 import { Select } from "@ui/select";
 import { Text } from "@ui/text";
@@ -32,10 +32,16 @@ type GroceryScreenProps = { section?: string };
  *
  * `section` arrives raw from the route; `sectionFromParam` decides what it is allowed to mean,
  * because that is where `Section` lives and the route cannot reach it.
+ *
+ * The header names what leads. Opened for the cellar — from the home shortcut, or from a dish
+ * just cooked — the page is the cellar with the list under it, and a "grocery list" title over a
+ * cellar would read as having landed on the wrong page.
  */
 export const GroceryScreen = ({ section }: GroceryScreenProps) => {
   const t = useTranslations("Groceries");
   const [list, setList] = useState("House");
+  const lead = sectionFromParam(section);
+  const Icon = lead === "cellar" ? StoreIcon : ReceiptTextIcon;
 
   return (
     <>
@@ -56,12 +62,12 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
           edges={{ top: "additive", bottom: "off" }}
         >
           <View style={styles.title}>
-            <ReceiptTextIcon size={24} />
-            <Text.H4>{t("title")}</Text.H4>
+            <Icon size={24} />
+            <Text.H4>{lead === "cellar" ? t("Sections.cellar") : t("title")}</Text.H4>
           </View>
           <Select value={list} onChange={setList} options={LISTS} />
         </SafeAreaView>
-        <GroceryGrid lead={sectionFromParam(section)} />
+        <GroceryGrid lead={lead} />
       </ScrollView>
     </>
   );
