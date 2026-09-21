@@ -1,4 +1,4 @@
-import { Slot } from "expo-router";
+import { Slot, useGlobalSearchParams } from "expo-router";
 
 import { RecipeChrome } from "~/modules/recipes/detail/chrome";
 
@@ -11,10 +11,17 @@ import { RecipeChrome } from "~/modules/recipes/detail/chrome";
  * viewport, so against a scroll container's unbounded height it measures to zero and the tab
  * renders invisible. `Slot` hands over the matched route itself, which sizes from its own content.
  * The transition between tabs moves with it, into the chrome.
+ *
+ * `useGlobalSearchParams` rather than the local one: a query string lands on the leaf route the
+ * URL names, and a layout's local params stop at its own segment. The global read is the one that
+ * sees what the plan asked the recipe to open at.
  */
 export default function RecipeLayout() {
+  /** How many the plate was planned for, when the cook arrived from one. Validated by the chrome. */
+  const { servings } = useGlobalSearchParams<{ servings?: string }>();
+
   return (
-    <RecipeChrome>
+    <RecipeChrome servings={servings}>
       <Slot />
     </RecipeChrome>
   );

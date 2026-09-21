@@ -33,6 +33,8 @@ export type CarouselMeal = {
   title: string;
   status: MealStatus;
   recipeId: string;
+  /** How many the plate was planned for: the recipe opens scaled to it, not to what it was written for. */
+  servings: number;
   imageSrc: Plate["imageSrc"];
   date: Date;
   type: MealSlot;
@@ -86,6 +88,7 @@ export const useWeeklyPlan = () => {
   const meals: CarouselMeal[] = useMemo(
     () => inEatingOrder((data ?? []).map(keptMealCardOf)).map((meal) => ({
       recipeId: meal.recipeId,
+      servings: meal.servings,
       title: meal.title,
       status: meal.status,
       imageSrc: meal.imageSrc,

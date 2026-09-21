@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { FlatList, StyleSheet, View, type ViewStyle } from "react-native";
+import { FlatList, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { CardRecipe } from "@ui/cards/recipe";
 import { Text } from "@ui/text";
@@ -19,7 +19,7 @@ export type ShelfRecipe = {
 type Props = {
   title: string;
   recipes: ShelfRecipe[];
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -29,12 +29,13 @@ type Props = {
 const CARD_WIDTH = 160;
 
 /**
- * One horizontal row of recipe cards under a heading: the cook's favorites, above their own grid.
+ * One horizontal row of recipe cards under a heading: the cook's favorites, above their own grid
+ * on the recipes page and at the foot of home (through `favorite-recipes` at the module root).
  *
  * A row rather than a second grid section, so "Your recipes" stays in reach whatever the favorite
  * count — a grid would push it down a row per two favorites. The shelf bleeds past the page
  * gutter on both sides and pads itself back, so the cards scroll edge to edge while the first
- * one still lines up with the heading.
+ * one still lines up with the heading. It assumes that gutter: a page without one supplies it.
  *
  * It draws what it is given. Whether there is anything to draw, and whether a search is in flight,
  * is the screen's to decide — the shelf is not a search surface and does not know one exists.

@@ -12,6 +12,7 @@ import { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
 import { MEAL_STATUS } from "./_components/meal-status";
 import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 import { router } from "expo-router";
+import { recipeRoute } from "~/modules/recipes/routes";
 
 const TOGGLE_ICON_SIZE = 14;
 
@@ -74,7 +75,7 @@ export const WeeklyPlan = () => {
           ...meal,
           imageSrc: meal.imageSrc ?? EMPTY_PLATE_IMAGE,
           subtitle: t(MEAL_STATUS[meal.status].key),
-          onPress: () => router.push(`/recipe/${meal.recipeId}`),
+          onPress: () => router.push(recipeRoute(meal.recipeId, meal.servings)),
         }))}
         selectedIndex={selectedMealIndex}
         onSelect={selectMeal}

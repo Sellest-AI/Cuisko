@@ -1,5 +1,5 @@
 import { useAtom } from "jotai";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { clampServings } from "@shared/servings";
 
@@ -27,10 +27,37 @@ import { servingsAtom } from "./atoms";
  * `useQueryCached` and not `useQueryHeld`: the id does not change under a mounted screen, so there
  * is no previous answer worth holding — and holding one across a change of id would mean showing
  * one recipe under another's title.
+ *
+ * `initialServings` is the count the cook arrived with — a plate on the plan was cooked for six,
+ * so the recipe opens for six. Only the chrome passes it, once per arrival; every other caller
+ * reads the choice it seeded through the atom, the same way it reads a tap on the stepper.
  */
-export const useRecipe = (id: string | undefined) => {
+export const useRecipe = (id: string | undefined, initialServings?: number) => {
   const locale = useLocale();
   const [chosen, setChosen] = useAtom(servingsAtom);
+
+  /**
+   * The arrival count, read once and deliberately not tracked.
+   *
+   * It comes off the URL, and the URL moves under a mounted chrome: pushing the cooking session on
+   * top drops the parameter, and coming back restores it. Tracked, that round trip would seed the
+   * atom a second time — over a count the cook had changed in between. Frozen, it is what it says:
+   * the number they arrived with, and nothing later.
+   */
+  const [arrivedWith] = useState(initialServings);
+
+  /**
+   * The arrival count is a choice the cook made on the previous screen, so it is written where a
+   * tap on the stepper would be written: into the atom, against this id.
+   *
+   * An effect, which `servingsAtom` otherwise avoids — but the frame it costs draws no quantity.
+   * The only route that carries the count is the overview, which names the ingredients without
+   * measuring them; by the time the cook reaches a tab that does, the atom already holds the
+   * number. Keyed on the id rather than the loaded recipe, so it lands before the query answers.
+   */
+  useEffect(() => {
+    if (id && arrivedWith !== undefined) setChosen({ id, servings: clampServings(arrivedWith) });
+  }, [id, arrivedWith, setChosen]);
 
   /**
    * An id from a route parameter is a string until the server says otherwise. The cast is what
