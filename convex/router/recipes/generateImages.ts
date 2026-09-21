@@ -9,7 +9,7 @@ import { ConvexError, v } from "convex/values";
 export const _internal = internalAction({
   args: {
     recipeId: v.id("recipes"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args): Promise<{ plateImageId: Id<"images"> | null; coverImageId: Id<"images"> | null }> => {
     const recipe = await ctx.runQuery(internal.router.recipes.getOne._internal, {

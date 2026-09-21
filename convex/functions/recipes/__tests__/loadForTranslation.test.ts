@@ -223,16 +223,19 @@ describe("functions/recipes/loadForTranslation", () => {
     expect((await load(recipeId)).missingLocales).toEqual(["en"]);
   });
 
-  test("returns the owner, because the translation runs on their thread", async () => {
+  test("returns the owner, because the model call is attributed to them", async () => {
     const { recipeId, userId } = await seed();
 
     expect((await load(recipeId)).userId).toBe(userId);
   });
 
-  test("refuses a recipe with no owner rather than translating on nobody's thread", async () => {
+  test("loads a recipe with no owner, because an imported one has none to load", async () => {
     const { recipeId } = await seed({ userId: null });
 
-    await expect(load(recipeId)).rejects.toThrow(/no owner/);
+    const source = await load(recipeId);
+
+    expect(source.userId).toBeUndefined();
+    expect(source.missingLocales).toEqual(["en"]);
   });
 
   test("refuses a recipe that no longer exists", async () => {

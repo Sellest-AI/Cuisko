@@ -13,7 +13,7 @@ import { recipeSearchText } from "./recipeSearchText";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 type Args = {
-  userId: Id<"users">;
+  userId?: Id<"users">;
   /** The language the recipe was generated in — the only one it exists in at this point. */
   locale: Locale;
   recipe: SanitizedRecipe;

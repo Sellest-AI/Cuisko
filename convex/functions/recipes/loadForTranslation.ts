@@ -12,8 +12,11 @@ type Args = {
 };
 
 export type TranslationSource = {
-  /** The recipe's owner — the agent thread the translation runs on belongs to them. */
-  userId: Id<"users">;
+  /**
+   * The recipe's owner, when it has one — the model call is attributed to them. A catalog recipe
+   * imported through `_internal` belongs to nobody, and nothing about the run needs it to.
+   */
+  userId?: Id<"users">;
   /** The languages still missing, in the order `LOCALES` declares them. Empty means nothing to do. */
   missingLocales: Locale[];
   recipe: TranslatableRecipe;
@@ -45,7 +48,6 @@ export const loadForTranslation = async (
 ): Promise<TranslationSource> => {
   const recipe = await ctx.db.get(recipeId);
   if (!recipe) throw new Error(`loadForTranslation: recipe ${recipeId} does not exist.`);
-  if (!recipe.userId) throw new Error(`loadForTranslation: recipe ${recipeId} has no owner.`);
 
   // Hashed once per field rather than once per (field, locale) pair — `LOCALES` is walked below
   // once per field, and the source text does not change between those walks.

@@ -1,23 +1,28 @@
 import { Agent, ToolCtx } from "@convex-dev/agent";
 
-export const getThreadOpts = async (ctx: ToolCtx, agent: Agent) => {
-  if (ctx.threadId || ctx.userId)
-    return {
-      threadOpts: { userId: ctx.userId, threadId: ctx.threadId },
-      deleteTmpThread: async () => { }
-    }
+/**
+ * The caller the agent component is told about when nothing else identifies one.
+ *
+ * Deliberately a bare string and not an `Id<"users">`: the component's `userId` is an opaque key
+ * it never dereferences — no row is read, and none has to exist. A real user row created to
+ * satisfy this would be a row nothing owns and nothing cleans up.
+ */
+const _AGENT_USER = "cuisko";
 
-  const thread = await agent.createThread(ctx);
-
-  const deleteTmpThread = async () => {
-    if (!thread) return;
-    await agent.deleteThreadAsync(ctx, { threadId: thread?.threadId });
-  }
-
-  const threadOpts = { threadId: thread.threadId };
-
-  return { threadOpts, deleteTmpThread }
-}
+/**
+ * Who the generation is attributed to, and which thread — if any — it belongs to.
+ *
+ * `@convex-dev/agent` asserts `userId || threadId` before it reads anything else (`assert` in its
+ * `fetchRecentAndSearchMessages`), and that assert is the only thing on these paths that needs
+ * either field: every tool agent runs `recentMessages: 0` with search off, so no context is
+ * fetched, and with no `threadId` nothing is saved. So the fallback is a constant rather than a
+ * throwaway thread — creating and deleting one per call cost two mutations and a row to answer a
+ * check that never looks at them.
+ */
+const _threadOpts = (ctx: ToolCtx) => ({
+  userId: ctx.userId ?? _AGENT_USER,
+  threadId: ctx.threadId,
+});
 
 type GenerateTextParameters = Parameters<Agent["generateText"]> & { 0: ToolCtx };
 type GenerateObjectParameters = Parameters<Agent["generateObject"]> & { 0: ToolCtx };
@@ -34,20 +39,10 @@ type GenerateObjectParameters = Parameters<Agent["generateObject"]> & { 0: ToolC
 export const wrapAgent = (agent: Agent) => {
   return {
     async generateText(...args: GenerateTextParameters) {
-      const { threadOpts, deleteTmpThread } = await getThreadOpts(args[0], agent);
-      try {
-        return await agent.generateText(args[0], { ...threadOpts, ...args[1] }, args[2], args[3]);
-      } finally {
-        await deleteTmpThread();
-      }
+      return await agent.generateText(args[0], { ..._threadOpts(args[0]), ...args[1] }, args[2], args[3]);
     },
     generateObject: async (...args: GenerateObjectParameters) => {
-      const { threadOpts, deleteTmpThread } = await getThreadOpts(args[0], agent);
-      try {
-        return await agent.generateObject(args[0], { ...threadOpts, ...args[1] }, args[2], args[3]);
-      } finally {
-        await deleteTmpThread();
-      }
+      return await agent.generateObject(args[0], { ..._threadOpts(args[0]), ...args[1] }, args[2], args[3]);
     },
   };
 };

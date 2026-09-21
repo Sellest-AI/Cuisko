@@ -74,13 +74,14 @@ export type IngredientEvidence = {
 /**
  * The ctx the agent step needs, and the reason it is not plain `ActionCtx`.
  *
- * A tool's `ToolCtx` carries a `userId`, because a model call is attributed and its messages are
- * saved against a caller — so the step that spends money is typed to require the identity that
- * pays for it. The three cheap steps below take a bare `ActionCtx` and mean it: a catalog read and
- * a dataset lookup are nobody's in particular, which is what makes them testable without an
- * account.
+ * A tool's `ToolCtx` carries a `userId`, and when a cook is behind the call we want it: the model
+ * call is attributed and its messages are saved against them. It is optional because the import
+ * path has nobody to attribute — a catalog recipe is nobody's, nothing is saved for it, and
+ * `wrapAgent` answers the component's assert with a constant. The three cheap steps below take a
+ * bare `ActionCtx` and mean it: a catalog read and a dataset lookup are nobody's in particular,
+ * which is what makes them testable without an account.
  */
-type ResolveCtx = ActionCtx & { userId: Id<"users"> };
+type ResolveCtx = ActionCtx & { userId?: Id<"users"> };
 
 /**
  * Good enough to link a shopper's own typing to an existing row without asking them.

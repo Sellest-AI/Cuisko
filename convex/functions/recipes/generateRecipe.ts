@@ -29,7 +29,7 @@ type Args = {
  * rounded it is overwritten rather than trusted.
  */
 export const generateRecipe = async (
-  ctx: ActionCtx & { userId: Id<"users"> },
+  ctx: ActionCtx & { userId?: Id<"users"> },
   { locale, title, description, servings, ingredients, instructions }: Args,
 ): Promise<{ recipe: SanitizedRecipe; links: RecipeLink[] }> => {
   const sanitized = await sanitizeRecipe.run(ctx, {

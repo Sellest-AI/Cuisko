@@ -15,7 +15,7 @@ import { ConvexError, v } from "convex/values";
 export const _internal = internalAction({
   args: {
     ingredientId: v.id("ingredients"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
     hint: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"images">> => {

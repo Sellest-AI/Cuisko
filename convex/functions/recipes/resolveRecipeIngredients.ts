@@ -43,9 +43,10 @@ export type ResolvedLinks = {
 
 /**
  * The ctx the fan-out needs, and the reason it is not a plain `ActionCtx`: step 4 of the walk is a
- * model call, and a model call is attributed to the caller that pays for it.
+ * model call, attributed to the cook who paid for it when there is one. The import path has none,
+ * so the field is optional and `wrapAgent` supplies the component's fallback.
  */
-type ResolveCtx = ActionCtx & { userId: Id<"users"> };
+type ResolveCtx = ActionCtx & { userId?: Id<"users"> };
 
 /** Walks in flight. The cook is watching a progress ring, and each walk can cost two API fetches. */
 const RESOLVE_CONCURRENCY = 10;

@@ -61,14 +61,13 @@ export const authed = authAction({
  * it is what keeps the app path stopping at a draft a cook can correct.
  */
 export const _internal = internalAction({
-  args: { url: v.string(), userId: v.id("users"), locale: vLocale },
+  args: { url: v.string(), locale: vLocale },
   returns: v.id("recipes"),
-  handler: async (ctx, { url, userId, locale }): Promise<Id<"recipes">> => {
+  handler: async (ctx, { url, locale }): Promise<Id<"recipes">> => {
     const draft = await _extract(ctx, url);
 
     return await ctx.runAction(internal.router.recipes.createOne._internal, {
       ...draft,
-      userId,
       locale,
     });
   },

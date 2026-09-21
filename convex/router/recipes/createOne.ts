@@ -8,7 +8,7 @@ import { type Locale, vLocale } from "@convex/schema/i18n";
 import { vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { type ObjectType, v } from "convex/values";
 
-type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };
+type Context = ActionCtx & { userId?: Id<"users">; i18n: { locale: Locale } };
 
 type Args = ObjectType<typeof sharedArgs>;
 
@@ -63,14 +63,14 @@ export const authed = authActionI18n({
 });
 
 export const _internal = internalAction({
-  args: { ...sharedArgs, locale: vLocale, userId: v.id("users") },
+  args: { ...sharedArgs, locale: vLocale },
   handler: (ctx, args): Promise<Id<"recipes">> =>
-    handler({ ...ctx, i18n: { locale: args.locale }, userId: args.userId }, args),
+    handler({ ...ctx, i18n: { locale: args.locale } }, args),
 });
 
 export const _internal_persist = internalMutation({
   args: {
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
     locale: vLocale,
     recipe: vSanitizedRecipe,
     links: v.array(vRecipeLink),

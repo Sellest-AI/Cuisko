@@ -239,9 +239,10 @@ const _userPrompt = (
  * cook pasted, and keeping it would make every subsequent turn in a real thread carry it as
  * context.
  *
- * `wrapAgent` supplies the thread. It only creates and deletes a throwaway one when the ctx has
- * neither a threadId nor a userId; on the router path, which always carries a userId, there is no
- * thread to clean up and `saveMessages` is doing all of the work.
+ * `wrapAgent` supplies whatever the component asserts on. On the router path the ctx carries a
+ * userId and `saveMessages` is doing all of the work; on the import path it carries neither, and
+ * the wrapper answers the assert with a constant rather than a thread — there is nothing to save
+ * either way.
  */
 export const sanitizeRecipe = createTool({
   description:
