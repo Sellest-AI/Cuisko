@@ -156,7 +156,8 @@ const _settledWithLimit = async <T, R>(
 };
 
 type Args = {
-  recipe: SanitizedRecipe;
+  /** Only the lines are read. Narrowed so the catalog restore, which has no generation, can call this. */
+  recipe: Pick<SanitizedRecipe, "ingredients">;
   locale: Locale;
 };
 

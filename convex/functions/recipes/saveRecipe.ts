@@ -1,15 +1,13 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText, setTranslation } from "@convex/lib/i18n";
-import { randomShuffleKey } from "@convex/lib/nanoid";
 import type { Localized } from "@convex/schema/i18n";
 import type { MutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
-import { canonicalUrlOf } from "@shared/urls";
 
 import { deriveRecipeFields } from "./deriveRecipeFields";
-import { recipeSearchText } from "./recipeSearchText";
+import { insertRecipe } from "./insertRecipe";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 type Args = {
@@ -37,9 +35,12 @@ const _machine = (locale: Locale, value: string): Localized =>
  * guessed at, since the name is still in the instructions the cook reads and a wrong link is a
  * wrong pantry deduction later.
  *
- * `sourceUrl` is canonicalized HERE as well as by the import that produced it, because a client
- * is not a gate: `createOne.authed` is callable with any string, and the column is the key a later
- * dedupe will match on, so one spelling per page has to hold at the write. Idempotent, so the
+ * The row itself is written by `insertRecipe`, the one place a `recipes` row is inserted, which
+ * derives `search`, the facets and the shuffle key from what is stated here (ADR 0011).
+ *
+ * `sourceUrl` is canonicalized there too, as well as by the import that produced it, because a
+ * client is not a gate: `createOne.authed` is callable with any string, and the column is the key a
+ * later dedupe will match on, so one spelling per page has to hold at the write. Idempotent, so the
  * second pass over an already-canonical address is free. One that cannot be canonicalized is
  * stored as absent rather than refused — no real path produces one, and a case that cannot occur
  * naturally does not deserve an error path.
@@ -48,40 +49,23 @@ export const saveRecipe = async (
   ctx: MutationCtx,
   { userId, locale, recipe, links, sourceUrl }: Args,
 ) => {
-  const { tags, facets } = await deriveRecipeFields(ctx, { recipe, links });
+  const { tags } = await deriveRecipeFields(ctx, { recipe, links });
 
-  // ADR 0011: the serializer is called HERE, where `search` is assigned, so C11 can verify this
-  // writer on its own rather than trust a bundle it cannot see into.
-  const search = await recipeSearchText(ctx, {
-    ingredientIds: links.map((link) => link.ingredientId),
+  return insertRecipe(ctx, {
+    recipe: {
+      userId,
+      title: _machine(locale, recipe.title),
+      description: _machine(locale, recipe.description),
+      instructions: _machine(locale, serializeInstructions(recipe.instructions)),
+      servings: recipe.servings,
+      equipments: recipe.equipments,
+      difficulty: recipe.difficulty,
+      tags,
+      cuisine: recipe.cuisine,
+      timings: recipe.timings,
+      sourceUrl,
+    },
+    links,
     names: recipe.ingredients.map((line) => line.name),
   });
-
-  const recipeId = await ctx.db.insert("recipes", {
-    userId,
-    title: _machine(locale, recipe.title),
-    description: _machine(locale, recipe.description),
-    instructions: _machine(locale, serializeInstructions(recipe.instructions)),
-    servings: recipe.servings,
-    equipments: recipe.equipments,
-    difficulty: recipe.difficulty,
-    tags,
-    ...facets,
-    search,
-    cuisine: recipe.cuisine,
-    timings: recipe.timings,
-    shuffleKey: randomShuffleKey(),
-    sourceUrl: sourceUrl === undefined ? undefined : canonicalUrlOf(sourceUrl),
-    updatedAt: Date.now(),
-  });
-
-  // Each link already carries the `position` of the line it came from, so a recipe listing the
-  // same ingredient twice is two rows — which re-deriving the position from this list would not be.
-  await Promise.all(
-    links.map((link) =>
-      ctx.db.insert("recipeIngredients", { recipeId, ...link, updatedAt: Date.now() }),
-    ),
-  );
-
-  return recipeId;
 };

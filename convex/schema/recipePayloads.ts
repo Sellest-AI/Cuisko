@@ -210,3 +210,16 @@ export const vPortableRecipe = v.object({
 });
 
 export type PortableRecipe = Infer<typeof vPortableRecipe>;
+
+/**
+ * A portable recipe's photos as the restore receives them: the bytes, base64, of each file its
+ * `images` names in the zip. Sent with the recipe rather than uploaded by the script, so the server
+ * decides what to upload and what to discard; the heaviest exported recipe is about 1.2 MB here.
+ */
+export const vRestoredPhotos = v.object({
+  cover: v.optional(v.string()),
+  plate: v.optional(v.string()),
+  plateBase: v.optional(v.string()),
+});
+
+export type RestoredPhotos = Infer<typeof vRestoredPhotos>;
