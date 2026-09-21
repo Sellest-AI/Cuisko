@@ -12,6 +12,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import * as z from "zod/v4";
 
 import { CUISINES } from "@shared/cuisines";
+import { VEGETARIAN_DIETS } from "@shared/diets";
 
 const _importSchema = z.object({
   /** Where it landed, as read from the deploy key: "dev:happy-otter-123". */
@@ -51,7 +52,7 @@ const _ledgerSchema = z.object({
     z.object({
       cuisine: z.enum(CUISINES),
       /** What the agent intended; the real facets are computed at import. */
-      diet: z.enum(["vegan", "vegetarian"]).optional(),
+      diet: z.enum(VEGETARIAN_DIETS).optional(),
       searchedAt: z.string(),
     }),
   ),

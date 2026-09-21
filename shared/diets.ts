@@ -22,6 +22,17 @@ export const DIETS = ["vegan", "vegetarian", "pescatarian", "omnivore"] as const
 export type Diet = (typeof DIETS)[number];
 
 /**
+ * The diets with neither meat nor fish: the prefix of `DIETS` a dish is vegetarian at.
+ *
+ * What the catalog import records as a dish's INTENDED diet, before it has any ingredients to
+ * compute one from. Pescatarian and omnivore are both "no intent" there, since the only question
+ * the import's coverage print asks is how many of the dishes asked for were meant to be meat-free.
+ */
+export const VEGETARIAN_DIETS = ["vegan", "vegetarian"] as const satisfies readonly Diet[];
+
+export type VegetarianDiet = (typeof VEGETARIAN_DIETS)[number];
+
+/**
  * The most permissive diet among `diets` — what a dish made of exactly these ingredients is
  * suitable for.
  *

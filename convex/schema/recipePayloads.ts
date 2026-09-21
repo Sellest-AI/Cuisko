@@ -37,7 +37,7 @@ export const vInstructionGroups = v.array(
  */
 const vAuthoredTags = v.array(v.union(...AUTHORED_TAGS.map(v.literal)));
 const vDifficulty = v.union(...DIFFICULTY_LEVELS.map(v.literal));
-const vCuisine = v.union(...CUISINES.map(v.literal));
+export const vCuisine = v.union(...CUISINES.map(v.literal));
 const vTimings = v.object({
   preparation: v.optional(v.number()),
   cooking: v.optional(v.number()),
