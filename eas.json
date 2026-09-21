@@ -17,6 +17,14 @@
         "image": "latest"
       }
     },
+    "development-apk": {
+      "distribution": "internal",
+      "environment": "development",
+      "channel": "development",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "preview": {
       "distribution": "store",
       "channel": "preview",
