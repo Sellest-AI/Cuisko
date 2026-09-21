@@ -17,6 +17,16 @@ import { TabSwipe } from "./swipe";
 import { ChromeNavigationBar } from "./navigation-bar";
 import { useRecipe } from "../../_hooks/useRecipe";
 import { EmptyState } from "../../_components/empty-state";
+import { servingsParamOf } from "../../routes";
+
+type Props = {
+  children: ReactNode;
+  /**
+   * The servings the route arrived with, straight off the URL — validated here, not by the route.
+   * A plate on the plan opens its recipe for the number it was planned for; see `recipeRoute`.
+   */
+  servings?: string;
+};
 
 /**
  * The frame the three recipe tabs mount into: the photo, the title, and the row that switches them.
@@ -25,12 +35,16 @@ import { EmptyState } from "../../_components/empty-state";
  * header stay put while the tab underneath slides — a per-route header would rebuild both on every
  * switch. It lives here rather than in the route file so `app/` stays routing-only (ADR 0006).
  */
-export const RecipeChrome = ({ children }: { children: ReactNode }) => {
+export const RecipeChrome = ({ children, servings }: Props) => {
   const t = useTranslations("Recipe");
   const path = usePathname();
   const { id } = useLocalSearchParams<{ id?: string }>();
 
-  const { recipe, isLoading, isMissing } = useRecipe(id);
+  /**
+   * The chrome is the one caller that seeds the count: it mounts once for all three tabs, before
+   * any of them, so the choice is in the atom by the time a tab draws a quantity.
+   */
+  const { recipe, isLoading, isMissing } = useRecipe(id, servingsParamOf(servings));
 
   const active = path.startsWith(`/recipe/${id}/ingredients`) ? "ingredients"
     : path.startsWith(`/recipe/${id}/instructions`) ? "instructions"

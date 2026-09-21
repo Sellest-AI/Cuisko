@@ -16,6 +16,7 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
+import { recipeRoute } from "~/modules/recipes/routes";
 
 import { MEAL_IMAGE } from "./_hooks/placeholders";
 import { usePlanningList } from "./_hooks/usePlanningList";
@@ -114,7 +115,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
               row={item}
               onPress={() => {
                 if (item.kind === "empty") return _openPlate(item);
-                router.push(`/recipe/${item.meal.recipeId}`);
+                router.push(recipeRoute(item.meal.recipeId, item.meal.servings));
               }}
               onTrailingPress={() => _openPlate(item)}
               style={{
