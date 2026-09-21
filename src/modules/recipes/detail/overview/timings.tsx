@@ -1,5 +1,6 @@
-import { View, StyleSheet, ScrollView, ViewStyle } from "react-native";
+import { View, StyleSheet, ViewStyle } from "react-native";
 
+import { HorizontalScrollView } from "@ui/horizontal-scroll-view";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
@@ -21,31 +22,26 @@ type Props = {
  * them, and the label is the quieter of the two here where `Stat` leads with it.
  */
 export const Timings = ({ timings, style }: Props) => {
-  const Component = timings.length > 3 ? ScrollView : View;
+  const rows = timings.map((timing) => (
+    <View key={timing.label} style={styles.timing}>
+      <Text.H4>{timing.emoji}</Text.H4>
+      <View style={styles.caption}>
+        <Text.Sm numberOfLines={1} color={theme.colors.neutral.muted}>{timing.label}</Text.Sm>
+        <Text.Base numberOfLines={1} color={theme.colors.neutral.base}>{timing.value}</Text.Base>
+      </View>
+    </View>
+  ));
 
-  const componentProps = timings.length > 3 ?
-    { horizontal: true, showsHorizontalScrollIndicator: false } :
-    { style: [styles.timings, style] };
+  /** Three fit the width; a fourth is what makes the row scroll. */
+  if (timings.length > 3) {
+    return (
+      <HorizontalScrollView contentContainerStyle={[styles.timings, style]}>
+        {rows}
+      </HorizontalScrollView>
+    );
+  }
 
-  return (
-    <Component
-      {...componentProps}
-      contentContainerStyle={[
-        styles.timings,
-        style
-      ]}
-    >
-      {timings.map((timing) => (
-        <View key={timing.label} style={styles.timing}>
-          <Text.H4>{timing.emoji}</Text.H4>
-          <View style={styles.caption}>
-            <Text.Sm numberOfLines={1} color={theme.colors.neutral.muted}>{timing.label}</Text.Sm>
-            <Text.Base numberOfLines={1} color={theme.colors.neutral.base}>{timing.value}</Text.Base>
-          </View>
-        </View>
-      ))}
-    </Component>
-  );
+  return <View style={[styles.timings, style]}>{rows}</View>;
 }
 
 const styles = StyleSheet.create({

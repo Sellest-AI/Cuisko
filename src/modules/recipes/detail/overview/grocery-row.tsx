@@ -1,6 +1,7 @@
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet } from "react-native";
 
 import { GroceryItem } from "@ui/cards/grocery-item";
+import { HorizontalScrollView } from "@ui/horizontal-scroll-view";
 import type { ImageProps } from "@ui/image";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -26,7 +27,7 @@ export const GroceryRow = ({ title, caption, items }: Props) => (
       <Text.Lg>{title}</Text.Lg>
       {caption && <Text.Base color={theme.colors.neutral.muted}>{caption}</Text.Base>}
     </View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <HorizontalScrollView contentContainerStyle={styles.row}>
       {items.map((item) => (
         <GroceryItem
           key={item.name}
@@ -37,7 +38,7 @@ export const GroceryRow = ({ title, caption, items }: Props) => (
           variant="ghost"
         />
       ))}
-    </ScrollView>
+    </HorizontalScrollView>
   </View>
 );
 
