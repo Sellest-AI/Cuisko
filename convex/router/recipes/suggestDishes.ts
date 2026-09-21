@@ -16,6 +16,8 @@ export const _internal = internalAction({
   returns: v.array(
     v.object({
       name: v.string(),
+      nameEn: v.string(),
+      veganEn: v.optional(v.string()),
       diet: v.optional(v.union(...VEGETARIAN_DIETS.map(v.literal))),
     }),
   ),

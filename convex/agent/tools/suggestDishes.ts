@@ -20,7 +20,9 @@ import {
 /**
  * Dish names for one cuisine, for the catalog import to search Marmiton with.
  *
- * Only a name and an intended diet come back. The diet is what the model believes the usual
+ * Main plates of a lunch or a dinner only, since that is what the planner fills a week with. Only a
+ * name (in French for Marmiton, and in English for BBC Good Food's slugs) and an intended diet
+ * come back. The diet is what the model believes the usual
  * recipe is, recorded in the ledger for the coverage print, and nothing else reads it: the
  * recipe's real facets are computed from its ingredients at import (`deriveRecipeFields`).
  */
@@ -32,6 +34,17 @@ const _modelDishesSchema = z.object({
   dishes: z.array(
     z.object({
       name: z.string().describe("The dish's name in French, as a Marmiton cook would title it."),
+      nameEn: z
+        .string()
+        .describe("The same dish's name in English, as BBC Good Food would title it."),
+      veganEn: z
+        .string()
+        .nullable()
+        .optional()
+        .describe("The English name of a vegan version of the dish when one is the same dish in spirit, else null."),
+      main: z
+        .boolean()
+        .describe("Whether the dish is served as the main plate of a lunch or a dinner."),
       diet: z
         .enum(VEGETARIAN_DIETS)
         .nullable()
@@ -42,12 +55,15 @@ const _modelDishesSchema = z.object({
   ),
 });
 
-export type SuggestedDish = { name: string; diet?: VegetarianDiet };
+export type SuggestedDish = { name: string; nameEn: string; veganEn?: string; diet?: VegetarianDiet };
 
-/** Both ways round, so the schema and `SuggestedDish` cannot drift apart (ADR 0010). */
+/**
+ * Both ways round, so the schema and `SuggestedDish` cannot drift apart (ADR 0010). `main` is left
+ * out by name: it is a filter `toSuggestedDishes` applies, and every dish it returns is a main.
+ */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- a compile-time assertion, read by tsc alone
 type _Pinned = AssertTrue<
-  Exact<WithoutNulls<z.infer<typeof _modelDishesSchema>>["dishes"][number], SuggestedDish>
+  Exact<Omit<WithoutNulls<z.infer<typeof _modelDishesSchema>>["dishes"][number], "main">, SuggestedDish>
 >;
 
 const _wordsOf = (name: string) => name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
@@ -72,7 +88,9 @@ const _keysOf = (name: string): string[] => {
 
 /**
  * The model's answer as the list the script can search: trimmed, deduplicated, stripped of any
- * name in `avoid`, and cut to `count`.
+ * name in `avoid`, and cut to `count`. A dish already vegan loses its `veganEn`: there is no vegan
+ * version of it to look for. A dish the model itself marks as not a main plate is dropped: the
+ * catalog plans lunches and dinners, and a tiramisu is a whole import spent on neither.
  *
  * The prompt already forbids all three. They are checked here too because a repeat is the one
  * mistake that costs a search with nothing gained, and it is the one a model makes most on a
@@ -89,13 +107,21 @@ export const toSuggestedDishes = (
   const seen = new Set(avoid.flatMap(_keysOf));
   const dishes: SuggestedDish[] = [];
 
-  for (const { name, diet } of parseModelOutput(_modelDishesSchema, raw).dishes) {
+  for (const { name, nameEn, veganEn, main, diet } of parseModelOutput(_modelDishesSchema, raw).dishes) {
+    if (!main) continue;
+
     const trimmed = name.trim();
     const keys = _keysOf(trimmed);
     if (!keys.length || keys.some((key) => seen.has(key))) continue;
 
     keys.forEach((key) => seen.add(key));
-    dishes.push(diet ? { name: trimmed, diet } : { name: trimmed });
+    const vegan = diet === "vegan" ? undefined : veganEn?.trim();
+    dishes.push({
+      name: trimmed,
+      nameEn: nameEn.trim() || trimmed,
+      ...(vegan && { veganEn: vegan }),
+      ...(diet && { diet }),
+    });
   }
 
   return dishes.slice(0, count);
@@ -135,7 +161,7 @@ const _suggest = async (ctx: ToolCtx, args: z.infer<typeof _inputSchema>): Promi
 
 export const suggestDishes = createTool({
   description:
-    "Suggests French dish names from one cuisine to search a recipe site for, skipping the ones " +
+    "Suggests dish names from one cuisine, in French and in English, to search recipe sites for, skipping the ones " +
     "already searched. Each comes with the diet its usual recipe suits, when it is vegan or " +
     "vegetarian.",
   inputSchema: _inputSchema,

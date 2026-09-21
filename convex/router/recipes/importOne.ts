@@ -1,7 +1,8 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { findCatalogBySource } from "@convex/functions/recipes/findCatalogBySource";
 import type { RecipeDraft } from "@convex/lib/scraping/toRecipeDraft";
-import { type ActionCtx, authAction, internalAction } from "@convex/procedures";
+import { type ActionCtx, authAction, internalAction, internalQuery } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { vRecipeDraft } from "@convex/schema/recipePayloads";
 import { canonicalUrlOf } from "@shared/urls";
@@ -59,11 +60,16 @@ export const authed = authAction({
  * the whole ring itself: extract, then `createOne._internal`. `authed` above returns a draft; this
  * returns the id of a row that now exists. That asymmetry is the point rather than an oversight —
  * it is what keeps the app path stopping at a draft a cook can correct.
+ *
+ * A page the catalog holds returns its id before any fetch: `catalog:import`'s ledger can be lost.
  */
 export const _internal = internalAction({
   args: { url: v.string(), locale: vLocale },
   returns: v.id("recipes"),
   handler: async (ctx, { url, locale }): Promise<Id<"recipes">> => {
+    const existing = await ctx.runQuery(internal.router.recipes.importOne._internal_find, { url });
+    if (existing) return existing;
+
     const draft = await _extract(ctx, url);
 
     return await ctx.runAction(internal.router.recipes.createOne._internal, {
@@ -71,4 +77,10 @@ export const _internal = internalAction({
       locale,
     });
   },
+});
+
+export const _internal_find = internalQuery({
+  args: { url: v.string() },
+  returns: v.union(v.id("recipes"), v.null()),
+  handler: (ctx, args) => findCatalogBySource(ctx, args),
 });

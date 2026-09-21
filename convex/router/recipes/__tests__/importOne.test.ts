@@ -1,7 +1,9 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "../../../_generated/api";
+import { facetsOf } from "@shared/tags";
+
+import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -124,5 +126,46 @@ describe("router/recipes/importOne", () => {
     expect(draft.sourceUrl).toBe("https://example.com/tarte?id=7");
     expect(draft.title).toBe("Tarte");
     expect(fetchPage).toHaveBeenCalledWith("https://example.com/tarte?id=7");
+  });
+
+  /**
+   * The server half of the catalog import's dedupe. The script's ledger can be lost or behind, so it
+   * re-sends pages the catalog already holds, and the answer must be that recipe rather than a
+   * second copy. Asked with a tracker on, because the ledger and the row agree only in canonical form.
+   */
+  test("_internal returns the catalog recipe already imported from the url, without fetching", async () => {
+    const existing = await t.run((ctx) =>
+      ctx.db.insert("recipes", {
+        title: { values: { fr: "Tarte" }, meta: {} },
+        description: { values: { fr: "" }, meta: {} },
+        instructions: { values: { fr: "- Cuire." }, meta: {} },
+        servings: 4,
+        equipments: [],
+        difficulty: 1,
+        tags: [],
+        cuisine: "french",
+        timings: {},
+        search: { fr: "", en: "" },
+        ...facetsOf([]),
+        sourceUrl: "https://example.com/tarte",
+        updatedAt: 1,
+      }),
+    );
+
+    const recipeId = await t.action(internal.router.recipes.importOne._internal, {
+      url: "https://example.com/tarte?utm_source=fb",
+      locale: "fr",
+    });
+
+    expect(recipeId).toBe(existing);
+    expect(fetchPage).not.toHaveBeenCalled();
+  });
+
+  /** The catalog lookup is now the first gate on this path, so its refusal has to land before the fetch. */
+  test("_internal refuses a url that is not one, before any fetch", async () => {
+    await expect(
+      t.action(internal.router.recipes.importOne._internal, { url: "ftp://example.com/x", locale: "fr" }),
+    ).rejects.toThrow();
+    expect(fetchPage).not.toHaveBeenCalled();
   });
 });

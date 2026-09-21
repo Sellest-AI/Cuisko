@@ -10,7 +10,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { bestCard, MARMITON_BAR, parseSearchResults, passesBar, type SearchCard } from "../marmiton";
+import {
+  bestCard,
+  classifyCards,
+  MARMITON_BAR,
+  parseSearchResults,
+  passesBar,
+  type SearchCard,
+} from "../marmiton";
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 
@@ -163,5 +170,32 @@ describe("bestCard", () => {
   it("breaks a tie on reviews by rating, then by page order", () => {
     expect(bestCard([card("gratin 1", 4.6, 80), card("gratin 2", 4.9, 80)], "gratin")?.url).toBe("gratin 2");
     expect(bestCard([card("gratin 1", 4.7, 80), card("gratin 2", 4.7, 80)], "gratin")?.url).toBe("gratin 1");
+  });
+});
+
+describe("classifyCards", () => {
+  it("accepts the best card, skips the others that clear the bar, and rejects the rest", () => {
+    const cards = parseSearchResults(LASAGNES);
+    const verdicts = classifyCards(cards, "lasagnes");
+    const best = bestCard(cards, "lasagnes");
+
+    expect(verdicts.filter((card) => card.verdict === "accepted")).toEqual([{ ...best, verdict: "accepted" }]);
+    expect(verdicts.filter((card) => card.verdict === "skipped")).toHaveLength(
+      cards.filter(passesBar).length - 1,
+    );
+    expect(verdicts.map((card) => card.url)).toEqual(cards.map((card) => card.url));
+  });
+
+  it("rejects every card of a page where nothing clears the bar", () => {
+    const verdicts = classifyCards(parseSearchResults(PAD_THAI), "pad thaï");
+
+    expect(verdicts.length).toBeGreaterThan(0);
+    expect(verdicts.every((card) => card.verdict === "rejected")).toBe(true);
+  });
+
+  it("skips a passing card that names another dish, rather than rejecting it", () => {
+    const cards: SearchCard[] = [{ url: "https://m.org/a", title: "Madeleines au miel", rating: 4.8, reviews: 400 }];
+
+    expect(classifyCards(cards, "mafé")).toEqual([{ ...cards[0], verdict: "skipped" }]);
   });
 });

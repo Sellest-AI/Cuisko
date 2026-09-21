@@ -9,7 +9,7 @@ import { load } from "cheerio";
 
 import { canonicalUrlOf } from "@shared/urls";
 
-import { matchesDish } from "./dishMatch";
+import { bestOf, classify, passes, type RatedRecipe, type Verdict } from "./verdicts";
 
 const MARMITON_ORIGIN = "https://www.marmiton.org";
 
@@ -24,15 +24,7 @@ const RECIPE_PATH = /^\/recettes\/recette_/;
  */
 export const MARMITON_BAR = { minReviews: 30, minRating: 4.5 } as const;
 
-export type SearchCard = {
-  /** Canonical, via `canonicalUrlOf`: the spelling `importOne` stores as `sourceUrl`. */
-  url: string;
-  title: string;
-  /** Out of 5. 0 when the card shows no rating, which Marmiton does for an unreviewed recipe. */
-  rating: number;
-  /** Marmiton's "avis". 0 when the card shows none. */
-  reviews: number;
-};
+export type SearchCard = RatedRecipe;
 
 /** "4.3/5" → 4.3. A French "4,3/5" reads the same. */
 const _ratingOf = (text: string): number | undefined => {
@@ -94,33 +86,12 @@ export const parseSearchResults = (html: string): SearchCard[] => {
 };
 
 /** Whether a card clears `MARMITON_BAR`. Both thresholds are inclusive. */
-export const passesBar = (card: Pick<SearchCard, "rating" | "reviews">): boolean =>
-  card.reviews >= MARMITON_BAR.minReviews && card.rating >= MARMITON_BAR.minRating;
+export const passesBar = (card: Pick<SearchCard, "rating" | "reviews">): boolean => passes(card, MARMITON_BAR);
 
-/**
- * The one recipe a search for `dish` contributes: among the cards that clear the bar AND name the
- * dish (`matchesDish`), the one with the most reviews.
- *
- * One search, one recipe. A page is ranked for relevance and popularity, not quality, and a
- * popular dish fills it with near-copies ("bolognaise", "bolognaise très facile", "bolognaise
- * express"). Variations come from searching the variation by name, not from taking more of the page.
- *
- * The title check comes first because the search is fuzzy: without it, "mafé" keeps "Madeleines au
- * miel", the most reviewed card on its page.
- *
- * Most reviews rather than best rating, since everything here has already cleared the rating bar
- * and a 4.9 over 57 reviews says less than a 4.8 over 1,429. Ties go to the higher rating, then to
- * page order. `undefined` when no card both clears the bar and names the dish.
- */
+/** The one recipe a Marmiton search for `dish` contributes (`bestOf`, at `MARMITON_BAR`). */
 export const bestCard = (cards: readonly SearchCard[], dish: string): SearchCard | undefined =>
-  cards
-    .filter((card) => passesBar(card) && matchesDish(card.title, dish))
-    .reduce<SearchCard | undefined>(
-      (best, card) =>
-        !best ||
-          card.reviews > best.reviews ||
-          (card.reviews === best.reviews && card.rating > best.rating)
-          ? card
-          : best,
-      undefined,
-    );
+  bestOf(cards, dish, MARMITON_BAR);
+
+/** Every card of one Marmiton search with its verdict (`classify`, at `MARMITON_BAR`). */
+export const classifyCards = (cards: readonly SearchCard[], dish: string): (SearchCard & { verdict: Verdict })[] =>
+  classify(cards, dish, MARMITON_BAR);

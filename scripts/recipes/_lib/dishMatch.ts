@@ -62,20 +62,31 @@ const _withinOneEdit = (a: string, b: string): boolean => {
   return edits + (a.length - i) + (b.length - j) <= 1;
 };
 
-const _sameWord = (dishWord: string, titleWord: string): boolean =>
-  dishWord === titleWord || (dishWord.length >= FUZZY_MIN_LENGTH && _withinOneEdit(dishWord, titleWord));
+const _sameWord = (dishWord: string, titleWord: string, typos: boolean): boolean =>
+  dishWord === titleWord ||
+  (typos && dishWord.length >= FUZZY_MIN_LENGTH && _withinOneEdit(dishWord, titleWord));
+
+export type MatchOptions = {
+  /**
+   * Whether a word of 5 letters or more may differ by one typo. For titles cooks type themselves
+   * (Marmiton's "gaspacho"). Off for a site whose titles and slugs are edited, where a word one
+   * letter away is a different word: "pisto" matched BBC Good Food's `wild-pesto`.
+   */
+  typos: boolean;
+};
 
 /**
  * Whether `title` names `dish`: every significant word of the dish appears in the title, in any
- * order, one typo allowed for words of 5 letters or more. The title may say more ("Boeuf
- * bourguignon rapide" names "boeuf bourguignon"). A dish with no significant word matches nothing.
+ * order, one typo allowed for words of 5 letters or more unless `typos` is off. The title may say
+ * more ("Boeuf bourguignon rapide" names "boeuf bourguignon"). A dish with no significant word
+ * matches nothing.
  */
-export const matchesDish = (title: string, dish: string): boolean => {
+export const matchesDish = (title: string, dish: string, { typos }: MatchOptions = { typos: true }): boolean => {
   const dishWords = _wordsOf(dish);
   const titleWords = _wordsOf(title);
 
   return (
     dishWords.length > 0 &&
-    dishWords.every((dishWord) => titleWords.some((titleWord) => _sameWord(dishWord, titleWord)))
+    dishWords.every((dishWord) => titleWords.some((titleWord) => _sameWord(dishWord, titleWord, typos)))
   );
 };

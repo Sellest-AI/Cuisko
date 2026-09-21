@@ -1,0 +1,4011 @@
+{
+  "version": 1,
+  "cuisineCursor": 5,
+  "dishes": {
+    "boeuf bourguignon": {
+      "cuisine": "french",
+      "nameEn": "beef bourguignon",
+      "searchedAt": "2026-09-21T15:37:20.412Z"
+    },
+    "ratatouille": {
+      "cuisine": "french",
+      "nameEn": "ratatouille",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:38:51.056Z"
+    },
+    "soupe à l'oignon": {
+      "cuisine": "french",
+      "nameEn": "french onion soup",
+      "searchedAt": "2026-09-21T15:38:52.466Z"
+    },
+    "tarte tatin": {
+      "cuisine": "french",
+      "nameEn": "tarte tatin",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:38:53.672Z"
+    },
+    "quiche lorraine": {
+      "cuisine": "french",
+      "nameEn": "quiche lorraine",
+      "searchedAt": "2026-09-21T15:38:54.758Z"
+    },
+    "tian de légumes": {
+      "cuisine": "french",
+      "nameEn": "vegetable tian",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:38:55.963Z"
+    },
+    "bruschetta": {
+      "cuisine": "italian",
+      "nameEn": "bruschetta",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:40:02.690Z"
+    },
+    "spaghetti aglio e olio": {
+      "cuisine": "italian",
+      "nameEn": "spaghetti aglio e olio",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:40:07.020Z"
+    },
+    "lasagnes bolognaise": {
+      "cuisine": "italian",
+      "nameEn": "lasagne bolognese",
+      "searchedAt": "2026-09-21T15:40:08.226Z"
+    },
+    "risotto aux champignons": {
+      "cuisine": "italian",
+      "nameEn": "mushroom risotto",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:40:09.326Z"
+    },
+    "vegan mushroom risotto": {
+      "cuisine": "italian",
+      "versionOf": "risotto aux champignons",
+      "searchedAt": "2026-09-21T15:40:10.457Z"
+    },
+    "salade caprese": {
+      "cuisine": "italian",
+      "nameEn": "caprese salad",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:40:13.928Z"
+    },
+    "tiramisu": {
+      "cuisine": "italian",
+      "nameEn": "tiramisu",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:40:15.022Z"
+    },
+    "paella": {
+      "cuisine": "spanish",
+      "nameEn": "paella",
+      "searchedAt": "2026-09-21T15:41:36.790Z"
+    },
+    "tortilla espagnole": {
+      "cuisine": "spanish",
+      "nameEn": "spanish omelette",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:41:38.998Z"
+    },
+    "gaspacho": {
+      "cuisine": "spanish",
+      "nameEn": "gazpacho",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:41:40.237Z"
+    },
+    "churros": {
+      "cuisine": "spanish",
+      "nameEn": "churros",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:41:54.675Z"
+    },
+    "pulpo a la gallega": {
+      "cuisine": "spanish",
+      "nameEn": "galician octopus",
+      "searchedAt": "2026-09-21T15:41:55.928Z"
+    },
+    "bacalhau à brás": {
+      "cuisine": "portuguese",
+      "nameEn": "bacalhau à brás",
+      "searchedAt": "2026-09-21T15:44:41.557Z"
+    },
+    "caldo verde": {
+      "cuisine": "portuguese",
+      "nameEn": "caldo verde",
+      "searchedAt": "2026-09-21T15:44:42.697Z"
+    },
+    "poulet piri-piri": {
+      "cuisine": "portuguese",
+      "nameEn": "piri-piri chicken",
+      "searchedAt": "2026-09-21T15:44:49.596Z"
+    },
+    "pastéis de nata": {
+      "cuisine": "portuguese",
+      "nameEn": "pastel de nata",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:44:50.864Z"
+    },
+    "arroz de tomate": {
+      "cuisine": "portuguese",
+      "nameEn": "tomato rice",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:44:58.791Z"
+    },
+    "épinards aux pois chiches": {
+      "cuisine": "portuguese",
+      "nameEn": "spinach with chickpeas",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:45:06.050Z"
+    },
+    "moussaka": {
+      "cuisine": "greek",
+      "nameEn": "moussaka",
+      "searchedAt": "2026-09-21T15:51:28.926Z"
+    },
+    "vegan moussaka": {
+      "versionOf": "moussaka",
+      "cuisine": "greek",
+      "searchedAt": "2026-09-21T15:51:31.728Z"
+    },
+    "tzatziki": {
+      "cuisine": "greek",
+      "nameEn": "tzatziki",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:51:32.796Z"
+    },
+    "salade grecque": {
+      "cuisine": "greek",
+      "nameEn": "Greek salad",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:51:33.974Z"
+    },
+    "dolmades": {
+      "cuisine": "greek",
+      "nameEn": "dolmades",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:51:35.214Z"
+    },
+    "pommes de terre citron": {
+      "cuisine": "greek",
+      "nameEn": "Greek lemon potatoes",
+      "diet": "vegan",
+      "searchedAt": "2026-09-21T15:51:36.439Z"
+    },
+    "baklava": {
+      "cuisine": "greek",
+      "nameEn": "baklava",
+      "diet": "vegetarian",
+      "searchedAt": "2026-09-21T15:51:37.647Z"
+    },
+    "vegan baklava": {
+      "versionOf": "baklava",
+      "cuisine": "greek",
+      "searchedAt": "2026-09-21T15:51:37.683Z"
+    }
+  },
+  "recipes": {
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-rapide_19218.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf Bourguignon rapide",
+      "rating": 4.8,
+      "reviews": 917,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m570yb85b31bxvsvfv7bbq4dk98etws7",
+          "at": "2026-09-21T15:45:41.382Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon_18889.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon : la vraie recette",
+      "rating": 4.7,
+      "reviews": 335,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-debutant_81513.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon débutant",
+      "rating": 4.8,
+      "reviews": 164,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-d-automne_24399.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon d'automne",
+      "rating": 4.8,
+      "reviews": 116,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-express_25026.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon express",
+      "rating": 4.8,
+      "reviews": 63,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-mijote-facon-bourguignon_51728.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf mijoté façon bourguignon",
+      "rating": 4.6,
+      "reviews": 86,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_joue-de-boeuf-a-la-bourguignonne_304962.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Joue de boeuf à la bourguignonne",
+      "rating": 4.9,
+      "reviews": 41,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-a-ma-facon_14895.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon à ma façon",
+      "rating": 4.6,
+      "reviews": 79,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-facile_12920.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon facile",
+      "rating": 4.6,
+      "reviews": 48,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-au-four-de-nanou_167421.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon au four de nanou",
+      "rating": 4.9,
+      "reviews": 20,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-tres-moelleux_11190.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon très moelleux",
+      "rating": 4.4,
+      "reviews": 28,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-aux-olives_69567.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf bourguignon aux olives",
+      "rating": 4.7,
+      "reviews": 15,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-a-la-biere-brune_221015.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf Bourguignon à la biere brune et aux châtaignes",
+      "rating": 4.9,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-bourguignon-rapide-au-cookeo_383151.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf Bourguignon rapide au Cookeo",
+      "rating": 4.7,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_boeuf-colombo-facon-bourguignon_222775.aspx": {
+      "source": "marmiton",
+      "dish": "boeuf bourguignon",
+      "title": "Boeuf colombo façon bourguignon",
+      "rating": 4.5,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille_23223.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille",
+      "rating": 4.8,
+      "reviews": 419,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57fzce3q101bthbfnz8asmd398etkq4",
+          "at": "2026-09-21T15:51:37.983Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-confite_32057.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille confite",
+      "rating": 4.7,
+      "reviews": 69,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-meridionale_46962.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille méridionale",
+      "rating": 4.7,
+      "reviews": 59,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_emince-gratine-de-poulet-aux-legumes-de-ratatouille_33571.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Emincé gratiné de poulet aux légumes de ratatouille",
+      "rating": 4.8,
+      "reviews": 48,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-a-la-viande-hachee_20300.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille à la Viande Hachée",
+      "rating": 4.6,
+      "reviews": 66,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_le-secret-de-la-ratatouille-de-catherine_39973.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Le secret de la ratatouille de Catherine",
+      "rating": 4.6,
+      "reviews": 57,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-provencale_80582.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille provençale",
+      "rating": 4.6,
+      "reviews": 51,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-a-la-ratatouille-et-pignons_13947.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Tarte à la ratatouille et pignons",
+      "rating": 4.8,
+      "reviews": 33,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_le-ratathon-quiche-au-thon-et-a-la-ratatouille_27406.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Le 'Ratathon' (Quiche au thon et à la ratatouille)",
+      "rating": 4.7,
+      "reviews": 38,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gratin-de-quinoa-et-ratatouille_20253.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Gratin de quinoa et ratatouille",
+      "rating": 4.7,
+      "reviews": 38,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-facile-et-rapide_58457.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille facile, rapide et pas chère",
+      "rating": 4.6,
+      "reviews": 42,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-au-micro-ondes_21841.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille au micro-ondes",
+      "rating": 4.6,
+      "reviews": 36,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-ratatouille-au-chevre_42128.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Tarte ratatouille au chèvre",
+      "rating": 4.7,
+      "reviews": 30,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dos-de-cabillaud-sur-ratatouille-safranee_37716.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Dos de cabillaud sur ratatouille safranée",
+      "rating": 4.7,
+      "reviews": 30,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-confite-au-four_309902.aspx": {
+      "source": "marmiton",
+      "dish": "ratatouille",
+      "title": "Ratatouille confite au four",
+      "rating": 5,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-gratinee_20864.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon gratinée",
+      "rating": 4.7,
+      "reviews": 143,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m575bn93babc8845x64pj969th8etvm6",
+          "at": "2026-09-21T15:52:05.341Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-facon-grand-mere_62658.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon facon grand-mère",
+      "rating": 4.7,
+      "reviews": 75,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon_10891.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon",
+      "rating": 4.5,
+      "reviews": 111,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-au-camembert_20994.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon au camembert",
+      "rating": 4.8,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-et-lardons_86389.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon et lardons",
+      "rating": 4.9,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-anglaise-a-l-oignon_23158.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe anglaise à l'oignon",
+      "rating": 4.9,
+      "reviews": 8,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-de-rene_335783.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon de René",
+      "rating": 5,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-au-vin-blanc_29253.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon au vin blanc",
+      "rating": 4.3,
+      "reviews": 27,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-repas-aux-oignons-en-wallonie-belgique_25253.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe repas aux oignons (en Wallonie- Belgique)",
+      "rating": 4.2,
+      "reviews": 19,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-aux-oignons_343229.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe aux oignons",
+      "rating": 4.4,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-aux-oignons-au-maroilles_54625.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe aux oignons au maroilles",
+      "rating": 4.5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-au-celeri_22128.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon au céleri",
+      "rating": 4.5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-au-cookeo_382876.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon au Cookeo",
+      "rating": 4.3,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-au-monsieur-cuisine_382879.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon au Monsieur Cuisine",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-a-l-oignon-made-in-jyh_314335.aspx": {
+      "source": "marmiton",
+      "dish": "soupe à l'oignon",
+      "title": "Soupe à l'oignon made in JYH",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-aux-endives-et-chavignol_23918.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin aux endives et chavignol",
+      "rating": 4.8,
+      "reviews": 494,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-de-legumes_24112.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin de légumes",
+      "rating": 4.8,
+      "reviews": 504,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin_12456.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin",
+      "rating": 4.6,
+      "reviews": 560,
+      "status": "excluded",
+      "reason": "dessert",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m573s0bjbc1cm9ezs85jh9e6h18etxnw",
+          "at": "2026-09-21T15:52:30.383Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-gourmande_165036.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin gourmande",
+      "rating": 4.8,
+      "reviews": 95,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-aux-tomates_21929.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin aux tomates",
+      "rating": 4.6,
+      "reviews": 150,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-minute_20631.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin minute",
+      "rating": 4.7,
+      "reviews": 97,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-a-la-tomate_13524.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin à la tomate",
+      "rating": 4.7,
+      "reviews": 88,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-de-poivrons-au-thon_54683.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin de poivrons au thon",
+      "rating": 5,
+      "reviews": 40,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-pomme-poire_50497.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin pomme poire",
+      "rating": 4.8,
+      "reviews": 51,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-aux-mangues_17897.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin aux mangues",
+      "rating": 4.6,
+      "reviews": 57,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-oignons-roquefort_45229.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin oignons - roquefort",
+      "rating": 4.6,
+      "reviews": 46,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-aux-pommes-et-au-miel_37803.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin aux pommes et au miel",
+      "rating": 4.7,
+      "reviews": 36,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-a-l-echalote_56039.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin à l'échalote",
+      "rating": 4.8,
+      "reviews": 32,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-de-carottes_52018.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte Tatin de carottes",
+      "rating": 4.7,
+      "reviews": 28,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-tatin-facile-et-rapide_37301.aspx": {
+      "source": "marmiton",
+      "dish": "tarte tatin",
+      "title": "Tarte tatin facile et rapide",
+      "rating": 4.3,
+      "reviews": 88,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine_30283.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine maison",
+      "rating": 4.7,
+      "reviews": 1228,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m5744x81a625wyek6as0f0k3k98evk8e",
+          "at": "2026-09-21T15:52:44.909Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-de-sophie_57113.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine traditionnelle",
+      "rating": 4.8,
+      "reviews": 330,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-sans-pate_16958.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine sans pâte",
+      "rating": 4.4,
+      "reviews": 136,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-de-mamz-elle-amelie_68070.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine de Mamz'elle Amélie",
+      "rating": 4.7,
+      "reviews": 47,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-au-curry_81273.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche Lorraine au curry",
+      "rating": 4.9,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-de-valerie_17512.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche Lorraine de Valérie",
+      "rating": 4.3,
+      "reviews": 21,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-facon-anna_308884.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche Lorraine façon Anna",
+      "rating": 5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-aux-legumes-du-soleil_166564.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine aux légumes du soleil",
+      "rating": 4.8,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_mini-bricks-facon-quiche-lorraine_44277.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Mini bricks façon quiche lorraine",
+      "rating": 4.3,
+      "reviews": 10,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-au-lait-cru_315546.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine au lait cru",
+      "rating": 4.5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-au-fromage-blanc-legere_81902.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine au fromage blanc légère",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-au-fromage-d-ail-et-fines-herbes_57102.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine au fromage d'ail et fines herbes",
+      "rating": 4.5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-a-la-quebecoise_41709.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine à la québécoise",
+      "rating": 4.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-facon-cheesecake_345484.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine façon cheesecake",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-lorraine-a-la-courgette_359652.aspx": {
+      "source": "marmiton",
+      "dish": "quiche lorraine",
+      "title": "Quiche lorraine à la courgette",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-au-chevre-et-au-miel_38336.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes au chèvre et au miel",
+      "rating": 4.7,
+      "reviews": 75,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m572sbawdyzj54rp01dc33df6h8evscy",
+          "at": "2026-09-21T15:53:04.249Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-au-chevre_24371.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes au chèvre",
+      "rating": 4.6,
+      "reviews": 38,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-gratine_37073.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes gratiné",
+      "rating": 4.5,
+      "reviews": 26,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes_200987.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes",
+      "rating": 4.3,
+      "reviews": 23,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-confits-a-l-olive_30237.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes confits à l'olive",
+      "rating": 4.6,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-a-la-mozzarelle-et-au-pesto_81378.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes à la mozzarelle et au pesto",
+      "rating": 5,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-basque_528177.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes basque",
+      "rating": 5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-au-parmesan_29864.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes au parmesan",
+      "rating": 4.2,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-aux-legumes_335792.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian aux Légumes",
+      "rating": 4.4,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-a-la-menthe_28719.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes à la menthe",
+      "rating": 4.4,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-aux-legumes_17667.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian aux légumes",
+      "rating": 4.1,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tartines-tian-estivales-aux-legumes-et-au-chevre_72654.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tartines-tian estivales aux légumes et au chèvre",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-a-la-mozzarella_60829.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes à la mozzarella",
+      "rating": 3.7,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-de-legumes-mozzarella_92123.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian de légumes Mozzarella",
+      "rating": 2,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tian-aux-legumes-et-jambon_164462.aspx": {
+      "source": "marmiton",
+      "dish": "tian de légumes",
+      "title": "Tian aux légumes et jambon",
+      "rating": 2,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-tomates-aubergines-et-chevre_60406.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta tomates, aubergines et chèvre",
+      "rating": 4.9,
+      "reviews": 30,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-a-la-mozzarella_30276.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta à la mozzarella",
+      "rating": 4.7,
+      "reviews": 33,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta_25582.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta tomates, ail et basilic",
+      "rating": 4.9,
+      "reviews": 23,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta_18365.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta",
+      "rating": 4.6,
+      "reviews": 36,
+      "status": "excluded",
+      "reason": "starter",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57dhtn15whyq13wytbw2chdfd8evx1b",
+          "at": "2026-09-21T15:53:30.345Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-mozzarella-et-jambon-de-pays_91032.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta mozzarella et jambon de pays",
+      "rating": 4.6,
+      "reviews": 36,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-italie_11272.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta (Italie)",
+      "rating": 4.3,
+      "reviews": 53,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-aux-aubergines_47116.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta aux aubergines",
+      "rating": 4.4,
+      "reviews": 17,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-tomate-chevre-et-jambon-cru_336459.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta tomate, chèvre et jambon cru",
+      "rating": 5,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-de-boeuf-comte-pesto_224950.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta de viande hachée pesto et comté",
+      "rating": 5,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_mini-bruschetta_222521.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Mini bruschetta (tomate, chèvre, champignon)",
+      "rating": 5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-sur-croutons_24524.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta sur croûtons",
+      "rating": 4.5,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-aux-sardines_28101.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta aux sardines",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-rapide_533878.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta rapide",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-veggie-tomates-mozza_528243.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta veggie tomates-mozza",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bruschetta-ricotta-et-confit-de-poivrons_345749.aspx": {
+      "source": "marmiton",
+      "dish": "bruschetta",
+      "title": "Bruschetta ricotta et confit de poivrons",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_rigatoni-cacio-e-pepe_49127.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti cacio e pepe",
+      "rating": 4.8,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-cacio-e-pepe_533895.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti cacio e pepe facile",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-grossi-cacio-e-pepe_536578.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti Grossi cacio e pepe",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_courge-spaghetti-a-la-carbonara_64056.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Courge spaghetti à la crème et aux lardons",
+      "rating": 4.8,
+      "reviews": 123,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-aux-courgettes_10951.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti aux courgettes",
+      "rating": 4.7,
+      "reviews": 87,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-aux-fruits-de-mer-express_80047.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti aux fruits de mer express",
+      "rating": 4.8,
+      "reviews": 58,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghettis-aux-palourdes_17822.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghettis aux palourdes",
+      "rating": 4.8,
+      "reviews": 44,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghettis-aux-crevettes-et-curry_27335.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghettis aux crevettes et curry",
+      "rating": 4.8,
+      "reviews": 36,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-a-l-ail-et-aux-courgettes_17444.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti à l'ail et aux courgettes",
+      "rating": 4.6,
+      "reviews": 53,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-aux-gambas-flambees-au-pastis_19544.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti aux gambas flambées au pastis",
+      "rating": 4.7,
+      "reviews": 41,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-a-la-carbonara_12249.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti à la Carbonara",
+      "rating": 4.4,
+      "reviews": 92,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gratin-de-courgette-spaghetti_14980.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Gratin de courgette 'spaghetti'",
+      "rating": 4.7,
+      "reviews": 38,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-carbonara-au-jambon_13676.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti carbonara au jambon blanc à la française",
+      "rating": 4.6,
+      "reviews": 40,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-wok-carbonara_52203.aspx": {
+      "source": "marmiton",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti à la crème et aux lardons au wok",
+      "rating": 4.7,
+      "reviews": 31,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/spaghetti-aglio-e-olio": {
+      "source": "bbcgoodfood",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti aglio e olio",
+      "rating": 4.15,
+      "reviews": 36,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/spaghetti-aglio-e-olio-with-crispy-bacon": {
+      "source": "bbcgoodfood",
+      "dish": "spaghetti aglio e olio",
+      "title": "Spaghetti aglio e olio with crispy bacon",
+      "rating": 4,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-a-la-bolognaise_18215.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes à la bolognaise",
+      "rating": 4.8,
+      "reviews": 1429,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57fs77kv431sp6419rcsm1b018ev3zm",
+          "at": "2026-09-21T15:53:53.842Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-a-la-bolognaise-tres-facile_70480.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes à la bolognaise très facile",
+      "rating": 4.7,
+      "reviews": 463,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagne-bolognaise_20449.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes bolognaise",
+      "rating": 4.9,
+      "reviews": 55,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-a-la-bolognaise-express_11239.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes à la bolognaise express",
+      "rating": 4.5,
+      "reviews": 173,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagne-bolognaise-mascarpone_27486.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagne bolognaise (Mascarpone)",
+      "rating": 4.7,
+      "reviews": 33,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_mes-lasagnes-bolognaises-sans-bechamel_169293.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Mes lasagnes bolognaises (sans béchamel)",
+      "rating": 4.5,
+      "reviews": 13,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-a-la-bolognaise-au-micro-ondes_43399.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes à la bolognaise au micro-ondes",
+      "rating": 4.8,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-jambon-bolognaise_40444.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes jambon bolognaise",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagne-a-la-bolognaise-au-monsieur-cuisine_383337.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagne à la bolognaise au Monsieur Cuisine",
+      "rating": 4.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagne-a-la-bolognaise-au-cookeo_383334.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagne à la bolognaise au Cookeo",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ratatouille-bolognaise-en-lasagne_229348.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Ratatouille bolognaise en lasagne",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-bolognaise-courgette_197567.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes bolognaise courgette",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagne-a-la-bolognaise_72813.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagne à la bolognaise",
+      "rating": 4,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-a-la-bolognaise-ameliorees_15729.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagnes à la bolognaise améliorées",
+      "rating": 3.6,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagne-a-la-bolognaise-au-thermomix_383339.aspx": {
+      "source": "marmiton",
+      "dish": "lasagnes bolognaise",
+      "title": "Lasagne à la bolognaise au Thermomix",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons-recette-italienne-du-risotto-alla-fungaiola_29870.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons (recette italienne du risotto alla fungaiola)",
+      "rating": 4.7,
+      "reviews": 271,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57bj5nxnz6g3j1d9rz6x6tac58etthm",
+          "at": "2026-09-21T15:54:27.975Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons_312215.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons : la vraie recette",
+      "rating": 4.9,
+      "reviews": 120,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-poulet-champignon-succes-garanti_230811.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto dinde champignon",
+      "rating": 4.8,
+      "reviews": 83,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-trois-champignons_217856.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux trois champignons",
+      "rating": 5,
+      "reviews": 43,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_riz-au-poulet-et-aux-champignons-facon-risotto_94710.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Riz au poulet et aux champignons façon risotto.",
+      "rating": 4.7,
+      "reviews": 40,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons_335207.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons de Nadia",
+      "rating": 4.6,
+      "reviews": 48,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-champignons-lardons_66420.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto champignons lardons",
+      "rating": 4.5,
+      "reviews": 28,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-facile-aux-champignons-de-paris_49128.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto facile aux champignons de Paris",
+      "rating": 4.6,
+      "reviews": 21,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-asperges-et-champignons-de-marion_41975.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto asperges et champignons de Marion",
+      "rating": 4.6,
+      "reviews": 19,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_epeautre-aux-champignons-facon-risotto_166523.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Epeautre aux champignons façon risotto",
+      "rating": 4.9,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons-et-topinambours_55467.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons et topinambours",
+      "rating": 4.7,
+      "reviews": 13,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons-facile_22509.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons facile",
+      "rating": 4.5,
+      "reviews": 14,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons-frais_91389.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons frais",
+      "rating": 5,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-poulet-parmesan-champignons_372921.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto, poulet parmesan champignons",
+      "rating": 4.6,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_risotto-aux-champignons-et-porc_24377.aspx": {
+      "source": "marmiton",
+      "dish": "risotto aux champignons",
+      "title": "Risotto aux champignons et porc",
+      "rating": 4.7,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/vegan-mushroom-risotto": {
+      "source": "bbcgoodfood",
+      "dish": "vegan mushroom risotto",
+      "title": "Vegan mushroom risotto",
+      "rating": 5,
+      "reviews": 12,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m573h5afhjd567cqw7ff0kd6zh8et4xq",
+          "at": "2026-09-21T15:55:03.671Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_salade-caprese_392685.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade Caprese",
+      "rating": 4.9,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-caprese-a-la-burrata_528372.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade caprese à la burrata",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-poivrons-aux-capres_50569.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de poivrons aux câpres",
+      "rating": 3,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-mozzarella-anchois-capres_307968.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de mozzarella, anchois, câpres",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-pates-au-thon-et-capres-sauce-pistou_40233.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de pâtes au thon et câpres, sauce pistou",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-pommes-de-terre-au-capres-et-anchois_65768.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de pommes de terre au câpres et anchois",
+      "rating": 4,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tartare-de-saumon-et-sa-salade-de-lentilles-17eme-rencontre_35247.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Tartare de saumon et sa salade de lentilles (17ème rencontre)",
+      "rating": 4.9,
+      "reviews": 82,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-cesar_32442.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade César",
+      "rating": 4.7,
+      "reviews": 115,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-riz-a-l-indienne_19368.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de riz à l'indienne",
+      "rating": 4.9,
+      "reviews": 27,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-pommes-de-terre-gouteuse_41382.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de pommes de terre goûteuse",
+      "rating": 4.8,
+      "reviews": 15,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-poulpes_12428.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de poulpes",
+      "rating": 4.6,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-toscane_32373.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade toscane",
+      "rating": 4.5,
+      "reviews": 14,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-sicilienne_65318.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade sicilienne",
+      "rating": 5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-celeri-branche-a-l-anchois_70551.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de céleri branche à l'anchois",
+      "rating": 4.6,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-pates-pimentee_45423.aspx": {
+      "source": "marmiton",
+      "dish": "salade caprese",
+      "title": "Salade de pâtes pimentée",
+      "rating": 4.8,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/caprese-salad": {
+      "source": "bbcgoodfood",
+      "dish": "salade caprese",
+      "title": "Caprese salad (tomato and mozzarella salad)",
+      "rating": 4.25,
+      "reviews": 20,
+      "status": "excluded",
+      "reason": "starter salad, opens a meal",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57at6j298gpgjrye9xta2he758etx11",
+          "at": "2026-09-21T15:55:19.041Z"
+        }
+      ]
+    },
+    "https://www.bbcgoodfood.com/recipes/caprese-salad-quinoa": {
+      "source": "bbcgoodfood",
+      "dish": "salade caprese",
+      "title": "Caprese salad with quinoa",
+      "rating": 2.5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-recette-originale_12023.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu (recette originale)",
+      "rating": 4.8,
+      "reviews": 2813,
+      "status": "excluded",
+      "reason": "dessert",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m5745zapk6mz1ks09v49dtwctn8evpmx",
+          "at": "2026-09-21T15:55:36.824Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-aux-speculoos_36386.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu aux speculoos",
+      "rating": 4.8,
+      "reviews": 653,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-aux-framboises_28919.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu aux framboises : la recette inratable",
+      "rating": 4.8,
+      "reviews": 395,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-fraises-chocolat-blanc-nestle-dessert_538716.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu fraises chocolat Blanc Nestlé Dessert®",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-italie_16201.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu (Italie)",
+      "rating": 4.8,
+      "reviews": 239,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-au-cafe_82170.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu au café",
+      "rating": 4.9,
+      "reviews": 167,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-aux-fruits-rouges_13150.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu aux fruits rouges",
+      "rating": 4.7,
+      "reviews": 299,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu_532116.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu aux pépites de chocolat Nestlé Dessert®",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu_17078.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu",
+      "rating": 4.8,
+      "reviews": 182,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-a-l-ananas_23019.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu à l'ananas",
+      "rating": 4.7,
+      "reviews": 207,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-fraises-et-speculoos_46774.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu fraises et speculoos",
+      "rating": 4.7,
+      "reviews": 171,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-aux-fraises_14039.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu aux fraises",
+      "rating": 4.5,
+      "reviews": 568,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-au-citron_83559.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu au citron",
+      "rating": 4.9,
+      "reviews": 80,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-nutella-speculoos_320360.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu nutella spéculoos",
+      "rating": 4.7,
+      "reviews": 119,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-framboises-speculoos_89838.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu framboises spéculoos",
+      "rating": 5,
+      "reviews": 55,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tiramisu-exotique_26143.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Tiramisu exotique",
+      "rating": 4.8,
+      "reviews": 73,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_glace-au-tiramisu-italie_18046.aspx": {
+      "source": "marmiton",
+      "dish": "tiramisu",
+      "title": "Glace au tiramisu (Italie)",
+      "rating": 4.7,
+      "reviews": 89,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-fruits-de-mer-chorizo-et-poulet-de-patou_50730.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla fruits de mer, chorizo et poulet de Patou",
+      "rating": 4.8,
+      "reviews": 155,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m571y5c1vwevhghr23necm5cz98etsf1",
+          "at": "2026-09-21T15:56:06.092Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_paella-peu-couteuse-et-tres-bonne_35846.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla peu coûteuse et très bonne",
+      "rating": 4.6,
+      "reviews": 101,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-rapide_17477.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella rapide",
+      "rating": 4.5,
+      "reviews": 110,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-vegetarienne_47534.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla végétarienne",
+      "rating": 4.6,
+      "reviews": 40,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-veritable-recette-de-valencia_80459.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla veritable recette de Valencia",
+      "rating": 4.8,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-aux-pilons-de-poulets-encornets-et-gambas_218351.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella aux pilons de poulets, encornets et gambas",
+      "rating": 4.8,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella_25489.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella",
+      "rating": 4.5,
+      "reviews": 24,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-au-poulet-et-aux-crustaces_22511.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla au poulet et aux crustacés",
+      "rating": 4.6,
+      "reviews": 19,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-traditionnelle-au-feu-de-bois_40127.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla traditionnelle au feu de bois",
+      "rating": 4.9,
+      "reviews": 13,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-de-marisco-paella-de-fruits-de-mer_28932.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella de marisco (paella de fruits de mer)",
+      "rating": 4.5,
+      "reviews": 22,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-au-poulet_54923.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla au poulet",
+      "rating": 4.7,
+      "reviews": 14,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-pour-les-nuls-simple-et-delicieuse_305464.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella pour les nuls (simple et délicieuse)",
+      "rating": 4.5,
+      "reviews": 17,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-campagnarde_20262.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella campagnarde",
+      "rating": 4.5,
+      "reviews": 17,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-de-fruits-de-mer-espagnole_50770.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paëlla de fruits de mer espagnole",
+      "rating": 4.7,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paella-d-une-vieille-grand-mere-espagnole_328718.aspx": {
+      "source": "marmiton",
+      "dish": "paella",
+      "title": "Paella d'une vieille grand mère espagnole...",
+      "rating": 5,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_omelette-espagnole-tortilla-autentica_66818.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Omelette Espagnole (Tortilla auténtica)",
+      "rating": 4.6,
+      "reviews": 75,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m579s28646xvaganssy2t2svvh8et5w0",
+          "at": "2026-09-21T15:56:22.758Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-espagnole_80059.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "TORTILLA ESPAGNOLE",
+      "rating": 4.5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_la-tortilla-espagnole-de-lulu_51431.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "La tortilla espagnole de Lulu",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-espagnole_168662.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Tortilla espagnole",
+      "rating": 3.9,
+      "reviews": 15,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-espagne_11274.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Tortilla (Espagne)",
+      "rating": 4.3,
+      "reviews": 131,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-facile-espagne_16245.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Tortilla facile (Espagne)",
+      "rating": 4.4,
+      "reviews": 25,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-rapide-espagne_11465.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Tortilla rapide (Espagne)",
+      "rating": 3.6,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-espagne-alsace-ixart_81278.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Tortilla Espagne Alsace Ixart",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tortilla-de-patata-espana-espagne_17322.aspx": {
+      "source": "marmiton",
+      "dish": "tortilla espagnole",
+      "title": "Tortilla de patata (España - Espagne)",
+      "rating": 3.4,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-express-espagne_10989.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho express ( Espagne )",
+      "rating": 4.7,
+      "reviews": 157,
+      "status": "excluded",
+      "reason": "starter soup, opens a meal",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m570j3d7mwj9n7gvp8ncqjqwf18evv1c",
+          "at": "2026-09-21T15:56:48.034Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-de-fraises_17341.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho de fraises",
+      "rating": 4.8,
+      "reviews": 59,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho_92502.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho",
+      "rating": 4.7,
+      "reviews": 60,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-andaluz-de-ma-maman_24402.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho andaluz (de ma maman !)",
+      "rating": 4.5,
+      "reviews": 93,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-de-courgettes-au-carre-frais_10893.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho de courgettes au Carré Frais",
+      "rating": 4.7,
+      "reviews": 42,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-andalousie_16193.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho (Andalousie)",
+      "rating": 4.6,
+      "reviews": 51,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-d-ananas_64075.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho d'ananas",
+      "rating": 4.7,
+      "reviews": 36,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-au-chou-fleur_49498.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho au chou-fleur",
+      "rating": 5,
+      "reviews": 18,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-express-au-fromage-de-chevre_88960.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho express au fromage de chèvre",
+      "rating": 4.7,
+      "reviews": 28,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-de-legumes_24345.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho de légumes",
+      "rating": 4.7,
+      "reviews": 25,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-de-fruits-d-ete_23523.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho de fruits d'été",
+      "rating": 4.9,
+      "reviews": 10,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-express_13921.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho express",
+      "rating": 4.4,
+      "reviews": 20,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-au-gingembre-soupe-froide-de-poivrons-rouges-epicee_94824.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho au gingembre (soupe froide de poivrons rouges épicée)",
+      "rating": 4.9,
+      "reviews": 8,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-concombre-menthe_218870.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho concombre menthe",
+      "rating": 4.3,
+      "reviews": 26,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-de-betterave-rouge_31643.aspx": {
+      "source": "marmiton",
+      "dish": "gaspacho",
+      "title": "Gaspacho de betterave rouge",
+      "rating": 4.4,
+      "reviews": 18,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gratin-au-manchego_85319.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Gratin au manchego",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gaspacho-manchego-de-ma-meme_62883.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Gaspacho Manchego de ma mémé",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-de-ble-au-manchego-et-oranges_36164.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Salade de blé au manchego et oranges",
+      "rating": 4.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_molletes-mexicains-originaux_51852.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Molletes Mexicains originaux",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_patatas-bravas-et-croquetas-devant-don-quichotte_535298.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Patatas bravas et croquetas devant le ballet Don Quichotte",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-repas-aux-couleurs-et-saveurs-d-espagne_214914.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Salade-repas aux couleurs et saveurs d'Espagne",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_roti-de-boeuf-au-four-sauce-aux-champignons-et-pesto-rouge_62086.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Rôti de boeuf au four, sauce aux champignons et pesto rouge",
+      "rating": 4.9,
+      "reviews": 58,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pesto-ou-pistou_80119.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Pesto (ou Pistou)",
+      "rating": 4.7,
+      "reviews": 75,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tatin-de-courgettes-et-chevre-au-pesto_29383.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Tatin de courgettes et chèvre au pesto",
+      "rating": 4.8,
+      "reviews": 54,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pesto-genois_11378.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Pesto Génois",
+      "rating": 4.6,
+      "reviews": 70,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_aubergines-au-pesto_27177.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Aubergines au pesto",
+      "rating": 4.5,
+      "reviews": 94,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_paves-de-saumon-au-pistou_33584.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Pavés de saumon au pistou",
+      "rating": 4.7,
+      "reviews": 51,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-courgettes-pesto-et-chevre_28553.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Tarte courgettes, pesto et chèvre",
+      "rating": 4.6,
+      "reviews": 54,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-minestrone-au-pistou_29861.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Soupe Minestrone au pistou",
+      "rating": 4.8,
+      "reviews": 31,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-de-tomates-au-pistou_11397.aspx": {
+      "source": "marmiton",
+      "dish": "pisto manchego",
+      "title": "Soupe de tomates au pistou",
+      "rating": 4.8,
+      "reviews": 31,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros_24177.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros",
+      "rating": 4.2,
+      "reviews": 213,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-comme-en-espagne_11646.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros comme en Espagne",
+      "rating": 4.3,
+      "reviews": 26,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-au-airfryer_536970.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros au Airfryer",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_halka-tatlisi-churros-turc_47708.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Halka tatlisi (churros turc)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-espagne_11698.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros (Espagne)",
+      "rating": 4,
+      "reviews": 56,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-de-pomme-de-terre-mozzarella-et-basilic_347850.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros de pomme de terre mozzarella et basilic",
+      "rating": 4,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-de-pommes-de-terre-au-four_345031.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros de pommes de terre au four",
+      "rating": 2,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-aux-oreos_334299.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros aux oreos",
+      "rating": 1,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-airfryer_538663.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros Airfryer",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-au-fromage-a-raclette-et-pommes-de-terre_535195.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros au fromage à raclette et pommes de terre",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-en-forme-de-coeur_535131.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros en forme de coeur",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-con-chocolate_529097.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros con chocolate",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_churros-a-la-sauce-tomate_308557.aspx": {
+      "source": "marmiton",
+      "dish": "churros",
+      "title": "Churros à la sauce tomate",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/afternoon-tea-churros": {
+      "source": "bbcgoodfood",
+      "dish": "churros",
+      "title": "Afternoon tea churros",
+      "rating": 3.85,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/churros-ice-cream-sandwich": {
+      "source": "bbcgoodfood",
+      "dish": "churros",
+      "title": "Churros ice cream sandwich",
+      "rating": 3.65,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/churros-chocolate-dipping-sauce": {
+      "source": "bbcgoodfood",
+      "dish": "churros",
+      "title": "Churros",
+      "rating": 3.75,
+      "reviews": 80,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/chocolate-churros-with-chocolate-salted-caramel-sauce": {
+      "source": "bbcgoodfood",
+      "dish": "churros",
+      "title": "Chocolate churros with chocolate & salted caramel sauce",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_empanada-gallega-facile_25258.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Empanada gallega facile",
+      "rating": 4.4,
+      "reviews": 22,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-au-fromage-blanc-et-au-pulco_31064.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Tarte au fromage blanc et au pulco",
+      "rating": 4.9,
+      "reviews": 18,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulpe-a-la-gallego-poulpe-de-galice_70051.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Poulpe à la gallego (poulpe de galice)",
+      "rating": 4.6,
+      "reviews": 15,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gateau-au-yaourt-ananas-et-pulpe_347700.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Gâteau au yaourt ananas et pulpe",
+      "rating": 5,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-pulao-par-laurent-mariotte_534535.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Poulet pulao par Laurent Mariotte",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_burger-provencal-maison-a-la-pulpe-d-olive_170724.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Burger Provençal Maison à la Pulpe d'Olive",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_saute-de-veau-au-chorizo_17027.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Sauté de veau au chorizo",
+      "rating": 4.8,
+      "reviews": 1005,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_osso-bucco-milanaise_26684.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Osso bucco milanaise",
+      "rating": 4.9,
+      "reviews": 201,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-massala_35549.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Poulet Massala",
+      "rating": 4.9,
+      "reviews": 86,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_escalope-en-papillote_20682.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Escalope en papillote",
+      "rating": 4.6,
+      "reviews": 175,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_saute-de-porc-au-curry-et-au-lait-de-coco_58446.aspx": {
+      "source": "marmiton",
+      "dish": "pulpo a la gallega",
+      "title": "Sauté de porc au curry et au lait de coco",
+      "rating": 4.7,
+      "reviews": 112,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bacalhau-a-bras-morue-a-la-portugaise_37900.aspx": {
+      "source": "marmiton",
+      "dish": "bacalhau à brás",
+      "title": "Bacalhau a bras (morue à la portugaise)",
+      "rating": 4.9,
+      "reviews": 41,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57fqca4q4bgt8fx01exhq15wn8etchn",
+          "at": "2026-09-21T15:57:12.982Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_bacalhau-a-bras-morue-a-bras_335457.aspx": {
+      "source": "marmiton",
+      "dish": "bacalhau à brás",
+      "title": "Bacalhau à Brás (recette portugaise)",
+      "rating": 4.3,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_bacalhau-a-bras-morue-a-bras_335372.aspx": {
+      "source": "marmiton",
+      "dish": "bacalhau à brás",
+      "title": "Bacalhau à Brás (Morue à Brás)",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_morue-a-braz-bacalhau-a-braz_175543.aspx": {
+      "source": "marmiton",
+      "dish": "bacalhau à brás",
+      "title": "Morue a \"BRAZ\" ( BACALHAU A BRAZ)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_caldo-verde_19488.aspx": {
+      "source": "marmiton",
+      "dish": "caldo verde",
+      "title": "Caldo verde",
+      "rating": 4.4,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-au-piri-piri-portugal_11029.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Poulet au piri-piri (Portugal)",
+      "rating": 4.9,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ailes-de-poulet-pili-pili_59587.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Ailes de poulet pili pili",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-a-la-moambe_11099.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Poulet à la moambé",
+      "rating": 4.4,
+      "reviews": 30,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_cuisses-de-poulet-maxi-prix-mini_72026.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Cuisses de poulet maxi prix mini",
+      "rating": 4.8,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-fajitas_18401.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "POULET FAJITAS",
+      "rating": 4.7,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_spaghetti-primavera-au-poulet_15627.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Spaghetti 'primavera' au poulet",
+      "rating": 4.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_cake-aux-legumes-de-printemps-poulet-roti-et-fines-herbes_70732.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Cake aux légumes de printemps, poulet rôti et fines herbes",
+      "rating": 4.2,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_rouleaux-de-printemps-au-poulet-et-au-curry_48747.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Rouleaux de printemps au poulet et au curry",
+      "rating": 4.2,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-printanier-aux-carottes_30598.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Poulet printanier aux carottes",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-basque_85394.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Poulet Basque",
+      "rating": 4,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-courgette-a-la-sauce-toyon_340063.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Poulet courgette à la sauce toyon",
+      "rating": 3,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-du-printemps_224774.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Quiche du printemps (poulet oignons tomates)",
+      "rating": 2.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-thai-poulet-aux-cacahuetes_338084.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Salade Thaï, poulet aux cacahuètes",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-douceur-printaniere_322514.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Poulet douceur printanière",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_daube-de-poulet-au-vin-rouge_56438.aspx": {
+      "source": "marmiton",
+      "dish": "poulet piri-piri",
+      "title": "Daube de poulet au vin rouge",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/piri-piri-chicken": {
+      "source": "bbcgoodfood",
+      "dish": "poulet piri-piri",
+      "title": "Piri-piri chicken",
+      "rating": 4.5,
+      "reviews": 12,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/piri-piri-chicken-pittas": {
+      "source": "bbcgoodfood",
+      "dish": "poulet piri-piri",
+      "title": "Piri-piri chicken pittas",
+      "rating": 4.55,
+      "reviews": 9,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/piri-piri-chicken-spicy-rice": {
+      "source": "bbcgoodfood",
+      "dish": "poulet piri-piri",
+      "title": "Piri-piri chicken with spicy rice",
+      "rating": 3.95,
+      "reviews": 23,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/spatchcock-piri-piri-chicken": {
+      "source": "bbcgoodfood",
+      "dish": "poulet piri-piri",
+      "title": "Spatchcock piri-piri chicken",
+      "rating": 4.8,
+      "reviews": 34,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57f7t9ckt1m2pjzqebxcr77818evzjn",
+          "at": "2026-09-21T15:57:39.832Z"
+        }
+      ]
+    },
+    "https://www.bbcgoodfood.com/recipes/creamy-piri-piri-chicken-pasta": {
+      "source": "bbcgoodfood",
+      "dish": "poulet piri-piri",
+      "title": "Creamy piri-piri chicken pasta",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-portugal_12614.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastéis de nata (Portugal)",
+      "rating": 4.3,
+      "reviews": 68,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-au-cookeo_382496.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastéis de nata au Cookeo",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-recette-a-la-creme_70666.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pasteis de Nata (recette à la crème)",
+      "rating": 4.1,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-petits-flans-portugais_16819.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pasteis de nata (petits flans portugais)",
+      "rating": 4,
+      "reviews": 8,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-portugal_16537.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pasteis de nata (Portugal)",
+      "rating": 3.4,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-au-monsieur-cuisine_383806.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastéis de nata au Monsieur Cuisine",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-au-cooking-chef_383805.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastéis de nata au Cooking Chef",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-au-companion_383804.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastéis de nata au Companion",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-au-thermomix_382606.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastéis de nata au Thermomix",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pasteis-de-nata-ou-petits-flans-de-beatrice_342632.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pasteis de nata ou petits flans de Béatrice",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pastei-de-nata-portugal_30129.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pasteï de nata (Portugal)",
+      "rating": 4.7,
+      "reviews": 79,
+      "status": "excluded",
+      "reason": "dessert",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m578zy2ft0f0cbyfejfs53mv1x8evmfj",
+          "at": "2026-09-21T15:58:09.847Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_pastis-pyreneen_65572.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Pastis pyrénéen",
+      "rating": 5,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_emince-de-dinde-au-curry-et-pastis_59157.aspx": {
+      "source": "marmiton",
+      "dish": "pastéis de nata",
+      "title": "Emincé de dinde au curry et pastis",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_riz-espagnol-au-four-arroz-al-horno_26760.aspx": {
+      "source": "marmiton",
+      "dish": "arroz de tomate",
+      "title": "Riz espagnol au four (arroz al horno)",
+      "rating": 4.8,
+      "reviews": 29,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_arroz-negro_65155.aspx": {
+      "source": "marmiton",
+      "dish": "arroz de tomate",
+      "title": "Arroz negro",
+      "rating": 4.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_arroz-negro-ile-des-baleares_53089.aspx": {
+      "source": "marmiton",
+      "dish": "arroz de tomate",
+      "title": "Arroz negro (Ile des Baléares)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_le-riz-du-pauvre-arroz-caldos_64973.aspx": {
+      "source": "marmiton",
+      "dish": "arroz de tomate",
+      "title": "Le riz du pauvre (Arroz Caldos)",
+      "rating": 4.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_arroz-a-la-cubana-riz_62194.aspx": {
+      "source": "marmiton",
+      "dish": "arroz de tomate",
+      "title": "Arroz a la cubana ( riz)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_arroz-caldoso-riz-juteux-type-paella_304629.aspx": {
+      "source": "marmiton",
+      "dish": "arroz de tomate",
+      "title": "Arroz caldoso : riz juteux type Paella",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/tomato-rice-soup": {
+      "source": "bbcgoodfood",
+      "dish": "arroz de tomate",
+      "title": "Tomato & rice soup",
+      "rating": 3.85,
+      "reviews": 7,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/spiced-tomato-rice": {
+      "source": "bbcgoodfood",
+      "dish": "arroz de tomate",
+      "title": "Spiced tomato rice",
+      "rating": 3.5,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/mexican-tomato-rice": {
+      "source": "bbcgoodfood",
+      "dish": "arroz de tomate",
+      "title": "Mexican rice",
+      "rating": 3.9,
+      "reviews": 71,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/tomato-burrito-rice": {
+      "source": "bbcgoodfood",
+      "dish": "arroz de tomate",
+      "title": "Mexican spiced tomato rice",
+      "rating": 3.55,
+      "reviews": 14,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/tomato-chorizo-rice": {
+      "source": "bbcgoodfood",
+      "dish": "arroz de tomate",
+      "title": "Tomato & chorizo rice",
+      "rating": 4.6,
+      "reviews": 43,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m574qb2db7y88ffc7jtv2bty7s8evqyc",
+          "at": "2026-09-21T15:58:33.742Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_regal-d-epinards-aux-pois-chiches_38727.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Régal d'épinards aux pois chiches",
+      "rating": 3.8,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pois-chiches-aux-epinards-et-a-la-tomate_84664.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Pois chiches aux épinards et à la tomate",
+      "rating": 4.2,
+      "reviews": 13,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-chaude-de-pois-chiche_330835.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Salade chaude de pois chiches aux épinards et à la tomate",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-de-courges-pois-chiches-par-laurent-mariotte_532055.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Soupe de courges & pois chiches par Laurent Mariotte",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_soupe-de-legumes-aux-2-pois-chiches-et-casses_313911.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Soupe de légumes aux 2 pois, chiches et cassés",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pakoras-beignets-de-legumes-indiens_14931.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Pakoras (beignets de légumes indiens)",
+      "rating": 4.4,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_plato-de-cuchara-soupe-espagnole_254584.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Plato de cuchara : soupe espagnole",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_quiche-epaisse-vegetarienne-de-clarisse_534083.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Quiche épaisse végétarienne de Clarisse",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_hot-dog-revisite-a-la-libanaise_326713.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Hot Dog revisité à la méditerranéenne (kefta, houmous et taboulé)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_potage-espagnol_230263.aspx": {
+      "source": "marmiton",
+      "dish": "épinards aux pois chiches",
+      "title": "Potage (espagnol)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/spinach-chickpea-dahl": {
+      "source": "bbcgoodfood",
+      "dish": "épinards aux pois chiches",
+      "title": "Spinach & chickpea dhal",
+      "rating": 4.45,
+      "reviews": 7,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/spinach-chickpea-curry": {
+      "source": "bbcgoodfood",
+      "dish": "épinards aux pois chiches",
+      "title": "Spinach & chickpea curry",
+      "rating": 4.5,
+      "reviews": 85,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/chickpea-spinach-chapatis": {
+      "source": "bbcgoodfood",
+      "dish": "épinards aux pois chiches",
+      "title": "Chickpea & spinach chapatis",
+      "rating": 3.8,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/chickpeas-tomatoes-spinach": {
+      "source": "bbcgoodfood",
+      "dish": "épinards aux pois chiches",
+      "title": "Chickpea stew with tomatoes & spinach",
+      "rating": 4.2,
+      "reviews": 131,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m57aghhyd1bzmq9271z2c6m8kn8evaw8",
+          "at": "2026-09-21T15:59:03.440Z"
+        }
+      ]
+    },
+    "https://www.bbcgoodfood.com/recipes/hot-chickpeas-spinach-bacon": {
+      "source": "bbcgoodfood",
+      "dish": "épinards aux pois chiches",
+      "title": "Hot chickpeas with spinach & bacon",
+      "rating": 4.35,
+      "reviews": 12,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_la-vraie-moussaka-grecque_72593.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "La Vraie Moussaka Grecque",
+      "rating": 4.9,
+      "reviews": 965,
+      "status": "imported",
+      "imports": [
+        {
+          "deployment": "dev:successful-goldfish-447",
+          "recipeId": "m570gvs9fpereewy3hv5ja4z018evy0y",
+          "at": "2026-09-21T15:59:28.239Z"
+        }
+      ]
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-version-celine-5eme-rencontre_29275.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka version Céline (5ème rencontre)",
+      "rating": 4.7,
+      "reviews": 203,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_lasagnes-de-moussaka_49464.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Lasagnes de moussaka",
+      "rating": 4.7,
+      "reviews": 38,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-d-aubergine-a-l-agneau_30460.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka d'aubergine à l'agneau",
+      "rating": 4.9,
+      "reviews": 26,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-simple-et-allegee_20362.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka simple et allégée",
+      "rating": 4.4,
+      "reviews": 66,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-rapide_24450.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka rapide",
+      "rating": 4.5,
+      "reviews": 43,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-light_18969.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka 'light'",
+      "rating": 4.5,
+      "reviews": 42,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-aux-courgettes_35790.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka aux courgettes",
+      "rating": 4.4,
+      "reviews": 62,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka_26078.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka",
+      "rating": 4.4,
+      "reviews": 52,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_ma-moussaka-rapide_70530.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Ma moussaka rapide et pas trop chère",
+      "rating": 4.3,
+      "reviews": 56,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-a-la-grecque_20429.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka à la grecque",
+      "rating": 4.4,
+      "reviews": 33,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-de-ma-grand-mere-armenienne_20283.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka de ma grand mère (arménienne)",
+      "rating": 4.5,
+      "reviews": 24,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-version-caro_223851.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka version Caro (aux pommes de terre)",
+      "rating": 4.9,
+      "reviews": 10,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-facile_73669.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka facile",
+      "rating": 4.5,
+      "reviews": 17,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_moussaka-aux-aubergines-et-pois-chiches_35885.aspx": {
+      "dish": "moussaka",
+      "source": "marmiton",
+      "title": "Moussaka aux aubergines et pois chiches",
+      "rating": 4.5,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/vegan-moussaka": {
+      "dish": "vegan moussaka",
+      "source": "bbcgoodfood",
+      "title": "Vegan moussaka",
+      "rating": 4.1,
+      "reviews": 10,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.bbcgoodfood.com/recipes/easy-vegan-moussaka": {
+      "dish": "vegan moussaka",
+      "source": "bbcgoodfood",
+      "title": "Easy vegan moussaka",
+      "rating": 5,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-grece_11797.aspx": {
+      "source": "marmiton",
+      "dish": "tzatziki",
+      "title": "Tzatziki (Grèce)",
+      "rating": 4.6,
+      "reviews": 121,
+      "status": "excluded",
+      "reason": "dip",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-de-concombre-grece_12823.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki de concombre (Grèce)",
+      "rating": 4.7,
+      "reviews": 71,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-facile-grece_11813.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki facile (Grèce)",
+      "rating": 4.7,
+      "reviews": 19,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tomates-farcies-au-tzatziki-6e-rencontre_29552.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tomates farcies au tzatziki (6è rencontre)",
+      "rating": 4.7,
+      "reviews": 11,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki_17492.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki",
+      "rating": 4.4,
+      "reviews": 17,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-de-courgettes_73838.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki de courgettes",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-de-nounouille_72684.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki de nounouille",
+      "rating": 5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-de-concombre_28122.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki de concombre",
+      "rating": 4.1,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-fait-maison_343733.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki fait maison",
+      "rating": 4.2,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-maison_73083.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki maison",
+      "rating": 4.5,
+      "reviews": 2,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_biscuit-roule-aux-tomates-et-sauce-tzatziki_38748.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Biscuit Roulé aux Tomates et Sauce Tzatziki",
+      "rating": 4.3,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_sandwich-naan-a-la-viande-hachee-sauce-au-yaourt_531940.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Sandwich naan, keftas et tzatzíki",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarator-tzatziki-bulgare-aneth-et-noix_67162.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tarator : tzatziki bulgare (aneth et noix)",
+      "rating": 4,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_avocat-au-surimi-et-tzatziki_37051.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Avocat au surimi et tzatziki",
+      "rating": 3.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tzatziki-leger_27027.aspx": {
+      "dish": "tzatziki",
+      "source": "marmiton",
+      "title": "Tzatziki léger",
+      "rating": 3.3,
+      "reviews": 4,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-grecque_34399.aspx": {
+      "source": "marmiton",
+      "dish": "salade grecque",
+      "title": "Salade grecque",
+      "rating": 4.7,
+      "reviews": 63,
+      "status": "accepted",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-grecque-facon-buddha-bowl_347611.aspx": {
+      "dish": "salade grecque",
+      "source": "marmiton",
+      "title": "Salade grecque façon buddha bowl",
+      "rating": 4.7,
+      "reviews": 23,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-grecque-a-l-origan_29355.aspx": {
+      "dish": "salade grecque",
+      "source": "marmiton",
+      "title": "Salade grecque à l'origan",
+      "rating": 4.8,
+      "reviews": 14,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-grecque-tres-rapide_72972.aspx": {
+      "dish": "salade grecque",
+      "source": "marmiton",
+      "title": "Salade grecque très rapide",
+      "rating": 4.7,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_salade-grecque-en-verre-de-concombre_42162.aspx": {
+      "dish": "salade grecque",
+      "source": "marmiton",
+      "title": "Salade grecque en verre de concombre",
+      "rating": 4.2,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dorades-au-persil_11898.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dorades au persil",
+      "rating": 4.5,
+      "reviews": 37,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dorades-au-gingembre_51091.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dorades au gingembre",
+      "rating": 4.7,
+      "reviews": 21,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas-feuilles-de-vigne-farcies-au-riz_49215.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas (feuilles de vigne farçies au riz)",
+      "rating": 4.5,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dorades-a-la-bresilienne_58789.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dorades à la brésilienne",
+      "rating": 4.8,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dorades-royales-a-la-croute-au-sel_23586.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dorades royales à la croûte au sel",
+      "rating": 4.4,
+      "reviews": 5,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas-feuille-de-vigne-au-monsieur-cuisine_382741.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas (feuille de vigne) au Monsieur Cuisine",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tripes-dalmates_21416.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Tripes dalmates",
+      "rating": 4,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_filets-de-dorades-au-porto_65167.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Filets de dorades au porto",
+      "rating": 3.7,
+      "reviews": 6,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas-feuille-de-vigne-au-thermomix_382742.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas (feuille de vigne) au Thermomix",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas-feuille-de-vigne-au-cooking-chef_382740.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas (feuille de vigne) au Cooking Chef",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas-feuille-de-vigne-au-companion_382739.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas (feuille de vigne) au Companion",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas-feuille-de-vigne-au-cookeo_382738.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas (feuille de vigne) au Cookeo",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_dolmas_12917.aspx": {
+      "dish": "dolmades",
+      "source": "marmiton",
+      "title": "Dolmas",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poulet-aux-pommes-de-terre-au-citron_21504.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Poulet aux pommes de terre au citron",
+      "rating": 4.6,
+      "reviews": 12,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gratin-normand-pomme-de-terre-camembert-et-citron_313843.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Gratin Normand (pomme de terre, camembert et citron)",
+      "rating": 5,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pommes-de-terre-sautees-au-citron-a-la-chinoise_217101.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Pommes de terre sautées au citron à la chinoise",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_puree-de-pomme-de-terre-au-citron_229746.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Purée de pomme de terre au citron",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_filets-de-soles-cremes-au-citron-sur-lit-de-pommes-de-terre-et-langoustines-zestees-de-citron-vert_30824.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Filets de soles crêmés au citron sur lit de pommes de terre et langoustines zestées de citron vert",
+      "rating": 4.3,
+      "reviews": 16,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_poelee-de-pomme-de-terres-au-saumon-fume-et-au-citron_58951.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Poêlée de pomme de terres au saumon fumé et au citron",
+      "rating": 4,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gratin-de-pommes-de-terre-a-la-tomate-et-au-citron_32975.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Gratin de pommes de terre à la tomate et au citron",
+      "rating": 2,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tarte-aux-pommes-de-terre-et-tomates-au-zeste-de-citron_305301.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Tarte aux pommes de terre et tomates au zeste de citron",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tajine-de-poulet-aux-olives-et-pommes-de-terre_30131.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Tajine de poulet aux olives et pommes de terre",
+      "rating": 4.7,
+      "reviews": 95,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_la-soupe-de-poireaux-au-citron-et-curry-doux_69225.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "La soupe de poireaux au citron et curry doux",
+      "rating": 4.8,
+      "reviews": 59,
+      "status": "skipped",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_pommes-de-terre-nouvelles-roties-oignons-et-burrata_392444.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Salade de pommes de terre nouvelles rôties aux oignons nouveaux et burrata en chaud-froid",
+      "rating": 4.9,
+      "reviews": 22,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tajine-de-poulet-au-citron-et-aux-olives_81441.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Tajine de poulet au citron et aux olives",
+      "rating": 4.7,
+      "reviews": 25,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_papillotes-d-eglefin-sur-lit-de-pommes-de-terre_309050.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Papillotes d'églefin sur lit de pommes de terre",
+      "rating": 4.9,
+      "reviews": 17,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_tajine-de-poulet-aux-olives-et-citrons-confits_95025.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Tajine de poulet aux olives et citrons confits",
+      "rating": 4.9,
+      "reviews": 15,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_gratin-de-poisson-sur-lit-de-pommes-de-terre_34801.aspx": {
+      "dish": "pommes de terre citron",
+      "source": "marmiton",
+      "title": "Gratin de poisson sur lit de pommes de terre",
+      "rating": 5,
+      "reviews": 13,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklavas-pour-tous-et-pour-tous-les-jours_30421.aspx": {
+      "source": "marmiton",
+      "dish": "baklava",
+      "title": "Baklavas pour tous et pour tous les jours",
+      "rating": 4.8,
+      "reviews": 60,
+      "status": "excluded",
+      "reason": "dessert",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava-petit-nid-d-oiseau-d-hilda_33027.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava (petit nid d'oiseau) d'Hilda",
+      "rating": 5,
+      "reviews": 26,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava-aux-noix-et-aux-amandes_24357.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava aux noix et aux amandes",
+      "rating": 5,
+      "reviews": 8,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava-aux-noix_66588.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava aux noix",
+      "rating": 4.3,
+      "reviews": 8,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklavas-de-a-a-z_28702.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklavas de A à Z",
+      "rating": 3.8,
+      "reviews": 9,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava_253677.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava",
+      "rating": 2,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklavas_27385.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklavas",
+      "rating": 1,
+      "reviews": 1,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava-grec_539341.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava grec",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklavas-turcs-aux-amandes-et-miel_538416.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklavas turcs aux amandes et miel",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava-express-aux-amandes-et-miel_538414.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava express aux amandes et miel",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklava-aux-pistaches-faciles_537450.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklava aux pistaches faciles",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_cheesecake-facon-baklava-pistaches-et-miel_535455.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Cheesecake façon Baklava (pistaches et miel)",
+      "rating": 0,
+      "reviews": 0,
+      "status": "rejected",
+      "imports": []
+    },
+    "https://www.marmiton.org/recettes/recette_baklawa-aux-amandes_37344.aspx": {
+      "dish": "baklava",
+      "source": "marmiton",
+      "title": "Baklawa aux amandes",
+      "rating": 3.7,
+      "reviews": 3,
+      "status": "rejected",
+      "imports": []
+    }
+  }
+}

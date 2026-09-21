@@ -194,7 +194,7 @@ not a deviation — say so rather than silently working around it.
 
 ---
 
-## Two features that are frequently misread
+## Three things that are frequently misread
 
 **Nutrition goals are an optional companion, not a pillar.** Most users will never set one. Those
 who do (more protein, less meat, a specific diet) should find the planning quietly respects it —
@@ -205,6 +205,16 @@ get past to reach a meal plan. It is a preference, in the same family as "no she
 people actually cook, and the AI produces much of the raw material. It is a supply of ideas for when
 a repertoire runs dry, not a destination users are meant to visit and browse for pleasure. Design it
 as a well-stocked shelf, not as a place with a culture.
+
+**A catalogue recipe is a plate.** The planning fills lunches and dinners, one dish each, so the
+catalogue holds what a cook serves as the meal itself: a curry, a gratin, a tajine, a bowl of pho.
+Not a dessert, a starter, a side, a dip, a sauce, a bread, a drink or a breakfast. The test is
+whether cooks somewhere sit down to it as their meal, not whether the dish is famous or where it is
+from: a soup or a salad is a plate when it is eaten that way (harira, pho, salade niçoise, a Greek
+salad at lunch) and not when it only opens a meal (gaspacho, caprese). If it is a plate in one
+country's kitchen, it is a plate here; a rule tied to one country would narrow a catalogue whose
+point is to widen the repertoire. A dish that fails the test is not a lesser recipe, it is the wrong
+kind of thing, and the import refuses it rather than shelving it.
 
 ---
 

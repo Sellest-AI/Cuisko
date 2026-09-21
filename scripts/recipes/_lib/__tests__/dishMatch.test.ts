@@ -54,4 +54,10 @@ describe("matchesDish", () => {
   it("matches nothing for a dish made only of filler words", () => {
     expect(matchesDish("La recette maison", "la recette")).toBe(false);
   });
+
+  it("allows no typo at all when typos are off, since one letter away can be another dish", () => {
+    expect(matchesDish("gazpacho", "gaspacho", { typos: false })).toBe(false);
+    expect(matchesDish("Wild garlic pesto", "pisto", { typos: false })).toBe(false);
+    expect(matchesDish("Gazpacho andaluz", "gazpacho", { typos: false })).toBe(true);
+  });
 });
