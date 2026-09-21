@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { compareDateTimes, compareDates, seedOfWeekKey, weekKeyOf } from "../dates";
+import { compareDateTimes, compareDates, mondayOf, seedOfWeekKey, weekKeyOf } from "../dates";
 
 /**
  * Fixed local dates rather than `Date.now()`-derived ones: 2026-09-14 is a Monday, so the
@@ -93,5 +93,17 @@ describe("compareDateTimes", () => {
     expect(compareDateTimes(first, second)).toBeLessThan(0);
     expect(compareDateTimes(second, first)).toBeGreaterThan(0);
     expect(compareDateTimes(first, new Date(first))).toBe(0);
+  });
+});
+
+describe("mondayOf", () => {
+  test("is the key's Monday at UTC midnight, wherever the key was set", () => {
+    expect(new Date(mondayOf("2026-09-14")).toISOString()).toBe("2026-09-14T00:00:00.000Z");
+  });
+
+  test("settles the week the key names, so a recipe written that week is a latecomer", () => {
+    const wednesday = Date.UTC(2026, 8, 16, 12);
+    expect(mondayOf(weekKeyOf(new Date(2026, 8, 16)))).toBeLessThan(wednesday);
+    expect(mondayOf(weekKeyOf(new Date(2026, 8, 21)))).toBeGreaterThan(wednesday);
   });
 });

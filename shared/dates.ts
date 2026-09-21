@@ -23,6 +23,16 @@ export const weekKeyOf = (date: Date): string => {
 }
 
 /**
+ * The instant a week's key names, as UTC midnight of that Monday.
+ *
+ * The key carries the client's local day and no offset, so this is the Monday within half a day
+ * of wherever it was set — and that is exact enough for what it settles: a recipe written after
+ * it is examined after the ones that made the week's picks (`candidatePool.settledAt`). Any fixed
+ * instant near the week's start keeps the picks standing; only its being fixed matters.
+ */
+export const mondayOf = (key: string): number => Date.parse(`${key}T00:00:00Z`);
+
+/**
  * FNV-1a over `key`, as a fraction in [0, 1) — the shuffle seed a week of ideas derives from.
  * Deterministic by design: the same week must redraw the same picks wherever it is asked from,
  * so this is integer hash math rather than `Math.random()`.

@@ -24,6 +24,9 @@ import {
  * `seed` is the caller's, rolled once per run: `getDraft` is a reactive query, and a seed taken
  * anywhere that re-runs would reshuffle the week under a user already reviewing it. `today` is
  * pinned on mount for the same reason — a run straddling midnight keeps the days it was offered.
+ * Pinned arguments keep the query's inputs still, not its output: a recipe written into the pool's
+ * window re-runs it server-side regardless. `startedAt` is pinned so that re-run comes back the
+ * same — the server examines anything written after it last.
  *
  * The days come from `planDatesAtom`, which the tunnel seeds once per run from the household's
  * latest kept plate: the week continues the one already there rather than stacking a second lunch
@@ -50,6 +53,7 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
   const equipments = useAtomValue(equipmentsAtom);
   const seeks = useAtomValue(seeksAtom);
   const [today] = useState(() => startOfDay(new Date()));
+  const [startedAt] = useState(() => Date.now());
 
   /**
    * Skipped until the constraint list is seeded and the week knows where to start: a draft for
@@ -66,13 +70,14 @@ export const usePlanDraft = ({ seed }: { seed: number }) => {
       dates: dates.map((date) => date.getTime()),
       slots,
       today: today.getTime(),
+      startedAt,
       cookingTime,
       equipments,
       // `null` is a seed that has not landed; the guard above already waits on `constraints`, which lands with it.
       seeks: seeks ?? [],
       ...runConstraintsOf(constraints),
     };
-  }, [householdId, constraints, cookingTime, equipments, seeks, locale, seed, people, today, dates, slots]);
+  }, [householdId, constraints, cookingTime, equipments, seeks, locale, seed, people, today, startedAt, dates, slots]);
 
   const { data, isPending, isError } = useQueryCached(api.router.planning.getDraft.authed, args);
 

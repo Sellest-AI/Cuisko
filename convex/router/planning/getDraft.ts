@@ -14,7 +14,8 @@ import { householdQueryI18n } from "@convex/procedures";
  * household's cellar and reservations. The caller's own recipes are `ctx.userId`'s — there is no
  * `userId` argument, so no shape of this call draws on somebody else's private recipes.
  *
- * The seed, the days and the run's constraints are the client's on purpose — see `planDraft`.
+ * The seed, the days, the run's constraints and the instant it started are the client's on
+ * purpose — see `planDraft`.
  */
 export const authed = householdQueryI18n({
   args: {
@@ -28,6 +29,7 @@ export const authed = householdQueryI18n({
     cookingTime: v.optional(vCookingTime),
     equipments: v.optional(vEquipments),
     seeks: v.optional(vNutritionPreferences),
+    startedAt: v.optional(v.number()),
   },
   handler: (ctx, args) =>
     planDraft(ctx, {

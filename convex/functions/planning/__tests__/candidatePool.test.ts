@@ -102,6 +102,7 @@ const poolFor = (
     maxMinutes,
     equipments,
     seeks = [],
+    settledAt,
   }: {
     seed?: number;
     plates?: number;
@@ -110,6 +111,7 @@ const poolFor = (
     maxMinutes?: number;
     equipments?: Equipment[];
     seeks?: NutritionPreference[];
+    settledAt?: number;
   } = {},
 ) =>
   t.run(async (ctx) => {
@@ -123,11 +125,19 @@ const poolFor = (
       maxMinutes,
       equipments,
       seeks,
+      settledAt,
     });
     return pool.candidates.map(({ recipeId, isMine }) => ({ recipeId, isMine }));
   });
 
 const idsOf = (candidates: { recipeId: Id<"recipes"> }[]) => candidates.map(({ recipeId }) => recipeId);
+
+/** The instant just past every row written so far — `_creationTime` is a clock, so let it tick. */
+const settle = async () => {
+  const at = Date.now() + 1;
+  await new Promise((resolve) => setTimeout(resolve, 2));
+  return at;
+};
 
 describe("functions/planning/candidatePool", () => {
   /**
@@ -359,5 +369,48 @@ describe("functions/planning/candidatePool", () => {
     const tagged = await recipe({ shuffleKey: 2, tags: ["low-calorie"] });
 
     expect(idsOf(await poolFor(me, { seeks: [] }))).toEqual([bare, tagged]);
+  });
+
+  /**
+   * The home shelf shows the first picks of a week-seeded pool, so a recipe written mid-week whose
+   * key lands inside the window used to take a pick's place — the same Monday redrew a different
+   * shelf on Wednesday. Rows younger than `settledAt` go to the back, in their shuffle order.
+   */
+  test("examines a recipe written after the week settled last, so the picks stand", async () => {
+    const me = await user();
+    const keys = [10, 20, 30, 40, 50, 60, 70];
+    const standing = await Promise.all(keys.map((shuffleKey) => recipe({ shuffleKey })));
+    const settledAt = await settle();
+    const latecomer = await recipe({ shuffleKey: 15 });
+
+    expect(idsOf(await poolFor(me, { plates: 1 }))).toEqual([standing[0], latecomer, ...standing.slice(1, 5)]);
+    expect(idsOf(await poolFor(me, { plates: 1, settledAt }))).toEqual(standing.slice(0, CANDIDATES_PER_PLATE));
+  });
+
+  test("still fills a short pool from recipes written after the week settled", async () => {
+    const me = await user();
+    const standing = await Promise.all([10, 20].map((shuffleKey) => recipe({ shuffleKey })));
+    const settledAt = await settle();
+    const latecomer = await recipe({ shuffleKey: 15 });
+
+    expect(idsOf(await poolFor(me, { plates: 1, settledAt }))).toEqual([...standing, latecomer]);
+  });
+
+  /** The cut is an addition to the pool: one that cannot be read must cost it nothing, not everything. */
+  test("leaves the window as it was when the cut cannot be read", async () => {
+    const me = await user();
+    const keys = [10, 20, 30];
+    const standing = await Promise.all(keys.map((shuffleKey) => recipe({ shuffleKey })));
+
+    expect(idsOf(await poolFor(me, { plates: 1, settledAt: Number.NaN }))).toEqual(standing);
+  });
+
+  test("keeps latecomers in shuffle order among themselves", async () => {
+    const me = await user();
+    const standing = await recipe({ shuffleKey: 40 });
+    const settledAt = await settle();
+    const late = await Promise.all([30, 10, 20].map((shuffleKey) => recipe({ shuffleKey })));
+
+    expect(idsOf(await poolFor(me, { plates: 1, settledAt }))).toEqual([standing, late[1], late[2], late[0]]);
   });
 });

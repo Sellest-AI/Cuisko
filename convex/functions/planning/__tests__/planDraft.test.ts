@@ -68,6 +68,7 @@ const setup = () =>
 
 type Request = {
   seed?: number;
+  startedAt?: number;
   servings?: number;
   dates?: number[];
   slots?: MealSlot[];
@@ -125,6 +126,51 @@ describe("functions/planning/planDraft", () => {
     const [meal] = await draft(ids);
 
     expect(meal!.ingredients[0]!.covered).toBe(true);
+  });
+
+  /**
+   * A recipe written while the user reviews the week lands in the pool's window and re-runs this
+   * query; `startedAt` keeps the re-run from putting it in front of the plate already offered.
+   */
+  test("keeps the plate it offered when a recipe is written after the run started", async () => {
+    const ids = await setup();
+    const startedAt = Date.now() + 1;
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    const latecomer = await t.run(async (ctx) => {
+      const recipeId = await ctx.db.insert("recipes", {
+        title: { values: { fr: "Tarte tardive" }, meta: {} },
+        description: { values: { fr: "" }, meta: {} },
+        instructions: { values: { fr: "" }, meta: {} },
+        servings: 2,
+        equipments: [],
+        difficulty: 1,
+        tags: [],
+        cuisine: "french",
+        timings: {},
+        search: { en: "", fr: "" },
+        // Ahead of the standing recipe in the wrapped window, so without the cut it is drawn first.
+        shuffleKey: 500_000_000,
+        isVegan: true,
+        isVegetarian: true,
+        isPescatarian: true,
+        isGlutenFree: true,
+        isDairyFree: true,
+        isNutFree: true,
+        updatedAt: Date.now(),
+      });
+      await ctx.db.insert("recipeIngredients", {
+        recipeId,
+        ingredientId: ids.ingredientId,
+        position: 0,
+        quantity: 200,
+        unit: "g",
+        updatedAt: Date.now(),
+      });
+      return recipeId;
+    });
+
+    expect((await draft(ids))[0]!.recipeId).toBe(latecomer);
+    expect((await draft(ids, { startedAt }))[0]!.recipeId).toBe(ids.recipeId);
   });
 
   /** The kitchen reaches the pool: the one recipe needs an oven, and a kitchen without one plans nothing. */
