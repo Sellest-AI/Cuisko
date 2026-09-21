@@ -14,7 +14,15 @@ import { AUTHORED_TAGS, type AuthoredTag } from "@shared/tags";
 import { UNITS, type Unit } from "@shared/ingredients";
 import { retryPromise } from "@shared/helpers";
 
-import { createTool, parseModelOutput, providerSchema, wrapAgent } from "../utils";
+import {
+  type AssertTrue,
+  createTool,
+  type Exact,
+  parseModelOutput,
+  providerSchema,
+  type WithoutNulls,
+  wrapAgent,
+} from "../utils";
 import { recipesAgent } from "../agents";
 import { sanitizeRecipePrompt } from "../config/prompts/sanitizeRecipe";
 
@@ -168,14 +176,22 @@ export const modelRecipeSchema = z.object({
  * The one thing done after parsing is rounding the timings. It cannot live in the schema — `.int()`
  * would DROP a `7.5` rather than round it — and the app only ever reads and writes whole minutes.
  *
- * The return annotation is what pins the contract — adding a cuisine to `CUISINES` and forgetting
- * it in `modelRecipeSchema` is a compile error here, rather than a recipe the database rejects at
- * insert time, in production, on the one line nobody tested.
+ * `_Pinned` below is what pins the contract, in both directions — a vocabulary that drifts between
+ * `modelRecipeSchema` and `SanitizedRecipe` is a compile error here, rather than a recipe the
+ * database rejects at insert time, or a value the model is never offered.
  */
 export const toSanitizedRecipe = (raw: unknown): SanitizedRecipe => {
   const recipe = parseModelOutput(modelRecipeSchema, raw);
   return { ...recipe, timings: wholeTimingsOf(recipe.timings) };
 };
+
+/**
+ * The return annotation above only checks one way: the schema's type fitting `SanitizedRecipe`.
+ * A tag added to the hand-written type and forgotten in the schema would still compile, and the
+ * model would never be offered it. ADR 0010's Verify runs this line.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- a compile-time assertion, read by tsc alone
+type _Pinned = AssertTrue<Exact<WithoutNulls<z.infer<typeof modelRecipeSchema>>, SanitizedRecipe>>;
 
 const _inputSchema = z.object({
   locale: z

@@ -58,8 +58,11 @@ against a column whose values are not known in advance.
 
 ## Verify
 
-`pnpm typecheck` — the `Exact<z.infer<typeof _sanitizedRecipe>, SanitizedRecipe>` check in
-`convex/agent/tools/sanitizeRecipe.ts` fails to compile when a vocabulary drifts.
+`pnpm typecheck` — the `_Pinned` assertion in `convex/agent/tools/sanitizeRecipe.ts`
+(`AssertTrue<Exact<WithoutNulls<z.infer<typeof modelRecipeSchema>>, SanitizedRecipe>>`, helpers
+in `convex/agent/utils/exact.ts`) fails to compile when a vocabulary drifts in either direction.
+`suggestDishes.ts` pins its output the same way. A return annotation alone is not this check: it
+passes when the hand-written type gains a value the schema never offers the model.
 
 `pnpm test -- convex/functions/ingredients/__tests__/searchWidened.test.ts` — seeds the real catalog
 and pins both sides of the thresholds: a realistic line resolves to its row, and an ingredient the
