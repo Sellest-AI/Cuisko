@@ -31,6 +31,7 @@ export const deploymentOf = (deployKey: string, url: string): string => {
 };
 
 type InternalAction = FunctionReference<"action", "internal">;
+type InternalQuery = FunctionReference<"query", "internal">;
 
 export type ConvexAdmin = {
   /** Where every call lands, as the ledger records it. */
@@ -39,6 +40,7 @@ export type ConvexAdmin = {
     action: Action,
     args: FunctionArgs<Action>,
   ) => Promise<FunctionReturnType<Action>>;
+  query: <Query extends InternalQuery>(query: Query, args: FunctionArgs<Query>) => Promise<FunctionReturnType<Query>>;
 };
 
 /**
@@ -58,16 +60,18 @@ export const connectAdmin = (): ConvexAdmin => {
   const deployment = deploymentOf(deployKey, url);
 
   // Cast once, here. `setAdminAuth` is what `npx convex run` authenticates with and exists at
-  // runtime, but the package's declarations leave it out, as they type `action` for public
-  // functions only. With an admin key, the server accepts internal ones.
+  // runtime, but the package's declarations leave it out, as they type `action` and `query` for
+  // public functions only. With an admin key, the server accepts internal ones.
   const client = new ConvexHttpClient(url) as unknown as {
     setAdminAuth: (token: string) => void;
     action: (action: InternalAction, args: unknown) => Promise<unknown>;
+    query: (query: InternalQuery, args: unknown) => Promise<unknown>;
   };
   client.setAdminAuth(deployKey);
 
   return {
     deployment,
     action: async (action, args) => (await client.action(action, args)) as FunctionReturnType<typeof action>,
+    query: async (query, args) => (await client.query(query, args)) as FunctionReturnType<typeof query>,
   };
 };

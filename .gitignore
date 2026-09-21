@@ -16,6 +16,10 @@ expo-env.d.ts
 .env.*
 !.env.example
 
+# Catalog exports — `pnpm catalog:export` writes one here by default. Megabytes of images that
+# the source deployment still holds; a zip worth keeping goes somewhere other than the repo.
+catalog-*.zip
+
 # misc
 .DS_Store
 *.tsbuildinfo

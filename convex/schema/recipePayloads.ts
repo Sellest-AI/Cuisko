@@ -11,10 +11,11 @@
  * to the `recipes` table has to force a look at them.
  */
 
-import { v } from "convex/values";
-import { vLocale } from "./i18n";
+import { type Infer, v } from "convex/values";
+import { vLocale, vLocalized, vLocalizedList } from "./i18n";
 import { vUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
+import { recipes } from "./recipes";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
 import { CUISINES } from "@shared/cuisines";
 import { AUTHORED_TAGS } from "@shared/tags";
@@ -151,3 +152,61 @@ export const vTranslatedRecipe = v.object({
     instructions: vInstructionGroups,
   }),
 });
+
+/**
+ * The `recipes` columns a portable recipe carries: every one but the three that are ids.
+ *
+ * Taken from the table's own validator rather than restated, so a column added to `recipes` is
+ * exported the day it is added. `userId` is left out because a portable recipe is a catalog recipe
+ * — nobody owns it, on either deployment. The two image ids are replaced by `images` below, which
+ * spells the rows they point at.
+ */
+const { userId: _userId, coverImageId: _coverImageId, plateImageId: _plateImageId, ...portableRowFields } =
+  recipes.validator.fields;
+
+/**
+ * One catalog recipe as `catalog:export` writes it and `catalog:restore` reads it — the whole row,
+ * plus everything its ids point at, spelled without ids.
+ *
+ * `ingredients` carries each catalog ingredient's `slug`, `name` and `aliases` instead of its id,
+ * because ids do not survive a deployment: the restore matches them against its own catalog.
+ *
+ * An image is only its URL: dimensions, mime type and hash are recomputed by the upload from the
+ * bytes, and the key names a bucket. The plate travels with the URL of the base render it was cut
+ * from and the offset it sits at, which is what `uploadMany` takes to rebuild the pair. On the
+ * server the URLs are the exporting deployment's; the export script downloads the bytes into the
+ * recipe's folder in the zip and rewrites each URL to the file's name there.
+ *
+ * `row` includes `search`, the six facets and `shuffleKey` as exported, but the restore recomputes
+ * all three rather than writing them: `search` has one writer (ADR 0011), the facets follow `tags`
+ * (ADR 0015), and a shuffle key that matched across deployments would order both catalogs alike.
+ */
+export const vPortableRecipe = v.object({
+  /**
+   * Where the recipe came from. `recipeId` is a string, not `v.id("recipes")`: it is an id of the
+   * EXPORTING deployment, and a `v.id` validator on the restore's arguments would reject every one
+   * as not an id of this deployment. Nothing dereferences it; the restore keys its ledger on it.
+   */
+  origin: v.object({ recipeId: v.string(), creationTime: v.number() }),
+  row: v.object(portableRowFields),
+  ingredients: v.array(
+    v.object({
+      position: v.number(),
+      quantity: v.number(),
+      unit: vUnit,
+      ingredient: v.object({
+        slug: v.optional(v.string()),
+        name: vLocalized,
+        aliases: v.optional(vLocalizedList),
+      }),
+    }),
+  ),
+  images: v.object({
+    cover: v.optional(v.object({ url: v.string() })),
+    plate: v.optional(
+      v.object({ url: v.string(), base: v.object({ url: v.string() }), x: v.number(), y: v.number() }),
+    ),
+  }),
+});
+
+export type PortableRecipe = Infer<typeof vPortableRecipe>;

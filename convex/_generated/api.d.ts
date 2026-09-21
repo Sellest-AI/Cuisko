@@ -114,6 +114,7 @@ import type * as functions_preferences_save from "../functions/preferences/save.
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
 import type * as functions_recipes_dietFacet from "../functions/recipes/dietFacet.js";
+import type * as functions_recipes_exportCatalog from "../functions/recipes/exportCatalog.js";
 import type * as functions_recipes_findCatalogBySource from "../functions/recipes/findCatalogBySource.js";
 import type * as functions_recipes_generateRecipe from "../functions/recipes/generateRecipe.js";
 import type * as functions_recipes_listFavorites from "../functions/recipes/listFavorites.js";
@@ -200,6 +201,7 @@ import type * as router_preferences_getPlanningSeed from "../router/preferences/
 import type * as router_preferences_save from "../router/preferences/save.js";
 import type * as router_recipes_createOne from "../router/recipes/createOne.js";
 import type * as router_recipes_deleteOne from "../router/recipes/deleteOne.js";
+import type * as router_recipes_exportCatalog from "../router/recipes/exportCatalog.js";
 import type * as router_recipes_generateImages from "../router/recipes/generateImages.js";
 import type * as router_recipes_getAll from "../router/recipes/getAll.js";
 import type * as router_recipes_getFavorites from "../router/recipes/getFavorites.js";
@@ -341,6 +343,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
   "functions/recipes/dietFacet": typeof functions_recipes_dietFacet;
+  "functions/recipes/exportCatalog": typeof functions_recipes_exportCatalog;
   "functions/recipes/findCatalogBySource": typeof functions_recipes_findCatalogBySource;
   "functions/recipes/generateRecipe": typeof functions_recipes_generateRecipe;
   "functions/recipes/listFavorites": typeof functions_recipes_listFavorites;
@@ -427,6 +430,7 @@ declare const fullApi: ApiFromModules<{
   "router/preferences/save": typeof router_preferences_save;
   "router/recipes/createOne": typeof router_recipes_createOne;
   "router/recipes/deleteOne": typeof router_recipes_deleteOne;
+  "router/recipes/exportCatalog": typeof router_recipes_exportCatalog;
   "router/recipes/generateImages": typeof router_recipes_generateImages;
   "router/recipes/getAll": typeof router_recipes_getAll;
   "router/recipes/getFavorites": typeof router_recipes_getFavorites;
