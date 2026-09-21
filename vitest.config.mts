@@ -136,12 +136,15 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C13 scripts, which had no runner at all until this project existed.
+       * The C1-C13 scripts, which had no runner at all until this project existed, and the
+       * catalog scripts under `scripts/recipes/`.
        *
-       * Plain node: these tests spawn the real script as a subprocess and assert its exit code, so
-       * nothing here needs a DOM, an alias or the Convex runtime.
+       * Plain node: nothing here needs a DOM or the Convex runtime. The checks' tests spawn the real
+       * script as a subprocess; the catalog helpers are imported directly, and they need
+       * `@shared/` because the ledger keys a recipe by the same canonical URL `importOne` stores.
        */
       {
+        resolve: { alias: { "@shared": at("./shared") } },
         test: {
           name: "scripts",
           environment: "node",
