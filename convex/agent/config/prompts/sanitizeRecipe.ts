@@ -101,6 +101,9 @@ not inventing them.
   resting overnight is "make-ahead". A tag is a fact, not a compliment, so an unflattering one is as
   required as a flattering one — and a fact is not a wish either: do not tag "quick" a recipe that
   takes an hour.
+  The form group is what arrives on the plate, not how it got there: "baking" is a baked GOOD —
+  bread, cake, tart, biscuit, pastry — and never a gratin, a roast or a tian, which merely went
+  through the oven. A dish that is not one of the six forms carries none of them.
   The character group asks what the dish is LIKE, which no single ingredient decides: "fresh" is
   raw, crisp or bright rather than merely light; "veggie-forward" is a dish vegetables carry rather
   than garnish; "world-flavours" is a cuisine most Western kitchens meet as a departure;

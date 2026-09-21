@@ -56,7 +56,9 @@ const draft = () =>
   });
 
 const asked = () =>
-  state.draftArgs.at(-1) as { dates: number[]; equipments: string[]; seeks: string[] } | undefined;
+  state.draftArgs.at(-1) as
+    | { dates: number[]; equipments: string[]; seeks: string[]; startedAt: number }
+    | undefined;
 
 describe("usePlanDraft", () => {
   it("asks for nothing until the tunnel has seeded where the week starts", () => {
@@ -83,6 +85,20 @@ describe("usePlanDraft", () => {
     draft();
 
     expect(asked()?.equipments).toEqual(["microwave"]);
+  });
+
+  /** Pinned on mount like `today`: a re-render must not move the cut, or the week reshuffles under review. */
+  it("sends the instant the run started, and keeps it across renders", () => {
+    store.set(planAfterAtom, new Date(dayOffset(4)));
+    const before = Date.now();
+
+    const { rerender } = draft();
+    const startedAt = asked()?.startedAt;
+    rerender();
+
+    expect(startedAt).toBeGreaterThanOrEqual(before);
+    expect(startedAt).toBeLessThanOrEqual(Date.now());
+    expect(asked()?.startedAt).toBe(startedAt);
   });
 
   /** The focus step's answer reaches the week; before the seed lands it reads as nothing sought. */

@@ -143,8 +143,10 @@ const CRITERIA = [
   `Tags: a true one left out is the same error as a false one written. This dish IS "spicy" ` +
   `(gochujang and sriracha) and IS "make-ahead" (it marinates overnight). It is not "quick" at ` +
   `six hours, not "one-pot" across three vessels, not "pasta" and not "bowl" — those name what ` +
-  "is on the plate, and it is a taco. Diet is computed from the ingredients elsewhere, so no " +
-  "diet tag is available to write and none should be missed.",
+  `is on the plate, and it is a taco. Nor is it "baking": that is a baked good, and a cocotte ` +
+  "that may spend six hours in the oven instead of the slow cooker makes nothing of the kind. " +
+  "Diet is computed from the ingredients elsewhere, so no diet tag is available to write and " +
+  "none should be missed.",
   "Equipment: the mijoteuse and the four are two ways of doing the one thing the recipe cannot " +
   "skip, so a cook needs either and both belong. The blender does not — the cook says a whisk " +
   "does the job, and an appliance offered alongside a hand tool is a convenience, not a " +

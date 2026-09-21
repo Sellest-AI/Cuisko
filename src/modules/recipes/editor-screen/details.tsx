@@ -55,9 +55,13 @@ export const EditorDetailFields = ({ details, computedTags, onChange, style }: P
         }))}
       />
       <View style={styles.section}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: theme.spacing[8] }}>
+        {/*
+          * The gutter is the row's, not the label's: `Text` turns a margin into a sibling spacer on
+          * native, and a third child is what `space-between` centres the label between.
+          */}
+        <View style={styles.difficulty}>
           <Text.Lg>{t("Editor.difficulty")}</Text.Lg>
-          <Text.Base color={colors.neutral.muted} style={{ marginRight: theme.spacing[4] }}>
+          <Text.Base color={colors.neutral.muted}>
             {t(`Difficulties.${difficultyKey(details.difficulty)}`)}
           </Text.Base>
         </View>
@@ -138,4 +142,10 @@ export const EditorDetailFields = ({ details, computedTags, onChange, style }: P
 const styles = StyleSheet.create({
   block: { gap: theme.spacing[28] },
   section: { gap: theme.spacing[12] },
+  difficulty: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: theme.spacing[8],
+    paddingRight: theme.spacing[4],
+  },
 });

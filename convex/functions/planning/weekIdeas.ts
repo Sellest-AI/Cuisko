@@ -5,7 +5,7 @@ import { coverOf, toRecipeCard, type RecipeCard } from "@convex/functions/recipe
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { sortAllergens } from "@shared/allergens";
-import { seedOfWeekKey } from "@shared/dates";
+import { mondayOf, seedOfWeekKey } from "@shared/dates";
 import { strictestDietOf } from "@shared/diets";
 
 type IdeasCtx = Pick<QueryCtx, "db">;
@@ -59,7 +59,9 @@ const _householdConstraints = async (ctx: IdeasCtx, householdId: Id<"households"
  *
  * The same shuffle the planner draws from, seeded by the week rather than by a roll: one key per
  * Monday, so every visit in a week sees the same picks and the next Monday sees new ones, with
- * nothing stored and no cron. `selectMeals` is deliberately not called: no plates, no stock
+ * nothing stored and no cron. The query is reactive, so it re-runs when a recipe is written into
+ * its window; the picks stand anyway, because the pool examines anything written after the
+ * week's Monday last (`settledAt`) — an import on Wednesday joins the shuffle the Monday after. `selectMeals` is deliberately not called: no plates, no stock
  * scoring, no writes — a shelf to browse, not a plan (PRODUCT.md, anti-goal 4).
  */
 export const weekIdeas = async (
@@ -76,6 +78,7 @@ export const weekIdeas = async (
   const pool = await candidatePool(ctx, {
     userId,
     seed: seedOfWeekKey(weekKey),
+    settledAt: mondayOf(weekKey),
     diet,
     avoids,
     equipments: household?.equipments,

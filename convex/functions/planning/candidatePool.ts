@@ -42,6 +42,13 @@ type Args = {
    * the ceiling: every caller has an answer, and `[]` is the one that filters nothing.
    */
   seeks: NutritionPreference[];
+  /**
+   * The instant the window's order was settled. A recipe written at or after it is examined after
+   * every older one, in its own shuffle order — so a week seeded on Monday shows the same picks
+   * on Wednesday whatever was imported in between, and a mid-week recipe still fills a short pool.
+   * Omitted, the window is pure shuffle order, which is what a fresh run wants.
+   */
+  settledAt?: number;
 };
 
 /** A candidate, with the documents the draft is shaped from so nothing is read twice. */
@@ -103,6 +110,23 @@ const _window = async (ctx: PoolCtx, userId: Id<"users"> | undefined, seed: numb
     .take(WINDOW - after.length);
 
   return [...after, ...before];
+};
+
+/**
+ * `rows` with everything written at or after `settledAt` moved to the back, each half in the order
+ * it arrived. A stable partition rather than a sort: the shuffle order is the randomness, and it
+ * must survive on both sides of the cut.
+ *
+ * The two halves are one predicate and its complement, so every row lands in one of them. Two
+ * comparisons would both be false against a `NaN` cut — a week key `Date.parse` cannot read — and
+ * would hand back nothing, where the cut is an addition to the pool and must never cost it a row.
+ */
+const _settled = (rows: Doc<"recipes">[], settledAt: number | undefined) => {
+  if (settledAt === undefined) return rows;
+
+  const isLate = (row: Doc<"recipes">) => row._creationTime >= settledAt;
+
+  return [...rows.filter((row) => !isLate(row)), ...rows.filter(isLate)];
 };
 
 /**
@@ -201,13 +225,15 @@ const _loadUntil = async (
  */
 export const candidatePool = async (
   ctx: PoolCtx,
-  { userId, seed, servings, plates, diet, avoids, maxMinutes, equipments, seeks }: Args,
+  { userId, seed, servings, plates, diet, avoids, maxMinutes, equipments, seeks, settledAt }: Args,
 ): Promise<Pool> => {
   const pool: Pool = { candidates: [], recipes: new Map(), ingredients: new Map() };
   const deleted = new Set<Id<"ingredients">>();
   const wanted = plates * CANDIDATES_PER_PLATE;
 
-  const [catalog, mine] = await Promise.all([_window(ctx, undefined, seed), _window(ctx, userId, seed)]);
+  const [catalog, mine] = (
+    await Promise.all([_window(ctx, undefined, seed), _window(ctx, userId, seed)])
+  ).map((rows) => _settled(rows, settledAt)) as [Doc<"recipes">[], Doc<"recipes">[]];
 
   /**
    * ⚠️ **An untimed recipe passes every ceiling.** `undefined` means nobody timed it, not that it

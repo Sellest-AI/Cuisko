@@ -1,5 +1,6 @@
-import { View, StyleSheet, ViewStyle, ScrollView } from "react-native";
+import { View, StyleSheet, ViewStyle } from "react-native";
 
+import { HorizontalScrollView } from "@ui/horizontal-scroll-view";
 import { SparklesIcon } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -46,16 +47,12 @@ export const NutritionCard = ({ protein, fat, carbs, calories, scope, style }: P
           <Text.Sm color={theme.colors.primary.base}>{t("Nutrition.estimated")}</Text.Sm>
         </View>
       </View>
-      <ScrollView
-        contentContainerStyle={[styles.stats, styles.paddingHorizontal]}
-        showsHorizontalScrollIndicator={false}
-        horizontal
-      >
+      <HorizontalScrollView contentContainerStyle={[styles.stats, styles.paddingHorizontal]}>
         {calories !== undefined && <Stat label={t("Nutrition.calories")} value={`🔥 ${_kcal(calories)}`} />}
         {protein !== undefined && <Stat label={t("Nutrition.protein")} value={`🍗 ${_grams(protein)}`} />}
         {fat !== undefined && <Stat label={t("Nutrition.fat")} value={`🥑 ${_grams(fat)}`} />}
         {carbs !== undefined && <Stat label={t("Nutrition.carbs")} value={`🧅 ${_grams(carbs)}`} />}
-      </ScrollView>
+      </HorizontalScrollView>
     </View>
   );
 };

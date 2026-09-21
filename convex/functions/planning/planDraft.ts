@@ -47,6 +47,13 @@ type Args = {
    * sends none gets the week it got before the step reached the pool; absent means `[]`.
    */
   seeks?: NutritionPreference[];
+  /**
+   * When the run began, pinned by the client like `seed`. A recipe written after it is examined
+   * after every other, so a write landing while the user reviews the week — their own import from
+   * another screen, a catalog batch — re-runs this query without reshuffling it. Optional so a
+   * client that sends none gets the pool it got before; absent means nothing is held back.
+   */
+  startedAt?: number;
 };
 
 /**
@@ -105,6 +112,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftPlate[]
       maxMinutes: ceilingMinutesOf(args.cookingTime ?? "any") ?? undefined,
       equipments: args.equipments,
       seeks: args.seeks ?? [],
+      settledAt: args.startedAt,
     }),
   ]);
 
