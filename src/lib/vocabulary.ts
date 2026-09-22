@@ -66,7 +66,7 @@ export const TAG_EMOJI: Record<Tag, string> = {
   sandwich: "🥪",
   pasta: "🍝",
   bowl: "🍲",
-  baking: "🧁",
+  pastry: "🧁",
   // Effort
   quick: "⚡",
   "one-pot": "🍲",

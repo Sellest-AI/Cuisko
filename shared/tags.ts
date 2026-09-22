@@ -88,11 +88,12 @@ export const AUTHORED_TAGS = [
   "pasta",
   "bowl",
   /**
-   * A baked GOOD — bread, cake, tart, pastry — and not "cooked in the oven", which is what the
-   * bare English word also means and what the model read it as: every gratin and tian arrived
-   * tagged "baking", and in French that chip says "Pâtisserie". The prompt now defines it.
+   * What a pâtisserie counter sells — cake, sweet tart, biscuit, brioche — and not "made with a
+   * dough" or "cooked in the oven". It was "baking", which the model read as the oven: every
+   * gratin and tian arrived tagged, and a quiche or a pizza still would on the dough. The prompt
+   * defines it, and the word itself now says the French chip's meaning.
    */
-  "baking",
+  "pastry",
   // Effort — what it costs to make, which is what the planner filters on
   "quick",
   "one-pot",
