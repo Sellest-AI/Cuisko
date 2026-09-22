@@ -100,6 +100,19 @@ const ROWS: Row[] = [
   ["chard", "Swiss chard", "Blette", "VEGETABLE", "g", 200, 19, 1.8, 0.2, 0, 3.7, 1.1, 1.6, 213],
   ["endive", "Endive", "Endive", "VEGETABLE", "pcs", 1, 17, 1.3, 0.2, 0, 3.4, 0.3, 3.1, 22],
   ["shallot", "Shallot", "Échalote", "VEGETABLE", "pcs", 1, 72, 2.5, 0.1, 0, 16.8, 7.9, 3.2, 12],
+  ["bell-pepper-green", "Green bell pepper", "Poivron vert", "VEGETABLE", "pcs", 1, 20, 0.9, 0.2, 0.1, 4.6, 2.4, 1.7, 3],
+  ["cherry-tomato", "Cherry tomato", "Tomate cerise", "VEGETABLE", "g", 250, 18, 0.9, 0.2, 0, 3.9, 2.6, 1.2, 5],
+  ["spring-onion", "Spring onion", "Oignon vert", "VEGETABLE", "pcs", 6, 32, 1.8, 0.2, 0, 7.3, 2.3, 2.6, 16],
+  ["chili-green", "Green chilli", "Piment vert", "VEGETABLE", "pcs", 4, 40, 2, 0.2, 0, 9.5, 5.1, 1.5, 7],
+  ["onion-red", "Red onion", "Oignon rouge", "VEGETABLE", "pcs", 3, 40, 1.1, 0.1, 0, 9.3, 4.2, 1.7, 4],
+  ["bell-pepper-yellow", "Yellow bell pepper", "Poivron jaune", "VEGETABLE", "pcs", 1, 27, 1, 0.2, 0, 6.3, 2.4, 0.9, 2],
+  ["arugula", "Arugula", "Roquette", "VEGETABLE", "g", 125, 25, 2.6, 0.7, 0.1, 3.7, 2.1, 1.6, 27],
+  ["lambs-lettuce", "Lamb's lettuce", "Mâche", "VEGETABLE", "g", 125, 21, 2, 0.4, 0, 3.6, 0.8, 1.8, 4],
+  ["celeriac", "Celeriac", "Céleri-rave", "VEGETABLE", "pcs", 1, 42, 1.5, 0.3, 0.1, 9.2, 1.6, 1.8, 100],
+  ["ginger-fresh", "Fresh ginger", "Gingembre frais", "VEGETABLE", "g", 100, 80, 1.8, 0.8, 0.2, 18, 1.7, 2, 13],
+  ["jalapeno", "Jalapeño", "Piment jalapeño", "VEGETABLE", "pcs", 4, 29, 0.9, 0.4, 0, 6.5, 4.1, 2.8, 3],
+  ["bean-sprouts", "Bean sprouts", "Germes de soja", "VEGETABLE", "g", 200, 30, 3, 0.2, 0, 5.9, 4.1, 1.8, 6],
+  ["bok-choy", "Bok choy", "Pak choï", "VEGETABLE", "pcs", 2, 13, 1.5, 0.2, 0, 2.2, 1.2, 1, 65],
 
   // ── Fruits ──────────────────────────────────────────────────────────────────────────────
   ["apple", "Apple", "Pomme", "FRUIT", "pcs", 1, 52, 0.3, 0.2, 0, 14, 10.4, 2.4, 1],
@@ -124,6 +137,10 @@ const ROWS: Row[] = [
   ["apricot", "Apricot", "Abricot", "FRUIT", "pcs", 1, 48, 1.4, 0.4, 0, 11, 9.2, 2, 1],
   ["fig", "Fig", "Figue", "FRUIT", "pcs", 1, 74, 0.8, 0.3, 0.1, 19, 16, 2.9, 1],
   ["pomegranate", "Pomegranate", "Grenade", "FRUIT", "pcs", 1, 83, 1.7, 1.2, 0.1, 19, 14, 4, 3],
+  ["lemon-juice", "Lemon juice", "Jus de citron", "FRUIT", "ml", 100, 22, 0.35, 0.24, 0.04, 6.9, 2.5, 0.3, 1],
+  ["clementine", "Clementine", "Clémentine", "FRUIT", "pcs", 6, 47, 0.9, 0.2, 0, 12, 9, 1.7, 1],
+  ["raisins-dried", "Raisins", "Raisins secs", "FRUIT", "g", 200, 299, 3.1, 0.5, 0.1, 79, 59, 3.7, 11],
+  ["prunes-dried", "Prunes", "Pruneaux", "FRUIT", "g", 250, 240, 2.2, 0.4, 0, 64, 38, 7.1, 2],
   ["grapefruit", "Grapefruit", "Pamplemousse", "FRUIT", "pcs", 1, 42, 0.8, 0.1, 0, 11, 7, 1.6, 0],
   ["avocado", "Avocado", "Avocat", "FRUIT", "pcs", 1, 160, 2, 15, 2.1, 9, 0.7, 7, 7],
   ["coconut-fresh", "Coconut", "Noix de coco", "FRUIT", "g", 200, 354, 3.3, 33, 29.7, 15, 6.2, 9, 20],
@@ -146,6 +163,7 @@ const ROWS: Row[] = [
   ["breadcrumbs", "Breadcrumbs", "Chapelure", "GRAIN", "g", 250, 395, 13, 5.3, 1, 72, 6, 4.9, 732],
   ["spaghetti", "Spaghetti", "Spaghetti", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
   ["penne", "Penne", "Penne", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
+  ["macaroni", "Macaroni", "Macaroni", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
   ["lasagna-sheets", "Lasagna sheets", "Feuilles de lasagne", "GRAIN", "g", 500, 367, 13.5, 1.6, 0.3, 74, 3.2, 3.4, 8],
   ["fresh-tagliatelle", "Fresh tagliatelle", "Tagliatelles fraîches", "GRAIN", "g", 250, 288, 11, 2.7, 0.7, 55, 2.2, 2.5, 20],
   ["rice-noodles", "Rice noodles", "Nouilles de riz", "GRAIN", "g", 400, 364, 6, 0.6, 0.2, 82, 0.3, 1.6, 182],
@@ -154,6 +172,7 @@ const ROWS: Row[] = [
   ["basmati-rice", "Basmati rice", "Riz basmati", "GRAIN", "g", 500, 349, 8.1, 0.9, 0.2, 77, 0.1, 1.3, 2],
   ["baguette", "Baguette", "Baguette", "GRAIN", "pcs", 1, 274, 9.3, 1.5, 0.3, 55, 2.6, 2.4, 578],
   ["tortilla-wrap", "Tortilla wrap", "Tortilla", "GRAIN", "pcs", 8, 310, 8.3, 7.9, 3, 51, 2.4, 3, 636],
+  ["tortilla-corn", "Corn tortilla", "Tortilla de maïs", "GRAIN", "pcs", 8, 218, 5.7, 2.9, 0.4, 44, 1, 5, 45],
   ["pizza-dough", "Pizza dough", "Pâte à pizza", "GRAIN", "pcs", 1, 265, 8.5, 3.5, 0.9, 49, 2.5, 2.1, 490],
   ["puff-pastry", "Puff pastry", "Pâte feuilletée", "GRAIN", "pcs", 1, 383, 5.2, 25, 12.5, 34, 1, 1.2, 480],
   ["shortcrust-pastry", "Shortcrust pastry", "Pâte brisée", "GRAIN", "pcs", 1, 397, 5.5, 22, 11, 44, 2, 1.5, 460],
@@ -188,6 +207,11 @@ const ROWS: Row[] = [
   ["chicken-wings", "Chicken wings", "Ailes de poulet", "MEAT", "g", 500, 203, 30, 8.1, 2.3, 0, 0, 0, 82],
   ["rabbit", "Rabbit", "Lapin", "MEAT", "g", 500, 173, 33, 3.5, 1, 0, 0, 0, 47],
   ["beef-roast", "Beef roast", "Rôti de bœuf", "MEAT", "g", 700, 195, 27, 9, 3.5, 0, 0, 0, 55],
+  ["lamb-leg", "Leg of lamb", "Gigot d'agneau", "MEAT", "g", 1500, 230, 18, 17, 7.5, 0, 0, 0, 65],
+  ["pork-roast", "Pork roast", "Rôti de porc", "MEAT", "g", 1000, 190, 21, 11, 4, 0, 0, 0, 60],
+  ["chicken-whole", "Whole chicken", "Poulet entier", "MEAT", "pcs", 1, 215, 18.6, 15.1, 4.3, 0, 0, 0, 70],
+  ["duck-whole", "Whole duck", "Canard entier", "MEAT", "pcs", 1, 404, 11.5, 39.3, 13.2, 0, 0, 0, 59],
+  ["turkey-whole", "Whole turkey", "Dinde entière", "MEAT", "pcs", 1, 160, 21.9, 7.4, 2.1, 0, 0, 0, 65],
 
   // ── Seafood ─────────────────────────────────────────────────────────────────────────────
   ["salmon", "Salmon", "Saumon", "SEAFOOD", "g", 300, 208, 20, 13, 3.1, 0, 0, 0, 59],
@@ -201,6 +225,8 @@ const ROWS: Row[] = [
   ["crab", "Crab", "Crabe", "SEAFOOD", "g", 200, 97, 19, 1.5, 0.2, 0, 0, 0, 293],
   ["trout", "Trout", "Truite", "SEAFOOD", "g", 300, 148, 20, 6.6, 1.6, 0, 0, 0, 52],
   ["mackerel", "Mackerel", "Maquereau", "SEAFOOD", "g", 300, 205, 19, 13.9, 3.3, 0, 0, 0, 90],
+  ["salmon-smoked", "Smoked salmon", "Saumon fumé", "SEAFOOD", "g", 100, 117, 18.3, 4.3, 0.9, 0, 0, 0, 1880],
+  ["squid", "Squid", "Calamar", "SEAFOOD", "g", 300, 92, 15.6, 1.4, 0.4, 3.1, 0, 0, 44],
   ["anchovy", "Anchovy", "Anchois", "SEAFOOD", "g", 50, 131, 20, 4.8, 1.3, 0, 0, 0, 3668],
 
   // ── Dairy ───────────────────────────────────────────────────────────────────────────────
@@ -209,6 +235,10 @@ const ROWS: Row[] = [
   ["butter", "Butter", "Beurre", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 11],
   ["cheddar-cheese", "Cheddar cheese", "Cheddar", "DAIRY", "g", 200, 403, 25, 33, 21, 1.3, 0.5, 0, 621],
   ["mozzarella", "Mozzarella", "Mozzarella", "DAIRY", "g", 200, 280, 28, 17, 10, 3.1, 1, 0, 627],
+  ["mascarpone", "Mascarpone", "Mascarpone", "DAIRY", "g", 250, 429, 4.8, 44, 29, 4.5, 3.2, 0, 30],
+  ["camembert", "Camembert", "Camembert", "DAIRY", "pcs", 1, 300, 19.8, 24.3, 15.3, 0.5, 0.5, 0, 842],
+  ["raclette-cheese", "Raclette cheese", "Raclette", "DAIRY", "g", 400, 357, 23, 29, 18.5, 1.3, 0.5, 0, 700],
+  ["paneer", "Paneer", "Paneer", "DAIRY", "g", 200, 321, 25, 25, 16, 3.6, 2.6, 0, 18],
   ["parmesan", "Parmesan", "Parmesan", "DAIRY", "g", 100, 431, 38, 29, 19, 4.1, 0.9, 0, 1529],
   ["cream-cheese", "Cream cheese", "Fromage à tartiner", "DAIRY", "g", 200, 342, 6, 34, 19, 4.1, 3.2, 0, 321],
   ["plain-yogurt", "Plain yogurt", "Yaourt nature", "DAIRY", "g", 500, 61, 3.5, 3.3, 2.1, 4.7, 4.7, 0, 46],
@@ -238,6 +268,7 @@ const ROWS: Row[] = [
   // ── Eggs ────────────────────────────────────────────────────────────────────────────────
   ["egg-whole", "Egg", "Œuf", "EGG", "pcs", 6, 155, 13, 11, 3.3, 1.1, 1.1, 0, 124],
   ["egg-white", "Egg white", "Blanc d'œuf", "EGG", "g", 100, 52, 11, 0.2, 0, 0.7, 0.7, 0, 166],
+  ["egg-yolk", "Egg yolk", "Jaune d'œuf", "EGG", "pcs", 6, 322, 15.9, 26.5, 9.6, 3.6, 0.6, 0, 48],
 
   // ── Legumes ─────────────────────────────────────────────────────────────────────────────
   ["black-beans", "Black beans", "Haricots noirs", "LEGUME", "g", 400, 132, 8.9, 0.5, 0.1, 24, 0.3, 8.7, 1],
@@ -253,6 +284,7 @@ const ROWS: Row[] = [
 
   // ── Nuts ────────────────────────────────────────────────────────────────────────────────
   ["almonds", "Almonds", "Amandes", "NUT", "g", 150, 579, 21, 50, 3.8, 22, 4.4, 12.5, 1],
+  ["almonds-flaked", "Flaked almonds", "Amandes effilées", "NUT", "g", 100, 579, 21, 50, 3.8, 22, 4.4, 12.5, 1],
   ["walnuts", "Walnuts", "Noix", "NUT", "g", 150, 654, 15, 65, 6.1, 14, 2.6, 6.7, 2],
   ["cashews", "Cashews", "Noix de cajou", "NUT", "g", 150, 553, 18, 44, 7.8, 30, 5.9, 3.3, 12],
   ["pistachios", "Pistachios", "Pistaches", "NUT", "g", 150, 560, 20, 45, 5.6, 28, 7.7, 10.6, 1],
@@ -282,6 +314,8 @@ const ROWS: Row[] = [
   ["oregano-fresh", "Fresh oregano", "Origan frais", "HERB", "g", 15, 265, 9, 4.3, 1.6, 69, 4.1, 42.5, 25],
   ["dill", "Dill", "Aneth", "HERB", "g", 20, 43, 3.5, 1.1, 0, 7, 0, 2.1, 61],
   ["chives", "Chives", "Ciboulette", "HERB", "g", 20, 30, 3.3, 0.7, 0.1, 4.4, 1.9, 2.5, 3],
+  ["tarragon", "Tarragon", "Estragon", "HERB", "g", 20, 49, 3.4, 1.1, 0, 6.3, 0, 3.4, 62],
+  ["lemongrass", "Lemongrass", "Citronnelle", "HERB", "pcs", 2, 99, 1.8, 0.5, 0.1, 25, 0, 0, 6],
   ["sage", "Sage", "Sauge", "HERB", "g", 15, 315, 10.6, 12.8, 7, 61, 1.7, 40.3, 11],
 
   // ── Spices ──────────────────────────────────────────────────────────────────────────────
@@ -293,6 +327,14 @@ const ROWS: Row[] = [
   ["ginger-ground", "Ground ginger", "Gingembre en poudre", "SPICE", "g", 50, 335, 9, 4.2, 1.1, 71, 3.4, 14.1, 27],
   ["nutmeg", "Nutmeg", "Muscade", "SPICE", "g", 30, 525, 5.8, 36, 26, 49, 28, 20.8, 16],
   ["chili-powder", "Chili powder", "Piment en poudre", "SPICE", "g", 50, 282, 13.5, 14.3, 2.6, 50, 7.2, 34.8, 1004],
+  ["garam-masala", "Garam masala", "Garam masala", "SPICE", "g", 30, 379, 14, 15, 3, 45, 3, 25, 50],
+  ["curry-powder", "Curry powder", "Curry en poudre", "SPICE", "g", 30, 325, 14, 14, 2.2, 56, 2.8, 53, 52],
+  ["saffron", "Saffron", "Safran", "SPICE", "g", 1, 310, 11.4, 5.9, 1.6, 65, 0, 3.9, 148],
+  ["herbes-de-provence", "Herbes de Provence", "Herbes de Provence", "SPICE", "g", 30, 290, 9, 6, 1.5, 50, 3, 30, 50],
+  ["ras-el-hanout", "Ras el hanout", "Ras el hanout", "SPICE", "g", 30, 330, 12, 12, 2, 50, 4, 28, 100],
+  ["espelette-pepper", "Espelette pepper", "Piment d'Espelette", "SPICE", "g", 30, 282, 13.5, 14.3, 2.6, 50, 7.2, 34.8, 30],
+  ["paprika-smoked", "Smoked paprika", "Paprika fumé", "SPICE", "g", 50, 282, 14, 13, 2.1, 54, 10, 35, 68],
+  ["mustard-seeds", "Mustard seeds", "Graines de moutarde", "SPICE", "g", 50, 508, 26, 36, 2, 28, 6.8, 12, 13],
   ["cayenne-pepper", "Cayenne pepper", "Poivre de Cayenne", "SPICE", "g", 30, 318, 12, 17.3, 3.3, 57, 10.3, 27.2, 30],
   ["coriander-ground", "Ground coriander", "Coriandre en poudre", "SPICE", "g", 30, 298, 12.4, 17.8, 1, 55, 0, 41.9, 35],
   ["cloves", "Cloves", "Clou de girofle", "SPICE", "g", 20, 274, 6, 13, 4.1, 65, 2.4, 33.9, 277],
@@ -304,6 +346,7 @@ const ROWS: Row[] = [
   // ── Oils ────────────────────────────────────────────────────────────────────────────────
   ["olive-oil", "Olive oil", "Huile d'olive", "OIL", "ml", 500, 884, 0, 100, 13.8, 0, 0, 0, 2],
   ["vegetable-oil", "Vegetable oil", "Huile végétale", "OIL", "ml", 1000, 884, 0, 100, 13, 0, 0, 0, 0],
+  ["ghee", "Ghee", "Ghee", "OIL", "g", 250, 876, 0.3, 99.5, 62, 0, 0, 0, 2],
   ["coconut-oil", "Coconut oil", "Huile de coco", "OIL", "ml", 500, 862, 0, 100, 87, 0, 0, 0, 0],
   ["sesame-oil", "Sesame oil", "Huile de sésame", "OIL", "ml", 250, 884, 0, 100, 14.2, 0, 0, 0, 0],
   ["canola-oil", "Canola oil", "Huile de colza", "OIL", "ml", 1000, 884, 0, 100, 7.4, 0, 0, 0, 0],
@@ -318,6 +361,19 @@ const ROWS: Row[] = [
   ["vinegar-white", "White vinegar", "Vinaigre blanc", "CONDIMENT", "ml", 500, 18, 0, 0, 0, 0.4, 0.1, 0, 2],
   ["balsamic-vinegar", "Balsamic vinegar", "Vinaigre balsamique", "CONDIMENT", "ml", 250, 88, 0.5, 0, 0, 17, 15, 0, 23],
   ["hot-sauce", "Hot sauce", "Sauce piquante", "CONDIMENT", "ml", 150, 11, 0.5, 0.4, 0.1, 1.6, 0.8, 0.3, 2400],
+  ["harissa", "Harissa", "Harissa", "CONDIMENT", "g", 100, 72, 2.9, 1, 0.5, 11, 6.9, 2.5, 680],
+  ["vinegar-red-wine", "Red wine vinegar", "Vinaigre de vin rouge", "CONDIMENT", "ml", 500, 19, 0, 0, 0, 0.3, 0.3, 0, 8],
+  ["fish-sauce", "Fish sauce", "Nuoc-mâm", "CONDIMENT", "ml", 200, 35, 5.1, 0, 0, 3.6, 3.6, 0, 7850],
+  ["tahini", "Tahini", "Purée de sésame", "CONDIMENT", "g", 300, 595, 17, 53.8, 7.6, 21, 0.5, 9.3, 115],
+  ["mustard-wholegrain", "Wholegrain mustard", "Moutarde à l'ancienne", "CONDIMENT", "g", 200, 143, 8, 9, 0.6, 7, 1.5, 5, 1550],
+  ["rice-vinegar", "Rice vinegar", "Vinaigre de riz", "CONDIMENT", "ml", 250, 18, 0.3, 0, 0, 0.5, 0.5, 0, 6],
+  ["oyster-sauce", "Oyster sauce", "Sauce d'huître", "CONDIMENT", "ml", 250, 51, 2.4, 0.3, 0.1, 11, 5, 0.3, 2730],
+  ["hoisin-sauce", "Hoisin sauce", "Sauce hoisin", "CONDIMENT", "ml", 250, 220, 3.3, 3.4, 0.6, 44, 30, 2.8, 1615],
+  ["miso-paste", "Miso paste", "Miso", "CONDIMENT", "g", 300, 199, 12, 6, 1, 26, 6.2, 5.4, 3728],
+  ["curry-paste-red", "Red curry paste", "Pâte de curry rouge", "CONDIMENT", "g", 200, 150, 3, 6, 1, 20, 8, 5, 3000],
+  ["preserved-lemon", "Preserved lemon", "Citron confit", "CONDIMENT", "pcs", 4, 30, 1, 0.3, 0, 8, 1.5, 3, 3500],
+  ["pesto", "Pesto", "Pesto", "CONDIMENT", "g", 190, 450, 5, 45, 7, 5, 2, 2, 800],
+  ["hummus", "Hummus", "Houmous", "CONDIMENT", "g", 200, 166, 7.9, 9.6, 1.4, 14, 0.3, 6, 379],
   ["worcestershire-sauce", "Worcestershire sauce", "Sauce Worcestershire", "CONDIMENT", "ml", 150, 78, 0, 0, 0, 19.5, 14, 0, 980],
   ["tomato-paste", "Tomato paste", "Concentré de tomate", "CONDIMENT", "g", 140, 82, 4.3, 0.5, 0.1, 19, 12, 4.1, 59],
 
@@ -327,6 +383,7 @@ const ROWS: Row[] = [
   ["honey", "Honey", "Miel", "SWEETENER", "g", 500, 304, 0.3, 0, 0, 82, 82, 0.2, 4],
   ["maple-syrup", "Maple syrup", "Sirop d'érable", "SWEETENER", "ml", 250, 260, 0, 0, 0, 67, 60, 0, 12],
   ["powdered-sugar", "Powdered sugar", "Sucre glace", "SWEETENER", "g", 500, 389, 0, 0, 0, 100, 100, 0, 2],
+  ["vanilla-sugar", "Vanilla sugar", "Sucre vanillé", "SWEETENER", "g", 100, 394, 0, 0, 0, 98, 98, 0, 1],
   ["agave-syrup", "Agave syrup", "Sirop d'agave", "SWEETENER", "ml", 250, 310, 0, 0, 0, 76, 68, 0.2, 4],
 
   // ── Other ───────────────────────────────────────────────────────────────────────────────
@@ -334,6 +391,11 @@ const ROWS: Row[] = [
   ["vegetable-broth", "Vegetable broth", "Bouillon de légumes", "OTHER", "l", 1, 5, 0.3, 0.1, 0, 0.7, 0.3, 0, 377],
   ["chicken-broth", "Chicken broth", "Bouillon de poulet", "OTHER", "l", 1, 4, 0.6, 0.1, 0, 0.4, 0.2, 0, 343],
   ["beef-broth", "Beef broth", "Bouillon de bœuf", "OTHER", "l", 1, 7, 1, 0.2, 0.1, 0.5, 0.2, 0, 356],
+  ["bouillon-cube", "Bouillon cube", "Cube de bouillon", "OTHER", "pcs", 12, 230, 10, 14, 7, 17, 5, 0, 19000],
+  ["soy-milk", "Soy milk", "Boisson au soja", "OTHER", "l", 1, 45, 3.3, 1.8, 0.3, 3.3, 2.5, 0.5, 40],
+  ["tofu-silken", "Silken tofu", "Tofu soyeux", "OTHER", "g", 300, 55, 4.8, 2.7, 0.4, 2.3, 0.6, 0.2, 8],
+  ["nori", "Nori seaweed", "Algues nori", "OTHER", "g", 25, 35, 5.8, 0.3, 0.1, 5.1, 0.5, 0.3, 48],
+  ["orange-blossom-water", "Orange blossom water", "Eau de fleur d'oranger", "OTHER", "ml", 250, 0, 0, 0, 0, 0, 0, 0, 1],
   ["tofu-firm", "Firm tofu", "Tofu ferme", "OTHER", "g", 400, 144, 15.8, 8.7, 1.3, 4.3, 0.6, 2.3, 14],
   ["tempeh", "Tempeh", "Tempeh", "OTHER", "g", 300, 192, 20.3, 10.8, 2.2, 7.6, 0, 0, 9],
   ["seitan", "Seitan", "Seitan", "OTHER", "g", 300, 141, 25, 1.9, 0.3, 5.7, 0.4, 1.2, 340],
@@ -375,11 +437,16 @@ const EMOJI: Record<string, string> = {
   // Vegetables
   onion: "🧅", shallot: "🧅", garlic: "🧄", carrot: "🥕", potato: "🥔", "sweet-potato": "🍠",
   tomato: "🍅", eggplant: "🍆", zucchini: "🥒", cucumber: "🥒", "bell-pepper-red": "🫑",
+  "bell-pepper-green": "🫑", "cherry-tomato": "🍅", "spring-onion": "🧅", "chili-green": "🌶️",
+  "bell-pepper-yellow": "🫑", "onion-red": "🧅", celeriac: "🥬", arugula: "🥬",
+  "ginger-fresh": "🫘", jalapeno: "🌶️", "bean-sprouts": "🌱", "bok-choy": "🥬",
+  "lambs-lettuce": "🥬",
   broccoli: "🥦", cauliflower: "🥦", "corn-sweet": "🌽", mushroom: "🍄", pumpkin: "🎃",
   "butternut-squash": "🎃", peas: "🫛", "green-beans": "🫛",
   // Fruit
   apple: "🍎", pear: "🍐", banana: "🍌", orange: "🍊", grapefruit: "🍊", lemon: "🍋",
-  lime: "🍋", grape: "🍇", strawberry: "🍓", blueberry: "🫐", blackberry: "🫐",
+  lime: "🍋", "lemon-juice": "🍋", grape: "🍇", clementine: "🍊", "raisins-dried": "🍇",
+  "prunes-dried": "🍑", strawberry: "🍓", blueberry: "🫐", blackberry: "🫐",
   raspberry: "🫐", cherry: "🍒", peach: "🍑", apricot: "🍑", plum: "🍑", pineapple: "🍍",
   mango: "🥭", kiwi: "🥝", avocado: "🥑", watermelon: "🍉", cantaloupe: "🍈",
   "coconut-fresh": "🥥", pomegranate: "🍎",
@@ -388,16 +455,20 @@ const EMOJI: Record<string, string> = {
   rabbit: "🍖", "beef-steak-sirloin": "🥩", "beef-roast": "🥩", "beef-ground-90-10": "🥩",
   "ground-beef-80-20": "🥩", veal: "🥩", "pork-chop": "🥩", "pork-loin": "🥩",
   "chicken-breast": "🍗", "chicken-thigh": "🍗", "chicken-wings": "🍗", "chicken-slices": "🍗",
+  "chicken-whole": "🍗", "turkey-whole": "🦃", "duck-whole": "🦆",
+  "lamb-leg": "🍖", "pork-roast": "🥩",
   "turkey-breast": "🦃", "turkey-slices": "🦃", "ground-turkey": "🦃", "duck-breast": "🦆",
   "sausage-pork": "🌭", merguez: "🌭", chorizo: "🌭",
   // Seafood
-  shrimp: "🦐", crab: "🦀", mussels: "🦪", scallops: "🦪",
+  shrimp: "🦐", crab: "🦀", mussels: "🦪", scallops: "🦪", squid: "🦑",
+  "salmon-smoked": "🐟",
   // Dairy and eggs
   butter: "🧈", "butter-salted": "🧈", "butter-unsalted": "🧈",
-  "egg-whole": "🥚", "egg-white": "🥚",
+  "egg-whole": "🥚", "egg-white": "🥚", "egg-yolk": "🥚",
   // Grains
   baguette: "🥖", "bread-white": "🍞", "bread-whole-wheat": "🍞", breadcrumbs: "🍞",
-  "tortilla-wrap": "🫓", "pizza-dough": "🍕", "pasta-dry": "🍝", spaghetti: "🍝", penne: "🍝",
+  "tortilla-wrap": "🫓", "tortilla-corn": "🫓", "pizza-dough": "🍕", "pasta-dry": "🍝", spaghetti: "🍝", penne: "🍝",
+  macaroni: "🍝",
   "whole-wheat-pasta": "🍝", "fresh-tagliatelle": "🍝", "lasagna-sheets": "🍝",
   "egg-noodles": "🍜", "rice-noodles": "🍜", "white-rice": "🍚", "brown-rice": "🍚",
   "basmati-rice": "🍚", "arborio-rice": "🍚", granola: "🥣", "cereal-cornflakes": "🥣",
@@ -406,23 +477,32 @@ const EMOJI: Record<string, string> = {
   peanuts: "🥜",
   // Sweeteners
   honey: "🍯", "agave-syrup": "🍯", "maple-syrup": "🍁", "white-sugar": "🍬",
-  "brown-sugar": "🍬", "powdered-sugar": "🍬",
+  "brown-sugar": "🍬", "powdered-sugar": "🍬", "vanilla-sugar": "🍬",
   // Condiments
   salt: "🧂", ketchup: "🍅", "tomato-paste": "🍅", mayonnaise: "🥚", "hot-sauce": "🌶️",
+  harissa: "🌶️", pesto: "🌿", hummus: "🫘", "vinegar-red-wine": "🍷",
+  "fish-sauce": "🐟", tahini: "🥜", "mustard-wholegrain": "🟡",
+  "rice-vinegar": "🍚", "oyster-sauce": "🦪", "hoisin-sauce": "🍶", "miso-paste": "🍜",
+  "curry-paste-red": "🌶️", "preserved-lemon": "🍋",
   "soy-sauce": "🍶",
   // Spices
   "black-pepper": "🧂", paprika: "🌶️", "cayenne-pepper": "🌶️", "chili-powder": "🌶️",
+  "garam-masala": "🧂", "curry-powder": "🧂", saffron: "🌼", "herbes-de-provence": "🌿",
+  "ras-el-hanout": "🧂", "espelette-pepper": "🌶️", tarragon: "🌿",
+  "paprika-smoked": "🌶️", "mustard-seeds": "🟡", lemongrass: "🌿",
   "ginger-ground": "🫚", "bay-leaf": "🌿", "dried-basil": "🌿", "dried-oregano": "🌿",
   // Oils
-  "olive-oil": "🫒", "coconut-oil": "🥥",
+  "olive-oil": "🫒", "coconut-oil": "🥥", ghee: "🧈",
   // Everything else
   water: "💧", "coffee-ground": "☕", "black-tea": "🍵", "orange-juice": "🧃",
   "apple-juice": "🧃", beer: "🍺", "white-wine": "🍷", "red-wine": "🍷",
   "dark-chocolate": "🍫", "milk-chocolate": "🍫", "cocoa-powder": "🍫", "peanut-butter": "🥜",
   "canned-tomatoes": "🥫", passata: "🥫", "coconut-milk": "🥥", "almond-milk": "🥛",
-  "oat-milk": "🥛", "olives-green": "🫒", capers: "🫒", pickles: "🥒", "tofu-firm": "🧆",
+  "oat-milk": "🥛", "soy-milk": "🥛", "tofu-silken": "🧆", nori: "🍜",
+  "orange-blossom-water": "🌸", "olives-green": "🫒", capers: "🫒", pickles: "🥒", "tofu-firm": "🧆",
   tempeh: "🧆", seitan: "🧆", "beef-broth": "🍲", "chicken-broth": "🍲",
-  "vegetable-broth": "🍲", "baking-powder": "🧂", "baking-soda": "🧂", "dry-yeast": "🍞",
+  "vegetable-broth": "🍲", "bouillon-cube": "🍲", "baking-powder": "🧂", "baking-soda": "🧂",
+  "dry-yeast": "🍞",
   gelatin: "🍮", "vanilla-extract": "🫙",
 };
 
@@ -456,6 +536,8 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "ground-beef-80-20": { fr: ["viande hachée", "steak haché"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },
   "chicken-breast": { fr: ["blanc de poulet", "escalope de poulet"] },
+  // Not bare "poulet": a line reading "500 g de poulet" means pieces, and belongs on a part row.
+  "chicken-whole": { fr: ["poulet fermier"] },
   "egg-whole": { fr: ["oeufs", "œufs"] },
   "pasta-dry": { fr: ["pâtes"] },
   "white-rice": { fr: ["riz"] },
@@ -471,15 +553,46 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   shrimp: { fr: ["crevettes", "gambas"] },
   chickpeas: { fr: ["pois chiches"] },
   lardons: { fr: ["lardon"] },
+  // A recipe writing "de la salade" means leaves, and the catalog's only leaves are these.
+  "lettuce-romaine": { fr: ["salade", "salade verte"] },
+  "spring-onion": { fr: ["oignon nouveau", "cébette", "ciboule"] },
+  "bouillon-cube": { fr: ["bouillon cube", "tablette de bouillon"] },
+  "curry-powder": { fr: ["curry"] },
+  hummus: { en: ["houmous"] },
+  "raisins-dried": { fr: ["raisin sec"] },
+  "prunes-dried": { fr: ["pruneau"] },
+  "fish-sauce": { fr: ["sauce poisson", "nuoc mam"] },
+  tahini: { fr: ["tahini", "tahiné"] },
+  "soy-milk": { fr: ["lait de soja"] },
+  "salmon-smoked": { fr: ["saumon fume"] },
+  // ⚠️ This does NOT win bare "gingembre" — `ginger-ground` is named "Gingembre en poudre" and
+  //    takes it at 1.00 against this alias's 0.90. The alias is here so the fresh root is the
+  //    runner-up rather than absent, which is what a cook writing "gingembre râpé" needs.
+  "ginger-fresh": { fr: ["gingembre", "gingembre râpé"] },
+  // "Tofu ferme" scores only 0.70 on the bare word, so `tofu` reached the model every time. Firm
+  // is what an unqualified recipe line means — silken is always written as such.
+  "tofu-firm": { fr: ["tofu"] },
+  "bean-sprouts": { fr: ["pousses de soja"] },
+  "curry-paste-red": { fr: ["pâte de curry"] },
+  ghee: { fr: ["beurre clarifié"] },
+  nori: { fr: ["feuilles de nori"] },
 };
 
 /**
- * What one of an ingredient weighs, in grams — for the 45 rows a household counts rather than
+ * What one of an ingredient weighs, in grams — for the 66 rows a household counts rather than
  * weighs, plus the few written per piece in a recipe whatever the shop sells them by.
  *
  * Hand-compiled like the nutrition values above, for a medium specimen as sold: a whole raw item
  * before trimming, since that is what someone holds when they write "2 onions". Sparse by nature,
  * not by neglect — there is no such thing as one flour (see schema/ingredients.ts).
+ *
+ * **The three whole birds are the exception, and they are EDIBLE weight, not as sold.** A 1.4 kg
+ * `poulet entier` is ~1000 g of meat and skin over ~400 g of carcass, and this number is what the
+ * nutrition figures above are multiplied by: as-sold would bill the cook for the calories of a
+ * frame they will boil for stock and throw away. An apple's 180 g still includes its core and a
+ * cantaloupe's 550 g its rind, so this is an inconsistency rather than a rule — it is taken here
+ * because a bird's inedible fraction is ~30% where a core is a rounding error, and because a
+ * recipe writes "1 poulet" and means the meat on it.
  *
  * `garlic` is a clove, as every recipe that ever called for one means. Worth writing down only
  * because a shop sells it by the head and the two are ~17x apart, so whatever eventually turns a
@@ -490,14 +603,22 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   onion: 150, garlic: 5, tomato: 120, cucumber: 300, "bell-pepper-red": 150, zucchini: 200,
   eggplant: 300, "lettuce-romaine": 300, cabbage: 900, "red-cabbage": 900, leek: 150, beet: 100,
   turnip: 120, fennel: 250, artichoke: 130, endive: 100, shallot: 30,
+  "bell-pepper-green": 150, "cherry-tomato": 10, "spring-onion": 15, "chili-green": 15,
+  "bell-pepper-yellow": 150, "onion-red": 150, celeriac: 800, jalapeno: 15, "bok-choy": 150,
+  // Sold by weight, written by the piece — "un morceau de gingembre", "2 bâtons de citronnelle".
+  "ginger-fresh": 15, lemongrass: 20, "preserved-lemon": 40,
   // Fruits
   apple: 180, banana: 120, orange: 130, lemon: 100, lime: 65, cantaloupe: 550, pineapple: 900,
   mango: 200, kiwi: 75, peach: 150, pear: 180, plum: 65, apricot: 40, fig: 50, pomegranate: 280,
-  grapefruit: 250, avocado: 200,
+  grapefruit: 250, avocado: 200, clementine: 70, "prunes-dried": 10,
   // Grains, meat, dairy, egg
-  baguette: 250, "tortilla-wrap": 60, "pizza-dough": 250, "puff-pastry": 230,
+  baguette: 250, "tortilla-wrap": 60, "tortilla-corn": 30, "pizza-dough": 250, "puff-pastry": 230,
   "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
-  "flavoured-yogurt": 125, "egg-whole": 50,
+  "flavoured-yogurt": 125, "egg-whole": 50, "egg-yolk": 17, camembert: 250,
+  // Whole birds — meat and skin off the carcass, per the note above, not the weight on the label.
+  "chicken-whole": 1000, "duck-whole": 1000, "turkey-whole": 3000,
+  // A cube, as every recipe that calls for one means, and as the box is portioned.
+  "bouillon-cube": 10,
   // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
   "bay-leaf": 0.2,
 };
@@ -554,7 +675,7 @@ const GRAMS_PER_ML: Record<string, number> = {
   "worcestershire-sauce": 1.1, ketchup: 1.14, "mustard-yellow": 1.05, mayonnaise: 0.91,
   "tomato-paste": 1.07, "peanut-butter": 1.08, capers: 0.85, "olives-green": 0.75,
   // Sweeteners
-  "white-sugar": 0.85, "brown-sugar": 0.8, "powdered-sugar": 0.56, honey: 1.42,
+  "white-sugar": 0.85, "brown-sugar": 0.8, "powdered-sugar": 0.56, "vanilla-sugar": 0.85, honey: 1.42,
   "maple-syrup": 1.32, "agave-syrup": 1.37,
   // Dry pantry, spooned
   "flour-all-purpose": 0.53, "whole-wheat-flour": 0.55, cornstarch: 0.6, cornmeal: 0.65,
@@ -567,11 +688,17 @@ const GRAMS_PER_ML: Record<string, number> = {
   "black-pepper": 0.45, cinnamon: 0.45, cumin: 0.45, paprika: 0.46, turmeric: 0.5,
   "ginger-ground": 0.5, nutmeg: 0.5, "chili-powder": 0.5, "cayenne-pepper": 0.5,
   "coriander-ground": 0.45, cloves: 0.5, cardamom: 0.45, "dried-oregano": 0.2, "dried-basil": 0.2,
+  "garam-masala": 0.45, "curry-powder": 0.45, saffron: 0.35, "ras-el-hanout": 0.45,
+  "espelette-pepper": 0.45, "herbes-de-provence": 0.2, "paprika-smoked": 0.46,
+  "mustard-seeds": 0.65,
   // Fresh herbs, chopped — "1 tbsp of parsley". Light enough that the imprecision costs nothing.
-  basil: 0.25, parsley: 0.25, cilantro: 0.25, mint: 0.25, thyme: 0.3, rosemary: 0.3,
+  basil: 0.25, parsley: 0.25, cilantro: 0.25, mint: 0.25, thyme: 0.3, rosemary: 0.3, tarragon: 0.3,
   "oregano-fresh": 0.25, dill: 0.25, chives: 0.25, sage: 0.25,
   // Liquids
   water: 1, "vegetable-broth": 1, "chicken-broth": 1, "beef-broth": 1, "vanilla-extract": 0.88,
+  "lemon-juice": 1.02, "vinegar-red-wine": 1.01, "fish-sauce": 1.02, tahini: 1.07,
+  "mustard-wholegrain": 1.05, "soy-milk": 1.03, "rice-vinegar": 1.01, "oyster-sauce": 1.2,
+  "hoisin-sauce": 1.2, "miso-paste": 1.2, "curry-paste-red": 1.1, "orange-blossom-water": 1,
   "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "white-wine": 0.99,
   "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
 };
@@ -635,22 +762,39 @@ const DIET: Record<string, Diet> = {
   salt: "vegan", "soy-sauce": "vegan", ketchup: "vegan", "mustard-yellow": "vegan",
   "vinegar-white": "vegan", "balsamic-vinegar": "vegan", "hot-sauce": "vegan",
   "tomato-paste": "vegan", mayonnaise: "vegetarian", "worcestershire-sauce": "pescatarian",
+  harissa: "vegan", hummus: "vegan", "vinegar-red-wine": "vegan", tahini: "vegan",
+  "mustard-wholegrain": "vegan",
+  // The row `DIET_BY_CATEGORY` names as its reason for existing: anchovy, filed under CONDIMENT.
+  "fish-sauce": "pescatarian",
+  "rice-vinegar": "vegan", "hoisin-sauce": "vegan", "miso-paste": "vegan",
+  "preserved-lemon": "vegan",
+  // Both read as a plant sauce and are not one: oyster sauce is oyster extract, and Thai red curry
+  // paste is built on shrimp paste in every jar not explicitly labelled otherwise.
+  "oyster-sauce": "pescatarian", "curry-paste-red": "pescatarian",
+  // Parmesan in the jar, in every recipe and on every label that calls itself pesto.
+  pesto: "vegetarian",
 
   // -- Sweeteners: honey is the whole reason this category has no default --------------------
   "white-sugar": "vegan", "brown-sugar": "vegan", "powdered-sugar": "vegan",
-  "maple-syrup": "vegan", "agave-syrup": "vegan", honey: "vegetarian",
+  "maple-syrup": "vegan", "agave-syrup": "vegan", "vanilla-sugar": "vegan", honey: "vegetarian",
 
   // -- Other: a bucket by definition, so every row states its own case -----------------------
   water: "vegan", "vegetable-broth": "vegan", "tofu-firm": "vegan", tempeh: "vegan",
   seitan: "vegan", "baking-powder": "vegan", "baking-soda": "vegan", "dry-yeast": "vegan",
+  // The one OIL row that is not a plant oil: ghee is butter with the milk solids cooked out.
+  ghee: "vegetarian",
   "dark-chocolate": "vegan", "cocoa-powder": "vegan", "vanilla-extract": "vegan",
   "peanut-butter": "vegan", "coconut-milk": "vegan", "almond-milk": "vegan", "oat-milk": "vegan",
   "canned-tomatoes": "vegan", passata: "vegan", "olives-green": "vegan", capers: "vegan",
+  "soy-milk": "vegan", "tofu-silken": "vegan", nori: "vegan", "orange-blossom-water": "vegan",
   pickles: "vegan", "coffee-ground": "vegan", "black-tea": "vegan", "orange-juice": "vegan",
   "apple-juice": "vegan", "white-wine": "vegan", "red-wine": "vegan", beer: "vegan",
   "milk-chocolate": "vegetarian",
   // Stock from an animal, and a setting agent made of its collagen. Both read as "OTHER".
   "chicken-broth": "omnivore", "beef-broth": "omnivore", gelatin: "omnivore",
+  // A generic cube is built on poultry or beef fat far more often than not, and the direction to
+  // be wrong in is the one that does not serve a vegetarian a stock they would refuse.
+  "bouillon-cube": "omnivore",
 };
 
 /**
@@ -685,7 +829,8 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   // white/brown/arborio/basmati rice, rice-noodles, cornmeal, polenta, cornstarch, quinoa.
   // Oats are on the EU list in their own right, so `oats` and anything oat-based counts.
   "pasta-dry": ["gluten"], "whole-wheat-pasta": ["gluten"], spaghetti: ["gluten"],
-  penne: ["gluten"], "lasagna-sheets": ["gluten"], couscous: ["gluten"], bulgur: ["gluten"],
+  penne: ["gluten"], macaroni: ["gluten"], "lasagna-sheets": ["gluten"], couscous: ["gluten"],
+  bulgur: ["gluten"],
   barley: ["gluten"], oats: ["gluten"], granola: ["gluten"],
   "flour-all-purpose": ["gluten"], "whole-wheat-flour": ["gluten"], breadcrumbs: ["gluten"],
   "bread-white": ["gluten"], "bread-whole-wheat": ["gluten"], baguette: ["gluten"],
@@ -699,11 +844,16 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   // -- Fish, crustaceans and molluscs: three separate EU allergens, not one "seafood" --------
   salmon: ["fish"], "tuna-canned-water": ["fish"], cod: ["fish"], tilapia: ["fish"],
   sardines: ["fish"], trout: ["fish"], mackerel: ["fish"], anchovy: ["fish"],
+  "salmon-smoked": ["fish"],
+  // Anchovy, fermented — the sauce the DIET map above also singles out.
+  "fish-sauce": ["fish"],
   shrimp: ["crustaceans"], crab: ["crustaceans"],
-  mussels: ["molluscs"], scallops: ["molluscs"],
+  mussels: ["molluscs"], scallops: ["molluscs"], squid: ["molluscs"],
+  "oyster-sauce": ["molluscs"], "curry-paste-red": ["crustaceans"],
 
   // -- Tree nuts, and the rows that are not tree nuts ----------------------------------------
-  almonds: ["nuts"], walnuts: ["nuts"], cashews: ["nuts"], pistachios: ["nuts"],
+  almonds: ["nuts"], "almonds-flaked": ["nuts"], walnuts: ["nuts"], cashews: ["nuts"],
+  pistachios: ["nuts"],
   pecans: ["nuts"], hazelnuts: ["nuts"], macadamia: ["nuts"], "brazil-nuts": ["nuts"],
   "almond-milk": ["nuts"],
   // A pine nut is a seed and is not on the EU-14, but it is sold, stored and reacted to as a nut.
@@ -717,10 +867,13 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   // -- Soy, sesame, celery, mustard ----------------------------------------------------------
   soybeans: ["soybeans"], edamame: ["soybeans"], "tofu-firm": ["soybeans"], tempeh: ["soybeans"],
   "sesame-seeds": ["sesame"], "sesame-oil": ["sesame"],
+  // Tahini is what makes hummus sesame, and it is in every recipe for it.
+  hummus: ["sesame"], tahini: ["sesame"],
   celery: ["celery"],
   // Stock, in a cube or a carton, is built on celery almost without exception.
   "vegetable-broth": ["celery"], "chicken-broth": ["celery"], "beef-broth": ["celery"],
-  "mustard-yellow": ["mustard"],
+  "bouillon-cube": ["celery"],
+  "mustard-yellow": ["mustard"], "mustard-wholegrain": ["mustard"], "mustard-seeds": ["mustard"],
 
   // -- Everything else -----------------------------------------------------------------------
   // Brewed from wheat, and fermented from soy.
@@ -728,11 +881,18 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   // Anchovy, malt vinegar and soy - the sauce that is three allergens and reads as none.
   "worcestershire-sauce": ["fish", "gluten", "soybeans"],
   mayonnaise: ["eggs"],
-  seitan: ["gluten"], "oat-milk": ["gluten"],
+  // Parmesan and pine nuts — see `pine-nuts` above for why a pine nut is recorded as a tree nut.
+  pesto: ["milk", "nuts"],
+  seitan: ["gluten"], "oat-milk": ["gluten"], "soy-milk": ["soybeans"],
+  "tofu-silken": ["soybeans"], "bean-sprouts": ["soybeans"], "miso-paste": ["soybeans"],
+  "hoisin-sauce": ["gluten", "soybeans"],
+  // Clarified, but not milk-free: ghee retains trace casein and is declared as milk.
+  ghee: ["milk"],
   // Lecithin in the chocolate, milk in the milk chocolate. Cocoa powder alone carries neither.
   "dark-chocolate": ["soybeans"], "milk-chocolate": ["milk", "soybeans"],
   // Preserved with sulphur dioxide, and declared as such on every bottle.
   "white-wine": ["sulphites"], "red-wine": ["sulphites"], "balsamic-vinegar": ["sulphites"],
+  "vinegar-red-wine": ["sulphites"],
   beer: ["gluten", "sulphites"],
 };
 

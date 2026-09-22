@@ -84,6 +84,11 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["huile d'olive", "olive-oil"],
     ["tomates concassées", "canned-tomatoes"],
     ["viande hachée", "ground-beef-80-20"],
+    // A whole bird had no row, so step 1 declined and the ranker linked "Poulet piri piri" to
+    // `chicken-breast` — the nearest thing it was offered. Wrong name, and a 400 g default where
+    // the cook needed a 1.4 kg bird.
+    ["poulet entier", "chicken-whole"],
+    ["canard entier", "duck-whole"],
     ["fromage râpé", "emmental"],
     ["poivre noir", "black-pepper"],
     ["riz basmati", "basmati-rice"],
@@ -112,7 +117,7 @@ describe("functions/ingredients: the bar a name is linked at", () => {
    * point of the resolve slice — but they must still not be LINKED here, at step 1, with nobody
    * asked.
    */
-  test.each(["sumac", "harissa", "kombu", "quatre-quarts breton"])(
+  test.each(["sumac", "kombu", "quatre-quarts breton"])(
     "%s is not linked to its nearest row",
     async (name) => {
       expect(await linked(name)).toBe("unmatched");
