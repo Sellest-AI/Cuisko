@@ -133,6 +133,17 @@ export default defineConfig({
           // convex/env.ts throws on a missing key by design (P4), so the test run has to supply a
           // valid environment — the same contract a real deployment has to satisfy.
           env: { ...CONVEX_TEST_ENV },
+
+          /**
+           * The C10 `beforeAll` warm-up is where a file's whole import graph gets transformed, and
+           * it is deliberately the one place allowed to be slow. Against Vitest's 10s hook default
+           * it still lost on a machine also running Metro — `media/images/uploadMany` timed out in
+           * its warm-up in 3 of 6 `pnpm verify` runs one day, green on every retry.
+           *
+           * `testTimeout` stays at the 5s default on purpose: once the warm-up has run, a test that
+           * still hits it is importing something nobody warmed, which is exactly the signal to keep.
+           */
+          hookTimeout: 30_000,
         },
       },
       /**

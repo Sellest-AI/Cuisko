@@ -1,4 +1,4 @@
-import { register as registerAgent } from "@convex-dev/agent/test";
+import agentTest, { register as registerAgent } from "@convex-dev/agent/test";
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -11,13 +11,20 @@ import schema from "../../../schema";
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
 
-/** Warms the module under test before anything is timed — C10 rule 4. */
+/**
+ * Warms the module under test before anything is timed — C10 rule 4.
+ *
+ * The agent component's functions are a second lazy glob, `agentTest.modules`, which
+ * `registerAgent` hands to convex-test as-is. Without warming it too, the first test to open a
+ * thread pays for the whole component graph — see listMessages.test.ts for the measurement.
+ */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
+  Promise.all([
+    ...Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/assistant/sendMessage."))
       .map(([, load]) => load()),
-  ),
+    ...Object.values(agentTest.modules).map((load) => load()),
+  ]),
 );
 
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
