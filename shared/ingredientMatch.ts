@@ -12,6 +12,8 @@
  * for the caller that turns these numbers into a decision.
  */
 
+import { foldAccents } from "./translations";
+
 /** A catalog row reduced to what scoring can see — id, name and synonyms, in ONE locale. */
 export type Candidate = { id: string; name: string; aliases?: string[] };
 
@@ -198,11 +200,23 @@ const _isGradeToken = (token: string) => /^pct\d/.test(token);
  */
 export const isGrade = (token: string): boolean => _isGradeToken(_grades(token).trim());
 
-/** Diacritics off, punctuation to spaces — "Pâtes (sèches)" and "pates seches" must agree. */
+/**
+ * Diacritics off, punctuation to spaces — "Pâtes (sèches)" and "pates seches" must agree.
+ *
+ * **The accent fold is `foldAccents`, not a copy of it (ADR 0012).** That function already expands
+ * `œ` and `æ` before it normalises, and it has to: the pair carries no decomposition mapping in
+ * Unicode, so `NFD` leaves them whole and the `[^a-z0-9]` whitelist below turns them into a SPACE
+ * — folding `bœuf` to the two tokens `b` and `uf`, and `œuf` to `uf`.
+ *
+ * This function used to strip diacritics itself and skip the ligatures, which put the two halves
+ * of search out of step: `@shared/search` indexed a row under `boeuf` while this folded the cook’s
+ * query to `b uf`. The damage was symmetric wherever both sides carried the ligature, which is
+ * what hid it — it bit only where the spellings disagreed, and a cook typing `œuf` at a row
+ * holding `oeufs` retrieved NOTHING, walked all five resolve steps and had a duplicate row
+ * invented for them. Calling the one folder keeps the index and the query a single rule.
+ */
 const _fold = (value: string) =>
-  _grades(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+  foldAccents(_grades(value))
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
