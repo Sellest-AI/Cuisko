@@ -278,15 +278,21 @@ Not translations — those are the names above. Three or four is plenty; an empt
   single thing (an onion, a clove of garlic, a bay leaf). Pick what a cook would write, not what
   converts most neatly.
 - defaultQuantity: how much of it one recipe line typically calls for, in that unit.
-- gramsPerPiece: what ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove. Leave
-  it out for anything that has no single one of it (flour, oil, milk).
-- gramsPerMl: the density — 0.91 for oil, 1.42 for honey, 1.0 for water. Give it for anything
-  pourable, and give it whenever the unit is a volume. Leave it out only for something nobody
-  could pour (a chicken, a carrot).
-- ⚠️ The unit you chose MUST be weighable: choose "pcs" and you MUST give gramsPerPiece; choose a
-  volume ("ml", "cl", "l", "tbsp", "tsp") and you MUST give gramsPerMl. Nutrition is stored per 100g,
-  so a line whose unit cannot reach grams contributes NOTHING to a recipe's totals — a dish quietly
-  missing its olive oil reads as a health food. If you cannot weigh the unit, pick "g" instead.
+- gramsPerPiece: what ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove, 80
+  for a carrot, 120 for a chicken thigh. Give it for anything a recipe could COUNT, even when you
+  chose "g" as the unit: a recipe says "2 carrots" as readily as "200 g of carrots". Leave it out
+  only for something that has no single one of it (flour, oil, milk).
+- gramsPerMl: the density — 0.91 for oil, 1.42 for honey, 1.0 for water, 0.5 for a ground spice,
+  0.25 for a chopped fresh herb. Give it for anything a recipe could SPOON or pour, even when you
+  chose "g" as the unit: a recipe says "1 tsp of cumin" as readily as "2 g of cumin", and a powder
+  in a teaspoon is measured by volume whether or not it pours. Leave it out only for something
+  nobody measures in a spoon or a jug (a chicken, a whole carrot).
+- ⚠️ Nutrition is stored per 100g, so a line whose unit cannot reach grams contributes NOTHING to
+  a recipe's totals — a dish quietly missing its olive oil reads as a health food. Answer every
+  ratio the food plausibly has, not only the one your defaultUnit needs: the recipe line that asked
+  for this row is written in its own unit, which is named to you when there is one, and the row is
+  refused if it cannot weigh that unit. "pcs" needs gramsPerPiece; a volume ("ml", "cl", "l",
+  "tbsp", "tsp") needs gramsPerMl.
 
 # nutrition, per 100g
 

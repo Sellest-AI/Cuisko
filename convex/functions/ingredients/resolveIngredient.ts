@@ -279,7 +279,18 @@ const _fromApis = async (
  */
 export const resolveWithAgent = async (
   ctx: ResolveCtx,
-  { text, locale, evidence }: { text: string; locale: Locale; evidence: IngredientEvidence },
+  { text, locale, evidence, units }: {
+    text: string;
+    locale: Locale;
+    evidence: IngredientEvidence;
+    /**
+     * The unit(s) the recipe line(s) naming this food are written in, when a recipe is asking. A
+     * row invented here must be weighable in each of them, not only in the unit the model picks
+     * for it — see `_weighable` in the tool. The navigation bar passes none: a shopper's typing
+     * carries no unit, and the row's own default is all it needs.
+     */
+    units?: Unit[];
+  },
 ): Promise<ResolvedIngredient> => {
   const sanitized = await sanitizeIngredient.run(ctx, {
     locale,
@@ -288,6 +299,7 @@ export const resolveWithAgent = async (
     // choice back out of it (ADR 0010).
     candidates: evidence.candidates.map(({ ingredientId, name }) => ({ id: ingredientId, name })),
     hits: evidence.hits,
+    units,
   });
 
   if (sanitized.verdict === "refused") return { status: "refused", reason: sanitized.reason };

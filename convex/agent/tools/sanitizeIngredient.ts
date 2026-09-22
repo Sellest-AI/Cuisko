@@ -14,7 +14,14 @@ import { ALLERGENS, type Allergen } from "@shared/allergens";
 import { CATEGORIES } from "@shared/categories";
 import { DIETS } from "@shared/diets";
 import { retryPromise } from "@shared/helpers";
-import { INGREDIENT_SOURCES, toGrams, UNITS, type IngredientSource } from "@shared/ingredients";
+import {
+  INGREDIENT_SOURCES,
+  toGrams,
+  UNITS,
+  type GramWeights,
+  type IngredientSource,
+  type Unit,
+} from "@shared/ingredients";
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
 import { ingredientsAgent, rankerAgent } from "../agents";
@@ -274,6 +281,13 @@ const _inputSchema = z.object({
     .array(_hitSchema)
     .optional()
     .describe("What the taxonomy, CIQUAL and the two live APIs said about this term."),
+  units: z
+    .array(z.enum(UNITS))
+    .optional()
+    .describe(
+      "The unit(s) the recipe line(s) that asked for this row are written in. The row must be " +
+      "weighable in each of them, not only in its own defaultUnit. Empty for a shopper's typing.",
+    ),
 });
 
 /** Everything the tool is handed. Named because the two prompt builders below both take it. */
@@ -454,12 +468,21 @@ const _statusOf = (name: string, stated: readonly string[]): TranslationStatus =
 const _catalogName = (name: string) => name.trim().toLowerCase();
 
 /**
- * The unit repaired to one the row can actually be weighed in, or `undefined` when it cannot be.
+ * The ratios the row can be weighed with in every unit it has to answer, or the first unit it
+ * cannot be weighed in.
  *
  * Nutrition is stored per 100g, so a line whose unit cannot reach grams contributes NOTHING to a
  * recipe's total — a dish quietly missing its olive oil reads as a health food, with no error
  * anywhere. That rule has not changed; where it is applied has. It used to be a `.refine()` on the
  * facts object, which discarded the ENTIRE row over one missing ratio (see the note there).
+ *
+ * **Every unit in `units` is required, not only `defaultUnit`.** No lookup source ever supplies a
+ * ratio — the taxonomy, CIQUAL and the two APIs ship names and per-100g figures — so the model is
+ * the only place a piece weight or a density ever comes from, and it used to be asked only about
+ * the unit it had chosen itself. A row invented for `1 tsp garam masala` was therefore born in `g`
+ * with no density, and the line that paid for it could not be weighed; 49 of 74 recipes on dev
+ * had one such line. The caller that knows the line's unit hands it in, and the row is not usable
+ * until it can weigh that unit too.
  *
  * A volume with no density is repairable and is repaired: water's 1.0 is wrong by at most a third
  * for anything a recipe pours, against a row lost completely, and a spoonful of sauce weighed 15 g
@@ -470,19 +493,25 @@ const _catalogName = (name: string) => name.trim().toLowerCase();
  * by name. Written through `toGrams` rather than a hand-listed set of volume units, so the rule and
  * the conversion can never disagree about which unit needs which ratio.
  */
-const _weighable = (facts: z.infer<typeof _modelFactsSchema>) => {
-  const ratios = {
+const _weighable = (
+  facts: z.infer<typeof _modelFactsSchema>,
+  units: readonly Unit[],
+): { ratios: GramWeights } | { unweighable: Unit } => {
+  const stated: GramWeights = {
     gramsPerPiece: facts.gramsPerPiece ?? undefined,
     gramsPerMl: facts.gramsPerMl ?? undefined,
   };
+  const required = [...new Set([facts.defaultUnit, ...units])];
+  const failing = (ratios: GramWeights) =>
+    required.find((unit) => toGrams(1, unit, ratios) === undefined);
 
-  if (toGrams(facts.defaultQuantity, facts.defaultUnit, ratios) !== undefined) return ratios;
+  if (failing(stated) === undefined) return { ratios: stated };
 
-  const repaired = { ...ratios, gramsPerMl: 1 };
+  // The net, never a default: a stated density survives it.
+  const repaired = { ...stated, gramsPerMl: stated.gramsPerMl ?? 1 };
+  const unweighable = failing(repaired);
 
-  return toGrams(facts.defaultQuantity, facts.defaultUnit, repaired) === undefined
-    ? undefined
-    : repaired;
+  return unweighable === undefined ? { ratios: repaired } : { unweighable };
 };
 
 /**
@@ -504,6 +533,7 @@ const _weighable = (facts: z.infer<typeof _modelFactsSchema>) => {
 export const toSanitizedIngredient = (
   raw: unknown,
   hits: readonly LookupHit[] = [],
+  units: readonly Unit[] = [],
 ): SanitizedIngredient => {
   const answer = parseModelOutput(modelIngredientSchema, raw);
 
@@ -536,13 +566,15 @@ export const toSanitizedIngredient = (
   const facts = answer.facts;
 
   // Repaired rather than rejected: a missing density costs a row nothing now (see `_weighable`).
-  const ratios = _weighable(facts);
+  const weighed = _weighable(facts, units);
 
-  if (!ratios)
+  if ("unweighable" in weighed)
     throw new Error(
-      `sanitizeIngredient: defaultUnit "${facts.defaultUnit}" needs a gramsPerPiece to weigh it, ` +
+      `sanitizeIngredient: unit "${weighed.unweighable}" needs a gramsPerPiece to weigh it, ` +
       "and there is no default weight for one of something",
     );
+
+  const { ratios } = weighed;
 
   const byLocale = _namesByLocale(facts);
 
@@ -629,11 +661,14 @@ export const toSanitizedIngredient = (
  * Exported so the bake-off scores the prompt the tool actually sends. A copy kept in step by hand
  * is a copy that drifts, and a bake-off measuring a prompt nothing ships answers nothing.
  */
-export const sanitizeIngredientUserPrompt = ({ text, hits = [] }: SanitizeIngredientInput) =>
+export const sanitizeIngredientUserPrompt = ({ text, hits = [], units = [] }: SanitizeIngredientInput) =>
   [
     `The shopper typed:\n${text}`,
     hits.length &&
     `What other sources say about it — names to prefer, figures that will be kept over yours:\n${JSON.stringify(hits, null, 2)}`,
+    units.length &&
+    `A recipe line writes this in: ${[...new Set(units)].join(", ")}. The row MUST carry the ` +
+    "ratio that weighs each of these units, whatever defaultUnit you choose.",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -736,7 +771,7 @@ export const sanitizeIngredient = createTool({
       // wrapped methods), so the object arrives as JSON. Parsing here is what restores the contract
       // `toSanitizedIngredient` pins — the model already generated against this schema, so it is a
       // cast that cannot silently be wrong.
-      return toSanitizedIngredient(result.object, args.hits as LookupHit[] | undefined);
+      return toSanitizedIngredient(result.object, args.hits as LookupHit[] | undefined, args.units);
     }, 2);
   },
 });

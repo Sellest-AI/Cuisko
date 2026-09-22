@@ -7,6 +7,7 @@ import { parseModelOutput } from "../../utils";
 import {
   matchIngredientSchema,
   matchIngredientUserPrompt,
+  sanitizeIngredientUserPrompt,
   toSanitizedIngredient,
 } from "../sanitizeIngredient";
 
@@ -433,6 +434,44 @@ describe("toSanitizedIngredient", () => {
     expect(() => toSanitizedIngredient(unweighable)).toThrow(/gramsPerPiece/);
   });
 
+  /**
+   * The row is weighed in the unit the RECIPE LINE was written in, not only in the one the model
+   * chose. `1 tsp garam masala` invented a row in `g` with no density, and the line that paid for
+   * it could not be counted — 49 of 74 recipes on dev lost their nutrition to one such line.
+   */
+  it("weighs the unit a recipe line was written in, not only the row's own", () => {
+    // A ground spice answered in grams, no density: fine on its own, useless to `1 tsp`.
+    const spice = _answer({
+      facts: _facts({ defaultUnit: "g", gramsPerPiece: null, gramsPerMl: null }),
+    });
+
+    const facts = toSanitizedIngredient(spice, [], ["tsp"]);
+    if (facts.verdict !== "new") throw new Error("expected a new row");
+
+    expect(facts.facts.defaultUnit).toBe("g");
+    expect(facts.facts.gramsPerMl).toBe(1);
+  });
+
+  it("refuses a row a recipe counts in pieces when the model gave no piece weight", () => {
+    const carrot = _answer({
+      facts: _facts({ defaultUnit: "g", gramsPerPiece: null, gramsPerMl: null }),
+    });
+
+    // Fine as `200 g`; refused as `1 pcs`, by the unit's name.
+    expect(() => toSanitizedIngredient(carrot, [], ["g"])).not.toThrow();
+    expect(() => toSanitizedIngredient(carrot, [], ["pcs"])).toThrow(/unit "pcs"/);
+  });
+
+  it("keeps a stated density when a piece weight is what is missing", () => {
+    const oil = _answer({
+      facts: _facts({ defaultUnit: "tbsp", gramsPerPiece: null, gramsPerMl: 0.91 }),
+    });
+
+    // The repair must not reach for 1.0 on its way to refusing `pcs`.
+    expect(() => toSanitizedIngredient(oil, [], ["pcs"])).toThrow(/unit "pcs"/);
+    expect(_new(oil).gramsPerMl).toBe(0.91);
+  });
+
   it("rejects a vocabulary the column would reject, rather than storing it", () => {
     expect(() => toSanitizedIngredient(_answer({ facts: _facts({ category: "VEGETABLES" }) })))
       .toThrow();
@@ -531,6 +570,24 @@ describe("toSanitizedIngredient", () => {
  * The ranker sees the taxonomy's answer, which is the whole of the wrong-link fix: `jus de citron`
  * was judged against a `Jus d'orange` row on the words alone, and linked.
  */
+describe("sanitizeIngredientUserPrompt", () => {
+  it("names the unit the recipe line is written in, once per unit", () => {
+    const prompt = sanitizeIngredientUserPrompt({
+      locale: "fr",
+      text: "garam masala",
+      units: ["tsp", "g", "tsp"],
+    });
+
+    expect(prompt).toContain("A recipe line writes this in: tsp, g.");
+  });
+
+  it("says nothing about units when a shopper typed the term", () => {
+    const prompt = sanitizeIngredientUserPrompt({ locale: "fr", text: "garam masala" });
+
+    expect(prompt).not.toContain("A recipe line writes this in");
+  });
+});
+
 describe("matchIngredientUserPrompt", () => {
   const _curated: LookupHit = {
     source: "foodComposition",

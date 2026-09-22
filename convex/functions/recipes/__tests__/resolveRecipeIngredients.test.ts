@@ -108,6 +108,28 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
     ]);
   });
 
+  test("hands the model every unit the lines under one name are written in", async () => {
+    // `1 pcs carotte` and `200 g carotte` fold onto one walk. The row that walk invents has to
+    // weigh both, so the model is told both — the units are the seam this slice exists for.
+    gather.mockResolvedValue(undecided());
+    agent.mockResolvedValue({
+      status: "created",
+      ingredientId: id("carrot"),
+      name: "carotte",
+      source: "agent",
+      defaultUnit: "g",
+      defaultQuantity: 200,
+    });
+
+    await resolve([
+      { name: "carotte", quantity: 1, unit: "pcs" },
+      { name: "carottes", quantity: 200, unit: "g" },
+    ]);
+
+    expect(agent).toHaveBeenCalledTimes(1);
+    expect(agent.mock.calls[0]![1].units).toEqual(["pcs", "g"]);
+  });
+
   /**
    * A grade is identity, not spelling. `searchTerms` drops it because an index never stored the
    * `%`; folding two grades of the same food together here would resolve one and silently link the

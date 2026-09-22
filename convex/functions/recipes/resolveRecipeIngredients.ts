@@ -211,9 +211,16 @@ export const resolveRecipeIngredients = async (
 
   /** The spelling each distinct name is walked with — the first line that used it. */
   const spellings = new Map<string, string>();
+  /**
+   * Every unit the lines under one key are written in. Handed to the model when it invents the
+   * row, so the row is born able to weigh the line that asked for it — `1 pcs carotte` and
+   * `200 g carotte` fold onto one walk and the row has to answer both.
+   */
+  const units = new Map<string, Set<Unit>>();
   recipe.ingredients.forEach((line, index) => {
     const key = folded[index]!;
     if (!spellings.has(key)) spellings.set(key, line.name);
+    (units.get(key) ?? units.set(key, new Set()).get(key)!).add(line.unit);
   });
 
   const linked = new Map<string, Id<"ingredients">>();
@@ -253,7 +260,12 @@ export const resolveRecipeIngredients = async (
     RESOLVE_CONCURRENCY,
     async ({ key, text, evidence }) => ({
       key,
-      resolved: await resolveWithAgent(ctx, { text, locale, evidence }),
+      resolved: await resolveWithAgent(ctx, {
+        text,
+        locale,
+        evidence,
+        units: [...(units.get(key) ?? [])],
+      }),
     }),
   );
 
