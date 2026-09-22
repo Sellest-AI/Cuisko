@@ -62,6 +62,19 @@ const QWEN_3_7_FLASH_OPTIONS = {
   })
 }
 
+const MIMO_V2_6_PRO = openrouter.chat("xiaomi/mimo-v2.6-pro");
+const MIMO_V2_6_PRO_OPTIONS = {
+  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
+    openrouter: {
+      reasoning: effort ? { enabled: true, effort } : { enabled: false },
+      provider: {
+        sort: "price",
+        allow_fallbacks: true
+      }
+    }
+  })
+}
+
 export const models = {
   default: {
     model: DEEPSEEK_V4_FLASH_0731,
@@ -96,9 +109,17 @@ export const models = {
     model: DEEPSEEK_V4_FLASH_0731,
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS
   },
+  /**
+   * The `sanitizeIngredient` row writer. Mimo at reasoning off, replacing Deepseek: the
+   * 2026-09-22 row bake-off (`sanitizeIngredientRow.manual.test.ts`, seven candidates × three
+   * runs on worcestershire sauce) had Deepseek hallucinate `celery` and return protein 0 in two
+   * runs of three, where Mimo kept every allergen and every nutrition figure clean in all three.
+   * Reasoning off rather than medium because the answers were the same and medium took 45–83 s
+   * against 11 s, on a call a shopper waits for.
+   */
   ingredients: {
-    model: DEEPSEEK_V4_FLASH_0731,
-    ...DEEPSEEK_V4_FLASH_0731_OPTIONS
+    model: MIMO_V2_6_PRO,
+    ...MIMO_V2_6_PRO_OPTIONS
   },
   /**
    * The `sanitizeIngredient` ranker: is a near-miss the catalog found the same food, or nothing?
