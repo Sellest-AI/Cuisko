@@ -19,13 +19,19 @@ const modules = import.meta.glob("/convex/**/*.*s");
  * Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts.
  * Cold, the first test here paid 2.2s for `migrations.ts` and the component graph beneath it, and
  * timed out under `pnpm verify` load; warmed, it pays the same as its neighbours.
+ *
+ * The component's own functions are a second lazy glob, `migrationsTest.modules`, which
+ * `register` hands to convex-test as-is — warming `migrations.ts` alone left the first test still
+ * paying for it (73ms idle, past 5s under load). Same shape as the agent component in
+ * router/assistant/__tests__/listMessages.test.ts.
  */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
+  Promise.all([
+    ...Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/migrations."))
       .map(([, load]) => load()),
-  ),
+    ...Object.values(migrationsTest.modules).map((load) => load()),
+  ]),
 );
 
 let t: ReturnType<typeof convexTest>;
