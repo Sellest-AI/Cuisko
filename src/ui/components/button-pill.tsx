@@ -205,7 +205,7 @@ export const ButtonPill = ({
             <Text.Base
               style={{
                 color: color.color,
-                fontWeight: 600,
+                fontWeight: size === "sm" ? 500 : 600,
                 opacity: textOpacity,
                 textAlign: "center",
               }}
@@ -233,7 +233,6 @@ export const ButtonPill = ({
 
 const styles = StyleSheet.create({
   base: {
-    overflow: "hidden",
     padding: theme.spacing[8],
     flexDirection: "row",
     alignItems: "center",

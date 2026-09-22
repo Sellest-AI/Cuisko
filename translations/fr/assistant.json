@@ -1,5 +1,8 @@
 {
   "title": "Cuisko",
   "thinking": "Cuisko réfléchit",
-  "failed": "Je n'ai pas réussi à répondre. Tu peux me redemander ?"
+  "failed": "Je n'ai pas réussi à répondre. Tu peux me redemander ?",
+  "empty_title": "Demande-moi ce que tu veux",
+  "empty_body": "Quoi cuisiner ce soir, que faire de ce qu'il reste dans le frigo, par quoi remplacer un ingrédient. Pose ta question en bas.",
+  "empty_action": "Planifier ma semaine"
 }

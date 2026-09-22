@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   elevatedSubtle: {
     boxShadow: [
       {
-        offsetX: -2,
+        offsetX: 0,
         offsetY: 2,
         blurRadius: 16,
         spreadDistance: 0,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   elevated: {
     boxShadow: [
       {
-        offsetX: -2,
+        offsetX: 0,
         offsetY: 2,
         blurRadius: 24,
         spreadDistance: 0,

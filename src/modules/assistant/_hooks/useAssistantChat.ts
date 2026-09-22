@@ -129,6 +129,14 @@ export const useAssistantChat = () => {
     messages,
     ask,
     /**
+     * A thread is being read, so an empty `messages` means "not loaded yet", not "nothing here".
+     *
+     * The screen needs the two apart: without a conversation the query is skipped and empty is
+     * final, while with one the first page is still in flight and drawing a greeting over it
+     * would flash a welcome at somebody who is mid-conversation.
+     */
+    hasConversation: conversation !== undefined,
+    /**
      * The question is in and nothing has come back yet — the screen draws Cuisko thinking.
      *
      * True from the moment it is sent, through the gap before it appears in the transcript, until

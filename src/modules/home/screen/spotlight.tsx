@@ -9,7 +9,7 @@ import { useTranslations } from "translations";
 import { useWeekIdeas } from "~/modules/planning/hooks";
 import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
 
-const CARD_WIDTH = 200;
+const CARD_WIDTH = 160;
 
 /**
  * What the week is worth cooking — a shelf to browse, not a plan to follow.

@@ -1,6 +1,10 @@
 {
   "QuickAccess": {
     "title": "Accès rapide",
+    "ask_cuisko": "Demander à Cuisko",
+    "import_recipe": "Importer une recette",
+    "plan_week": "Planifier la semaine",
+    "my_recipes": "Mes recettes",
     "grocery_list": "Liste de courses",
     "to_buy_x_items_one": "{{count, number}} article à acheter",
     "to_buy_x_items_many": "{{count, number}} d'articles à acheter",

@@ -23,6 +23,7 @@ import calendar from "assets/images/cuisko/cuisko-calendar.webp";
 import stopwatch from "assets/images/cuisko/cuisko-stopwatch.webp";
 import forbidden from "assets/images/cuisko/cuisko-forbidden.webp";
 import foodPile from "assets/images/cuisko/cuisko-food-pile.webp";
+import winkingHead from "assets/images/cuisko/cuisko-winking-head.webp";
 
 /** What Cuisko is holding — the picture's own subject, not the question it happens to illustrate. */
 export type CuiskoPose =
@@ -53,3 +54,14 @@ export const CUISKO: Record<CuiskoPose, ImageProps["source"]> = {
   /** Perched on a mountain of dishes and packets. */
   "food-pile": foodPile,
 };
+
+/**
+ * His face on its own, tipped over and winking. What a screen shows when it is greeting somebody
+ * rather than illustrating a question.
+ *
+ * Deliberately NOT a key in `CUISKO`: that Record is keyed by what he is holding, and a crop is
+ * not a thing he can hold — "winking-head" in there would make "what is Cuisko carrying"
+ * answerable with "his own head". It lives in this file all the same, because this file is what
+ * makes an asset in `assets/images/cuisko/` referenced rather than quietly shipped and forgotten.
+ */
+export const CUISKO_HEAD: ImageProps["source"] = winkingHead;

@@ -10,6 +10,7 @@ import { theme } from "theme";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
+import { AssistantEmpty } from "./screen.empty";
 import { RecipeRow } from "./screen.recipe-row";
 import { useAssistantChat } from "./_hooks/useAssistantChat";
 
@@ -26,7 +27,7 @@ type Props = {
 
 export const AssistantScreen = ({ style, question }: Props) => {
   const t = useTranslations("Assistant");
-  const { messages, ask, isThinking } = useAssistantChat();
+  const { messages, ask, isThinking, hasConversation } = useAssistantChat();
 
   /**
    * The question the bar arrived with, sent exactly once.
@@ -44,6 +45,14 @@ export const AssistantScreen = ({ style, question }: Props) => {
     asked.current = true;
     void ask(question);
   }, [question, ask]);
+
+  /**
+   * Nothing has been asked, and nothing is on its way.
+   *
+   * Reachable since Quick Access started linking straight here: the navigation bar used to be the
+   * only door in, and it always arrived carrying a question.
+   */
+  const isEmpty = !question && !hasConversation && !isThinking;
 
   const scroller = useRef<ScrollView>(null);
 
@@ -74,10 +83,14 @@ export const AssistantScreen = ({ style, question }: Props) => {
       </View>
 
       {/*
-        * There is no empty state, because there is no way to reach one: the only route onto this
-        * screen is the navigation bar submitting a question, and that question is sent on mount.
-        * A greeting written for a case that cannot happen is a screen nobody would ever see.
+        * The greeting, drawn only when the screen is certainly empty and will stay that way.
+        *
+        * All three conditions are the same question asked of the three things that can put a
+        * message here: a `question` is about to be sent on mount, a held conversation is a
+        * transcript still loading, and a pending one is a turn already in flight. Testing
+        * `messages.length` alone would greet a reader for the frame before any of them lands.
         */}
+      {isEmpty && <AssistantEmpty />}
       <View style={styles.conversation}>
         {messages.map((message) =>
           message.from === "user" ? (

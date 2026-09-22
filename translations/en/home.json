@@ -1,6 +1,10 @@
 {
   "QuickAccess": {
     "title": "Quick Access",
+    "ask_cuisko": "Ask Cuisko",
+    "import_recipe": "Import a recipe",
+    "plan_week": "Plan the week",
+    "my_recipes": "My recipes",
     "grocery_list": "Grocery list",
     "to_buy_x_items_one": "{{count, number}} item to buy",
     "to_buy_x_items_other": "{{count, number}} items to buy",
