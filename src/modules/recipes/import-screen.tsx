@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { LayoutChangeEvent, Platform, StyleSheet, ViewStyle } from "react-native";
+import { Keyboard, LayoutChangeEvent, Platform, Pressable, StyleSheet, ViewStyle } from "react-native";
 
 import { isAppError } from "@shared/errors";
 import { ButtonPill } from "@ui/button-pill";
@@ -43,6 +43,22 @@ export const ImportScreen = ({ style, onLayout }: Props) => {
       onLayout={onLayout}
       edges={{ bottom: "android", top: "off" }}
     >
+      {/*
+        * The sheet's background, and the only thing on it that gives the keyboard back.
+        *
+        * A form sheet has nothing outside itself to tap: the field keeps focus until something
+        * asks it to let go, so without this the keyboard sits over the screen until the cook
+        * submits or dismisses the whole modal. Rendered first, so it is under everything and only
+        * ever catches a tap that missed the field and the two buttons.
+        *
+        * Absolutely positioned rather than wrapping the column — `onLayout` above measures this
+        * screen to cut the sheet to it, and a tap-catcher in the flow would be measured too.
+        */}
+      <Pressable
+        accessible={false}
+        style={StyleSheet.absoluteFill}
+        onPress={() => Keyboard.dismiss()}
+      />
       <Text.Lg style={styles.title}>{t("Import.url_title")}</Text.Lg>
       <Input
         isLoading={isImporting}

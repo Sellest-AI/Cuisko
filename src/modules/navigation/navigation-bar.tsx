@@ -50,10 +50,13 @@ export const NavigationBar = () => {
   const [inputFocused, setInputFocused] = useState(false);
 
   const insets = useSafeAreaInsets();
-  const { reset } = useNavigationBar();
+  const { reset, blur } = useNavigationBar();
 
   const cancelResetRef = useRef(() => { });
   const onBlur = () => {
+    // The field's native focus is not React's: collapsing the bar leaves the keyboard standing
+    // unless the input is asked to give it up, and the shopper then has to tap outside twice.
+    blur();
     setInputFocused(false);
     // Store the reset function timeout to cancel it on focus
     cancelResetRef.current = reset({ delayed: true });
@@ -109,6 +112,7 @@ export const NavigationBar = () => {
                     </m.View>}
                 </AnimatePresence>
                 {!isRecipes && <NavigationBarInput
+                  style={{ maxWidth: inputFocused ? "100%" : (isAssistant ? 320 : 242) }}
                   focused={inputFocused}
                   onFocus={() => { setInputFocused(true); cancelResetRef.current(); }}
                   onBlur={() => onBlur()}

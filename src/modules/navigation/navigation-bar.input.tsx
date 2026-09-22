@@ -92,10 +92,16 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   // back to a still microphone is invisible.
   const spin = useSpin(isChecking);
 
-  const { mode, setInputRef } = useNavigationBar();
+  const { mode, registerInputRef } = useNavigationBar();
   const ref = useRef<TextInput>(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setInputRef(ref); }, []);
+  /**
+   * Announces this field as the one `focus()` and `blur()` should reach, for as long as it is up.
+   *
+   * The deregistration is the effect's cleanup rather than something this component remembers to
+   * do: two bars are mounted at once whenever a modal renders its own, and the one that goes must
+   * hand the field back to the one that stayed. See `registerInputRef`.
+   */
+  useEffect(() => registerInputRef(ref), [registerInputRef]);
 
   /**
    * Lands the shopper on the page their submission went to: an ingredient aimed at the cellar
@@ -267,10 +273,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
       </AnimatePresence>
       <m.View
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
-        style={[
-          styles.container,
-          focused ? { maxWidth: "100%", width: "100%" } : { maxWidth: 242, width: "100%" },
-        ]}>
+        style={styles.container}>
         <Input
           ref={ref}
           elevated
@@ -338,6 +341,8 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
 
 const styles = StyleSheet.create({
   container: {
+    maxWidth: "100%",
+    width: "100%",
   },
   /**
    * In the layout flow, not absolutely positioned over it — the panel used to hang above the bar,
