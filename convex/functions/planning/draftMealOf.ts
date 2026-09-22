@@ -3,7 +3,7 @@ import type { RecipeCard } from "@convex/functions/recipes/recipeCard";
 import { resolvei18n } from "@convex/lib/i18n";
 import type { Locale } from "@convex/schema/i18n";
 import type { Category } from "@shared/categories";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 
 import type { Need, Plate } from "./selectMeals";
@@ -16,7 +16,7 @@ export type DraftIngredient = {
   imageUrl?: string;
   /** The recipe's own words, scaled to the plate — "2 pcs", not the grams stock is counted in. */
   amount: number;
-  unit: Unit;
+  unit: RecipeUnit;
   covered: boolean;
 };
 

@@ -1,7 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { vLocalized, vLocalizedList, vLocalizedText } from "./i18n";
-import { INGREDIENT_SOURCES, UNITS } from "@shared/ingredients";
+import { INGREDIENT_SOURCES, RECIPE_UNITS, UNITS } from "@shared/ingredients";
 import { NUTRI_SCORE_GRADES } from "@shared/nutrition";
 import { DIETS } from "@shared/diets";
 import { ALLERGENS } from "@shared/allergens";
@@ -21,6 +21,13 @@ export const vCategory = v.union(...CATEGORIES.map(v.literal));
  * agree only for as long as nobody narrows one of them.
  */
 export const vUnit = v.union(...UNITS.map(v.literal));
+
+/**
+ * The wider vocabulary a RECIPE line is written in — `UNITS` plus `slice`. For `recipeIngredients`
+ * and the planning rows that keep a recipe's own words; never for a cellar or grocery row, which
+ * hold what a shop sells, and never for `defaultUnit` below.
+ */
+export const vRecipeUnit = v.union(...RECIPE_UNITS.map(v.literal));
 const vNutriScoreGrade = v.union(...NUTRI_SCORE_GRADES.map(v.literal));
 
 /**
@@ -173,14 +180,18 @@ export const ingredients = defineTable({
    *
    * `nutrition` below is per 100g, so every quantity has to reach grams before it can be counted —
    * and "2 onions" or "1 tbsp of oil" cannot get there on arithmetic alone. `gramsPerPiece` weighs a
-   * single one (150 for an onion); `gramsPerMl` is the density, and it is the difference between
-   * oil at 0.91 and honey at 1.42 — assuming 1.0 understates honey by 40%.
+   * single one AS SOLD (150 for an onion, 250 for a baguette); `gramsPerMl` is the density, and it
+   * is the difference between oil at 0.91 and honey at 1.42 — assuming 1.0 understates honey by
+   * 40%. `gramsPerSlice` weighs one slice of something sold whole and eaten cut (35 for a slice of
+   * that baguette): a recipe counts slices, the shop sells the loaf, and one ratio cannot answer
+   * both. How many slices make a loaf is derived from the two weights, never stored.
    *
-   * Both stay optional permanently, and not merely until the catalog is reseeded: an ingredient
-   * carries the ratios for the units it is plausibly measured in, which is usually one of the two.
-   * A chicken has no `gramsPerMl` because nobody measures one in millilitres, and flour has no
-   * `gramsPerPiece` because there is no such thing as one flour. Absent here means "no such
-   * question", not "not filled in yet".
+   * All three stay optional permanently, and not merely until the catalog is reseeded: an
+   * ingredient carries the ratios for the units it is plausibly measured in, which is usually one
+   * of them. A chicken has no `gramsPerMl` because nobody measures one in millilitres, flour has no
+   * `gramsPerPiece` because there is no such thing as one flour, and an onion has no
+   * `gramsPerSlice` because nobody counts onion slices. Absent here means "no such question", not
+   * "not filled in yet".
    *
    * What is not expressible as a validator, and belongs in the seed instead: an ingredient must
    * carry the ratio for its own `defaultUnit`, or the unit it is most often written in is the one
@@ -188,6 +199,7 @@ export const ingredients = defineTable({
    * all rather than a partial total — a dish quietly missing its olive oil reads as a health food.
    */
   gramsPerPiece: v.optional(v.number()),
+  gramsPerSlice: v.optional(v.number()),
   gramsPerMl: v.optional(v.number()),
   // All facts per 100g.
   nutrition: vIngredientNutrition,

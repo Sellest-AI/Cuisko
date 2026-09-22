@@ -7,7 +7,7 @@
  */
 
 import type { Category } from "@shared/categories";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import { localClock, startOfDay } from "@shared/clock";
 import { clampServings, MAX_SERVINGS } from "@shared/servings";
 import { toggle } from "@shared/helpers";
@@ -50,7 +50,7 @@ export type MealIngredient = {
   category: string;
   emoji: string;
   amount: number;
-  unit: Unit;
+  unit: RecipeUnit;
 };
 
 /**
@@ -96,7 +96,7 @@ export type DraftIngredient = {
   category: Category;
   imageUrl?: string;
   amount: number;
-  unit: Unit;
+  unit: RecipeUnit;
   /** What the cellar already holds, after what the week's earlier plates took. */
   covered: boolean;
 };
@@ -198,7 +198,7 @@ export type GroceryRow = {
    * nothing there is being asked for at all.
    */
   amount: number;
-  unit: Unit;
+  unit: RecipeUnit;
   /** The meals needing it, drawn as the stack of little plates under the name. */
   mealIds: string[];
   /**
@@ -708,7 +708,7 @@ export const groceriesFor = (meals: DraftMeal[]): GroceryList => {
  */
 export const ownedLinesOf = (meals: DraftMeal[], rowIds: string[]) => {
   const wanted = new Set(rowIds);
-  const pairs = new Map<string, { ingredientId: string; unit: Unit }>();
+  const pairs = new Map<string, { ingredientId: string; unit: RecipeUnit }>();
 
   for (const meal of meals)
     for (const ingredient of meal.ingredients) {

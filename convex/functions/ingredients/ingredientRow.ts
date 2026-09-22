@@ -98,6 +98,7 @@ export type IngredientFacts = {
   defaultUnit: Unit;
   defaultQuantity: number;
   gramsPerPiece?: number;
+  gramsPerSlice?: number;
   gramsPerMl?: number;
   nutrition: IngredientNutrition;
 };
@@ -207,6 +208,7 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
     // Undefined for a row that has no such ratio, which is how `patch` drops one that was removed
     // from the catalog — an omitted key would leave the old value in place instead.
     gramsPerPiece: facts.gramsPerPiece,
+    gramsPerSlice: facts.gramsPerSlice,
     gramsPerMl: facts.gramsPerMl,
     nutrition: facts.nutrition,
     nutriScore: computeNutriScore(

@@ -28,7 +28,7 @@
  */
 
 import { CONFIDENT, scoreCandidate } from "@shared/ingredientMatch";
-import { roundQuantity, type Unit } from "@shared/ingredients";
+import { roundQuantity, type RecipeUnit } from "@shared/ingredients";
 import type { InstructionGroup } from "@shared/recipes";
 import { foldAccents } from "@shared/translations";
 
@@ -56,7 +56,7 @@ export type InstructionSegment = {
    */
   line?: RecipeLine;
   /** The unit spelled after the number, when it is one the app stores. Absent for a bare count. */
-  unit?: Unit;
+  unit?: RecipeUnit;
 };
 
 /** What a step calls for, read out of its own text rather than out of a per-step table. */
@@ -68,7 +68,7 @@ export type IngredientMention = {
    * may store tomatoes in grams, and "4 g" is a worse answer than no answer. A bare count is a
    * count of things, so it falls back to pieces.
    */
-  unit: Unit;
+  unit: RecipeUnit;
 };
 
 /**
@@ -139,10 +139,11 @@ const CONTAINERS = new Set([
  * confused with a duration or a temperature — those are vetoed above, and `cm`/`mm` are among
  * them, so a tin measured across is not a quantity.
  *
- * `undefined` marks a measure the app does not store: a cook writing "2 tranches de pain" is
- * counting bread, and there is no `slice` in `UNITS`. It still proves the number is an amount.
+ * `undefined` marks a measure the app does not store: a cook writing "2 gousses d'ail" is
+ * counting garlic, and a clove is a piece the catalog already counts. It still proves the number
+ * is an amount.
  */
-const MEASURES = new Map<string, Unit | undefined>([
+const MEASURES = new Map<string, RecipeUnit | undefined>([
   ["g", "g"], ["gr", "g"], ["gramme", "g"], ["grammes", "g"], ["gram", "g"], ["grams", "g"],
   ["mg", "mg"], ["milligramme", "mg"], ["milligrammes", "mg"],
   ["kg", "kg"], ["kilo", "kg"], ["kilos", "kg"], ["kilogramme", "kg"], ["kilogrammes", "kg"],
@@ -157,7 +158,7 @@ const MEASURES = new Map<string, Unit | undefined>([
   ["cuillere", undefined], ["cuilleres", undefined], ["soupe", undefined], ["cafe", undefined],
   ["pincee", undefined], ["pincees", undefined], ["pinch", undefined], ["pinches", undefined],
   ["gousse", undefined], ["gousses", undefined], ["clove", undefined], ["cloves", undefined],
-  ["tranche", undefined], ["tranches", undefined], ["slice", undefined], ["slices", undefined],
+  ["tranche", "slice"], ["tranches", "slice"], ["slice", "slice"], ["slices", "slice"],
   ["brin", undefined], ["brins", undefined], ["sprig", undefined], ["sprigs", undefined],
   ["branche", undefined], ["branches", undefined],
   ["feuille", undefined], ["feuilles", undefined], ["leaf", undefined], ["leaves", undefined],
@@ -294,7 +295,7 @@ const _readAt = (
   index: number,
   token: string,
   lines: RecipeLine[],
-): { line?: RecipeLine; unit?: Unit } | undefined => {
+): { line?: RecipeLine; unit?: RecipeUnit } | undefined => {
   const rest = instruction.slice(index + token.length);
 
   /** A degree sign or a percentage is not food, and neither survives folding into a word. */
@@ -305,7 +306,7 @@ const _readAt = (
   const tokens = _tokensOf(_contextOf(rest));
   if (tokens[0] !== undefined && NOT_AN_AMOUNT.has(tokens[0])) return undefined;
 
-  let unit: Unit | undefined;
+  let unit: RecipeUnit | undefined;
   let measured = false;
   let start = 0;
   while (start < tokens.length && (MEASURES.has(tokens[start]!) || GLUE.has(tokens[start]!))) {
@@ -381,7 +382,7 @@ export const readInstruction = (
  * rather than switching to a point mid-sentence — `_model/` has no locale, and the text itself is
  * the only honest source for that.
  */
-const _write = (value: number, original: string, unit?: Unit): string => {
+const _write = (value: number, original: string, unit?: RecipeUnit): string => {
   const text = String(unit ? roundQuantity(value, unit) : Math.ceil(value * 10 - 1e-9) / 10);
 
   return original.includes(",") ? text.replace(".", ",") : text;

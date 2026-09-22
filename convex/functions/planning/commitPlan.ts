@@ -3,7 +3,7 @@ import { ConvexError } from "convex/values";
 import { internal } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import { MEAL_SLOTS, type MealSlot } from "@shared/mealSlots";
 
 import { availableStock } from "./availableStock";
@@ -43,7 +43,7 @@ type Args = {
    * Their answer over the cellar's, and it only ever suppresses a grocery write: the line is still
    * cooked, so it still reserves what it reserves.
    */
-  owned: { ingredientId: Id<"ingredients">; unit: Unit }[];
+  owned: { ingredientId: Id<"ingredients">; unit: RecipeUnit }[];
 };
 
 /**

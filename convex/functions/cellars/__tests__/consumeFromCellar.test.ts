@@ -5,6 +5,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Unit } from "@shared/ingredients";
 
 import schema from "../../../schema";
+import { scaleLines } from "../../planning/scaleLines";
 import type { Need } from "../../planning/selectMeals";
 import { consumeFromCellar } from "../consumeFromCellar";
 
@@ -20,7 +21,9 @@ beforeEach(() => {
 const household = () =>
   t.run((ctx) => ctx.db.insert("households", { name: "Home", inviteCode: "ABC", updatedAt: Date.now() }));
 
-type IngredientFacts = Partial<Pick<Doc<"ingredients">, "defaultUnit" | "defaultQuantity" | "gramsPerPiece" | "gramsPerMl">>;
+type IngredientFacts = Partial<
+  Pick<Doc<"ingredients">, "defaultUnit" | "defaultQuantity" | "gramsPerPiece" | "gramsPerSlice" | "gramsPerMl">
+>;
 
 const ingredient = async (facts: IngredientFacts = {}) => {
   const id = await t.run((ctx) =>
@@ -169,6 +172,47 @@ describe("functions/cellars/consumeFromCellar", () => {
       await cook(home, [{ need: measured(tomato._id, 2 / 3, "pcs"), ingredient: tomato }]);
 
       expect(await cellarOf(home)).toEqual([]);
+    });
+
+    /**
+     * A recipe counts slices; the cellar counts loaves. The need is built the way planning builds
+     * it — through `scaleLines`, so the slice-to-loaf ratio is derived from the two weights and
+     * not typed into this test — and then judged as pieces: 14 of a loaf's 15 slices leave a
+     * fifteenth, which is not a loaf, so the row is finished and remembered.
+     */
+    test("fourteen of a loaf's fifteen slices finish the loaf", async () => {
+      const home = await household();
+      const bread = await ingredient({ defaultUnit: "pcs", defaultQuantity: 1, gramsPerPiece: 250, gramsPerSlice: 250 / 15 });
+      await stock(home, bread._id, 1, "pcs");
+
+      const [need] = scaleLines(
+        [{ ingredientId: bread._id, quantity: 14, unit: "slice", ingredient: { ...bread, category: "GRAIN" } }],
+        { recipeServings: 4, servings: 4 },
+      );
+      expect(need).toMatchObject({ kind: "measured", unit: "slice" });
+
+      await cook(home, [{ need: need!, ingredient: bread }]);
+
+      expect(await cellarOf(home)).toEqual([]);
+      expect(await recentlyUsedOf(home)).toMatchObject([{ ingredientId: bread._id, quantity: 1, unit: "pcs" }]);
+    });
+
+    /** Six slices of fifteen leave three fifths of a loaf: more than half a piece, so it stays. */
+    test("six of a loaf's fifteen slices leave the rest of the loaf", async () => {
+      const home = await household();
+      const bread = await ingredient({ defaultUnit: "pcs", defaultQuantity: 1, gramsPerPiece: 250, gramsPerSlice: 250 / 15 });
+      await stock(home, bread._id, 1, "pcs");
+
+      const [need] = scaleLines(
+        [{ ingredientId: bread._id, quantity: 6, unit: "slice", ingredient: { ...bread, category: "GRAIN" } }],
+        { recipeServings: 4, servings: 4 },
+      );
+
+      await cook(home, [{ need: need!, ingredient: bread }]);
+
+      const [row] = await cellarOf(home);
+      expect(row?.unit).toBe("pcs");
+      expect(row?.quantity).toBeCloseTo(0.6);
     });
 
     test("an emptied row replaces an older recently-used entry rather than doubling it", async () => {

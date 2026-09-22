@@ -272,6 +272,18 @@ describe("functions/planning/syncMealLines", () => {
     expect(await ledgerOf(meal)).toMatchObject([{ quantity: 300, unit: "g", groceryQuantity: 300 }]);
   });
 
+  /** The list holds what a shop sells, and no shop sells slices: an unweighable slice buys the loaf. */
+  test("buys the whole for an unmeasured line counted in slices", async () => {
+    const home = await household();
+    const meal = await plate(home);
+    const bread = await ingredient({ defaultUnit: "pcs", defaultQuantity: 1, gramsPerPiece: 250 });
+
+    await sync(home, meal, [{ need: { ingredientId: bread, quantity: 8, unit: "slice", kind: "unmeasured" } }]);
+
+    expect(await listOf(home)).toMatchObject([{ quantity: 1, unit: "pcs" }]);
+    expect(await ledgerOf(meal)).toMatchObject([{ quantity: 8, unit: "slice", sourceUnit: "slice" }]);
+  });
+
   test("buys nothing for a line the shopper says is already in the kitchen, but still reserves it", async () => {
     const home = await household();
     const meal = await plate(home);

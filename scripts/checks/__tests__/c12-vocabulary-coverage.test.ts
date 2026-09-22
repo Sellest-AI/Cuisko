@@ -49,14 +49,16 @@ const SHARED: Tree = {
   "shared/cuisines.ts": `export const CUISINES = ["french"] as const;`,
   "shared/categories.ts": `export const CATEGORIES = ["VEGETABLE"] as const;`,
   /**
-   * Spelled with a second export beside it, because `UNITS` is the one registered vocabulary whose
-   * source file is not single-purpose — it sits in `shared/ingredients.ts` among the conversions.
-   * A fixture holding the constant alone would pass against a `declaredConstants` that only ever
-   * read the first declaration in a file.
+   * Spelled with a second export beside it, because `RECIPE_UNITS` is the one registered
+   * vocabulary whose source file is not single-purpose — it sits in `shared/ingredients.ts` among
+   * the conversions. A fixture holding the constant alone would pass against a `declaredConstants`
+   * that only ever read the first declaration in a file. And spelled as the spread it really is,
+   * so the fixture exercises the one level of spread `valuesOf` follows.
    */
   "shared/ingredients.ts": `
     export const NO_EMOJI = "-";
     export const UNITS = ["g", "tbsp"] as const;
+    export const RECIPE_UNITS = [...UNITS, "slice"] as const;
     export const unitLabel = (unit: string) => unit;
   `,
   "translations/types.ts": TYPES,
@@ -69,7 +71,7 @@ const COMPLETE = {
   Allergens: { gluten: "Gluten" },
   Cuisines: { french: "French" },
   Categories: { VEGETABLE: "Vegetable" },
-  Units: { g: "g", tbsp: "cs" },
+  Units: { g: "g", tbsp: "cs", slice: "tranche" },
 };
 
 /** The fixture, with `edit` applied to the French words only — so the two locales disagree. */

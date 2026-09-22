@@ -1,10 +1,10 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
-import { toStockUnit, type Unit } from "@shared/ingredients";
+import { toStockUnit, type RecipeUnit } from "@shared/ingredients";
 
 import type { Stock } from "./selectMeals";
 
-type Amount = { ingredientId: Id<"ingredients">; quantity: number; unit: Unit };
+type Amount = { ingredientId: Id<"ingredients">; quantity: number; unit: RecipeUnit };
 
 /**
  * What the household's cellar can still give a new plan, per ingredient, in its stock unit.

@@ -74,6 +74,7 @@ export const vIngredientFacts = v.object({
   defaultUnit: vUnit,
   defaultQuantity: v.number(),
   gramsPerPiece: v.optional(v.number()),
+  gramsPerSlice: v.optional(v.number()),
   gramsPerMl: v.optional(v.number()),
   nutrition: vNutritionFacts,
 });

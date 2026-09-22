@@ -2,7 +2,7 @@ import { CUISINES } from "@shared/cuisines";
 import { DIFFICULTIES } from "@shared/recipes";
 import { EQUIPMENTS } from "@shared/equipments";
 import { AUTHORED_TAGS } from "@shared/tags";
-import { UNITS } from "@shared/ingredients";
+import { RECIPE_UNITS } from "@shared/ingredients";
 import { LANGUAGE_NAMES, type Locale } from "@shared/translations";
 
 /**
@@ -178,9 +178,11 @@ not inventing them.
     buy: "smoked paprika" yes, "fresh coriander" no. Test every word you keep by asking whether
     dropping it would send the cook home with the wrong product; if it would not, drop it.
     It is matched against a catalog by name.
-  - unit: exactly one of: ${_list(UNITS)}. "tbsp" is a tablespoon and "tsp" a teaspoon, both the
+  - unit: exactly one of: ${_list(RECIPE_UNITS)}. "tbsp" is a tablespoon and "tsp" a teaspoon, both the
     metric spoon — 15 ml and 5 ml. "pcs" is the piece a RECIPE counts — a clove of garlic, not the
-    head it is sold in; a bay leaf, not the jar.
+    head it is sold in; a bay leaf, not the jar. "slice" is a cut of something sold whole and
+    eaten sliced — a slice of bread, of cheese, of ham, a round of lemon: a "tranche", "slice" or
+    "rondelle" is always "slice", never "pcs" (which would count loaves) and never a weight.
     Pick what a cook would write, never what converts most neatly. Every ingredient in the catalog
     carries what one of it weighs and what a millilitre of it weighs, so "2 tbsp of honey" reaches
     grams exactly as "30 g of honey" does: a weight you reached for to be safe only makes the line

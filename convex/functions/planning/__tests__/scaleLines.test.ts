@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
 import type { Category } from "@shared/categories";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit, Unit } from "@shared/ingredients";
 
 import { scaleLines, type ScalableLine } from "../scaleLines";
 
@@ -10,7 +10,7 @@ const ONION = "onion" as Id<"ingredients">;
 
 const line = (
   quantity: number,
-  unit: Unit,
+  unit: RecipeUnit,
   ingredient: Partial<ScalableLine["ingredient"]> = {},
 ): ScalableLine => ({
   ingredientId: ONION,
@@ -35,6 +35,17 @@ describe("functions/planning/scaleLines", () => {
       });
 
       expect(need).toMatchObject({ quantity: 2, unit: "pcs", amount: 300 });
+    });
+
+    /** 3 slices for 2, cooked for 3, is 4.5 slices: five get cut, and 175 g of a 250 g loaf get reserved. */
+    test("rounds slices up to a whole, and weighs the rounded count into the stock unit", () => {
+      const [need] = scaleLines(
+        [line(3, "slice", { defaultUnit: "pcs", gramsPerPiece: 250, gramsPerSlice: 35 })],
+        { recipeServings: 2, servings: 3 },
+      );
+
+      expect(need).toMatchObject({ quantity: 5, unit: "slice", kind: "measured" });
+      expect(need?.kind === "measured" && need.amount).toBeCloseTo(0.7);
     });
 
     /** A third scaled by three is 1.0000000000000002 in floating point, and must stay one onion. */

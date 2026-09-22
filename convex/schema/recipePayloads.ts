@@ -7,13 +7,13 @@
  * itself below: it deliberately is not `recipes.validator`.
  *
  * They stay under `convex/schema/` rather than beside their routers because they are built from
- * this folder's vocabulary — `vEquipments`, `vUnit`, `vLocale`, `DIFFICULTY_LEVELS` — and a change
+ * this folder's vocabulary — `vEquipments`, `vRecipeUnit`, `vLocale`, `DIFFICULTY_LEVELS` — and a change
  * to the `recipes` table has to force a look at them.
  */
 
 import { type Infer, v } from "convex/values";
 import { vLocale, vLocalized, vLocalizedList } from "./i18n";
-import { vUnit } from "./ingredients";
+import { vRecipeUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
 import { recipes } from "./recipes";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
@@ -86,7 +86,7 @@ export const vRecipeLink = v.object({
   ingredientId: v.id("ingredients"),
   position: v.number(),
   quantity: v.number(),
-  unit: vUnit,
+  unit: vRecipeUnit,
 });
 
 /**
@@ -134,7 +134,7 @@ export const vSanitizedRecipe = v.object({
   equipments: vEquipments,
   timings: vTimings,
   instructions: vInstructionGroups,
-  ingredients: v.array(v.object({ name: v.string(), quantity: v.number(), unit: vUnit })),
+  ingredients: v.array(v.object({ name: v.string(), quantity: v.number(), unit: vRecipeUnit })),
 });
 
 /**
@@ -193,7 +193,7 @@ export const vPortableRecipe = v.object({
     v.object({
       position: v.number(),
       quantity: v.number(),
-      unit: vUnit,
+      unit: vRecipeUnit,
       ingredient: v.object({
         slug: v.optional(v.string()),
         name: vLocalized,

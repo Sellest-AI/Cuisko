@@ -4,7 +4,7 @@ import { sanitizeIngredient } from "@convex/agent/tools/sanitizeIngredient";
 import type { ActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { CONFIDENT, gradesIn, MARGIN } from "@shared/ingredientMatch";
-import type { IngredientSource, Unit } from "@shared/ingredients";
+import type { IngredientSource, RecipeUnit, Unit } from "@shared/ingredients";
 
 import { compositionOf } from "./lookup/composition";
 import { searchFoodDataCentral } from "./lookup/foodDataCentral";
@@ -289,7 +289,7 @@ export const resolveWithAgent = async (
      * for it — see `_weighable` in the tool. The navigation bar passes none: a shopper's typing
      * carries no unit, and the row's own default is all it needs.
      */
-    units?: Unit[];
+    units?: RecipeUnit[];
   },
 ): Promise<ResolvedIngredient> => {
   const sanitized = await sanitizeIngredient.run(ctx, {

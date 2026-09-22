@@ -275,13 +275,19 @@ Not translations — those are the names above. Three or four is plenty; an empt
 
 - defaultUnit: exactly one of: ${_list(UNITS)} — the unit a recipe writes this ingredient in.
   "tbsp" and "tsp" are the metric tablespoon and teaspoon, 15 ml and 5 ml. "pcs" is a countable
-  single thing (an onion, a clove of garlic, a bay leaf). Pick what a cook would write, not what
-  converts most neatly.
+  single thing as the shop hands it over (an onion, a clove of garlic, a bay leaf, a loaf). Nothing
+  is stocked by the slice: a recipe that counts slices is weighed through gramsPerSlice below. Pick
+  what a cook would write, not what converts most neatly.
 - defaultQuantity: how much of it one recipe line typically calls for, in that unit.
 - gramsPerPiece: what ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove, 80
   for a carrot, 120 for a chicken thigh. Give it for anything a recipe could COUNT, even when you
   chose "g" as the unit: a recipe says "2 carrots" as readily as "200 g of carrots". Leave it out
   only for something that has no single one of it (flour, oil, milk).
+- gramsPerSlice: what ONE SLICE of it weighs, in grams — 35 for a slice of baguette, 30 for a
+  slice of cheese, 20 for a slice of ham, 10 for a round of lemon. Give it for anything sold whole
+  and eaten cut, whatever unit you chose: a recipe says "8 slices of bread" as readily as "1
+  baguette", and the piece weight says nothing about how thick it is cut. Leave it out for
+  anything nobody slices (an onion, a tomato, garlic, a spice, a liquid).
 - gramsPerMl: the density — 0.91 for oil, 1.42 for honey, 1.0 for water, 0.5 for a ground spice,
   0.25 for a chopped fresh herb. Give it for anything a recipe could SPOON or pour, even when you
   chose "g" as the unit: a recipe says "1 tsp of cumin" as readily as "2 g of cumin", and a powder
@@ -291,8 +297,8 @@ Not translations — those are the names above. Three or four is plenty; an empt
   a recipe's totals — a dish quietly missing its olive oil reads as a health food. Answer every
   ratio the food plausibly has, not only the one your defaultUnit needs: the recipe line that asked
   for this row is written in its own unit, which is named to you when there is one, and the row is
-  refused if it cannot weigh that unit. "pcs" needs gramsPerPiece; a volume ("ml", "cl", "l",
-  "tbsp", "tsp") needs gramsPerMl.
+  refused if it cannot weigh that unit. "pcs" needs gramsPerPiece; "slice" needs gramsPerSlice; a
+  volume ("ml", "cl", "l", "tbsp", "tsp") needs gramsPerMl.
 
 # nutrition, per 100g
 

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { commitPlan } from "@convex/functions/planning/commitPlan";
 import { vMealSlot } from "@convex/schema/households";
-import { vUnit } from "@convex/schema/ingredients";
+import { vRecipeUnit } from "@convex/schema/ingredients";
 import { householdMutation } from "@convex/procedures";
 
 /**
@@ -31,7 +31,7 @@ export const authed = householdMutation({
     seed: v.number(),
     note: v.optional(v.string()),
     today: v.number(),
-    owned: v.array(v.object({ ingredientId: v.id("ingredients"), unit: vUnit })),
+    owned: v.array(v.object({ ingredientId: v.id("ingredients"), unit: vRecipeUnit })),
   },
   handler: (ctx, args) =>
     commitPlan(ctx, { ...args, householdId: ctx.householdId }),

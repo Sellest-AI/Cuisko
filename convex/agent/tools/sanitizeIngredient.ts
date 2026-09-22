@@ -16,11 +16,12 @@ import { DIETS } from "@shared/diets";
 import { retryPromise } from "@shared/helpers";
 import {
   INGREDIENT_SOURCES,
+  RECIPE_UNITS,
   toGrams,
   UNITS,
   type GramWeights,
   type IngredientSource,
-  type Unit,
+  type RecipeUnit,
 } from "@shared/ingredients";
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
@@ -180,13 +181,19 @@ const _modelFactsSchema = z
     ),
     defaultUnit: z.enum(UNITS).describe(
       `The unit a recipe writes this in. "tbsp" and "tsp" are the metric tablespoon and teaspoon, ` +
-      '15 ml and 5 ml; "pcs" is a countable single thing. What a cook would write, not what ' +
-      "converts most neatly.",
+      '15 ml and 5 ml; "pcs" is a countable single thing AS SOLD — a loaf, a head of garlic. ' +
+      "A row is stocked in what the shop hands over, never in slices. What a cook would write, " +
+      "not what converts most neatly.",
     ),
     defaultQuantity: z.number().positive().describe("How much one recipe line typically calls for."),
     gramsPerPiece: z.number().positive().nullable().optional().describe(
-      "What ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove. Left out for " +
-      "anything there is no single one of (flour, oil, milk).",
+      "What ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove, 250 for a " +
+      "baguette. Left out for anything there is no single one of (flour, oil, milk).",
+    ),
+    gramsPerSlice: z.number().positive().nullable().optional().describe(
+      "What ONE SLICE of it weighs, in grams — 35 for a slice of baguette, 30 for a slice of " +
+      "cheese, 20 for a slice of ham. Only for something sold whole and eaten cut; left out for " +
+      "anything nobody slices (an onion, garlic, a tomato, a spice, a liquid).",
     ),
     gramsPerMl: z.number().positive().nullable().optional().describe(
       "The density — 0.91 for oil, 1.42 for honey. Left out for anything nobody measures by " +
@@ -282,7 +289,7 @@ const _inputSchema = z.object({
     .optional()
     .describe("What the taxonomy, CIQUAL and the two live APIs said about this term."),
   units: z
-    .array(z.enum(UNITS))
+    .array(z.enum(RECIPE_UNITS))
     .optional()
     .describe(
       "The unit(s) the recipe line(s) that asked for this row are written in. The row must be " +
@@ -413,7 +420,7 @@ export const matchIngredientUserPrompt = (
 // symptom is a row the column rejects at insert time.
 type _FactsCheck = z.infer<typeof _modelFactsSchema> extends Omit<
   IngredientFacts,
-  "slug" | "names" | "aliases" | "allergens" | "gramsPerPiece" | "gramsPerMl"
+  "slug" | "names" | "aliases" | "allergens" | "gramsPerPiece" | "gramsPerSlice" | "gramsPerMl"
 >
   ? true
   : never;
@@ -490,18 +497,20 @@ const _catalogName = (name: string) => name.trim().toLowerCase();
  *
  * `pcs` with no piece weight is NOT repairable — an onion is 150 g and a bay leaf is 0.1 g, and
  * there is no default between them that is not an invention — so that one still fails, loudly and
- * by name. Written through `toGrams` rather than a hand-listed set of volume units, so the rule and
- * the conversion can never disagree about which unit needs which ratio.
+ * by name. `slice` with no slice weight fails the same way, for the same reason: a slice of ham and
+ * a slice of bread share nothing. Written through `toGrams` rather than a hand-listed set of volume
+ * units, so the rule and the conversion can never disagree about which unit needs which ratio.
  */
 const _weighable = (
   facts: z.infer<typeof _modelFactsSchema>,
-  units: readonly Unit[],
-): { ratios: GramWeights } | { unweighable: Unit } => {
+  units: readonly RecipeUnit[],
+): { ratios: GramWeights } | { unweighable: RecipeUnit } => {
   const stated: GramWeights = {
     gramsPerPiece: facts.gramsPerPiece ?? undefined,
+    gramsPerSlice: facts.gramsPerSlice ?? undefined,
     gramsPerMl: facts.gramsPerMl ?? undefined,
   };
-  const required = [...new Set([facts.defaultUnit, ...units])];
+  const required: RecipeUnit[] = [...new Set<RecipeUnit>([facts.defaultUnit, ...units])];
   const failing = (ratios: GramWeights) =>
     required.find((unit) => toGrams(1, unit, ratios) === undefined);
 
@@ -513,6 +522,13 @@ const _weighable = (
 
   return unweighable === undefined ? { ratios: repaired } : { unweighable };
 };
+
+/**
+ * The ratio a unit that cannot be repaired is missing, for the error that names it. Only `pcs` and
+ * `slice` reach here: a volume is repaired with water's density before it can fail.
+ */
+const _ratioFor = (unit: RecipeUnit): keyof GramWeights =>
+  unit === "slice" ? "gramsPerSlice" : "gramsPerPiece";
 
 /**
  * The model's answer as a `SanitizedIngredient`, with everything a lookup MEASURED laid back over
@@ -533,7 +549,7 @@ const _weighable = (
 export const toSanitizedIngredient = (
   raw: unknown,
   hits: readonly LookupHit[] = [],
-  units: readonly Unit[] = [],
+  units: readonly RecipeUnit[] = [],
 ): SanitizedIngredient => {
   const answer = parseModelOutput(modelIngredientSchema, raw);
 
@@ -570,8 +586,8 @@ export const toSanitizedIngredient = (
 
   if ("unweighable" in weighed)
     throw new Error(
-      `sanitizeIngredient: unit "${weighed.unweighable}" needs a gramsPerPiece to weigh it, ` +
-      "and there is no default weight for one of something",
+      `sanitizeIngredient: unit "${weighed.unweighable}" needs a ${_ratioFor(weighed.unweighable)} ` +
+      "to weigh it, and there is no default weight for one of something",
     );
 
   const { ratios } = weighed;

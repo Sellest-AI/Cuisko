@@ -133,6 +133,7 @@
   },
   "Units": {
     "pcs": "pcs",
+    "slice": "tranche",
     "kg": "kg",
     "g": "g",
     "mg": "mg",

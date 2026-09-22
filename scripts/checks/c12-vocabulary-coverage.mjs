@@ -74,9 +74,10 @@ const VOCABULARIES = [
   { block: "Allergens", source: "shared/allergens.ts", constant: "ALLERGENS" },
   { block: "Cuisines", source: "shared/cuisines.ts", constant: "CUISINES" },
   { block: "Categories", source: "shared/categories.ts", constant: "CATEGORIES" },
-  // The one source file here that is not single-purpose: `UNITS` sits in `shared/ingredients.ts`
+  // The one source file here that is not single-purpose: the units sit in `shared/ingredients.ts`
   // beside the conversions. A path and a constant name is all this check reads, so that works.
-  { block: "Units", source: "shared/ingredients.ts", constant: "UNITS" },
+  // `RECIPE_UNITS` rather than `UNITS` because it is the superset: every word a screen may print.
+  { block: "Units", source: "shared/ingredients.ts", constant: "RECIPE_UNITS" },
 ];
 
 /* ── The vocabularies, read from the source of truth ──────────────────────────────────── */

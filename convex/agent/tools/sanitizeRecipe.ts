@@ -11,7 +11,7 @@ import {
 import { EQUIPMENTS, type Equipment } from "@shared/equipments";
 import { SUPPORTED_LOCALES } from "@shared/translations";
 import { AUTHORED_TAGS, type AuthoredTag } from "@shared/tags";
-import { UNITS, type Unit } from "@shared/ingredients";
+import { RECIPE_UNITS, type RecipeUnit } from "@shared/ingredients";
 import { retryPromise } from "@shared/helpers";
 
 import {
@@ -48,7 +48,7 @@ export type SanitizedRecipe = {
   equipments: Equipment[];
   timings: { preparation?: number; cooking?: number; resting?: number };
   instructions: InstructionGroup[];
-  ingredients: { name: string; quantity: number; unit: Unit }[];
+  ingredients: { name: string; quantity: number; unit: RecipeUnit }[];
 };
 
 /**
@@ -151,13 +151,15 @@ export const modelRecipeSchema = z.object({
       ),
       quantity: z.number()
         .describe(`Always a number. Estimate it when the cook wrote "to taste" or "a drizzle".`),
-      unit: z.enum(UNITS).describe(
+      unit: z.enum(RECIPE_UNITS).describe(
         `"tbsp" and "tsp" are the metric tablespoon and teaspoon, 15 ml and 5 ml. "pcs" is the ` +
         "piece a RECIPE counts — a clove of garlic, not the head it is sold in; a bay leaf, not " +
-        "the jar. Pick what a cook would write, never what converts most neatly: the catalog " +
-        "knows what one piece and one " +
-        "millilitre of each ingredient weigh, so a spoonful reaches grams as exactly as a gram " +
-        "does. Reaching for a weight to be safe makes the line harder to read and no more exact.",
+        'the jar. "slice" is a cut of something sold whole and eaten sliced — bread, cheese, ' +
+        'ham, a round of lemon — never "pcs", which would count loaves. Pick what a cook would ' +
+        "write, never what converts most neatly: the catalog knows what one piece, one slice " +
+        "and one millilitre of each ingredient weigh, so a spoonful reaches grams as exactly as " +
+        "a gram does. Reaching for a weight to be safe makes the line harder to read and no " +
+        "more exact.",
       ),
     }),
   ).describe(

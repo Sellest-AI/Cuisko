@@ -462,6 +462,41 @@ describe("toSanitizedIngredient", () => {
     expect(() => toSanitizedIngredient(carrot, [], ["pcs"])).toThrow(/unit "pcs"/);
   });
 
+  /**
+   * The unit this ratio exists for: "8 pcs" of bread against a 250 g baguette put two kilos in a
+   * toast recipe. A slice has its own weight, and the piece weight cannot stand in for it.
+   */
+  it("refuses a row a recipe counts in slices when the model gave no slice weight", () => {
+    const bread = _answer({
+      facts: _facts({ defaultUnit: "pcs", gramsPerPiece: 250, gramsPerMl: null }),
+    });
+
+    expect(() => toSanitizedIngredient(bread, [], ["pcs"])).not.toThrow();
+    expect(() => toSanitizedIngredient(bread, [], ["slice"])).toThrow(/unit "slice"/);
+    expect(() => toSanitizedIngredient(bread, [], ["slice"])).toThrow(/gramsPerSlice/);
+  });
+
+  it("keeps the slice weight beside the piece weight when the model gave both", () => {
+    const bread = _answer({
+      facts: _facts({ defaultUnit: "pcs", gramsPerPiece: 250, gramsPerSlice: 35, gramsPerMl: null }),
+    });
+
+    const facts = toSanitizedIngredient(bread, [], ["slice"]);
+    if (facts.verdict !== "new") throw new Error("expected a new row");
+
+    expect(facts.facts.gramsPerPiece).toBe(250);
+    expect(facts.facts.gramsPerSlice).toBe(35);
+  });
+
+  /** Nothing is stocked by the slice: a row born in `slice` would count loaves as slices. */
+  it("refuses a row whose default unit is a slice", () => {
+    const bread = _answer({
+      facts: _facts({ defaultUnit: "slice", gramsPerSlice: 35, gramsPerMl: null }),
+    });
+
+    expect(() => toSanitizedIngredient(bread)).toThrow(/defaultUnit/);
+  });
+
   it("keeps a stated density when a piece weight is what is missing", () => {
     const oil = _answer({
       facts: _facts({ defaultUnit: "tbsp", gramsPerPiece: null, gramsPerMl: 0.91 }),

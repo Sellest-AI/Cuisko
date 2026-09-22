@@ -3,7 +3,7 @@ import type * as z from "zod/v4";
 import type { Id } from "@convex/_generated/dataModel";
 import { modelRecipeSchema } from "@convex/agent/tools/sanitizeRecipe";
 import { AUTHORED_TAGS, Tag, type AuthoredTag } from "@shared/tags";
-import { Unit } from "@shared/ingredients";
+import { RecipeUnit } from "@shared/ingredients";
 import { Equipment } from "@shared/equipments";
 import { Cuisine } from "@shared/cuisines";
 import { DifficultyLevel } from "@shared/recipes";
@@ -32,7 +32,7 @@ type RecipeInput = {
     resting?: number;
   };
   instructions: { title?: string; steps: string[] }[];
-  ingredients: { name: string; quantity: number; unit: Unit; }[];
+  ingredients: { name: string; quantity: number; unit: RecipeUnit; }[];
 }
 
 export const toModelRecipe = (recipe: RecipeInput): ModelRecipe => ({

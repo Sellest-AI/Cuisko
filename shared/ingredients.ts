@@ -24,11 +24,33 @@ export type IngredientSource = (typeof INGREDIENT_SOURCES)[number];
  * Shared rather than owned by a module because two of them need it and neither may reach into the
  * other's private `_model/` (lint R8): groceries formats what the cellar holds, planning formats
  * what a week's meals add up to, and a second copy of the labels is how the two drift apart.
+ *
+ * These are the units a thing is SOLD in, and therefore stocked, listed and typed in: what a
+ * row's `defaultUnit` may be, what a cellar or grocery row holds, what a shopper may write into
+ * the search bar. `pcs` is the whole thing as the shop hands it over — a loaf, a head of garlic.
  */
 
 export const UNITS = ["pcs", "kg", "g", "mg", "cl", "ml", "l", "tbsp", "tsp", "oz", "lb"] as const;
 
 export type Unit = (typeof UNITS)[number];
+
+/**
+ * The units a RECIPE LINE may be written in: everything above, plus the ones a cook counts that no
+ * shop sells.
+ *
+ * `slice` is a cut of something sold whole — a slice of bread, of cheese, a round of lemon. It is
+ * kept out of `UNITS` on purpose: one ratio cannot answer both "the piece a recipe counts" and "the
+ * thing a shop sells", and "8 pcs of bread" against a row whose piece is a 250 g baguette put two
+ * kilos of bread in a toast recipe when the line meant eight slices. So a recipe may say `slice`,
+ * and a stock never does: the type keeps a row's `defaultUnit` a `Unit`, which is what lets
+ * `toStockUnit` route every slice through grams into the whole it is cut from.
+ */
+export const RECIPE_UNITS = [...UNITS, "slice"] as const;
+
+export type RecipeUnit = (typeof RECIPE_UNITS)[number];
+
+/** Whether a recipe's unit is also one a shop sells — the guard between the two vocabularies. */
+export const isUnit = (unit: RecipeUnit): unit is Unit => (UNITS as readonly string[]).includes(unit);
 
 /**
  * What a cook may TYPE for a unit that is not its stored code — the French spoons, for now.
@@ -85,7 +107,7 @@ export const normalizeUnit = (value: string | undefined): Unit | undefined => {
  */
 export const NO_EMOJI = "\u{1F37D}\u{FE0F}";
 
-const UNIT_LABELS: Record<Unit, string> = {
+const UNIT_LABELS: Record<RecipeUnit, string> = {
   g: "g",
   mg: "mg",
   kg: "kg",
@@ -95,6 +117,7 @@ const UNIT_LABELS: Record<Unit, string> = {
   ml: "ml",
   l: "L",
   pcs: "pcs",
+  slice: "slice",
   tbsp: "tbsp",
   tsp: "tsp",
 };
@@ -107,17 +130,18 @@ const UNIT_LABELS: Record<Unit, string> = {
  * locale files holds the one they expect, and `formatQuantity` takes a resolver so the module
  * layer can supply it. This stays as the fallback for text nobody localises.
  */
-export const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
+export const unitLabel = (unit: RecipeUnit) => UNIT_LABELS[unit];
 
 /**
  * How many decimals an amount in each unit is allowed to carry — the precision a kitchen scale
  * or a shop shelf actually offers, not the one a division produces.
  *
  * A gram is already the finest cut a cook measures, so `g`, `mg`, `ml` and `cl` are whole numbers
- * and a piece cannot be split at all. The large units are where a tenth means something: 1.3 kg of
- * potatoes and 0.5 L of milk are amounts a shopper buys, while 33.333 g is arithmetic.
+ * and a piece or a slice cannot be split at all. The large units are where a tenth means
+ * something: 1.3 kg of potatoes and 0.5 L of milk are amounts a shopper buys, while 33.333 g is
+ * arithmetic.
  */
-const UNIT_DECIMALS: Record<Unit, number> = {
+const UNIT_DECIMALS: Record<RecipeUnit, number> = {
   g: 0,
   mg: 0,
   kg: 1,
@@ -127,6 +151,7 @@ const UNIT_DECIMALS: Record<Unit, number> = {
   ml: 0,
   l: 1,
   pcs: 0,
+  slice: 0,
   tbsp: 1,
   tsp: 1,
 };
@@ -155,7 +180,7 @@ const CEIL_EPSILON = 1e-9;
  * Arithmetic on the shifted integer, not `toFixed`: the result is a NUMBER, so `String(33.3)` prints
  * `33.3` with no trailing zero to trim.
  */
-export const roundQuantity = (amount: number, unit: Unit): number => {
+export const roundQuantity = (amount: number, unit: RecipeUnit): number => {
   /** Nothing to raise, and a bare `Math.ceil` would hand back `-0` here. */
   if (amount <= 0) return 0;
 
@@ -184,8 +209,8 @@ export const roundQuantity = (amount: number, unit: Unit): number => {
  */
 export const formatQuantity = (
   amount: number,
-  unit: Unit,
-  label: (unit: Unit) => string = unitLabel,
+  unit: RecipeUnit,
+  label: (unit: RecipeUnit) => string = unitLabel,
 ) => `${roundQuantity(amount, unit)} ${label(unit)}`;
 
 /**
@@ -198,7 +223,7 @@ export const formatQuantity = (
  * it wanted. Two names is the point: reusing the display formatter for data is the mistake this
  * split exists to make visible, and it is the mistake `serializeIngredients` originally made.
  */
-export const exactQuantity = (amount: number, unit: Unit) => `${amount} ${unit}`;
+export const exactQuantity = (amount: number, unit: RecipeUnit) => `${amount} ${unit}`;
 
 /**
  * A quantity is a NUMBER AND ITS UNIT, and the two are answered together or not at all.
@@ -221,12 +246,14 @@ export const pickQuantity = (
     : { amount: fallback.defaultQuantity, unit: fallback.defaultUnit };
 
 /**
- * What a catalog ingredient knows about its own weight — the two optional fields on the
+ * What a catalog ingredient knows about its own weight — the three optional fields on the
  * `ingredients` table, passed structurally so this file never has to reach for a `Doc`.
  */
 export type GramWeights = {
-  /** Grams in one of them: 150 for an onion. */
+  /** Grams in one of them as sold: 150 for an onion, 250 for a baguette. */
   gramsPerPiece?: number;
+  /** Grams in one slice of it: 35 for that baguette. Only for what is sold whole and eaten cut. */
+  gramsPerSlice?: number;
   /** Density, in grams per millilitre: 0.91 for oil, 1.42 for honey. */
   gramsPerMl?: number;
 };
@@ -267,7 +294,7 @@ const ML_PER_VOLUME_UNIT = {
  * Units are matched by table rather than by falling through to `pcs`, so a unit added to `UNITS`
  * and to neither table returns `undefined` instead of being silently weighed as a piece.
  */
-export const toGrams = (quantity: number, unit: Unit, weights: GramWeights): number | undefined => {
+export const toGrams = (quantity: number, unit: RecipeUnit, weights: GramWeights): number | undefined => {
   if (unit in GRAMS_PER_MASS_UNIT) {
     return quantity * GRAMS_PER_MASS_UNIT[unit as keyof typeof GRAMS_PER_MASS_UNIT];
   }
@@ -282,6 +309,11 @@ export const toGrams = (quantity: number, unit: Unit, weights: GramWeights): num
     return quantity * weights.gramsPerPiece;
   }
 
+  if (unit === "slice") {
+    if (weights.gramsPerSlice === undefined) return undefined;
+    return quantity * weights.gramsPerSlice;
+  }
+
   return undefined;
 };
 
@@ -290,8 +322,21 @@ const STOCK_UNITS = { mass: "g", volume: "ml", piece: "pcs" } as const;
 
 export type StockUnit = (typeof STOCK_UNITS)[keyof typeof STOCK_UNITS];
 
-const _dimensionOf = (unit: Unit): keyof typeof STOCK_UNITS =>
+type StockDimension = keyof typeof STOCK_UNITS;
+
+const _stockDimensionOf = (unit: Unit): StockDimension =>
   unit in GRAMS_PER_MASS_UNIT ? "mass" : unit in ML_PER_VOLUME_UNIT ? "volume" : "piece";
+
+/**
+ * The kind of thing a recipe's unit measures. Three of them are stock dimensions; `slice` is not,
+ * and that is the point of it being a fourth answer rather than a `piece`: a slice is stocked as
+ * the whole it is cut from, and the only way from one to the other is through grams. Eight slices
+ * of a loaf counted as eight loaves was the bug.
+ */
+type Dimension = StockDimension | "slice";
+
+const _dimensionOf = (unit: RecipeUnit): Dimension =>
+  unit === "slice" ? "slice" : _stockDimensionOf(unit);
 
 /**
  * The one unit every quantity of this ingredient is compared in: grams for flour, millilitres for
@@ -301,7 +346,7 @@ const _dimensionOf = (unit: Unit): keyof typeof STOCK_UNITS =>
  * in the cellar against three in a recipe is a subtraction, and routing it through a missing
  * `gramsPerPiece` turned it into "nothing is covered".
  */
-export const stockUnitOf = (defaultUnit: Unit): StockUnit => STOCK_UNITS[_dimensionOf(defaultUnit)];
+export const stockUnitOf = (defaultUnit: Unit): StockUnit => STOCK_UNITS[_stockDimensionOf(defaultUnit)];
 
 /**
  * A quantity in its ingredient's stock unit, or `undefined` when it cannot get there.
@@ -310,13 +355,19 @@ export const stockUnitOf = (defaultUnit: Unit): StockUnit => STOCK_UNITS[_dimens
  * 1000 ml, 2 kg of flour 2000 g. Across kinds it goes through grams, and needs the ratios both ends
  * speak — 1 tbsp of butter bought in grams needs a density, 300 g of carrots bought by the piece
  * needs a piece weight. Missing either is `undefined`, never a guess, for the reason `toGrams` is.
+ *
+ * A `slice` is always "across kinds": a stock is a `Unit`, so its dimension matches no stock
+ * unit's and it can never take the pass-through branch below. Eight slices of a 250 g loaf at 35 g
+ * each reach the piece count as 280 ÷ 250 = 1.12 loaves, which `fromStockUnit` rounds up to the
+ * two the shopper buys. The "N slices make one loaf" ratio is derived here from the two weights
+ * and stored nowhere.
  */
 export const toStockUnit = (
   quantity: number,
-  unit: Unit,
+  unit: RecipeUnit,
   ingredient: GramWeights & { defaultUnit: Unit },
 ): number | undefined => {
-  const target = _dimensionOf(ingredient.defaultUnit);
+  const target = _stockDimensionOf(ingredient.defaultUnit);
   const source = _dimensionOf(unit);
 
   if (source === target) {
@@ -345,7 +396,7 @@ export const toStockUnit = (
  * Both sides of that comparison call this same function, so the editor and the change check can
  * never disagree about how a line spells itself.
  */
-type DraftIngredient = { name: string; quantity: number; unit: Unit };
+type DraftIngredient = { name: string; quantity: number; unit: RecipeUnit };
 export const serializeIngredients = (ingredients: DraftIngredient[]): string =>
   ingredients.map((line) => `${exactQuantity(line.quantity, line.unit)} ${line.name}`).join("\n");
 
@@ -409,7 +460,7 @@ export const unitScale = (unit: Unit): number | undefined => {
  * needs a density or a piece weight, and that is `toStockUnit`'s job, not this one's.
  */
 export const convertQuantity = (quantity: number, from: Unit, to: Unit): number | undefined => {
-  if (_dimensionOf(from) !== _dimensionOf(to)) return undefined;
+  if (_stockDimensionOf(from) !== _stockDimensionOf(to)) return undefined;
 
   const fromScale = unitScale(from);
   const toScale = unitScale(to);

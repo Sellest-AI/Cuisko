@@ -1,7 +1,7 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 import { toGrams } from "@shared/ingredients";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import { totalsOf } from "@shared/nutrition";
 import { allergenTagsOf, type ComputedTag, dietTagsOf, nutritionTagsOf } from "@shared/tags";
 
@@ -15,7 +15,7 @@ import { allergenTagsOf, type ComputedTag, dietTagsOf, nutritionTagsOf } from "@
 export type TaggableLine = {
   ingredientId: Id<"ingredients">;
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
 };
 
 /**

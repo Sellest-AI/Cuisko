@@ -1,5 +1,5 @@
 import type { Id } from "@convex/_generated/dataModel";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 
 /**
@@ -21,7 +21,7 @@ import type { MealSlot } from "@shared/mealSlots";
 export type Need = {
   ingredientId: Id<"ingredients">;
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
 } & ({ kind: "pinch" } | { kind: "measured"; amount: number } | { kind: "unmeasured" });
 
 /** A recipe the week may draw on, its lines already scaled to the plates' servings. */

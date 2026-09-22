@@ -3,7 +3,7 @@ import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { ActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { gradesIn, preservationIn, searchTerms } from "@shared/ingredientMatch";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 
 import {
   gatherEvidence,
@@ -16,7 +16,7 @@ export type RecipeLink = {
   ingredientId: Id<"ingredients">;
   position: number;
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
 };
 
 /**
@@ -216,7 +216,7 @@ export const resolveRecipeIngredients = async (
    * row, so the row is born able to weigh the line that asked for it — `1 pcs carotte` and
    * `200 g carotte` fold onto one walk and the row has to answer both.
    */
-  const units = new Map<string, Set<Unit>>();
+  const units = new Map<string, Set<RecipeUnit>>();
   recipe.ingredients.forEach((line, index) => {
     const key = folded[index]!;
     if (!spellings.has(key)) spellings.set(key, line.name);

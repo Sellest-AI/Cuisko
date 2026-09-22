@@ -7,7 +7,7 @@
  */
 
 import { CATEGORIES, type Category } from "@shared/categories";
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import { scaleFacts, type RecipeNutrition } from "@shared/nutrition";
 import type { InstructionGroup } from "@shared/recipes";
 
@@ -21,7 +21,7 @@ import type { InstructionGroup } from "@shared/recipes";
 export type RecipeLine = {
   name: string;
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
   emoji: string;
   imageUrl?: string;
   category: Category;

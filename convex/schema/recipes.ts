@@ -1,7 +1,7 @@
 import { defineTable } from "convex/server";
 import { vLocalized, vLocalizedText } from "./i18n";
 import { v } from "convex/values";
-import { vUnit } from "./ingredients";
+import { vRecipeUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
 import { CUISINES } from "@shared/cuisines";
@@ -145,7 +145,7 @@ export const recipeIngredients = defineTable({
   ingredientId: v.id("ingredients"),
   position: v.number(),
   quantity: v.number(),
-  unit: vUnit,
+  unit: vRecipeUnit,
   updatedAt: v.number(), // S5
 })
   .index("by_recipe", ["recipeId"])

@@ -133,6 +133,7 @@
   },
   "Units": {
     "pcs": "pcs",
+    "slice": "slice",
     "kg": "kg",
     "g": "g",
     "mg": "mg",

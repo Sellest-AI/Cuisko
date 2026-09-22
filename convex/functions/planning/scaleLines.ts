@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { Category } from "@shared/categories";
-import { toStockUnit, type GramWeights, type Unit } from "@shared/ingredients";
+import { toStockUnit, type GramWeights, type RecipeUnit, type Unit } from "@shared/ingredients";
 
 import type { Need } from "./selectMeals";
 
@@ -8,7 +8,7 @@ import type { Need } from "./selectMeals";
 export type ScalableLine = {
   ingredientId: Id<"ingredients">;
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
   ingredient: GramWeights & { category: Category; defaultUnit: Unit };
 };
 
@@ -26,7 +26,10 @@ const PINCH_CATEGORIES: ReadonlySet<Category> = new Set(["SPICE", "HERB", "CONDI
  * The units that make a staple a pinch. The unit decides, not the category alone: 1 tsp of cinnamon
  * is a pinch, and 200 g of sugar in the same cake is a real quantity measured like any other.
  */
-const PINCH_UNITS: ReadonlySet<Unit> = new Set(["tbsp", "tsp", "pcs"]);
+const PINCH_UNITS: ReadonlySet<RecipeUnit> = new Set(["tbsp", "tsp", "pcs"]);
+
+/** The units that count whole things, which a serving ratio must not cut into fractions. */
+const COUNTED_UNITS: ReadonlySet<RecipeUnit> = new Set(["pcs", "slice"]);
 
 /**
  * Absorbs the float noise a ratio leaves behind before rounding a piece count up. Without it, a
@@ -38,8 +41,9 @@ const PIECE_EPSILON = 1e-9;
  * A recipe's lines, at the servings a plate is cooked for, in each ingredient's stock unit where
  * they can reach it.
  *
- * Pieces round up to a whole: nobody buys or reserves 0.67 of an onion, and the amount is taken
- * from the rounded count so the reservation matches what gets cut.
+ * Pieces and slices round up to a whole: nobody buys or reserves 0.67 of an onion, or cuts 1.5
+ * slices of bread, and the amount is taken from the rounded count so the reservation matches what
+ * gets cut.
  *
  * A pinch is never measured — it asks the cellar whether the ingredient is there, not how much — so
  * a sprig of thyme is a pinch whatever the catalog knows about it. A line that is not a pinch and
@@ -53,7 +57,7 @@ export const scaleLines = (lines: ScalableLine[], { recipeServings, servings }: 
      * get from servings equal to the recipe's, and the least surprising recovery available.
      */
     const exact = recipeServings > 0 ? (quantity * servings) / recipeServings : quantity;
-    const scaled = unit === "pcs" ? Math.ceil(exact - PIECE_EPSILON) : exact;
+    const scaled = COUNTED_UNITS.has(unit) ? Math.ceil(exact - PIECE_EPSILON) : exact;
     const line = { ingredientId, quantity: scaled, unit };
 
     if (PINCH_CATEGORIES.has(ingredient.category) && PINCH_UNITS.has(unit)) {

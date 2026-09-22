@@ -1,6 +1,6 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
-import { fromStockUnit, stockUnitOf, type Unit } from "@shared/ingredients";
+import { fromStockUnit, isUnit, stockUnitOf, type RecipeUnit, type Unit } from "@shared/ingredients";
 import { MEAL_SLOTS } from "@shared/mealSlots";
 
 import { cascadeDelete } from "../cascade";
@@ -10,7 +10,7 @@ import type { Need, Stock } from "./selectMeals";
 /** What a line's ingredient has to say about itself: how it converts, and how it is bought. */
 export type LineIngredient = Pick<
   Doc<"ingredients">,
-  "_id" | "defaultUnit" | "defaultQuantity" | "gramsPerPiece" | "gramsPerMl"
+  "_id" | "defaultUnit" | "defaultQuantity" | "gramsPerPiece" | "gramsPerSlice" | "gramsPerMl"
 >;
 
 /** One line of a meal: the need, the catalog row behind it, and whether the shopper says they have it. */
@@ -57,12 +57,12 @@ const NOTHING_LEFT = 1e-9;
  * Shared because the tick is written by one caller and read back by another, and a second spelling
  * of the key would agree only until one of them changed.
  */
-export const ownedTickKey = (ingredientId: Id<"ingredients">, unit: Unit) => `${ingredientId}:${unit}`;
+export const ownedTickKey = (ingredientId: Id<"ingredients">, unit: RecipeUnit) => `${ingredientId}:${unit}`;
 
 /** What one line reserves, what is missing from it, and the unit each is counted in. */
 type Split = {
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
   /** Whether the kitchen covers the whole line — a pinch by its presence, anything else by amount. */
   covered: boolean;
   /** The part no cellar row covers, in `unit`. Zero for a pinch, which is never part-covered. */
@@ -113,13 +113,19 @@ const _split = (need: Need, ingredient: LineIngredient, stock: Stock): Split => 
  *
  * A pinch is bought at the ingredient's own `defaultQuantity`: you buy a jar of thyme, not the 1 tsp
  * of it the recipe asks for. An unmeasured line is bought in the recipe's words, because that is the
- * only unit it has. Everything else converts out of the stock unit, where `pcs` rounds up.
+ * only unit it has — unless those words are a unit no shop sells (`slice` of a row that has no slice
+ * weight), and then it is bought like a pinch: one loaf, and the slices come with it. Everything
+ * else converts out of the stock unit, where `pcs` rounds up.
  */
 const _toBuy = ({ need, ingredient }: MealLine, split: Split): { quantity: number; unit: Unit } | null => {
   if (split.covered) return null;
 
   if (need.kind === "pinch") return { quantity: ingredient.defaultQuantity, unit: ingredient.defaultUnit };
-  if (need.kind === "unmeasured") return { quantity: need.quantity, unit: need.unit };
+  if (need.kind === "unmeasured") {
+    return isUnit(need.unit)
+      ? { quantity: need.quantity, unit: need.unit }
+      : { quantity: ingredient.defaultQuantity, unit: ingredient.defaultUnit };
+  }
 
   return { quantity: fromStockUnit(split.missing, ingredient), unit: ingredient.defaultUnit };
 };

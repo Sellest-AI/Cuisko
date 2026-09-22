@@ -174,6 +174,12 @@ describe("readInstruction", () => {
     expect(readInstruction("Ajoutez 200 g de farine", LINES)[1]?.unit).toBe("g");
     expect(readInstruction("Concassez 4 tomates", LINES)[1]?.unit).toBeUndefined();
   });
+
+  /** A slice is a unit the app stores now; a clove still is not, because a clove is a piece. */
+  test("reads a slice as a slice, never as a piece", () => {
+    expect(readInstruction("Toastez 8 tranches de pain", [line("Pain", "pcs")])[1]?.unit).toBe("slice");
+    expect(readInstruction("Écrasez 2 gousses d'ail", [line("Ail", "pcs")])[1]?.unit).toBeUndefined();
+  });
 });
 
 describe("ingredientsIn", () => {

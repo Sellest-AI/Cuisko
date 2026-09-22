@@ -2,7 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 import { vMealSlot, vMealSlots } from "./households";
-import { vUnit } from "./ingredients";
+import { vRecipeUnit } from "./ingredients";
 
 /**
  * `planned` is the only state that reserves stock or shops. `cooked` is written by `cookMeal`,
@@ -61,9 +61,10 @@ export const plannedMealIngredients = defineTable({
   plannedMealId: v.id("plannedMeals"),
   ingredientId: v.id("ingredients"),
   sourceQuantity: v.number(),
-  sourceUnit: vUnit,
+  sourceUnit: vRecipeUnit,
   quantity: v.number(),
-  unit: vUnit,
+  // The stock unit for a measured line, and the recipe's own for an unmeasured one — see `Need`.
+  unit: vRecipeUnit,
   /**
    * What went onto the grocery list for this line, **in the unit that list row holds** — not this
    * row's `unit`, and not necessarily the ingredient's `defaultUnit` either: the write lands on

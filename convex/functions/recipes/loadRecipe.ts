@@ -7,7 +7,7 @@ import type { Locale } from "@convex/schema/i18n";
 import { getImage } from "@convex/functions/media/getImage";
 import { avatarSeed } from "@shared/avatars";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
-import { toGrams, type Unit } from "@shared/ingredients";
+import { toGrams, type RecipeUnit } from "@shared/ingredients";
 import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
@@ -19,7 +19,7 @@ type LoadCtx = Pick<QueryCtx, "db">;
 type RecipeIngredient = {
   name: string;
   quantity: number;
-  unit: Unit;
+  unit: RecipeUnit;
   /** Stands in for the produce photo when `imageUrl` is absent, which is most of the catalog today. */
   emoji: string;
   /**

@@ -22,6 +22,11 @@ describe("normalizeUnit", () => {
     expect(normalizeUnit("g")).toBe("g");
   });
 
+  /** A slice is a recipe's word, not a shopper's: nothing is bought or stocked by the slice. */
+  test("does not accept a slice from a shopper", () => {
+    expect(normalizeUnit("slice")).toBeUndefined();
+  });
+
   /**
    * The French spoons are what this vocabulary used to STORE, so a cook who learned them from the
    * app goes on typing them. They resolve to the English code rather than being rejected — and
@@ -86,6 +91,30 @@ describe("toStockUnit", () => {
     expect(toStockUnit(1, "l", { defaultUnit: "g" })).toBeUndefined();
     expect(toStockUnit(2, "pcs", { defaultUnit: "ml", gramsPerPiece: 100 })).toBeUndefined();
   });
+
+  /**
+   * The bug this unit exists for: "8 pcs" of bread against a row whose piece is a whole 250 g
+   * baguette put two kilos of bread in a toast recipe. A slice is never the same kind as a stock
+   * unit, so it always goes through grams — 8 × 35 g is 1.12 loaves, never 8.
+   */
+  test("counts slices as a fraction of the whole they are cut from, never as the whole", () => {
+    const baguette = { defaultUnit: "pcs", gramsPerPiece: 250, gramsPerSlice: 35 } as const;
+
+    expect(toStockUnit(8, "slice", baguette)).toBeCloseTo(1.12);
+    expect(fromStockUnit(toStockUnit(8, "slice", baguette)!, baguette)).toBe(2);
+  });
+
+  test("weighs a slice into a row stocked in grams or millilitres through the same ratios", () => {
+    // Cheese bought in grams: 3 slices at 30 g.
+    expect(toStockUnit(3, "slice", { defaultUnit: "g", gramsPerSlice: 30 })).toBe(90);
+    // Something sliced but bought by volume goes through its density as any weight would.
+    expect(toStockUnit(2, "slice", { defaultUnit: "ml", gramsPerSlice: 20, gramsPerMl: 0.8 })).toBe(50);
+  });
+
+  test("refuses a slice with no slice weight, whatever else the row knows", () => {
+    expect(toStockUnit(8, "slice", { defaultUnit: "pcs", gramsPerPiece: 250 })).toBeUndefined();
+    expect(toStockUnit(8, "slice", { defaultUnit: "g" })).toBeUndefined();
+  });
 });
 
 describe("toGrams", () => {
@@ -105,6 +134,12 @@ describe("toGrams", () => {
 
   test("weighs pieces through the ingredient's own weight", () => {
     expect(toGrams(2, "pcs", { gramsPerPiece: 150 })).toBe(300);
+  });
+
+  /** A slice has its own ratio: a loaf's piece weight says nothing about how thick it is cut. */
+  test("weighs slices through the ingredient's slice weight, never its piece weight", () => {
+    expect(toGrams(8, "slice", { gramsPerSlice: 35 })).toBe(280);
+    expect(toGrams(8, "slice", { gramsPerPiece: 250 })).toBeUndefined();
   });
 
   test("refuses a volume with no density rather than assuming water", () => {
@@ -129,6 +164,12 @@ describe("roundQuantity", () => {
   test("never gives back less than it was handed", () => {
     expect(roundQuantity(0.2, "g")).toBe(1);
     expect(roundQuantity(1.21, "kg")).toBe(1.3);
+  });
+
+  /** Half a slice is not cut, any more than half an onion is bought. */
+  test("raises a slice count to a whole", () => {
+    expect(roundQuantity(1.2, "slice")).toBe(2);
+    expect(roundQuantity(3, "slice")).toBe(3);
   });
 
   test("keeps one decimal on the units a shopper buys in tenths", () => {

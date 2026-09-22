@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { Unit } from "@shared/ingredients";
+import type { RecipeUnit } from "@shared/ingredients";
 import { useTranslation, useTranslations } from "translations";
 
 /**
@@ -29,5 +29,5 @@ export const useUnitLabel = () => {
    * list from this, which is the churn that memo was written to avoid.
    */
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => (unit: Unit) => t(`Units.${unit}`), [i18n.language]);
+  return useMemo(() => (unit: RecipeUnit) => t(`Units.${unit}`), [i18n.language]);
 };
