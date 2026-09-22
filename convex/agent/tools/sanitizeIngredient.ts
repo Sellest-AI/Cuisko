@@ -193,7 +193,7 @@ const _modelFactsSchema = z
     gramsPerSlice: z.number().positive().nullable().optional().describe(
       "What ONE SLICE of it weighs, in grams — 35 for a slice of baguette, 30 for a slice of " +
       "cheese, 20 for a slice of ham. Only for something sold whole and eaten cut; left out for " +
-      "anything nobody slices (an onion, garlic, a tomato, a spice, a liquid).",
+      "anything nobody slices (an onion, garlic, a spice, a liquid).",
     ),
     gramsPerMl: z.number().positive().nullable().optional().describe(
       "The density — 0.91 for oil, 1.42 for honey. Left out for anything nobody measures by " +

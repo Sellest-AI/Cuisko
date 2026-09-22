@@ -48,6 +48,7 @@ export type CatalogEntry = {
   defaultUnit: Unit;
   defaultQuantity: number;
   gramsPerPiece?: number;
+  gramsPerSlice?: number;
   gramsPerMl?: number;
   nutrition: {
     calories: number;
@@ -473,7 +474,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
 };
 
 /**
- * What one of an ingredient weighs, in grams — for the 44 rows a household counts rather than
+ * What one of an ingredient weighs, in grams — for the 45 rows a household counts rather than
  * weighs, plus the few written per piece in a recipe whatever the shop sells them by.
  *
  * Hand-compiled like the nutrition values above, for a medium specimen as sold: a whole raw item
@@ -499,6 +500,32 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   "flavoured-yogurt": 125, "egg-whole": 50,
   // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
   "bay-leaf": 0.2,
+};
+
+/**
+ * What one slice of an ingredient weighs, in grams — for what is sold whole and eaten cut.
+ *
+ * A recipe writes "8 slices of bread" or "2 tranches de jambon" and the shop sells the loaf and
+ * the packet; `gramsPerPiece` says nothing about how thick the knife went. Hand-compiled for the
+ * slice a home cook actually cuts or a supermarket packet actually holds: a 1 cm slice of bread, a
+ * deli slice of ham, a thin round of lemon. How many slices make a loaf is derived from this and
+ * the piece weight (shared/ingredients.ts `toStockUnit`), never stored.
+ *
+ * `chicken-slices` and `turkey-slices` are sold sliced, so their piece IS a slice — the entry only
+ * lets a line written as "2 slices" reach the same weight as one written as "2 pcs". Onions stay
+ * out: nobody counts onion slices, and the recipe sanitizer never emits them.
+ */
+const GRAMS_PER_SLICE: Record<string, number> = {
+  // Bread
+  baguette: 35, "bread-white": 30, "bread-whole-wheat": 30,
+  // Cured and cooked meats, one deli slice
+  ham: 20, prosciutto: 15, salami: 5, chorizo: 10, bacon: 15, "chicken-slices": 25,
+  "turkey-slices": 25,
+  // Cheese, one sandwich slice or one round of the log
+  "cheddar-cheese": 30, emmental: 30, gruyere: 30, comte: 30, brie: 30, "goat-cheese": 20,
+  mozzarella: 25,
+  // Rounds — "rondelles" of a fruit or vegetable
+  lemon: 10, lime: 7, tomato: 20, cucumber: 8,
 };
 
 /**
@@ -731,6 +758,7 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     defaultQuantity,
     // Passed through even when absent, so the seed's `patch` clears a ratio a row used to carry.
     gramsPerPiece: GRAMS_PER_PIECE[slug],
+    gramsPerSlice: GRAMS_PER_SLICE[slug],
     gramsPerMl: GRAMS_PER_ML[slug],
     nutrition: { calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium },
   }),

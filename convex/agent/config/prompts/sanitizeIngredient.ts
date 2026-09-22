@@ -287,7 +287,7 @@ Not translations — those are the names above. Three or four is plenty; an empt
   slice of cheese, 20 for a slice of ham, 10 for a round of lemon. Give it for anything sold whole
   and eaten cut, whatever unit you chose: a recipe says "8 slices of bread" as readily as "1
   baguette", and the piece weight says nothing about how thick it is cut. Leave it out for
-  anything nobody slices (an onion, a tomato, garlic, a spice, a liquid).
+  anything nobody slices (an onion, garlic, a spice, a liquid).
 - gramsPerMl: the density — 0.91 for oil, 1.42 for honey, 1.0 for water, 0.5 for a ground spice,
   0.25 for a chopped fresh herb. Give it for anything a recipe could SPOON or pour, even when you
   chose "g" as the unit: a recipe says "1 tsp of cumin" as readily as "2 g of cumin", and a powder
