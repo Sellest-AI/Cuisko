@@ -1,14 +1,16 @@
 /**
  * `pnpm catalog:import` — one batch of well-reviewed recipes into the catalog.
  *
- * Asks the agent for dishes cuisine by cuisine until the ledger holds a batch of accepted recipes
- * not yet imported on this deployment, then imports them one at a time. The ledger is written after
- * every search and every recipe, so an interruption loses nothing and a re-run picks up the rest.
+ * Asks the agent for dishes cuisine by cuisine until the ledger holds `LIMIT_SIZE` accepted recipes
+ * not yet imported on this deployment, then imports them `BATCH_SIZE` at a time. The ledger is
+ * written after every search and every recipe, so an interruption loses nothing and a re-run picks
+ * up the rest.
  *
  * Marmiton first. BBC Good Food is looked up for a dish Marmiton has no reviewed recipe of, and for
  * the vegan version the agent named for it (`veganEn`), which Marmiton almost never has.
  *
- * The batch size is the spend cap: each import is a model call, then images and translation.
+ * The limit is the spend cap: each import is a model call, then images and translation. The batch
+ * is how many of those run at once, bounded by what the deployment tolerates in parallel.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -38,7 +40,10 @@ import {
 import { classifyCards, parseSearchResults } from "./_lib/marmiton";
 
 const LEDGER_FILE = path.join(__dirname, "catalog.ledger.json");
-const BATCH_SIZE = 20;
+/** Recipes imported per run, at most. */
+const LIMIT_SIZE = 20;
+/** Imports running at the same time. */
+const BATCH_SIZE = 10;
 const DISHES_PER_ASK = 6;
 /** Between two requests to a recipe site: one page at a time, never a burst. */
 const REQUEST_GAP_MS = 1000;
@@ -99,13 +104,29 @@ const _lookUpBbc = async (ledger: Ledger, dishEn: string, { vegan }: { vegan: bo
 const _acceptedTitleOf = (cards: readonly SearchedCard[]) =>
   cards.find((card) => card.verdict === "accepted")?.title;
 
-const _messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+const _messageOf = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  // `ConvexHttpClient` throws the response body as the message, and a gateway timeout has none.
+  return message.trim() || "the deployment answered with an error and no message (a timeout, usually)";
+};
+
+/** "1m 23s", for a wait the user is watching. */
+const _elapsed = (since: number): string => {
+  const seconds = Math.round((Date.now() - since) / 1000);
+
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+};
+
+const _log = (message: string) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${message}`);
 
 const main = async () => {
+  const started = Date.now();
   const admin = connectAdmin();
   const ledger = readLedger(LEDGER_FILE);
   const now = () => new Date().toISOString();
-  const run = { searched: 0, accepted: 0, rejected: 0, errored: 0, imported: 0, failed: 0 };
+  const run = { asks: 0, searched: 0, accepted: 0, rejected: 0, errored: 0, imported: 0, failed: 0 };
+  const pending = () => pendingFor(ledger, admin.deployment);
 
   const record = (search: Omit<DishSearch, "searchedAt">, cards: SearchedCard[]) => {
     recordSearch(ledger, { ...search, searchedAt: now() }, cards);
@@ -113,25 +134,43 @@ const main = async () => {
     run.searched++;
     run.accepted += cards.filter((card) => card.verdict === "accepted").length;
     run.rejected += cards.filter((card) => card.verdict === "rejected").length;
-    console.log(`  ${search.cuisine} · ${search.source} · ${search.dish}: ${_acceptedTitleOf(cards) ?? "nothing"}`);
+    _log(
+      `    ${search.source} · ${search.dish}: ${_acceptedTitleOf(cards) ?? "nothing"}` +
+        ` (${cards.length} found, ${cards.filter((card) => card.verdict === "rejected").length} rejected)`,
+    );
   };
 
-  console.log(`Importing into ${admin.deployment}, ${pendingFor(ledger, admin.deployment).length} pending.`);
+  _log(
+    `Importing into ${admin.deployment}: ${pending().length} pending, ${LIMIT_SIZE} per run, ${BATCH_SIZE} at a time.`,
+  );
 
-  for (let asks = 0; asks < MAX_ASKS && pendingFor(ledger, admin.deployment).length < BATCH_SIZE; asks++) {
+  for (let asks = 0; asks < MAX_ASKS && pending().length < LIMIT_SIZE; asks++) {
     const cuisine = nextCuisine(ledger);
     // Written now, not with the first search: an ask that finds nothing new would otherwise leave
     // the cursor where it was, and the next run would ask this cuisine again.
     writeLedger(LEDGER_FILE, ledger);
+    run.asks++;
+    _log(
+      `Ask ${asks + 1}/${MAX_ASKS} · ${cuisine}: ${pending().length}/${LIMIT_SIZE} pending, ` +
+        `asking for ${DISHES_PER_ASK} dishes…`,
+    );
+
+    const asked = Date.now();
     const dishes = await admin.action(internal.router.recipes.suggestDishes._internal, {
       cuisine,
       count: DISHES_PER_ASK,
       avoid: avoidFor(ledger, cuisine),
     });
-
     // The agent is told to avoid these, and does not always listen.
-    for (const { name, nameEn, veganEn, diet } of dishes.filter(({ name }) => !ledger.dishes[dishKeyOf(name)])) {
+    const fresh = dishes.filter(({ name }) => !ledger.dishes[dishKeyOf(name)]);
+    _log(
+      `  ${cuisine}: ${dishes.length} dishes in ${_elapsed(asked)}, ${fresh.length} new: ` +
+        (fresh.map(({ name }) => name).join(", ") || "none"),
+    );
+
+    for (const [index, { name, nameEn, veganEn, diet }] of fresh.entries()) {
       const dish = { dish: name, cuisine, nameEn, diet };
+      _log(`  [${index + 1}/${fresh.length}] ${name} (${nameEn})${veganEn ? ` · vegan: ${veganEn}` : ""}`);
 
       // One dish's failure is one dish lost, never the run: a page a sitemap still lists can be
       // gone, and the recipes already accepted are still to import below.
@@ -152,13 +191,19 @@ const main = async () => {
         }
       } catch (error) {
         run.errored++;
-        console.log(`  ${cuisine} · ${name}: ${_messageOf(error)}`);
+        _log(`    ${name}: ${_messageOf(error)}`);
       }
     }
   }
 
-  for (const url of pendingFor(ledger, admin.deployment).slice(0, BATCH_SIZE)) {
+  const urls = pending().slice(0, LIMIT_SIZE);
+  _log(`Searching done in ${_elapsed(started)}: ${pending().length} pending, importing ${urls.length}.`);
+
+  const importOne = async (url: string, position: number) => {
     const { source, title } = ledger.recipes[url]!;
+    const label = `[${position}/${urls.length}] ${title}`;
+    const began = Date.now();
+    _log(`  ${label}: importing from ${source}…`);
     try {
       const recipeId = await admin.action(internal.router.recipes.importOne._internal, {
         url,
@@ -166,20 +211,30 @@ const main = async () => {
       });
       recordImport(ledger, url, { deployment: admin.deployment, recipeId, at: now() });
       run.imported++;
-      console.log(`  imported ${title}`);
+      _log(`  ${label}: imported as ${recipeId} in ${_elapsed(began)}`);
     } catch (error) {
       recordFailure(ledger, url, _messageOf(error));
       run.failed++;
-      console.log(`  failed ${url}: ${_messageOf(error)}`);
+      _log(`  ${label}: failed after ${_elapsed(began)}: ${_messageOf(error)}`);
     }
+    // Written as each one settles, not once per batch: an interruption keeps every result so far.
     writeLedger(LEDGER_FILE, ledger);
+  };
+
+  const batches = Math.ceil(urls.length / BATCH_SIZE);
+  for (let offset = 0; offset < urls.length; offset += BATCH_SIZE) {
+    const batch = urls.slice(offset, offset + BATCH_SIZE);
+    const began = Date.now();
+    _log(`Batch ${offset / BATCH_SIZE + 1}/${batches}: ${batch.length} imports at once.`);
+    await Promise.all(batch.map((url, index) => importOne(url, offset + index + 1)));
+    _log(`Batch done in ${_elapsed(began)}: ${run.imported} imported, ${run.failed} failed so far.`);
   }
 
   const coverage = coverageOf(ledger);
   console.log(
-    `\n${run.imported} imported · ${run.failed} failed · ` +
-      `${pendingFor(ledger, admin.deployment).length} accepted but pending · ` +
-      `${run.searched} searches, ${run.accepted} accepted, ${run.rejected} recipes rejected, ` +
+    `\nDone in ${_elapsed(started)}: ${run.imported} imported · ${run.failed} failed · ` +
+      `${pending().length} accepted but pending · ` +
+      `${run.asks} asks, ${run.searched} searches, ${run.accepted} accepted, ${run.rejected} recipes rejected, ` +
       `${run.errored} dishes errored\n` +
       `Coverage: ${coverage.cuisines}/${coverage.ofCuisines} cuisines · ` +
       `${coverage.vegan}/${coverage.dishes} dishes meant as vegan`,

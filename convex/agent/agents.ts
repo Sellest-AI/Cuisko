@@ -60,6 +60,20 @@ export const recipesAgent = new Agent(components.agent, {
   // usageHandler,
 });
 
+/**
+ * The dish suggester behind `catalog:import`. Low effort: the job is naming well-known dishes of
+ * a cuisine, and the script pays the wait for every call.
+ */
+export const catalogAgent = new Agent(components.agent, {
+  name: "Cuisko Catalog Agent",
+  providerOptions: models.catalog.providerOptions({ effort: "low" }),
+  languageModel: models.catalog.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});
+
 export const ingredientsAgent = new Agent(components.agent, {
   name: "Cuisko Ingredient Agent",
   providerOptions: models.ingredients.providerOptions({ effort: false }),

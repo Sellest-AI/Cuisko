@@ -72,6 +72,15 @@ export const models = {
     ...OPENAI_GPT_5_6_LUNA_OPTIONS
   },
   /**
+   * The `catalog:import` script's dish suggester. Luna rather than Deepseek because the script
+   * waits on every call through one HTTP request, and Deepseek at low effort took long enough for
+   * the gateway to time out on it. Named on its own so retuning the import cannot move `recipes`.
+   */
+  catalog: {
+    model: OPENAI_GPT_5_6_LUNA,
+    ...OPENAI_GPT_5_6_LUNA_OPTIONS
+  },
+  /**
    * The assistant a shopper talks to. Deepseek at low effort: it is answering cooking questions,
    * not reasoning about a schema, and it is the only model here a person waits on in real time —
    * so the trade runs the other way from `recipes`, where accuracy is worth the extra seconds.

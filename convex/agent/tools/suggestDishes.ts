@@ -5,7 +5,7 @@ import { retryPromise } from "@shared/helpers";
 import { foldAccents } from "@shared/translations";
 import z from "zod/v4";
 
-import { defaultAgent } from "../agents";
+import { catalogAgent } from "../agents";
 import { suggestDishesPrompt, suggestDishesUserPrompt } from "../config/prompts/suggestDishes";
 import {
   type AssertTrue,
@@ -143,7 +143,7 @@ const _suggest = async (ctx: ToolCtx, args: z.infer<typeof _inputSchema>): Promi
   }
 
   const result = await retryPromise(() =>
-    wrapAgent(defaultAgent).generateObject(
+    wrapAgent(catalogAgent).generateObject(
       ctx,
       {},
       {
