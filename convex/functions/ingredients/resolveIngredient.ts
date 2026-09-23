@@ -358,7 +358,7 @@ export const resolveWithAgent = async (
   // list would stamp that source's authority on numbers it did not supply.
   const source = sanitized.source;
 
-  const ingredientId = await ctx.runMutation(
+  const written = await ctx.runMutation(
     internal.router.ingredients.resolve._internal_create,
     // Stamped here rather than inside the sanitizer, which is pure and locale-blind by design: the
     // shopper's language is a fact about how this row came to be written, and this is the step that
@@ -366,6 +366,15 @@ export const resolveWithAgent = async (
     // on `IngredientFacts`.
     { facts: { ...sanitized.facts, sourceLocale: locale }, source },
   );
+
+  // Another walk wrote this food while this one was asking the model — see `createIngredient`.
+  // Nothing was created, so nothing is drawn: the row already has, or is getting, its image.
+  if (!written.created) {
+    const { ingredientId, name, defaultUnit, defaultQuantity } = written.existing;
+    return { status: "matched", ingredientId, name, defaultUnit, defaultQuantity };
+  }
+
+  const { ingredientId } = written;
 
   // Generate the image for the ingredient (ONLY if the ingredient was created, not if it was matched)
   await ctx.scheduler.runAfter(0, internal.router.ingredients.generateImageNode._internal, {

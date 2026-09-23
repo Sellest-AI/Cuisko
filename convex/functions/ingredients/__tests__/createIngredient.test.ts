@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import schema from "../../../schema";
 import { createIngredient } from "../createIngredient";
 import type { IngredientFacts } from "../ingredientRow";
+import type { IngredientSource } from "@shared/ingredients";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -35,9 +36,27 @@ const RUTABAGA: IngredientFacts = {
   },
 };
 
+/** A second, unrelated food, for the tests that need two rows to exist side by side. */
+const PARSNIP: IngredientFacts = {
+  ...RUTABAGA,
+  names: {
+    fr: { value: "Panais", status: "edited" },
+    en: { value: "Parsnip", status: "machine" },
+  },
+  aliases: {},
+};
+
 beforeEach(() => {
   t = convexTest(schema, modules);
 });
+
+/** The id of a row the test expects to be freshly inserted — fails loudly if it was reused. */
+const created = async (facts: IngredientFacts, source: IngredientSource) => {
+  const result = await t.run((ctx) => createIngredient(ctx, facts, source));
+  if (!result.created) throw new Error(`expected ${facts.names.fr.value} to be inserted`);
+
+  return result.ingredientId;
+};
 
 describe("functions/ingredients/createIngredient", () => {
   /**
@@ -46,7 +65,7 @@ describe("functions/ingredients/createIngredient", () => {
    * that fails silently when a writer forgets — the row exists and is simply never found again.
    */
   test("derives search, nutriScore and the localized name from the facts alone", async () => {
-    const ingredientId = await t.run((ctx) => createIngredient(ctx, RUTABAGA, "foodComposition"));
+    const ingredientId = await created(RUTABAGA, "foodComposition");
     const row = await t.run((ctx) => ctx.db.get(ingredientId));
 
     expect(row?.name.values).toEqual({ fr: "Rutabaga", en: "Swede" });
@@ -66,8 +85,8 @@ describe("functions/ingredients/createIngredient", () => {
    * caveating a Nutri-Score reads exactly this field to decide how loudly.
    */
   test("records the provenance the caller supplies rather than assuming the agent", async () => {
-    const measured = await t.run((ctx) => createIngredient(ctx, RUTABAGA, "foodComposition"));
-    const invented = await t.run((ctx) => createIngredient(ctx, RUTABAGA, "agent"));
+    const measured = await created(RUTABAGA, "foodComposition");
+    const invented = await created(PARSNIP, "agent");
 
     expect(await t.run((ctx) => ctx.db.get(measured)))
       .toMatchObject({ source: "foodComposition" });
@@ -76,12 +95,88 @@ describe("functions/ingredients/createIngredient", () => {
 
   /**
    * A row grown from a shopper's typing has no `slug`: it is the seed's dedup key and there is
-   * nothing stable to key this by. What stops the duplicate is upstream, in `resolveIngredient`.
+   * nothing stable to key this by. The name is what the re-check below reads instead.
    */
   test("leaves slug unset, so nothing mistakes an invented row for a seeded one", async () => {
-    const ingredientId = await t.run((ctx) => createIngredient(ctx, RUTABAGA, "agent"));
+    const ingredientId = await created(RUTABAGA, "agent");
 
     // Absent, not `undefined`: Convex drops the key, so `by_slug` never sees this row at all.
     expect(await t.run((ctx) => ctx.db.get(ingredientId))).not.toHaveProperty("slug");
+  });
+
+  /**
+   * The recipe-import race: two walks for `coriandre` both searched an empty catalog, both asked
+   * the model, and the dev catalog grew two identical rows eight seconds apart. The second create
+   * must find the first rather than insert beside it.
+   */
+  test("reuses a row of the same name instead of inserting a second one", async () => {
+    const first = await created(RUTABAGA, "foodComposition");
+    const second = await t.run((ctx) =>
+      createIngredient(ctx, { ...RUTABAGA, sourceLocale: "fr" }, "agent"),
+    );
+
+    expect(second).toMatchObject({ created: false, existing: { ingredientId: first, name: "Rutabaga" } });
+    expect(await t.run((ctx) => ctx.db.query("ingredients").take(5))).toHaveLength(1);
+  });
+
+  /**
+   * The seeded `cilantro` row ("Coriandre fraîche") lists `coriandre` as an alias; a new row named
+   * `coriandre` is that food. Both names differ here, so only the alias can make the match.
+   */
+  test("reuses a row whose alias is the new row's name", async () => {
+    const first = await created(RUTABAGA, "foodComposition");
+    const second = await t.run((ctx) =>
+      createIngredient(ctx, {
+        ...PARSNIP,
+        names: {
+          fr: { value: "Chou-navet", status: "edited" },
+          en: { value: "Yellow turnip", status: "machine" },
+        },
+        sourceLocale: "fr",
+      }, "agent"),
+    );
+
+    expect(second).toMatchObject({ created: false, existing: { ingredientId: first } });
+  });
+
+  /**
+   * Only the shopper's own word is compared. English folds what French keeps apart: `Poitrine
+   * fumée` renders as "Bacon", and so does the seeded `Lard fumé`. Matching on the rendering would
+   * link the recipe line to the wrong cut with nobody asked.
+   */
+  test("does not reuse a row that only shares a translated name", async () => {
+    await created(
+      { ...PARSNIP, names: { fr: { value: "Lard fumé", status: "edited" }, en: { value: "Bacon", status: "edited" } } },
+      "seed",
+    );
+    const second = await t.run((ctx) =>
+      createIngredient(ctx, {
+        ...PARSNIP,
+        names: {
+          fr: { value: "Poitrine fumée", status: "edited" },
+          en: { value: "Bacon", status: "machine" },
+        },
+        sourceLocale: "fr",
+      }, "agent"),
+    );
+
+    expect(second.created).toBe(true);
+  });
+
+  /** Close is not the same: `coriandre` must not fold into `Coriandre en poudre`. */
+  test("still inserts when an existing row only resembles the name", async () => {
+    await created(RUTABAGA, "foodComposition");
+    const second = await t.run((ctx) =>
+      createIngredient(ctx, {
+        ...PARSNIP,
+        names: {
+          fr: { value: "Rutabaga jaune", status: "edited" },
+          en: { value: "Yellow swede", status: "machine" },
+        },
+        sourceLocale: "fr",
+      }, "agent"),
+    );
+
+    expect(second.created).toBe(true);
   });
 });

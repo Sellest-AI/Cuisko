@@ -183,17 +183,14 @@ type Args = {
  * ⚠️ **Two names for one food, both unknown, each invent their own row.** `courgette` and
  *    `zucchini` in one recipe fold to different keys and walk separately — correctly, since nothing
  *    yet knows they are the same food. Both decline every cheap step, both reach the model, and
- *    `createIngredient` is a bare insert with no dedup key by design (see its note), so one
- *    vegetable ends up with two permanent rows, each having paid for its own image generation, and
- *    the pantry then holds one while a recipe asks for the other.
+ *    one vegetable ends up with two permanent rows, each having paid for its own image generation.
  *
  *    Serializing pass two does NOT fix this, and was tried: `resolveWithAgent` is handed the
  *    `candidates` list snapshotted in pass one and never re-reads the catalog, so the second
- *    judgement cannot see the row the first just wrote however long it waits — it only pays for
- *    the waiting. The fix has to be at the write: re-check the catalog INSIDE the create mutation,
- *    where Convex's transactionality makes a read-then-insert a real guard rather than a smaller
- *    window. That lives in `createIngredient`, needs an index to read by, and closes the same race
- *    between two SHOPPERS — the trade `createIngredient` already records and accepts — in one go.
+ *    judgement cannot see the row the first just wrote however long it waits. The guard is at the
+ *    write instead: `createIngredient` re-runs the catalog search inside its mutation and reuses a
+ *    row of the SAME name. That catches two walks the model named alike — two recipes importing
+ *    `coriandre` at once — but not two names for one food, which only a reader can join.
  *
  * **The line's own numbers win.** `resolveIngredient` also answers `defaultUnit` and
  * `defaultQuantity` — how the food is *bought*, which is the navigation bar's question. A recipe

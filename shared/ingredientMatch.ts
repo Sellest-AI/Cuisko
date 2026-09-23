@@ -89,7 +89,7 @@ export const MARGIN = 0.05;
 const FUZZY_CEILING = 0.85;
 
 /** An exact hit on a recorded synonym. Below a name hit, above anything fuzzy. */
-const ALIAS_EXACT = 0.9;
+export const ALIAS_EXACT = 0.9;
 
 /** How hard a candidate is punished for carrying words the query never mentioned. */
 const EXTRA_WEIGHT = 0.6;
