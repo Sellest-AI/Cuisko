@@ -101,6 +101,12 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
               e.currentTarget.nodeValue ?? value;
             onSubmit?.(_value);
           }}
+          /**
+           * One line, placeholder included. Android lays the hint out as multi-line even on a
+           * single-line field, so a placeholder wider than the field wrapped onto a second line the
+           * cook could scroll to inside a box one line tall.
+           */
+          numberOfLines={1}
           autoCorrect={false}
           autoCapitalize="sentences"
           returnKeyType="search"
@@ -155,6 +161,11 @@ const styles = StyleSheet.create({
     width: "100%",
     flexShrink: 1,
     outlineWidth: 0,
+    /**
+     * Android's `EditText` ships its own vertical padding, which made the content a few pixels
+     * taller than the line and so scrollable. The container already centres and pads the field.
+     */
+    paddingVertical: 0,
   },
   borders: {
     borderWidth: 2,
