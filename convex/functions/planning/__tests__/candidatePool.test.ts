@@ -335,6 +335,30 @@ describe("functions/planning/candidatePool", () => {
     expect(idsOf(await poolFor(me))).toEqual([oven, pans]);
   });
 
+  /** A jus filled a lunch slot once. Only a recipe known not to be a meal goes: untagged stays. */
+  test("drops what is not a lunch or a dinner, and keeps a starter and a recipe with no course", async () => {
+    const me = await user();
+    const main = await recipe({ shuffleKey: 1, tags: ["main"] });
+    const starter = await recipe({ shuffleKey: 2, tags: ["starter", "soup"] });
+    const bare = await recipe({ shuffleKey: 3 });
+    const excluded: Tag[] = ["side", "pastry", "sauce", "dessert", "drink", "snack", "breakfast"];
+    for (const [index, tag] of excluded.entries()) {
+      await recipe({ shuffleKey: 10 + index, tags: [tag, "quick"] });
+    }
+
+    expect(idsOf(await poolFor(me, { plates: 5 }))).toEqual([main, starter, bare]);
+  });
+
+  /** A bourguignon is a main that happens to be mostly sauce; the model may say both. */
+  test("keeps a main whatever other course it also carries", async () => {
+    const me = await user();
+    const bourguignon = await recipe({ shuffleKey: 1, tags: ["main", "sauce"] });
+    const grainSalad = await recipe({ shuffleKey: 2, tags: ["side", "main"] });
+    await recipe({ shuffleKey: 3, tags: ["sauce"] });
+
+    expect(idsOf(await poolFor(me))).toEqual([bourguignon, grainSalad]);
+  });
+
   test("drops a recipe lacking a sought tag", async () => {
     const me = await user();
     const lean = await recipe({ shuffleKey: 1, tags: ["high-protein"] });

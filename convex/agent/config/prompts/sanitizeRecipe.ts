@@ -101,6 +101,9 @@ not inventing them.
   resting overnight is "make-ahead". A tag is a fact, not a compliment, so an unflattering one is as
   required as a flattering one — and a fact is not a wish either: do not tag "quick" a recipe that
   takes an hour.
+  "sauce" is a course of its own: something served with a dish rather than eaten as one — a sauce,
+  gravy, jus, dressing, dip, stock or marinade. A dish that arrives in its sauce, a curry or a
+  bolognese, is a "main" and never a "sauce".
   The form group is what arrives on the plate, not how it got there: "pastry" is what a
   pâtisserie counter sells — cake, sweet tart or pie, biscuit, choux, brioche, viennoiserie.
   Dough is not the test and the oven is not the test: a pizza, a quiche, a bread, a savoury pie,

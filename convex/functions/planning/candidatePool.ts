@@ -5,6 +5,7 @@ import type { Diet } from "@shared/diets";
 import { canBeMadeWith, type Equipment } from "@shared/equipments";
 import { matchesSeeks, type NutritionPreference } from "@shared/preferences";
 import { totalMinutesOf } from "@shared/recipes";
+import type { Tag } from "@shared/tags";
 
 import { suitsDiet } from "@convex/functions/recipes/dietFacet";
 
@@ -79,6 +80,21 @@ export const CANDIDATES_PER_PLATE = 6;
 
 /** Mirrors `selectMeals`' own-share cap, so the caller's recipes are loaded only as deep as they can be used. */
 export const OWN_SHARE = 0.3;
+
+/**
+ * The tags of a recipe that is not a lunch or a dinner on its own — a side, a cake, a jus, a
+ * smoothie, a bowl of granola. A week is lunches and dinners, and one of these filling a slot is a
+ * meal nobody can sit down to.
+ *
+ * A deny-list rather than an allow-list on `main`, on purpose: a recipe the model never gave a
+ * course is still planned. Only a recipe KNOWN to be something else is left out. `starter` is not
+ * here: a soup or a salad served as a starter is a fair lunch.
+ *
+ * **`main` wins.** Course tags are not exclusive: a bœuf bourguignon may come back `main` and
+ * `sauce`, a grain salad `main` and `side`. A recipe the model called a main is a plate, whatever
+ * else it also is.
+ */
+const NOT_A_PLATE: readonly Tag[] = ["side", "pastry", "sauce", "dessert", "drink", "snack", "breakfast"];
 
 /** The span `randomShuffleKey` draws from: every unsigned 32-bit integer. */
 const SHUFFLE_KEY_SPAN = 2 ** 32;
@@ -218,7 +234,7 @@ const _loadUntil = async (
  * The recipes a week may be drawn from, already scaled to the plates' servings, in shuffled order.
  *
  * Both halves are index reads on `by_user_id_and_shuffle_key` — the global catalog (`userId`
- * unset) and the caller's own. Diet, the time ceiling and the sought tags are filtered on the
+ * unset) and the caller's own. Components, diet, the time ceiling and the sought tags are filtered on the
  * recipe row, which is free; allergens need the lines, so they are read only for the survivors, and only until there
  * are enough to choose from. The catalog comes first, and the caller's own fill whatever it could
  * not: the own-share
@@ -268,9 +284,16 @@ export const candidatePool = async (
   const isMakeable = (recipe: Doc<"recipes">) =>
     equipments === undefined || canBeMadeWith(recipe.equipments, equipments);
 
-  // All four are decided on the recipe row, before a single line is read, so they cost nothing.
+  const isAPlate = (recipe: Doc<"recipes">) =>
+    recipe.tags.includes("main") || !recipe.tags.some((tag) => NOT_A_PLATE.includes(tag));
+
+  // All five are decided on the recipe row, before a single line is read, so they cost nothing.
   const suits = (recipe: Doc<"recipes">) =>
-    suitsDiet(recipe, diet) && fitsTime(recipe) && isMakeable(recipe) && matchesSeeks(recipe.tags, seeks);
+    isAPlate(recipe) &&
+    suitsDiet(recipe, diet) &&
+    fitsTime(recipe) &&
+    isMakeable(recipe) &&
+    matchesSeeks(recipe.tags, seeks);
 
   await _loadUntil(ctx, catalog.filter(suits), wanted, { servings, avoids, isMine: false, deleted }, pool);
 

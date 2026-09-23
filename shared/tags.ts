@@ -81,6 +81,12 @@ export const AUTHORED_TAGS = [
   "dessert",
   "snack",
   "drink",
+  /**
+   * Served WITH a dish rather than as one — a sauce, gravy, dressing, dip, stock or marinade. The
+   * planner leaves it out of a week the way it leaves out a side: a plate of red wine jus is not a
+   * lunch. A dish that arrives in its sauce — a curry, a bolognese — is a main.
+   */
+  "sauce",
   // Form — what it looks like on the plate
   "soup",
   "salad",
