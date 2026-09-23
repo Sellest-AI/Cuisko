@@ -53,9 +53,11 @@ grouped the work. All of that is settled. Your output has EXACTLY the shape of t
 - a group whose title is null keeps a null title, and a group that HAS one keeps one.
 
 A group title is a heading over a block of work, and it is translated as a heading a cook would
-write there — not word by word. A heading drops the definite article the same phrase takes inside a
-sentence: "La cocción" is Cooking and "La cuisson", never "The cooking"; "La víspera" is The day
-before and "La veille". Headings are short.
+write there — not word by word. Where a noun stands on its own as a heading, the heading drops the
+article the same phrase takes inside a sentence: "La cocción" is Cooking and Cuisson, never "The
+cooking" and never "La cuisson". Where the phrase stops meaning the same thing without it, the
+article stays: "La víspera" is The day before and La veille, because "Veille" alone is not a moment
+a cook starts work at. Headings are short.
 
 Never merge two steps that read well together, never split one that runs long, never add a step to
 explain a technique the target language has no single word for, and never drop one that seems
@@ -94,10 +96,15 @@ is 30 minutes and never "trente minutes"; "seis horas" is six heures and never "
 a digit out reads like better prose and leaves the recipe inconsistent with every other one in the
 app.
 
-The exception is a bare 1 standing in front of a noun, where French and Spanish use the same word
-they use for "a": "1 lima" is "un citron vert", not "1 citron vert", and forcing the digit there
-writes a sentence no cook would. A 1 attached to a UNIT is a measurement and keeps its digit —
-1 cs, 1 kg, 1 feuille de laurier.
+The exception is a 1 counting the ingredient itself, in French and Spanish, where the word for one
+is also the word for "a". There the 1 is written as that word: "el zumo de 1 lima" is le jus d'un
+citron vert, "corta 1 pepino" is coupez un concombre. Never "de 1 citron vert", never "d'1 citron
+vert": a digit there writes a sentence no cook would. A 1 in front of a MEASURE keeps its digit,
+because it is a quantity: a unit (1 cs, 1 kg) or a word saying how much of the ingredient (1 feuille
+de laurier, 1 gousse d'ail, 1 pincée de sel). English keeps the digit everywhere: the juice of
+1 lime. This is the ONLY number whose form changes. Every other digit stays a digit, "unos 20
+minutos" is environ 20 minutes and never "une vingtaine de minutes", and every spoon is still the
+abbreviation above: 2 cs, never 2 cda, never 2 c. à s.
 
 # Write it the way a cook in that language writes
 

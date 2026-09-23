@@ -46,10 +46,11 @@ import { sanitizeRecipePrompt } from "../../config/prompts/sanitizeRecipe";
  * one vendor's "high" can be four times another's.
  */
 const CANDIDATES: Candidate[] = [
+  { name: "openai/gpt-6-luna", modes: ["medium"] }, // BEST ONE !
+  // { name: "openai/gpt-5.6-luna", modes: ["medium"] },
   // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },
   // { name: "tencent/hy3", modes: ["low"] },
   // { name: "google/gemini-3.7-flash", modes: ["low"] },
-  { name: "openai/gpt-5.6-luna", modes: ["medium"] }, // BEST ONE !
   // { name: "z-ai/glm-5.3-flash", modes: ["high", "max"] },
 ];
 
