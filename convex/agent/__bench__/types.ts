@@ -60,6 +60,12 @@ export type ProviderRouting = {
   ignore?: string[];
   /** Default `true`. Turn it off to measure ONE provider rather than a model. */
   allow_fallbacks?: boolean;
+  /**
+   * Default `true`. Only providers that support every parameter sent — structured output and the
+   * reasoning setting — may serve the call. Off, OpenRouter may route to one that silently drops
+   * `response_format`, and the table blames the model for the provider.
+   */
+  require_parameters?: boolean;
 };
 
 /**
