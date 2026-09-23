@@ -1,22 +1,22 @@
 import { View, StyleSheet, ViewStyle } from "react-native";
 import { theme } from "theme";
+import { Markdown } from "./markdown";
 import { Text } from "./text";
 import { ReactNode } from "react";
-
-type Parser = {
-  condition: string,
-  parse: (text: string) => React.ReactNode,
-}
 
 type Props = {
   from: "user" | "assistant",
   style?: ViewStyle,
   content: string;
   children?: ReactNode,
-  parsers?: Parser[],
+  /**
+   * Draw `content` as markdown rather than as the literal characters. For text a model wrote; a
+   * person's own message is shown as they typed it, asterisks and all.
+   */
+  markdown?: boolean,
 }
 
-export const Message = ({ from = "user", style, content, children, parsers }: Props) => {
+export const Message = ({ from = "user", style, content, children, markdown }: Props) => {
   const isUser = from === "user";
 
   const maxUserWidth = content.length > 80 ? 300 : content.length > 50 ? 260 : 220;
@@ -51,21 +51,11 @@ export const Message = ({ from = "user", style, content, children, parsers }: Pr
           isUser ? styles.userMessage : styles.assistantMessage,
           isUser && styles.elevated,
         ]}>
-          <Text.Base
-            style={{
-              color: theme.colors.foreground,
-              fontWeight: 400,
-              lineHeight: theme.font.base.lineHeight * 1.1
-            }}
-          >
-            {parsers && parsers.length > 0 ? (
-              parsers.reduce((acc, parser) => {
-                return parser.parse(acc as string);
-              }, content as string | React.ReactNode)
-            ) : (
-              content
-            )}
-          </Text.Base>
+          {markdown ? (
+            <Markdown content={content} color={theme.colors.foreground} />
+          ) : (
+            <Text.Body color={theme.colors.foreground}>{content}</Text.Body>
+          )}
         </View>
         {children}
       </View>

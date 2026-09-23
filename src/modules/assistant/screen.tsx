@@ -109,6 +109,7 @@ export const AssistantScreen = ({ style, question }: Props) => {
                 */}
               <Message
                 from="assistant"
+                markdown
                 content={message.hasFailed && !message.text ? t("failed") : message.text}
                 style={styles.fromAssistant}
               />

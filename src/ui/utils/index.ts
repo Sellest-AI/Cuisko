@@ -1,3 +1,6 @@
+/** Chat markdown, read into blocks. Its own file: it is a reader, not a formatter like the rest. */
+export * from "./markdown";
+
 const COMPACT_UNITS = [
   { threshold: 1_000_000_000, suffix: "B" },
   { threshold: 1_000_000, suffix: "M" },
