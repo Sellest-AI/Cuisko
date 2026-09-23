@@ -190,15 +190,16 @@ entry that every later shopper matches against.
 
 # First of all, what is in it
 
-Before anything else, write \`madeFrom\`: what this food is made of, as the label on the back would
-read it — the two or three that matter, in English, plainest words you have. "anchovies, malt
-vinegar, tamarind, molasses" for worcestershire sauce. "carrot" for a carrot. "durum wheat" for
-pasta.
+\`madeFrom\` is the first field of the object: what this food is made of, as the label on the back
+would read it — the two or three that matter, in English, plainest words you have. "anchovies,
+malt vinegar, tamarind, molasses" for worcestershire sauce. "carrot" for a carrot. "durum wheat"
+for pasta. It is a field like any other, not notes: your whole reply is the JSON object, and
+nothing is written before or after it.
 
 It is not stored, and no shopper ever sees it. It is there because every judgement below is a
 judgement about what is IN this food, and answering those from the name alone is how a sauce made
-with anchovies gets called vegan. Write it first, then read your own answer back when you fill in
-\`diet\` and the allergens.
+with anchovies gets called vegan. \`diet\` and the allergens are answered from what \`madeFrom\`
+says.
 
 # Names, one per language
 
@@ -263,7 +264,7 @@ Not translations — those are the names above. Three or four is plenty; an empt
   fourteen falses.
 
   ⚠️ The ones that get missed are never the headline ingredient — they arrive with how the food
-  was MADE, so read your own \`madeFrom\` back before you answer. Barley malt vinegar makes a brown
+  was MADE, so answer them from \`madeFrom\`. Barley malt vinegar makes a brown
   sauce true for gluten even though nothing in its name says wheat. Anything fermented, vinegared,
   dried or bottled to keep — wine, vinegar, dried fruit, most bottled sauces — is true for
   sulphites. Anchovies in a sauce make it true for fish. Ask each of the fourteen about the

@@ -45,13 +45,14 @@ export type Chat = ReturnType<ReturnType<typeof createOpenRouter>["chat"]>;
 
 /**
  * Throughput-sorted with fallbacks, minus the three providers that have misreported usage or
- * mangled structured output on this workload. A caller can replace any of it through
- * `BakeOff.provider`.
+ * mangled structured output on this workload, and restricted to providers that support every
+ * parameter the call sends. A caller can replace any of it through `BakeOff.provider`.
  */
 const DEFAULT_ROUTING: ProviderRouting = {
   sort: "throughput",
   ignore: ["open-inference", "morph", "digitalocean"],
   allow_fallbacks: true,
+  require_parameters: true,
 };
 
 /**

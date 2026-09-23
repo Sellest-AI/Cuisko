@@ -49,8 +49,11 @@ import { translateRecipePrompt } from "../../config/prompts/translateRecipe";
  * overkill here, and every recipe pays for this once per language.
  */
 const CANDIDATES: Candidate[] = [
+  { name: "openai/gpt-6-luna", modes: [false] }, // BEST ONE,
+  // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },
+  // { name: "deepseek/deepseek-v4.1-flash", modes: [false] },
   // { name: "nvidia/nemotron-3-super-120b-a12b:free", modes: [5000] },
-  { name: "deepseek/deepseek-v4-flash-0731", modes: [false] }, // BEST ONE,
+  // { name: "xiaomi/mimo-v2.6-flash", modes: [false] },
   // { name: "z-ai/glm-5.3-flash", modes: ["low"] }, // COSTS TOO MUCH
   // { name: "qwen/qwen3.7-flash", modes: [false] },
 ];
@@ -451,7 +454,14 @@ const CRITERIA = ((locales: readonly Locale[]): string[] => {
     "symbols beside them must NOT move: 10 g stays 10 g, 25 cl stays 25 cl, 1,3 kg keeps its " +
     "value. A candidate that left a raw \"3 cda\" in a step has shipped a step nobody can " +
     "measure; a candidate that turned 25 cl into 250 ml or into cups has changed the recipe. " +
-    "Both are failures, and the first is the one that hides best.",
+    "Both are failures, and the first is the one that hides best." +
+    (wants("fr")
+      ? " In French, a 1 counting the ingredient itself is written as the article: \"el zumo de " +
+      "1 lima\" is le jus d'un citron vert and \"corta 1 pepino\" is coupez un concombre, never " +
+      "\"de 1 citron vert\" or \"d'1 citron vert\". A 1 in front of a measure keeps its digit — " +
+      "1 cs, 1 feuille de laurier — and turning that into \"une feuille\" is the opposite fault."
+      : "") +
+    (wants("en") ? " English keeps the digit everywhere: the juice of 1 lime." : ""),
 
     "Does every step use the EXACT word the ingredient list gives for that language? The list " +
     "came in already translated and is displayed beside the steps, so this is a lookup the " +
@@ -473,10 +483,12 @@ const CRITERIA = ((locales: readonly Locale[]): string[] => {
 
     "Are the group titles headings rather than glosses? \"La víspera\" is " +
     `${each({ en: "The day before", fr: "La veille" })} and "La cocción" is ` +
-    `${each({ en: "Cooking", fr: "La cuisson" })}` +
+    `${each({ en: "Cooking", fr: "Cuisson" })}` +
     (wants("en") ? ", never \"The cooking\"" : "") +
-    " — an article a language takes in a sentence it usually drops in a heading. The third group " +
-    "has no title in the source and must have none.",
+    (wants("fr") ? ", never \"La cuisson\"" : "") +
+    " — an article a language takes in a sentence it drops in a heading where the noun stands " +
+    "alone, and keeps where the phrase would stop meaning the same thing without it. The third " +
+    "group has no title in the source and must have none.",
 
     "Are the four names left alone? Gochujang, nashi, Kewpie and sriracha have no word in any " +
     "target language and must appear as they are — not glossed (\"Korean chilli paste\", " +

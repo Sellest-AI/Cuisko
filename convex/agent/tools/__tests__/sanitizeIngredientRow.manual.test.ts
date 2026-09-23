@@ -68,7 +68,10 @@ import {
 const CANDIDATES: Candidate[] = [
   // { name: "openai/gpt-5.6-luna", modes: ["low", "medium"] }, // the incumbent, at two efforts
   // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },
+  // { name: "deepseek/deepseek-v4.1-flash", modes: [false] },
+  // { name: "openai/gpt-5.6-luna", modes: [false] },
   { name: "xiaomi/mimo-v2.6-pro", modes: [false] },
+  { name: "openai/gpt-6-luna", modes: ["low"] }, // BEST ONE
 ];
 
 const LOCALE = "fr" as const;

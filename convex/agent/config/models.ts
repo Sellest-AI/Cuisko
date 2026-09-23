@@ -13,7 +13,8 @@ const DEEPSEEK_V4_FLASH_0731_OPTIONS = {
       provider: {
         sort: "price",
         ignore: ["open-inference", "morph", "digitalocean", "baidu"],
-        allow_fallbacks: true
+        allow_fallbacks: true,
+        require_parameters: true
       }
     }
   })
@@ -36,14 +37,15 @@ const DEEPSEEK_V4_FLASH_0731_OPTIONS = {
 //   })
 // }
 
-const OPENAI_GPT_5_6_LUNA = openrouter.chat("openai/gpt-5.6-luna");
-const OPENAI_GPT_5_6_LUNA_OPTIONS = {
+const OPENAI_GPT_6_LUNA = openrouter.chat("openai/gpt-6-luna");
+const OPENAI_GPT_6_LUNA_OPTIONS = {
   providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
     openrouter: {
       reasoning: effort ? { enabled: true, effort } : { enabled: false },
       provider: {
         sort: "price",
-        allow_fallbacks: true
+        allow_fallbacks: true,
+        require_parameters: true
       }
     }
   })
@@ -56,20 +58,8 @@ const QWEN_3_7_FLASH_OPTIONS = {
       reasoning: effort ? { enabled: true, effort } : { enabled: false },
       provider: {
         sort: "price",
-        allow_fallbacks: true
-      }
-    }
-  })
-}
-
-const MIMO_V2_6_PRO = openrouter.chat("xiaomi/mimo-v2.6-pro");
-const MIMO_V2_6_PRO_OPTIONS = {
-  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
-    openrouter: {
-      reasoning: effort ? { enabled: true, effort } : { enabled: false },
-      provider: {
-        sort: "price",
-        allow_fallbacks: true
+        allow_fallbacks: true,
+        require_parameters: true
       }
     }
   })
@@ -81,8 +71,8 @@ export const models = {
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS
   },
   recipes: {
-    model: OPENAI_GPT_5_6_LUNA,
-    ...OPENAI_GPT_5_6_LUNA_OPTIONS
+    model: OPENAI_GPT_6_LUNA,
+    ...OPENAI_GPT_6_LUNA_OPTIONS
   },
   /**
    * The `catalog:import` script's dish suggester. Luna rather than Deepseek because the script
@@ -90,8 +80,8 @@ export const models = {
    * the gateway to time out on it. Named on its own so retuning the import cannot move `recipes`.
    */
   catalog: {
-    model: OPENAI_GPT_5_6_LUNA,
-    ...OPENAI_GPT_5_6_LUNA_OPTIONS
+    model: OPENAI_GPT_6_LUNA,
+    ...OPENAI_GPT_6_LUNA_OPTIONS
   },
   /**
    * The assistant a shopper talks to. Deepseek at low effort: it is answering cooking questions,
@@ -106,20 +96,22 @@ export const models = {
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS
   },
   translator: {
-    model: DEEPSEEK_V4_FLASH_0731,
-    ...DEEPSEEK_V4_FLASH_0731_OPTIONS
+    model: OPENAI_GPT_6_LUNA,
+    ...OPENAI_GPT_6_LUNA_OPTIONS
   },
   /**
-   * The `sanitizeIngredient` row writer. Mimo at reasoning off, replacing Deepseek: the
-   * 2026-09-22 row bake-off (`sanitizeIngredientRow.manual.test.ts`, seven candidates × three
-   * runs on worcestershire sauce) had Deepseek hallucinate `celery` and return protein 0 in two
-   * runs of three, where Mimo kept every allergen and every nutrition figure clean in all three.
-   * Reasoning off rather than medium because the answers were the same and medium took 45–83 s
-   * against 11 s, on a call a shopper waits for.
+   * The `sanitizeIngredient` row writer. GPT-6 Luna at LOW effort, replacing Mimo at reasoning off:
+   * the 2026-09-23 row bake-off (`sanitizeIngredientRow.manual.test.ts`, worcestershire sauce) had
+   * it answer 3 of 3 at low, against 1 of 9 with reasoning off — every failure an unparseable
+   * reply, never a wrong one. It needs the few hundred reasoning tokens to fill this schema; do not
+   * move it to `false` without re-running that bake-off.
+   *
+   * Mimo replaced Deepseek on the 2026-09-22 run, where Deepseek hallucinated `celery` and returned
+   * protein 0 in two runs of three.
    */
   ingredients: {
-    model: MIMO_V2_6_PRO,
-    ...MIMO_V2_6_PRO_OPTIONS
+    model: OPENAI_GPT_6_LUNA,
+    ...OPENAI_GPT_6_LUNA_OPTIONS
   },
   /**
    * The `sanitizeIngredient` ranker: is a near-miss the catalog found the same food, or nothing?
