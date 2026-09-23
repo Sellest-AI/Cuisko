@@ -93,6 +93,9 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["poivre noir", "black-pepper"],
     ["riz basmati", "basmati-rice"],
     ["yaourt nature", "plain-yogurt"],
+    // Black olives had no row, and "olives noires" came back as `olive-oil` through its "huile" alias.
+    ["olives noires", "olives-black"],
+    ["olives vertes", "olives-green"],
   ])("%s links to %s", async (name, slug) => {
     expect(await linked(name)).toBe(slug);
   });
