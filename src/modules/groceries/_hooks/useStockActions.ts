@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 
 import { api, type Id } from "~/lib/convex/api";
 import { useMutation } from "~/lib/convex/client";
+import { householdSession } from "~/modules/households/household-atom";
 import { useHousehold } from "~/modules/households/hooks";
 
 import { receiptsAtom } from "./atoms";
@@ -93,7 +94,12 @@ export const useStockActions = () => {
        * rejects — and the next removal peels it, sending back a `restoreToList` computed from a
        * purchase the server never saw. The undo window is five minutes; a wrong line on the list
        * outlives it.
+       *
+       * And it is written only if the household is still the one it was computed for. A switch
+       * during the await has already emptied the receipts; writing these after it would hand this
+       * household's purchase to the next one, whose cellar the undo would then peel.
        */
+      const isSameHousehold = householdSession();
       await addToCellar({
         householdId: scope,
         ingredientId: _ingredient(ref.ingredientId),
@@ -101,7 +107,7 @@ export const useStockActions = () => {
         quantity: amount,
       });
 
-      if (next) setReceipts(next.receipts);
+      if (next && isSameHousehold()) setReceipts(next.receipts);
     },
     [householdId, snapshot, setReceipts, addToCellar],
   );
@@ -132,6 +138,8 @@ export const useStockActions = () => {
 
       // Same ordering rule as `buy`, failing the other way: peeling first and rejecting after
       // consumes the receipt for an undo that never happened, and the undo is then simply gone.
+      // Same household check as `buy`: after a switch, these peeled receipts are the old one's.
+      const isSameHousehold = householdSession();
       await takeFromCellar({
         householdId: scope,
         ingredientId: _ingredient(ref.ingredientId),
@@ -140,7 +148,7 @@ export const useStockActions = () => {
         restoreToList: peeled.restored,
       });
 
-      setReceipts(peeled.receipts);
+      if (isSameHousehold()) setReceipts(peeled.receipts);
     },
     [householdId, snapshot.cellar, snapshot.receipts, setReceipts, takeFromCellar],
   );

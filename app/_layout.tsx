@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { BlurScope, BlurTarget } from "@ui/blur-view";
 import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { theme } from "~/global/theme";
+import { HouseholdAtomsReset } from "~/modules/households/household-atoms-reset";
 import { NavigationBar } from "~/modules/navigation/navigation-bar";
 import { Providers } from "~/providers";
 
@@ -113,6 +114,8 @@ export default function RootLayout() {
       <BlurScope target={page}>
         <NavigationBar />
       </BlurScope>
+      {/* Beside the navigator rather than in a screen: a switch can happen from any of them. */}
+      <HouseholdAtomsReset />
     </Providers>
   );
 }

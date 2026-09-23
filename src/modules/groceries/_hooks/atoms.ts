@@ -1,5 +1,7 @@
 import { atom } from "jotai";
 
+import { householdAtom } from "~/modules/households/household-atom";
+
 import { type PendingIngredient, type Receipt } from "../_model/model";
 import { type Sort } from "../_model/sort";
 
@@ -21,7 +23,7 @@ import { type Sort } from "../_model/sort";
  * it durable later is adding a `receipts` table and moving `peelReceipts` behind it; the band
  * logic and its tests do not change, only where they run.
  */
-export const receiptsAtom = atom<Receipt[]>([]);
+export const receiptsAtom = householdAtom<Receipt[]>([]);
 
 /**
  * The ingredients the catalog does not hold yet, while the server works out what they are.
@@ -46,7 +48,7 @@ export const receiptsAtom = atom<Receipt[]>([]);
  * Making it durable later is a `pendingIngredients` table and reading the ghost from it:
  * `usePendingIngredients` changes, and nothing that draws a ghost does.
  */
-export const pendingIngredientsAtom = atom<PendingIngredient[]>([]);
+export const pendingIngredientsAtom = householdAtom<PendingIngredient[]>([]);
 
 /**
  * How "To Buy" is being read: plain, per plate, or per aisle.
