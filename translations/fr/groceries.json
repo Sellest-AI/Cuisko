@@ -13,6 +13,11 @@
   "Groups": {
     "unplanned": "Hors repas"
   },
+  "Empty": {
+    "title": "Rien à acheter, rien en stock",
+    "body": "Planifie ta semaine et je listerai seulement ce qui manque. Ce que tu achètes remplira ensuite ton cellier.",
+    "action": "Planifier ma semaine"
+  },
   "Quantity": {
     "custom_amount": "Entrez votre quantité",
     "nothing_to_adjust": "Rien à ajuster.",

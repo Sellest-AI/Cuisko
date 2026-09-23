@@ -4,7 +4,7 @@ import { colors, theme } from "theme";
 
 import { DayMarker } from "./day-marker";
 import { Pressable } from "./pressable";
-import { PlusIcon } from "./icons";
+import { PlusIcon, type Icon } from "./icons";
 
 export type WeekDay = {
   date: Date;
@@ -22,6 +22,8 @@ type Props<T extends WeekDay> = {
   selectedIndex?: number;
   onSelect?: (day: T) => void;
   onAdd?: () => void;
+  /** Overrides every marker's status icon — see `DayMarker`. */
+  icon?: Icon;
   /** BCP 47 tag for the weekday initials — see `DayMarker`. */
   locale?: string;
   style?: ViewStyle;
@@ -38,6 +40,7 @@ export const WeekStrip = <T extends WeekDay>({
   selectedIndex,
   onSelect,
   onAdd,
+  icon,
   locale,
   style,
 }: Props<T>) => (
@@ -48,6 +51,7 @@ export const WeekStrip = <T extends WeekDay>({
         date={day.date}
         status={day.status}
         locale={locale}
+        icon={icon}
         selected={index === selectedIndex}
         onPress={onSelect ? () => onSelect(day) : undefined}
         style={index === 0 ? styles.edge : undefined}

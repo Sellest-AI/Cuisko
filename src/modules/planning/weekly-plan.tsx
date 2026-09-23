@@ -9,6 +9,7 @@ import { theme } from "theme";
 import { resolveLocale, useTranslations } from "translations";
 
 import { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
+import { WeeklyPlanEmpty } from "./weekly-plan.empty";
 import { MEAL_STATUS } from "./_components/meal-status";
 import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 import { router } from "expo-router";
@@ -30,6 +31,11 @@ const TOGGLE_ICON_SIZE = 14;
  * writes its own lead-in rather than translating this one, because the two have to read as one
  * sentence: French says "Au menu", not "Prêt pour", which a bare "Déjeuner" would not follow.
  * Any other day names itself instead.
+ *
+ * A household with nothing planned gets `weekly-plan.empty.tsx` in place of all of this — the
+ * branch is here rather than inside the parts because the heading, the toggle and the carousel
+ * have nothing to say between them when there is no plan, and three separate empty checks would
+ * be three chances for one of them to disagree.
  */
 export const WeeklyPlan = () => {
   const {
@@ -43,10 +49,13 @@ export const WeeklyPlan = () => {
     selectDay,
     selectMeal,
     toggleMealType,
+    isEmpty,
   } = useWeeklyPlan();
 
   const t = useTranslations("Planning");
   const locale = resolveLocale();
+
+  if (isEmpty) return <WeeklyPlanEmpty days={days} />;
 
   return (
     <View>

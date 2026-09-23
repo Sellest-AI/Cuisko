@@ -2,6 +2,7 @@ import { useLocalSearchParams, usePathname, router } from "expo-router";
 import { ReactNode, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 
+import { EmptyState } from "@ui/empty-state";
 import { ArrowLeft, FileText, ForkKnife, ListOrdered } from "@ui/icons";
 import { m } from "@ui/motion";
 import { ParallaxScrollView } from "@ui/parallax-scroll-view";
@@ -16,7 +17,6 @@ import { RecipeTabs, RecipeTab } from "./tabs";
 import { TabSwipe } from "./swipe";
 import { ChromeNavigationBar } from "./navigation-bar";
 import { useRecipe } from "../../_hooks/useRecipe";
-import { EmptyState } from "../../_components/empty-state";
 import { servingsParamOf } from "../../routes";
 
 type Props = {
@@ -77,7 +77,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
           icon={ForkKnife}
           title={t("Chrome.not_found_title")}
           body={t("Chrome.not_found_body")}
-          action={{
+          actions={[{
             label: t("Chrome.not_found_action"),
             icon: ArrowLeft,
             /**
@@ -86,7 +86,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
              * the dead end this button exists to remove.
              */
             onPress: () => (router.canGoBack() ? router.back() : router.replace("/")),
-          }}
+          }]}
         />
       </SafeAreaView>
     );

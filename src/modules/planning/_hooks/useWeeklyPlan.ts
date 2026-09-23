@@ -73,7 +73,7 @@ export const useWeeklyPlan = () => {
   const days = useMemo(() => _buildWeek(today), [today]);
 
   /** `to` is exclusive: the midnight after the strip's last day. */
-  const { data } = useQueryCached(
+  const { data, isSuccess } = useQueryCached(
     api.router.planning.getMany.authed,
     householdId
       ? {
@@ -149,6 +149,14 @@ export const useWeeklyPlan = () => {
     selectedDate,
     mealType,
     isSelectedToday: isSameDay(selectedDate, today),
+    /**
+     * A household with nothing planned in the window — not one still being read.
+     *
+     * `isSuccess` and not `!isPending`: a failed read also leaves `meals` empty, and drawing the
+     * empty state on it would tell the user their week is unplanned when we simply do not know.
+     * A skipped query (no household yet) reports pending, so nothing flashes before sign-in lands.
+     */
+    isEmpty: isSuccess && meals.length === 0,
     selectedDayIndex,
     selectedMealIndex,
     selectDay,

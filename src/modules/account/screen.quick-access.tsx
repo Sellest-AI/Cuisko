@@ -21,7 +21,7 @@ export const AccountQuickAccess = ({ onGo }: Props) => {
   return (
     <View style={styles.section}>
       <Text.Lg>{t("QuickAccess.title")}</Text.Lg>
-      <ButtonPill variant="secondary" size="md" elevated leftIcon={ForkKnife} onPress={() => onGo("/recipes")}>
+      <ButtonPill variant="neutral" size="md" leftIcon={ForkKnife} onPress={() => onGo("/recipes")}>
         {t("QuickAccess.my_recipes")}
       </ButtonPill>
       <AskCuiskoPill onPress={() => onGo("/assistant")}>

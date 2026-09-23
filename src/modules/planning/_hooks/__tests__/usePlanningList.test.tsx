@@ -93,8 +93,10 @@ describe("usePlanningList", () => {
   it("asks both cursors for the focus day, each in its own direction", () => {
     renderHook(() => usePlanningList("2030-05-04"));
 
-    expect(state.queries).toHaveLength(2);
-    expect(state.queries.map((query) => query.direction)).toEqual(["before", "after"]);
+    // Per render, not in total: settling `isUnplanned` on the first answer renders the hook twice.
+    const lastRender = state.queries.slice(-2);
+    expect(state.queries.length % 2).toBe(0);
+    expect(lastRender.map((query) => query.direction)).toEqual(["before", "after"]);
 
     for (const query of state.queries) {
       expect(query.name).toContain("getPaginated");
@@ -152,5 +154,65 @@ describe("usePlanningList", () => {
     rerender();
 
     expect(result.current.isLoading).toBe(false);
+  });
+});
+
+describe("usePlanningList — isUnplanned", () => {
+  const exhaust = () => {
+    state.pages.before.status = "Exhausted";
+    state.pages.after.status = "Exhausted";
+  };
+
+  it("is unplanned when both cursors ran out on an empty first page", () => {
+    exhaust();
+
+    expect(list().result.current.isUnplanned).toBe(true);
+  });
+
+  /** A plate from months ago is a household that has planned — the list has something to show. */
+  it("is planned when the only plates are behind the focus day", () => {
+    exhaust();
+    state.pages.before.results = [keptMeal("last-spring", -90, "dinner")];
+
+    expect(list().result.current.isUnplanned).toBe(false);
+  });
+
+  /** An empty first page that can load more has not answered yet whether anything exists. */
+  it("is not unplanned while a cursor could still find a plate", () => {
+    state.pages.before.status = "Exhausted";
+
+    expect(list().result.current.isUnplanned).toBe(false);
+  });
+
+  it("does not decide before the first pages are in", () => {
+    state.pages.before.status = "LoadingFirstPage";
+    state.pages.after.status = "LoadingFirstPage";
+
+    expect(list().result.current.isUnplanned).toBe(false);
+  });
+
+  /**
+   * Clearing the last plate while reading the list must leave the cook on it: the redirect answers
+   * what the page opened on, not what it holds now.
+   */
+  it("keeps the answer it opened on when the last plate is cleared", () => {
+    exhaust();
+    state.pages.after.results = [keptMeal("tomorrow", 1, "lunch")];
+    const { result, rerender } = list();
+
+    state.pages.after.results = [];
+    rerender();
+
+    expect(result.current.isUnplanned).toBe(false);
+  });
+
+  it("stays unplanned for the mount once it opened that way", () => {
+    exhaust();
+    const { result, rerender } = list();
+
+    state.pages.after.results = [keptMeal("tomorrow", 1, "lunch")];
+    rerender();
+
+    expect(result.current.isUnplanned).toBe(true);
   });
 });

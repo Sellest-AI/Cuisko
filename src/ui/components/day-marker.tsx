@@ -4,7 +4,7 @@ import Animated from "react-native-reanimated";
 import { useSpin } from "@ui/hooks/useSpin";
 import { colors, theme } from "theme";
 
-import { Check, CircleDashed, MorphIcon } from "./icons";
+import { Check, CircleDashed, MorphIcon, type Icon } from "./icons";
 import { Text } from "./text";
 import { Pressable } from "./pressable";
 
@@ -20,6 +20,15 @@ type Props = {
   style?: ViewStyle;
   onPress?: () => void;
   selected?: boolean;
+  /**
+   * Draw this instead of the icon the status implies.
+   *
+   * For a marker that stands for something other than one real day's progress — the home empty
+   * state draws a week nobody has planned yet, where every day is an invitation rather than a
+   * state to report. The colours still come from the status, so an override cannot invent a
+   * fourth appearance; it only swaps the glyph inside the one the status already chose.
+   */
+  icon?: Icon;
 };
 
 const _statusColors = (selected: boolean) => ({
@@ -100,12 +109,12 @@ const NUMBER_GAP = 6;
  * `pending` is the only status that turns — a settled day should be still, or a week of markers
  * never stops moving.
  */
-export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style, onPress, selected = false }: Props) => {
+export const DayMarker = ({ status, date, locale = DEFAULT_LOCALE, style, onPress, selected = false, icon: override }: Props) => {
   const color = STATUS_COLORS[selected ? "selected" : "default"][status];
   const day = weekdayInitial(date, locale);
   // Local time on purpose — "Tuesday" has to mean the user's Tuesday, not UTC's.
   const dayNumber = date.getDate();
-  const icon = status === "complete" ? Check : CircleDashed;
+  const icon = override ?? (status === "complete" ? Check : CircleDashed);
   const spin = useSpin(status === "pending", { revolutionMs: PENDING_REVOLUTION_MS });
 
   const Component = onPress ? Pressable : View;

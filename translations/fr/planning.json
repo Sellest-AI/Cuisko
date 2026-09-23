@@ -1,7 +1,10 @@
 {
   "WeeklyPlan": {
     "today_heading": "Au menu",
-    "call_to_cook": "Prends un couteau, on passe en cuisine"
+    "call_to_cook": "Prends un couteau, on passe en cuisine",
+    "empty_title": "Rien au menu pour l'instant",
+    "empty_subtitle": "Dis-moi qui mange et je remplis la semaine",
+    "empty_action": "Planifier ma semaine"
   },
   "Screen": {
     "title": "Planning",

@@ -211,6 +211,38 @@ describe("useGroceryList", () => {
   });
 });
 
+describe("useGroceryList — isEmpty", () => {
+  it("is empty with nothing on the list and nothing in the cellar", () => {
+    expect(groceries().result.current.isEmpty).toBe(true);
+  });
+
+  it("stays empty when all the household has is past shops", () => {
+    state.recentlyUsed = [{ ...line(1), _id: "history-1" }];
+
+    expect(groceries().result.current.isEmpty).toBe(true);
+  });
+
+  it("is not empty when the cellar holds something and the list does not", () => {
+    state.cellar = [shelf(2)];
+
+    expect(groceries().result.current.isEmpty).toBe(false);
+  });
+
+  /**
+   * The sections are empty here — `buildSections` drops a row it cannot name — but the list is not,
+   * and an empty state drawn over it for that round trip would tell the shopper their list is gone.
+   */
+  it("is not empty while the first names are still in flight", () => {
+    state.groceryList = [line(4)];
+    state.ingredients = undefined;
+
+    const { result } = groceries();
+
+    expect(result.current.sections["to-buy"]).toEqual([]);
+    expect(result.current.isEmpty).toBe(false);
+  });
+});
+
 describe("useGroceryList — sorted", () => {
   it("reads To Buy the way the atom says, and regroups when it changes", () => {
     state.groceryList = [line(4)];

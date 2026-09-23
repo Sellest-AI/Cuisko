@@ -13,6 +13,11 @@
   "Groups": {
     "unplanned": "Not planned"
   },
+  "Empty": {
+    "title": "Nothing to buy, nothing in stock",
+    "body": "Plan your week and I will list only what is missing. What you buy then fills your cellar.",
+    "action": "Plan my week"
+  },
   "Quantity": {
     "custom_amount": "Type your own amount",
     "nothing_to_adjust": "Nothing to adjust.",

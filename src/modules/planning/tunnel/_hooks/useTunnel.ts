@@ -209,10 +209,15 @@ export const useTunnel = () => {
     router.push(routeFor(following));
   }, []);
 
+  /**
+   * With nothing behind — a refresh, a shared link — the way out is home, not `/planning`: a
+   * household with no plan yet is sent from there straight back into the tunnel, and leaving would
+   * never land anywhere.
+   */
   const back = useCallback(() => {
     if (router.canGoBack()) return router.back();
 
-    router.dismissTo("/planning");
+    router.dismissTo("/");
   }, []);
 
   /**

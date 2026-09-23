@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { View, StyleSheet, useWindowDimensions } from "react-native";
 
 import { ActionRow } from "@ui/action-row";
+import { EmptyState } from "@ui/empty-state";
 import { ForkKnife, ListPlus } from "@ui/icons";
 import { Image } from "@ui/image";
 import { theme } from "theme";
@@ -10,7 +11,6 @@ import { formatQuantity } from "@shared/ingredients";
 
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 
-import { EmptyState } from "../_components/empty-state";
 import { NutritionCard } from "../_components/nutrition-card";
 import { RecipeScreen } from "../_components/recipe-screen";
 import { columnWidth, SCREEN_PADDING } from "../constants";

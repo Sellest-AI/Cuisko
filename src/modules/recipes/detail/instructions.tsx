@@ -1,10 +1,10 @@
 import { StyleSheet } from "react-native";
 
+import { EmptyState } from "@ui/empty-state";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { EmptyState } from "../_components/empty-state";
 import { RecipeScreen } from "../_components/recipe-screen";
 import { SCREEN_PADDING } from "../constants";
 import { useRecipe } from "../_hooks/useRecipe";
