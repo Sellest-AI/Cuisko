@@ -9,8 +9,10 @@
     "join_placeholder": "Type an invite code here",
     "share_code_x_code": "Join my household on Cuisko with the code {{code}}",
     "create": "Create a new household",
-    "join_error_not_found": "No household has this code. Check it and try again.",
-    "join_error_failed": "Could not join right now. Try again in a moment."
+    "join_error_not_found_title": "Unknown code",
+    "join_error_not_found_body": "No household has this code. Check it and try again.",
+    "join_error_failed_title": "Could not join the household",
+    "join_error_failed_body": "Something went wrong on our side. Try again in a moment."
   },
   "sign_out": "Sign out"
 }

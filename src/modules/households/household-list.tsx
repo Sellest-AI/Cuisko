@@ -3,7 +3,8 @@ import { Share, StyleSheet, View } from "react-native";
 
 import { ButtonPill } from "@ui/button-pill";
 import { Household } from "@ui/cards/household";
-import { HousePlus, Plus } from "@ui/icons";
+import { CircleAlert, HousePlus, Plus } from "@ui/icons";
+import { InfoBanner } from "@ui/info-banner";
 import { Input } from "@ui/input";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -42,11 +43,6 @@ export const HouseholdList = ({ onSelect }: { onSelect?: (id: string) => void })
   return (
     <View style={styles.container}>
       <Text.Lg>{t("Households.title")}</Text.Lg>
-      {joinError && (
-        <Text.Sm color={theme.colors.danger.base} style={styles.error}>
-          {t(`Households.join_error_${joinError}`)}
-        </Text.Sm>
-      )}
       <ButtonPill variant="neutral" size="md" leftIcon={HousePlus} onPress={create}>
         {t("Households.create")}
       </ButtonPill>
@@ -77,11 +73,15 @@ export const HouseholdList = ({ onSelect }: { onSelect?: (id: string) => void })
         onRightPress={() => submitCode(code)}
         isLoading={isJoining}
       />
+      {joinError && (
+        <InfoBanner variant="warning" icon={CircleAlert} title={t(`Households.join_error_${joinError}_title`)}>
+          {t(`Households.join_error_${joinError}_body`)}
+        </InfoBanner>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { gap: theme.spacing[12] },
-  error: { paddingHorizontal: theme.spacing[16] },
 });

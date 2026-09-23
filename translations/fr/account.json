@@ -9,8 +9,10 @@
     "join_placeholder": "Écris un code d’invitation ici",
     "share_code_x_code": "Rejoins mon foyer sur Cuisko avec le code {{code}}",
     "create": "Créer un nouveau foyer",
-    "join_error_not_found": "Aucun foyer n’a ce code. Vérifie-le et réessaie.",
-    "join_error_failed": "Impossible de rejoindre pour le moment. Réessaie dans un instant."
+    "join_error_not_found_title": "Code inconnu",
+    "join_error_not_found_body": "Aucun foyer n’a ce code. Vérifie-le et réessaie.",
+    "join_error_failed_title": "Impossible de rejoindre le foyer",
+    "join_error_failed_body": "Un souci de notre côté. Réessaie dans un instant."
   },
   "sign_out": "Se déconnecter"
 }
