@@ -203,6 +203,7 @@ const _loadUntil = async (
     pool.recipes.set(recipe._id, recipe);
     pool.candidates.push({
       recipeId: recipe._id,
+      cuisine: recipe.cuisine,
       isMine,
       needs: scaleLines(
         lines.map((line, index) => ({ ...line, ingredient: rows[index]! })),
