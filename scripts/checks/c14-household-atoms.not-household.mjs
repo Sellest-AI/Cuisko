@@ -1,0 +1,26 @@
+/** The answers C14 reads — kept apart so its tests can build a tree that satisfies them. */
+
+/**
+ * The atoms that are deliberately NOT reset on a household switch, keyed `file:name`, each with the
+ * reason. Adding one is the decision this check exists to force, so the reason has to say why the
+ * value is not about a kitchen — "it is UI" is a reason, "it was here already" is not.
+ */
+export const NOT_HOUSEHOLD = {
+  "src/lib/convex/auth.ts:authenticatingAtom":
+    "whether a sign-in is in flight: about the session, before any household is known",
+  "src/lib/convex/client.ts:cachedAtom":
+    "action results keyed by their arguments, which already carry any householdId they depend on",
+  "src/modules/assistant/_hooks/atoms.ts:conversationAtom":
+    "the cook's own conversation with Cuisko; the assistant reads no household",
+  "src/modules/assistant/_hooks/atoms.ts:pendingQuestionAtom":
+    "a question in flight in that conversation",
+  "src/modules/groceries/_hooks/atoms.ts:sortAtom":
+    "a way of looking at the list, not a fact about the kitchen",
+  "src/modules/navigation/_hooks/useNavigationBar.ts:modeAtom": "the bar's own mode: UI chrome",
+  "src/modules/navigation/_hooks/useNavigationBar.ts:refsAtom": "the bar's input refs: UI chrome",
+  "src/modules/navigation/modal-action.tsx:modalActionAtom": "the open sheet's header action: UI chrome",
+  "src/modules/navigation/modal-sheet/state.ts:sheetSizeAtom": "the open sheet's measured size: UI chrome",
+  "src/modules/recipes/_hooks/atoms.ts:importedDraftAtom":
+    "a recipe being imported belongs to the cook, and recipes are not household-scoped (ADR 0014)",
+  "src/modules/recipes/_hooks/atoms.ts:servingsAtom": "the servings picked on the recipe on screen",
+};

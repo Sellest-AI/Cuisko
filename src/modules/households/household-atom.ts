@@ -12,7 +12,8 @@ const _registry = new Set<Resettable>();
  *
  * Use it in place of `atom(initial)` for session state that belongs to one kitchen: a purchase
  * that can still be undone, a word still being looked up, a planning run in progress. Read and
- * write it exactly like any other atom; the only difference is `HouseholdAtomsReset`.
+ * write it exactly like any other atom; the only difference is `HouseholdAtomsReset`. The rule, and
+ * the check that holds every new atom to it (C14), are ADR 0016.
  *
  * Declared here rather than decided at each read, because the decision is about the value and not
  * about who reads it. A per-read opt-in (pass the household's store to every `useAtom`) is one

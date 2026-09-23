@@ -47,7 +47,7 @@ cuisko/
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
 ├── scripts/              Everything run outside the app.
-│   ├── checks/          C1–C13 architectural checks + the `_lib.mjs` they share.
+│   ├── checks/          C1–C14 architectural checks + the `_lib.mjs` they share.
 │   └── images/          Hand-run asset preparation (compress, sanitize).
 ├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
@@ -452,22 +452,12 @@ layer does the adaptation ([ADR 0002](./adr/0002-ui-isolation.md)).
 | ------------------------- | ------------------------------------------------------- |
 | Server data               | Convex `useQuery` — reactive, no cache layer needed     |
 | Cross-screen ephemeral UI | Jotai atom **inside the module's `_hooks/`**            |
-| …about one household      | the same, declared with `householdAtom` instead of `atom` |
+| …about one household      | the same, declared with `householdAtom` ([ADR 0016](./adr/0016-household-state-resets-on-a-switch.md)) |
 | Single-screen UI          | `useState`                                              |
 | Form drafts               | local state, or a module atom if it survives navigation |
 
 There is no Redux-style store and no client cache duplicating server state. That restraint is
 deliberate.
-
-**Session state about a kitchen is reset when the kitchen changes.** A purchase that can still be
-undone, a word still being looked up, a planning run in progress: each belongs to the household it
-was made in. `householdAtom` (from `~/modules/households/household-atom`) registers the atom, and
-`HouseholdAtomsReset`, mounted once in the root layout, puts every registered atom back to its
-initial value when the household switches. Reads and writes do not change, except a write that
-awaits the server first: it captures `householdSession()` before the await and writes only if the
-household is still the same, or it would put the old household's state back after the reset. A way of *looking* —
-the grocery sort — stays a plain `atom`, and so does anything about the person rather than the
-kitchen.
 
 ---
 
@@ -499,6 +489,7 @@ contact with a growing codebase.
 | Derived search fields are built by one serializer                      | script C11                                        | `pnpm check:search`    |
 | Every shared vocabulary entry has a word in every locale               | script C12                                        | `pnpm check:vocabulary` |
 | A thread is reached only through `ownedThread` and its allowlisted callers | script C13                                    | `pnpm check:threads`   |
+| Every session atom is sorted: `householdAtom`, or listed as not household | script C14                                     | `pnpm check:households` |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
