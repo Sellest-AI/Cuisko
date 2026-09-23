@@ -16,6 +16,8 @@ import { keptMeal } from "./fixtures";
  */
 const state = vi.hoisted(() => ({
   meals: [] as unknown[],
+  /** What the range read is doing, so `isEmpty` can be asked about a read that has not answered. */
+  status: "success" as "success" | "pending" | "error",
   push: vi.fn(),
 }));
 
@@ -29,10 +31,16 @@ vi.mock("~/modules/households/hooks", () => ({
 
 vi.mock("~/lib/convex/client", () => ({
   useQueryCached: (fn: unknown, args: unknown) => {
-    if (args === "skip") return { data: undefined, isPending: true, isStale: false };
+    if (args === "skip") return { data: undefined, isPending: true, isSuccess: false, isStale: false };
 
     const name = getFunctionName(fn as Parameters<typeof getFunctionName>[0]);
-    if (name.includes("getMany")) return { data: state.meals, isPending: false, isStale: false };
+    if (name.includes("getMany"))
+      return {
+        data: state.status === "success" ? state.meals : undefined,
+        isPending: state.status === "pending",
+        isSuccess: state.status === "success",
+        isStale: false,
+      };
 
     throw new Error(`Unmocked query: ${name}`);
   },
@@ -40,6 +48,7 @@ vi.mock("~/lib/convex/client", () => ({
 
 beforeEach(() => {
   state.meals = [];
+  state.status = "success";
   state.push.mockReset();
 });
 
@@ -131,6 +140,36 @@ describe("useWeeklyPlan", () => {
     expect(state.push).toHaveBeenCalledWith({
       pathname: "/planning",
       params: { date: toDateParam(day.date) },
+    });
+  });
+
+  /**
+   * The empty state replaces the whole week on Home, so this flag has to mean "there is nothing
+   * planned" and never "we have not been told yet". A read that is still in flight or that failed
+   * leaves `meals` empty too, and answering `true` to either would announce an empty week the
+   * household may not have.
+   */
+  describe("isEmpty", () => {
+    it("is true only once the range read has answered with nothing", () => {
+      expect(week().result.current.isEmpty).toBe(true);
+    });
+
+    it("is false while the read is in flight", () => {
+      state.status = "pending";
+
+      expect(week().result.current.isEmpty).toBe(false);
+    });
+
+    it("is false when the read failed", () => {
+      state.status = "error";
+
+      expect(week().result.current.isEmpty).toBe(false);
+    });
+
+    it("is false as soon as one plate is planned", () => {
+      state.meals = [keptMeal("a", 0, "dinner")];
+
+      expect(week().result.current.isEmpty).toBe(false);
     });
   });
 });

@@ -1,6 +1,7 @@
-import { View, StyleSheet, ViewStyle, Keyboard } from "react-native";
+import { View, StyleSheet, ViewStyle, Keyboard, TextInput } from "react-native";
 import { colors, theme } from "theme";
 import { Text } from "@ui/text";
+import { EmptyState } from "@ui/empty-state";
 import { ForkKnife, ForkKnifeIcon, Search, X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { RadialGradient } from "@ui/radial-gradient";
@@ -10,12 +11,11 @@ import { FlashList } from "@shopify/flash-list";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { CardRecipe } from "@ui/cards/recipe";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "translations";
 
 import { useFavoriteRecipes } from "./_hooks/useFavoriteRecipes";
 import { useRecipeList } from "./_hooks/useRecipeList";
-import { EmptyState } from "./_components/empty-state";
 import { FavoritesShelf } from "./_components/favorites-shelf";
 import { COVER_PLACEHOLDER } from "./constants";
 
@@ -37,6 +37,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
   const tVocabulary = useTranslations("Vocabulary");
 
   const [query, setQuery] = useState(initialQuery ?? "");
+  const searchRef = useRef<TextInput>(null);
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
   const { favorites } = useFavoriteRecipes();
 
@@ -65,12 +66,14 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
         onEndReachedThreshold={0.5}
         /**
          * Nothing while the first answer is in flight. An empty state shown for the half second
-         * before the recipes land tells a cook who has twenty that they have none. Nothing either
-         * when the shelf is up: a cook with favorites and no recipes of their own is not looking
-         * at an empty page.
+         * before the recipes land tells a cook who has twenty that they have none.
+         *
+         * Drawn under the shelf too: favorites can all be the catalog's, so a cook with a shelf full
+         * of them and none of their own still has an empty section here, and the two ways to fill it
+         * — bring one in, or find one in the catalog the box already searches — are what it offers.
          */
         ListEmptyComponent={
-          isLoading || showsShelf ? null : isSearching ? (
+          isLoading ? null : isSearching ? (
             <EmptyState
               icon={Search}
               title={t("no_matches_title")}
@@ -81,6 +84,9 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               icon={ForkKnife}
               title={t("empty_title")}
               body={t("empty_body")}
+              actions={[
+                { label: t("empty_search"), icon: Search, onPress: () => searchRef.current?.focus(), variant: "neutral" },
+              ]}
             />
           )
         }
@@ -100,6 +106,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               <Text.H4>{t("title")}</Text.H4>
             </View>
             <Input
+              ref={searchRef}
               value={query}
               onChangeText={setQuery}
               placeholder={t("search_placeholder")}

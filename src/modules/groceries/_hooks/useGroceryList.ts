@@ -36,5 +36,20 @@ export const useGroceryList = () => {
     [apply],
   );
 
-  return { sections, toBuy, submit, error };
+  return {
+    sections,
+    toBuy,
+    submit,
+    error,
+    /**
+     * Nothing wanted and nothing owned: the household has not started. Recently bought does not
+     * count — a memory of past shops is not something to buy or cook with.
+     *
+     * Read off the raw rows rather than off `sections`, because `buildSections` drops a row it
+     * cannot name yet: on the first load the names arrive after the rows, and a check on the drawn
+     * sections would tell a shopper with a full list that it is empty for that round trip. False
+     * while loading, for the same reason.
+     */
+    isEmpty: !snapshot.isLoading && snapshot.lines.length === 0 && snapshot.cellar.length === 0,
+  };
 };

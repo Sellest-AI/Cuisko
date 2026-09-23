@@ -4,7 +4,8 @@ import { StyleSheet, useWindowDimensions, View, ViewStyle } from "react-native";
 import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
 import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
-import { CheckIcon, IconComponent, PlusIcon } from "@ui/icons";
+import { EmptyState } from "@ui/empty-state";
+import { CalendarPlus, CheckIcon, IconComponent, PlusIcon, Store } from "@ui/icons";
 import { Pressable } from "@ui/pressable";
 import { Select } from "@ui/select";
 import { Text } from "@ui/text";
@@ -201,10 +202,15 @@ type GroceryGridProps = { lead?: Section };
  * row, which is a new key and fades in the way a leftover row already does.
  *
  * An empty section draws no header. There is nothing to say about a cellar you have not filled.
+ *
+ * With nothing wanted and nothing owned there is something to say, once, in place of both: the
+ * week is where a list comes from, so the way on is planning it. "Recently bought" still draws
+ * under it, because re-adding last week's shop is the other way a list starts. An ingredient the
+ * shopper just typed hides it at once — it is already on its way into one of the two.
  */
 export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const { width } = useWindowDimensions();
-  const { sections, toBuy, submit } = useGroceryList();
+  const { sections, toBuy, submit, isEmpty } = useGroceryList();
   const { sort, setSort } = useGrocerySort();
   const { pending, dismiss } = usePendingIngredients();
   const t = useTranslations("Groceries");
@@ -212,6 +218,8 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const router = useRouter();
 
   const sortOptions = SORTS.map((value) => ({ value, label: t(SORT_KEY[value]) }));
+
+  const showsEmpty = isEmpty && pending.length === 0;
 
   const itemWidth = (width - GUTTER * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
 
@@ -272,6 +280,21 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
 
   return (
     <View style={styles.grid}>
+      {showsEmpty && (
+        <View style={styles.empty}>
+          <EmptyState
+            icon={Store}
+            title={t("Empty.title")}
+            body={t("Empty.body")}
+            actions={[{
+              label: t("Empty.action"),
+              icon: CalendarPlus,
+              onPress: () => router.push("/planning/new/setup"),
+              variant: "primary"
+            }]}
+          />
+        </View>
+      )}
       {rows.map((row, index) => {
         if (row.kind === "header")
           return <SectionHeader
@@ -279,7 +302,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
             label={row.label}
             icon={row.icon}
             color={row.color}
-            style={index === 0 ? { marginTop: 0 } : undefined}
+            style={index === 0 && !showsEmpty ? { marginTop: 0 } : undefined}
             trailing={row.id === "header:to-buy"
               ? <Select value={sort} onChange={setSort} options={sortOptions} />
               : undefined}
@@ -341,6 +364,8 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
 };
 
 const styles = StyleSheet.create({
+  /** Full width, so it breaks the wrapping row and sits alone above whatever section follows. */
+  empty: { width: "100%" },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

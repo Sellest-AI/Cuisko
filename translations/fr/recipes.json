@@ -4,8 +4,10 @@
   "favorites": "Tes recettes favorites",
   "yours": "Tes recettes",
   "matches": "Résultats",
-  "empty_title": "Aucune recette",
-  "empty_body": "Écris ta première recette et tu la retrouveras ici.",
+  "empty_title": "Tu n'as pas encore de recettes",
+  "empty_body": "Importe une recette que tu aimes, ou cherche dans notre catalogue de quoi cuisiner.",
+  "empty_import": "Importer une recette",
+  "empty_search": "Chercher dans le catalogue",
   "no_matches_title": "Aucun résultat",
   "no_matches_body": "Aucune recette ne correspond à « {{query}} », ni par son nom ni par ce qu'elle contient."
 }
