@@ -70,7 +70,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
               * labelled "Chef", and a label over a gap reads as the page having failed. Every
               * uncredited recipe wears the same one, so it reads as a stand-in and not as an author.
               */}
-            <Avatar seed={recipe.chef?.seed ?? ANONYMOUS_AVATAR_SEED} elevated />
+            <Avatar seed={recipe.chef?.seed ?? ANONYMOUS_AVATAR_SEED} elevated animated />
             <View style={styles.chefName}>
               {/*
                 * An unnamed owner is credited generically rather than left blank: the tile is

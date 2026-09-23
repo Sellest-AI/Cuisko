@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     color: colors.secondary.foreground,
   },
   neutral: {
-    backgroundColor: colors.surface.elevated,
+    backgroundColor: colors.neutral.subtle,
     color: colors.neutral.muted,
   }
 }

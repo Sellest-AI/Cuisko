@@ -4,18 +4,15 @@ import { ANONYMOUS_AVATAR_SEED } from "@shared/avatars";
 import { Avatar } from "@ui/avatar";
 import { ButtonIcon } from "@ui/button-icon";
 import { Bell } from "@ui/icons";
-import { Select } from "@ui/select";
 import { theme } from "theme";
 import { router } from "expo-router";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { useAuth } from "~/modules/auth/hooks";
-
-/** Placeholder until households arrive from Convex. */
-const HOUSEHOLDS = [{ label: "House", value: "house" }];
+import { HouseholdSelect } from "~/modules/households/household-select";
 
 /** Who you are, whose kitchen you are in, and what is waiting for you. */
 export const HomeHeader = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <SafeAreaView
@@ -30,14 +27,11 @@ export const HomeHeader = () => {
           */}
         <Avatar
           seed={user?.avatarSeed ?? ANONYMOUS_AVATAR_SEED}
-          onPress={() => router.dismissTo("/auth")}
+          onPress={() => isAuthenticated ? router.push("/account") : router.dismissTo("/auth")}
+          animated
           elevated
         />
-        <Select
-          onChange={(value) => console.log(value)}
-          options={HOUSEHOLDS}
-          value="house"
-        />
+        <HouseholdSelect />
       </View>
       <ButtonIcon
         onPress={() => console.log("bell pressed")}

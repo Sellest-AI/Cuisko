@@ -66,6 +66,19 @@ export default function RootLayout() {
             }}
           />
           {/*
+            * The account drawer draws over the page it was opened from, which stays visible to
+            * the right of it. Transparent, so that page is still there to see; no native slide,
+            * because the drawer slides its own panel in from the left and fades its own backdrop.
+            */}
+          <Stack.Screen
+            name="account"
+            options={{
+              presentation: "transparentModal",
+              animation: "none",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          {/*
             * Cooking covers the app rather than sitting inside it: hands are busy, and a back
             * gesture or a bar edge caught mid-step is a lost place in the method.
             */}

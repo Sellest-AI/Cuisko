@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
+import { HouseholdSelect } from "~/modules/households/household-select";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { sectionFromParam } from "./_model/model";
@@ -10,16 +10,9 @@ import { GroceryGrid } from "./list-screen.grid";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { ReceiptTextIcon, StoreIcon } from "@ui/icons";
 import { RadialGradient } from "@ui/radial-gradient";
-import { Select } from "@ui/select";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
-
-/** Placeholder until lists come from Convex — one household, one list. */
-const LISTS = [
-  { label: "House", value: "House" },
-  { label: "Other", value: "Other" },
-];
 
 /** The raw `section` URL param, as the route read it — what it means is the model's call. */
 type GroceryScreenProps = { section?: string };
@@ -39,7 +32,6 @@ type GroceryScreenProps = { section?: string };
  */
 export const GroceryScreen = ({ section }: GroceryScreenProps) => {
   const t = useTranslations("Groceries");
-  const [list, setList] = useState("House");
   const lead = sectionFromParam(section);
   const Icon = lead === "cellar" ? StoreIcon : ReceiptTextIcon;
 
@@ -65,7 +57,7 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
             <Icon size={24} />
             <Text.H4>{lead === "cellar" ? t("Sections.cellar") : t("title")}</Text.H4>
           </View>
-          <Select value={list} onChange={setList} options={LISTS} />
+          <HouseholdSelect />
         </SafeAreaView>
         <GroceryGrid lead={lead} />
       </ScrollView>
