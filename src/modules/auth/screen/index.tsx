@@ -11,7 +11,6 @@ import { useAuth } from "../_hooks/useAuth";
 import { DevSignIn } from "./dev-sign-in";
 import { Hero } from "./hero";
 import { ProviderButton } from "./provider-button";
-import { SignedIn } from "./signed-in";
 
 /**
  * The welcome screen: what Cuisko is, and one tap to continue.
@@ -25,10 +24,7 @@ import { SignedIn } from "./signed-in";
 export const AuthScreen = () => {
   const t = useTranslations("Auth");
   const insets = useSafeAreaInsets();
-  const {
-    user, isAuthenticated, isLoading, isSubmitting, pendingProvider, error,
-    signIn, signInWithProvider, signOut,
-  } = useAuth();
+  const { isLoading, isSubmitting, pendingProvider, error, signIn, signInWithProvider } = useAuth();
 
   if (isLoading) {
     return (
@@ -38,14 +34,9 @@ export const AuthScreen = () => {
     );
   }
 
-  if (isAuthenticated && user) {
-    return <SignedIn user={user} onSignOut={() => void signOut()} />;
-  }
-
   return (
     <View style={styles.container}>
       <Hero />
-
       <View style={[styles.sheet, { paddingBottom: insets.bottom + theme.spacing[32] }]}>
         <View style={styles.copy}>
           <Text.H4 color={theme.colors.foreground}>{t("welcome")}</Text.H4>

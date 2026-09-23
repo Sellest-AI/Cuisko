@@ -28,6 +28,11 @@ const authenticatingAtom = atom(false);
  * and a screen that trusts it fires its first query a beat too early and gets rejected. Requiring
  * the token as well, and excluding both transition states, is what makes this a single reliable
  * boolean instead of a race the UI has to paper over.
+ *
+ * The race runs the other way too. When a sign-in lands its token, Convex still reports the
+ * signed-out `{ isLoading: false, isAuthenticated: false }` for one render, and only starts
+ * confirming the token in an effect after it. A token Convex has not confirmed is therefore
+ * "authenticating", never "signed out" — or every gate bounces to its signed-out answer mid sign-in.
  */
 export const useAuthenticated = () => {
   const token = useAuthToken();
@@ -36,7 +41,7 @@ export const useAuthenticated = () => {
 
   return {
     isAuthenticated: !!token && isConvexAuthenticated && !isTransitioning && !isLoading,
-    isAuthenticating: isTransitioning || isLoading,
+    isAuthenticating: isTransitioning || isLoading || (!!token && !isConvexAuthenticated),
     setAuthenticating,
   };
 };

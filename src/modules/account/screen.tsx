@@ -55,10 +55,9 @@ export const AccountScreen = () => {
     else router.back();
   };
 
+  /** No navigation here: once the session is gone, `AuthGate` sends the page to `/auth`. */
   const onSignOut = () => {
-    signOut()
-      .then(() => router.dismissTo("/auth"))
-      .catch((cause) => { if (__DEV__) console.warn("[AccountScreen] sign-out failed", cause); });
+    signOut().catch((cause) => { if (__DEV__) console.warn("[AccountScreen] sign-out failed", cause); });
   };
 
   const { top, bottom } = useSafeAreaInsets();
