@@ -14,7 +14,7 @@ import { ListOrdered } from "@ui/icons";
 /** The method, in order. */
 export const InstructionsScreen = ({ id }: { id?: string }) => {
   const t = useTranslations("Recipe");
-  const { recipe } = useRecipe(id);
+  const { recipe, ingredients } = useRecipe(id);
 
   /** The chrome owns both the wait and the refusal; this tab draws nothing until there is a recipe. */
   if (!recipe) return null;
@@ -48,6 +48,7 @@ export const InstructionsScreen = ({ id }: { id?: string }) => {
             title={section.title}
             steps={section.steps}
             offset={stepsBefore(index)}
+            lines={ingredients}
           />
         ))
       )}

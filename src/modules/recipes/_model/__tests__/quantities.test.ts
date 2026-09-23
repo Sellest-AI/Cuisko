@@ -170,6 +170,22 @@ describe("readInstruction", () => {
     expect(marked.map((segment) => segment.line?.name)).toEqual(["Oignon", "Tomates"]);
   });
 
+  /** The measure only: the ingredient's name is not part of the quantity. */
+  test("reaches past the number to the end of its measure", () => {
+    const reachOf = (text: string, lines = LINES) => {
+      const segment = readInstruction(text, lines).find((part) => part.amount !== undefined)!;
+      const start = text.indexOf(segment.text) + segment.text.length;
+
+      return text.slice(start, start + segment.reach!);
+    };
+
+    expect(reachOf("Ajoutez 200 g de farine.")).toBe(" g");
+    expect(reachOf("Ajoutez 200g de farine.")).toBe("g");
+    expect(reachOf("Ajoutez 2 cuillères à soupe d'huile d'olive")).toBe(" cuillères à soupe");
+    expect(reachOf("Ajoutez 2 cs de jus de citron", [line("Citron", "pcs")])).toBe(" cs");
+    expect(reachOf("Concassez 4 tomates")).toBe("");
+  });
+
   test("carries the unit the cook spelled, when the app stores one", () => {
     expect(readInstruction("Ajoutez 200 g de farine", LINES)[1]?.unit).toBe("g");
     expect(readInstruction("Concassez 4 tomates", LINES)[1]?.unit).toBeUndefined();

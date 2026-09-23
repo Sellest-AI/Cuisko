@@ -6,6 +6,8 @@ import { theme } from "theme";
 import { useTranslations } from "translations";
 
 import { IngredientGroup } from "../_components/ingredient-group";
+import { InstructionText } from "../_components/instruction-text";
+import type { RecipeLine } from "../_model/detail";
 import { stepNumber } from "../_model/step";
 import { columnWidth } from "../constants";
 
@@ -26,6 +28,8 @@ type Props = {
   /** The title of the step. */
   title?: string;
   instruction: string;
+  /** The recipe's ingredient lines, which decide which amounts in the instruction are bold. */
+  lines: RecipeLine[];
   /** What this step alone calls for, not the whole recipe. */
   ingredients: StepIngredient[];
   /** Optional hint */
@@ -36,7 +40,7 @@ type Props = {
 const COLUMNS = 3;
 
 /** One step of the method, spelled out: what to do, how long it takes, what it takes. */
-export const StepCard = ({ position, title, instruction, ingredients, isLast, hint }: Props) => {
+export const StepCard = ({ position, title, instruction, lines, ingredients, isLast, hint }: Props) => {
   const t = useTranslations("Recipe");
   const { width } = useWindowDimensions();
 
@@ -51,9 +55,7 @@ export const StepCard = ({ position, title, instruction, ingredients, isLast, hi
         </Text.H4>
         {title && <Text.Base color={theme.colors.neutral.muted}>{title}</Text.Base>}
       </View>
-      <Text.Body color={theme.colors.foreground} style={styles.instruction}>
-        {instruction}
-      </Text.Body>
+      <InstructionText instruction={instruction} lines={lines} style={styles.instruction} />
       {hint && <View style={styles.hint}>
         <SparklesIcon size={16} color={theme.colors.primary.base} />
         <Text.Body
