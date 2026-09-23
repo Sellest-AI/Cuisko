@@ -1,4 +1,4 @@
-import { convexTest } from "convex-test";
+import { convexTest, type TestConvex } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../_generated/api";
@@ -107,5 +107,74 @@ describe("router/households/getMine", () => {
     const households = await t.withIdentity(asUser(userId)).query(api.router.households.getMine.authed, {});
 
     expect(households.map((household) => household._id)).toEqual([homeId]);
+  });
+});
+
+describe("router/households/getMine — the drawer's payload", () => {
+  const setCurrent = (
+    t: TestConvex<typeof schema>,
+    userId: Awaited<ReturnType<typeof seedUser>>,
+    householdId: Awaited<ReturnType<typeof seedHousehold>>,
+  ) =>
+    t.run(async (ctx) => {
+      const extended = await ctx.db.query("usersExtended").withIndex("by_user", (q) => q.eq("userId", userId)).first();
+      if (extended) await ctx.db.patch(extended._id, { currentHouseholdId: householdId });
+    });
+
+  test("carries one face per current member, and not the members who left", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await seedUser(t, "Franck");
+    const otherId = await seedUser(t, "Alex");
+    const formerId = await seedUser(t, "Sam");
+    const homeId = await seedHousehold(t, "Home", "ABC123");
+    await addMember(t, homeId, userId);
+    await addMember(t, homeId, otherId);
+    await t.run((ctx) => ctx.db.insert("householdFormerMembers", { householdId: homeId, userId: formerId }));
+
+    const [home] = await t.withIdentity(asUser(userId)).query(api.router.households.getMine.authed, {});
+
+    expect(home?.inviteCode).toBe("ABC123");
+    expect(home?.memberSeeds).toHaveLength(2);
+    expect(new Set(home?.memberSeeds).size).toBe(2);
+  });
+
+  test("marks the household the caller selected as current", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await seedUser(t, "Franck");
+    const firstId = await seedHousehold(t, "First", "ABC123");
+    const secondId = await seedHousehold(t, "Second", "XYZ789");
+    await addMember(t, firstId, userId);
+    await addMember(t, secondId, userId);
+    await setCurrent(t, userId, secondId);
+
+    const households = await t.withIdentity(asUser(userId)).query(api.router.households.getMine.authed, {});
+
+    expect(households.map((household) => household.isCurrent)).toEqual([false, true]);
+  });
+
+  test("falls back to the oldest membership when nothing is selected", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await seedUser(t, "Franck");
+    const firstId = await seedHousehold(t, "First", "ABC123");
+    const secondId = await seedHousehold(t, "Second", "XYZ789");
+    await addMember(t, firstId, userId);
+    await addMember(t, secondId, userId);
+
+    const households = await t.withIdentity(asUser(userId)).query(api.router.households.getMine.authed, {});
+
+    expect(households.map((household) => household.isCurrent)).toEqual([true, false]);
+  });
+
+  test("falls back to the oldest membership when the selected one is not the caller's any more", async () => {
+    const t = convexTest(schema, modules);
+    const userId = await seedUser(t, "Franck");
+    const firstId = await seedHousehold(t, "First", "ABC123");
+    const leftId = await seedHousehold(t, "Left", "XYZ789");
+    await addMember(t, firstId, userId);
+    await setCurrent(t, userId, leftId);
+
+    const households = await t.withIdentity(asUser(userId)).query(api.router.households.getMine.authed, {});
+
+    expect(households.map((household) => household.isCurrent)).toEqual([true]);
   });
 });

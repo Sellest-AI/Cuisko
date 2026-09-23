@@ -60,6 +60,9 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     // Deleted, not detached: preferences have no meaning without the person they describe.
     { table: "userPreferences", index: "by_user", field: "userId" },
     { table: "householdUsers", index: "by_user", field: "userId" },
+    // Deleted, not detached: `userId` is required there, and a departure with nobody attached to
+    // it records nothing.
+    { table: "householdFormerMembers", index: "by_user", field: "userId" },
     { table: "recipeFavorites", index: "by_user", field: "userId" },
     // Detached, not deleted: a recipe outlives its author. `loadRecipe` already draws a recipe with
     // no `userId` as uncredited, and deleting it would take every household's copy of the dish with
@@ -81,6 +84,10 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
   ],
   households: [
     { table: "householdUsers", index: "by_household", field: "householdId" },
+    { table: "householdFormerMembers", index: "by_household_and_user", field: "householdId" },
+    // Detached, not deleted: the person whose current household went still exists, and the reads
+    // fall back to their oldest membership when the pointer is unset.
+    { table: "usersExtended", index: "by_current_household", field: "currentHouseholdId", onDelete: "detach" },
     { table: "groceryListItems", index: "by_household", field: "householdId" },
     { table: "cellarItems", index: "by_household", field: "householdId" },
     { table: "recentlyUsedIngredients", index: "by_household", field: "householdId" },

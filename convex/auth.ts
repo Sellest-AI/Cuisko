@@ -2,6 +2,8 @@ import { Password } from "@convex-dev/auth/providers/Password";
 import Google from "@auth/core/providers/google";
 import { convexAuth } from "@convex-dev/auth/server";
 
+import type { Id } from "./_generated/dataModel";
+import { onUserCreated } from "./functions/users/onUserCreated";
 import type { MutationCtx } from "./procedures";
 import { env } from "./env";
 import { resolveAuthRedirect } from "./lib/authRedirect";
@@ -31,12 +33,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       return resolveAuthRedirect(redirectTo, env.SITE_URL);
     },
     /**
-     * Creates the extended row the moment an account exists.
-     *
-     * `loadUser` returns null when a user has no `usersExtended` row, and every authenticated
-     * procedure treats null as unauthenticated — so without this callback a freshly registered
-     * user would sign in successfully and then be rejected by every query. Creating it here,
-     * inside the same mutation as the user row, is what keeps the two in step.
+     * Creates the extended row and a first household the moment an account exists, inside the same
+     * mutation as the user row, which is what keeps the three in step. See `onUserCreated`.
      */
     async afterUserCreatedOrUpdated(genericCtx, { userId, existingUserId }) {
       if (existingUserId) return; // a returning user already has one
@@ -44,21 +42,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // The component types this callback against `AnyDataModel` — it cannot know our schema —
       // so `ctx.db.query("usersExtended")` has no table types without this. The cast is narrowing
       // to the real runtime type, not asserting something unchecked: at runtime this IS our
-      // MutationCtx, and the table and index below are verified by C3/C4 against the schema.
+      // MutationCtx, and the tables and indexes it touches are verified by C3/C4 against the schema.
       const ctx = genericCtx as unknown as MutationCtx;
 
-      const existing = await ctx.db
-        .query("usersExtended")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .first();
-
-      if (existing) return; // defensive: the callback is not guaranteed to run exactly once
-
-      await ctx.db.insert("usersExtended", {
-        userId,
-        role: "USER",
-        updatedAt: Date.now(),
-      });
+      await onUserCreated(ctx, userId as Id<"users">);
     },
   },
 });

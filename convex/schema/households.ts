@@ -30,7 +30,11 @@ export const households = defineTable({
   defaultPeople: v.optional(v.number()),
   defaultSlots: v.optional(vMealSlots),
   defaultDays: v.optional(v.number()),
-  inviteCode: v.string(),
+  /**
+   * What another cook types to join. Unset once the last member leaves: an empty household is kept
+   * as an archive, and nobody holding an old code may walk into its cellar.
+   */
+  inviteCode: v.optional(v.string()),
   updatedAt: v.number(), // S5
 }).index("by_invite_code", ["inviteCode"]);
 
@@ -47,3 +51,23 @@ export const householdUsers = defineTable({
   .index("by_household", ["householdId"])
   .index("by_user", ["userId"])
   .index("by_household_and_user", ["householdId", "userId"]);
+
+/**
+ * Who used to belong to which household and is not there now: at most one row per person and
+ * household. Leaving writes it, rejoining deletes it, so `_creationTime` is always their latest
+ * departure and a cook who comes and goes is one entry, not one per trip.
+ *
+ * A table of its own rather than a `leftAt` on `householdUsers`, so a membership row keeps meaning
+ * "a member right now" and no read of it has to learn to skip the ones that ended — the read that
+ * forgot would let someone who left keep reading the cellar. No `updatedAt` (S5b): a row is written
+ * or deleted, never edited.
+ *
+ * `by_household_and_user` also answers "everyone who left this household" through its prefix, so
+ * there is no separate `by_household`.
+ */
+export const householdFormerMembers = defineTable({
+  householdId: v.id("households"),
+  userId: v.id("users"),
+})
+  .index("by_household_and_user", ["householdId", "userId"])
+  .index("by_user", ["userId"]);
