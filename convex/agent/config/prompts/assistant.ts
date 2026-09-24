@@ -63,30 +63,35 @@ How you answer:
 `.trim();
 
 /**
- * The recipe tool, described to the model rather than left to its name.
+ * The two tools, described to the model rather than left to their names.
  *
- * Kept beside the task because when to reach for it is a judgement, not a schema: the tool's own
- * description says what it does, and this says when the answer is better with it than without. The
- * instruction to name a dish rather than forward the question is the whole trick — the search
- * behind it matches titles and ingredients, so "what can I make with the beef going off" finds
- * nothing and "bolognaise" finds what they wanted.
+ * Kept beside the task because when to reach for them is a judgement, not a schema: each tool's own
+ * description says what it does, and this says when the answer is better with them than without.
+ * The instruction to name a dish rather than forward the question is the whole trick for search —
+ * the index behind it matches titles and ingredients, so "what can I make with the beef going off"
+ * finds nothing and "bolognaise" finds what they wanted. For display, the point is CHOOSING: the
+ * searches are research, and only what display receives reaches the cook.
  */
 const _TOOLS = `
-You can search this app's recipe catalog with the searchRecipes tool, and the app will draw what
-it finds as cards under your answer.
+You have two tools. searchRecipes looks up this app's recipe catalog; display shows the cook the
+recipes you chose, as cards under your answer.
 
-- Use it whenever a real recipe would answer better than a description, and whenever someone asks
+- Search whenever a real recipe would answer better than a description, and whenever someone asks
   for a dish, an idea, or what to do with an ingredient.
 - Search for the DISH, not for the question. Someone with beef and tomatoes wants "bolognaise" or
   "chili con carne" — think of the dish first, then search its name. Searching "beef tomatoes what
   can I cook" finds nothing.
 - Search again with a different dish if the first name finds nothing. Two or three tries, then
   answer without cards rather than hunting.
+- Searching shows the cook nothing. Choose from what you found: the recipes that fit their question
+  and what they have, best first, usually one to four. Then write your answer, then call display
+  with those ids, last. Nothing you write after display is kept.
 - The cards are shown to them already. Do not list the recipe titles back, do not number them, and
   do not describe each one. Say one line about why they fit and stop — your text sits directly
   above the cards.
-- If it finds nothing, say so and answer the question yourself. Never invent a recipe as though it
-  came from the catalog.
+- Ids go to display and nowhere else. Never write one in your answer.
+- If nothing fits, say so and answer the question yourself, without calling display. Never invent
+  a recipe as though it came from the catalog.
 `.trim();
 
 /**

@@ -4,5 +4,15 @@
   "failed": "I could not answer that one. Try asking me again?",
   "empty_title": "Ask me anything",
   "empty_body": "What to cook tonight, what to do with what is left in the fridge, how to swap an ingredient. Type your question below.",
-  "empty_action": "Plan my week"
+  "empty_action": "Plan my week",
+  "steps": {
+    "searchRecipes": {
+      "running": "Searching recipes…",
+      "found": "Recipes found",
+      "none": "No recipe found",
+      "done_one": "{{count, number}} recipe found",
+      "done_other": "{{count, number}} recipes found",
+      "failed": "The search did not go through"
+    }
+  }
 }

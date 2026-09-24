@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
-import { type ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { Platform, type ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { useTranslations } from "translations";
 
-import { SparklesIcon } from "@ui/icons";
+import { LoaderCircle, MorphIcon, SparklesIcon } from "@ui/icons";
 import { Message } from "@ui/message";
 import { ModalScrollView } from "@ui/modal-scroll-view";
 import { Text } from "@ui/text";
@@ -10,9 +10,12 @@ import { theme } from "theme";
 
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
-import { AssistantEmpty } from "./screen.empty";
-import { RecipeRow } from "./screen.recipe-row";
-import { useAssistantChat } from "./_hooks/useAssistantChat";
+import { useAssistantChat } from "../_hooks/useAssistantChat";
+import { Display } from "./display";
+import { AssistantEmpty } from "./empty";
+import { ToolStep } from "./tool-step";
+import { useSpin } from "~/ui/hooks/useSpin";
+import Animated from "react-native-reanimated";
 
 type Props = {
   style?: ViewStyle;
@@ -55,6 +58,7 @@ export const AssistantScreen = ({ style, question }: Props) => {
   const isEmpty = !question && !hasConversation && !isThinking;
 
   const scroller = useRef<ScrollView>(null);
+  const spin = useSpin(isThinking);
 
   /**
    * Follows the conversation down as it grows.
@@ -103,33 +107,51 @@ export const AssistantScreen = ({ style, question }: Props) => {
           ) : (
             <View key={message.key}>
               {/*
+                * Status lines first: in the turn they came first, and the prompt ends every turn
+                * on `display`, so steps, then text, then cards is the order things happened in.
+                */}
+              {message.steps.map((step) => (
+                <ToolStep key={step.key} step={step} />
+              ))}
+              {/*
                 * A turn that failed has nothing to say, so it says that plainly instead of
                 * drawing an empty bubble. Plainly is the point: PRODUCT.md puts the mascot aside
                 * when something has gone wrong, so this is an apology and not a joke.
                 */}
-              <Message
-                from="assistant"
-                markdown
-                content={message.hasFailed && !message.text ? t("failed") : message.text}
-                style={styles.fromAssistant}
-              />
-              {message.recipeIds.length > 0 && <View
-                style={styles.assistantTool}
-              >
-                <RecipeRow recipeIds={message.recipeIds} />
-              </View>}
+              {(message.text || message.hasFailed) && (
+                <Message
+                  from="assistant"
+                  markdown
+                  content={message.hasFailed && !message.text ? t("failed") : message.text}
+                  style={styles.fromAssistant}
+                />
+              )}
+              {message.cards.map((card, index) => (
+                <View key={index} style={styles.assistantTool}>
+                  <Display card={card} />
+                </View>
+              ))}
             </View>
           ),
         )}
         {/*
-          * Drawn only in the gap the stream has not reached yet. Once the first token lands, the
-          * answer itself is the feedback and a second indicator beside it would read as a
-          * second turn.
+          * Drawn only in the gap the stream has not reached yet. Once the first status line or
+          * token lands, the answer itself is the feedback and a second indicator beside it would
+          * read as a second turn.
           */}
         {isThinking && (
-          <Text.Base color={theme.colors.neutral.muted} style={styles.thinking}>
-            {t("thinking")}
-          </Text.Base>
+          <View style={styles.thinking}>
+            <Animated.View style={spin}>
+              <MorphIcon
+                icon={LoaderCircle}
+                size={20}
+                color={theme.colors.foreground}
+              />
+            </Animated.View>
+            <Text.Base color={theme.colors.neutral.muted}>
+              {t("thinking")}
+            </Text.Base>
+          </View>
         )}
       </View>
     </ModalScrollView>
@@ -141,7 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   page: {
-    paddingBottom: NAVIGATION_BAR_OFFSET,
+    paddingBottom: NAVIGATION_BAR_OFFSET + Platform.select({ ios: theme.spacing[32], default: 0 }),
   },
   header: {
     padding: theme.spacing[24],
@@ -163,14 +185,17 @@ const styles = StyleSheet.create({
     paddingRight: theme.spacing[16],
   },
   fromAssistant: {
-    marginLeft: theme.spacing[12],
+    marginLeft: theme.spacing[20],
   },
   assistantTool: {
-    marginLeft: theme.spacing[32],
+    marginLeft: theme.spacing[20],
     marginTop: theme.spacing[12],
     paddingRight: theme.spacing[32],
   },
   thinking: {
-    paddingLeft: theme.spacing[28],
+    paddingLeft: theme.spacing[20],
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[12],
   },
 });

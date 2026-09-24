@@ -67,7 +67,8 @@ behind the module's index route is what the rule exists to stop: in a module wit
 `screen.tsx` no longer identifies one, and the reader has to open it to find out which.
 
 ```
-✅ assistant/screen.tsx                    one screen — nothing to distinguish
+✅ account/screen.tsx                      one screen — nothing to distinguish
+✅ home/screen/index.tsx                   one screen, three parts or more — a folder, still `screen`
 ✅ recipes/list-screen.tsx                 four screens — each says which
    recipes/editor-screen/index.tsx
    recipes/step-by-step-screen/index.tsx

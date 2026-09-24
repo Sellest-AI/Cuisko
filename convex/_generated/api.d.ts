@@ -25,6 +25,7 @@ import type * as agent_config_prompts_sanitizeIngredient from "../agent/config/p
 import type * as agent_config_prompts_sanitizeRecipe from "../agent/config/prompts/sanitizeRecipe.js";
 import type * as agent_config_prompts_suggestDishes from "../agent/config/prompts/suggestDishes.js";
 import type * as agent_config_prompts_translateRecipe from "../agent/config/prompts/translateRecipe.js";
+import type * as agent_tools_display from "../agent/tools/display.js";
 import type * as agent_tools_generateIngredientImage from "../agent/tools/generateIngredientImage.js";
 import type * as agent_tools_generateRecipeImages from "../agent/tools/generateRecipeImages.js";
 import type * as agent_tools_sanitizeIngredient from "../agent/tools/sanitizeIngredient.js";
@@ -132,6 +133,7 @@ import type * as functions_recipes_listForUser from "../functions/recipes/listFo
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
 import type * as functions_recipes_loadRecipe from "../functions/recipes/loadRecipe.js";
 import type * as functions_recipes_loadRecipeCards from "../functions/recipes/loadRecipeCards.js";
+import type * as functions_recipes_missingRecipeIds from "../functions/recipes/missingRecipeIds.js";
 import type * as functions_recipes_persistRestoredRecipe from "../functions/recipes/persistRestoredRecipe.js";
 import type * as functions_recipes_recipeCard from "../functions/recipes/recipeCard.js";
 import type * as functions_recipes_recipeChangesOf from "../functions/recipes/recipeChangesOf.js";
@@ -227,6 +229,7 @@ import type * as router_recipes_getMany from "../router/recipes/getMany.js";
 import type * as router_recipes_getOne from "../router/recipes/getOne.js";
 import type * as router_recipes_importOne from "../router/recipes/importOne.js";
 import type * as router_recipes_importOneNode from "../router/recipes/importOneNode.js";
+import type * as router_recipes_missingIds from "../router/recipes/missingIds.js";
 import type * as router_recipes_restoreOne from "../router/recipes/restoreOne.js";
 import type * as router_recipes_search from "../router/recipes/search.js";
 import type * as router_recipes_setFavorite from "../router/recipes/setFavorite.js";
@@ -273,6 +276,7 @@ declare const fullApi: ApiFromModules<{
   "agent/config/prompts/sanitizeRecipe": typeof agent_config_prompts_sanitizeRecipe;
   "agent/config/prompts/suggestDishes": typeof agent_config_prompts_suggestDishes;
   "agent/config/prompts/translateRecipe": typeof agent_config_prompts_translateRecipe;
+  "agent/tools/display": typeof agent_tools_display;
   "agent/tools/generateIngredientImage": typeof agent_tools_generateIngredientImage;
   "agent/tools/generateRecipeImages": typeof agent_tools_generateRecipeImages;
   "agent/tools/sanitizeIngredient": typeof agent_tools_sanitizeIngredient;
@@ -380,6 +384,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
   "functions/recipes/loadRecipe": typeof functions_recipes_loadRecipe;
   "functions/recipes/loadRecipeCards": typeof functions_recipes_loadRecipeCards;
+  "functions/recipes/missingRecipeIds": typeof functions_recipes_missingRecipeIds;
   "functions/recipes/persistRestoredRecipe": typeof functions_recipes_persistRestoredRecipe;
   "functions/recipes/recipeCard": typeof functions_recipes_recipeCard;
   "functions/recipes/recipeChangesOf": typeof functions_recipes_recipeChangesOf;
@@ -475,6 +480,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/getOne": typeof router_recipes_getOne;
   "router/recipes/importOne": typeof router_recipes_importOne;
   "router/recipes/importOneNode": typeof router_recipes_importOneNode;
+  "router/recipes/missingIds": typeof router_recipes_missingIds;
   "router/recipes/restoreOne": typeof router_recipes_restoreOne;
   "router/recipes/search": typeof router_recipes_search;
   "router/recipes/setFavorite": typeof router_recipes_setFavorite;

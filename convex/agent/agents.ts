@@ -44,7 +44,8 @@ export const assistantAgent = new Agent(components.agent, {
   contextOptions: { recentMessages: 20, searchOptions: { limit: 0 } },
   /**
    * Enough for the prompt's "two or three tries, then answer without cards": each search is a step,
-   * and the answer itself is one more.
+   * and the answer, with its `display` call, is one more. `answerTurn` restates this in its own
+   * `stopWhen`, which replaces the default built from it.
    */
   maxSteps: 5,
   // usageHandler,

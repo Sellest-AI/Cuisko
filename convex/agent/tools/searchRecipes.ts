@@ -10,13 +10,12 @@ import { createTool } from "../utils";
  *
  * **The tool returns rows, and the model never composes one.** Its input is a search term — free
  * text, which is the one thing a model is reliable at producing — and the ids in its output come
- * from `searchForUser`, not from the model. So ADR 0010 holds in the direction that matters: no
- * `v.id()` is ever asked for, and nothing downstream reads an id the model wrote. The ids exist in
- * the output because the CLIENT reads them off the stored tool result to draw the cards; the model
- * is told, in `prompts/assistant.ts`, not to repeat them back.
+ * from `searchForUser`, not from the model. The model then CARRIES the ones it chooses to `display`,
+ * which re-checks each before anything is stored (ADR 0010). The cook sees none of this output
+ * directly: the client reads only the call's state, for its status line.
  *
- * Titles travel beside the ids for the model's benefit alone — it has to say one useful sentence
- * about what it found, and it cannot do that from a list of opaque strings. They are paired inside
+ * Titles travel beside the ids so the model can choose — it cannot pick the two recipes worth
+ * showing from a list of opaque strings. They are paired inside
  * one object rather than returned as two arrays, for the reason `translateRecipe` pairs its locale
  * with its recipe: parallel arrays are one off-by-one away from labelling the wrong row, and
  * nothing would throw.
@@ -25,10 +24,9 @@ import { createTool } from "../utils";
 /**
  * How many recipes one search hands back.
  *
- * Small on purpose, and the number is bounded by two different things at once. The model reads
- * these and pays for them by the token, and the shopper sees them as a horizontal row of cards on
- * a phone — five is already a scroll, and twenty-four, which is what `searchForUser` returns to a
- * grid by default, would be an answer nobody reads.
+ * Small on purpose: the model reads these and pays for them by the token, and a turn may search
+ * three times. Five per search is enough to choose from; twenty-four, which is what `searchForUser`
+ * returns to a grid by default, is a shortlist the model would have to shortlist.
  */
 const SEARCH_LIMIT = 5;
 
@@ -42,7 +40,7 @@ const _inputSchema = z.object({
     ),
 });
 
-/** What the tool hands back: what the model reads, and what the client draws. */
+/** What the tool hands back: what the model chooses from, and carries on to `display`. */
 export type FoundRecipes = {
   recipes: { id: Id<"recipes">; title: string }[];
 };
@@ -70,8 +68,8 @@ export const searchRecipesTool = ({ userId, locale }: Caller) =>
   createTool({
     description:
       "Searches this app's recipe catalog by dish name or ingredient and returns matching " +
-      "recipes. The app displays them to the user as cards automatically. Returns an empty list " +
-      "when nothing matches — say so rather than inventing a recipe.",
+      "recipes. The cook does not see these results: pass the ones worth showing to display. " +
+      "Returns an empty list when nothing matches — say so rather than inventing a recipe.",
     inputSchema: _inputSchema,
     execute: async (ctx, { query }): Promise<FoundRecipes> => {
       const found = await ctx.runQuery(internal.router.recipes.search._internal, {

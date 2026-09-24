@@ -1,9 +1,12 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { ActionCtx } from "@convex/procedures";
+import { ASSISTANT_TOOLS } from "@shared/assistant";
 import type { Locale } from "@shared/translations";
+import { stepCountIs } from "ai";
 
 import { assistantAgent } from "../../agent/agents";
 import { assistantPrompt } from "../../agent/config/prompts/assistant";
+import { displayTool, hasDisplayed } from "../../agent/tools/display";
 import { searchRecipesTool } from "../../agent/tools/searchRecipes";
 import { appendBrief } from "./appendBrief";
 
@@ -51,7 +54,23 @@ export const answerTurn = async (
     {
       promptMessageId,
       instructions: assistantPrompt(locale),
-      tools: { searchRecipes: searchRecipesTool({ userId, locale }) },
+      /**
+       * Keyed by `ASSISTANT_TOOLS` because the key IS the name the client reads: the SDK stores
+       * each call as a `tool-${key}` part, and that is how the screen finds status lines and cards.
+       */
+      tools: {
+        [ASSISTANT_TOOLS.searchRecipes]: searchRecipesTool({ userId, locale }),
+        [ASSISTANT_TOOLS.display]: displayTool,
+      },
+      /**
+       * A SUCCESSFUL `display` ends the turn in code rather than by asking the model to stop —
+       * `hasDisplayed`, not `hasToolCall`, so a display that threw on a bad id gets its retry.
+       * What it shows is the answer's last word, and without this the SDK would feed its result
+       * back for one more step, a second model call whose best outcome is saying nothing. The step
+       * cap is the agent's own, restated because passing `stopWhen` replaces the default built
+       * from `maxSteps` rather than adding to it.
+       */
+      stopWhen: [stepCountIs(assistantAgent.options.maxSteps ?? 1), hasDisplayed],
     },
     {
       saveStreamDeltas: true,

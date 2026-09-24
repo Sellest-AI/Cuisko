@@ -87,14 +87,22 @@ export const useAssistantChat = () => {
   );
 
   /**
-   * The turn is over, one way or another: an answer has started, or it failed outright.
+   * The turn is over, one way or another: the answer is showing something, or it failed outright.
+   *
+   * **Showing, not merely started.** The answer's message exists, empty and streaming, before the
+   * model has produced a word or called a tool; counting that as answered would blank "Cuisko is
+   * thinking" and leave nothing on screen until the first status line or token. A status line
+   * counts: "🔍 searching recipes" is the answer beginning.
    *
    * The failure arm is not defensive padding. A turn that throws before its first token leaves a
    * failed message and nothing else, so waiting for an ANSWER would wait forever — and because
    * the pending state is module-level Jotai, "forever" outlives closing the modal.
    */
   const last = messages.at(-1);
-  const isAnswered = hasLanded && last?.from === "assistant";
+  const isAnswered =
+    hasLanded &&
+    last?.from === "assistant" &&
+    (last.text.length > 0 || last.steps.length > 0 || last.cards.length > 0 || last.hasFailed);
 
   useEffect(() => {
     if (isAnswered) setPending(undefined);

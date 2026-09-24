@@ -29,3 +29,51 @@ export const ASSISTANT_IDLE_MS = 15 * 60 * 1000;
  */
 export const isConversationStale = (lastActivityAt: number, now: number): boolean =>
   now - lastActivityAt >= ASSISTANT_IDLE_MS;
+
+/**
+ * The names the assistant's tools are registered under.
+ *
+ * Shared because the name is the join between two ends that no type connects: `answerTurn` keys
+ * the tool set by it, and the AI SDK then names each stored part `tool-${name}`, which is what the
+ * client reads. A literal typed on both sides drifts silently — rename one and the status lines
+ * and cards just stop appearing. One constant makes that rename a compile error.
+ */
+export const ASSISTANT_TOOLS = {
+  searchRecipes: "searchRecipes",
+  display: "display",
+} as const;
+
+export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];
+
+/**
+ * What the display tool can put in front of the cook. One tool for every kind, rather than one
+ * tool per kind: adding the week plan or the shopping list later is a new entry here, not a new
+ * tool the model has to learn.
+ */
+export const DISPLAY_KINDS = ["recipes"] as const satisfies readonly (keyof DisplayPayloads)[];
+
+export type DisplayKind = (typeof DISPLAY_KINDS)[number];
+
+/**
+ * What each kind of card stores, keyed by kind. A new kind is a new entry here, with its own shape.
+ *
+ * **The version lives per kind**, not on the card: the plan card changing shape must not make every
+ * stored recipe card look out of date. A kind's `v` moves only when ITS payload changes.
+ *
+ * **Ids and no layout.** The rows are resolved when the card is drawn, so a recipe renamed since
+ * the conversation is drawn as it is now, and how the card is laid out is the client's decision,
+ * made at draw time — the layout can change without a stored card going stale.
+ */
+type DisplayPayloads = {
+  recipes: { v: 1; ids: string[] };
+};
+
+/**
+ * What the display tool stores in a message, and what the client draws from.
+ *
+ * Distributive over `K`, so `DisplayCard` alone is the union of every kind — narrowing on `kind`
+ * gives that kind's payload — and `DisplayCard<"recipes">` is exactly one of them.
+ */
+export type DisplayCard<K extends DisplayKind = DisplayKind> = {
+  [P in K]: { kind: P } & DisplayPayloads[P];
+}[K];
