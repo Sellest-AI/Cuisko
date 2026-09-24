@@ -203,7 +203,7 @@ export const useTunnel = () => {
     const isGenerating = TUNNEL_STEPS[stepRef.current] === "generating";
 
     /** Past the last step the tunnel is spent, so leave it rather than stacking another screen. */
-    if (!following) return router.dismissTo("/planning");
+    if (!following) return router.dismissTo("/");
     if (isGenerating) return router.replace(routeFor(following));
 
     router.push(routeFor(following));
