@@ -26,7 +26,7 @@ export {
   BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck, CircleMinus,
   ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
   FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock,
-  LogOut, HousePlus
+  LogOut, HousePlus, ShoppingCart
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
@@ -40,7 +40,8 @@ export {
   Smile as SmileIcon, Search as SearchIcon, Trash2 as Trash2Icon, MessageCircleWarning as MessageCircleWarningIcon,
   Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,
   Play as PlayIcon, Pause as PauseIcon, SkipBack as SkipBackIcon, SkipForward as SkipForwardIcon,
-  DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon, PencilIcon, GlobeIcon
+  DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon, PencilIcon, GlobeIcon,
+  ShoppingCartIcon
 } from "lucide-react-native";
 
 export { GoogleLogo, AppleLogo } from "./icons.logos";

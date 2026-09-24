@@ -3,7 +3,7 @@ import { FlashList } from "@shopify/flash-list";
 
 import { ButtonPill } from "@ui/button-pill";
 import { ActionRow } from "@ui/action-row";
-import { CalendarPlus, ForkKnife, type Icon, ListPlus, Plus, Sparkles, Store } from "@ui/icons";
+import { CalendarPlus, ForkKnife, type Icon, Plus, ShoppingCart, Sparkles, Store } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -74,7 +74,7 @@ export const QuickAccess = () => {
           variant="secondary"
           onPress={() => router.push("/groceries")}
           content={t("QuickAccess.grocery_list")}
-          contentIcon={ListPlus}
+          contentIcon={ShoppingCart}
           subtitle={isLoading ? undefined : t("QuickAccess.to_buy_x_items", { count: toBuy })}
           leftIcon={Plus}
           onLeftIconPress={() => { focus("shopping-list") }}

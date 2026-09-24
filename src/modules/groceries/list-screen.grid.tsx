@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanim
 
 import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
 import { EmptyState } from "@ui/empty-state";
-import { CalendarPlus, CheckIcon, IconComponent, PlusIcon, Store } from "@ui/icons";
+import { CalendarPlus, CheckIcon, IconComponent, ShoppingCartIcon, Store } from "@ui/icons";
 import { Pressable } from "@ui/pressable";
 import { Select } from "@ui/select";
 import { Text } from "@ui/text";
@@ -65,7 +65,7 @@ const SECTION_DEFS: Record<
   Section,
   { labelKey: TranslationKeys<"Groceries">; icon?: IconComponent; color: string }
 > = {
-  "to-buy": { labelKey: "Sections.to_buy", icon: PlusIcon, color: theme.colors.primary.base },
+  "to-buy": { labelKey: "Sections.to_buy", icon: ShoppingCartIcon, color: theme.colors.primary.base },
   cellar: { labelKey: "Sections.cellar", icon: CheckIcon, color: theme.colors.secondary.base },
   "recently-bought": { labelKey: "Sections.recently_bought", color: theme.colors.neutral.muted },
 };
