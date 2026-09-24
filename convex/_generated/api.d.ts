@@ -75,6 +75,7 @@ import type * as functions_ingredients_lookup_foodDataCentral from "../functions
 import type * as functions_ingredients_lookup_lookupHit from "../functions/ingredients/lookup/lookupHit.js";
 import type * as functions_ingredients_lookup_openFoodFacts from "../functions/ingredients/lookup/openFoodFacts.js";
 import type * as functions_ingredients_lookup_taxonomy from "../functions/ingredients/lookup/taxonomy.js";
+import type * as functions_ingredients_matchIngredient from "../functions/ingredients/matchIngredient.js";
 import type * as functions_ingredients_rememberAlias from "../functions/ingredients/rememberAlias.js";
 import type * as functions_ingredients_resolveIngredient from "../functions/ingredients/resolveIngredient.js";
 import type * as functions_ingredients_searchCatalog from "../functions/ingredients/searchCatalog.js";
@@ -320,6 +321,7 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/lookup/lookupHit": typeof functions_ingredients_lookup_lookupHit;
   "functions/ingredients/lookup/openFoodFacts": typeof functions_ingredients_lookup_openFoodFacts;
   "functions/ingredients/lookup/taxonomy": typeof functions_ingredients_lookup_taxonomy;
+  "functions/ingredients/matchIngredient": typeof functions_ingredients_matchIngredient;
   "functions/ingredients/rememberAlias": typeof functions_ingredients_rememberAlias;
   "functions/ingredients/resolveIngredient": typeof functions_ingredients_resolveIngredient;
   "functions/ingredients/searchCatalog": typeof functions_ingredients_searchCatalog;

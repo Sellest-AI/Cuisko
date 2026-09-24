@@ -32,10 +32,10 @@ const MODEL = "typesafe/jev-1.13";
 
 /**
  * Short, because the caller is a shopper watching a spinner rather than a pipeline. A judgment that
- * has not landed in three seconds is one we would rather answer without: every caller of this file
+ * has not landed in six seconds is one we would rather answer without: every caller of this file
  * has a fallback, and none of them has a user who will wait.
  */
-const TIMEOUT_MS = 3_000;
+const TIMEOUT_MS = 6_000;
 
 /**
  * The three kinds of question, and the three shapes of answer.
@@ -50,12 +50,18 @@ const TIMEOUT_MS = 3_000;
  *   - **Score** — a position along an ordered dimension whose levels you describe.
  */
 
-/** One of the options named in `criteria`. The keys ARE the option set. */
+/**
+ * One of the options named in `criteria`. The keys ARE the option set, and the model reads them.
+ *
+ * A description may be `null` when the key says everything: an option named after the thing it is
+ * ("balsamic vinegar") has nothing a sentence would add, and one written anyway is a hint the
+ * caller slipped in rather than a fact the model was given.
+ */
 export type ChoiceQuestion<Option extends string> = {
   type: "choice";
   /** What to decide. An object holds the question in one field and the data it refers to in others. */
   instructions: string | object;
-  criteria: Record<Option, string | object>;
+  criteria: Record<Option, string | object | null>;
 };
 
 /** A yes/no question. `criteria` is optional — describing both poles sharpens it. */
@@ -115,13 +121,13 @@ export type ScoreAnswer = {
  */
 type AnswerOf<Q> = Q extends { type: "choice" }
   ? Q extends ChoiceQuestion<infer Option>
-    ? ChoiceAnswer<Option>
-    : never
+  ? ChoiceAnswer<Option>
+  : never
   : Q extends { type: "noul" }
-    ? NoulAnswer
-    : Q extends { type: "score" }
-      ? ScoreAnswer
-      : never;
+  ? NoulAnswer
+  : Q extends { type: "score" }
+  ? ScoreAnswer
+  : never;
 
 /** The answers map, each entry typed by the question it answers. */
 type Answers<Q extends Record<string, Question>> = { [Key in keyof Q]: AnswerOf<Q[Key]> };

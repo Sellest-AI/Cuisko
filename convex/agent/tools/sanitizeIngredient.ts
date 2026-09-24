@@ -25,8 +25,14 @@ import {
 } from "@shared/ingredients";
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
-import { ingredientsAgent, rankerAgent } from "../agents";
-import { matchIngredientPrompt, sanitizeIngredientPrompt } from "../config/prompts/sanitizeIngredient";
+import {
+  aliasWorthSaving,
+  matchIngredient,
+  type Dictionary,
+} from "@convex/functions/ingredients/matchIngredient";
+
+import { ingredientsAgent } from "../agents";
+import { sanitizeIngredientPrompt } from "../config/prompts/sanitizeIngredient";
 import { createTool, modelText, parseModelOutput, providerSchema, wrapAgent } from "../utils";
 
 /**
@@ -300,40 +306,6 @@ const _inputSchema = z.object({
 /** Everything the tool is handed. Named because the two prompt builders below both take it. */
 export type SanitizeIngredientInput = z.infer<typeof _inputSchema>;
 
-/**
- * What the ranker may answer, bounded by the list it was handed.
- *
- * A factory rather than a constant because the bound IS the list's length, and the bound does its
- * work on the way OUT: `providerSchema` sends `max` to the provider, so a model generating against
- * it cannot name a sixth candidate in a list of five. That is where a hallucinated position is
- * actually prevented — not on the way back.
- *
- * ⚠️ On the way back it does NOT throw, and this docblock claimed for a while that it did.
- * `matchIndex` is `.nullable().optional()`, and `parseModelOutput`'s rule is that an absentable
- * field failing its own validation goes ABSENT rather than failing the parse — so an out-of-range
- * index arrives as "no match" and the tool writes a fresh row. Which is the safe direction, and
- * the reason the mistake was invisible: the expensive branch runs, nobody's list gets the wrong
- * food, and the only cost is one generation. `sanitizeIngredient.test.ts` pins it.
- *
- * Exported for the reason the prompts are — the bake-off that picks the ranker's model has to score
- * the schema the tool actually sends, bound included, since that bound is most of what stops a
- * cheap model here from being dangerous.
- */
-export const matchIngredientSchema = (candidateCount: number) =>
-  z.object({
-    matchIndex: z.number().int().min(0).max(Math.max(candidateCount - 1, 0)).nullable().optional()
-      .describe("The position of the matching candidate. Left out when none matches."),
-    confidence: z.number().min(0).max(1).nullable().optional()
-      .describe("How sure you are, 0 to 1. Left out when nothing matches."),
-    saveAlias: z.boolean().nullable().optional()
-      .describe(
-        "true if what the shopper typed is a real word for that food and worth remembering on " +
-        "the row — another language, a regional word, a plural, a common misspelling, or a " +
-        "brand people shop by. false for a one-off mangling of the word, or anything carrying " +
-        "a quantity. Left out when nothing matches.",
-      ),
-  });
-
 /** Every spelling a hit stated for one language, lowercased for comparison. */
 const _statedIn = (hits: readonly LookupHit[], locale: Locale) =>
   hits.flatMap((hit) => hit.names[locale] ?? []);
@@ -381,39 +353,19 @@ const _DICTIONARY_SPELLINGS = 3;
  *    `pâte de pistache` with a guava pastry — and a wrong name presented to a model as what the
  *    term IS does not merely add noise, it argues for the wrong answer.
  *
- * Empty when nothing curated answered, which is the common case: the ranker then sees exactly what
- * it saw before, and this is one more line in the prompt rather than a new dependency.
+ * Empty when nothing curated answered, which is the common case: the ranker then judges on the
+ * words alone, and `matchState` leaves the dictionary out rather than sending it empty.
+ *
+ * Exported so the curated-only rule is pinned by a unit test without a call to TypeSafe.
  */
-const _dictionarySays = (hits: readonly LookupHit[]): string => {
-  const stated = SUPPORTED_LOCALES.flatMap((locale) => {
-    const spellings = _vocabularyIn(hits, locale).slice(0, _DICTIONARY_SPELLINGS);
+export const dictionaryOf = (hits: readonly LookupHit[]): Dictionary =>
+  Object.fromEntries(
+    SUPPORTED_LOCALES.flatMap((locale) => {
+      const spellings = _vocabularyIn(hits, locale).slice(0, _DICTIONARY_SPELLINGS);
 
-    return spellings.length ? [`- ${locale}: ${spellings.join(", ")}`] : [];
-  });
-
-  return stated.length
-    ? `A food dictionary files what they typed under this food:\n${stated.join("\n")}`
-    : "";
-};
-
-/**
- * What the ranker is shown: the term, what a dictionary makes of it, and the candidates by
- * position. Never an id.
- */
-export const matchIngredientUserPrompt = (
-  {
-    text,
-    candidates = [],
-    hits = [],
-  }: Pick<SanitizeIngredientInput, "text" | "candidates" | "hits">,
-) =>
-  [
-    `The shopper typed:\n${text}`,
-    _dictionarySays(hits as LookupHit[]),
-    `Candidates:\n${candidates.map(({ name }, index) => `${index}. ${name}`).join("\n")}`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+      return spellings.length ? [[locale, spellings]] : [];
+    }),
+  );
 
 // The two compile-time assertions ADR 0010 asks for: the schema and the hand-written types drift
 // apart in silence otherwise — a vocabulary gains a value, a lookup gains a field, and the first
@@ -690,29 +642,15 @@ export const sanitizeIngredientUserPrompt = ({ text, hits = [], units = [] }: Sa
     .join("\n\n");
 
 /**
- * Good enough to hand a shopper a row they did not ask for.
- *
- * Higher than the catalog's own `CONFIDENT`, and deliberately: the candidates reaching here are the
- * ones `resolveIngredient` already declined to link on its score, so a model overruling that has to
- * be sure rather than merely warmer than the search was. Below it the answer is "no match", and the
- * cost of that is one generation — against a wrong link, which puts the wrong food on a shopping
- * list and never announces itself.
- *
- * Exported because the ranker's bake-off has to flag an answer against the SAME bar the tool
- * applies — a 0.8 written out a second time in a test is a bar that moves in one place only.
- */
-export const MATCHED = 0.8;
-
-/**
  * A term the catalog could not resolve, turned into an existing row, a new one, or an honest
  * refusal — step 4 of `resolveIngredient`.
  *
- * **Two model calls, cheapest first, and the first may end it.** The ranker is asked whether one of
+ * **Cheapest first, and the first may end it.** `matchIngredient` asks TypeSafe's Jev whether one of
  * the near-misses the catalog search already found is the same food; only if it is not does the
  * expensive call invent a row. Splitting them is not just about cost: a model that has begun
  * writing facts for a new ingredient will talk itself past a match that was sitting in the list.
  *
- * Nothing is written down — `saveMessages: "none"` on both, for the reason `sanitizeRecipe` gives:
+ * Nothing is written down — `saveMessages: "none"` on the row call, for the reason `sanitizeRecipe` gives:
  * this is a transformation, not a conversation, and nothing later needs to recall the word a
  * shopper typed into a search bar.
  *
@@ -729,36 +667,23 @@ export const sanitizeIngredient = createTool({
     const candidates = args.candidates ?? [];
 
     if (candidates.length) {
-      const matchSchema = matchIngredientSchema(candidates.length);
+      const asked = {
+        text: args.text,
+        locale: args.locale,
+        dictionary: dictionaryOf((args.hits ?? []) as LookupHit[]),
+      };
 
-      const ranked = await retryPromise(() =>
-        wrapAgent(rankerAgent).generateObject(
-          ctx,
-          {},
-          {
-            system: matchIngredientPrompt(args.locale),
-            prompt: matchIngredientUserPrompt(args),
-            schema: providerSchema(matchSchema),
-            output: "object",
-            maxRetries: 2,
-          },
-          { storageOptions: { saveMessages: "none" } },
-        ), 2);
+      const candidate = await retryPromise(() => matchIngredient({ ...asked, candidates }), 2);
 
-      const match = parseModelOutput(matchSchema, ranked.object);
-      const candidate = match.matchIndex === undefined ? undefined : candidates[match.matchIndex];
-
-      if (candidate && (match.confidence ?? 0) >= MATCHED)
+      if (candidate)
         // The one cast in this file, and it is not a model's id: `candidate` came out of the list
         // the caller passed in, so the string is an id the caller already held (ADR 0010).
         return {
           verdict: "existing",
           ingredientId: candidate.id as Id<"ingredients">,
           name: candidate.name,
-          // Read strictly as `=== true`, so the two shapes that mean "the model did not say"
-          // (absent, and an explicit null) both mean no. See the field's note: a wrong false costs
-          // one model call the next time this term is typed, and a wrong true is permanent.
-          saveAlias: match.saveAlias === true,
+          // Asked only now, because it is a question about the word AND the food it matched.
+          saveAlias: await aliasWorthSaving(asked, candidate.name),
         };
     }
 

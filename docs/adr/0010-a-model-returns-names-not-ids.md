@@ -41,8 +41,9 @@ the wrong ingredient. Nothing throws. The recipe's nutrition total is wrong and 
 buys the wrong thing, and the first symptom is a cook noticing. So the model returns the *name*,
 and `resolveIngredient` turns a name into an id by searching and ranking — an algorithm, which can
 be run against the seeded catalog in a test that takes 900 ms and costs nothing. Where a name
-survives every search, the ranker is still handed a LIST and answers with a position in it, never
-with an id it composed itself.
+survives every search, the ranker is still handed a LIST and answers with one of the options it
+was offered — a TypeSafe Choice cannot answer outside its option set — never with an id it composed
+itself.
 
 That ranking exists because Convex's search index returns rows in relevance order and **no score**:
 at the call site, "nothing matched" and "a bad match ranked first" are the same answer. `CONFIDENT`

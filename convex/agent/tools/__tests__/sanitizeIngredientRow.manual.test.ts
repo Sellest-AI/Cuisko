@@ -12,11 +12,11 @@
  * `pnpm verify` and the pre-commit hook name their projects explicitly, and `*.manual.test.ts`
  * belongs to the `manual` project alone.
  *
- * **Separate from `sanitizeIngredientRanker.manual.test.ts` because it is a different job.** That
- * one is a classification with a right answer that runs on every unresolved term and wants the
- * cheapest model that is not reckless. This one invents a permanent catalog row out of two words,
- * runs only after the cheap steps have all failed, and wants the best model available. One table
- * cannot pick a winner for both.
+ * **Only the row call is benched here.** The tool's other call, whether a near-miss is already the
+ * food, is a classification with a right answer and runs on TypeSafe's Jev rather than a chat
+ * model; `functions/ingredients/__tests__/matchIngredient.manual.test.ts` measures it. This one
+ * invents a permanent catalog row out of two words, runs only after the cheap steps have all
+ * failed, and wants the best model available.
  *
  * **What makes this bake-off different from `sanitizeRecipe`'s**: almost nothing here comes from
  * the input. A recipe bake-off measures whether a model transformed what it was given faithfully;

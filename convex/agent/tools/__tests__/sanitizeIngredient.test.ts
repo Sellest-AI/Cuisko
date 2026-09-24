@@ -3,10 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { LookupHit } from "@convex/functions/ingredients/lookup/lookupHit";
 import { ALLERGENS } from "@shared/allergens";
 
-import { parseModelOutput } from "../../utils";
 import {
-  matchIngredientSchema,
-  matchIngredientUserPrompt,
+  dictionaryOf,
   sanitizeIngredientUserPrompt,
   toSanitizedIngredient,
 } from "../sanitizeIngredient";
@@ -594,17 +592,6 @@ describe("toSanitizedIngredient", () => {
   });
 });
 
-/**
- * The ranker's schema, which is the whole contract with the cheap call.
- *
- * The tool's `execute` is not exercised here — it needs a model — so what these pin is the parse
- * that stands between a model's answer and the two decisions read off it: whether to link, and
- * whether to remember the word. Both are read from keys the model is allowed to omit.
- */
-/**
- * The ranker sees the taxonomy's answer, which is the whole of the wrong-link fix: `jus de citron`
- * was judged against a `Jus d'orange` row on the words alone, and linked.
- */
 describe("sanitizeIngredientUserPrompt", () => {
   it("names the unit the recipe line is written in, once per unit", () => {
     const prompt = sanitizeIngredientUserPrompt({
@@ -623,24 +610,18 @@ describe("sanitizeIngredientUserPrompt", () => {
   });
 });
 
-describe("matchIngredientUserPrompt", () => {
+describe("dictionaryOf", () => {
   const _curated: LookupHit = {
     source: "foodComposition",
     names: { en: ["lemon juice"], fr: ["jus de citron"] },
   };
 
-  it("states what a curated source filed the term under", () => {
-    const prompt = matchIngredientUserPrompt({
-      text: "jus de citron",
-      candidates: [{ id: "k1", name: "Jus d'orange" }],
-      hits: [_curated],
-    });
-
-    expect(prompt).toContain("A food dictionary files what they typed under this food:");
-    expect(prompt).toContain("lemon juice");
-    // Still the same two things it always carried — the term, and the candidates by position.
-    expect(prompt).toContain("jus de citron");
-    expect(prompt).toContain("0. Jus d'orange");
+  /**
+   * The ranker sees the taxonomy's answer, which is the whole of the wrong-link fix: `jus de citron`
+   * was judged against a `Jus d'orange` row on the words alone, and linked.
+   */
+  it("states what a curated source filed the term under, per language", () => {
+    expect(dictionaryOf([_curated])).toEqual({ en: ["lemon juice"], fr: ["jus de citron"] });
   });
 
   /**
@@ -649,59 +630,18 @@ describe("matchIngredientUserPrompt", () => {
    * argues for the wrong answer rather than merely adding noise.
    */
   it("says nothing about a source that reached its answer by searching", () => {
-    const prompt = matchIngredientUserPrompt({
-      text: "pâte de pistache",
-      candidates: [{ id: "k1", name: "pâte d'amande" }],
-      hits: [{ source: "foodComposition", names: { en: ["Pastry, Pastelitos de Guava"] }, searched: true }],
-    });
+    const searched: LookupHit = {
+      source: "foodComposition",
+      names: { en: ["Pastry, Pastelitos de Guava"] },
+      searched: true,
+    };
 
-    expect(prompt).not.toContain("A food dictionary");
-    expect(prompt).not.toContain("Pastelitos");
+    expect(dictionaryOf([searched])).toEqual({});
   });
 
-  it("leaves the line out entirely when nothing looked the term up", () => {
-    const prompt = matchIngredientUserPrompt({
-      text: "kaki",
-      candidates: [{ id: "k1", name: "kiwi" }],
-    });
+  it("keeps three spellings a language, not a wall of synonyms", () => {
+    const wordy: LookupHit = { source: "foodComposition", names: { en: ["a", "b", "c", "d"] } };
 
-    expect(prompt).not.toContain("A food dictionary");
-    expect(prompt).toContain("0. kiwi");
-  });
-});
-
-describe("matchIngredientSchema", () => {
-  const parse = (raw: unknown) => parseModelOutput(matchIngredientSchema(3), raw);
-
-  it("reads a model that answered all three", () => {
-    expect(parse({ matchIndex: 1, confidence: 0.9, saveAlias: true }))
-      .toEqual({ matchIndex: 1, confidence: 0.9, saveAlias: true });
-  });
-
-  /**
-   * The two shapes that mean "the model did not say", and the reason `execute` compares against
-   * `true` rather than reading the value: absent and null both have to land on NOT storing. A
-   * truthy read of either would index a catalog row under whatever the shopper typed, permanently,
-   * on the strength of a key the model never filled in.
-   */
-  it("leaves an unanswered saveAlias unset, whether it was dropped or nulled", () => {
-    expect(parse({ matchIndex: 1, confidence: 0.9 }).saveAlias).toBeUndefined();
-    expect(parse({ matchIndex: 1, confidence: 0.9, saveAlias: null }).saveAlias).toBeUndefined();
-  });
-
-  /**
-   * A position the model invented is DROPPED, and the tool reads that as "no match".
-   *
-   * The bound on the factory is what makes that happen: `matchIndex` is absentable, so
-   * `parseModelOutput` sends a value failing `.max(count - 1)` absent rather than throwing. Which
-   * is the safe direction — the step after this one invents the row, so a hallucinated index costs
-   * one generation instead of indexing a shopper's word onto a row picked out of thin air.
-   *
-   * Pinned because the factory's docblock claimed the opposite for a while, and the two readings
-   * differ in what a caller must handle. What the bound really prevents is on the way out: the
-   * provider is sent `max`, so the model cannot name a sixth candidate in a list of five.
-   */
-  it("drops a position outside the list it was handed", () => {
-    expect(parse({ matchIndex: 3, confidence: 1 }).matchIndex).toBeUndefined();
+    expect(dictionaryOf([wordy])).toEqual({ en: ["a", "b", "c"] });
   });
 });

@@ -94,16 +94,6 @@ export const translatorAgent = new Agent(components.agent, {
   // usageHandler,
 });
 
-export const rankerAgent = new Agent(components.agent, {
-  name: "Cuisko Ranker Agent",
-  providerOptions: models.ranker.providerOptions({ effort: false }),
-  languageModel: models.ranker.model,
-  instructions: "",
-  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
-  maxSteps: 7,
-  // usageHandler,
-});
-
 export const imagesGeneratorAgent = new Agent(components.agent, {
   name: "Cuisko Images Generator Agent",
   providerOptions: models.prompterMini.providerOptions({ effort: "low" }),
