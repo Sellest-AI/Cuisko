@@ -3,7 +3,7 @@ import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ButtonIcon } from "@ui/button-icon";
-import { ArrowLeft, ForkKnife, Plus } from "@ui/icons";
+import { ArrowLeft, ForkKnife, House, Plus } from "@ui/icons";
 import { theme } from "theme";
 import { router, usePathname } from "expo-router";
 import { m, AnimatePresence } from "@ui/motion";
@@ -11,6 +11,7 @@ import { NAVIGATION_BAR_OFFSET } from "./constants";
 import { useRef, useState } from "react";
 import { NavigationBarInput } from "./navigation-bar.input";
 import { useNavigationBar } from "./hooks";
+import { useBackLeadsHome } from "./_hooks/useBackLeadsHome";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
 import { SafeAreaView } from "~/ui/components/safe-area-view";
@@ -46,6 +47,7 @@ export const NavigationBar = () => {
   const isPlanning = path === "/planning";
 
   const hasNavigationBar = isHome || isGroceries || isAssistant || isPlanning || isRecipes;
+  const backLeadsHome = useBackLeadsHome();
 
   const [inputFocused, setInputFocused] = useState(false);
 
@@ -107,7 +109,7 @@ export const NavigationBar = () => {
                         style={{ alignSelf: "auto" }}
                         size="lg"
                       >
-                        {ArrowLeft}
+                        {backLeadsHome ? House : ArrowLeft}
                       </ButtonIcon>
                     </m.View>}
                 </AnimatePresence>
