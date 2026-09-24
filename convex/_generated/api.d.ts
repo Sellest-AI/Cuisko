@@ -118,6 +118,7 @@ import type * as functions_planning_rescaleMeal from "../functions/planning/resc
 import type * as functions_planning_scaleLines from "../functions/planning/scaleLines.js";
 import type * as functions_planning_selectMeals from "../functions/planning/selectMeals.js";
 import type * as functions_planning_skipMeal from "../functions/planning/skipMeal.js";
+import type * as functions_planning_spreadMeals from "../functions/planning/spreadMeals.js";
 import type * as functions_planning_syncMealLines from "../functions/planning/syncMealLines.js";
 import type * as functions_planning_weekIdeas from "../functions/planning/weekIdeas.js";
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
@@ -374,6 +375,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/scaleLines": typeof functions_planning_scaleLines;
   "functions/planning/selectMeals": typeof functions_planning_selectMeals;
   "functions/planning/skipMeal": typeof functions_planning_skipMeal;
+  "functions/planning/spreadMeals": typeof functions_planning_spreadMeals;
   "functions/planning/syncMealLines": typeof functions_planning_syncMealLines;
   "functions/planning/weekIdeas": typeof functions_planning_weekIdeas;
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;

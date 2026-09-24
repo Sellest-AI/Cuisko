@@ -114,7 +114,7 @@ const MIN_BASKET_REUSES = 2;
 const CUISINE_REPEAT_FACTOR = 0.7;
 
 /** Cuisines that name no tradition, so two plates of them are not a repeat. */
-const UNCOUNTED_CUISINES: ReadonlySet<Cuisine> = new Set(["other", "fusion"]);
+export const UNCOUNTED_CUISINES: ReadonlySet<Cuisine> = new Set(["other", "fusion"]);
 
 /**
  * What a candidate would cover against `stock`, and the amounts it would take doing it.
@@ -160,6 +160,13 @@ export const coverageOf = (candidate: Candidate, stock: Stock): Coverage => {
   return { covered, missing, partial, taken };
 };
 
+/** Takes from `stock`, in place, what a coverage used. */
+export const spend = (stock: Stock, taken: Coverage["taken"]) => {
+  for (const [ingredientId, amount] of taken) {
+    stock.set(ingredientId, (stock.get(ingredientId) ?? 0) - amount);
+  }
+};
+
 /**
  * The candidates a plate may be drawn from: unpicked recipes within the own-share cap, or, when
  * that leaves nothing, unpicked recipes with the cap lifted. The cap is a ceiling, and a short
@@ -173,11 +180,11 @@ const _eligible = (candidates: Candidate[], picked: Set<Id<"recipes">>, capReach
 };
 
 /** The lines that move the ranking: everything but a pinch — see `selectMeals`. */
-const _scored = (needs: Need[]) => needs.filter((need) => need.kind !== "pinch");
+export const scoredNeeds = (needs: Need[]) => needs.filter((need) => need.kind !== "pinch");
 
 /** The missing lines the basket already holds and has credit left for. */
 const _reused = (missing: Need[], basket: Basket, horizon: number) =>
-  _scored(missing).filter((need) => (basket.get(need.ingredientId) ?? Infinity) < horizon);
+  scoredNeeds(missing).filter((need) => (basket.get(need.ingredientId) ?? Infinity) < horizon);
 
 /**
  * How much sharing each ingredient says about two recipes belonging together: `1` for one only a
@@ -193,7 +200,7 @@ const _rarityOf = (candidates: Candidate[]) => {
   const using = new Map<Id<"ingredients">, number>();
 
   for (const candidate of candidates) {
-    for (const ingredientId of new Set(_scored(candidate.needs).map((need) => need.ingredientId))) {
+    for (const ingredientId of new Set(scoredNeeds(candidate.needs).map((need) => need.ingredientId))) {
       using.set(ingredientId, (using.get(ingredientId) ?? 0) + 1);
     }
   }
@@ -222,7 +229,8 @@ const _reuseCredit = (reused: Need[], basket: Basket, rarity: Map<Id<"ingredient
  * and against the basket they filled, so the feta bought for Monday is what Thursday cooks with.
  * The chain is what keeps the grocery list short: a random first plate, then a plate that shares
  * something with it, then one that shares something with those, each pull weighted so the week
- * leans on its purchases without becoming one cuisine.
+ * leans on its purchases without becoming one cuisine. The chain is drawn in plate order but not
+ * served in it: `spreadMeals` then moves the meals apart, so the links sit side by side only when nothing else is left.
  *
  * Score is the share of lines fully covered by the cellar, plus the reuse credit of the lines the
  * basket holds (`_reuseCredit`: `BASKET_WEIGHT` each, weighed by rarity, faded by prior reuse),
@@ -282,11 +290,11 @@ export const selectMeals = (
     const ranked = _eligible(candidates, picked, ownPicked >= ownCap)
       .map((candidate) => {
         const coverage = coverageOf(candidate, left);
-        const lines = _scored(candidate.needs).length || 1;
+        const lines = scoredNeeds(candidate.needs).length || 1;
         const reused = cooked.has(candidate.recipeId) ? [] : _reused(coverage.missing, basket, horizon);
         const credit = _reuseCredit(reused, basket, rarity, horizon);
         const repeats = UNCOUNTED_CUISINES.has(candidate.cuisine) ? 0 : (served.get(candidate.cuisine) ?? 0);
-        const score = ((_scored(coverage.covered).length + credit) / lines) * CUISINE_REPEAT_FACTOR ** repeats;
+        const score = ((scoredNeeds(coverage.covered).length + credit) / lines) * CUISINE_REPEAT_FACTOR ** repeats;
 
         return { candidate, coverage, reused, score, tie: coverage.partial / lines };
       })
@@ -300,11 +308,9 @@ export const selectMeals = (
     cooked.add(candidate.recipeId);
     if (candidate.isMine) ownPicked += 1;
     served.set(candidate.cuisine, (served.get(candidate.cuisine) ?? 0) + 1);
-    for (const [ingredientId, amount] of coverage.taken) {
-      left.set(ingredientId, (left.get(ingredientId) ?? 0) - amount);
-    }
+    spend(left, coverage.taken);
     // What this plate buys joins the basket at no reuse; what it drew from the basket spends one.
-    for (const need of _scored(coverage.missing)) {
+    for (const need of scoredNeeds(coverage.missing)) {
       if (!basket.has(need.ingredientId)) basket.set(need.ingredientId, 0);
     }
     for (const ingredientId of new Set(reused.map((need) => need.ingredientId))) {
