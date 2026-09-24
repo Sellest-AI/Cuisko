@@ -14,7 +14,10 @@
 
 import {
   ASSISTANT_TOOLS,
+  type AssistantButton,
   type AssistantTool,
+  BUTTON_DESTINATIONS,
+  BUTTON_VARIANTS,
   DISPLAY_KINDS,
   type DisplayCard,
   type DisplayKind,
@@ -47,8 +50,11 @@ export type SourceMessage = {
   _creationTime: number;
 };
 
-/** The tools that show the cook a status line while they work. `display` does not: its card is its line. */
-export type StepTool = Exclude<AssistantTool, typeof ASSISTANT_TOOLS.display>;
+/**
+ * The tools that show the cook a status line while they work. `display` and `showButton` do not:
+ * what they draw is their line.
+ */
+export type StepTool = Exclude<AssistantTool, typeof ASSISTANT_TOOLS.display | typeof ASSISTANT_TOOLS.showButton>;
 
 /** One status line: "🔍 searching recipes", then "🥗 3 recipes found". */
 export type ToolStep = {
@@ -69,6 +75,11 @@ export type ChatMessage = {
   steps: ToolStep[];
   /** What Cuisko chose to show, in call order. Only finished, well-formed `display` calls. */
   cards: DisplayCard[];
+  /**
+   * The button Cuisko offered under the answer, if any. One at most: the prompt asks for one, and
+   * a model that sent two gets its last, the one it settled on.
+   */
+  button?: AssistantButton;
   /** The answer is still arriving — the screen shows it growing rather than waiting. */
   isStreaming: boolean;
   /**
@@ -195,6 +206,30 @@ const _cardsOf = (parts: readonly MessagePart[]): DisplayCard[] =>
     .filter((card): card is DisplayCard => card !== undefined);
 
 /**
+ * A stored showButton output → a button, when every field is one this build knows.
+ *
+ * A destination or variant this build has never heard of drops the button rather than guessing a
+ * route for it: an older app meeting a newer button shows the answer without it. The sentence goes
+ * through `withoutIds` like the answer does, for the same reason.
+ */
+const _buttonOf = (output: unknown): AssistantButton | undefined => {
+  if (!_isObject(output) || output.v !== 1 || typeof output.text !== "string") return undefined;
+
+  const destination = BUTTON_DESTINATIONS.find((known) => known === output.destination);
+  const variant = BUTTON_VARIANTS.find((known) => known === output.variant);
+  const text = withoutIds(output.text).trim();
+
+  return destination && variant && text ? { v: 1, text, destination, variant } : undefined;
+};
+
+const _buttonOfParts = (parts: readonly MessagePart[]): AssistantButton | undefined =>
+  parts
+    .filter((part) => part.type === _partType(ASSISTANT_TOOLS.showButton) && part.state === "output-available")
+    .map((part) => _buttonOf(part.output))
+    .filter((button): button is AssistantButton => button !== undefined)
+    .at(-1);
+
+/**
  * Something shaped like a Convex document id: 31 to 37 lowercase letters and digits, with at least
  * one of each. No French or English word is that long, and a hash-like run that is not an id is
  * noise to a cook either way.
@@ -211,6 +246,19 @@ const _ID_SHAPED = /[`(\[]?\b(?=[a-z0-9]*\d)(?=[a-z0-9]*[a-z])[a-z0-9]{31,37}\b[
  */
 export const withoutIds = (text: string): string =>
   text.replace(_ID_SHAPED, "").replace(/ {2,}/g, " ").replace(/ +([,.])/g, "$1");
+
+/**
+ * Whether a message has anything on screen yet: text, a status line, a card or a button.
+ *
+ * One definition, because two places ask it: `toChatMessages` to decide what is drawn, and the
+ * hook to decide the answer has arrived. Written out twice, the button was added to one and not the
+ * other, and a turn that answered with only a button left "Cuisko is thinking" spinning under it.
+ */
+export const isShowingSomething = (message: ChatMessage): boolean =>
+  message.text.length > 0 ||
+  message.steps.length > 0 ||
+  message.cards.length > 0 ||
+  message.button !== undefined;
 
 /**
  * Stored messages → what the screen renders.
@@ -250,7 +298,9 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
       const text = isUser ? message.text : withoutIds(message.text);
       const steps = isUser ? [] : _stepsOf(message.parts, isTurnOver);
       const cards = isUser ? [] : _cardsOf(message.parts);
-      const endedEmpty = !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0;
+      const button = isUser ? undefined : _buttonOfParts(message.parts);
+      const endedEmpty =
+        !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button;
 
       return {
         key: message.key,
@@ -258,16 +308,10 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
         text,
         steps,
         cards,
+        ...(button && { button }),
         isStreaming,
         hasFailed: message.status === "failed" || endedEmpty,
         createdAt: message._creationTime,
       };
     })
-    .filter(
-      (message) =>
-        message.text.length > 0 ||
-        message.steps.length > 0 ||
-        message.cards.length > 0 ||
-        message.isStreaming ||
-        message.hasFailed,
-    );
+    .filter((message) => isShowingSomething(message) || message.isStreaming || message.hasFailed);

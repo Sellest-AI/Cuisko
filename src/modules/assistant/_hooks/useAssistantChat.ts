@@ -6,7 +6,7 @@ import { isConversationStale } from "@shared/assistant";
 
 import { api } from "~/lib/convex/api";
 
-import { type ChatMessage, toChatMessages } from "../_model/chatMessage";
+import { type ChatMessage, isShowingSomething, toChatMessages } from "../_model/chatMessage";
 import { conversationAtom, pendingQuestionAtom } from "./atoms";
 import { useAskCuisko } from "./useAskCuisko";
 
@@ -102,7 +102,7 @@ export const useAssistantChat = () => {
   const isAnswered =
     hasLanded &&
     last?.from === "assistant" &&
-    (last.text.length > 0 || last.steps.length > 0 || last.cards.length > 0 || last.hasFailed);
+    (isShowingSomething(last) || last.hasFailed);
 
   useEffect(() => {
     if (isAnswered) setPending(undefined);

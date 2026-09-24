@@ -33,5 +33,10 @@
       "done_other": "Valeurs nutritionnelles calculées",
       "failed": "Le calcul n'a pas abouti"
     }
+  },
+  "buttons": {
+    "planning": "Planifier ma semaine",
+    "groceries": "Voir mes courses",
+    "recipes": "Voir mes recettes"
   }
 }
