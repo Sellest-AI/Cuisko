@@ -35,8 +35,8 @@ const _inputSchema = z.object({
     .string()
     .describe(
       "The name of a DISH to look for, or a single ingredient. " +
-      "Search what you would call the recipe — \"bolognaise\", \"chili con carne\", \"tarte au " +
-      "citron\" — never the shopper's whole question.",
+      "Search what you would call the recipe (\"bolognaise\", \"chili con carne\", \"tarte au " +
+      "citron\"), never the shopper's whole question.",
     ),
 });
 
@@ -69,7 +69,7 @@ export const searchRecipesTool = ({ userId, locale }: Caller) =>
     description:
       "Searches this app's recipe catalog by dish name or ingredient and returns matching " +
       "recipes. The cook does not see these results: pass the ones worth showing to display. " +
-      "Returns an empty list when nothing matches — say so rather than inventing a recipe.",
+      "Returns an empty list when nothing matches: say so rather than inventing a recipe.",
     inputSchema: _inputSchema,
     execute: async (ctx, { query }): Promise<FoundRecipes> => {
       const found = await ctx.runQuery(internal.router.recipes.search._internal, {
