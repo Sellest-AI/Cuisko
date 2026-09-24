@@ -95,6 +95,7 @@ const CONVEX_TEST_ENV = {
 const aliases = [
   { find: /^react-native$/, replacement: "react-native-web" },
   { find: /^theme$/, replacement: at("./src/global/theme.ts") },
+  { find: /^fonts$/, replacement: at("./src/global/fonts.ts") },
   { find: /^env$/, replacement: at("./env.ts") },
   { find: /^translations$/, replacement: at("./translations/index.ts") },
   { find: /^translations\//, replacement: at("./translations/") },

@@ -15,6 +15,7 @@
       "@ui/*": ["./src/ui/components/*"],
       "@shared/*": ["./shared/*"],
       "theme": ["./src/global/theme.ts"],
+      "fonts": ["./src/global/fonts.ts"],
       "routes": ["./src/global/routes.ts"],
       "translations": ["./translations/index.ts"],
       "translations/*": ["./translations/*"],

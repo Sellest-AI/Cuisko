@@ -96,6 +96,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               <ForkKnifeIcon
                 size={24}
                 color={colors.foreground}
+                strokeWidth={theme.icon.titleStrokeWidth}
               />
               <Text.H4>{t("title")}</Text.H4>
             </View>

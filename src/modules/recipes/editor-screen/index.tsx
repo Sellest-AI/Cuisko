@@ -229,7 +229,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
         keyboardShouldPersistTaps="handled"
       >
         <SafeAreaView edges={{ top: "additive", bottom: "off" }} style={styles.titleRow}>
-          <ForkKnifeIcon size={TITLE_ICON_SIZE} color={colors.foreground} />
+          <ForkKnifeIcon size={TITLE_ICON_SIZE} color={colors.foreground} strokeWidth={theme.icon.titleStrokeWidth} />
           <Text.H4>{t(recipeId ? "Editor.edit_title" : "Editor.new_title")}</Text.H4>
         </SafeAreaView>
         {error !== null && (

@@ -77,7 +77,7 @@ export const AssistantScreen = ({ style, question }: Props) => {
     >
       <View style={styles.header}>
         <View style={styles.title}>
-          <SparklesIcon size={20} />
+          <SparklesIcon size={20} strokeWidth={theme.icon.titleStrokeWidth} />
           <Text.H4 color="currentColor">{t("title")}</Text.H4>
         </View>
       </View>

@@ -5,6 +5,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "@ui/safe-area-view";
 import { AnimationProvider } from "./animation";
+import { FontsProvider } from "./fonts";
 
 import { convexAuthStorage } from "~/lib/convex/storage";
 import { env } from "env";
@@ -24,19 +25,26 @@ const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
  * results across unmounts, so tab switches and back-navigation do not re-fetch and flash a
  * spinner at content the user was just looking at. It must sit inside the auth provider, since
  * cached subscriptions belong to an authenticated client.
+ *
+ * `FontsProvider` is outermost, and that is the point of it: it renders nothing until the type
+ * faces are registered, so no descendant can paint a heading in the system font and reflow. Above
+ * the Convex providers rather than below, because a query subscription opened during the font
+ * gate would be thrown away when the gate lifts.
  */
 export const Providers = ({ children }: { children: React.ReactNode }) => (
-  <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
-    <ConvexQueryCacheProvider>
-      <KeyboardProvider>
-        <AnimationProvider>
-          <SafeAreaProvider>
-            <GestureHandlerRootView>
-              {children}
-            </GestureHandlerRootView>
-          </SafeAreaProvider>
-        </AnimationProvider>
-      </KeyboardProvider>
-    </ConvexQueryCacheProvider>
-  </ConvexAuthProvider>
+  <FontsProvider>
+    <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
+      <ConvexQueryCacheProvider>
+        <KeyboardProvider>
+          <AnimationProvider>
+            <SafeAreaProvider>
+              <GestureHandlerRootView>
+                {children}
+              </GestureHandlerRootView>
+            </SafeAreaProvider>
+          </AnimationProvider>
+        </KeyboardProvider>
+      </ConvexQueryCacheProvider>
+    </ConvexAuthProvider>
+  </FontsProvider>
 );

@@ -64,6 +64,7 @@
     "expo-camera": "~57.0.3",
     "expo-constants": "~57.0.9",
     "expo-dev-client": "~57.0.13",
+    "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
     "expo-image": "~57.0.2",
     "expo-image-picker": "~57.0.11",

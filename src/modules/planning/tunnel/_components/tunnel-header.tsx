@@ -45,7 +45,7 @@ export const TunnelHeader = ({ title, subtitle, mascot = CUISKO.idle, icon, tone
     <View style={styles.container}>
       {Icon ? (
         <View style={styles.titleRow}>
-          <Icon size={ICON_SIZE} color={colors.foreground} style={{ marginTop: 2 }} />
+          <Icon size={ICON_SIZE} color={colors.foreground} style={{ marginTop: 0 }} strokeWidth={theme.icon.titleStrokeWidth} />
           <Text.H4>{title}</Text.H4>
         </View>
       ) : (

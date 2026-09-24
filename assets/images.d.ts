@@ -44,3 +44,15 @@ declare module "*.lottie" {
   const asset: number | string;
   export default asset;
 }
+
+/* A font face, loaded by `useFonts` in `src/providers/fonts.tsx`. `ttf` is already one of Metro's
+ * default asset extensions, so unlike `.lottie` this needs no `metro.config.js` entry.
+ *
+ * Imported statically for the same reason as everything above, and it matters more here: the only
+ * module allowed to reference these files is `providers/fonts.tsx`. The face's name and metrics
+ * live in `src/global/fonts.ts`, which holds no asset, so that `theme.ts` can read them without
+ * dragging a bundler asset into every test's import graph. */
+declare module "*.ttf" {
+  const asset: number | string;
+  export default asset;
+}

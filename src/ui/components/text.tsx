@@ -38,17 +38,28 @@ export const Text = () => {
   throw new Error("Text is a namespace and cannot be used as a component. Use Text.H4, Text.Lg, Text.Base, or Text.Sm instead.");
 }
 
-const H4 = ({ children, color, weight, className, style, ...props }: Props) => {
+/**
+ * The one step on the scale with no `weight` prop, because it is the one set in a display face.
+ *
+ * A loaded face carries its weight in the file, and is registered at normal weight only. Asking it
+ * for any other weight does not fall back gracefully: Android finds no face in that slot and
+ * renders the system font, which reads as "the font failed to load" (`H4_FONT_WEIGHT` in
+ * `src/global/fonts.ts` has the whole path). So `theme.font.h4` sets the weight, and the prop is
+ * absent rather than ignored: a call site asking for one is a type error here instead of a
+ * rendering mystery on a device.
+ */
+type H4Props = Omit<Props, "weight">;
+
+const H4 = ({ children, color, className, style, ...props }: H4Props) => {
   const textBreakProps = style?.textBalance ? {
     textBreakStrategy: "balanced" as const,
     lineBreakStrategyIOS: Platform.OS === "ios" ? "push-out" as const : undefined,
   } : {};
-  const fontWeight = weight ? { fontWeight: weight } : {};
   const overflow = props.numberOfLines ? "hidden" : undefined;
 
   return (
     <NativeText
-      style={{ ...Texts.h4, ...fontWeight, color, ...styles.shared, overflow, ...style }}
+      style={{ ...Texts.h4, color, ...styles.shared, overflow, ...style }}
       {...props}
       {...textBreakProps}
     >

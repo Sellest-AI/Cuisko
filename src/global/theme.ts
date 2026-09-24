@@ -22,6 +22,7 @@
  */
 
 import { Platform } from "react-native";
+import { H4_FONT_FAMILY, H4_FONT_WEIGHT, H4_LETTER_SPACING, H4_LINE_HEIGHT_RATIO } from "fonts";
 
 // ── Tier 1: primitives ───────────────────────────────────────────────────────────────────────
 
@@ -95,12 +96,21 @@ const TONES = {
   },
 } as const;
 
+/**
+ * H4 is the one step on the scale set in a display face rather than the system one, so its
+ * leading, tracking and weight come from that face, in `fonts.ts`. That module holds names and
+ * numbers and no asset, which is what makes it safe to import here.
+ */
+const H4_SIZE = 18;
+
 const Texts = {
   h4: {
-    fontSize: 20,
-    lineHeight: 22,
-    letterSpacing: -0.4,
-    fontWeight: 700,
+    fontFamily: H4_FONT_FAMILY,
+    fontSize: H4_SIZE,
+    // A floor: below this the face is clipped, so it is never the thing to tune.
+    lineHeight: H4_SIZE * H4_LINE_HEIGHT_RATIO,
+    letterSpacing: H4_LETTER_SPACING,
+    fontWeight: H4_FONT_WEIGHT,
   },
   lg: {
     fontSize: 16,
@@ -163,6 +173,14 @@ export const theme = {
   spacing: { 2: 2, 4: 4, 6: 6, 8: 8, 12: 12, 16: 16, 20: 20, 24: 24, 28: 28, 32: 32 },
   radius: { xs: 6, sm: 16, md: 20, lg: 24, full: 999 },
   font: Texts,
+  /**
+   * Icon strokes, kept out of `font`: a text token is spread whole into a `Text` style, so anything
+   * that is not a style key does not belong in one.
+   *
+   * `titleStrokeWidth` is for the icon drawn beside an H4 screen title, heavier than lucide's
+   * default 2 so it holds its own next to the Unbounded Medium heading.
+   */
+  icon: { titleStrokeWidth: 2.3 },
 } as const;
 
 export type Theme = typeof theme;

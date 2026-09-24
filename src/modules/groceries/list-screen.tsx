@@ -62,7 +62,7 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
           edges={{ top: "additive", bottom: "off" }}
         >
           <View style={styles.title}>
-            <Icon size={24} />
+            <Icon size={24} strokeWidth={theme.icon.titleStrokeWidth} />
             <Text.H4>{lead === "cellar" ? t("Sections.cellar") : t("title")}</Text.H4>
           </View>
           <Select value={list} onChange={setList} options={LISTS} />

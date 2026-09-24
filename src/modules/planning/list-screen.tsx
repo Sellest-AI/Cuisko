@@ -76,7 +76,10 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         edges={{ top: "additive", bottom: "off" }}
       >
         <View style={styles.title}>
-          <CalendarIcon size={HEADER_ICON_SIZE} />
+          <CalendarIcon
+            strokeWidth={theme.icon.titleStrokeWidth}
+            size={HEADER_ICON_SIZE}
+          />
           <Text.H4>{t("Screen.title")}</Text.H4>
         </View>
         <Button
