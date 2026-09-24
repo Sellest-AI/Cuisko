@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   computeNutriScore,
+  roundFacts,
   scaleNutrition,
   totalsOf,
   type IngredientFacts,
@@ -191,5 +192,27 @@ describe("scaleNutrition", () => {
 
   test("returns the same object at the servings it was written for", () => {
     expect(scaleNutrition(written, 4, 4)).toBe(written);
+  });
+});
+
+describe("roundFacts", () => {
+  /** Whole, as the recipe screen's nutrition card shows them, so the chat and the card agree. */
+  test("rounds calories, the three macros and sodium whole, the small facts to a tenth", () => {
+    expect(
+      roundFacts({
+        calories: 412.6,
+        protein: 12.345,
+        fat: 3.04,
+        carbohydrates: 49.5,
+        fiber: 0.74,
+        sodium: 88.5,
+        iron: 1.26,
+      }),
+    ).toEqual({ calories: 413, protein: 12, fat: 3, carbohydrates: 50, fiber: 0.7, sodium: 89, iron: 1.3 });
+  });
+
+  /** An unmeasured fact is not a zero, and rounding must not invent one. */
+  test("leaves an absent fact absent", () => {
+    expect(roundFacts({ calories: 1, protein: 1, fat: 1, carbohydrates: 1 })).not.toHaveProperty("fiber");
   });
 });

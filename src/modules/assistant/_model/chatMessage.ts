@@ -14,6 +14,7 @@
 
 import {
   ASSISTANT_TOOLS,
+  type AssistantTool,
   DISPLAY_KINDS,
   type DisplayCard,
   type DisplayKind,
@@ -47,7 +48,7 @@ export type SourceMessage = {
 };
 
 /** The tools that show the cook a status line while they work. `display` does not: its card is its line. */
-export type StepTool = typeof ASSISTANT_TOOLS.searchRecipes;
+export type StepTool = Exclude<AssistantTool, typeof ASSISTANT_TOOLS.display>;
 
 /** One status line: "🔍 searching recipes", then "🥗 3 recipes found". */
 export type ToolStep = {
@@ -124,6 +125,9 @@ const _COUNTS: Record<StepTool, (output: unknown) => number | undefined> = {
     _isObject(output) && Array.isArray(output.recipes)
       ? _distinctIds(output.recipes)
       : _countFound("recipes")(output),
+  searchIngredients: _countFound("ingredients"),
+  // Its line says "calculated"; a count of figures would mean nothing to the cook.
+  computeNutrition: () => undefined,
 };
 
 const _STEP_TOOLS = Object.keys(_COUNTS) as StepTool[];

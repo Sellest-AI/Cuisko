@@ -14,6 +14,24 @@
       "done_many": "{{count, number}} de recettes trouvées",
       "done_other": "{{count, number}} recettes trouvées",
       "failed": "La recherche n'a pas abouti"
+    },
+    "searchIngredients": {
+      "running": "Je cherche des ingrédients…",
+      "found": "Ingrédients trouvés",
+      "none": "Aucun ingrédient trouvé",
+      "done_one": "{{count, number}} ingrédient trouvé",
+      "done_many": "{{count, number}} d'ingrédients trouvés",
+      "done_other": "{{count, number}} ingrédients trouvés",
+      "failed": "La recherche n'a pas abouti"
+    },
+    "computeNutrition": {
+      "running": "Je calcule les valeurs nutritionnelles…",
+      "found": "Valeurs nutritionnelles calculées",
+      "none": "Valeurs nutritionnelles calculées",
+      "done_one": "Valeurs nutritionnelles calculées",
+      "done_many": "Valeurs nutritionnelles calculées",
+      "done_other": "Valeurs nutritionnelles calculées",
+      "failed": "Le calcul n'a pas abouti"
     }
   }
 }

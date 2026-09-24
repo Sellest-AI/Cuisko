@@ -317,6 +317,17 @@ export const toGrams = (quantity: number, unit: RecipeUnit, weights: GramWeights
   return undefined;
 };
 
+/**
+ * Every unit this ingredient can be weighed in: the ones `toGrams` answers for.
+ *
+ * Asked of `toGrams` itself rather than restated from the three weights, so a unit it learns to
+ * convert is offered here the same day. The assistant is handed this list beside each ingredient,
+ * and told it again when a line is refused — "an egg in ml" is a question with no answer, and the
+ * model needs the units that have one.
+ */
+export const weighableUnits = (weights: GramWeights): RecipeUnit[] =>
+  RECIPE_UNITS.filter((unit) => toGrams(1, unit, weights) !== undefined);
+
 /** The unit an ingredient's stock is counted in, for each kind of unit it may be bought in. */
 const STOCK_UNITS = { mass: "g", volume: "ml", piece: "pcs" } as const;
 

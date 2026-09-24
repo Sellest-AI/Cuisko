@@ -11,6 +11,7 @@ import {
   serializeIngredients,
   stockUnitOf,
   toGrams,
+  weighableUnits,
   toStockUnit,
   UNITS,
   unitScale,
@@ -385,5 +386,24 @@ describe("convertQuantity", () => {
   test("returns the same value on the identity", () => {
     expect(convertQuantity(347, "g", "g")).toBe(347);
     expect(convertQuantity(1.5, "l", "l")).toBe(1.5);
+  });
+});
+
+describe("weighableUnits", () => {
+  test("offers only the mass units to an ingredient that knows no weight of its own", () => {
+    expect(weighableUnits({})).toEqual(["kg", "g", "mg", "oz", "lb"]);
+  });
+
+  test("adds pieces, volumes and slices as each weight is known", () => {
+    expect(weighableUnits({ gramsPerPiece: 60 })).toContain("pcs");
+    expect(weighableUnits({ gramsPerMl: 0.91 })).toEqual(
+      expect.arrayContaining(["ml", "cl", "l", "tbsp", "tsp"]),
+    );
+    expect(weighableUnits({ gramsPerSlice: 35 })).toContain("slice");
+  });
+
+  /** "An egg in ml" is the question with no answer; the list must not offer it. */
+  test("never offers a volume to an ingredient with no density", () => {
+    expect(weighableUnits({ gramsPerPiece: 60 })).not.toContain("ml");
   });
 });

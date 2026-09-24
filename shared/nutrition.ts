@@ -342,3 +342,31 @@ export const scaleNutrition = (
     total: scaleFacts(nutrition.total, factor),
   };
 };
+
+const _toTenth = (value: number) => Math.round(value * 10) / 10;
+
+/**
+ * Facts rounded the way a person reads them.
+ *
+ * For the assistant, whose rule is that it never does arithmetic on a nutrition figure (see
+ * `convex/agent/tools/computeNutrition.ts`). Rounding is arithmetic too, and a model handed
+ * `412.83749` will round it, or not, differently from one turn to the next. Handing it `413` leaves
+ * it nothing to do but copy.
+ *
+ * **Calories and the three macros are whole, because the recipe screen's nutrition card shows them
+ * whole** (`nutrition-card.tsx`). Cuisko saying "12.3 g of protein" above a card reading "12 g" is
+ * two answers to one question. The facts the card does not show keep a tenth, since they are
+ * often under one: an egg's fiber rounded whole is a zero that was never measured as one. Sodium is
+ * in milligrams and needs no decimal.
+ */
+export const roundFacts = (facts: IngredientFacts): IngredientFacts => ({
+  calories: Math.round(facts.calories),
+  protein: Math.round(facts.protein),
+  fat: Math.round(facts.fat),
+  carbohydrates: Math.round(facts.carbohydrates),
+  ...(facts.saturatedFat !== undefined && { saturatedFat: _toTenth(facts.saturatedFat) }),
+  ...(facts.sugars !== undefined && { sugars: _toTenth(facts.sugars) }),
+  ...(facts.fiber !== undefined && { fiber: _toTenth(facts.fiber) }),
+  ...(facts.sodium !== undefined && { sodium: Math.round(facts.sodium) }),
+  ...(facts.iron !== undefined && { iron: _toTenth(facts.iron) }),
+});

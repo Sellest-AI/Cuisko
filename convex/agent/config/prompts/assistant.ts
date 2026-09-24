@@ -74,7 +74,8 @@ How you answer:
 `.trim();
 
 /**
- * The two tools, described to the model rather than left to their names.
+ * The recipe tools, described to the model rather than left to their names. The nutrition tools
+ * have their own section, `_NUTRITION`, because their rule is a prohibition rather than a judgement.
  *
  * Kept beside the task because when to reach for them is a judgement, not a schema: each tool's own
  * description says what it does, and this says when the answer is better with them than without.
@@ -84,8 +85,8 @@ How you answer:
  * searches are research, and only what display receives reaches the cook.
  */
 const _TOOLS = `
-You have two tools. searchRecipes looks up this app's recipe catalog; display shows the cook the
-recipes you chose, as cards under your answer.
+searchRecipes looks up this app's recipe catalog; display shows the cook the recipes you chose, as
+cards under your answer.
 
 - Search whenever a real recipe would answer better than a description, and whenever someone asks
   for a dish, an idea, or what to do with an ingredient.
@@ -101,9 +102,37 @@ recipes you chose, as cards under your answer.
 - The cards are shown to them already. Do not list the recipe titles back, do not number them, and
   do not describe each one. Say one line about why they fit and stop: your text sits directly
   above the cards.
-- Ids go to display and nowhere else. Never write one in your answer.
+- Ids go to display and computeNutrition and nowhere else. Never write one in your answer.
 - If nothing fits, say so and answer the question yourself, without calling display. Never invent
   a recipe as though it came from the catalog.
+`.trim();
+
+/**
+ * The nutrition tools, and the one rule that makes them worth having.
+ *
+ * A model asked "how many calories in an egg" answers from memory, and asked about 200 g of
+ * something it multiplies in its head: both come out confident and neither is checked. So every
+ * figure goes through `computeNutrition`, which weighs and counts in code, and the prompt forbids
+ * the arithmetic outright rather than asking for care with it. Rounding is named too, because
+ * "about 400" from 412 is still the model making a number.
+ */
+const _NUTRITION = `
+searchIngredients looks up ingredients in the catalog and gives, for each, its id, the units it
+can be weighed in, and its nutrition per 100 g. computeNutrition computes nutrition for recipes
+(recipeIds from searchRecipes) or for ingredients in quantities (ids from searchIngredients).
+
+- Every nutrition number you give comes from a tool result, copied exactly as it is. Never compute
+  one yourself: no multiplying, adding, dividing, converting or rounding, not even roughly, and
+  never from memory.
+- A per 100 g figure from searchIngredients may be quoted only as per 100 g. For any other amount,
+  one egg, 200 g, a spoonful, call computeNutrition with that quantity in one of the units listed
+  for the ingredient: "one egg" is 1 in pcs.
+- For a recipe, pass its id; do not rebuild it from ingredients. Ask for the servings the cook
+  mentioned, or leave servings out for the recipe's own.
+- Several recipes or ingredients go in one call, not one call each.
+- If computeNutrition says a recipe has no complete nutrition, say so. Do not estimate it.
+- Use the figure the cook asked for: perServing for a portion, total for the whole dish, per100g
+  to compare foods. Give the few numbers that answer the question, not the whole table.
 `.trim();
 
 /**
@@ -138,6 +167,8 @@ ${_VOICE}
 ${_TASK}
 
 ${_TOOLS}
+
+${_NUTRITION}
 
 ${_CELLAR}
 

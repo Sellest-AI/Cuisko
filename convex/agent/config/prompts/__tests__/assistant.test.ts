@@ -3,7 +3,9 @@ import { SUPPORTED_LOCALES } from "@shared/translations";
 import { describe, expect, test } from "vitest";
 import z from "zod/v4";
 
+import { computeNutritionTool } from "../../../tools/computeNutrition";
 import { displayTool } from "../../../tools/display";
+import { searchIngredientsTool } from "../../../tools/searchIngredients";
 import { searchRecipesTool } from "../../../tools/searchRecipes";
 import { assistantPrompt } from "../assistant";
 
@@ -16,6 +18,8 @@ import { assistantPrompt } from "../assistant";
 const _everythingTheModelReads = (): string[] => {
   const tools = [
     searchRecipesTool({ userId: "user" as Id<"users">, locale: "fr" }),
+    searchIngredientsTool({ locale: "fr" }),
+    computeNutritionTool({ locale: "fr" }),
     displayTool,
   ];
 

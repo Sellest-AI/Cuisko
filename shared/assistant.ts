@@ -40,6 +40,8 @@ export const isConversationStale = (lastActivityAt: number, now: number): boolea
  */
 export const ASSISTANT_TOOLS = {
   searchRecipes: "searchRecipes",
+  searchIngredients: "searchIngredients",
+  computeNutrition: "computeNutrition",
   display: "display",
 } as const;
 

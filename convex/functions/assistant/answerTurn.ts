@@ -6,7 +6,9 @@ import { stepCountIs } from "ai";
 
 import { assistantAgent } from "../../agent/agents";
 import { assistantPrompt } from "../../agent/config/prompts/assistant";
+import { computeNutritionTool } from "../../agent/tools/computeNutrition";
 import { displayTool, hasDisplayed } from "../../agent/tools/display";
+import { searchIngredientsTool } from "../../agent/tools/searchIngredients";
 import { searchRecipesTool } from "../../agent/tools/searchRecipes";
 import { appendBrief } from "./appendBrief";
 
@@ -60,6 +62,8 @@ export const answerTurn = async (
        */
       tools: {
         [ASSISTANT_TOOLS.searchRecipes]: searchRecipesTool({ userId, locale }),
+        [ASSISTANT_TOOLS.searchIngredients]: searchIngredientsTool({ locale }),
+        [ASSISTANT_TOOLS.computeNutrition]: computeNutritionTool({ locale }),
         [ASSISTANT_TOOLS.display]: displayTool,
       },
       /**

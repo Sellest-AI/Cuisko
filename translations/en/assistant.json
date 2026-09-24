@@ -13,6 +13,22 @@
       "done_one": "{{count, number}} recipe found",
       "done_other": "{{count, number}} recipes found",
       "failed": "The search did not go through"
+    },
+    "searchIngredients": {
+      "running": "Looking up ingredients…",
+      "found": "Ingredients found",
+      "none": "No ingredient found",
+      "done_one": "{{count, number}} ingredient found",
+      "done_other": "{{count, number}} ingredients found",
+      "failed": "The lookup did not go through"
+    },
+    "computeNutrition": {
+      "running": "Working out the nutrition…",
+      "found": "Nutrition worked out",
+      "none": "Nutrition worked out",
+      "done_one": "Nutrition worked out",
+      "done_other": "Nutrition worked out",
+      "failed": "The calculation did not go through"
     }
   }
 }

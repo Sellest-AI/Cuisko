@@ -24,6 +24,20 @@ const EMOJI: Record<StepTool, Record<StepLine, string>> = {
     none: "🔍",
     failed: "⚠️",
   },
+  searchIngredients: {
+    running: "🔍",
+    done: "🥕",
+    found: "🥕",
+    none: "🔍",
+    failed: "⚠️",
+  },
+  computeNutrition: {
+    running: "🧮",
+    done: "📊",
+    found: "📊",
+    none: "📊",
+    failed: "⚠️",
+  },
 };
 
 const _lineOf = (step: Step): StepLine => {

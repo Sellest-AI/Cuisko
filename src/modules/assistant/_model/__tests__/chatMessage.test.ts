@@ -178,6 +178,33 @@ describe("the status lines", () => {
     expect(drawn[0]?.steps[0]).toMatchObject({ status: "done", count: 2 });
   });
 
+  test("an ingredient search counts the ingredients it found", () => {
+    const part = {
+      type: "tool-searchIngredients",
+      toolCallId: "call-i",
+      state: "output-available",
+      output: [{ query: "oeuf", ingredients: [{ id: "i1" }] }, { query: "licorne", ingredients: [] }],
+    };
+
+    expect(toChatMessages([message({ parts: [part] })])[0]?.steps[0]).toEqual({
+      key: "call-i",
+      tool: "searchIngredients",
+      status: "done",
+      count: 1,
+    });
+  });
+
+  /** The calculator's line says "calculated": there is nothing for it to count. */
+  test("a finished calculation is done without a count", () => {
+    const part = { type: "tool-computeNutrition", toolCallId: "call-n", state: "output-available", output: {} };
+
+    expect(toChatMessages([message({ parts: [part] })])[0]?.steps[0]).toEqual({
+      key: "call-n",
+      tool: "computeNutrition",
+      status: "done",
+    });
+  });
+
   /** A shape this build does not expect costs the line its number, never the render. */
   test("a returned search with an unexpected shape is done without a count", () => {
     const drawn = toChatMessages([message({ parts: [search("output-available", { recipes: "nope" })] })]);
