@@ -131,10 +131,54 @@ export const difficultyKey = (level: DifficultyLevel): Difficulty => DIFFICULTIE
  * one group with no title, not a group titled "". The two would serialize identically, so allowing
  * both would put a second representation of one recipe into the database.
  */
-export type InstructionGroup = { title?: string; steps: string[] };
+export type InstructionGroup = { title?: string; steps: InstructionStep[] };
+
+/**
+ * One step, and the tips a cook keeps beside it — "you can use a spoon to go faster".
+ *
+ * `hints` is always present, possibly empty, rather than optional: an absent list and an empty one
+ * would serialize identically, the same reason `title` refuses to be both absent and "". The cooking
+ * session draws each hint as a banner under its step; the instructions tab does not draw them.
+ */
+export type InstructionStep = { instruction: string; hints: string[] };
+
+/**
+ * Groups as a model answers them: a title may be `null`, and a hint list — or a hint in it — may be
+ * absent, because "no hints" is the answer a model gives most and it spells it every way it can.
+ * Structural rather than `z.infer` of the agent's schema, so this file needs nothing from `convex/`.
+ */
+export type LooseInstructionGroup = {
+  title?: string | null;
+  steps: { instruction: string; hints?: readonly (string | null | undefined)[] | null }[];
+};
+
+/**
+ * Loose groups as the `InstructionGroup`s the app reads: no `null` title, and every step's `hints` a
+ * list, possibly empty.
+ *
+ * Here beside `InstructionGroup` because it is the one statement of what that type's "absent" looks
+ * like; every path a model's groups reach the app through — sanitizing, translating, an edit compared
+ * against the row it revises — calls this rather than restating it.
+ */
+export const toInstructionGroups = (groups: readonly LooseInstructionGroup[]): InstructionGroup[] =>
+  groups.map((group) => ({
+    ...(group.title != null && { title: group.title }),
+    steps: group.steps.map((step) => ({
+      instruction: step.instruction,
+      hints: (step.hints ?? []).filter((hint): hint is string => typeof hint === "string"),
+    })),
+  }));
 
 /** What marks a line as a step rather than a heading. Written once; both directions read it. */
 const STEP_PREFIX = "- ";
+
+/**
+ * What marks a line as a hint on the step above it.
+ *
+ * The space after it is optional on the way in — a cook types `>tip` as readily as `> tip` — and
+ * always written on the way out, so our own text reads the way the placeholder shows it.
+ */
+const HINT_MARKER = ">";
 
 /**
  * What marks a line as a heading, on the way OUT only.
@@ -188,6 +232,9 @@ const _normalizeTitle = (title: string) => {
   // Likewise for the heading marker: a title already carrying one must not gain a second on the
   // way out, or each round trip would add another.
   while (normalized.startsWith(TITLE_PREFIX)) normalized = normalized.slice(TITLE_PREFIX.length);
+  // And for the hint marker: `parseInstructions` reads `## > …` as a hint, so a title written that
+  // way would come back as one and leave its steps without a heading.
+  while (normalized.startsWith(HINT_MARKER)) normalized = _normalize(normalized.slice(HINT_MARKER.length));
 
   return normalized;
 };
@@ -196,21 +243,36 @@ const _normalizeTitle = (title: string) => {
  * Groups to the text stored in the document.
  *
  * Empty groups are dropped — a heading with no steps under it survives a round trip as nothing at
- * all, so keeping it here would break the contract on the very first pass.
+ * all, so keeping it here would break the contract on the very first pass. An untitled group that
+ * is not the first joins the group above it, for the same reason: see `parseInstructions`.
  */
 export const serializeInstructions = (groups: InstructionGroup[]): string =>
   groups
     .map((group) => {
-      const steps = group.steps.map(_normalize).filter(Boolean);
-      if (steps.length === 0) return "";
+      const steps = group.steps
+        .map((step) => ({
+          instruction: _normalize(step.instruction),
+          hints: step.hints.map(_normalize).filter(Boolean),
+        }))
+        .filter((step) => step.instruction);
+      if (steps.length === 0) return undefined;
 
       const title = group.title === undefined ? "" : _normalizeTitle(group.title);
-      const lines = steps.map((step) => `${STEP_PREFIX}${step}`);
+      const lines = steps.flatMap((step) => [
+        `${STEP_PREFIX}${step.instruction}`,
+        ...step.hints.map((hint) => `${HINT_MARKER} ${hint}`),
+      ]);
 
-      return title ? [`${TITLE_PREFIX}${title}`, ...lines].join("\n") : lines.join("\n");
+      return { titled: Boolean(title), text: title ? [`${TITLE_PREFIX}${title}`, ...lines].join("\n") : lines.join("\n") };
     })
-    .filter(Boolean)
-    .join("\n\n");
+    .filter((block) => block !== undefined)
+    // An untitled group after another is written as more steps of that one, blank line and all
+    // gone: only a heading opens a group, so `parseInstructions` reads it back that way, and the
+    // blank line would make the text change on every pass.
+    .reduce(
+      (text, block, index) => (index === 0 ? block.text : `${text}${block.titled ? "\n\n" : "\n"}${block.text}`),
+      "",
+    );
 
 /**
  * The text back into groups.
@@ -221,54 +283,83 @@ export const serializeInstructions = (groups: InstructionGroup[]): string =>
  * stay part of the step text, since guessing at them is how a step reading "1. Preheat" loses its
  * numbering.
  *
- * A blank line closes the current group, so two groups can share a heading-less shape without
- * merging. Steps appearing before any heading form one leading group with no `title`.
+ * **Only a heading opens a group.** A blank line opens nothing and closes nothing: a group without
+ * a title is invisible as a group — the tab draws it as more steps with the rule between them
+ * missing — so a stray line return must not be able to create one. Steps appearing before any
+ * heading form the one leading group with no `title`; every other step belongs to the heading above.
+ *
+ * A `>` line is a hint on the step above it. A hint with no step above it — the first line, or
+ * right under a heading — is dropped: it only means something under a step. The one exception is a
+ * heading this function merely guessed at by length: a heading never carries a hint, so one
+ * following it proves the guess wrong, and the line becomes the step it was.
+ *
+ * `## > …` is read as a hint too. It is what a version of this function that did not know `>` wrote
+ * for a cook's hint — a short line, so a heading — and `_normalizeTitle` guarantees our own output
+ * never spells a real heading that way.
  */
 export const parseInstructions = (text: string): InstructionGroup[] => {
   const groups: InstructionGroup[] = [];
   let current: InstructionGroup | undefined;
+  /** The step a `>` line attaches to. A heading clears it. */
+  let lastStep: InstructionStep | undefined;
+  /** The heading read by length alone, while it still has no steps — the only kind a hint can overturn. */
+  let guessedHeading: InstructionGroup | undefined;
+
+  const pushStep = (instruction: string) => {
+    if (!current) {
+      current = { steps: [] };
+      groups.push(current);
+    }
+
+    lastStep = { instruction, hints: [] };
+    current.steps.push(lastStep);
+    guessedHeading = undefined;
+  };
 
   for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
+    let line = rawLine.trim();
 
-    if (!line) {
-      current = undefined;
-      continue;
-    }
+    const marked = line.startsWith(TITLE_PREFIX) ? line.slice(TITLE_PREFIX.length).trim() : undefined;
+    if (marked?.startsWith(HINT_MARKER)) line = marked;
+
+    if (!line) continue;
 
     // A marked heading is a heading whatever its length — this is the branch that makes our own
     // output round-trip, and it has to be tried before the length test below can misread it.
     if (line.startsWith(TITLE_PREFIX)) {
       current = { title: _normalizeTitle(line), steps: [] };
       groups.push(current);
+      lastStep = undefined;
+      guessedHeading = undefined;
+      continue;
+    }
+
+    if (line.startsWith(HINT_MARKER)) {
+      const hint = _normalize(line.slice(HINT_MARKER.length));
+      if (!hint) continue;
+
+      // The misread heading opened no group, so it goes, and its line joins the group above it as
+      // the step it always was.
+      if (guessedHeading) {
+        const misread = guessedHeading;
+        groups.pop();
+        current = groups[groups.length - 1];
+        pushStep(misread.title!);
+      }
+
+      lastStep?.hints.push(hint);
       continue;
     }
 
     if (line.startsWith(STEP_PREFIX)) {
       const step = _normalize(line.slice(STEP_PREFIX.length));
-      if (!step) continue;
-
-      if (!current) {
-        current = { steps: [] };
-        groups.push(current);
-      }
-
-      current.steps.push(step);
+      if (step) pushStep(step);
       continue;
     }
 
     // Long unprefixed lines are treated as steps.
     if (line.length >= LONG_STEP_THRESHOLD) {
-      const step = _normalize(line);
-
-      if (!step) continue;
-
-      if (!current) {
-        current = { steps: [] };
-        groups.push(current);
-      }
-
-      current.steps.push(step);
+      pushStep(_normalize(line));
       continue;
     }
 
@@ -278,6 +369,8 @@ export const parseInstructions = (text: string): InstructionGroup[] => {
       steps: [],
     };
     groups.push(current);
+    lastStep = undefined;
+    guessedHeading = current;
   }
 
   /**
@@ -292,9 +385,18 @@ export const parseInstructions = (text: string): InstructionGroup[] => {
    * docblock argues for. Our own output never reaches here in that shape — `serializeInstructions`
    * has already dropped empty groups — so this only ever rescues text a cook typed.
    *
-   * An untitled group with no steps really is nothing, and goes.
+   * Kept in the group above it, like every other step, rather than as a group of its own: an
+   * untitled group anywhere but first is the invisible section the rule above exists to prevent.
+   * Only a misread line with nothing above it starts the leading untitled group.
    */
-  return groups.flatMap((group) =>
-    group.steps.length > 0 ? [group] : group.title ? [{ steps: [group.title] }] : [],
-  );
+  return groups.reduce<InstructionGroup[]>((kept, group) => {
+    if (group.steps.length > 0) return [...kept, group];
+
+    const step = { instruction: group.title!, hints: [] };
+    const previous = kept[kept.length - 1];
+    if (!previous) return [{ steps: [step] }];
+
+    previous.steps.push(step);
+    return kept;
+  }, []);
 };

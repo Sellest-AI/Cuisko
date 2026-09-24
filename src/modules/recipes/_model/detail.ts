@@ -101,6 +101,8 @@ export type FlatStep = {
   /** The heading the step sits under, absent for an ungrouped run. */
   title?: string;
   instruction: string;
+  /** The tips the cooking session draws under the step. The instructions tab leaves them out. */
+  hints: string[];
   /** 1-based, because it is what a cook reads aloud. Never restarts at a group boundary. */
   position: number;
 };
@@ -116,9 +118,10 @@ export type FlatStep = {
 export const flattenSteps = (groups: InstructionGroup[]): FlatStep[] =>
   groups
     .flatMap((group) =>
-      group.steps.map((instruction) => ({
+      group.steps.map(({ instruction, hints }) => ({
         ...(group.title !== undefined && { title: group.title }),
         instruction,
+        hints,
       })),
     )
     .map((step, index) => ({ ...step, position: index + 1 }));

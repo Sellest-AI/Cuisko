@@ -89,8 +89,14 @@ const recipe = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe =>
   equipments: [],
   timings: { preparation: 15, cooking: 45 },
   instructions: [
-    { title: "Base", steps: ["Émincer les oignons.", "Les faire suer 10 minutes."] },
-    { steps: ["Servir bien chaud."] },
+    {
+      title: "Base",
+      steps: [
+        { instruction: "Émincer les oignons.", hints: [] },
+        { instruction: "Les faire suer 10 minutes.", hints: ["À feu doux, sans les colorer."] },
+      ],
+    },
+    { steps: [{ instruction: "Servir bien chaud.", hints: [] }] },
   ],
   ingredients,
 });
@@ -134,6 +140,8 @@ describe("functions/recipes/saveRecipe", () => {
     // The groups reach the column as one string — a `vLocalized` holds text, not structure.
     expect(row!.instructions.values.fr).toContain("Base");
     expect(row!.instructions.values.fr).toContain("Émincer les oignons.");
+    // The hint is written under its own step, where the parser will look for it on the way back.
+    expect(row!.instructions.values.fr).toContain("- Les faire suer 10 minutes.\n> À feu doux, sans les colorer.");
     expect(row!.title.values.en).toBeUndefined();
   });
 

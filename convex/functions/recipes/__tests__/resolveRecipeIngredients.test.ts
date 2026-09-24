@@ -45,7 +45,7 @@ const recipeOf = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe 
   tags: ["soup"],
   equipments: [],
   timings: { preparation: 15 },
-  instructions: [{ steps: ["Émincer les oignons."] }],
+  instructions: [{ steps: [{ instruction: "Émincer les oignons.", hints: [] }] }],
   ingredients,
 });
 

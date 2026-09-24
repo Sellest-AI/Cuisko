@@ -21,8 +21,14 @@ const fr = (value: string): Localized => ({
 });
 
 const INSTRUCTIONS = serializeInstructions([
-  { title: "Base", steps: ["Émincer les oignons.", "Les faire suer."] },
-  { steps: ["Servir."] },
+  {
+    title: "Base",
+    steps: [
+      { instruction: "Émincer les oignons.", hints: ["Une mandoline va plus vite."] },
+      { instruction: "Les faire suer.", hints: [] },
+    ],
+  },
+  { title: "Service", steps: [{ instruction: "Servir.", hints: [] }] },
 ]);
 
 /** A full French → English translation, every locale's `sourceHash` matching the French it came from. */
@@ -126,14 +132,21 @@ describe("functions/recipes/loadForTranslation", () => {
     expect(source.recipe.description).toBe("Une soupe d'hiver.");
   });
 
-  test("hands the instructions back as groups, not as the stored blob", async () => {
+  /** The hint rides along, so the translator has it to translate — the other language shows it too. */
+  test("hands the instructions back as groups, hints on their step, not as the stored blob", async () => {
     const { recipeId } = await seed();
 
     const source = await load(recipeId);
 
     expect(source.recipe.instructions).toEqual([
-      { title: "Base", steps: ["Émincer les oignons.", "Les faire suer."] },
-      { steps: ["Servir."] },
+      {
+        title: "Base",
+        steps: [
+          { instruction: "Émincer les oignons.", hints: ["Une mandoline va plus vite."] },
+          { instruction: "Les faire suer.", hints: [] },
+        ],
+      },
+      { title: "Service", steps: [{ instruction: "Servir.", hints: [] }] },
     ]);
   });
 

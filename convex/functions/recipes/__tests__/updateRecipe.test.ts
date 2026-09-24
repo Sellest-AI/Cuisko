@@ -121,7 +121,7 @@ const recipe = (ingredients: SanitizedRecipe["ingredients"], servings: number): 
   tags: ["soup", "comfort-food"],
   equipments: [],
   timings: { preparation: 20 },
-  instructions: [{ steps: ["Émincer les oignons.", "Les faire suer 15 minutes."] }],
+  instructions: [{ steps: [{ instruction: "Émincer les oignons.", hints: [] }, { instruction: "Les faire suer 15 minutes.", hints: [] }] }],
   ingredients,
 });
 

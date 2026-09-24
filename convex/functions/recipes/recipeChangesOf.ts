@@ -8,6 +8,7 @@ import {
   MAX_TIMING_MINUTES,
   parseInstructions,
   serializeInstructions,
+  toInstructionGroups,
   type Timings,
   wholeTimingsOf,
 } from "@shared/recipes";
@@ -130,15 +131,14 @@ export type RecipeChanges = {
 };
 
 /**
- * `null` is a legal group title in `ModelRecipe` — it is `modelRecipeSchema`'s own vocabulary for
- * "no heading", because that is what the AGENT may return. `outdated.instructions` in practice
- * never carries one: it comes straight from `RecipeDetail`, whose groups spell that the same way
- * `serializeInstructions` expects — `undefined`. Normalized here rather than widening
- * `InstructionGroup` to accept `null`, which would make every OTHER caller of `serializeInstructions`
- * carry a case that can only happen on this one path.
+ * `null` is a legal group title in `ModelRecipe`, and an absent hint list a legal step — both are
+ * `modelRecipeSchema`'s own vocabulary, because that is what the AGENT may return.
+ * `outdated.instructions` in practice carries neither: it comes straight from `RecipeDetail`, whose
+ * groups are already `InstructionGroup`s. Normalized through `toInstructionGroups` rather than widening
+ * `InstructionGroup`, which would make every OTHER caller of `serializeInstructions` carry a case
+ * that can only happen on this one path.
  */
-const _instructionsOf = (outdated: ModelRecipe) =>
-  outdated.instructions.map((group) => ({ ...group, title: group.title ?? undefined }));
+const _instructionsOf = (outdated: ModelRecipe) => toInstructionGroups(outdated.instructions);
 
 /**
  * What the cook's edit actually touched, against the row it is revising.

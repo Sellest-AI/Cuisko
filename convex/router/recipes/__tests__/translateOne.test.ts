@@ -117,8 +117,10 @@ describe("router/recipes/translateOne", () => {
   });
 
   /** The heading survives the parse because `serializeInstructions` marked it — see shared/recipes. */
-  test("hands the model the instructions as groups, not as the stored string", async () => {
-    const recipeId = await seed(one("fr", "Soupe à l'oignon"));
+  test("hands the model the instructions as groups, hints on their step, not as the stored string", async () => {
+    const recipeId = await seed(one("fr", "Soupe à l'oignon"), {
+      instructions: one("fr", "## Base\n- Émincer les oignons.\n> Une mandoline va plus vite.\n- Servir."),
+    });
 
     const source = await t.query(internal.router.recipes.translateOne._internal_load, {
       recipeId,
@@ -126,7 +128,13 @@ describe("router/recipes/translateOne", () => {
     });
 
     expect(source.recipe.instructions).toEqual([
-      { title: "Base", steps: ["Émincer les oignons."] },
+      {
+        title: "Base",
+        steps: [
+          { instruction: "Émincer les oignons.", hints: ["Une mandoline va plus vite."] },
+          { instruction: "Servir.", hints: [] },
+        ],
+      },
     ]);
   });
 
@@ -142,7 +150,9 @@ describe("router/recipes/translateOne", () => {
           recipe: {
             title: "Onion soup",
             description: "A winter soup.",
-            instructions: [{ title: "Base", steps: ["Slice the onions."] }],
+            instructions: [
+              { title: "Base", steps: [{ instruction: "Slice the onions.", hints: ["A mandoline is faster."] }] },
+            ],
           },
         },
       ],
@@ -151,6 +161,7 @@ describe("router/recipes/translateOne", () => {
     const row = await read(recipeId);
 
     expect(row!.title.values.en).toBe("Onion soup");
+    expect(row!.instructions.values.en).toBe("## Base\n- Slice the onions.\n> A mandoline is faster.");
     // The source's hash, not the translation's — what makes the English stale if the French moves.
     expect(row!.title.meta.en!.sourceHash).toBe(hashText("Soupe à l'oignon"));
   });

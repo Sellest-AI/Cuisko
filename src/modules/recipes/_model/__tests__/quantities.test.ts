@@ -233,14 +233,26 @@ describe("ingredientsIn", () => {
 
 describe("scaleInstructions", () => {
   const GROUPS = [
-    { title: "Sauce", steps: ["Concassez 4 tomates", "Laissez mijoter 20 minutes"] },
-    { steps: ["Ajoutez 200 g de farine"] },
+    {
+      title: "Sauce",
+      steps: [
+        { instruction: "Concassez 4 tomates", hints: [] },
+        { instruction: "Laissez mijoter 20 minutes", hints: ["Remuez de temps en temps"] },
+      ],
+    },
+    { steps: [{ instruction: "Ajoutez 200 g de farine", hints: ["Gardez 20 g de farine pour fariner le plan"] }] },
   ];
 
   test("rewrites every step and keeps the groups and their headings", () => {
     expect(scaleInstructions(GROUPS, LINES, 4, 2)).toEqual([
-      { title: "Sauce", steps: ["Concassez 2 tomates", "Laissez mijoter 20 minutes"] },
-      { steps: ["Ajoutez 100 g de farine"] },
+      {
+        title: "Sauce",
+        steps: [
+          { instruction: "Concassez 2 tomates", hints: [] },
+          { instruction: "Laissez mijoter 20 minutes", hints: ["Remuez de temps en temps"] },
+        ],
+      },
+      { steps: [{ instruction: "Ajoutez 100 g de farine", hints: ["Gardez 10 g de farine pour fariner le plan"] }] },
     ]);
   });
 

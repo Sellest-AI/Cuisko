@@ -26,7 +26,10 @@ import { AUTHORED_TAGS } from "@shared/tags";
  * stores; this is what crosses a function boundary on the way there and back.
  */
 export const vInstructionGroups = v.array(
-  v.object({ title: v.optional(v.string()), steps: v.array(v.string()) }),
+  v.object({
+    title: v.optional(v.string()),
+    steps: v.array(v.object({ instruction: v.string(), hints: v.array(v.string()) })),
+  }),
 );
 
 /**

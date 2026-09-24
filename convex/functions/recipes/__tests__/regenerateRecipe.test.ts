@@ -34,7 +34,14 @@ const ctx = {} as Parameters<typeof regenerateRecipe>[0];
 
 const onionId = "onion" as Id<"ingredients">;
 
-const STORED_INSTRUCTIONS = [{ title: "Base", steps: ["Émincer les oignons."] }];
+/**
+ * With a hint, so every "nothing changed" assertion below also proves a stored hint survives the
+ * round trip through the editor's text — a hint that re-serialized differently would read as an
+ * edit, and retranslate the recipe on every save.
+ */
+const STORED_INSTRUCTIONS = [
+  { title: "Base", steps: [{ instruction: "Émincer les oignons.", hints: ["Une mandoline va plus vite."] }] },
+];
 
 /**
  * The row being revised, as `getOne._internal` returns it.
@@ -91,7 +98,7 @@ const ANALYZED = {
   tags: ["soup" as const],
   equipments: [],
   timings: { preparation: 20 },
-  instructions: [{ steps: ["Émincer les oignons.", "Ajouter le thym."] }],
+  instructions: [{ steps: [{ instruction: "Émincer les oignons.", hints: [] }, { instruction: "Ajouter le thym.", hints: [] }] }],
   ingredients: [
     { name: "Oignons", quantity: 2, unit: "pcs" as const },
     { name: "thym", quantity: 5, unit: "g" as const },
@@ -126,6 +133,28 @@ describe("functions/recipes/regenerateRecipe", () => {
     // `updateRecipe` to store as `"edited"` rather than as `"machine"`.
     expect(recipe.title).toBe("Nouveau titre");
     expect(recipe.difficulty).toBe(stored.difficulty);
+  });
+
+  /** A hint is the cook's aside, not something derived from the ingredients: no agent, their words kept. */
+  test("does not call the agent when only a hint changed, and keeps the cook's hint", async () => {
+    const instructions = "## Base\n- Émincer les oignons.\n> Une mandoline va plus vite.\n> Gardez les doigts loin de la lame.";
+
+    const { analyzed, recipe, requiresTranslation } = await regenerate({ instructions });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+    expect(analyzed).toBe(false);
+    expect(requiresTranslation).toBe(true);
+    expect(recipe.instructions).toEqual([
+      {
+        title: "Base",
+        steps: [
+          {
+            instruction: "Émincer les oignons.",
+            hints: ["Une mandoline va plus vite.", "Gardez les doigts loin de la lame."],
+          },
+        ],
+      },
+    ]);
   });
 
   test("calls the agent when the ingredients changed", async () => {

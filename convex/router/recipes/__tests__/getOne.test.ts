@@ -41,7 +41,10 @@ const seedRecipe = (userId?: Id<"users">) =>
       title: { values: { en: "Onion soup", fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { en: "A winter soup.", fr: "Une soupe d'hiver." }, meta: {} },
       instructions: {
-        values: { en: "Base\n- Slice the onions.\n- Sweat them.", fr: "Base\n- Émincer." },
+        values: {
+          en: "Base\n- Slice the onions.\n> A mandoline is faster.\n> Keep your fingers clear.\n- Sweat them.",
+          fr: "Base\n- Émincer.",
+        },
         meta: {},
       },
       servings: 4,
@@ -242,7 +245,13 @@ describe("router/recipes/getOne", () => {
       .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
 
     expect(recipe.instructions).toEqual([
-      { title: "Base", steps: ["Slice the onions.", "Sweat them."] },
+      {
+        title: "Base",
+        steps: [
+          { instruction: "Slice the onions.", hints: ["A mandoline is faster.", "Keep your fingers clear."] },
+          { instruction: "Sweat them.", hints: [] },
+        ],
+      },
     ]);
   });
 

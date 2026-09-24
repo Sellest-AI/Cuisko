@@ -1,6 +1,7 @@
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 
-import { SparklesIcon } from "@ui/icons";
+import { Lightbulb } from "@ui/icons";
+import { InfoBanner } from "@ui/info-banner";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -32,15 +33,15 @@ type Props = {
   lines: RecipeLine[];
   /** What this step alone calls for, not the whole recipe. */
   ingredients: StepIngredient[];
-  /** Optional hint */
-  hint?: string;
+  /** The cook's tips for this step, one banner each, drawn under the instruction. */
+  hints?: string[];
 };
 
 /** Wide enough for a name to sit on one line at this text size. */
 const COLUMNS = 3;
 
 /** One step of the method, spelled out: what to do, how long it takes, what it takes. */
-export const StepCard = ({ position, title, instruction, lines, ingredients, isLast, hint }: Props) => {
+export const StepCard = ({ position, title, instruction, lines, ingredients, isLast, hints }: Props) => {
   const t = useTranslations("Recipe");
   const { width } = useWindowDimensions();
 
@@ -56,15 +57,12 @@ export const StepCard = ({ position, title, instruction, lines, ingredients, isL
         {title && <Text.Base color={theme.colors.neutral.muted}>{title}</Text.Base>}
       </View>
       <InstructionText instruction={instruction} lines={lines} style={styles.instruction} />
-      {hint && <View style={styles.hint}>
-        <SparklesIcon size={16} color={theme.colors.primary.base} />
-        <Text.Body
-          color={theme.colors.primary.base}
-          style={styles.instruction}
-        >
+      {hints?.map((hint, index) => (
+        /** Hints may repeat and carry no id, so the position is the only stable key. */
+        <InfoBanner key={index} variant="tip" icon={Lightbulb} title={t("Cooking.hint_title")}>
           {hint}
-        </Text.Body>
-      </View>}
+        </InfoBanner>
+      ))}
       {ingredients.length > 0 && (
         <IngredientGroup
           title={t("Cooking.step_ingredients")}
@@ -117,10 +115,4 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   instruction: { flexShrink: 1, width: "100%" },
-  hint: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    gap: theme.spacing[8],
-  }
 });

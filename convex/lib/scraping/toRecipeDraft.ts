@@ -99,7 +99,10 @@ export const toRecipeDraft = (scraped: ScrapedRecipe): RecipeDraft => {
   const instructions = scraped.instructions
     .map((group) => ({
       title: group.name?.trim() || undefined,
-      steps: group.items.map((item) => item.value.trim()).filter(Boolean),
+      steps: group.items
+        .map((item) => item.value.trim())
+        .filter(Boolean)
+        .map((instruction) => ({ instruction, hints: [] })),
     }))
     .filter((group) => group.steps.length > 0);
 

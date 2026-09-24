@@ -50,6 +50,7 @@ import { translateRecipePrompt } from "../../config/prompts/translateRecipe";
  */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6-luna", modes: [false] }, // BEST ONE,
+  // { name: "z-ai/glm-5.3-flash", modes: ["low", "medium"] },
   // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },
   // { name: "deepseek/deepseek-v4.1-flash", modes: [false] },
   // { name: "nvidia/nemotron-3-super-120b-a12b:free", modes: [5000] },
@@ -146,28 +147,15 @@ const SOURCE: TranslatableRecipe = {
   instructions: [
     {
       title: "La víspera",
-      steps: [
-        "Mezcla 3 cda de gochujang, la pera nashi rallada, 2 dientes de ajo machacados, 2 cdta de azúcar moreno, 4 cda de salsa de soja y 1 cda de aceite de sésamo tostado.",
-        "Masajea la paleta de cerdo de 1,3 kg con la marinada y resérvala en la nevera toda la noche, es decir doce horas.",
-      ],
+      steps: [{ instruction: "Mezcla 3 cda de gochujang, la pera nashi rallada, 2 dientes de ajo machacados, 2 cdta de azúcar moreno, 4 cda de salsa de soja y 1 cda de aceite de sésamo tostado.", hints: [] }, { instruction: "Masajea la paleta de cerdo de 1,3 kg con la marinada y resérvala en la nevera toda la noche, es decir doce horas.", hints: [] }],
     },
     {
       title: "La cocción",
-      steps: [
-        "Saca la carne de la nevera una hora antes de cocinarla, el tiempo que tarde en templarse.",
-        "Dórala bien por todas sus caras en una cazuela con un chorrito de aceite neutro, unos 10 minutos.",
-        "Añade 1 hoja de laurel y 10 g de jengibre fresco rallado y deja cocer seis horas a fuego lento, tapada.",
-        "Mientras se hace el cerdo, corta 1 pepino en rodajas finas y déjalas macerar 30 minutos en frío en 25 cl de vinagre de arroz con 5 g de sal y 10 g de azúcar.",
-      ],
+      steps: [{ instruction: "Saca la carne de la nevera una hora antes de cocinarla, el tiempo que tarde en templarse.", hints: [] }, { instruction: "Dórala bien por todas sus caras en una cazuela con un chorrito de aceite neutro, unos 10 minutos.", hints: ["No llenes demasiado la cazuela: si hace falta, dóralo en dos tandas."] }, { instruction: "Añade 1 hoja de laurel y 10 g de jengibre fresco rallado y deja cocer seis horas a fuego lento, tapada.", hints: [] }, { instruction: "Mientras se hace el cerdo, corta 1 pepino en rodajas finas y déjalas macerar 30 minutos en frío en 25 cl de vinagre de arroz con 5 g de sal y 10 g de azúcar.", hints: ["Con una mandolina las rodajas salen iguales y va el doble de rápido."] }],
     },
     {
       title: null,
-      steps: [
-        "Bate 4 cda de mayonesa Kewpie con 1 cda de gochujang, el zumo de 1 lima y 1 cdta de sriracha, y resérvalo en frío.",
-        "Cuando la carne se deshilache con el tenedor, desmenúzala y devuélvela a su jugo de cocción.",
-        "Calienta 12 tortillas de maíz pequeñas 30 segundos por cara en una sartén seca.",
-        "Rellena cada tortilla con carne, encurtido escurrido, salsa, 2 cebolletas picadas, cilantro y semillas de sésamo.",
-      ],
+      steps: [{ instruction: "Bate 4 cda de mayonesa Kewpie con 1 cda de gochujang, el zumo de 1 lima y 1 cdta de sriracha, y resérvalo en frío.", hints: [] }, { instruction: "Cuando la carne se deshilache con el tenedor, desmenúzala y devuélvela a su jugo de cocción.", hints: ["Si tienes termómetro, está lista a 90 °C en el centro.", "Guarda todo el jugo: es lo que la mantiene tierna."] }, { instruction: "Calienta 12 tortillas de maíz pequeñas 30 segundos por cara en una sartén seca.", hints: [] }, { instruction: "Rellena cada tortilla con carne, encurtido escurrido, salsa, 2 cebolletas picadas, cilantro y semillas de sésamo.", hints: [] }],
     },
   ],
 };
@@ -196,8 +184,17 @@ const _NUMBER_WORDS: Record<string, number> = {
   onze: 11, douze: 12, vingt: 20, trente: 30,
 };
 
-const _steps = (recipe: { instructions: readonly { steps: readonly string[] }[] }) =>
-  recipe.instructions.flatMap((group) => group.steps);
+/** Loose on `hints` because `SOURCE` is typed from the model's schema, where a hint list may be absent. */
+type _Method = {
+  instructions: readonly { steps: readonly { instruction: string; hints?: readonly (string | null | undefined)[] | null }[] }[];
+};
+
+const _steps = (recipe: _Method) =>
+  recipe.instructions.flatMap((group) => group.steps.map((step) => step.instruction));
+
+/** Each step's hints, in step order — compared step by step, so a hint moved to a neighbour shows. */
+const _hints = (recipe: _Method) =>
+  recipe.instructions.flatMap((group) => group.steps.map((step) => step.hints ?? []));
 
 /**
  * The units a number can be attached to, in every language this bake-off touches.
@@ -338,6 +335,7 @@ const _leaks = (locale: (typeof LOCALES)[number], steps: readonly string[]) => {
  */
 const CHECKS = (translations: TranslatedRecipe<(typeof LOCALES)[number]>[]) => {
   const sourceSteps = _steps(SOURCE);
+  const sourceHints = _hints(SOURCE);
   const found = translations.map(({ locale }) => locale);
 
   const missing = LOCALES.filter(
@@ -377,6 +375,25 @@ const CHECKS = (translations: TranslatedRecipe<(typeof LOCALES)[number]>[]) => {
       sameCount &&
       steps.every((step, index) => step === sourceSteps[index]) &&
       `${locale}: not translated at all — every step is the source verbatim`,
+
+      // "The same number of hints on each step, in the same order." Step by step, so a hint that
+      // moved to the next step is caught even when the total is right.
+      ...(sameCount
+        ? _hints(recipe).flatMap((hints, index) =>
+          hints.length === sourceHints[index]!.length
+            ? []
+            : [`${locale}: step ${index + 1} has ${hints.length} hint(s), the source has ${sourceHints[index]!.length}`],
+        )
+        : []),
+
+      // "each one translated" — a hint copied through in Spanish is a banner the cook cannot read.
+      ...(sameCount
+        ? _hints(recipe).flatMap((hints, index) =>
+          hints
+            .filter((hint): hint is string => typeof hint === "string" && sourceHints[index]!.includes(hint))
+            .map((hint) => `${locale}: step ${index + 1} kept a hint untranslated: "${hint.slice(0, 40)}…"`),
+        )
+        : []),
 
       ..._leaks(locale, steps),
     ].filter((flag): flag is string => typeof flag === "string");
@@ -501,6 +518,11 @@ const CRITERIA = ((locales: readonly Locale[]): string[] => {
 
     "Does each description still do its job in two sentences — what it tastes like and when you " +
     "would make it — rather than becoming a literal rendering that manages neither?",
+
+    "Do the hints read as a cook's aside in the target language — short, spoken, the advice " +
+    "intact (two batches, the mandoline, 90 °C at the core, keep the juice) — rather than a stiff " +
+    "gloss? A hint merged into its step's text, or a hint the translator added, is a fault: the " +
+    "source's four hints are the only ones there are.",
   ].filter((criterion): criterion is string => typeof criterion === "string");
 })(LOCALES);
 
