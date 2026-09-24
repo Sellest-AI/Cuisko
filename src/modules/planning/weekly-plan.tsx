@@ -55,7 +55,7 @@ export const WeeklyPlan = () => {
   const t = useTranslations("Planning");
   const locale = resolveLocale();
 
-  if (isEmpty) return <WeeklyPlanEmpty days={days} />;
+  if (isEmpty) return <WeeklyPlanEmpty />;
 
   return (
     <View>

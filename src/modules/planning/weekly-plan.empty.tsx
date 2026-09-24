@@ -2,39 +2,27 @@ import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { PlateCarouselEmpty } from "@ui/carousels/plate.empty";
-import { Plus } from "@ui/icons";
 import { Text } from "@ui/text";
-import { WeekStrip, type WeekDay } from "@ui/week-strip";
 import { theme } from "theme";
-import { resolveLocale, useTranslations } from "translations";
+import { useTranslations } from "translations";
 import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 
-type Props = {
-  /** The same seven days the planned week draws, so the page does not resize when the first plan lands. */
-  days: WeekDay[];
-};
-
 /**
- * The week before anyone has planned one.
+ * The week before anyone has planned one: a heading and the empty plate carousel, with one thing
+ * to do.
  *
- * It draws the week rather than replacing it with a message, because the shape is the explanation:
- * seven days, three slots, one thing to do. A centred illustration with a button under it would
- * have to describe in words what the page already shows, and the first plan would then arrive into
- * a layout the user has never seen (PRODUCT.md — the planning screens carry the promise).
+ * It draws the carousel rather than a message alone, because the plates are what a planned week
+ * looks like: the first plan then arrives into a layout the user has already seen (PRODUCT.md —
+ * the planning screens carry the promise).
  *
- * **Every day is drawn `empty`, whatever the calendar says.** `dayStatusFor` marks a day by where
- * it sits against today, so the days behind us come back `complete` — which is true of a week that
- * was cooked and a lie about a week that never existed. Nothing here is complete.
+ * No week strip. With nothing planned, every one of its days led to the same tunnel as the
+ * carousel, so it offered no way in the carousel does not.
  *
  * No meal toggle. Lunch and dinner are a choice between two plates, and there are none; a pill
  * flipping a word above three empty rings is furniture pretending to be a control.
- *
- * Every way in leads to the same place. A day, the badge — the answer to all of them is the
- * planning tunnel, so they all say so rather than each offering a different smaller start.
  */
-export const WeeklyPlanEmpty = ({ days }: Props) => {
+export const WeeklyPlanEmpty = () => {
   const t = useTranslations("Planning");
-  const locale = resolveLocale();
 
   const plan = () => router.push("/planning/new/setup");
 
@@ -52,14 +40,6 @@ export const WeeklyPlanEmpty = ({ days }: Props) => {
         emptyPlateImageSrc={EMPTY_PLATE_IMAGE}
         onPress={plan}
       />
-      <WeekStrip
-        style={styles.week}
-        days={days.map((day) => ({ ...day, status: "empty" as const }))}
-        onAdd={plan}
-        locale={locale}
-        icon={Plus}
-        onSelect={plan}
-      />
     </View>
   );
 };
@@ -69,15 +49,12 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    gap: theme.spacing[4],
+    gap: theme.spacing[2],
     marginTop: theme.spacing[24],
   },
   subtitle: { textAlign: "center", paddingHorizontal: theme.spacing[24] },
   carousel: {
     marginTop: theme.spacing[16],
     minHeight: 188,
-  },
-  week: {
-    marginTop: theme.spacing[24],
   },
 });
