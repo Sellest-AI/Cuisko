@@ -280,22 +280,17 @@ Ask what the branch exists to do, then:
   user**, naming the branch it belongs on. Usually `main`, or a branch of its own.
 - Unsure → ask. The question is cheaper than the move.
 
-Supporting work is not a stray: a `chore(deps)` the feature consumes, or a `fix` for something the
-branch itself broke, belongs on the branch.
+Supporting work is not a stray: a `feat(groceries)` a `feat/planning-…` branch needs, or a `fix` for
+something the branch itself broke, belongs on the branch, even when its scope is another domain.
 
-Format is Conventional Commits, enforced by the `commit-msg` hook. Branch names are enforced by
-`pre-commit`. Full rules: `docs/CONVENTIONS.md` §10.
+- **The hooks check the files on disk, not what you commit.** An uncommitted edit can hide a broken
+  commit, so trust `pnpm verify` only once nothing is left uncommitted. Commit `package.json` whole.
+- **Into `main`:** rename a `claude/…` branch to `<type>/…` (the hook refuses it), merge `main` into
+  it, verify, then a plain `git merge`. Never `--no-ff`.
 
-```
-<type>(<scope>): <imperative subject, ≤72 chars, lowercase, no full stop>
-
-<body: why this change exists, and what changed at the LAYER level>
-
-<footers: BREAKING CHANGE:, Refs: #12>
-```
-
-`feat` · `fix` · `refactor` · `perf` · `docs` · `test` · `chore` · `ci` · `revert`.
-Branches add `hotfix/`; there is no `hotfix` commit type — urgency is a branch, not a change.
+Format is Conventional Commits. The rules live in `commitlint.config.js`, which the `commit-msg` hook
+runs; branch names are checked by `.githooks/pre-commit`. When the two disagree with a doc, they win.
+One logical change per commit. Scopes and a worked example: `docs/CONVENTIONS.md` §10.
 
 **Write the body for an agent reading `git log` a year from now.** It will have the diff; what it
 cannot recover is intent. So the body is the payload, not decoration:
@@ -310,25 +305,6 @@ Omit the body only when the subject is complete alone (`chore(deps): bump convex
 ⚠️ **Never start a body line with `word:`.** The parser reads `Note:`, `Result:`, `enforced:` as a
 footer token and treats everything after it as footers — silently wrecking the structure the history
 is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase mid-line.
-
-```
-fix(convex): reject paginated queries that filter post-index
-
-Convex paginates the index read and applies .filter() to the resulting page, so a page
-requested with numItems 24 could return 3 documents while still reporting isDone false —
-infinite scroll stopped early and silently hid recipes.
-
-The predicate moves into the index (by_public_and_user), so pagination operates on the
-filtered set. Check C3 now fails this shape at commit time, per ADR 0007.
-
-Refs: #48
-```
-
-**One logical change per commit** — two things cannot be described in one subject, or reverted cleanly.
-
-**Scope** is the layer or domain, and must stay stable or history stops being greppable: `convex` ·
-`ui` · `app` · `auth` · `deps` · `ci` · `docs` · `adr` · `scripts`, or a domain (`recipes`).
-Prefer an existing scope over a synonym.
 
 ## Sub-agents
 

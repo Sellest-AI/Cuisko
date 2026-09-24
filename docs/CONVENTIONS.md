@@ -818,8 +818,14 @@ oversights:
 [commitlint.config.js](../commitlint.config.js).
 
 ```
-<type>(<scope>)?: <subject>
+<type>(<scope>)?: <imperative subject, ≤72 chars, lowercase, no full stop>
 
+<body: why this change exists, and what changed at the LAYER level>
+
+<footers: BREAKING CHANGE:, Refs: #12>
+```
+
+```
 feat(recipes): add serving-size scaling
 fix(convex): reject paginated queries that filter post-index
 chore(deps): bump convex to 1.44
@@ -861,6 +867,19 @@ So the body is not optional prose, it is the payload:
 
 Omit the body only when the subject is genuinely complete on its own
 (`chore(deps): bump convex to 1.44`).
+
+```
+fix(convex): reject paginated queries that filter post-index
+
+Convex paginates the index read and applies .filter() to the resulting page, so a page
+requested with numItems 24 could return 3 documents while still reporting isDone false —
+infinite scroll stopped early and silently hid recipes.
+
+The predicate moves into the index (by_public_and_user), so pagination operates on the
+filtered set. Check C3 now fails this shape at commit time, per ADR 0007.
+
+Refs: #48
+```
 
 **One logical change per commit.** A commit doing two things cannot be described in one subject,
 cannot be reverted cleanly, and degrades every later `git log --oneline`.
