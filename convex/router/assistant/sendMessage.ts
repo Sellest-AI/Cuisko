@@ -2,7 +2,8 @@ import { internal } from "@convex/_generated/api";
 import { assistantAgent } from "@convex/agent/agents";
 import { answerTurn } from "@convex/functions/assistant/answerTurn";
 import { openThread } from "@convex/functions/assistant/openThread";
-import { authMutationI18n, internalAction } from "@convex/procedures";
+import { turnBrief } from "@convex/functions/assistant/turnBrief";
+import { householdMutationI18n, internalAction } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { v } from "convex/values";
 
@@ -21,14 +22,19 @@ import { v } from "convex/values";
  * and when the conversation has been idle past `ASSISTANT_IDLE_MS` — the returned id is the one
  * that was actually written to, which is what the client stores.
  *
- * `authMutationI18n` because the answer is locale-sensitive: Cuisko replies in the language the app
- * is displaying, not the one the question happens to be written in (PRODUCT.md § Bilingual by
- * nature). The locale is the client's to state, and it rides through to the prompt.
+ * **Household-scoped, because the cellar is.** The brief is read here, in the transaction that
+ * saves the question, so the answer works from what the household held when the cook pressed send.
+ * `today` and `now` are the cook's clock (`shared/clock.ts`) — the server has no timezone of its own.
+ *
+ * `I18n` because the answer is locale-sensitive: Cuisko replies in the language the app is
+ * displaying, not the one the question happens to be written in (PRODUCT.md § Bilingual by nature).
  */
-export const authed = authMutationI18n({
-  args: { text: v.string(), threadId: v.optional(v.string()) },
+export const authed = householdMutationI18n({
+  args: { text: v.string(), threadId: v.optional(v.string()), today: v.number(), now: v.string() },
   returns: v.object({ threadId: v.string() }),
-  handler: async (ctx, { text, threadId }) => {
+  handler: async (ctx, { text, threadId, today, now }) => {
+    const { locale } = ctx.i18n;
+    const brief = await turnBrief(ctx, { householdId: ctx.householdId, locale, today, now });
     const thread = await openThread(ctx, { threadId, userId: ctx.userId, now: Date.now() });
 
     /**
@@ -47,7 +53,8 @@ export const authed = authMutationI18n({
       threadId: thread,
       promptMessageId: messageId,
       userId: ctx.userId,
-      locale: ctx.i18n.locale,
+      locale,
+      brief,
     });
 
     return { threadId: thread };
@@ -64,6 +71,7 @@ export const _internal_answer = internalAction({
     promptMessageId: v.string(),
     userId: v.id("users"),
     locale: vLocale,
+    brief: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

@@ -32,18 +32,26 @@ const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
 
 let t: ReturnType<typeof convexTest>;
 
-const seedUser = (name: string) =>
+type Cook = { userId: Id<"users">; householdId: Id<"households"> };
+
+/** A user who belongs to a household of their own — the cellar is the household's, not the user's. */
+const seedUser = (name: string): Promise<Cook> =>
   t.run(async (ctx) => {
     const userId = await ctx.db.insert("users", { name });
     await ctx.db.insert("usersExtended", { userId, role: "USER", updatedAt: Date.now() });
+    const householdId = await ctx.db.insert("households", { name, inviteCode: name, updatedAt: Date.now() });
+    await ctx.db.insert("householdUsers", { householdId, userId });
 
-    return userId;
+    return { userId, householdId };
   });
 
-const ask = (userId: Id<"users">, text: string, threadId?: string) =>
+/** The cook's clock, fixed: a Thursday evening. */
+const CLOCK = { today: 1_000_000, now: "2026-09-24T19:05" };
+
+const ask = ({ userId, householdId }: Cook, text: string, threadId?: string) =>
   t
     .withIdentity(asUser(userId))
-    .mutation(api.router.assistant.sendMessage.authed, { text, threadId, locale: "fr" });
+    .mutation(api.router.assistant.sendMessage.authed, { text, threadId, householdId, ...CLOCK, locale: "fr" });
 
 const messagesOf = (threadId: string) =>
   t.run(async (ctx) => {
@@ -67,35 +75,68 @@ afterEach(() => {
 describe("router/assistant/sendMessage", () => {
   test("rejects an unauthenticated caller", async () => {
     await expect(
-      t.mutation(api.router.assistant.sendMessage.authed, { text: "salut", locale: "fr" }),
+      t.mutation(api.router.assistant.sendMessage.authed, {
+        text: "salut",
+        householdId: (await seedUser("Franck")).householdId,
+        ...CLOCK,
+        locale: "fr",
+      }),
     ).rejects.toThrow();
   });
 
   test("rejects an authenticated caller who is not a known user", async () => {
+    const { householdId } = await seedUser("Franck");
     const ghost = await t.run((ctx) => ctx.db.insert("users", { name: "Ghost" }));
     await t.run((ctx) => ctx.db.delete(ghost));
 
-    await expect(
-      t
-        .withIdentity(asUser(ghost))
-        .mutation(api.router.assistant.sendMessage.authed, { text: "salut", locale: "fr" }),
-    ).rejects.toThrow();
+    await expect(ask({ userId: ghost, householdId }, "salut")).rejects.toThrow();
+  });
+
+  /** The household is client-supplied, and it names a cellar: asking through someone else's reads theirs. */
+  test("rejects a cook asking through a household they do not belong to", async () => {
+    const stranger = await seedUser("Stranger");
+    const { userId } = await seedUser("Franck");
+
+    await expect(ask({ userId, householdId: stranger.householdId }, "salut")).rejects.toThrow(/FORBIDDEN/);
+  });
+
+  test("hands the household's cellar and the cook's clock to the answer", async () => {
+    const cook = await seedUser("Franck");
+    await t.run(async (ctx) => {
+      const ingredientId = await ctx.db.insert("ingredients", {
+        name: { values: { fr: "tomate", en: "tomato" }, meta: {} },
+        category: "VEGETABLE",
+        emoji: "🍅",
+        defaultUnit: "pcs",
+        defaultQuantity: 1,
+        nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
+        updatedAt: Date.now(),
+      });
+      await ctx.db.insert("cellarItems", { householdId: cook.householdId, ingredientId, quantity: 6, unit: "pcs", updatedAt: Date.now() });
+    });
+
+    await ask(cook, "Je fais quoi ce soir ?");
+
+    const [scheduled] = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    const { brief } = scheduled?.args[0] as { brief: string };
+    expect(brief).toContain("tomate");
+    expect(brief).toMatch(/<now>Thursday 2026-09-24 19:05<\/now>$/);
   });
 
   test("opens a thread when the caller has none, and saves the question in it", async () => {
-    const userId = await seedUser("Franck");
+    const cook = await seedUser("Franck");
 
-    const { threadId } = await ask(userId, "Je fais quoi ce soir ?");
+    const { threadId } = await ask(cook, "Je fais quoi ce soir ?");
 
     expect(threadId).toBeTruthy();
     expect(await messagesOf(threadId)).toContain("Je fais quoi ce soir ?");
   });
 
   test("continues a warm thread rather than opening a second one", async () => {
-    const userId = await seedUser("Franck");
+    const cook = await seedUser("Franck");
 
-    const first = await ask(userId, "Je fais quoi ce soir ?");
-    const second = await ask(userId, "Et sans crème ?", first.threadId);
+    const first = await ask(cook, "Je fais quoi ce soir ?");
+    const second = await ask(cook, "Et sans crème ?", first.threadId);
 
     expect(second.threadId).toBe(first.threadId);
     expect(await messagesOf(first.threadId)).toHaveLength(2);
@@ -113,12 +154,12 @@ describe("router/assistant/sendMessage", () => {
   test("opens a new thread once the old one has been idle past the window", async () => {
     vi.useFakeTimers();
 
-    const userId = await seedUser("Franck");
-    const first = await ask(userId, "Je fais quoi ce soir ?");
+    const cook = await seedUser("Franck");
+    const first = await ask(cook, "Je fais quoi ce soir ?");
 
     vi.setSystemTime(Date.now() + ASSISTANT_IDLE_MS + 1);
 
-    const second = await ask(userId, "Et demain ?", first.threadId);
+    const second = await ask(cook, "Et demain ?", first.threadId);
 
     expect(second.threadId).not.toBe(first.threadId);
     expect(await messagesOf(second.threadId)).toEqual(["Et demain ?"]);
@@ -133,11 +174,11 @@ describe("router/assistant/sendMessage", () => {
    * for an id that simply does not exist.
    */
   test("refuses to continue another cook's thread, silently opening its own", async () => {
-    const strangerId = await seedUser("Stranger");
-    const theirs = await ask(strangerId, "Ma bolognaise secrète");
-    const userId = await seedUser("Franck");
+    const stranger = await seedUser("Stranger");
+    const theirs = await ask(stranger, "Ma bolognaise secrète");
+    const cook = await seedUser("Franck");
 
-    const mine = await ask(userId, "Je fais quoi ce soir ?", theirs.threadId);
+    const mine = await ask(cook, "Je fais quoi ce soir ?", theirs.threadId);
 
     expect(mine.threadId).not.toBe(theirs.threadId);
     expect(await messagesOf(theirs.threadId)).toEqual(["Ma bolognaise secrète"]);
@@ -145,9 +186,9 @@ describe("router/assistant/sendMessage", () => {
 
   /** A threadId from another deployment, or an older build. Not an error — just not a thread. */
   test("opens a new thread when the offered id is not a thread at all", async () => {
-    const userId = await seedUser("Franck");
+    const cook = await seedUser("Franck");
 
-    const { threadId } = await ask(userId, "Je fais quoi ce soir ?", "not-an-id");
+    const { threadId } = await ask(cook, "Je fais quoi ce soir ?", "not-an-id");
 
     expect(await messagesOf(threadId)).toEqual(["Je fais quoi ce soir ?"]);
   });

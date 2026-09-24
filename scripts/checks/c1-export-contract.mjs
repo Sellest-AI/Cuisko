@@ -39,6 +39,7 @@ const ALLOWED_BUILDERS = {
     "ownedQueryI18n",
     "ownedMutationI18n",
     "householdQueryI18n",
+    "householdMutationI18n",
   ],
   admin: [
     "adminQuery",

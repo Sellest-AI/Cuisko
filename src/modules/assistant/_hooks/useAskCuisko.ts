@@ -2,10 +2,12 @@ import { useAtom, useSetAtom } from "jotai";
 import { useCallback } from "react";
 
 import { isConversationStale } from "@shared/assistant";
+import { localClock, localStamp } from "@shared/clock";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useMutation } from "~/lib/convex/client";
+import { useHousehold } from "~/modules/households/hooks";
 
 import { conversationAtom, pendingQuestionAtom } from "./atoms";
 
@@ -37,6 +39,7 @@ let _inFlight = false;
  */
 export const useAskCuisko = () => {
   const locale = useLocale();
+  const { householdId } = useHousehold();
   const [conversation, setConversation] = useAtom(conversationAtom);
   const setPending = useSetAtom(pendingQuestionAtom);
   const { mutate: send } = useMutation(api.router.assistant.sendMessage.authed);
@@ -44,7 +47,11 @@ export const useAskCuisko = () => {
   const ask = useCallback(
     async (text: string) => {
       const question = text.trim();
-      if (!question || _inFlight) return;
+      /**
+       * No household yet means no cellar to answer from — it resolves before any screen that can
+       * send is usable, so this only closes the gap of the first frames after sign-in.
+       */
+      if (!question || !householdId || _inFlight) return;
 
       _inFlight = true;
       setPending(question);
@@ -70,7 +77,15 @@ export const useAskCuisko = () => {
          * client knows about before any message exists to read a server timestamp off. Every later
          * update takes the server's, so the two clocks converge as soon as the question lands.
          */
-        const { threadId } = await send({ text: question, threadId: warm, locale });
+        const sentAt = new Date();
+        const { threadId } = await send({
+          text: question,
+          threadId: warm,
+          locale,
+          householdId,
+          today: localClock(sentAt).today,
+          now: localStamp(sentAt),
+        });
 
         setConversation({ threadId, lastActivityAt: Date.now() });
       } catch (error) {
@@ -83,7 +98,7 @@ export const useAskCuisko = () => {
         _inFlight = false;
       }
     },
-    [conversation, locale, send, setConversation, setPending],
+    [conversation, householdId, locale, send, setConversation, setPending],
   );
 
   return { ask };

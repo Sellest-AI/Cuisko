@@ -251,11 +251,10 @@ own modules belongs in the test that needs it, where a reader can see it.
 | `_internal_<verb>` | same                                                                                                                  | Convex functions only — a **named step** |
 
 Most builders above have an `*I18n` sibling (`publicQueryI18n`, `authMutationI18n`,
-`ownedQueryI18n`, `householdQueryI18n`). `server*`, `internal*` and `householdMutationI18n` do
-not — the last simply because nothing has needed it yet; add it beside the others in
-`procedures.ts` and to `ALLOWED_BUILDERS.authed` in `scripts/checks/c1-export-contract.mjs` when
-something does. **`scripts/checks/c1-export-contract.mjs` is the authority on this list, not this
-table.** The plain builder takes no locale
+`ownedQueryI18n`, `householdQueryI18n`, `householdMutationI18n`). `server*` and `internal*` do
+not. A new sibling goes beside the others in `procedures.ts` and into `ALLOWED_BUILDERS` in
+`scripts/checks/c1-export-contract.mjs`. **`scripts/checks/c1-export-contract.mjs` is the authority
+on this list, not this table.** The plain builder takes no locale
 and exposes no `ctx.i18n`; the `I18n` variant adds a required `locale` arg and `ctx.i18n.resolve`
 for reading `Localized` fields. Use the plain one unless the handler actually reads translated
 content — most don't, and forcing a `locale` arg on them would be dead weight at every call site.

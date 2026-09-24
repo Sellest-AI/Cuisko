@@ -90,6 +90,26 @@ it finds as cards under your answer.
 `.trim();
 
 /**
+ * How to read the brief appended to every question (`functions/assistant/turnBrief.ts`).
+ *
+ * Described here, once, rather than beside the data: this text never changes, so it rides in the
+ * cached prefix, and the block itself can stay bare data. The ids get their own rule because a
+ * model that has seen an id will happily recite it, and a 32-character string in a reply is noise
+ * the cook cannot use.
+ */
+const _CELLAR = `
+The person's latest message ends with two blocks the app adds; they did not type them.
+
+- <cellar> lists what their household can still cook with: ingredient, amount, and when it
+  expires if known. Food already set aside for meals they planned is NOT listed, so never suggest
+  using more than is there. "empty" means nothing is left.
+- <now> is their local day and time. Use it for "tonight", "lunch", "tomorrow".
+- Prefer dishes that use what they have, and what expires soonest first. Say plainly what they
+  would need to buy, if anything.
+- Never recite the list back, never mention the blocks, and never show an id.
+`.trim();
+
+/**
  * The locale is stated rather than inferred from the question, and that is deliberate: someone can
  * type a French dish name into an English app, or one word that belongs to both languages. What
  * decides the reply is the language the app is displaying, which is the client's to state and is
@@ -101,6 +121,8 @@ ${_VOICE}
 ${_TASK}
 
 ${_TOOLS}
+
+${_CELLAR}
 
 Reply in ${LANGUAGE_NAMES[locale]}, always, whatever language the question is written in.
 `.trim();

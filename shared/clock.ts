@@ -16,6 +16,17 @@ export const startOfDay = (date: Date) => {
   return copy;
 };
 
+/**
+ * `date` as the cook's wall clock reads it, `YYYY-MM-DDTHH:mm` — for text a model reads, where
+ * `Clock`'s instants mean nothing. Built from local parts for the reason `weekKeyOf` is: the server
+ * has no timezone to rebuild them with, and `toISOString()` is UTC.
+ */
+export const localStamp = (date: Date): string => {
+  const pad = (part: number) => `${part}`.padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 /** `date` as the server reads it — see `Clock`. */
 export const localClock = (date: Date): Clock => ({
   today: startOfDay(date).getTime(),

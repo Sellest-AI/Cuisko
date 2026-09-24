@@ -287,3 +287,4 @@ export const householdQuery = customQuery(query, householdInput);
 export const householdQueryI18n = customQuery(query, withI18n(householdInput));
 
 export const householdMutation = customMutation(mutation, householdInput);
+export const householdMutationI18n = customMutation(mutation, withI18n(householdInput));

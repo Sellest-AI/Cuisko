@@ -5,6 +5,7 @@ import type { Locale } from "@shared/translations";
 import { assistantAgent } from "../../agent/agents";
 import { assistantPrompt } from "../../agent/config/prompts/assistant";
 import { searchRecipesTool } from "../../agent/tools/searchRecipes";
+import { appendBrief } from "./appendBrief";
 
 type Args = {
   threadId: string;
@@ -16,6 +17,8 @@ type Args = {
   promptMessageId: string;
   userId: Id<"users">;
   locale: Locale;
+  /** What the household can cook with, and the cook's clock — `turnBrief`, read when they pressed send. */
+  brief: string;
 };
 
 /**
@@ -40,7 +43,7 @@ type Args = {
  */
 export const answerTurn = async (
   ctx: ActionCtx,
-  { threadId, promptMessageId, userId, locale }: Args,
+  { threadId, promptMessageId, userId, locale, brief }: Args,
 ): Promise<void> => {
   const result = await assistantAgent.streamText(
     ctx,
@@ -50,7 +53,23 @@ export const answerTurn = async (
       instructions: assistantPrompt(locale),
       tools: { searchRecipes: searchRecipesTool({ userId, locale }) },
     },
-    { saveStreamDeltas: true },
+    {
+      saveStreamDeltas: true,
+      /**
+       * The default order, with the brief once, at the end of the question — see `appendBrief`.
+       * Only the LAST prompt message takes it: with `promptMessageId` that is the one saved
+       * question, and if the prompt ever holds more, the brief still lands once, last. An earlier
+       * user message in `recent` stays exactly as it was cached.
+       */
+      contextHandler: async (_ctx, { search, recent, inputMessages, inputPrompt, existingResponses }) => [
+        ...search,
+        ...recent,
+        ...inputMessages,
+        ...inputPrompt.slice(0, -1),
+        ...inputPrompt.slice(-1).map((message) => appendBrief(message, brief)),
+        ...existingResponses,
+      ],
+    },
   );
 
   /**
