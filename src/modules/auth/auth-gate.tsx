@@ -9,6 +9,10 @@ import { useAuth } from "./_hooks/useAuth";
 /**
  * At module scope, not in an effect: the splash hides itself on the first frame unless told
  * otherwise before that frame, and an effect runs after it.
+ *
+ * This gate is the splash's only owner. `FontsProvider` also has to be waited for, and is, by
+ * position rather than by a call: it sits above this gate and renders nothing until the H4 face is
+ * registered, so the gate's one `hide()` cannot run before the font is in.
  */
 SplashScreen.preventAutoHideAsync().catch((cause) => {
   if (__DEV__) console.warn("[AuthGate] could not hold the splash screen", cause);

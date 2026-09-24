@@ -27,9 +27,10 @@ const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
  * cached subscriptions belong to an authenticated client.
  *
  * `FontsProvider` is outermost, and that is the point of it: it renders nothing until the type
- * faces are registered, so no descendant can paint a heading in the system font and reflow. Above
+ * face is registered, so no descendant can paint a heading in the system font and reflow. Above
  * the Convex providers rather than below, because a query subscription opened during the font
- * gate would be thrown away when the gate lifts.
+ * gate would be thrown away when the gate lifts. And above `AuthGate`, which the root layout
+ * renders inside `Providers`: the gate owns the splash, and cannot hide it before it mounts.
  */
 export const Providers = ({ children }: { children: React.ReactNode }) => (
   <FontsProvider>
