@@ -11,7 +11,7 @@ import { useMeasuredModalSheet } from "~/modules/navigation/modal-sheet";
  */
 export default function Quantity() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ ingredientId?: string; unit?: string; intent?: string }>();
+  const params = useLocalSearchParams<{ ingredientId?: string; unit?: string; intent?: string; needed?: string }>();
   const onLayout = useMeasuredModalSheet();
 
   return <QuantityScreen

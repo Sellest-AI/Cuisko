@@ -315,6 +315,29 @@ describe("what the sheet offers", () => {
   it("keeps a preset the suggestion genuinely differs from", () => {
     expect(tiles(owing(160, 100))).toEqual([60, 50, 100, 150, 200, 250, 300, 400, 500]);
   });
+
+  /** Monday's card under the by-plan view stood for 200 g of a 300 g row: that is what was tapped. */
+  it("opens on what the tapped card needed, with the whole row as the next tile", () => {
+    const options = quantityOptions(stockFor(owing(300, 0), flour), "g", "buy", 200);
+
+    expect(options.map((option) => option.amount)).toEqual([200, 300, 50, 100, 150, 250, 400, 500, 750]);
+    expect(options[0]?.captionKey).toBe("Quantity.Captions.needed");
+    expect(options[1]?.captionKey).toBeUndefined();
+  });
+
+  it("ignores a needed amount that is the whole row or more, and never applies one to a removal", () => {
+    const stock = stockFor(owing(300, 100), flour);
+
+    expect(quantityOptions(stock, "g", "buy", 200)).toEqual(quantityOptions(stock, "g", "buy"));
+    expect(quantityOptions(stock, "g", "remove", 50)).toEqual(quantityOptions(stock, "g", "remove"));
+  });
+
+  /** A converted claim leaves the row a float's worth above it: two tiles would both read "0.3 g". */
+  it("ignores a needed amount below the row only by float noise", () => {
+    const stock = stockFor(owing(0.1 + 0.2, 0), flour);
+
+    expect(quantityOptions(stock, "g", "buy", 0.3)).toEqual(quantityOptions(stock, "g", "buy"));
+  });
 });
 
 describe("writing to a set", () => {

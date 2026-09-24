@@ -94,26 +94,30 @@ describe("by plan", () => {
       .toEqual(["plate:monday-lunch", "plate:monday-dinner", "unplanned"]);
   });
 
-  it("takes what the cellar already covers off the soonest plate first", () => {
-    /** 300 g claimed, 250 g still to buy: Monday's 200 g stands, Friday is left 50 g. */
+  it("takes what was already bought off the soonest plate first", () => {
+    /** 300 g claimed, 250 g still to buy: the 50 g bought comes off Monday, and Friday stands. */
     const snapshot = { ...base, lines: [line("l-parmesan", PARMESAN, 250), line("l-carrots", CARROTS, 4)] };
 
     expect(outline(groupToBuy(toBuyOf(snapshot), "by-plan", snapshot))).toEqual([
-      ["plate:monday", [["parmesan:g", 200]]],
-      ["plate:friday", [["plate:friday:parmesan:g", 50]]],
+      ["plate:monday", [["parmesan:g", 150]]],
+      ["plate:friday", [["plate:friday:parmesan:g", 100]]],
       ["unplanned", [["carrots:pcs", 4]]],
     ]);
   });
 
-  it("drops a plate whose share is drained to nothing, and a plate with nothing on the list", () => {
+  /**
+   * The shopper buys Monday's 200 g off the list: Monday is done, Friday still needs its 100 g.
+   * Handing the row out soonest-first left Monday asking for everything and dropped Friday instead.
+   */
+  it("clears the soonest plate once its share is bought, and a plate with nothing on the list", () => {
     const snapshot = {
       ...base,
-      lines: [line("l-parmesan", PARMESAN, 150)],
+      lines: [line("l-parmesan", PARMESAN, 100)],
       plates: [...base.plates, { id: "sunday", recipeId: "soup", title: "Soupe", date: day(6), slot: "lunch" as const, claims: [] }],
     };
 
     expect(outline(groupToBuy(toBuyOf(snapshot), "by-plan", snapshot))).toEqual([
-      ["plate:monday", [["parmesan:g", 150]]],
+      ["plate:friday", [["parmesan:g", 100]]],
     ]);
   });
 

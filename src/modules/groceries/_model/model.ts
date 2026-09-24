@@ -388,10 +388,21 @@ const OPTION_COUNT = 9;
  *
  * Pure, and computed for every row rather than only for the open sheet, because a row that leaves
  * the shopper no choice should not be asking the question at all.
+ *
+ * `needed` is what the tapped card showed — one plate's part of the row, in the by-plan view.
+ * Buying opens on it, because the shopper tapped Monday's butter to buy Monday's butter; the whole
+ * row follows as the second tile, so shopping for every plate at once is still one tap. An amount
+ * that is not strictly inside the row says nothing the row does not, and is ignored.
  */
-export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent): QuantityOption[] => {
+export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent, needed?: number): QuantityOption[] => {
+  /** At the unit's precision, as the ladder is: a tile below the row by float noise reads as the row. */
+  const partial = intent === "buy" && needed !== undefined && needed > 0 &&
+    roundQuantity(needed, unit) < roundQuantity(stock.toBuy, unit);
+
   const proposed = (): { amount: number; captionKey: TranslationKeys<"Groceries">; type: "undo" | "default" } => {
-    if (intent === "buy") return { amount: stock.toBuy, captionKey: "Quantity.Captions.needed", type: "default" };
+    if (intent === "buy") {
+      return { amount: partial ? needed : stock.toBuy, captionKey: "Quantity.Captions.needed", type: "default" };
+    }
     if (intent === "relist") {
       return { amount: stock.lastBought?.amount ?? 0, captionKey: "Quantity.Captions.last_time", type: "default" };
     }
@@ -404,12 +415,16 @@ export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent): Quant
 
   const { amount, captionKey, type } = proposed();
   const ceiling = intent === "remove" ? stock.owned : null;
+  const offered = partial ? [amount, stock.toBuy] : [amount];
 
   const ladder = STEPS[unit]
-    .filter((step) => roundQuantity(step, unit) !== roundQuantity(amount, unit) && (ceiling === null || step <= ceiling))
+    .filter((step) =>
+      offered.every((taken) => roundQuantity(step, unit) !== roundQuantity(taken, unit)) &&
+      (ceiling === null || step <= ceiling))
     .map((step): QuantityOption => ({ amount: step, unit }));
 
   const suggestion: QuantityOption[] = amount > 0 ? [{ amount, unit, captionKey, type }] : [];
+  if (partial) suggestion.push({ amount: stock.toBuy, unit });
 
   return [...suggestion, ...ladder].slice(0, OPTION_COUNT);
 };

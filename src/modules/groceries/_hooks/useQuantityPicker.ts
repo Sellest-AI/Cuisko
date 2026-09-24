@@ -18,8 +18,11 @@ const PROMPTS: Record<Intent, TranslationKeys<"Groceries">> = {
  * The options themselves come from `model.ts`, because the grid needs them too: a row the sheet
  * would offer a single tile for never opens the sheet at all. This hook is what is left once that
  * moved out — the wording, and where the answer goes.
+ *
+ * `needed` is what the tapped card showed, when it stood for less than the whole row — see
+ * `quantityOptions`.
  */
-export const useQuantityPicker = ({ ingredientId, unit, intent }: StockRef & { intent: Intent }) => {
+export const useQuantityPicker = ({ ingredientId, unit, intent, needed }: StockRef & { intent: Intent; needed?: number }) => {
   const t = useTranslations("Groceries");
   const snapshot = useSnapshot();
   const { apply, error } = useStockActions();
@@ -28,7 +31,7 @@ export const useQuantityPicker = ({ ingredientId, unit, intent }: StockRef & { i
 
   const stock = useMemo(() => stockFor(snapshot, { ingredientId, unit }), [snapshot, ingredientId, unit]);
 
-  const options = useMemo(() => quantityOptions(stock, unit, intent), [stock, unit, intent]);
+  const options = useMemo(() => quantityOptions(stock, unit, intent, needed), [stock, unit, intent, needed]);
   const owned = useMemo(() => stock?.owned ?? 0, [stock]);
 
   const submit = useCallback(

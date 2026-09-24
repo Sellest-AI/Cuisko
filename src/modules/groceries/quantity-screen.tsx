@@ -26,6 +26,8 @@ type Params = {
   unit?: string;
   /** Which section was tapped — it decides both the wording and what the first tile offers. */
   intent?: string;
+  /** What the tapped card showed as still needed — one plate's part of the row, in the row's unit. */
+  needed?: string;
 };
 
 type Props = {
@@ -49,12 +51,14 @@ const Picker = ({
   ingredientId,
   unit: rowUnit,
   intent,
+  needed,
   onClose,
   onLayout,
 }: {
   ingredientId: string;
   unit: Unit;
   intent: Intent;
+  needed?: number;
   onClose: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
 }) => {
@@ -66,6 +70,8 @@ const Picker = ({
     ingredientId,
     unit: entryUnit,
     intent,
+    /** Measured in the card's unit, so it means nothing once the shopper has wandered off it. */
+    needed: entryUnit === rowUnit ? needed : undefined,
   });
   const { remove } = useRemoveItem({ ingredientId, unit: rowUnit });
 
@@ -166,9 +172,21 @@ export const QuantityScreen = ({ params, onClose, onLayout }: Props) => {
    */
   const rowUnit = normalizeUnit(unit);
 
+  /** Optional, so a malformed one is dropped rather than refusing the sheet. */
+  const needed = Number(params.needed);
+
   if (!ingredientId || !rowUnit || !isIntent(intent)) return <Nothing />;
 
-  return <Picker ingredientId={ingredientId} unit={rowUnit} intent={intent} onClose={onClose} onLayout={onLayout} />;
+  return (
+    <Picker
+      ingredientId={ingredientId}
+      unit={rowUnit}
+      intent={intent}
+      needed={Number.isFinite(needed) && needed > 0 ? needed : undefined}
+      onClose={onClose}
+      onLayout={onLayout}
+    />
+  );
 };
 
 const styles = StyleSheet.create({
