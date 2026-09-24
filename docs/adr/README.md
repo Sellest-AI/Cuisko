@@ -14,7 +14,7 @@ carries the command that proves it still holds.
 | [0007](./0007-every-query-uses-an-index.md) | Every query reads an index; pagination never filters | `convex/**` | `pnpm check:queries`, `pnpm check:schema` |
 | [0008](./0008-tests-are-layered.md) | Tests are layered by runtime; every test file runs | `**/*.test.ts(x)`, `vitest.config.mts` | `pnpm check:tests`, `pnpm test` |
 | [0009](./0009-the-client-decides-an-undo.md) | Taking stock out is not an undo unless the client says so | `convex/**/cellars/**`, `src/modules/groceries/**` | `pnpm test` |
-| [0010](./0010-a-model-returns-names-not-ids.md) | A model returns names and vocabulary, never ids and never free text | `convex/agent/**`, `shared/ingredientMatch.ts` | `pnpm typecheck`, `pnpm test` |
+| [0010](./0010-a-model-returns-names-not-ids.md) | A model returns names and vocabulary, never a composed id and never free text | `convex/agent/**`, `shared/ingredientMatch.ts` | `pnpm typecheck`, `pnpm test` |
 | [0011](./0011-derived-search-fields-have-one-sanitizer.md) | A searchable blob has one serializer; a promise is a filter, not a search term | `convex/schema/**`, `convex/functions/**`, `shared/search.ts` | `pnpm check:search`, `pnpm test` |
 | [0012](./0012-a-lossy-index-ranks-its-claimants.md) | A lossy index ranks its claimants by what folding cost, never by source order | `convex/functions/ingredients/lookup/**`, `shared/ingredientMatch.ts` | `pnpm test` |
 | [0013](./0013-a-plate-is-planned-through-one-path.md) | A plate is planned through one path, and only what is ahead holds stock | `convex/functions/planning/**`, `convex/router/planning/**`, `convex/schema/planning.ts` | `pnpm test` |
