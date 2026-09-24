@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter, type NativeStackNavigationProp } from "expo-router";
 
 import { StepByStepScreen } from "~/modules/recipes/step-by-step-screen";
 
@@ -14,18 +14,29 @@ import { StepByStepScreen } from "~/modules/recipes/step-by-step-screen";
  *
  * Giving up goes back to wherever the recipe was opened from. Cooking does not: the write the
  * last tap sends moves the cellar, and the place to see that is the list with the cellar on top.
- * `dismissTo` pops back to the list when it is already behind the recipe, and replaces the modal
- * with it otherwise, so a cook never lands on the recipe they just finished.
+ *
+ * The finish resets the root stack to home with the list on top, rather than navigating to the
+ * list: the recipe is done, so every way back from the list (the bar's button, the Android back
+ * key, the iOS swipe) should land on home, not on the recipe just cooked. One reset is also one
+ * transition; popping to home and then pushing the list played two animations back to back.
+ * Expo Router has no reset of its own, so this goes through React Navigation's, whose route names
+ * are the root layout's files.
  */
+type CookedStack = { index: undefined; groceries: { section: "cellar" } };
+
 export default function StepByStep() {
   const router = useRouter();
+  const navigation = useNavigation<NativeStackNavigationProp<CookedStack>>();
   const { id } = useLocalSearchParams<{ id?: string }>();
 
   return (
     <StepByStepScreen
       id={id}
       onClose={() => router.back()}
-      onCooked={() => router.dismissTo({ pathname: "/groceries", params: { section: "cellar" } })}
+      onCooked={() => navigation.reset({
+        index: 1,
+        routes: [{ name: "index" }, { name: "groceries", params: { section: "cellar" } }],
+      })}
     />
   );
 }
