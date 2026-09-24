@@ -22,7 +22,7 @@
     "custom_amount": "Entrez votre quantité",
     "nothing_to_adjust": "Rien à ajuster.",
     "Prompts": {
-      "buy": "Vous en avez ajouté combien ?",
+      "buy": "Vous en avez acheté combien ?",
       "remove": "Vous en avez sorti combien ?",
       "relist": "Il vous en faut combien ?"
     },

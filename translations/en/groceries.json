@@ -22,7 +22,7 @@
     "custom_amount": "Type your own amount",
     "nothing_to_adjust": "Nothing to adjust.",
     "Prompts": {
-      "buy": "How much did you add?",
+      "buy": "How much did you buy?",
       "remove": "How much did you take out?",
       "relist": "How much do you need?"
     },
