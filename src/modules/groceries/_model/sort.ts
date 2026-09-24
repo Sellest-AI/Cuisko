@@ -53,11 +53,15 @@ const _byCookTime = (a: Plate, b: Plate) =>
  * claims it, with that plate's claim as its amount, and whatever is left after the plates have
  * taken theirs — what the shopper typed themselves — closes the list under "unplanned".
  *
- * **Drained soonest-first, against the row's amount.** The plates' claims can add up to more than
- * the row still asks for, because the cellar may already cover part of it; that cover comes off
- * the earliest plate first, which is the plate that will be cooked first and will take the stock
- * first — the same FIFO the server settles claims in. A plate whose share is drained to nothing
- * is not drawn at all.
+ * **Covered soonest-first.** The plates' claims can add up to more than the row still asks for,
+ * because a purchase shrinks the merged row and leaves every claim standing. The difference is food
+ * already bought, and it comes off the earliest plate first: that plate is cooked first and takes
+ * the stock first, and the shopper at the till is shopping for the next few meals, not for Friday.
+ * Handing the row's amount out soonest-first instead did the opposite — buying Monday's butter left
+ * Monday asking for all of it and quietly emptied Friday. A plate covered in full is not drawn.
+ *
+ * What the row holds beyond every claim is what the shopper typed themselves, and it is never
+ * cover: a row only falls below its claims by being bought.
  *
  * **Keys.** The first copy of a row keeps the row's own id, so the card the shopper was looking
  * at flies to the soonest plate; every later copy is scoped to its plate, and enters and leaves
@@ -71,14 +75,22 @@ const _byPlan = (rows: StockRow[], snapshot: Snapshot): ToBuyGroup[] => {
 
   for (const row of rows) {
     const lineIds = new Set(snapshot.lines.filter(matchesRef(row)).map((line) => line.id));
+    const claims = plates.map((plate) => ({
+      plate,
+      claimed: plate.claims
+        .filter((claim) => lineIds.has(claim.lineId))
+        .reduce((total, claim) => total + claim.amount, 0),
+    }));
+
+    let covered = Math.max(0, claims.reduce((total, { claimed }) => total + claimed, 0) - row.amount);
     let remaining = row.amount;
     let first = true;
 
-    for (const plate of plates) {
-      const claimed = plate.claims
-        .filter((claim) => lineIds.has(claim.lineId))
-        .reduce((total, claim) => total + claim.amount, 0);
-      const share = Math.min(claimed, remaining);
+    for (const { plate, claimed } of claims) {
+      const cover = Math.min(claimed, covered);
+      covered -= cover;
+
+      const share = Math.min(claimed - cover, remaining);
       if (share <= NOTHING_LEFT) continue;
 
       shares.get(plate.id)!.push({ ...row, id: first ? row.id : `plate:${plate.id}:${row.id}`, amount: share });
