@@ -16,8 +16,8 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C14 + test — the pre-commit hook runs this and
-                   # refuses the commit if it fails. `--no-verify` bypasses it; CI does not.
+pnpm verify        # typecheck + lint + C1–C14 + test — the pre-commit and pre-merge-commit hooks
+                   # run this and refuse the commit if it fails. `--no-verify` bypasses them; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
 pnpm test -- <file>  # single test file

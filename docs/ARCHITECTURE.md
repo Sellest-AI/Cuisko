@@ -49,7 +49,7 @@ cuisko/
 ├── scripts/              Everything run outside the app.
 │   ├── checks/          C1–C14 architectural checks + the `_lib.mjs` they share.
 │   └── images/          Hand-run asset preparation (compress, sanitize).
-├── .githooks/            pre-commit (verify + branch name), commit-msg (commitlint).
+├── .githooks/            pre-commit (verify + branch name), pre-merge-commit (the same, on a merge), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
 ├── metro.config.js       Metro: open-file cap (EMFILE) + .history blocklist.
@@ -496,8 +496,9 @@ contact with a growing codebase.
 | Env is complete                                                        | Zod throw at module load                          | `pnpm test`            |
 
 `pnpm verify` runs all of it. It runs in **three** places, deliberately: on demand, in the
-[pre-commit hook](../.githooks/pre-commit) — so a failing commit cannot be created — and in CI on
-every push, which is what catches a `--no-verify` bypass.
+[pre-commit](../.githooks/pre-commit) and [pre-merge-commit](../.githooks/pre-merge-commit) hooks —
+so a failing commit, merge commits included, cannot be created — and in CI on every push, which is
+what catches a `--no-verify` bypass.
 
 A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4, C6 and C8 against
 the working set at the end of an agent turn, so a violation surfaces one turn after it is written
