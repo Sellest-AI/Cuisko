@@ -225,6 +225,13 @@ thing anyone has to remember.
   `beforeAll` — the glob is lazy, and the first test would otherwise pay the import against its
   own timeout ([ADR 0008](./adr/0008-tests-are-layered.md), "The first test pays for the import") 📐 C10
 
+**A test for a reported bug** (the rule and the report format: `AGENTS.md`, "Tests" 👁). Write it
+around what the user saw, not the code path: the number on the screen, before and after. Assert
+the invariant ("buying N reduces toBuy by exactly N") over the intermediate values. A defect once
+shipped green because the tests checked lines, receipts and the cellar separately, so nothing
+caught a purchase counted twice. Where the fix replaces wrong behaviour, keep the old output as an
+explicit counter-example, so the file records what the bug was.
+
 Coverage targets are not a rule ([§9](#9-rules-deliberately-not-made)). What replaces them is
 altitude: assert a domain rule against a plain object in `_model/`, and spend a mount only on what
 a mount can see — that a hook's write reaches the state its read subscribes to.
@@ -909,6 +916,7 @@ would rot into a wish list, and a rule nobody intends to mechanise should say so
 | ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                     |
 | Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                 |
 | A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).            |
+| A reported bug is pinned; assertions stay put     | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not. |
 | ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.          |
 
 **The rule about this section: do not promote a tag before its mechanism exists.** A 👁 that claims

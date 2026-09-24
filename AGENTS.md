@@ -106,6 +106,27 @@ root file. `_components/` and `_hooks/` are that module's interior, reached only
 — lint R8 blocks the aliased form. A hook other modules need is re-exported from the module's
 `hooks.ts`; it does not move. Full contract: `src/modules/AGENTS.md`.
 
+## Tests
+
+**Existing tests are the specification.** A fix adds tests. It never edits an existing assertion to
+make itself pass.
+
+- **A reported bug or edge case is pinned by a test before it is fixed.** Use the user's input and the
+  output they expected, added to the function's existing test file (`convex/`, `shared/`, `_model/`).
+  Never a new file just for it, never a component test. Watch it fail on the old code, then fix.
+- **A fix that turns an existing test red: STOP and report before touching the test.** Asking for a
+  fix is not asking for a new behaviour. Either the fix is too wide, or the rule really changes, and
+  that is the user's call. List every broken test, then wait:
+
+| Test                   | Input                        | Test expects | Fix returns |
+| ---------------------- | ---------------------------- | ------------ | ----------- |
+| `planWeek.test.ts:84`  | 5 eggs owned, recipe needs 2 | toBuy 0      | toBuy 1     |
+| `planWeek.test.ts:112` | 0 eggs owned, recipe needs 2 | toBuy 2      | toBuy 0     |
+
+End with the choice: narrow the fix, or confirm the new behaviour.
+
+How to write the test itself, and where each file goes: `docs/CONVENTIONS.md` §1.5.
+
 ## Before committing — full review (REQUIRED)
 
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
@@ -344,6 +365,7 @@ result as if it had returned.
 - **Only when you are asked to commit**: The architecture review above ran and reported clean, or the user approved the exceptions.
 - Every new non-`anon` Convex export has a test asserting the wrong caller is rejected.
 - Every new `_model/` file has a test in its `__tests__/`, every test file sits in a `__tests__/`, none sits where nothing runs it, and every `convex-test` file calling through `api.` / `internal.` warms its module in a `beforeAll` (C10).
+- Every bug or edge case the user reported has its test, and no existing assertion changed without the user's approval (see Tests).
 - Any `docs/` page the change invalidated has been updated.
 - The slice's plan file is **deleted** — with any decision worth keeping promoted to an ADR or to
   `docs/CONVENTIONS.md` first. A plan that outlives its build is a specification nobody maintains,
