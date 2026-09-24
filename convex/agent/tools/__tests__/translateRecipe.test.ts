@@ -21,7 +21,7 @@ import {
 const _recipe = (title: string) => ({
   title,
   description: "Pasta, egg and pork, in the time the water takes to boil.",
-  instructions: [{ title: null, steps: ["Boil the water"] }],
+  instructions: [{ title: null, steps: [{ instruction: "Boil the water", hints: [] }] }],
 });
 
 const _answer = (...entries: { locale: string; recipe?: unknown }[]) => ({
@@ -73,7 +73,7 @@ describe("toTranslatedRecipes", () => {
   });
 
   it("rejects a translation missing a title outright", () => {
-    const recipe = { description: "Des pâtes.", instructions: [{ steps: ["Bouillir"] }] };
+    const recipe = { description: "Des pâtes.", instructions: [{ steps: [{ instruction: "Bouillir", hints: [] }] }] };
 
     expect(() => toTranslatedRecipes(_answer({ locale: "fr", recipe }), ["fr"])).toThrow();
   });
@@ -93,17 +93,30 @@ describe("toTranslatedRecipes", () => {
   });
 
   it("drops a group title the model wrote as the word for having none", () => {
-    const recipe = { ..._recipe("Carbonara"), instructions: [{ title: "N/A", steps: ["Bouillir"] }] };
+    const recipe = { ..._recipe("Carbonara"), instructions: [{ title: "N/A", steps: [{ instruction: "Bouillir", hints: [] }] }] };
 
     expect(toTranslatedRecipes(_answer({ locale: "fr", recipe }), ["fr"])[0]?.recipe.instructions[0])
-      .toEqual({ steps: ["Bouillir"] });
+      .toEqual({ steps: [{ instruction: "Bouillir", hints: [] }] });
   });
 
   it("keeps a real group title", () => {
-    const recipe = { ..._recipe("Carbonara"), instructions: [{ title: "  Sauce  ", steps: ["Bouillir"] }] };
+    const recipe = { ..._recipe("Carbonara"), instructions: [{ title: "  Sauce  ", steps: [{ instruction: "Bouillir", hints: [] }] }] };
 
     expect(toTranslatedRecipes(_answer({ locale: "fr", recipe }), ["fr"])[0]?.recipe
       .instructions[0]?.title).toBe("Sauce");
+  });
+
+  /** Translation writes the same `instructions` field, so it gets the same tolerance for "no hints". */
+  it("reads a step whose hints the model left null as a step with no hints", () => {
+    const recipe = {
+      ..._recipe("Carbonara"),
+      instructions: [{ steps: [{ instruction: "Bouillir", hints: null }, { instruction: "Égoutter", hints: ["", "Garder un peu d'eau"] }] }],
+    };
+
+    expect(toTranslatedRecipes(_answer({ locale: "fr", recipe }), ["fr"])[0]?.recipe.instructions[0]?.steps).toEqual([
+      { instruction: "Bouillir", hints: [] },
+      { instruction: "Égoutter", hints: ["Garder un peu d'eau"] },
+    ]);
   });
 
   it("rejects an answer that is not the shape at all", () => {
@@ -148,7 +161,7 @@ describe("modelRecipeSchemaExtended", () => {
     tags: ["main"],
     equipments: [],
     timings: { preparation: 10 },
-    instructions: [{ title: null, steps: ["Boil the water"] }],
+    instructions: [{ title: null, steps: [{ instruction: "Boil the water", hints: [] }] }],
   };
 
   const _parse = (ingredients: unknown[]) =>

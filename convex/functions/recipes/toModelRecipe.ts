@@ -6,7 +6,7 @@ import { AUTHORED_TAGS, Tag, type AuthoredTag } from "@shared/tags";
 import { RecipeUnit } from "@shared/ingredients";
 import { Equipment } from "@shared/equipments";
 import { Cuisine } from "@shared/cuisines";
-import { DifficultyLevel } from "@shared/recipes";
+import { DifficultyLevel, type InstructionGroup } from "@shared/recipes";
 
 /** What `sanitizeRecipe`'s `outdated` argument expects — the model's own schema, not this file's. */
 export type ModelRecipe = z.infer<typeof modelRecipeSchema> & {
@@ -31,7 +31,7 @@ type RecipeInput = {
     cooking?: number;
     resting?: number;
   };
-  instructions: { title?: string; steps: string[] }[];
+  instructions: InstructionGroup[];
   ingredients: { name: string; quantity: number; unit: RecipeUnit; }[];
 }
 

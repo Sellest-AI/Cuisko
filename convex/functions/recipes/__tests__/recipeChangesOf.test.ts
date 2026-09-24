@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { ModelRecipe } from "@convex/functions/recipes/toModelRecipe";
 import { serializeIngredients } from "@shared/ingredients";
-import { serializeInstructions } from "@shared/recipes";
+import { serializeInstructions, toInstructionGroups } from "@shared/recipes";
 
 import { recipeChangesOf, type RecipeEdit, reviseRecipe } from "../recipeChangesOf";
 
@@ -21,7 +21,7 @@ const OUTDATED: ModelRecipe = {
   tags: ["soup"],
   equipments: ["oven"],
   timings: { preparation: 15, cooking: 30 },
-  instructions: [{ title: "Base", steps: ["Slice the onions.", "Sweat them."] }],
+  instructions: [{ title: "Base", steps: [{ instruction: "Slice the onions.", hints: [] }, { instruction: "Sweat them.", hints: [] }] }],
   ingredients: [{ name: "Onion", quantity: 4, unit: "pcs" }],
 };
 
@@ -31,9 +31,7 @@ const unchangedEdit = (): RecipeEdit => ({
   description: OUTDATED.description,
   servings: OUTDATED.servings,
   ingredients: serializeIngredients(OUTDATED.ingredients),
-  instructions: serializeInstructions(
-    OUTDATED.instructions.map((group) => ({ ...group, title: group.title ?? undefined })),
-  ),
+  instructions: serializeInstructions(toInstructionGroups(OUTDATED.instructions)),
   tags: ["soup"],
   equipments: ["oven"],
   difficulty: 2,
@@ -60,7 +58,7 @@ const ANALYZED: SanitizedRecipe = {
   tags: ["salad"],
   equipments: ["grill"],
   timings: { preparation: 5, cooking: 10, resting: undefined },
-  instructions: [{ title: "Agent base", steps: ["Do it the agent's way."] }],
+  instructions: [{ title: "Agent base", steps: [{ instruction: "Do it the agent's way.", hints: [] }] }],
   ingredients: [{ name: "Shallot", quantity: 2, unit: "pcs" }],
 };
 
@@ -89,6 +87,20 @@ describe("recipeChangesOf", () => {
    */
   test("does not re-analyze a title-only edit, but does retranslate it", () => {
     expect(recipeChangesOf({ ...unchangedEdit(), title: "Soupe" }, OUTDATED)).toEqual({
+      requiresNewAnalysis: false,
+      requiresTranslation: true,
+    });
+  });
+
+  /**
+   * A hint is the cook's own aside, not something the agent derives from the ingredients, so
+   * writing or rewording one must not spend a sanitizing call. It is text, though, and the other
+   * language has to show it too.
+   */
+  test("does not re-analyze a hint-only edit, but does retranslate it", () => {
+    const instructions = `${unchangedEdit().instructions}\n> Use a mandoline`;
+
+    expect(recipeChangesOf({ ...unchangedEdit(), instructions }, OUTDATED)).toEqual({
       requiresNewAnalysis: false,
       requiresTranslation: true,
     });

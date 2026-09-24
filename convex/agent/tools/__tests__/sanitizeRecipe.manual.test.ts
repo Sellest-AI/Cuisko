@@ -98,9 +98,11 @@ basse. Pas de mijoteuse ? Four à 300°F, même durée, cocotte couverte.
 Pendant que ça cuit vous faites les pickles : concombre en fines rondelles, le vinaigre de riz, une
 pincée de sel, une cuillère de sucre, et ça repose 30 minutes minimum au frais. Ciselez les oignons
 nouveaux et la coriandre là aussi, ça vous fera ça de moins à faire.
+> Avec une mandoline les rondelles sont toutes pareilles et ça va deux fois plus vite
 
 Quand c'est prêt la viande s'effiloche à la fourchette toute seule. Effilochez, remettez dans le jus
 de cuisson.
+>Si vous avez un thermomètre, elle est prête à 90 °C à cœur
 
 Réchauffez les tortillas 30 secondes par face dans une poêle sèche (5 minutes pour tout le monde),
 pendant que vous sortez la sauce. Vous montez : viande, pickles bien égouttés, sauce, oignons
@@ -108,6 +110,12 @@ nouveaux, coriandre, sésame.
 
 Chez nous ça fait 6 tacos par personne pour 4, enfin on était 6 la dernière fois et il en restait.`,
 } as const;
+
+/** The two `>` lines in `INPUT`, and the word in each that no faithful rewording drops. */
+const COOK_HINTS = [
+  { name: "the mandoline", mark: /mandoline/i },
+  { name: "the 90 °C", mark: /90/ },
+];
 
 /** The same shape `tools/sanitizeRecipe.ts` builds. Kept in step with it by hand — it is 2 lines. */
 const USER_PROMPT =
@@ -162,6 +170,11 @@ const CRITERIA = [
   `component or a moment, and a title joined by "and" is two groups that were not split. The ` +
   "title names only what the recipe actually makes: there is no nashi pear slaw, sauce or " +
   "pickle in this dish — the pear goes into the marinade.",
+  "Hints: the cook wrote two, as `>` lines — the mandoline under the pickles, the 90 °C under " +
+  "the shredding. Each comes back as a hint on the step that does that work, not folded into the " +
+  "step's text and not moved to another step. A hint the model adds itself is fine only where a " +
+  "home cook would genuinely go wrong without it; a hint on most steps, one that restates its " +
+  "step, or one that brings in an ingredient or a technique the cook never mentioned is a fault.",
 ];
 
 
@@ -183,7 +196,9 @@ const CRITERIA = [
  */
 const CHECKS = (recipe: SanitizedRecipe) => {
   const names = recipe.ingredients.map(({ name }) => name);
-  const steps = recipe.instructions.flatMap((group) => group.steps);
+  const steps = recipe.instructions.flatMap((group) => group.steps.map((step) => step.instruction));
+  const hints = recipe.instructions.flatMap((group) => group.steps.flatMap((step) => step.hints));
+  const hinted = recipe.instructions.flatMap((group) => group.steps).filter((step) => step.hints.length).length;
 
   return [
     // "The ingredient alone, singular, lowercase, with no quantity, brand or preparation."
@@ -205,6 +220,18 @@ const CHECKS = (recipe: SanitizedRecipe) => {
     ...recipe.instructions
       .filter((group) => !group.steps.length)
       .map((group) => `instruction group "${group.title ?? "untitled"}" has no steps`),
+
+    // "Every hint the cook wrote is kept." Keyed on the one word each hint cannot lose in a
+    // rewording — a noun and a number the prompt says are copied — so a miss is a dropped hint, or
+    // one folded into a step's text, and never a paraphrase.
+    ...COOK_HINTS.filter(({ mark }) => !hints.some((hint) => mark.test(hint))).map(
+      ({ name }) => `the cook's hint about ${name} is not a hint any more`,
+    ),
+
+    // "Most steps have none." More than half is the exact point where that stops being true.
+    ...(hinted > steps.length / 2
+      ? [`${hinted} of ${steps.length} steps carry a hint — hints are for the steps that need one`]
+      : []),
   ];
 };
 

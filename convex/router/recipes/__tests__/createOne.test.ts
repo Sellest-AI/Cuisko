@@ -40,7 +40,7 @@ const FREE_TEXT = {
   locale: "fr" as const,
   servings: 4,
   ingredients: "2 oignons\n2 cs d'huile d'olive",
-  instructions: "Émincer les oignons, les faire suer, servir.",
+  instructions: "Émincer les oignons, les faire suer, servir.\n> Une mandoline va plus vite",
 };
 
 const RECIPE = {
@@ -52,7 +52,9 @@ const RECIPE = {
   tags: ["soup" as const],
   equipments: [],
   timings: { preparation: 15 },
-  instructions: [{ title: "Base", steps: ["Émincer les oignons."] }],
+  instructions: [
+    { title: "Base", steps: [{ instruction: "Émincer les oignons.", hints: ["Une mandoline va plus vite."] }] },
+  ],
   ingredients: [{ name: "oignon", quantity: 2, unit: "pcs" as const }],
 };
 
@@ -132,6 +134,17 @@ describe("router/recipes/createOne", () => {
     ).rejects.toThrow();
   });
 
+  /** The prompt tells the model to keep every `>` line; it can only keep one it was actually handed. */
+  test("hands the agent the cook's hint lines as they wrote them", async () => {
+    const userId = await seedUser();
+
+    await t.withIdentity(asUser(userId)).action(api.router.recipes.createOne.authed, FREE_TEXT);
+
+    expect(sanitizeRun.mock.calls[0]![1]).toMatchObject({
+      instructions: "Émincer les oignons, les faire suer, servir.\n> Une mandoline va plus vite",
+    });
+  });
+
   test("_internal_persist stores the recipe against the owner it was handed", async () => {
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Franck" }));
 
@@ -146,6 +159,8 @@ describe("router/recipes/createOne", () => {
 
     expect(row!.userId).toBe(userId);
     expect(row!.title.values.fr).toBe("Soupe à l'oignon");
+    // The agent's hint is stored under its step, where the cooking session will read it back.
+    expect(row!.instructions.values.fr).toBe("## Base\n- Émincer les oignons.\n> Une mandoline va plus vite.");
   });
 
   /**

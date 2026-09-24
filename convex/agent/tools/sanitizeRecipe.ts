@@ -6,6 +6,8 @@ import {
   DIFFICULTY_LEVELS,
   type DifficultyLevel,
   type InstructionGroup,
+  type InstructionStep,
+  toInstructionGroups,
   wholeTimingsOf,
 } from "@shared/recipes";
 import { EQUIPMENTS, type Equipment } from "@shared/equipments";
@@ -129,11 +131,26 @@ export const modelRecipeSchema = z.object({
         `("Assembly"). Never "Step 3", never a restatement of its first step. null when the ` +
         "recipe is one single run of steps.",
       ),
-      steps: z.array(z.string()).describe(
-        `One action per step, written as an instruction ("Preheat the oven to 180°C"), with ` +
-        "no leading number, dash or bullet. An amount named inside a step uses the same unit " +
-        "as the ingredient list, and one ingredient's amounts across every step add up to the " +
-        "total listed there.",
+      steps: z.array(
+        z.object({
+          instruction: z.string().describe(
+            `One action, written as an instruction ("Preheat the oven to 180°C"), with no ` +
+            "leading number, dash or bullet. An amount named inside a step uses the same unit " +
+            "as the ingredient list, and one ingredient's amounts across every step add up to " +
+            "the total listed there.",
+          ),
+          // Absentable at both levels, because "no hints" is the answer the model gives most and
+          // it spells it every way: null, a missing key, "none", or [""]. `toInstructionGroups` (shared/recipes) turns
+          // every one of those into []. A required list would throw on the first of them.
+          hints: z.array(z.string().nullable().optional()).nullable().optional().describe(
+            "Tips shown beside this step while the cook is at the hob, one short sentence each. " +
+            "Every hint the cook wrote (a line starting with `>` under a step) is kept, on the " +
+            "same step. Add one of your own ONLY when the step genuinely needs it: a technique a " +
+            "home cook is likely to get wrong, a sign that tells them it is done, a safe shortcut. " +
+            "Most steps have none, and an empty list is the normal answer. Never restate the " +
+            "instruction, never pad.",
+          ),
+        }),
       ),
     }),
   ).describe(
@@ -184,16 +201,31 @@ export const modelRecipeSchema = z.object({
  */
 export const toSanitizedRecipe = (raw: unknown): SanitizedRecipe => {
   const recipe = parseModelOutput(modelRecipeSchema, raw);
-  return { ...recipe, timings: wholeTimingsOf(recipe.timings) };
+  return {
+    ...recipe,
+    timings: wholeTimingsOf(recipe.timings),
+    instructions: toInstructionGroups(recipe.instructions),
+  };
 };
+
+/** The model's instruction groups, after `parseModelOutput` has dropped every way of saying "none". */
+type _ModelRecipe = WithoutNulls<z.infer<typeof modelRecipeSchema>>;
 
 /**
  * The return annotation above only checks one way: the schema's type fitting `SanitizedRecipe`.
  * A tag added to the hand-written type and forgotten in the schema would still compile, and the
- * model would never be offered it. ADR 0010's Verify runs this line.
+ * model would never be offered it. ADR 0010's Verify runs these lines.
+ *
+ * `instructions` is pinned apart from the rest because it is the one field the model answers in a
+ * looser shape than the app reads — `hints` may be absent — and `toInstructionGroups` is what closes that gap.
+ * Everything else about a step still has to match exactly.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- a compile-time assertion, read by tsc alone
-type _Pinned = AssertTrue<Exact<WithoutNulls<z.infer<typeof modelRecipeSchema>>, SanitizedRecipe>>;
+type _Pinned = AssertTrue<Exact<Omit<_ModelRecipe, "instructions">, Omit<SanitizedRecipe, "instructions">>>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- a compile-time assertion, read by tsc alone
+type _PinnedStep = AssertTrue<
+  Exact<Omit<_ModelRecipe["instructions"][number]["steps"][number], "hints">, Omit<InstructionStep, "hints">>
+>;
 
 const _inputSchema = z.object({
   locale: z

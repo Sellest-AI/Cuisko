@@ -46,7 +46,8 @@ export const InstructionsScreen = ({ id }: { id?: string }) => {
             /** Titles are optional and need not be unique, so the position is the only stable key. */
             key={index}
             title={section.title}
-            steps={section.steps}
+            /** Hints stay out of the tab: they are for the cook at the hob, in the step-by-step session. */
+            steps={section.steps.map((step) => step.instruction)}
             offset={stepsBefore(index)}
             lines={ingredients}
           />

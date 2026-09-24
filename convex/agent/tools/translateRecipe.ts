@@ -2,7 +2,7 @@ import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 import type { ToolCtx } from "@convex-dev/agent";
 import z from "zod/v4";
 import { modelRecipeSchema } from "./sanitizeRecipe";
-import { InstructionGroup } from "@shared/recipes";
+import { type InstructionGroup, toInstructionGroups } from "@shared/recipes";
 import { createTool, parseModelOutput, providerSchema, wrapAgent } from "../utils";
 import { retryPromise } from "@shared/helpers";
 import { translatorAgent } from "../agents";
@@ -172,7 +172,10 @@ export const toTranslatedRecipes = <const L extends Locale>(
   raw: unknown,
   locales: readonly L[],
 ): TranslatedRecipe<L>[] =>
-  parseModelOutput(modelTranslationsSchema(locales), raw).translations as TranslatedRecipe<L>[];
+  parseModelOutput(modelTranslationsSchema(locales), raw).translations.map(({ locale, recipe }) => ({
+    locale: locale as L,
+    recipe: { ...recipe, instructions: toInstructionGroups(recipe.instructions) },
+  }));
 
 const _inputSchema = z.object({
   locales: z

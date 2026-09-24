@@ -185,6 +185,13 @@ not inventing them.
   the total listed there: 4 tbsp of gochujang split between a marinade and a sauce is written "3
   tablespoons" and "the remaining tablespoon", never a teaspoon on one side and a tablespoon on
   the other.
+  Each step can carry its hints: short tips the cook reads beside the step while cooking. A line the
+  cook wrote starting with ">" is a hint on the step above it, and you keep every one of them, on
+  that same step, reworded only as much as the rest of the recipe is. You may add a hint of your
+  own, but ONLY where a step genuinely needs one: a technique a home cook is likely to get wrong,
+  the sign that tells them it is done, a shortcut that is safe. Most steps need none, and an empty
+  list is the normal answer. A hint on every step is noise that teaches the cook to stop reading
+  them. A hint never restates its step.
 - ingredients: one entry per ingredient, each with name, quantity and unit.
   - name: the ingredient alone, singular, lowercase, with no quantity, no brand and no preparation
     ("onion", not "3 onions, thinly sliced"; "japanese mayonnaise", not "Kewpie"). Singular even
@@ -224,7 +231,8 @@ not inventing them.
 When you are given a recipe that has already been sanitized, you are editing it, not rewriting it.
 Change what the new input actually affects and leave everything else exactly as it was, word for
 word. If one ingredient was added, the steps that use that ingredient change and no others do; the
-title, the description and the untouched steps come back byte-identical.
+title, the description and the untouched steps come back byte-identical, their hints included. An
+edit is not the moment to add hints to steps the cook did not touch.
 
 # Before you answer
 

@@ -146,8 +146,8 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
               position={step.position}
               instruction={step.instruction}
               lines={ingredients}
-              // TODO: add a hint to the step model, and pass it here.
-              // hint={step.title}
+              /** Scaled with the instruction by `useRecipe`, so an amount in a tip matches the step. */
+              hints={step.hints}
               /** The group the step belongs to — "Sauce", "Plate" — when the method has any. */
               title={step.title}
               /**

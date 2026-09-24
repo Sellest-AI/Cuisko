@@ -16,7 +16,7 @@ const _answer = (overrides: Record<string, unknown> = {}) => ({
   tags: [],
   equipments: [],
   timings: { preparation: 5, cooking: 15, resting: null },
-  instructions: [{ title: null, steps: ["Boil the water"] }],
+  instructions: [{ title: null, steps: [{ instruction: "Boil the water", hints: [] }] }],
   ingredients: [{ name: "spaghetti", quantity: 200, unit: "g" }],
   ...overrides,
 });
@@ -51,14 +51,40 @@ describe("toSanitizedRecipe", () => {
 
   it("never titles a group with the word for having no title", () => {
     for (const title of [null, "null", "N/A", "none", "  ", "Untitled group".slice(0, 0)])
-      expect(toSanitizedRecipe(_answer({ instructions: [{ title, steps: ["Boil"] }] }))
-        .instructions[0]).toEqual({ steps: ["Boil"] });
+      expect(toSanitizedRecipe(_answer({ instructions: [{ title, steps: [{ instruction: "Boil", hints: [] }] }] }))
+        .instructions[0]).toEqual({ steps: [{ instruction: "Boil", hints: [] }] });
   });
 
   it("keeps a real group title", () => {
-    const instructions = [{ title: "  Sauce  ", steps: ["Boil"] }];
+    const instructions = [{ title: "  Sauce  ", steps: [{ instruction: "Boil", hints: [] }] }];
 
     expect(toSanitizedRecipe(_answer({ instructions })).instructions[0]?.title).toBe("Sauce");
+  });
+
+  /**
+   * "No hints" is the answer the model gives on most steps, and it spells it every way it can. Each
+   * of these is a valid thing for it to write and must land as [] rather than throw the recipe away.
+   */
+  it.for([
+    { name: "a null list", hints: null },
+    { name: "a missing list", hints: undefined },
+    { name: "a nothing-word instead of a list", hints: "none" },
+    { name: "an empty list", hints: [] },
+    { name: "a list of nothing-words", hints: ["", "  ", "null", "N/A", null] },
+  ])("reads $name as a step with no hints", ({ hints }) => {
+    const instructions = [{ steps: [{ instruction: "Boil", hints }] }];
+
+    expect(toSanitizedRecipe(_answer({ instructions })).instructions[0]?.steps).toEqual([
+      { instruction: "Boil", hints: [] },
+    ]);
+  });
+
+  it("keeps the real hints and drops the empty ones beside them", () => {
+    const instructions = [{ steps: [{ instruction: "Boil", hints: ["", "  Salt the water  ", null, "none"] }] }];
+
+    expect(toSanitizedRecipe(_answer({ instructions })).instructions[0]?.steps[0]?.hints).toEqual([
+      "Salt the water",
+    ]);
   });
 
   it("still rejects a wrong answer, as opposed to a badly worded one", () => {

@@ -77,9 +77,11 @@ row just is not shown, and the model believes it was.
 
 ## Verify
 
-`pnpm typecheck` — the `_Pinned` assertion in `convex/agent/tools/sanitizeRecipe.ts`
-(`AssertTrue<Exact<WithoutNulls<z.infer<typeof modelRecipeSchema>>, SanitizedRecipe>>`, helpers
-in `convex/agent/utils/exact.ts`) fails to compile when a vocabulary drifts in either direction.
+`pnpm typecheck` — the `_Pinned` and `_PinnedStep` assertions in
+`convex/agent/tools/sanitizeRecipe.ts` (`AssertTrue<Exact<…modelRecipeSchema…, SanitizedRecipe>>`,
+helpers in `convex/agent/utils/exact.ts`) fail to compile when a vocabulary drifts in either
+direction. `instructions` is pinned apart, minus a step's `hints`: the model may leave those absent,
+and `toInstructionGroups` (`shared/recipes.ts`) is what turns that into the `[]` `SanitizedRecipe` holds.
 `suggestDishes.ts` pins its output the same way. A return annotation alone is not this check: it
 passes when the hand-written type gains a value the schema never offers the model.
 

@@ -25,7 +25,7 @@ const ENGLISH: TranslatedRecipe = {
   recipe: {
     title: "Onion soup",
     description: "A winter soup.",
-    instructions: [{ title: "Base", steps: ["Slice the onions."] }],
+    instructions: [{ title: "Base", steps: [{ instruction: "Slice the onions.", hints: ["A mandoline is faster."] }] }],
   },
 };
 
@@ -78,6 +78,8 @@ describe("functions/recipes/saveTranslations", () => {
 
     expect(typeof row!.instructions.values.en).toBe("string");
     expect(row!.instructions.values.en).toContain("Base");
+    // The translated hint is stored under its step, so the other language's cooking session shows it.
+    expect(row!.instructions.values.en).toContain("- Slice the onions.\n> A mandoline is faster.");
   });
 
   /**

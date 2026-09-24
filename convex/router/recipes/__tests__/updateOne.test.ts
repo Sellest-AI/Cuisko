@@ -51,7 +51,7 @@ const seedUser = (name: string) =>
   });
 
 /** The stored text, and the free text that round-trips back to exactly this — see the tests below. */
-const SEED_INSTRUCTIONS = "Base\n- Émincer les oignons.";
+const SEED_INSTRUCTIONS = "Base\n- Émincer les oignons.\n> Une mandoline va plus vite.";
 const UNCHANGED_INSTRUCTIONS = serializeInstructions(parseInstructions(SEED_INSTRUCTIONS));
 
 const seedRecipe = (userId: Id<"users">, sourceUrl?: string) =>
@@ -115,7 +115,9 @@ const RECIPE = {
   tags: ["soup" as const],
   equipments: [],
   timings: { preparation: 15 },
-  instructions: [{ title: "Base", steps: ["Émincer les oignons."] }],
+  instructions: [
+    { title: "Base", steps: [{ instruction: "Émincer 2 oignons.", hints: ["Une mandoline va plus vite."] }] },
+  ],
   ingredients: [{ name: "oignon", quantity: 2, unit: "pcs" as const }],
 };
 
@@ -256,6 +258,28 @@ describe("router/recipes/updateOne", () => {
 
     const row = await t.run((ctx) => ctx.db.get(recipeId));
     expect(row!.title.meta.fr!.status).toBe("machine");
+    // The agent's hint reaches the column under the step it belongs to.
+    expect(row!.instructions.values.fr).toContain("- Émincer 2 oignons.\n> Une mandoline va plus vite.");
+  });
+
+  /**
+   * The cook rewords their hint and adds a second one. No agent — a hint is their own aside — and
+   * the row holds exactly what they wrote, under the step they wrote it under.
+   */
+  test("stores a hint-only edit as the cook wrote it, without calling the agent", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+    const instructions = "## Base\n- Émincer les oignons.\n> Une mandoline, c'est deux fois plus rapide.\n> Gardez les doigts loin de la lame.";
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, instructions });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row!.instructions.values.fr).toBe(instructions);
+    expect(row!.instructions.meta.fr!.status).toBe("edited");
   });
 
   test("_internal_persist patches the row it is handed rather than inserting a new one", async () => {

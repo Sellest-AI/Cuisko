@@ -453,6 +453,9 @@ export const scaleInstruction = (
 /**
  * The whole method rewritten, groups and headings intact.
  *
+ * Hints are scaled with their step: "add a spoonful more of the 200 g" is an amount the cook acts
+ * on, and a banner still saying 200 g beside a step saying 400 g is two numbers for one pan.
+ *
  * Returns the array it was given when nothing moves, so the memo in `useRecipe` hands back the
  * query's own objects at rest instead of copies of them.
  */
@@ -466,7 +469,10 @@ export const scaleInstructions = (
 
   return groups.map((group) => ({
     ...group,
-    steps: group.steps.map((step) => scaleInstruction(step, lines, written, wanted)),
+    steps: group.steps.map((step) => ({
+      instruction: scaleInstruction(step.instruction, lines, written, wanted),
+      hints: step.hints.map((hint) => scaleInstruction(hint, lines, written, wanted)),
+    })),
   }));
 };
 

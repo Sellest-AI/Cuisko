@@ -50,6 +50,8 @@ grouped the work. All of that is settled. Your output has EXACTLY the shape of t
 
 - the same number of instruction groups, in the same order;
 - the same number of steps inside each group, in the same order;
+- the same number of hints on each step, in the same order, each one translated; a step with no
+  hints keeps none;
 - a group whose title is null keeps a null title, and a group that HAS one keeps one.
 
 A group title is a heading over a block of work, and it is translated as a heading a cook would

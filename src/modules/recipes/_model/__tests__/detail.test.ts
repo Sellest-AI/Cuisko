@@ -115,8 +115,14 @@ describe("groupByCategory", () => {
 
 describe("flattenSteps", () => {
   const GROUPS = [
-    { title: "Sauce", steps: ["Soften the onions.", "Add the tomatoes."] },
-    { title: "Plate", steps: ["Spread the sauce."] },
+    {
+      title: "Sauce",
+      steps: [
+        { instruction: "Soften the onions.", hints: ["Keep the heat low."] },
+        { instruction: "Add the tomatoes.", hints: [] },
+      ],
+    },
+    { title: "Plate", steps: [{ instruction: "Spread the sauce.", hints: [] }] },
   ];
 
   /** "Step 3" has to mean one thing to someone reading the tab and someone standing at the hob. */
@@ -128,10 +134,15 @@ describe("flattenSteps", () => {
     expect(flattenSteps(GROUPS).map((step) => step.title)).toEqual(["Sauce", "Sauce", "Plate"]);
   });
 
+  /** The cooking session draws a step's tips from here, so they must stay on the step they were written under. */
+  test("carries each step's hints with it", () => {
+    expect(flattenSteps(GROUPS).map((step) => step.hints)).toEqual([["Keep the heat low."], [], []]);
+  });
+
   /** A recipe that is just five steps has one group with no title, and no heading to show. */
   test("leaves an ungrouped run without a title", () => {
-    expect(flattenSteps([{ steps: ["Boil the water."] }])).toEqual([
-      { instruction: "Boil the water.", position: 1 },
+    expect(flattenSteps([{ steps: [{ instruction: "Boil the water.", hints: [] }] }])).toEqual([
+      { instruction: "Boil the water.", hints: [], position: 1 },
     ]);
   });
 
