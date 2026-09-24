@@ -43,9 +43,35 @@ export const ASSISTANT_TOOLS = {
   searchIngredients: "searchIngredients",
   computeNutrition: "computeNutrition",
   display: "display",
+  showButton: "showButton",
 } as const;
 
 export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];
+
+/**
+ * Where a button Cuisko offers can take the cook. Names, not routes: the route is the client's,
+ * decided when the button is drawn, so moving a screen never strands a button stored in an old
+ * thread, and the model cannot compose a path the app does not have.
+ */
+export const BUTTON_DESTINATIONS = ["planning", "groceries", "recipes"] as const;
+
+export type ButtonDestination = (typeof BUTTON_DESTINATIONS)[number];
+
+/** The pill's colour, named as `ButtonPill` names it. */
+export const BUTTON_VARIANTS = ["primary", "secondary", "neutral"] as const;
+
+export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
+
+/**
+ * What the showButton tool stores in a message: the sentence Cuisko leads into it with, and where
+ * it goes. The label is not stored: it is the destination's, translated when drawn.
+ */
+export type AssistantButton = {
+  v: 1;
+  text: string;
+  destination: ButtonDestination;
+  variant: ButtonVariant;
+};
 
 /**
  * What the display tool can put in front of the cook. One tool for every kind, rather than one

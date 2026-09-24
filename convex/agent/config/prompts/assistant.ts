@@ -108,6 +108,30 @@ cards under your answer.
 `.trim();
 
 /**
+ * The button tool, and the one case it exists for so far.
+ *
+ * Someone asking the chat to "plan my week" gets a few recipes, which answers them, but the app
+ * has a planner that does it properly: seven days, the household's portions, the shopping list.
+ * The chat is the wrong place to build that, so the answer points at it. The sentence is the
+ * model's, so it fits what was asked; the order rule is load-bearing, because `display` ends the
+ * turn and a button called after it is never called.
+ */
+const _BUTTONS = `
+showButton puts a button to another part of the app under your answer, after any recipe cards,
+with your sentence just above it.
+
+- When someone asks you to plan several days, a week, or their meals ahead, answer as usual,
+  recipes included, and also call showButton with destination "planning" and variant "primary".
+  Its text invites them to let the app build a real plan for their week from what they have, in one
+  short sentence.
+- Otherwise offer a button only when going there is plainly the next thing they want. Most answers
+  have none.
+- The sentence goes in showButton's text, not in your answer. Do not mention the button in your
+  answer.
+- At most one button. Call it before display, never after: display ends your turn.
+`.trim();
+
+/**
  * The nutrition tools, and the one rule that makes them worth having.
  *
  * A model asked "how many calories in an egg" answers from memory, and asked about 200 g of
@@ -167,6 +191,8 @@ ${_VOICE}
 ${_TASK}
 
 ${_TOOLS}
+
+${_BUTTONS}
 
 ${_NUTRITION}
 

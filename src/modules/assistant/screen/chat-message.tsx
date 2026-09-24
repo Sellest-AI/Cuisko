@@ -6,6 +6,7 @@ import { theme } from "theme";
 
 import type { ChatMessage as ChatMessageModel } from "../_model/chatMessage";
 import { Display } from "./display";
+import { OfferedButton } from "./offered-button";
 import { ToolStep } from "./tool-step";
 
 type Props = {
@@ -46,6 +47,15 @@ export const ChatMessage = ({ message }: Props) => {
           <Display card={card} />
         </View>
       ))}
+      {/*
+        * Last, whenever it was called: it points somewhere else, which is the end of what this
+        * answer has to say, and a pill between the text and its cards would split them.
+        */}
+      {message.button && (
+        <View style={styles.assistantTool}>
+          <OfferedButton button={message.button} />
+        </View>
+      )}
     </View>
   );
 };

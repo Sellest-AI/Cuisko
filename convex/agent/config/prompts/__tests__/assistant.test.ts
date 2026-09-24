@@ -7,6 +7,7 @@ import { computeNutritionTool } from "../../../tools/computeNutrition";
 import { displayTool } from "../../../tools/display";
 import { searchIngredientsTool } from "../../../tools/searchIngredients";
 import { searchRecipesTool } from "../../../tools/searchRecipes";
+import { showButtonTool } from "../../../tools/showButton";
 import { assistantPrompt } from "../assistant";
 
 /**
@@ -21,6 +22,7 @@ const _everythingTheModelReads = (): string[] => {
     searchIngredientsTool({ locale: "fr" }),
     computeNutritionTool({ locale: "fr" }),
     displayTool,
+    showButtonTool,
   ];
 
   return [
