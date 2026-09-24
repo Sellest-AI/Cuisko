@@ -17,6 +17,7 @@ import { candidatePool, OWN_SHARE } from "./candidatePool";
 import { draftMealOf, type DraftPlate } from "./draftMealOf";
 import { isDistinct, MAX_DAYS, MAX_SERVINGS } from "./limits";
 import { selectMeals, type Plate } from "./selectMeals";
+import { spreadMeals } from "./spreadMeals";
 
 type Args = {
   householdId: Id<"households">;
@@ -76,7 +77,8 @@ const _isValidRequest = ({ dates, slots, servings, seed }: Args) =>
 /**
  * A generated week, written nowhere.
  *
- * Stock first, then the pool, then the pure selection, then names and images for what was picked
+ * Stock first, then the pool, then the pure selection — spread so no two neighbouring plates are the
+ * same dish in another recipe's words — then names and images for what was picked
  * and for each plate's alternatives. An alternative costs its plate picture and nothing else: its
  * recipe is already in the pool, and its lines are left for `getDraftMeal` to read if it is chosen.
  * A tunnel abandoned at review has asserted nothing, so this is a query and not a mutation.
@@ -116,7 +118,7 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftPlate[]
     }),
   ]);
 
-  const selected = selectMeals(pool.candidates, stock, plates, { ownShare: OWN_SHARE });
+  const selected = spreadMeals(selectMeals(pool.candidates, stock, plates, { ownShare: OWN_SHARE }), stock);
 
   const recipeIds = [
     ...new Set(selected.flatMap(({ candidate, alternatives }) => [candidate, ...alternatives].map(({ recipeId }) => recipeId))),
