@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { type SourceMessage, toChatMessages, withoutIds } from "../chatMessage";
+import { isShowingSomething, type SourceMessage, toChatMessages, withoutIds } from "../chatMessage";
 
 const message = (overrides: Partial<SourceMessage> = {}): SourceMessage => ({
   key: "m1",
@@ -322,5 +322,109 @@ describe("ids in the answer's text", () => {
     const text = "anticonstitutionnellement, 12345678901234567890123456789012 ! Et toi ?";
 
     expect(withoutIds(text)).toBe(text);
+  });
+});
+
+/** A showButton call, finished unless told otherwise. */
+const showButton = (output: unknown, state = "output-available", toolCallId = "call-b") => ({
+  type: "tool-showButton",
+  toolCallId,
+  state,
+  output,
+});
+
+const offer = (overrides: Record<string, unknown> = {}) => ({
+  v: 1,
+  text: "Tu veux un vrai planning pour ta semaine ?",
+  destination: "planning",
+  variant: "primary",
+  ...overrides,
+});
+
+describe("the button under an answer", () => {
+  test("a finished call is drawn, beside the cards", () => {
+    const [drawn] = toChatMessages([message({ parts: [showButton(offer()), display(card("a"))] })]);
+
+    expect(drawn?.button).toEqual(offer());
+    expect(drawn?.cards).toHaveLength(1);
+  });
+
+  /** It draws itself; a "running" line for it would be a status for a button, not for work. */
+  test("draws no status line", () => {
+    const [drawn] = toChatMessages([message({ parts: [showButton(offer())] })]);
+
+    expect(drawn?.steps).toEqual([]);
+  });
+
+  test("a call still streaming is not drawn yet", () => {
+    const [drawn] = toChatMessages([
+      message({ status: "streaming", parts: [showButton(undefined, "input-streaming")] }),
+    ]);
+
+    expect(drawn?.button).toBeUndefined();
+  });
+
+  /** An older app meeting a newer destination drops the button rather than guessing a route. */
+  test.each([
+    ["an unknown destination", { destination: "cellar" }],
+    ["an unknown variant", { variant: "danger" }],
+    ["an unknown version", { v: 2 }],
+    ["no sentence", { text: "  " }],
+  ])("%s is dropped", (_, overrides) => {
+    const [drawn] = toChatMessages([message({ parts: [showButton(offer(overrides))] })]);
+
+    expect(drawn?.button).toBeUndefined();
+  });
+
+  test("its sentence loses any id, like the answer does", () => {
+    const [drawn] = toChatMessages([
+      message({ parts: [showButton(offer({ text: "Planifie (k57a1b2c3d4e5f6g7h8i9j0k1l2m3n4p) ta semaine." }))] }),
+    ]);
+
+    expect(drawn?.button?.text).toBe("Planifie ta semaine.");
+  });
+
+  test("two calls keep the last one", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          showButton(offer({ destination: "recipes" }), "output-available", "b1"),
+          showButton(offer(), "output-available", "b2"),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.button?.destination).toBe("planning");
+  });
+
+  /** A turn whose only act was a button said something: it is not the empty failure. */
+  test("a turn with only a button has not failed", () => {
+    const [drawn] = toChatMessages([message({ text: "", parts: [showButton(offer())] })]);
+
+    expect(drawn?.hasFailed).toBe(false);
+  });
+
+  test("a user message never carries one", () => {
+    const [drawn] = toChatMessages([message({ role: "user", text: "Salut", parts: [showButton(offer())] })]);
+
+    expect(drawn?.button).toBeUndefined();
+  });
+});
+
+/**
+ * What the hook reads to stop "Cuisko is thinking". The reported case: a turn that answered with
+ * only a button was drawn, but not counted as showing anything, so the spinner never stopped.
+ */
+describe("isShowingSomething", () => {
+  test("a turn that answered with only a button is", () => {
+    const [drawn] = toChatMessages([message({ text: "", parts: [showButton(offer())] })]);
+
+    expect(drawn && isShowingSomething(drawn)).toBe(true);
+  });
+
+  test("an answer that has not started is not", () => {
+    const [drawn] = toChatMessages([message({ text: "", status: "streaming" })]);
+
+    expect(drawn && isShowingSomething(drawn)).toBe(false);
   });
 });

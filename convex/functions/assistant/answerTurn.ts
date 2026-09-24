@@ -10,6 +10,7 @@ import { computeNutritionTool } from "../../agent/tools/computeNutrition";
 import { displayTool, hasDisplayed } from "../../agent/tools/display";
 import { searchIngredientsTool } from "../../agent/tools/searchIngredients";
 import { searchRecipesTool } from "../../agent/tools/searchRecipes";
+import { showButtonTool } from "../../agent/tools/showButton";
 import { appendBrief } from "./appendBrief";
 
 type Args = {
@@ -65,6 +66,7 @@ export const answerTurn = async (
         [ASSISTANT_TOOLS.searchIngredients]: searchIngredientsTool({ locale }),
         [ASSISTANT_TOOLS.computeNutrition]: computeNutritionTool({ locale }),
         [ASSISTANT_TOOLS.display]: displayTool,
+        [ASSISTANT_TOOLS.showButton]: showButtonTool,
       },
       /**
        * A SUCCESSFUL `display` ends the turn in code rather than by asking the model to stop —

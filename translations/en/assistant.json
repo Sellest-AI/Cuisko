@@ -30,5 +30,10 @@
       "done_other": "Nutrition worked out",
       "failed": "The calculation did not go through"
     }
+  },
+  "buttons": {
+    "planning": "Plan my week",
+    "groceries": "See my groceries",
+    "recipes": "See my recipes"
   }
 }

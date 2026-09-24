@@ -13,6 +13,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { useAssistantChat } from "../_hooks/useAssistantChat";
 import { Display } from "./display";
 import { AssistantEmpty } from "./empty";
+import { OfferedButton } from "./offered-button";
 import { ToolStep } from "./tool-step";
 import { useSpin } from "~/ui/hooks/useSpin";
 import Animated from "react-native-reanimated";
@@ -131,6 +132,15 @@ export const AssistantScreen = ({ style, question }: Props) => {
                   <Display card={card} />
                 </View>
               ))}
+              {/*
+                * Last, whenever it was called: it points somewhere else, which is the end of what
+                * this answer has to say, and a pill between the text and its cards would split them.
+                */}
+              {message.button && (
+                <View style={styles.assistantTool}>
+                  <OfferedButton button={message.button} />
+                </View>
+              )}
             </View>
           ),
         )}
