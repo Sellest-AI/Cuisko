@@ -20,7 +20,10 @@ const search = (state: string, output?: unknown, toolCallId = "call-1") => ({
   output,
 });
 
-const found = (...ids: string[]) => ({ recipes: ids.map((id) => ({ id, title: `Recipe ${id}` })) });
+const _rows = (ids: string[]) => ids.map((id) => ({ id, title: `Recipe ${id}` }));
+
+/** A search output: one entry per name searched, beside the recipes it found. */
+const found = (...ids: string[]) => [{ query: "bolognaise", recipes: _rows(ids) }];
 
 /** A display call, finished unless told otherwise. */
 const display = (output: unknown, state = "output-available") => ({
@@ -155,6 +158,24 @@ describe("the status lines", () => {
     const drawn = toChatMessages([message({ parts: [search("output-available", found())] })]);
 
     expect(drawn[0]?.steps[0]).toMatchObject({ status: "done", count: 0 });
+  });
+
+  test("a search over several names counts each recipe once, whichever name found it", () => {
+    const output = [
+      { query: "bolognaise", recipes: _rows(["r1", "r2"]) },
+      { query: "chili con carne", recipes: _rows(["r2", "r3"]) },
+      { query: "pizza", recipes: [] },
+    ];
+    const drawn = toChatMessages([message({ parts: [search("output-available", output)] })]);
+
+    expect(drawn[0]?.steps[0]).toMatchObject({ status: "done", count: 3 });
+  });
+
+  /** Threads stored before the search took several names hold `{ recipes }`: one name, one list. */
+  test("a search stored in the single-name shape still counts", () => {
+    const drawn = toChatMessages([message({ parts: [search("output-available", { recipes: _rows(["r1", "r2"]) })] })]);
+
+    expect(drawn[0]?.steps[0]).toMatchObject({ status: "done", count: 2 });
   });
 
   /** A shape this build does not expect costs the line its number, never the render. */

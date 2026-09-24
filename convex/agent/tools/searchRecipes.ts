@@ -6,13 +6,23 @@ import z from "zod/v4";
 import { createTool } from "../utils";
 
 /**
- * The catalog, as the assistant reaches it: a dish name in, a handful of real recipes out.
+ * The catalog, as the assistant reaches it: a few dish names in, a handful of real recipes per name
+ * out.
  *
  * **The tool returns rows, and the model never composes one.** Its input is a search term — free
  * text, which is the one thing a model is reliable at producing — and the ids in its output come
  * from `searchForUser`, not from the model. The model then CARRIES the ones it chooses to `display`,
  * which re-checks each before anything is stored (ADR 0010). The cook sees none of this output
  * directly: the client reads only the call's state, for its status line.
+ *
+ * **Several names per call, because the model thinks in alternatives.** Asked for dinner with
+ * beef and tomatoes, it has "bolognaise" and "chili con carne" in mind at once; one term per call
+ * made that a round trip per name, each re-reading the whole conversation. Each name comes back
+ * beside what it found, so the model can tell which idea found nothing and which found five.
+ *
+ * **A list of `{ query, recipes }`, never an object keyed by the name.** The output is stored in
+ * the message document, and Convex refuses a field name that is not ASCII: keyed by name,
+ * "gnocchis poêlées" failed the whole turn.
  *
  * Titles travel beside the ids so the model can choose — it cannot pick the two recipes worth
  * showing from a list of opaque strings. They are paired inside
@@ -24,26 +34,32 @@ import { createTool } from "../utils";
 /**
  * How many recipes one search hands back.
  *
- * Small on purpose: the model reads these and pays for them by the token, and a turn may search
- * three times. Five per search is enough to choose from; twenty-four, which is what `searchForUser`
- * returns to a grid by default, is a shortlist the model would have to shortlist.
+ * Small on purpose: the model reads these and pays for them by the token, and one call may carry
+ * several names. Five per name is enough to choose from; twenty-four, which is what
+ * `searchForUser` returns to a grid by default, is a shortlist the model would have to shortlist.
  */
 const SEARCH_LIMIT = 5;
 
+/** How many names one call may search. With `SEARCH_LIMIT`, it caps what one call hands back. */
+const MAX_QUERIES = 5;
+
 const _inputSchema = z.object({
-  query: z
-    .string()
+  queries: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(MAX_QUERIES)
     .describe(
-      "The name of a DISH to look for, or a single ingredient. " +
-      "Search what you would call the recipe (\"bolognaise\", \"chili con carne\", \"tarte au " +
-      "citron\"), never the shopper's whole question.",
+      "The names of the DISHES to look for, or single ingredients, one per entry. " +
+      "Search what you would call each recipe ([\"bolognaise\", \"chili con carne\"]), never " +
+      "the shopper's whole question.",
     ),
 });
 
-/** What the tool hands back: what the model chooses from, and carries on to `display`. */
-export type FoundRecipes = {
-  recipes: { id: Id<"recipes">; title: string }[];
-};
+/**
+ * What the tool hands back: for each name searched, the recipes it found, best match first. What
+ * the model chooses from, and carries on to `display`.
+ */
+export type FoundRecipes = { query: string; recipes: { id: Id<"recipes">; title: string }[] }[];
 
 type Caller = {
   /** Whose ranking this is. The caller's own recipes come first — see `searchForUser`. */
@@ -67,18 +83,25 @@ type Caller = {
 export const searchRecipesTool = ({ userId, locale }: Caller) =>
   createTool({
     description:
-      "Searches this app's recipe catalog by dish name or ingredient and returns matching " +
-      "recipes. The cook does not see these results: pass the ones worth showing to display. " +
-      "Returns an empty list when nothing matches: say so rather than inventing a recipe.",
+      "Searches this app's recipe catalog for several dish names or ingredients at once, and " +
+      "returns, for each name searched, the matching recipes, best match first. The cook does " +
+      "not see these results: pass the ones worth showing to display. A name that matches " +
+      "nothing has an empty list: say so rather than inventing a recipe.",
     inputSchema: _inputSchema,
-    execute: async (ctx, { query }): Promise<FoundRecipes> => {
-      const found = await ctx.runQuery(internal.router.recipes.search._internal, {
-        query,
-        userId,
-        locale,
-        limit: SEARCH_LIMIT,
-      });
+    execute: async (ctx, { queries }): Promise<FoundRecipes> => {
+      // A name the model repeats, or pads with spaces, would be the same read twice.
+      const terms = [...new Set(queries.map((query) => query.trim()))].filter(Boolean);
 
-      return { recipes: found.map(({ id, title }) => ({ id, title })) };
+      return Promise.all(
+        terms.map(async (query) => {
+          const recipes = await ctx.runQuery(internal.router.recipes.search._internal, {
+            query,
+            userId,
+            locale,
+            limit: SEARCH_LIMIT,
+          });
+          return { query, recipes: recipes.map(({ id, title }) => ({ id, title })) };
+        }),
+      );
     },
   });

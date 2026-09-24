@@ -95,6 +95,21 @@ const _partType = (tool: string) => `tool-${tool}`;
 const _isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+/** How many distinct rows these are: one found under two names is still one thing to the cook. */
+const _distinctIds = (rows: unknown[]): number =>
+  new Set(rows.map((row) => (_isObject(row) ? row.id : undefined)).filter((id) => id !== undefined)).size;
+
+/**
+ * Counts a search that answers `[{ query, <field>: [...] }]`, one entry per name searched.
+ * `undefined` for any other shape, so a changed tool costs the line its number and nothing more.
+ */
+const _countFound = (field: string) => (output: unknown): number | undefined => {
+  if (!Array.isArray(output)) return undefined;
+  const lists = output.map((entry) => (_isObject(entry) ? entry[field] : undefined));
+
+  return lists.every(Array.isArray) ? _distinctIds(lists.flat()) : undefined;
+};
+
 /**
  * What each step tool's finished output counts, if it is the shape expected.
  *
@@ -105,7 +120,10 @@ const _isObject = (value: unknown): value is Record<string, unknown> =>
  */
 const _COUNTS: Record<StepTool, (output: unknown) => number | undefined> = {
   searchRecipes: (output) =>
-    _isObject(output) && Array.isArray(output.recipes) ? output.recipes.length : undefined,
+    // Threads stored before the search took several names hold one `{ recipes }`.
+    _isObject(output) && Array.isArray(output.recipes)
+      ? _distinctIds(output.recipes)
+      : _countFound("recipes")(output),
 };
 
 const _STEP_TOOLS = Object.keys(_COUNTS) as StepTool[];

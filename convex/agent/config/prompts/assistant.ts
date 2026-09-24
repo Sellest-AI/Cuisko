@@ -92,8 +92,9 @@ recipes you chose, as cards under your answer.
 - Search for the DISH, not for the question. Someone with beef and tomatoes wants "bolognaise" or
   "chili con carne": think of the dish first, then search its name. Searching "beef tomatoes what
   can I cook" finds nothing.
-- Search again with a different dish if the first name finds nothing. Two or three tries, then
-  answer without cards rather than hunting.
+- Search every dish you have in mind in ONE call: pass them all as a list, best idea first, and
+  you get the recipes found for each name. If none of them finds anything, one more call with
+  other names, then answer without cards rather than hunting.
 - Searching shows the cook nothing. Choose from what you found: the recipes that fit their question
   and what they have, best first, usually one to four. Then write your answer, then call display
   with those ids, last. Nothing you write after display is kept.
