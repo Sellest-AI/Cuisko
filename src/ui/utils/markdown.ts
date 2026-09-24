@@ -38,18 +38,21 @@ type Style = Omit<RichSpan, "text">;
  * Every delimiter must hug its content (`**a**`, not `** a **`), which is what keeps arithmetic
  * ("2 * 3 * 4") and a bullet's own asterisk from opening an emphasis. An underscore also has to
  * stand outside a word, so an identifier like `snake_case_name` is left alone.
+ *
+ * Groups are numbered, not named: Hermes hands back `match.groups` as undefined, so a named group
+ * passes every test under Node and throws on the device. `_inline` reads them by position.
  */
 const INLINE = new RegExp(
   [
     /** A plain string, not `String.raw`: a raw template cannot hold the backticks this matches. */
-    "(?<ticks>`+)(?<code>[^`\\n](?:[^\\n]*?[^`\\n])?)\\k<ticks>(?!`)",
-    String.raw`\*\*\*(?=\S)(?<boldItalic>[\s\S]*?\S)\*\*\*`,
-    String.raw`\*\*(?=\S)(?<bold>[\s\S]*?\S)\*\*`,
-    String.raw`__(?=\S)(?<boldUnderscore>[\s\S]*?\S)__`,
-    String.raw`~~(?=\S)(?<strike>[\s\S]*?\S)~~`,
-    String.raw`\*(?=[^\s*])(?<italic>[\s\S]*?[^\s*])\*`,
-    String.raw`(?<![\p{L}\p{N}])_(?=[^\s_])(?<italicUnderscore>[\s\S]*?[^\s_])_(?![\p{L}\p{N}])`,
-    String.raw`\[(?<link>[^\]\n]+)\]\([^)\s]+\)`,
+    "(`+)([^`\\n](?:[^\\n]*?[^`\\n])?)\\1(?!`)",
+    String.raw`\*\*\*(?=\S)([\s\S]*?\S)\*\*\*`,
+    String.raw`\*\*(?=\S)([\s\S]*?\S)\*\*`,
+    String.raw`__(?=\S)([\s\S]*?\S)__`,
+    String.raw`~~(?=\S)([\s\S]*?\S)~~`,
+    String.raw`\*(?=[^\s*])([\s\S]*?[^\s*])\*`,
+    String.raw`(?<![\p{L}\p{N}])_(?=[^\s_])([\s\S]*?[^\s_])_(?![\p{L}\p{N}])`,
+    String.raw`\[([^\]\n]+)\]\([^)\s]+\)`,
   ].join("|"),
   "gu",
 );
@@ -71,7 +74,8 @@ const _inline = (source: string, style: Style, spans: RichSpan[]) => {
   for (const match of source.matchAll(INLINE)) {
     _push(spans, source.slice(cursor, match.index), style);
 
-    const { code, boldItalic, bold, boldUnderscore, strike, italic, italicUnderscore, link } = match.groups!;
+    /** In `INLINE`'s order; the first slot is the whole match, the second the code span's ticks. */
+    const [, , code, boldItalic, bold, boldUnderscore, strike, italic, italicUnderscore, link] = match;
     if (code !== undefined) _push(spans, code, { ...style, code: true });
     else if (boldItalic !== undefined) _inline(boldItalic, { ...style, bold: true, italic: true }, spans);
     else if (bold !== undefined || boldUnderscore !== undefined)

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { parseInline, parseMarkdown } from "../markdown";
 
@@ -67,6 +67,40 @@ describe("parseInline", () => {
 
   it("does not read markdown inside code", () => {
     expect(parseInline("`**a**`")).toEqual([{ text: "**a**", code: true }]);
+  });
+});
+
+/** Hermes returns every match with `groups` undefined; Node fills it, so it has to be taken away. */
+describe("parseInline on an engine without named groups", () => {
+  const matchAll = String.prototype.matchAll;
+
+  beforeEach(() => {
+    vi.spyOn(String.prototype, "matchAll").mockImplementation(function (this: string, pattern: RegExp) {
+      return [...matchAll.call(this, pattern)].map((match) => Object.assign(match, { groups: undefined })).values();
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("still reads every inline style", () => {
+    expect(parseInline("``a`` ***b*** **c** __d__ ~~e~~ *f* _g_ [h](x)")).toEqual([
+      { text: "a", code: true },
+      { text: " " },
+      { text: "b", bold: true, italic: true },
+      { text: " " },
+      { text: "c", bold: true },
+      { text: " " },
+      { text: "d", bold: true },
+      { text: " " },
+      { text: "e", strike: true },
+      { text: " " },
+      { text: "f", italic: true },
+      { text: " " },
+      { text: "g", italic: true },
+      { text: " h" },
+    ]);
   });
 });
 
