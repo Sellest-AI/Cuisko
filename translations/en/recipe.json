@@ -105,8 +105,8 @@
     "next": "Next",
     "update_cellar": "Update my cellar",
     "update_cellar_pending": "Update my cellar ({{seconds, number}})",
-    "cellar_title": "Your cellar, updated for you",
-    "cellar_body": "Everything this recipe used comes out of your cellar, so your next list only asks for what is really missing.",
+    "cellar_title": "We update your cellar",
+    "cellar_body": "We take the ingredients this recipe used out of your cellar. Your next plan will only ask for what is really missing.",
     "cellar_failed_title": "Your cellar could not be updated",
     "cellar_failed_body": "Nothing moved. Check your connection and try again."
   },
