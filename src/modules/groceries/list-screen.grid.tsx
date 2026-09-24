@@ -230,10 +230,18 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const tap = (stock: StockRow) => {
     if (stock.onlyOption !== null) return submit(stock, stock.onlyOption);
 
-    /** The sheet answers for one ingredient in one unit — the pair the row was merged on. */
+    /**
+     * The sheet answers for one ingredient in one unit — the pair the row was merged on. A to-buy
+     * card may stand for one plate's part of that row, and the sheet opens on what it showed.
+     */
     return router.push({
       pathname: "/quantity",
-      params: { ingredientId: stock.ingredientId, unit: stock.unit, intent: stock.intent },
+      params: {
+        ingredientId: stock.ingredientId,
+        unit: stock.unit,
+        intent: stock.intent,
+        ...(stock.intent === "buy" ? { needed: String(stock.amount) } : {}),
+      },
     });
   };
 
