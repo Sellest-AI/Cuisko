@@ -1,7 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
-import { Image } from "@ui/image";
 import { ButtonPill } from "@ui/button-pill";
 import { ActionRow } from "@ui/action-row";
 import { CalendarPlus, ForkKnife, type Icon, ListPlus, Plus, Sparkles, Store } from "@ui/icons";
@@ -11,7 +10,7 @@ import { useTranslations } from "translations";
 import { type Href, router } from "expo-router";
 import { useStockCounts } from "~/modules/groceries/hooks";
 import { useNavigationBar } from "~/modules/navigation/hooks";
-import { CUISKO_HEAD } from "~/lib/mascots";
+import { AskCuiskoPill } from "~/modules/assistant/ask-cuisko-pill";
 
 /**
  * The four starts, as a shelf of pills above the rows.
@@ -52,28 +51,9 @@ export const QuickAccess = () => {
         renderItem={({ item }) => {
           if (item.key === "ask_cuisko")
             return (
-              <ButtonPill
-                size="sm"
-                variant="neutral"
-                onPress={() => router.push(item.href)}
-                style={styles.start}
-                leftContent={<View
-                  style={{
-                    width: 38,
-                    height: 38,
-                    padding: 5,
-                    marginLeft: -10,
-                    marginRight: -5
-                  }}
-                >
-                  <Image
-                    source={CUISKO_HEAD}
-                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                  />
-                </View>}
-              >
+              <AskCuiskoPill size="sm" onPress={() => router.push(item.href)} style={styles.start}>
                 {t(`QuickAccess.${item.key}`)}
-              </ButtonPill>
+              </AskCuiskoPill>
             )
 
           return (
@@ -132,5 +112,5 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing[12],
   },
   /** A margin rather than the container's `gap`, which a horizontal FlashList does not apply. */
-  start: { marginRight: theme.spacing[6], backgroundColor: theme.colors.neutral.subtle },
+  start: { marginRight: theme.spacing[6] },
 });

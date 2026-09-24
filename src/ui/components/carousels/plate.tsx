@@ -28,10 +28,13 @@ import { ArrowLeftRight, Icon, MorphIcon } from "@ui/icons";
 
 const MAX_TITLE_LENGTH = 16;
 
-/** Plate diameter at rest, and how much of it is left when the plate is off-centre. */
-const PLATE_SIZE = 164;
-const PLATE_GAP = theme.spacing[16];
-const SIDE_SCALE = 0.7;
+/** Plate diameter at rest, and how much of it is left when the plate is off-centre.
+ *
+ *  Exported for `plate.empty.tsx`, which draws the same three slots without a list under them:
+ *  the empty carousel only reads as the same object if it is laid out to the same numbers. */
+export const PLATE_SIZE = 164;
+export const PLATE_GAP = theme.spacing[16];
+export const SIDE_SCALE = 0.7;
 
 /** One item advances by exactly this much, so a snap offset is always `index * SNAP`. */
 const SNAP = PLATE_SIZE + PLATE_GAP;

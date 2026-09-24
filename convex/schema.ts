@@ -3,7 +3,7 @@ import { defineSchema } from "convex/server";
 
 import { usersExtended } from "./schema/users";
 import { userPreferences } from "./schema/preferences";
-import { households, householdUsers } from "./schema/households";
+import { households, householdFormerMembers, householdUsers } from "./schema/households";
 import { ingredients } from "./schema/ingredients";
 import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
 import { recipeFavorites, recipeIngredients, recipes } from "./schema/recipes";
@@ -21,6 +21,7 @@ export default defineSchema({
   userPreferences,
   households,
   householdUsers,
+  householdFormerMembers,
   mealPlans,
   plannedMeals,
   plannedMealIngredients,

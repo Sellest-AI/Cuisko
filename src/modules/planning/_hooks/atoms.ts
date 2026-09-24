@@ -1,5 +1,7 @@
 import { atom } from "jotai";
 
+import { householdAtom } from "~/modules/households/household-atom";
+
 import type { Equipment } from "@shared/equipments";
 import type { NutritionPreference } from "@shared/preferences";
 import type { Taste } from "@shared/tastes";
@@ -49,13 +51,13 @@ export const TUNNEL_OFFERS = {
  * Seeded from the household when the planning seed lands, so the second run through the tunnel
  * opens on what the first one answered — see `isSetupSeededAtom`.
  */
-export const peopleAtom = atom<number>(TUNNEL_OFFERS.people);
+export const peopleAtom = householdAtom<number>(TUNNEL_OFFERS.people);
 
-export const daysAtom = atom<number>(TUNNEL_OFFERS.days);
+export const daysAtom = householdAtom<number>(TUNNEL_OFFERS.days);
 
-export const slotsAtom = atom<MealSlot[]>([...TUNNEL_OFFERS.slots]);
+export const slotsAtom = householdAtom<MealSlot[]>([...TUNNEL_OFFERS.slots]);
 
-export const noteAtom = atom("");
+export const noteAtom = householdAtom("");
 
 /**
  * What the kitchen can do, in @shared/equipments' own words.
@@ -64,7 +66,7 @@ export const noteAtom = atom("");
  * `string` is what let `"airfryer"` sit beside the vocabulary's `"air fryer"` without the compiler
  * having anything to say about it.
  */
-export const equipmentsAtom = atom<Equipment[]>([...TUNNEL_OFFERS.equipments]);
+export const equipmentsAtom = householdAtom<Equipment[]>([...TUNNEL_OFFERS.equipments]);
 
 /**
  * Whether this run has already taken the household's answers.
@@ -79,7 +81,7 @@ export const equipmentsAtom = atom<Equipment[]>([...TUNNEL_OFFERS.equipments]);
  * the effect re-runs on each of them; without this, walking back to setup after ticking an
  * appliance would put the household's saved kitchen back over the answer just given.
  */
-export const isSetupSeededAtom = atom(false);
+export const isSetupSeededAtom = householdAtom(false);
 
 /**
  * The one list the diet step draws: every diet and allergen, each carrying whether it is ticked
@@ -93,7 +95,7 @@ export const isSetupSeededAtom = atom(false);
  * Typed rather than `string[]`: the ids used to be a hand-written list with no relation to any
  * vocabulary, and `string` is what let a screen and a validator disagree in silence.
  */
-export const constraintsAtom = atom<Constraint[] | null>(null);
+export const constraintsAtom = householdAtom<Constraint[] | null>(null);
 
 /**
  * The craving this week is built around, in @shared/tastes' own words. Empty by default — a mood
@@ -103,7 +105,7 @@ export const constraintsAtom = atom<Constraint[] | null>(null);
  * `string` is what let `"one-pan"` sit beside the tag vocabulary's `"one-pot"` with nothing to
  * catch it — the same failure `equipmentsAtom` documents for `"airfryer"`.
  */
-export const moodsAtom = atom<Taste[]>([]);
+export const moodsAtom = householdAtom<Taste[]>([]);
 
 /**
  * What the caller is aiming for nutritionally — the `seeks` half of their stored preferences,
@@ -118,10 +120,10 @@ export const moodsAtom = atom<Taste[]>([]);
  * cleared by `resetTunnelAtom`; a seek describes how a person eats, survives the run, and is
  * written back by `commitPreferences`. The two used to be one question asked in two vocabularies.
  */
-export const seeksAtom = atom<NutritionPreference[] | null>(null);
+export const seeksAtom = householdAtom<NutritionPreference[] | null>(null);
 
 /** How long there is to cook on an average evening. `any` until the user says otherwise. */
-export const cookingTimeAtom = atom<CookingTime>("any");
+export const cookingTimeAtom = householdAtom<CookingTime>("any");
 
 /**
  * Filled by the generating step, read by the review step, spent by the grocery step.
@@ -134,7 +136,7 @@ export const cookingTimeAtom = atom<CookingTime>("any");
  * uncommitted. A second week lands after the days already planned — `usePlanDraft` starts it past
  * the latest kept plate — and `commit` replaces whatever it still finds on a day and slot it writes.
  */
-export const draftMealsAtom = atom<DraftMeal[]>([]);
+export const draftMealsAtom = householdAtom<DraftMeal[]>([]);
 
 /**
  * The day the week counts from: today, or the household's latest kept plate when that is further on.
@@ -143,7 +145,7 @@ export const draftMealsAtom = atom<DraftMeal[]>([]);
  * seeded answers — the query underneath is reactive, and a plate kept from another device mid-review
  * must not move the week under the user. `resetTunnelAtom` clears it so the next run re-reads.
  */
-export const planAfterAtom = atom<Date | null>(null);
+export const planAfterAtom = householdAtom<Date | null>(null);
 
 /**
  * The days the week covers, counted once from `planAfterAtom` and `daysAtom`; empty until the start
@@ -157,7 +159,7 @@ export const planDatesAtom = atom((get) => {
 });
 
 /** Rows the user says are already in the kitchen, so the list stops asking for them. */
-export const ownedRowsAtom = atom<string[]>([]);
+export const ownedRowsAtom = householdAtom<string[]>([]);
 
 /**
  * The shuffle the generated week was drawn from, rolled once per run by the generating step.
@@ -166,7 +168,7 @@ export const ownedRowsAtom = atom<string[]>([]);
  * the plan, so the week can be drawn again — and the step that commits is two screens further on.
  * `null` means nothing has been generated yet, which is the one state where there is nothing to keep.
  */
-export const shuffleSeedAtom = atom<number | null>(null);
+export const shuffleSeedAtom = householdAtom<number | null>(null);
 
 /**
  * Empty the last run out before starting another.

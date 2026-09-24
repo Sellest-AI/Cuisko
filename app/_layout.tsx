@@ -4,6 +4,8 @@ import { StyleSheet } from "react-native";
 import { BlurScope, BlurTarget } from "@ui/blur-view";
 import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { theme } from "~/global/theme";
+import { AuthGate } from "~/modules/auth/auth-gate";
+import { HouseholdAtomsReset } from "~/modules/households/household-atoms-reset";
 import { NavigationBar } from "~/modules/navigation/navigation-bar";
 import { Providers } from "~/providers";
 
@@ -66,6 +68,19 @@ export default function RootLayout() {
             }}
           />
           {/*
+            * The account drawer draws over the page it was opened from, which stays visible to
+            * the right of it. Transparent, so that page is still there to see; no native slide,
+            * because the drawer slides its own panel in from the left and fades its own backdrop.
+            */}
+          <Stack.Screen
+            name="account"
+            options={{
+              presentation: "transparentModal",
+              animation: "none",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          {/*
             * Cooking covers the app rather than sitting inside it: hands are busy, and a back
             * gesture or a bar edge caught mid-step is a lost place in the method.
             */}
@@ -100,6 +115,10 @@ export default function RootLayout() {
       <BlurScope target={page}>
         <NavigationBar />
       </BlurScope>
+      {/* Beside the navigator rather than in a screen: a switch can happen from any of them. */}
+      <HouseholdAtomsReset />
+      {/* Last, so its cover draws over the bar as well as the page. */}
+      <AuthGate />
     </Providers>
   );
 }

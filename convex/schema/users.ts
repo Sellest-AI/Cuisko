@@ -16,5 +16,12 @@ const vRole = v.union(...ROLES.map(v.literal));
 export const usersExtended = defineTable({
   userId: v.id("users"),
   role: vRole,
+  /**
+   * The household the app shops for. Optional because an account created before households were
+   * made at sign-up has none; the reads fall back to the oldest membership when it is unset.
+   */
+  currentHouseholdId: v.optional(v.id("households")),
   updatedAt: v.number(), // S5
-}).index("by_user", ["userId"]);
+})
+  .index("by_user", ["userId"])
+  .index("by_current_household", ["currentHouseholdId"]);

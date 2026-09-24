@@ -63,7 +63,7 @@ export const draftMeal = async (ctx: QueryCtx, args: Args): Promise<DraftMeal> =
   );
 
   /** `isMine` only steers the own-share cap of a week's selection; a chosen plate has no cap to obey. */
-  const { covered } = coverageOf({ recipeId: args.recipeId, needs, isMine: false }, stock);
+  const { covered } = coverageOf({ recipeId: args.recipeId, needs, cuisine: recipe.cuisine, isMine: false }, stock);
 
   const ingredients = new Map<Id<"ingredients">, Doc<"ingredients">>(
     lines.map((row) => [row.ingredient._id, row.ingredient]),

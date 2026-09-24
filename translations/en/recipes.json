@@ -4,8 +4,10 @@
   "favorites": "Your favorite recipes",
   "yours": "Your recipes",
   "matches": "Matches",
-  "empty_title": "No recipes yet",
-  "empty_body": "Write your first one and it will be waiting here.",
+  "empty_title": "You have no recipes yet",
+  "empty_body": "Import one you love, or search our catalog for something to cook.",
+  "empty_import": "Import a recipe",
+  "empty_search": "Search the catalog",
   "no_matches_title": "Nothing found",
   "no_matches_body": "No recipe matches “{{query}}”, by name or by what is in it."
 }

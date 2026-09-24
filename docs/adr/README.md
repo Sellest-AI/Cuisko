@@ -20,6 +20,7 @@ carries the command that proves it still holds.
 | [0013](./0013-a-plate-is-planned-through-one-path.md) | A plate is planned through one path, and only what is ahead holds stock | `convex/functions/planning/**`, `convex/router/planning/**`, `convex/schema/planning.ts` | `pnpm test` |
 | [0014](./0014-a-recipe-is-readable-by-any-cook.md) | A recipe is readable by any signed-in cook; only editing is gated | `convex/router/recipes/*`, `convex/functions/recipes/**`, `src/modules/recipes/**` | `pnpm test` |
 | [0015](./0015-one-producer-for-a-shared-derivation.md) | A value two screens must agree on is computed by one side | `shared/**`, `convex/router/**`, `convex/functions/**`, `src/modules/**` | `pnpm lint` |
+| [0016](./0016-household-state-resets-on-a-switch.md) | Session state about a household resets when the household switches | `src/modules/**`, `src/lib/**`, `app/_layout.tsx` | `pnpm check:households`, `pnpm test` |
 `pnpm verify` runs all of them — on demand, in the pre-commit hook, and in CI.
 
 ## Format

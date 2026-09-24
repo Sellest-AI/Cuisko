@@ -38,7 +38,8 @@
     "check:search": "node scripts/checks/c11-derived-search-fields.mjs",
     "check:vocabulary": "node scripts/checks/c12-vocabulary-coverage.mjs",
     "check:threads": "node scripts/checks/c13-thread-access.mjs",
-    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads",
+    "check:households": "node scripts/checks/c14-household-atoms.mjs",
+    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads && pnpm check:households",
     "verify": "pnpm typecheck && pnpm lint && pnpm check && pnpm test",
     "prepare": "git config core.hooksPath .githooks"
   },

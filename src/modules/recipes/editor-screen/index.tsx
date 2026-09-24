@@ -4,6 +4,7 @@ import { ActivityIndicator, View, StyleSheet, ViewStyle } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 
+import { EmptyState } from "@ui/empty-state";
 import { Image } from "@ui/image";
 import { ArrowLeft, CircleAlert, ForkKnife, ForkKnifeIcon } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
@@ -29,7 +30,6 @@ import { CreatingOverlay } from "./creating-overlay";
 import { EditorDetailFields } from "./details";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
-import { EmptyState } from "../_components/empty-state";
 import { Servings } from "../_components/servings";
 import { serializeIngredients } from "@shared/ingredients";
 
@@ -202,11 +202,11 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
           icon={ForkKnife}
           title={t("Editor.not_found_title")}
           body={t("Editor.not_found_body")}
-          action={{
+          actions={[{
             label: t("Chrome.not_found_action"),
             icon: ArrowLeft,
             onPress: () => (router.canGoBack() ? router.back() : router.replace("/")),
-          }}
+          }]}
         />
       </SafeAreaView>
     );

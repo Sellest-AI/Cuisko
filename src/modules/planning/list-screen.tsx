@@ -1,6 +1,6 @@
 import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { useState } from "react";
 
@@ -49,14 +49,20 @@ const _openPlate = (row: PlanningRow<MealCard>) =>
  * A list rather than the home carousel because this is the screen for seeing the *shape* of a week
  * — PRODUCT.md's weekly beat asks for "seeing the whole week", which a carousel showing one plate
  * at a time cannot answer.
+ *
+ * A household that has never planned is sent straight to the tunnel instead: a list of open slots
+ * with no plate behind or ahead of them shows nothing, and the one thing to do from it is plan. A
+ * replace, so backing out of the tunnel does not land here and bounce straight back in.
  */
 export const PlanningScreen = ({ focusDate }: Props) => {
   const t = useTranslations("Planning");
-  const { rows, initialIndex, isLoading, loadOlder, loadNewer } = usePlanningList(focusDate);
+  const { rows, initialIndex, isLoading, isUnplanned, loadOlder, loadNewer } = usePlanningList(focusDate);
 
   const { top } = useSafeAreaInsets()
 
   const [show, setShow] = useState(false);
+
+  if (isUnplanned) return <Redirect href="/planning/new/setup" />;
 
   return (
     <>

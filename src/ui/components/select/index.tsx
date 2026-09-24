@@ -83,6 +83,7 @@ export const Select = <T extends string>({
       <View ref={triggerRef} collapsable={false} style={style}>
         <Button
           style={{
+            backgroundColor: colors.background,
             paddingLeft: theme.spacing[12],
             paddingRight: theme.spacing[8],
             gap: theme.spacing[6],

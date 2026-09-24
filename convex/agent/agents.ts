@@ -76,7 +76,7 @@ export const catalogAgent = new Agent(components.agent, {
 
 export const ingredientsAgent = new Agent(components.agent, {
   name: "Cuisko Ingredient Agent",
-  providerOptions: models.ingredients.providerOptions({ effort: false }),
+  providerOptions: models.ingredients.providerOptions({ effort: "low" }),
   languageModel: models.ingredients.model,
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },

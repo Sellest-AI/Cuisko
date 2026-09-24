@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
+import type { Cuisine } from "@shared/cuisines";
 
 import { selectMeals, type Candidate, type Need, type Plate, type Stock } from "../selectMeals";
 
@@ -25,11 +26,20 @@ const pinch = (ingredientId: Id<"ingredients">): Need => ({
   kind: "pinch",
 });
 
-const recipe = (name: string, needs: Need[], isMine = false): Candidate => ({
+/** `"other"` by default: it is never counted as a repeat, so only the tests about cuisine see one. */
+const recipe = (name: string, needs: Need[], isMine = false, cuisine: Cuisine = "other"): Candidate => ({
   recipeId: id<"recipes">(name),
   needs,
+  cuisine,
   isMine,
 });
+
+/**
+ * Recipes sharing nothing with anything, to give a pool the breadth rarity is measured against.
+ * In a three-recipe pool an ingredient two of them use is "common", which no real pool would say.
+ */
+const fillers = (count: number) =>
+  Array.from({ length: count }, (_, index) => recipe(`filler-${index}`, [measured(id<"ingredients">(`only-${index}`), 1)]));
 
 const plates = (count: number): Plate[] =>
   Array.from({ length: count }, (_, day) => ({ date: day, slot: "lunch", servings: 2 }));
@@ -157,6 +167,7 @@ describe("functions/planning/selectMeals", () => {
           recipe("salad", [measured(TOMATO, 300), measured(FETA, 100)]),
           recipe("feast", seven.map((ingredient) => measured(ingredient, 100))),
           recipe("toast", [measured(FETA, 50), measured(id<"ingredients">("bread"), 2)]),
+          ...fillers(3),
         ],
         stock(),
         2,
@@ -180,16 +191,73 @@ describe("functions/planning/selectMeals", () => {
       expect(names(meals)).toEqual(["stew", "dal"]);
     });
 
-    test("stops crediting a purchase after the reuse cap", () => {
+    /** Ten plates at 40%: a purchase pulls four reuses, then the pool's own order resumes. */
+    test("stops crediting a purchase at the horizon, 40% of the week's plates", () => {
       const withTomato = (name: string) => recipe(name, [measured(TOMATO, 100), measured(id<"ingredients">(name), 1)]);
       const meals = pick(
-        [withTomato("a"), withTomato("b"), withTomato("c"), withTomato("d"), recipe("dal", [measured(LENTILS, 1)]), withTomato("e")],
+        [withTomato("a"), recipe("dal", [measured(LENTILS, 1)]), ...["b", "c", "d", "e", "f", "g", "h", "i", "j"].map(withTomato)],
         stock(),
-        6,
+        10,
       );
 
-      // a buys; b, c, d reuse; the cap is spent, so the dal keeps its place ahead of e.
-      expect(names(meals)).toEqual(["a", "b", "c", "d", "dal", "e"]);
+      // a buys; b, c, d, e reuse; the horizon is spent, so the dal takes its pool place ahead of f.
+      expect(names(meals)).toEqual(["a", "b", "c", "d", "e", "dal", "f", "g", "h", "i"]);
+    });
+
+    test("keeps a horizon of two reuses on the shortest week", () => {
+      const withTomato = (name: string) => recipe(name, [measured(TOMATO, 100), measured(id<"ingredients">(name), 1)]);
+      const meals = pick(
+        [withTomato("a"), recipe("dal", [measured(LENTILS, 1)]), withTomato("b"), withTomato("c")],
+        stock(),
+        3,
+      );
+
+      // 40% of three plates rounds to one reuse; the floor keeps two, so c still beats the dal.
+      expect(names(meals)).toEqual(["a", "b", "c"]);
+    });
+
+    /** Without the fade, x2 would take the third plate on pool order: both reuse one purchase. */
+    test("credits a purchase less with each plate that has already reused it", () => {
+      const X = id<"ingredients">("x");
+      const Y = id<"ingredients">("y");
+      const using = (name: string, ingredient: Id<"ingredients">) => recipe(name, [measured(ingredient, 1), measured(id<"ingredients">(name), 1)]);
+      const meals = pick(
+        [recipe("base", [measured(X, 1), measured(Y, 1)]), using("x1", X), using("x2", X), using("y1", Y), using("y2", Y)],
+        stock(),
+        3,
+      );
+
+      expect(names(meals)).toEqual(["base", "x1", "y1"]);
+    });
+
+    /** Onion is in most of the pool, so sharing it says little; the capers say the dishes belong together. */
+    test("credits a rare purchase above a common one", () => {
+      const ONION = id<"ingredients">("onion");
+      const CAPERS = id<"ingredients">("capers");
+      const using = (name: string, ingredient: Id<"ingredients">) => recipe(name, [measured(ingredient, 1), measured(id<"ingredients">(name), 1)]);
+      const meals = pick(
+        [
+          recipe("base", [measured(ONION, 1), measured(CAPERS, 1)]),
+          using("stew", ONION),
+          using("puttanesca", CAPERS),
+          using("soup", ONION),
+          using("curry", ONION),
+          using("chili", ONION),
+        ],
+        stock(),
+        2,
+      );
+
+      expect(names(meals)).toEqual(["base", "puttanesca"]);
+    });
+
+    test("gives no credit for sharing an ingredient every candidate uses", () => {
+      const using = (name: string) => recipe(name, [measured(TOMATO, 1), measured(id<"ingredients">(name), 1)]);
+      const meals = pick([using("a"), recipe("dal", [measured(TOMATO, 1)]), using("b")], stock(), 2);
+
+      // All three use tomato, so reusing it is worth nothing and the second plate is pool order.
+      // Credited, b's and the dal's reuse would tie on half their lines against all of them.
+      expect(names(meals)).toEqual(["a", "dal"]);
     });
 
     test("puts a line that could not be measured in the basket", () => {
@@ -218,13 +286,14 @@ describe("functions/planning/selectMeals", () => {
     test("spends one reuse per ingredient, however many lines name it", () => {
       const twice = (name: string) => recipe(name, [measured(TOMATO, 100), measured(TOMATO, 50), measured(id<"ingredients">(name), 1)]);
       const meals = pick(
-        [twice("a"), twice("b"), twice("c"), recipe("dal", [measured(LENTILS, 1)]), twice("d"), twice("e")],
+        [twice("a"), twice("b"), recipe("dal", [measured(LENTILS, 1)]), twice("c"), twice("d"), twice("e")],
         stock(),
         6,
       );
 
-      // Counted per line, b and c would spend the cap alone and d would fall behind the dal.
-      expect(names(meals)).toEqual(["a", "b", "c", "d", "dal", "e"]);
+      // Six plates keep two reuses. Counted per line, b would spend both alone and c would fall
+      // behind the dal; counted per ingredient, b and c each spend one.
+      expect(names(meals)).toEqual(["a", "b", "c", "dal", "d", "e"]);
     });
 
     test("gives a repeat no credit for sharing its own purchases", () => {
@@ -247,6 +316,60 @@ describe("functions/planning/selectMeals", () => {
       ];
 
       expect(names(pick(pool, stock(), 4))).toEqual(names(pick(pool, stock(), 4)));
+    });
+  });
+
+  describe("variety", () => {
+    const TORTILLA = id<"ingredients">("tortilla");
+    const BEANS = id<"ingredients">("beans");
+    const unique = (name: string) => measured(id<"ingredients">(name), 1);
+
+    /** Burrito and curry each reuse one of the tacos' two purchases; the cuisine decides. */
+    test("bends a close call away from a cuisine the week already served", () => {
+      const meals = pick(
+        [
+          recipe("tacos", [measured(TORTILLA, 1), measured(BEANS, 1)], false, "mexican"),
+          recipe("burrito", [measured(TORTILLA, 1), unique("rice")], false, "mexican"),
+          recipe("curry", [measured(BEANS, 1), unique("coconut")], false, "indian"),
+          ...fillers(3),
+        ],
+        stock(),
+        2,
+      );
+
+      expect(names(meals)).toEqual(["tacos", "curry"]);
+    });
+
+    /** The wrap reuses its one line, the curry one of three: a repeat still wins a clear case. */
+    test("does not overturn a clearly better reuse", () => {
+      const meals = pick(
+        [
+          recipe("tacos", [measured(TORTILLA, 1), measured(BEANS, 1)], false, "mexican"),
+          recipe("curry", [measured(BEANS, 1), unique("coconut"), unique("spinach")], false, "indian"),
+          recipe("wrap", [measured(TORTILLA, 1)], false, "mexican"),
+          ...fillers(3),
+        ],
+        stock(),
+        2,
+      );
+
+      expect(names(meals)).toEqual(["tacos", "wrap"]);
+    });
+
+    test("never counts a cuisine naming no tradition as a repeat", () => {
+      const meals = pick(
+        [
+          recipe("tacos", [measured(TORTILLA, 1), measured(BEANS, 1)], false, "fusion"),
+          recipe("burrito", [measured(TORTILLA, 1), unique("rice")], false, "fusion"),
+          recipe("curry", [measured(BEANS, 1), unique("coconut")], false, "indian"),
+          ...fillers(3),
+        ],
+        stock(),
+        2,
+      );
+
+      // Scored alike and nothing to penalise: pool order keeps the burrito.
+      expect(names(meals)).toEqual(["tacos", "burrito"]);
     });
   });
 

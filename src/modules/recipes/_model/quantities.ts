@@ -57,6 +57,14 @@ export type InstructionSegment = {
   line?: RecipeLine;
   /** The unit spelled after the number, when it is one the app stores. Absent for a bare count. */
   unit?: RecipeUnit;
+  /**
+   * How many characters after the number its measure occupies — the " g" in "200 g de farine", the
+   * " cs" in "2 cs de jus". Zero for a bare count ("4 tomates").
+   *
+   * Counted here because only this file knows which words it read as a measure. It is what lets
+   * the method draw "200 g" as one emphasised quantity rather than a bold "200" beside its unit.
+   */
+  reach?: number;
 };
 
 /** What a step calls for, read out of its own text rather than out of a per-step table. */
@@ -266,6 +274,26 @@ const _lineNamed = (tokens: string[], lines: RecipeLine[]): RecipeLine | undefin
 };
 
 /**
+ * How many characters of `rest` the first `words` tokens span, so a count of tokens can be turned
+ * back into a slice of what the cook wrote.
+ *
+ * Walked run by run over the raw text rather than re-joined from tokens: folding can turn one
+ * written word into two ("straße"), and a slice measured on the folded string would land inside
+ * the wrong word of the original.
+ */
+const _reachOf = (rest: string, words: number): number => {
+  if (words === 0) return 0;
+
+  let seen = 0;
+  for (const run of rest.matchAll(/[\p{L}\p{N}]+/gu)) {
+    seen += _tokensOf(run[0]).length;
+    if (seen >= words) return run.index + run[0].length;
+  }
+
+  return 0;
+};
+
+/**
  * Whether the words *before* a number say it is labelling something rather than measuring food.
  *
  * Two shapes: a word that numbers things ("étape 3", "thermostat 6"), and a container stating its
@@ -295,7 +323,7 @@ const _readAt = (
   index: number,
   token: string,
   lines: RecipeLine[],
-): { line?: RecipeLine; unit?: RecipeUnit } | undefined => {
+): { line?: RecipeLine; unit?: RecipeUnit; reach: number } | undefined => {
   const rest = instruction.slice(index + token.length);
 
   /** A degree sign or a percentage is not food, and neither survives folding into a word. */
@@ -308,11 +336,14 @@ const _readAt = (
 
   let unit: RecipeUnit | undefined;
   let measured = false;
+  /** Past the last measure word, so a trailing "de" is not counted as part of "2 cs". */
+  let measuredWords = 0;
   let start = 0;
   while (start < tokens.length && (MEASURES.has(tokens[start]!) || GLUE.has(tokens[start]!))) {
     if (MEASURES.has(tokens[start]!)) {
       unit ??= MEASURES.get(tokens[start]!);
       measured = true;
+      measuredWords = start + 1;
     }
     start += 1;
   }
@@ -327,7 +358,7 @@ const _readAt = (
    */
   if (!line && !measured) return undefined;
 
-  return { ...(line && { line }), unit };
+  return { ...(line && { line }), unit, reach: _reachOf(rest, measuredWords) };
 };
 
 /**
@@ -359,6 +390,7 @@ export const readInstruction = (
       amount,
       ...(counted.line && { line: counted.line }),
       ...(counted.unit && { unit: counted.unit }),
+      reach: counted.reach,
     });
     cursor = index + token.length;
   }

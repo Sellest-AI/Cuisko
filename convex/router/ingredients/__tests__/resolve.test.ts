@@ -2,6 +2,8 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../../../_generated/api";
+import type { Id } from "../../../_generated/dataModel";
+import { createIngredient } from "../../../functions/ingredients/createIngredient";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -380,9 +382,8 @@ describe("router/ingredients/resolve", () => {
   });
 
   /**
-   * Steps 4 and 5, and the only test in this file that writes a row. Exactly one, and the second
-   * identical call gets it back from step 1 — which is what makes the resolver's own defence
-   * against duplicates the thing that has to work, since `createIngredient` has no dedup key.
+   * Steps 4 and 5. Exactly one row, and the second identical call gets it back from step 1 —
+   * without the model, which is the cheap defence against duplicates. The race below is the other.
    */
   test("a genuine miss creates one row, and a second identical call matches it", async () => {
     sanitizeRun.mockResolvedValue({ verdict: "new", facts: RUTABAGA, source: "agent" });
@@ -404,6 +405,30 @@ describe("router/ingredients/resolve", () => {
     expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(1);
     // Once for the create; the second call was answered by the catalog it had just grown.
     expect(sanitizeRun).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * The recipe-import race that grew two `coriandre` rows eight seconds apart: two walks for the
+   * same food both passed step 1 on an empty catalog, and each inserted what its model call named.
+   * Here the other walk's insert lands DURING this walk's model call — after step 1 searched, before
+   * step 5 writes — and the write has to find it rather than add a second.
+   */
+  test("a row written by a parallel walk during the model call is matched, not duplicated", async () => {
+    let parallelId: Id<"ingredients"> | undefined;
+    sanitizeRun.mockImplementation(async () => {
+      const parallel = await t.run((ctx) => createIngredient(ctx, RUTABAGA, "agent"));
+      if (parallel.created) parallelId = parallel.ingredientId;
+
+      return { verdict: "new", facts: RUTABAGA, source: "agent" };
+    });
+
+    const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
+      text: "rutabaga",
+      locale: "fr",
+    });
+
+    expect(resolved).toMatchObject({ status: "matched", ingredientId: parallelId, name: "Rutabaga" });
+    expect(await t.run((ctx) => ctx.db.query("ingredients").collect())).toHaveLength(1);
   });
 
   /**

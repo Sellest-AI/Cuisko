@@ -41,6 +41,10 @@ whole job.
    vagueness the list just resolved. Give the number there too, written the way a cook says it —
    "2 teaspoons of salt" — never the list's unit code bracketed after the ingredient ("garlic
    (2 pcs)"), which is a database row, not a sentence.
+   The number goes where the ingredient FIRST enters a step: "mix the grated pear with the
+   mayonnaise" names two ingredients and measures neither, so it is written "mix 1 grated pear
+   with 4 tablespoons of mayonnaise". A later step that picks up food already measured refers back
+   to it — "shred the pork", "the remaining sauce" — and does not weigh it again.
 
 2. NEVER INVENT A STEP. You regroup, reorder and rewrite what the cook described. You do not add a
    technique they did not mention, an ingredient they did not list, or a resting time they did not
@@ -74,6 +78,10 @@ the yolks and the cream are beaten in the minutes the pasta is boiling; the lard
 near the end. Ordered that way the dish takes about fifteen minutes. Ordered as typed it takes
 twenty-five, and not one thing about the recipe changed.
 
+When the cook already said when something happens — "the day before", "while it cooks" — that is
+the order, not a suggestion: work made "while it cooks" goes after the step that starts the
+cooking, never before it, and the overlap sentence keeps their words.
+
 Say the overlap out loud in the step that depends on it — "While the pasta cooks, beat the yolks
 with the cream" — rather than leaving the cook to notice it. That sentence is the difference between
 a recipe and a list.
@@ -83,7 +91,9 @@ not inventing them.
 
 # Fields
 
-- title: short, what a cook would call the dish. No "Recipe for". Name only what the finished dish
+- title: short, what a cook would call the dish — the dish, and at most the ONE component that
+  defines it; the other sides and sauces belong in the description, not in a list of three joined
+  by commas. No "Recipe for". Name only what the finished dish
   actually holds: if you write a "with ..." clause it must name a component the recipe really
   produces, never an ingredient borrowed from another part of it. A pear grated into the marinade
   is not a pear sauce, and a cucumber pickle is not a slaw.
@@ -101,6 +111,9 @@ not inventing them.
   resting overnight is "make-ahead". A tag is a fact, not a compliment, so an unflattering one is as
   required as a flattering one — and a fact is not a wish either: do not tag "quick" a recipe that
   takes an hour.
+  "sauce" is a course of its own: something served with a dish rather than eaten as one — a sauce,
+  gravy, jus, dressing, dip, stock or marinade. A dish that arrives in its sauce, a curry or a
+  bolognese, is a "main" and never a "sauce".
   The form group is what arrives on the plate, not how it got there: "pastry" is what a
   pâtisserie counter sells — cake, sweet tart or pie, biscuit, choux, brioche, viennoiserie.
   Dough is not the test and the oven is not the test: a pizza, a quiche, a bread, a savoury pie,
@@ -140,10 +153,11 @@ not inventing them.
   the moment it covers ("Assembly") — never "Step 3", never a restatement of its first step. One
   title names ONE thing — but the test is the work, not the word. "Pickles and garnishes" is two
   groups: the pickles sit for half an hour while the herbs are chopped, and they reach the plate
-  from different bowls. "Shredding and assembly" is one group, because it is one unbroken stretch
-  at the stove and splitting it only buys two groups of one step, which is worse. Split when the
-  halves are separated in time or make different components; keep them together when the cook does
-  them in one go.
+  from different bowls. Shredding the meat then assembling is one group titled "Assembly", because
+  it is one unbroken stretch at the stove and splitting it only buys two groups of one step, which
+  is worse. Split when the halves are separated in time or make different components; keep them
+  together when the cook does them in one go — and then title the group for the moment it ends in,
+  never by joining the two.
   Use one when the recipe genuinely has parts; a recipe that is one run
   of steps is ONE group with no title, not five groups of one step.
   A step is one stretch of work the cook does without putting the recipe down. It is not one verb.
@@ -162,7 +176,9 @@ not inventing them.
   Merging steps never merges groups. Everything above applies INSIDE a group and stops at its
   boundary: two components that were two groups stay two groups however short each one becomes,
   and a group holding a single step is a normal answer, not a group to fold into its neighbour.
-  A title joined by "and" is the tell that this went wrong.
+  A group title joined by "and" — in the language you write, so "et", "y", "und" — is the tell
+  that this went wrong, and it is never the answer: either split the group, or keep it whole
+  under one word.
   Each step is written as an instruction ("Preheat the oven to 180°C"), with no leading number,
   dash or bullet, and never a unit code — "1 tablespoon of sugar", never "1 tbsp of sugar". An amount named inside a step uses
   the same unit as the ingredient list, and one ingredient's amounts across every step add up to
@@ -175,7 +191,8 @@ not inventing them.
     when the recipe uses twelve of them: "corn tortilla", never "tortillas"; "spring onion", never
     "spring onions". A word for what was DONE to it comes off however normal it sounds on a label —
     boned, toasted, grated, softened, chopped. Keep an adjective only when it changes what you would
-    buy: "smoked paprika" yes, "fresh coriander" no. Test every word you keep by asking whether
+    buy: "smoked paprika" yes, because plain paprika is another jar; "fresh ginger" yes, because
+    ground ginger is another jar; "ripe tomato" no. Test every word you keep by asking whether
     dropping it would send the cook home with the wrong product; if it would not, drop it.
     It is matched against a catalog by name.
   - unit: exactly one of: ${_list(RECIPE_UNITS)}. "tbsp" is a tablespoon and "tsp" a teaspoon, both the
@@ -191,7 +208,10 @@ not inventing them.
     coriander is 30 g), and never to "pcs", which means a countable thing and nothing else.
   - Never list the same ingredient twice — one entry, quantities added together. Two of the cook's
     words for one thing are one ingredient: "brown sugar" in the marinade and "sugar" in the
-    pickles is one line, under the more specific name.
+    pickles is one line, under the more specific name. When the two amounts are in different
+    units, convert both to the SMALLER unit before adding — 2 teaspoons and 1 tablespoon are
+    5 tsp, never "1 tbsp" and never two lines — and every step then speaks that unit: "2
+    teaspoons" in the marinade, "the remaining 3 teaspoons" in the pickles.
   - An ingredient the cook listed but no step uses is dropped. It is on the shopping list for
     nothing, and the cook cannot tell from the recipe why they bought it.
   - An ingredient a step uses but the cook never listed IS listed, with an estimated quantity. The
@@ -205,4 +225,19 @@ When you are given a recipe that has already been sanitized, you are editing it,
 Change what the new input actually affects and leave everything else exactly as it was, word for
 word. If one ingredient was added, the steps that use that ingredient change and no others do; the
 title, the description and the untouched steps come back byte-identical.
+
+# Before you answer
+
+Read your answer back once against these. Each one is a mistake this task keeps producing, and
+each is fixed in the answer, not noted.
+
+- Every ingredient name appears ONCE in the list. Two lines for one food, even under the same
+  name with different units, are one line, summed in the smaller unit.
+- For each ingredient split across steps, the amounts in the steps add up to the list, in the
+  list's unit.
+- Every ingredient carries its number the first time a step uses it.
+- No group title contains "and" in the language you write.
+- Work the cook did "while it cooks" comes after the step that starts the cooking.
+- No appliance the cook said they can do without is in equipments.
+- Every word left in an ingredient name changes what the cook buys.
 `.trim();

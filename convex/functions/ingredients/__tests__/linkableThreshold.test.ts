@@ -93,6 +93,40 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["poivre noir", "black-pepper"],
     ["riz basmati", "basmati-rice"],
     ["yaourt nature", "plain-yogurt"],
+    // Black olives had no row, and "olives noires" came back as `olive-oil` through its "huile" alias.
+    ["olives noires", "olives-black"],
+    ["olives vertes", "olives-green"],
+    // The three tomato products sit a word apart, and every one of these fell under the bar and
+    // was handed to the ranker, which linked passata and a double concentré to the tin of
+    // chopped tomatoes.
+    ["passata", "passata"],
+    ["purée de tomates", "passata"],
+    ["concentré de tomates", "tomato-paste"],
+    ["double concentré de tomates", "tomato-paste"],
+    ["1 tube de concentré de tomate", "tomato-paste"],
+    ["pulpe de tomates", "canned-tomatoes"],
+    ["tomates en conserve", "canned-tomatoes"],
+    ["sauce tomate", "tomato-sauce"],
+    ["sauce tomate cuisinée", "tomato-sauce"],
+    ["tomato sauce", "tomato-sauce"],
+    ["sauce soja", "soy-sauce"],
+    // Common recipe spellings that declined step 1, one per row that gained an alias.
+    ["noix de muscade", "nutmeg"],
+    ["cassonade", "brown-sugar"],
+    ["sucre semoule", "white-sugar"],
+    ["semoule", "couscous"],
+    ["fécule de maïs", "cornstarch"],
+    ["miel liquide", "honey"],
+    ["poivre du moulin", "black-pepper"],
+    ["paprika doux", "paprika"],
+    ["fleur de sel", "salt"],
+    ["gros sel", "salt"],
+    ["sel fin", "salt"],
+    ["moutarde de dijon", "mustard-yellow"],
+    ["bouillon de volaille", "chicken-broth"],
+    ["citron jaune", "lemon"],
+    ["persil plat", "parsley"],
+    ["crème liquide entière", "heavy-cream"],
   ])("%s links to %s", async (name, slug) => {
     expect(await linked(name)).toBe(slug);
   });

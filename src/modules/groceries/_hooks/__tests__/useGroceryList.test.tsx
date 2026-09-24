@@ -3,6 +3,8 @@ import { getFunctionName } from "convex/server";
 import { Provider } from "jotai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resetHouseholdAtoms } from "~/modules/households/household-atom";
+
 import { useGroceryList } from "../useGroceryList";
 import { useGrocerySort } from "../useGrocerySort";
 import { useStockActions } from "../useStockActions";
@@ -31,6 +33,9 @@ const state = vi.hoisted(() => ({
   held: undefined as unknown,
   /** Makes the next mutation reject, for the tests that care what a failed write leaves behind. */
   rejectNext: false,
+  /** Holds the next mutation open until `release` is called, for what happens during the wait. */
+  holdNext: false,
+  release: undefined as (() => void) | undefined,
 }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
@@ -88,6 +93,11 @@ vi.mock("~/lib/convex/client", () => ({
       mutate: (args: Record<string, unknown>) => {
         state.calls.push({ name, args });
 
+        if (state.holdNext) {
+          state.holdNext = false;
+          return new Promise<void>((resolve) => { state.release = resolve; });
+        }
+
         return state.rejectNext
           ? Promise.reject(new Error("the server said no"))
           : Promise.resolve();
@@ -134,6 +144,8 @@ beforeEach(() => {
   state.calls = [];
   state.held = undefined;
   state.rejectNext = false;
+  state.holdNext = false;
+  state.release = undefined;
 });
 
 describe("useGroceryList", () => {
@@ -196,6 +208,38 @@ describe("useGroceryList", () => {
     rerender();
 
     expect(rowIn(result.current.sections["to-buy"], `${CARROT}:pcs`).name).toBe("Carottes");
+  });
+});
+
+describe("useGroceryList — isEmpty", () => {
+  it("is empty with nothing on the list and nothing in the cellar", () => {
+    expect(groceries().result.current.isEmpty).toBe(true);
+  });
+
+  it("stays empty when all the household has is past shops", () => {
+    state.recentlyUsed = [{ ...line(1), _id: "history-1" }];
+
+    expect(groceries().result.current.isEmpty).toBe(true);
+  });
+
+  it("is not empty when the cellar holds something and the list does not", () => {
+    state.cellar = [shelf(2)];
+
+    expect(groceries().result.current.isEmpty).toBe(false);
+  });
+
+  /**
+   * The sections are empty here — `buildSections` drops a row it cannot name — but the list is not,
+   * and an empty state drawn over it for that round trip would tell the shopper their list is gone.
+   */
+  it("is not empty while the first names are still in flight", () => {
+    state.groceryList = [line(4)];
+    state.ingredients = undefined;
+
+    const { result } = groceries();
+
+    expect(result.current.sections["to-buy"]).toEqual([]);
+    expect(result.current.isEmpty).toBe(false);
   });
 });
 
@@ -311,6 +355,32 @@ describe("useStockActions", () => {
     await act(() => result.current.apply("remove", { ingredientId: CARROT, unit: "pcs" }, 4));
 
     expect(lastCall()!.name).toContain("removeFromCellar");
+    expect(lastCall()!.args).toMatchObject({ restoreToList: 0 });
+  });
+
+  /**
+   * The household switched while the purchase was with the server. The switch already emptied the
+   * receipts; writing this one after it would hand the purchase to the next household, and taking
+   * the same food out of that household's cellar would put it on that household's list.
+   */
+  it("writes no receipt when the household switched during the purchase", async () => {
+    state.groceryList = [line(4)];
+    state.holdNext = true;
+    const { result, rerender } = groceries();
+
+    let purchase: Promise<unknown> | undefined;
+    act(() => { purchase = result.current.apply("buy", { ingredientId: CARROT, unit: "pcs" }, 4); });
+
+    // What `HouseholdAtomsReset` does on a switch; the store is irrelevant to the session it closes.
+    resetHouseholdAtoms({ set: () => {} });
+    await act(async () => { state.release?.(); await purchase; });
+
+    state.cellar = [shelf(4)];
+    state.groceryList = [];
+    rerender();
+
+    await act(() => result.current.apply("remove", { ingredientId: CARROT, unit: "pcs" }, 4));
+
     expect(lastCall()!.args).toMatchObject({ restoreToList: 0 });
   });
 

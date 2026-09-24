@@ -366,3 +366,42 @@ describe("cascadeDelete — planning", () => {
     expect(await t.run((ctx) => ctx.db.query("plannedMealIngredients").collect())).toEqual([]);
   });
 });
+
+describe("cascadeDelete — household membership", () => {
+  const insertAccount = (currentHouseholdId?: Id<"households">) =>
+    t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", { name: "Franck" });
+      const extendedId = await ctx.db.insert("usersExtended", {
+        userId,
+        role: "USER",
+        currentHouseholdId,
+        updatedAt: Date.now(),
+      });
+      return { userId, extendedId };
+    });
+
+  /** The person outlives the household they were shopping for; only the pointer goes. */
+  test("detaches a deleted household from the accounts shopping there, and drops its history", async () => {
+    const householdId = await insertHousehold();
+    const { userId, extendedId } = await insertAccount(householdId);
+    await t.run((ctx) => ctx.db.insert("householdFormerMembers", { householdId, userId }));
+
+    await t.run((ctx) => cascadeDelete(ctx, "households", householdId));
+
+    const extended = await t.run((ctx) => ctx.db.get(extendedId));
+    expect(extended).not.toBeNull();
+    expect(extended?.currentHouseholdId).toBeUndefined();
+    expect(await t.run((ctx) => ctx.db.query("householdFormerMembers").collect())).toEqual([]);
+  });
+
+  test("deletes a deleted account's departures, and leaves the household they left", async () => {
+    const householdId = await insertHousehold();
+    const { userId } = await insertAccount();
+    await t.run((ctx) => ctx.db.insert("householdFormerMembers", { householdId, userId }));
+
+    await t.run((ctx) => cascadeDelete(ctx, "users", userId));
+
+    expect(await t.run((ctx) => ctx.db.query("householdFormerMembers").collect())).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.get(householdId))).not.toBeNull();
+  });
+});

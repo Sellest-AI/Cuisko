@@ -1,6 +1,7 @@
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
-import { AppleLogo, GoogleLogo } from "@ui/icons";
+import { AppleLogo, CircleAlert, GoogleLogo } from "@ui/icons";
+import { InfoBanner } from "@ui/info-banner";
 import { useSafeAreaInsets } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -10,7 +11,6 @@ import { useAuth } from "../_hooks/useAuth";
 import { DevSignIn } from "./dev-sign-in";
 import { Hero } from "./hero";
 import { ProviderButton } from "./provider-button";
-import { SignedIn } from "./signed-in";
 
 /**
  * The welcome screen: what Cuisko is, and one tap to continue.
@@ -24,10 +24,7 @@ import { SignedIn } from "./signed-in";
 export const AuthScreen = () => {
   const t = useTranslations("Auth");
   const insets = useSafeAreaInsets();
-  const {
-    user, isAuthenticated, isLoading, isSubmitting, pendingProvider, error,
-    signIn, signInWithProvider, signOut,
-  } = useAuth();
+  const { isLoading, isSubmitting, pendingProvider, error, signIn, signInWithProvider } = useAuth();
 
   if (isLoading) {
     return (
@@ -37,14 +34,9 @@ export const AuthScreen = () => {
     );
   }
 
-  if (isAuthenticated && user) {
-    return <SignedIn user={user} onSignOut={() => void signOut()} />;
-  }
-
   return (
     <View style={styles.container}>
       <Hero />
-
       <View style={[styles.sheet, { paddingBottom: insets.bottom + theme.spacing[32] }]}>
         <View style={styles.copy}>
           <Text.H4 color={theme.colors.foreground}>{t("welcome")}</Text.H4>
@@ -76,7 +68,11 @@ export const AuthScreen = () => {
             onPress={() => void signInWithProvider("apple")}
           />
 
-          {error ? <Text.Sm color={theme.colors.danger.base} style={styles.error}>{error}</Text.Sm> : null}
+          {error ? (
+            <InfoBanner variant="warning" icon={CircleAlert} title={t("error_title")}>
+              {error}
+            </InfoBanner>
+          ) : null}
 
           {__DEV__ ? <DevSignIn isSubmitting={isSubmitting} onSubmit={(c) => void signIn(c)} /> : null}
         </View>
@@ -107,5 +103,4 @@ const styles = StyleSheet.create({
   actions: { alignSelf: "center", gap: theme.spacing[16], maxWidth: 320, width: "100%" },
   divider: { alignItems: "center", flexDirection: "row", gap: theme.spacing[16] },
   rule: { backgroundColor: theme.colors.neutral.subtle, flex: 1, height: StyleSheet.hairlineWidth },
-  error: { textAlign: "center" },
 });

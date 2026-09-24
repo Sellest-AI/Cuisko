@@ -1,5 +1,7 @@
-import type { Id } from "@convex/_generated/dataModel";
-import { createIngredient } from "@convex/functions/ingredients/createIngredient";
+import {
+  createIngredient,
+  type CreatedIngredient,
+} from "@convex/functions/ingredients/createIngredient";
 import {
   resolveIngredient,
   type ResolvedIngredient,
@@ -64,9 +66,9 @@ export const _internal_rememberAlias = internalMutation({
 
 /**
  * The write `authed` cannot perform itself — an action has no `ctx.db`. Internal because it is one
- * step of that operation: it inserts a row with no ownership check and no dedup, safe only after
- * the four steps before it established that the catalog does not hold this food. Exposed to a
- * client it would be a duplicate-ingredient button.
+ * step of that operation: it inserts a row with no ownership check, and its only dedup is an exact
+ * name match — safe after the four steps before it established that the catalog does not hold this
+ * food. Exposed to a client it would be a catalog-growing button.
  *
  * `facts` is validated as `vIngredientFacts` and not as the table's own validator: `search`,
  * `nutriScore` and `name`'s metadata are derived, and a payload that could carry them would be a
@@ -74,6 +76,6 @@ export const _internal_rememberAlias = internalMutation({
  */
 export const _internal_create = internalMutation({
   args: { facts: vIngredientFacts, source: vIngredientSource },
-  handler: (ctx, { facts, source }): Promise<Id<"ingredients">> =>
+  handler: (ctx, { facts, source }): Promise<CreatedIngredient> =>
     createIngredient(ctx, facts, source),
 });

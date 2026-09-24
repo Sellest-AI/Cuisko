@@ -131,6 +131,7 @@ export const BlurView = ({ intensity = BLUR_INTENSITY, tint = "dark", style, chi
       {...props}
       style={[safeStyle, {
         borderWidth: 0,
+        overflow: "hidden",
       }]}
     >
       {/*

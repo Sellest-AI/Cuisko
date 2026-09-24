@@ -23,6 +23,7 @@ type Props = {
   style?: ViewStyle,
   onPress?: () => void,
   elevated?: boolean,
+  animated?: boolean,
 }
 
 /**
@@ -32,7 +33,7 @@ type Props = {
  * a source was the same grey placeholder. A blobatar is per-person from the first render, with no
  * upload, no empty state and no request.
  */
-export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, onPress }: Props) => {
+export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = false, onPress }: Props) => {
   const Component = onPress ? Pressable : View;
   const reduceMotion = useReduceMotion();
 
@@ -58,7 +59,7 @@ export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, onPress }: 
         * OS setting. A face that never stops moving is the thing "reduce motion" is turned on to
         * stop, and this one sits on the first screen of the app.
         */}
-      {reduceMotion
+      {(reduceMotion || !animated)
         ? <Blobatar name={seed} size={face} />
         : <AnimatedBlobatar name={seed} size={face} animate />}
     </Component>
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
         offsetY: 0,
         blurRadius: 32,
         spreadDistance: 0,
-        color: "rgba(0, 0, 0, 0.03)",
+        color: "rgba(0, 0, 0, 0.04)",
       },
     ],
   }

@@ -1,4 +1,5 @@
 import type { Id } from "@convex/_generated/dataModel";
+import type { Cuisine } from "@shared/cuisines";
 import type { RecipeUnit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 
@@ -28,6 +29,8 @@ export type Need = {
 export type Candidate = {
   recipeId: Id<"recipes">;
   needs: Need[];
+  /** What the week's variety is counted in — see `CUISINE_REPEAT_FACTOR`. */
+  cuisine: Cuisine;
   /** Written by the caller rather than taken from the catalog — the side the own-share cap limits. */
   isMine: boolean;
 };
@@ -85,11 +88,33 @@ type Basket = Map<Id<"ingredients">, number>;
 const BASKET_WEIGHT = 0.5;
 
 /**
- * How many plates may earn credit for reusing one purchase. Past it the ingredient is neutral —
- * it neither scores nor penalises — so a week that started on tomatoes drifts back to random
- * rather than converging on seven tomato salads.
+ * How far into the week one purchase keeps pulling, as a share of its plates: six of a fourteen-plate
+ * week, three of a seven. A fixed count read differently at every size — three reuses were most of
+ * a dinner-only week and a fifth of a lunch-and-dinner one.
+ *
+ * The pull fades rather than stops: the first reuse earns the full `BASKET_WEIGHT`, each one after
+ * a little less, and the plate at the horizon nothing — see `_reuseCredit`. Past it the ingredient
+ * is neutral, so a week that started on tomatoes drifts on rather than converging on seven tomato
+ * salads, and it drifts gradually, one fading purchase at a time, rather than every thread at once.
  */
-const BASKET_REUSE_CAP = 3;
+const BASKET_REUSE_SHARE = 0.4;
+
+/** The shortest horizon, so a week of three or four plates still chains at all. */
+const MIN_BASKET_REUSES = 2;
+
+/**
+ * What each earlier plate of the same cuisine multiplies a candidate's score by.
+ *
+ * The basket is what makes a week coherent, and left alone it makes it monotonous: tortillas,
+ * black beans, avocado and lime reinforce each other, and five of the first six plates came out
+ * Mexican. This is the counterweight. It multiplies, so it bends a close call — a second burrito
+ * against a curry sharing as much — without overturning a real difference in what is owned; and
+ * it compounds, so a third plate of one cuisine has to be clearly better than the alternatives.
+ */
+const CUISINE_REPEAT_FACTOR = 0.7;
+
+/** Cuisines that name no tradition, so two plates of them are not a repeat. */
+const UNCOUNTED_CUISINES: ReadonlySet<Cuisine> = new Set(["other", "fusion"]);
 
 /**
  * What a candidate would cover against `stock`, and the amounts it would take doing it.
@@ -151,8 +176,42 @@ const _eligible = (candidates: Candidate[], picked: Set<Id<"recipes">>, capReach
 const _scored = (needs: Need[]) => needs.filter((need) => need.kind !== "pinch");
 
 /** The missing lines the basket already holds and has credit left for. */
-const _reused = (missing: Need[], basket: Basket) =>
-  _scored(missing).filter((need) => (basket.get(need.ingredientId) ?? Infinity) < BASKET_REUSE_CAP);
+const _reused = (missing: Need[], basket: Basket, horizon: number) =>
+  _scored(missing).filter((need) => (basket.get(need.ingredientId) ?? Infinity) < horizon);
+
+/**
+ * How much sharing each ingredient says about two recipes belonging together: `1` for one only a
+ * single candidate uses, `0` for one every candidate does.
+ *
+ * Onion and garlic are in most of the pool, so two recipes sharing them share nothing a shopper
+ * would notice — while two sharing tortillas are a pair. Weighing a reuse by rarity lets the rare
+ * purchases steer the week and the ubiquitous ones fade out, with no list of staples to maintain.
+ * Measured on the pool rather than the catalog, which costs no read: the pool is a random sample
+ * of what this run may draw, which is the population the rarity has to be relative to.
+ */
+const _rarityOf = (candidates: Candidate[]) => {
+  const using = new Map<Id<"ingredients">, number>();
+
+  for (const candidate of candidates) {
+    for (const ingredientId of new Set(_scored(candidate.needs).map((need) => need.ingredientId))) {
+      using.set(ingredientId, (using.get(ingredientId) ?? 0) + 1);
+    }
+  }
+
+  return new Map([...using].map(([ingredientId, count]) => [ingredientId, 1 - count / candidates.length]));
+};
+
+/**
+ * What the reused lines are worth together: `BASKET_WEIGHT` per line, scaled by the ingredient's
+ * rarity, and faded linearly by how many plates have already reused it — the full weight for the
+ * first reuse, nothing at the horizon.
+ */
+const _reuseCredit = (reused: Need[], basket: Basket, rarity: Map<Id<"ingredients">, number>, horizon: number) =>
+  reused.reduce((credit, need) => {
+    const fade = 1 - basket.get(need.ingredientId)! / horizon;
+
+    return credit + BASKET_WEIGHT * (rarity.get(need.ingredientId) ?? 0) * fade;
+  }, 0);
 
 /**
  * The week: one recipe per plate, chosen greedily to use what the household already owns, then
@@ -165,12 +224,18 @@ const _reused = (missing: Need[], basket: Basket) =>
  * something with it, then one that shares something with those, each pull weighted so the week
  * leans on its purchases without becoming one cuisine.
  *
- * Score is the share of lines fully covered by the cellar, plus `BASKET_WEIGHT` per share of lines
- * the basket holds, tie-broken on the share partially covered, then on the order `candidates`
+ * Score is the share of lines fully covered by the cellar, plus the reuse credit of the lines the
+ * basket holds (`_reuseCredit`: `BASKET_WEIGHT` each, weighed by rarity, faded by prior reuse),
+ * divided by the recipe's lines and multiplied by `CUISINE_REPEAT_FACTOR` once per earlier plate
+ * of its cuisine. Ties break on the share partially covered, then on the order `candidates`
  * arrived in — which the caller has already shuffled, so the last tie-break is random without
  * this function rolling anything. Both terms are shares of the recipe's own lines, so a short
  * recipe reusing one of its two purchases outranks a long one reusing two of seven: fewer new
  * rows on the list, which is the goal, without a bias toward short recipes when nothing is shared.
+ *
+ * **The cuisine penalty cannot lift a score of zero.** A week with an empty cellar and nothing yet
+ * bought is pool order, whatever the cuisines; the penalty only bends choices the basket or the
+ * cellar would otherwise have made, which is where the monotony came from.
  *
  * **Pinches are not lines, for scoring.** Salt, pepper and a spoon of oil are in almost every
  * cellar, so counting them would rank a recipe well on its staples while its chicken is bought.
@@ -201,6 +266,9 @@ export const selectMeals = (
 
   const left: Stock = new Map(stock);
   const basket: Basket = new Map();
+  const rarity = _rarityOf(candidates);
+  const horizon = Math.max(MIN_BASKET_REUSES, Math.round(BASKET_REUSE_SHARE * plates.length));
+  const served = new Map<Cuisine, number>();
   const ownCap = Math.floor(ownShare * plates.length);
   const picked = new Set<Id<"recipes">>();
   const cooked = new Set<Id<"recipes">>();
@@ -215,8 +283,10 @@ export const selectMeals = (
       .map((candidate) => {
         const coverage = coverageOf(candidate, left);
         const lines = _scored(candidate.needs).length || 1;
-        const reused = cooked.has(candidate.recipeId) ? [] : _reused(coverage.missing, basket);
-        const score = (_scored(coverage.covered).length + BASKET_WEIGHT * reused.length) / lines;
+        const reused = cooked.has(candidate.recipeId) ? [] : _reused(coverage.missing, basket, horizon);
+        const credit = _reuseCredit(reused, basket, rarity, horizon);
+        const repeats = UNCOUNTED_CUISINES.has(candidate.cuisine) ? 0 : (served.get(candidate.cuisine) ?? 0);
+        const score = ((_scored(coverage.covered).length + credit) / lines) * CUISINE_REPEAT_FACTOR ** repeats;
 
         return { candidate, coverage, reused, score, tie: coverage.partial / lines };
       })
@@ -229,6 +299,7 @@ export const selectMeals = (
     picked.add(candidate.recipeId);
     cooked.add(candidate.recipeId);
     if (candidate.isMine) ownPicked += 1;
+    served.set(candidate.cuisine, (served.get(candidate.cuisine) ?? 0) + 1);
     for (const [ingredientId, amount] of coverage.taken) {
       left.set(ingredientId, (left.get(ingredientId) ?? 0) - amount);
     }

@@ -83,19 +83,38 @@ export const usePlanningList = (focusDate?: string) => {
   const loadOlder = useCallback(() => loadMoreBefore(PAGE_SIZE), [loadMoreBefore]);
   const loadNewer = useCallback(() => loadMoreAfter(PAGE_SIZE), [loadMoreAfter]);
 
+  /**
+   * Until both first pages are in. The list opens on `initialIndex`, which FlashList reads once on
+   * its first render — drawn early, it would open on the rows of one half and scroll to the wrong day.
+   *
+   * Scoped on `householdId` rather than on the statuses alone, because a skipped query reports
+   * itself as loading, and a user with no household would otherwise wait forever.
+   */
+  const isLoading = isResolvingHousehold ||
+    (!!householdId && (before.status === "LoadingFirstPage" || after.status === "LoadingFirstPage"));
+
+  /**
+   * Whether the household had never planned a meal when the page opened: both cursors exhausted on
+   * an empty first page, so there is nothing before the focus day and nothing after it.
+   *
+   * **Settled once, on the first answer.** It is what the page opened on, not what it holds now:
+   * clearing the last plate while reading the list must leave the cook on the list, not throw them
+   * into the tunnel mid-tap. Set during render, which is React's pattern for state derived from
+   * an earlier render, so the first answer and the value agree in the same pass.
+   */
+  const [openedUnplanned, setOpenedUnplanned] = useState<boolean | null>(null);
+  if (openedUnplanned === null && !isLoading && householdId)
+    setOpenedUnplanned(
+      before.status === "Exhausted" && after.status === "Exhausted" &&
+      before.results.length === 0 && after.results.length === 0,
+    );
+
   return {
     rows,
     initialIndex,
     today,
-    /**
-     * Until both first pages are in. The list opens on `initialIndex`, which FlashList reads once on
-     * its first render — drawn early, it would open on the rows of one half and scroll to the wrong day.
-     *
-     * Scoped on `householdId` rather than on the statuses alone, because a skipped query reports
-     * itself as loading, and a user with no household would otherwise wait forever.
-     */
-    isLoading: isResolvingHousehold ||
-      (!!householdId && (before.status === "LoadingFirstPage" || after.status === "LoadingFirstPage")),
+    isLoading,
+    isUnplanned: openedUnplanned === true,
     loadOlder,
     loadNewer,
   };

@@ -10,7 +10,7 @@ supersedes: []
 MUST: put a test in the project whose runtime its subject needs — `convex/**` and `shared/**` in
       the `convex` project (edge-runtime, `convex-test`); `src/**` and `app/**` in the `app`
       project (jsdom + react-native-web); `scripts/**` in the `scripts` project (plain node).
-MUST: assert a C1-C13 check on the shape it REJECTS, not on this repo passing it. A check fails
+MUST: assert a C1-C14 check on the shape it REJECTS, not on this repo passing it. A check fails
       open — break its predicate and it prints ✅ against everything — so a test that only runs it
       against our own tree pins nothing.
 MUST: assert the finding text, not just the exit code. A crashing check also exits 1, so an
@@ -64,7 +64,7 @@ other. Splitting them is what makes the second half testable at all.
 | Layer | Runs in | Subject | Mandatory? |
 | --- | --- | --- | --- |
 | Model | either | `_model/` — types, invariants, pure derivation | Yes — C10 |
-| Check | `scripts` | a C1-C13 script still fails the shape it exists to reject | Judgement |
+| Check | `scripts` | a C1-C14 script still fails the shape it exists to reject | Judgement |
 | Contract | `convex` | a gated export turns the wrong caller away | Yes — C5 |
 | Wiring | `app` | a hook's write reaches the state its read subscribes to; a component's branches | Judgement |
 | Flow | not yet | a real build, on a device, end to end | See below |

@@ -1,3 +1,4 @@
+import account from "./en/account.json";
 import assistant from "./en/assistant.json";
 import auth from "./en/auth.json";
 import common from "./en/common.json";
@@ -11,6 +12,7 @@ import vocabulary from "./en/vocabulary.json";
 
 // Type the nested structure to match your i18n config
 type TranslationResources = {
+  Account: typeof account;
   Assistant: typeof assistant;
   Auth: typeof auth;
   Common: typeof common;
