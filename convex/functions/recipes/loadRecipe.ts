@@ -7,11 +7,12 @@ import type { Locale } from "@convex/schema/i18n";
 import { getImage } from "@convex/functions/media/getImage";
 import { avatarSeed } from "@shared/avatars";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
-import { toGrams, type RecipeUnit } from "@shared/ingredients";
-import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
+import type { RecipeUnit } from "@shared/ingredients";
+import type { RecipeNutrition } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
 import { coverOf, plateOf, type RecipeCard, toRecipeCard } from "./recipeCard";
+import { loadRecipeLines, nutritionOfLines, type WeighableLine } from "./recipeNutrition";
 
 type LoadCtx = Pick<QueryCtx, "db">;
 
@@ -104,7 +105,7 @@ export type RecipeDetail = RecipeCard & {
    *
    * Computed per read rather than stored: it is a reduce over the same catalog rows the lines were
    * just named from, and a column would have to be rewritten every time an ingredient's macros are
-   * corrected. `totalsOf` refuses a partial total, and so does this — see `_nutritionOf`.
+   * corrected. `totalsOf` refuses a partial total, and so does this — see `nutritionOfLines`.
    */
   nutrition?: RecipeNutrition;
   /**
@@ -121,107 +122,36 @@ export type RecipeDetail = RecipeCard & {
 };
 
 /**
- * A line the page can draw, beside the catalog row it was drawn from.
+ * The recipe's lines as the page draws them, each named in the caller's locale, beside the
+ * weighable lines the nutrition total is counted from.
  *
- * The row is kept rather than re-read because the nutrition total needs the very same documents:
- * fetching them twice for one page would double the reads to arrive at the same numbers.
- */
-type ResolvedLine = {
-  line: RecipeIngredient;
-  ingredient: Doc<"ingredients">;
-};
-
-/**
- * The recipe's lines, in the order they are written, each named in the caller's locale.
- *
- * Ordered by `position` rather than by insertion: the join table carries it precisely because the
- * order of a recipe's ingredients is meaningful, and `by_recipe` orders by creation time, which is
- * only the same thing until a line is edited.
- *
- * The catalog rows are fetched concurrently. It is an N+1 in shape, but bounded by the length of
- * one recipe rather than by the size of a table, and a recipe with forty ingredients does not
- * exist — so the fix for it would be a denormalized name that has to be kept in step with the
- * catalog, which is a worse trade at this size.
- *
- * `lineCount` is what the recipe HAS; `lines` is what resolved. The caller needs both, because a
- * total computed over the difference would be a total missing an ingredient.
+ * Both come out of one `loadRecipeLines` read: the page and the total need the very same catalog
+ * rows, and fetching them twice for one page would double the reads to arrive at the same numbers.
  */
 const _linesOf = async (
   ctx: LoadCtx,
   recipeId: Doc<"recipes">["_id"],
   locale: Locale,
-): Promise<{ lines: ResolvedLine[]; lineCount: number }> => {
-  const rows = await ctx.db
-    .query("recipeIngredients")
-    .withIndex("by_recipe", (q) => q.eq("recipeId", recipeId))
-    .collect();
+): Promise<{ lines: RecipeIngredient[]; weighable: WeighableLine[]; lineCount: number }> => {
+  const { lines: weighable, lineCount } = await loadRecipeLines(ctx, recipeId);
 
-  const resolved = await Promise.all(
-    [...rows]
-      .sort((a, b) => a.position - b.position)
-      .map(async (row) => {
-        const ingredient = await ctx.db.get(row.ingredientId);
+  const lines = await Promise.all(
+    weighable.map(async ({ ingredient, quantity, unit }) => {
+      /** Skipped entirely for a row with no photo, which is most of the catalog today. */
+      const image = ingredient.imageId ? await getImage(ctx, ingredient.imageId) : null;
 
-        /**
-         * A line whose catalog row is gone cannot be named, and a quantity with no name is worse
-         * on the page than one line fewer. The cascade should make this unreachable; it is dropped
-         * rather than asserted because a recipe page is not the place to find out.
-         */
-        if (!ingredient) return null;
-
-        /** Skipped entirely for a row with no photo, which is most of the catalog today. */
-        const image = ingredient.imageId ? await getImage(ctx, ingredient.imageId) : null;
-
-        return {
-          ingredient,
-          line: {
-            name: resolvei18n(ingredient.name, locale),
-            quantity: row.quantity,
-            unit: row.unit,
-            emoji: ingredient.emoji,
-            imageUrl: image?.sizes.thumbnail.url,
-            category: ingredient.category,
-          },
-        };
-      }),
+      return {
+        name: resolvei18n(ingredient.name, locale),
+        quantity,
+        unit,
+        emoji: ingredient.emoji,
+        imageUrl: image?.sizes.thumbnail.url,
+        category: ingredient.category,
+      };
+    }),
   );
 
-  return { lines: resolved.filter((line) => line !== null), lineCount: rows.length };
-};
-
-/**
- * The categories the Nutri-Score rewards a dish for containing.
- *
- * The classification lives here rather than in @shared/nutrition, which deliberately takes a
- * boolean: what counts as produce for a food score is a rule about this app's catalog, not a
- * property of arithmetic. Herbs and spices are out — they are produce in a greengrocer's sense and
- * weigh a gram in a dish, so counting them would move the score without moving the meal.
- */
-const PRODUCE_CATEGORIES: readonly Category[] = ["VEGETABLE", "FRUIT", "LEGUME", "NUT"];
-
-/**
- * What the recipe adds up to, or nothing.
- *
- * Refuses in three cases, all of them the same refusal `computeTags` makes and for the same
- * reason: a recipe with no lines, a recipe whose lines did not all resolve, and — inside
- * `totalsOf` — a recipe with a line that cannot reach grams. A dish quietly missing its olive oil
- * reads as a health food, and nothing downstream could tell a partial total from a real one.
- */
-const _nutritionOf = (
-  lines: ResolvedLine[],
-  lineCount: number,
-  servings: number,
-): RecipeNutrition | undefined => {
-  if (lineCount === 0 || lines.length !== lineCount) return undefined;
-
-  return totalsOf(
-    lines.map(({ line, ingredient }) => ({
-      facts: ingredient.nutrition,
-      grams: toGrams(line.quantity, line.unit, ingredient),
-      produce: PRODUCE_CATEGORIES.includes(ingredient.category),
-    })),
-    servings,
-  );
+  return { lines, weighable, lineCount };
 };
 
 /**
@@ -301,7 +231,7 @@ export const loadRecipe = async (
 ): Promise<RecipeDetail> => {
   const recipe = await _resolve(ctx, target);
 
-  const [{ lines, lineCount }, chef, cover, plate, flags] = await Promise.all([
+  const [{ lines, weighable, lineCount }, chef, cover, plate, flags] = await Promise.all([
     _linesOf(ctx, recipe._id, locale),
     _chefOf(ctx, recipe.userId),
     coverOf(ctx, recipe),
@@ -321,8 +251,8 @@ export const loadRecipe = async (
     equipments: recipe.equipments,
     tags: recipe.tags,
     timings: recipe.timings,
-    ingredients: lines.map(({ line }) => line),
-    nutrition: _nutritionOf(lines, lineCount, recipe.servings),
+    ingredients: lines,
+    nutrition: nutritionOfLines(weighable, lineCount, recipe.servings),
     chef,
   };
 };

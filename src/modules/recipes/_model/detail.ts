@@ -8,7 +8,6 @@
 
 import { CATEGORIES, type Category } from "@shared/categories";
 import type { RecipeUnit } from "@shared/ingredients";
-import { scaleFacts, type RecipeNutrition } from "@shared/nutrition";
 import type { InstructionGroup } from "@shared/recipes";
 
 /**
@@ -46,40 +45,6 @@ export const scaleTo = (lines: RecipeLine[], written: number, wanted: number): R
   const factor = wanted / written;
 
   return lines.map((line) => ({ ...line, quantity: line.quantity * factor }));
-};
-
-/**
- * The same recipe's nutrition, restated for a different number of people.
- *
- * Exactly two of the four fields move, and the split is the whole point of this function:
- *
- * - `total` and `grams` are properties of the batch. Cooking a recipe written for four for eight
- *   people puts twice the food on the table, so both double.
- * - `perServing` is a property of a portion, and a portion does not grow because more people are
- *   eating. It is the figure both nutrition cards show, and it is right at every setting of the
- *   stepper.
- * - `nutriScore` is graded per 100 g, so it is scale-invariant by construction. Recomputing it
- *   would return the same grade with different arithmetic — and could round differently, which is
- *   a dish changing its health rating because somebody had a friend over.
- *
- * Scaling to the servings the recipe was written for returns the same object, so a stepper at rest
- * is indistinguishable from having no stepper.
- */
-export const scaleNutrition = (
-  nutrition: RecipeNutrition,
-  written: number,
-  wanted: number,
-): RecipeNutrition => {
-  /** A recipe that serves nobody has no ratio to scale by, and dividing would produce infinities. */
-  if (written <= 0 || wanted === written) return nutrition;
-
-  const factor = wanted / written;
-
-  return {
-    ...nutrition,
-    grams: nutrition.grams * factor,
-    total: scaleFacts(nutrition.total, factor),
-  };
 };
 
 /** One aisle of the list — the category, and the lines that belong to it in their written order. */

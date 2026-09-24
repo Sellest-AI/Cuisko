@@ -1,13 +1,14 @@
 import { useAtom } from "jotai";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { scaleNutrition } from "@shared/nutrition";
 import { clampServings } from "@shared/servings";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
 import { useQueryCached } from "~/lib/convex/client";
 
-import { scaleNutrition, scaleTo } from "../_model/detail";
+import { scaleTo } from "../_model/detail";
 import { scaleInstructions } from "../_model/quantities";
 import { servingsAtom } from "./atoms";
 

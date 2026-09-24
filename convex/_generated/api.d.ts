@@ -138,6 +138,7 @@ import type * as functions_recipes_persistRestoredRecipe from "../functions/reci
 import type * as functions_recipes_recipeCard from "../functions/recipes/recipeCard.js";
 import type * as functions_recipes_recipeChangesOf from "../functions/recipes/recipeChangesOf.js";
 import type * as functions_recipes_recipeImages from "../functions/recipes/recipeImages.js";
+import type * as functions_recipes_recipeNutrition from "../functions/recipes/recipeNutrition.js";
 import type * as functions_recipes_recipeSearchText from "../functions/recipes/recipeSearchText.js";
 import type * as functions_recipes_regenerateRecipe from "../functions/recipes/regenerateRecipe.js";
 import type * as functions_recipes_resolveRecipeIngredients from "../functions/recipes/resolveRecipeIngredients.js";
@@ -389,6 +390,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/recipeCard": typeof functions_recipes_recipeCard;
   "functions/recipes/recipeChangesOf": typeof functions_recipes_recipeChangesOf;
   "functions/recipes/recipeImages": typeof functions_recipes_recipeImages;
+  "functions/recipes/recipeNutrition": typeof functions_recipes_recipeNutrition;
   "functions/recipes/recipeSearchText": typeof functions_recipes_recipeSearchText;
   "functions/recipes/regenerateRecipe": typeof functions_recipes_regenerateRecipe;
   "functions/recipes/resolveRecipeIngredients": typeof functions_recipes_resolveRecipeIngredients;

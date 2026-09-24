@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { computeNutriScore, totalsOf, type IngredientFacts, type NutritionFacts } from "../nutrition";
+import {
+  computeNutriScore,
+  scaleNutrition,
+  totalsOf,
+  type IngredientFacts,
+  type NutritionFacts,
+} from "../nutrition";
 
 const facts = (overrides: Partial<NutritionFacts> = {}): NutritionFacts => ({
   calories: 0,
@@ -168,5 +174,22 @@ describe("totalsOf", () => {
     expect(nutrition.total.iron).toBeUndefined();
     // The score reads seven facts and iron is not among them, so it survives the hole.
     expect(nutrition.nutriScore).toBeDefined();
+  });
+});
+
+describe("scaleNutrition", () => {
+  const written = totalsOf([{ facts: CARROT, grams: 400, produce: true }], 4)!;
+
+  test("doubles the batch and leaves the portion alone", () => {
+    const scaled = scaleNutrition(written, 4, 8);
+
+    expect(scaled.grams).toBe(800);
+    expect(scaled.total.calories).toBeCloseTo(written.total.calories * 2);
+    expect(scaled.perServing).toEqual(written.perServing);
+    expect(scaled.nutriScore).toEqual(written.nutriScore);
+  });
+
+  test("returns the same object at the servings it was written for", () => {
+    expect(scaleNutrition(written, 4, 4)).toBe(written);
   });
 });
