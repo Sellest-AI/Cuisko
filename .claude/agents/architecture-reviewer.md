@@ -114,7 +114,15 @@ BLOCKING
 NON-BLOCKING
 2. src/modules/recipes/_hooks/use-recipes.ts — hook file should be camelCase  (naming)
    Fix: rename to useRecipes.ts.
+
+NOT CHECKED
+- convex/schema/pantry.ts — budget ran out before the Schema table; unchecked.
 ```
+
+**NOT CHECKED is mandatory whenever anything went unchecked** — a file you did not open, a rule
+you could not settle from the text, an ADR you could not read. Name what, and why. A clean report
+that silently skipped a file is indistinguishable from a clean diff, and it is the one failure the
+session reading you cannot detect. Omit the section only when every changed file met every table.
 
 Report `✅ No conformance issues in N files` when the diff is clean. Say that plainly — do not
 manufacture a finding to look useful. An invented finding costs more trust than the whole review

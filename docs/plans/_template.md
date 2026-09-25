@@ -98,16 +98,19 @@ deferred. This is the cheapest review in the whole process.
 Thin end to end first, then depth. Each step is something that can be looked at, run, or wired
 against — a step that produces nothing observable belongs merged into its neighbour.
 
-```
-1. useRecipes.ts returns hardcoded, fully typed data     → the screen can be built immediately
-2. schema + getOne + its rejection test                  → one real operation, callable
-3. hook internals swap to the real query                 → the screen changes nothing
-4. list + pagination
-5. mutations, then error and empty states
-```
+- [ ] 1. `useRecipes.ts` returns hardcoded, fully typed data → the screen can be built immediately
+- [ ] 2. schema + `getOne` + its rejection test → one real operation, callable
+- [ ] 3. hook internals swap to the real query → the screen changes nothing
+- [ ] 4. list + pagination
+- [ ] 5. mutations, then error and empty states
 
 Where the work is split, mark who takes each step. Step 1 exists so that neither half waits on the
 other.
+
+**This list is the build's progress, kept in the file.** Tick a step the moment it lands with
+`pnpm verify` green — not in a batch at the end. A step found mid-build is added here before it is
+built, never done silently. A long run gets summarised and loses its scrollback; this file does not,
+so where the build stands is read here.
 
 ---
 
