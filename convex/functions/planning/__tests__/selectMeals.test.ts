@@ -540,3 +540,79 @@ describe("functions/planning/selectMeals", () => {
     });
   });
 });
+
+describe("functions/planning/selectMeals expiry", () => {
+  const DAY = 86_400_000;
+  /** The first plate's day. Dates below are counted from it, as `soonestExpiries` hands them over. */
+  const MONDAY = 20_000 * DAY;
+
+  const SPINACH = id<"ingredients">("spinach");
+  const TINNED = id<"ingredients">("tinned-tomatoes");
+  const MILK = id<"ingredients">("milk");
+
+  const week = (count: number): Plate[] =>
+    Array.from({ length: count }, (_, day) => ({ date: MONDAY + day * DAY, slot: "lunch", servings: 2 }));
+
+  const expiring = (entries: [Id<"ingredients">, number][]) =>
+    new Map(entries.map(([ingredientId, days]) => [ingredientId, MONDAY + days * DAY]));
+
+  const owned = stock([[SPINACH, 500], [TINNED, 500], [MILK, 500], [RICE, 500]]);
+
+  const draw = (candidates: Candidate[], count: number, expiries?: Map<Id<"ingredients">, number>) =>
+    selectMeals(candidates, owned, week(count), { ownShare: 1, expiries });
+
+  // Tinned first, so pool order alone would pick it.
+  const tie = [recipe("tomato-soup", [measured(TINNED, 200)]), recipe("spinach-soup", [measured(SPINACH, 200)])];
+
+  /** The case the slice was built for: two recipes the cellar covers equally, one plate. */
+  test("fills the plate with the recipe whose stock goes off first", () => {
+    expect(names(draw(tie, 1, expiring([[SPINACH, 5], [TINNED, 365]])))).toEqual(["spinach-soup"]);
+  });
+
+  test("prefers stock going off sooner over stock going off later, both within the week", () => {
+    const candidates = [recipe("milk-rice", [measured(MILK, 200)]), recipe("spinach-soup", [measured(SPINACH, 200)])];
+
+    expect(names(draw(candidates, 1, expiring([[MILK, 5], [SPINACH, 2]])))).toEqual(["spinach-soup"]);
+  });
+
+  test("counts stock already gone off as the most urgent", () => {
+    const candidates = [recipe("milk-rice", [measured(MILK, 200)]), recipe("spinach-soup", [measured(SPINACH, 200)])];
+
+    expect(names(draw(candidates, 1, expiring([[MILK, 3], [SPINACH, -3]])))).toEqual(["spinach-soup"]);
+  });
+
+  test("leaves the pool order alone when nothing goes off within a week of the first plate", () => {
+    expect(names(draw(tie, 1, expiring([[SPINACH, 8], [TINNED, 365]])))).toEqual(["tomato-soup"]);
+  });
+
+  test("treats an undated ingredient as not urgent", () => {
+    expect(names(draw(tie, 1, expiring([[SPINACH, 5]])))).toEqual(["spinach-soup"]);
+    expect(names(draw(tie, 1, expiring([[TINNED, 5]])))).toEqual(["tomato-soup"]);
+  });
+
+  test("bends a close call without overturning a recipe the cellar covers far better", () => {
+    const candidates = [
+      recipe("risotto", [measured(RICE, 100), measured(TINNED, 100), measured(MILK, 100)]),
+      recipe("spinach-pie", [measured(SPINACH, 100), measured(id<"ingredients">("pastry"), 1), measured(id<"ingredients">("feta"), 1)]),
+    ];
+
+    expect(names(draw(candidates, 1, expiring([[SPINACH, 0]])))).toEqual(["risotto"]);
+  });
+
+  test("gives a pinch of urgent stock no weight, since a pinch never moves the ranking", () => {
+    const candidates = [
+      recipe("tomato-soup", [measured(TINNED, 200)]),
+      recipe("spinach-soup", [measured(SPINACH, 200), pinch(MILK)]),
+    ];
+
+    // Spinach and milk both undated here; milk, a pinch, goes off today and must not tip it.
+    expect(names(draw(candidates, 1, expiring([[MILK, 0]])))).toEqual(["tomato-soup"]);
+  });
+
+  test("draws the same week with no dates as without the option", () => {
+    const candidates = [...tie, recipe("risotto", [measured(RICE, 100)]), ...fillers(4)];
+
+    expect(draw(candidates, 5, new Map())).toEqual(draw(candidates, 5));
+  });
+});
+

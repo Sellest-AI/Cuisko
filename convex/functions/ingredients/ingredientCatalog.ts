@@ -50,6 +50,9 @@ export type CatalogEntry = {
   gramsPerPiece?: number;
   gramsPerSlice?: number;
   gramsPerMl?: number;
+  /** Optional in the type only: the catalog test fails on a row `SHELF_LIFE_DAYS` misses. */
+  shelfLifeDays?: number;
+  openedShelfLifeDays?: number;
   nutrition: {
     calories: number;
     protein: number;
@@ -726,6 +729,256 @@ const GRAMS_PER_ML: Record<string, number> = {
 };
 
 /**
+ * How many days each ingredient keeps: `sealed` as a shop sells it, `opened` once opened or cut.
+ *
+ * Compiled by hand from public storage guidance (USDA FoodKeeper, and the use-by a French
+ * supermarket pack typically carries), taking the short end of each range without shortening it
+ * further. **The form is the one a shop sells**, which is not always the one a recipe names: canned
+ * tomatoes, sweet corn and chickpeas are tins, milk and single cream are UHT cartons, peas and
+ * edamame are frozen, beetroot comes cooked and vacuum-packed. Fresh meat, fish and produce are
+ * the fridge figure. What keeps "indefinitely" (salt, sugar, vinegar) gets a long round number,
+ * since a date is always required.
+ *
+ * `opened` is never more than `sealed`, which the catalog test checks. For produce it is the cut
+ * figure, so a bag of potatoes with some left over will read as cut once opening is tracked. That
+ * slice will need to decide whether a whole potato left in the bag counts as opened.
+ *
+ * Total over `ROWS`: the catalog test fails on a slug with no entry, which is also what a typo'd
+ * key looks like from the row's side.
+ */
+const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
+  // -- Vegetables, fresh unless noted --------------------------------------------------------
+  onion: { sealed: 30, opened: 7 }, "onion-red": { sealed: 30, opened: 7 },
+  shallot: { sealed: 30, opened: 7 }, garlic: { sealed: 60, opened: 7 },
+  carrot: { sealed: 21, opened: 7 }, potato: { sealed: 30, opened: 2 },
+  "sweet-potato": { sealed: 21, opened: 2 }, tomato: { sealed: 7, opened: 2 },
+  "cherry-tomato": { sealed: 7, opened: 3 }, cucumber: { sealed: 7, opened: 2 },
+  "bell-pepper-red": { sealed: 7, opened: 3 }, "bell-pepper-green": { sealed: 7, opened: 3 },
+  "bell-pepper-yellow": { sealed: 7, opened: 3 }, zucchini: { sealed: 5, opened: 2 },
+  eggplant: { sealed: 5, opened: 2 }, broccoli: { sealed: 5, opened: 2 },
+  cauliflower: { sealed: 7, opened: 3 }, spinach: { sealed: 5, opened: 2 },
+  "lettuce-romaine": { sealed: 5, opened: 2 }, arugula: { sealed: 5, opened: 2 },
+  "lambs-lettuce": { sealed: 5, opened: 2 }, cabbage: { sealed: 14, opened: 3 },
+  "red-cabbage": { sealed: 14, opened: 3 }, kale: { sealed: 5, opened: 2 },
+  celery: { sealed: 14, opened: 5 }, leek: { sealed: 7, opened: 3 },
+  mushroom: { sealed: 5, opened: 2 }, pumpkin: { sealed: 30, opened: 5 },
+  "butternut-squash": { sealed: 30, opened: 5 }, "green-beans": { sealed: 5, opened: 2 },
+  // Frozen.
+  peas: { sealed: 240, opened: 90 },
+  asparagus: { sealed: 3, opened: 2 }, "brussels-sprouts": { sealed: 5, opened: 3 },
+  // Cooked and vacuum-packed, as a French supermarket sells it.
+  beet: { sealed: 14, opened: 3 },
+  radish: { sealed: 7, opened: 3 }, turnip: { sealed: 14, opened: 3 },
+  fennel: { sealed: 7, opened: 3 },
+  // Tinned.
+  "corn-sweet": { sealed: 730, opened: 3 },
+  artichoke: { sealed: 5, opened: 2 }, chard: { sealed: 3, opened: 2 },
+  endive: { sealed: 7, opened: 2 }, "spring-onion": { sealed: 5, opened: 3 },
+  "chili-green": { sealed: 7, opened: 3 }, jalapeno: { sealed: 7, opened: 3 },
+  celeriac: { sealed: 30, opened: 5 }, "ginger-fresh": { sealed: 21, opened: 7 },
+  "bean-sprouts": { sealed: 3, opened: 2 }, "bok-choy": { sealed: 3, opened: 2 },
+  // -- Fruit, fresh unless noted -------------------------------------------------------------
+  apple: { sealed: 30, opened: 2 }, banana: { sealed: 5, opened: 1 },
+  orange: { sealed: 14, opened: 3 }, clementine: { sealed: 7, opened: 2 },
+  grapefruit: { sealed: 14, opened: 3 }, lemon: { sealed: 14, opened: 5 },
+  lime: { sealed: 14, opened: 5 }, strawberry: { sealed: 3, opened: 2 },
+  blueberry: { sealed: 7, opened: 3 }, raspberry: { sealed: 2, opened: 1 },
+  blackberry: { sealed: 2, opened: 1 }, grape: { sealed: 7, opened: 3 },
+  watermelon: { sealed: 14, opened: 3 }, cantaloupe: { sealed: 5, opened: 3 },
+  pineapple: { sealed: 3, opened: 3 }, mango: { sealed: 5, opened: 3 },
+  kiwi: { sealed: 7, opened: 3 }, peach: { sealed: 3, opened: 2 },
+  pear: { sealed: 5, opened: 2 }, plum: { sealed: 5, opened: 2 },
+  cherry: { sealed: 5, opened: 3 }, apricot: { sealed: 3, opened: 2 },
+  fig: { sealed: 3, opened: 2 }, pomegranate: { sealed: 30, opened: 3 },
+  avocado: { sealed: 4, opened: 2 }, "coconut-fresh": { sealed: 30, opened: 3 },
+  // Bottled, and dried.
+  "lemon-juice": { sealed: 365, opened: 90 },
+  "raisins-dried": { sealed: 180, opened: 90 }, "prunes-dried": { sealed: 180, opened: 90 },
+  // -- Grains, dry unless noted --------------------------------------------------------------
+  "white-rice": { sealed: 730, opened: 365 }, "basmati-rice": { sealed: 730, opened: 365 },
+  "arborio-rice": { sealed: 730, opened: 365 }, "brown-rice": { sealed: 180, opened: 90 },
+  "pasta-dry": { sealed: 730, opened: 365 }, spaghetti: { sealed: 730, opened: 365 },
+  penne: { sealed: 730, opened: 365 }, macaroni: { sealed: 730, opened: 365 },
+  "lasagna-sheets": { sealed: 730, opened: 365 }, "rice-noodles": { sealed: 730, opened: 365 },
+  "whole-wheat-pasta": { sealed: 365, opened: 180 }, "egg-noodles": { sealed: 365, opened: 180 },
+  "flour-all-purpose": { sealed: 180, opened: 180 }, "whole-wheat-flour": { sealed: 90, opened: 90 },
+  cornmeal: { sealed: 365, opened: 180 }, polenta: { sealed: 365, opened: 180 },
+  cornstarch: { sealed: 730, opened: 730 }, oats: { sealed: 365, opened: 180 },
+  quinoa: { sealed: 730, opened: 365 }, couscous: { sealed: 365, opened: 365 },
+  barley: { sealed: 365, opened: 365 }, bulgur: { sealed: 365, opened: 180 },
+  breadcrumbs: { sealed: 180, opened: 90 },
+  "cereal-cornflakes": { sealed: 180, opened: 60 }, granola: { sealed: 180, opened: 60 },
+  // Bread: a baguette is the day's, sliced bread is the packaged loaf.
+  baguette: { sealed: 1, opened: 1 },
+  "bread-white": { sealed: 14, opened: 7 }, "bread-whole-wheat": { sealed: 14, opened: 7 },
+  "tortilla-wrap": { sealed: 30, opened: 7 }, "tortilla-corn": { sealed: 30, opened: 7 },
+  // Chilled.
+  "fresh-tagliatelle": { sealed: 14, opened: 2 }, "pizza-dough": { sealed: 14, opened: 2 },
+  "puff-pastry": { sealed: 14, opened: 2 }, "shortcrust-pastry": { sealed: 14, opened: 2 },
+  // -- Meat, fresh and chilled unless noted --------------------------------------------------
+  "chicken-breast": { sealed: 2, opened: 1 }, "chicken-thigh": { sealed: 2, opened: 1 },
+  "chicken-wings": { sealed: 2, opened: 1 }, "chicken-whole": { sealed: 2, opened: 1 },
+  "duck-whole": { sealed: 2, opened: 1 }, "turkey-whole": { sealed: 2, opened: 1 },
+  "turkey-breast": { sealed: 2, opened: 1 }, rabbit: { sealed: 2, opened: 1 },
+  "ground-beef-80-20": { sealed: 2, opened: 1 }, "beef-ground-90-10": { sealed: 2, opened: 1 },
+  "ground-turkey": { sealed: 2, opened: 1 }, "sausage-pork": { sealed: 2, opened: 1 },
+  merguez: { sealed: 2, opened: 1 },
+  "beef-steak-sirloin": { sealed: 3, opened: 2 }, "beef-roast": { sealed: 3, opened: 2 },
+  "pork-chop": { sealed: 3, opened: 2 }, "pork-loin": { sealed: 3, opened: 2 },
+  "pork-roast": { sealed: 3, opened: 2 }, lamb: { sealed: 3, opened: 2 },
+  "lamb-leg": { sealed: 3, opened: 2 }, veal: { sealed: 3, opened: 2 },
+  "duck-breast": { sealed: 3, opened: 2 },
+  bacon: { sealed: 7, opened: 5 }, lardons: { sealed: 7, opened: 5 },
+  // Sliced and cooked, or cured, in a sealed pack.
+  ham: { sealed: 14, opened: 3 }, "chicken-slices": { sealed: 14, opened: 3 },
+  "turkey-slices": { sealed: 14, opened: 3 }, prosciutto: { sealed: 30, opened: 3 },
+  // Dry sausages, whole.
+  salami: { sealed: 42, opened: 21 }, chorizo: { sealed: 42, opened: 21 },
+  // -- Seafood, fresh and chilled unless noted -----------------------------------------------
+  salmon: { sealed: 2, opened: 1 }, cod: { sealed: 2, opened: 1 },
+  trout: { sealed: 2, opened: 1 }, mackerel: { sealed: 2, opened: 1 },
+  squid: { sealed: 2, opened: 1 }, scallops: { sealed: 2, opened: 1 },
+  mussels: { sealed: 2, opened: 1 },
+  // Sold cooked, at the counter or in a tray.
+  shrimp: { sealed: 3, opened: 2 },
+  // Frozen fillets.
+  tilapia: { sealed: 180, opened: 30 },
+  "salmon-smoked": { sealed: 14, opened: 3 },
+  // Tinned.
+  "tuna-canned-water": { sealed: 730, opened: 3 }, sardines: { sealed: 730, opened: 3 },
+  crab: { sealed: 730, opened: 3 },
+  // Fillets in oil, in a tin or a jar.
+  anchovy: { sealed: 365, opened: 30 },
+  // -- Dairy ---------------------------------------------------------------------------------
+  // UHT cartons, the way France buys milk and pouring cream.
+  "milk-whole": { sealed: 90, opened: 3 }, "milk-skim": { sealed: 90, opened: 3 },
+  "milk-semi-skimmed": { sealed: 90, opened: 3 },
+  "single-cream": { sealed: 90, opened: 3 }, "whipping-cream": { sealed: 90, opened: 3 },
+  // Tinned.
+  "condensed-milk": { sealed: 365, opened: 7 }, "evaporated-milk": { sealed: 365, opened: 5 },
+  butter: { sealed: 30, opened: 21 }, "butter-unsalted": { sealed: 30, opened: 21 },
+  "butter-salted": { sealed: 30, opened: 21 },
+  // Hard cheeses, vacuum-packed.
+  parmesan: { sealed: 180, opened: 30 }, "cheddar-cheese": { sealed: 90, opened: 21 },
+  gruyere: { sealed: 90, opened: 21 }, comte: { sealed: 90, opened: 21 },
+  emmental: { sealed: 90, opened: 21 }, "raclette-cheese": { sealed: 30, opened: 14 },
+  "blue-cheese": { sealed: 30, opened: 14 }, feta: { sealed: 30, opened: 7 },
+  // Soft and fresh cheeses.
+  camembert: { sealed: 14, opened: 7 }, brie: { sealed: 14, opened: 7 },
+  "goat-cheese": { sealed: 14, opened: 7 }, mozzarella: { sealed: 14, opened: 3 },
+  mascarpone: { sealed: 14, opened: 3 }, ricotta: { sealed: 14, opened: 5 },
+  paneer: { sealed: 14, opened: 3 }, "cream-cheese": { sealed: 21, opened: 7 },
+  "cottage-cheese": { sealed: 7, opened: 5 }, "fromage-blanc": { sealed: 14, opened: 5 },
+  // Yogurts and thick creams.
+  "plain-yogurt": { sealed: 14, opened: 3 }, "greek-yogurt": { sealed: 14, opened: 5 },
+  "flavoured-yogurt": { sealed: 14, opened: 3 },
+  "heavy-cream": { sealed: 14, opened: 5 }, "creme-fraiche": { sealed: 14, opened: 5 },
+  "sour-cream": { sealed: 14, opened: 7 },
+  // -- Eggs ----------------------------------------------------------------------------------
+  // In the shell; `opened` is a cracked egg. Whites come as a chilled carton, yolks are separated
+  // at home, since no shop sells them alone.
+  "egg-whole": { sealed: 21, opened: 2 }, "egg-white": { sealed: 10, opened: 3 },
+  "egg-yolk": { sealed: 2, opened: 2 },
+  // -- Legumes -------------------------------------------------------------------------------
+  // Tinned, cooked.
+  "black-beans": { sealed: 730, opened: 3 }, "kidney-beans": { sealed: 730, opened: 3 },
+  chickpeas: { sealed: 730, opened: 3 }, "white-beans-cannellini": { sealed: 730, opened: 3 },
+  "pinto-beans": { sealed: 730, opened: 3 },
+  // Dry.
+  "lentils-red": { sealed: 365, opened: 365 }, "lentils-green": { sealed: 365, opened: 365 },
+  "split-peas": { sealed: 365, opened: 365 }, soybeans: { sealed: 365, opened: 365 },
+  // Frozen.
+  edamame: { sealed: 240, opened: 90 },
+  // -- Nuts and seeds ------------------------------------------------------------------------
+  almonds: { sealed: 180, opened: 90 }, "almonds-flaked": { sealed: 180, opened: 90 },
+  cashews: { sealed: 180, opened: 90 }, pistachios: { sealed: 180, opened: 90 },
+  peanuts: { sealed: 180, opened: 90 }, hazelnuts: { sealed: 180, opened: 90 },
+  macadamia: { sealed: 180, opened: 90 }, "brazil-nuts": { sealed: 180, opened: 60 },
+  // The oiliest nuts, which go rancid first.
+  walnuts: { sealed: 90, opened: 30 }, pecans: { sealed: 90, opened: 30 },
+  "pine-nuts": { sealed: 90, opened: 30 },
+  "chia-seeds": { sealed: 730, opened: 365 }, "flax-seeds": { sealed: 365, opened: 180 },
+  "sesame-seeds": { sealed: 365, opened: 180 }, "poppy-seeds": { sealed: 365, opened: 180 },
+  "hemp-seeds": { sealed: 365, opened: 90 }, "sunflower-seeds": { sealed: 180, opened: 90 },
+  "pumpkin-seeds": { sealed: 180, opened: 90 },
+  // -- Fresh herbs ---------------------------------------------------------------------------
+  basil: { sealed: 5, opened: 3 }, parsley: { sealed: 7, opened: 5 },
+  cilantro: { sealed: 7, opened: 3 }, mint: { sealed: 7, opened: 3 },
+  dill: { sealed: 7, opened: 3 }, chives: { sealed: 7, opened: 3 },
+  tarragon: { sealed: 7, opened: 3 }, sage: { sealed: 7, opened: 5 },
+  "oregano-fresh": { sealed: 7, opened: 5 }, thyme: { sealed: 10, opened: 7 },
+  rosemary: { sealed: 14, opened: 7 }, lemongrass: { sealed: 14, opened: 7 },
+  // -- Spices and dried herbs: two years sealed, one once opened, whatever the spice --------
+  "black-pepper": { sealed: 730, opened: 365 }, cinnamon: { sealed: 730, opened: 365 },
+  cumin: { sealed: 730, opened: 365 }, paprika: { sealed: 730, opened: 365 },
+  "paprika-smoked": { sealed: 730, opened: 365 }, turmeric: { sealed: 730, opened: 365 },
+  "ginger-ground": { sealed: 730, opened: 365 }, nutmeg: { sealed: 730, opened: 365 },
+  "chili-powder": { sealed: 730, opened: 365 }, "cayenne-pepper": { sealed: 730, opened: 365 },
+  "espelette-pepper": { sealed: 730, opened: 365 }, "garam-masala": { sealed: 730, opened: 365 },
+  "curry-powder": { sealed: 730, opened: 365 }, "ras-el-hanout": { sealed: 730, opened: 365 },
+  saffron: { sealed: 730, opened: 365 }, "coriander-ground": { sealed: 730, opened: 365 },
+  "mustard-seeds": { sealed: 730, opened: 365 }, cloves: { sealed: 730, opened: 365 },
+  cardamom: { sealed: 730, opened: 365 }, "herbes-de-provence": { sealed: 730, opened: 365 },
+  "dried-oregano": { sealed: 730, opened: 365 }, "dried-basil": { sealed: 730, opened: 365 },
+  "bay-leaf": { sealed: 730, opened: 365 },
+  // -- Oils ----------------------------------------------------------------------------------
+  "olive-oil": { sealed: 540, opened: 90 }, "coconut-oil": { sealed: 540, opened: 365 },
+  "vegetable-oil": { sealed: 365, opened: 180 }, "canola-oil": { sealed: 365, opened: 180 },
+  "sunflower-oil": { sealed: 365, opened: 180 }, "sesame-oil": { sealed: 365, opened: 180 },
+  ghee: { sealed: 270, opened: 90 },
+  // -- Condiments ----------------------------------------------------------------------------
+  // Keeps indefinitely; ten years stands in for "never".
+  salt: { sealed: 3650, opened: 3650 },
+  "vinegar-white": { sealed: 730, opened: 730 }, "vinegar-red-wine": { sealed: 730, opened: 730 },
+  "balsamic-vinegar": { sealed: 730, opened: 730 }, "rice-vinegar": { sealed: 730, opened: 730 },
+  "soy-sauce": { sealed: 730, opened: 365 }, "fish-sauce": { sealed: 730, opened: 365 },
+  "worcestershire-sauce": { sealed: 730, opened: 365 },
+  ketchup: { sealed: 365, opened: 180 }, "mustard-yellow": { sealed: 365, opened: 180 },
+  "mustard-wholegrain": { sealed: 365, opened: 180 }, "hot-sauce": { sealed: 365, opened: 180 },
+  "oyster-sauce": { sealed: 365, opened: 180 }, "hoisin-sauce": { sealed: 365, opened: 180 },
+  "miso-paste": { sealed: 365, opened: 180 }, mayonnaise: { sealed: 90, opened: 60 },
+  tahini: { sealed: 365, opened: 90 }, "preserved-lemon": { sealed: 365, opened: 90 },
+  harissa: { sealed: 365, opened: 30 }, "curry-paste-red": { sealed: 365, opened: 30 },
+  // A jar kept in the cupboard, and a tin of concentrate.
+  pesto: { sealed: 365, opened: 7 }, "tomato-paste": { sealed: 365, opened: 5 },
+  // Chilled.
+  hummus: { sealed: 14, opened: 5 },
+  // -- Sweeteners ----------------------------------------------------------------------------
+  "white-sugar": { sealed: 3650, opened: 3650 }, "powdered-sugar": { sealed: 730, opened: 730 },
+  "brown-sugar": { sealed: 730, opened: 365 }, "vanilla-sugar": { sealed: 730, opened: 365 },
+  honey: { sealed: 730, opened: 730 }, "agave-syrup": { sealed: 730, opened: 365 },
+  "maple-syrup": { sealed: 365, opened: 180 },
+  // -- Everything else -----------------------------------------------------------------------
+  water: { sealed: 365, opened: 3 },
+  // Liquid, in a carton; and dry cubes.
+  "vegetable-broth": { sealed: 365, opened: 3 }, "chicken-broth": { sealed: 365, opened: 3 },
+  "beef-broth": { sealed: 365, opened: 3 }, "bouillon-cube": { sealed: 365, opened: 365 },
+  // Shelf-stable cartons.
+  "soy-milk": { sealed: 180, opened: 7 }, "almond-milk": { sealed: 180, opened: 7 },
+  "oat-milk": { sealed: 180, opened: 7 },
+  "orange-juice": { sealed: 180, opened: 5 }, "apple-juice": { sealed: 180, opened: 5 },
+  // Chilled.
+  "tofu-silken": { sealed: 30, opened: 3 }, "tofu-firm": { sealed: 30, opened: 3 },
+  tempeh: { sealed: 10, opened: 3 }, seitan: { sealed: 14, opened: 3 },
+  // Tins, jars and bottles.
+  "canned-tomatoes": { sealed: 365, opened: 5 }, passata: { sealed: 365, opened: 5 },
+  "tomato-sauce": { sealed: 365, opened: 5 }, "coconut-milk": { sealed: 730, opened: 3 },
+  "olives-green": { sealed: 365, opened: 14 }, "olives-black": { sealed: 365, opened: 14 },
+  capers: { sealed: 365, opened: 90 }, pickles: { sealed: 365, opened: 30 },
+  // Wine is ordinary table wine, corked back and kept in the fridge once opened.
+  "white-wine": { sealed: 365, opened: 3 }, "red-wine": { sealed: 730, opened: 3 },
+  beer: { sealed: 180, opened: 1 },
+  "coffee-ground": { sealed: 180, opened: 30 }, "black-tea": { sealed: 365, opened: 180 },
+  // The pantry.
+  nori: { sealed: 365, opened: 90 }, "orange-blossom-water": { sealed: 730, opened: 180 },
+  "baking-powder": { sealed: 365, opened: 180 }, "baking-soda": { sealed: 730, opened: 365 },
+  "dry-yeast": { sealed: 365, opened: 120 }, gelatin: { sealed: 730, opened: 365 },
+  "dark-chocolate": { sealed: 365, opened: 180 }, "milk-chocolate": { sealed: 180, opened: 90 },
+  "cocoa-powder": { sealed: 730, opened: 365 }, "vanilla-extract": { sealed: 730, opened: 730 },
+  "peanut-butter": { sealed: 180, opened: 60 },
+};
+
+/**
  * -------------------------------------------------------------------------------------------
  *  DIET AND ALLERGENS
  * -------------------------------------------------------------------------------------------
@@ -735,17 +988,19 @@ const GRAMS_PER_ML: Record<string, number> = {
  * wine". Processing aids that vary from producer to producer are out of scope and are not guessed
  * at: the rennet in a hard cheese (calf in a PDO Parmigiano, microbial in most supermarket grated
  * parmesan) and the fining agent in a wine or beer (isinglass, gelatin, or neither) cannot be read
- * off a category or a name, so `parmesan` is `vegetarian` and `white-wine` is `vegan`.
- *
- * That is a real limitation and it is written down rather than papered over. Whoever wants to close
- * it closes it by splitting the row - a `parmigiano-reggiano` distinct from `parmesan` - not by
- * making this file hedge, because a hedge here silently strips `vegetarian` from every pasta dish
- * in the catalog.
+ * off a category or a name.
  *
  * Allergen coverage runs to the EU-14 as they would appear on the packet. It is deepest where a tag
- * reads it (gluten, milk, nuts, peanuts) and thinnest where nothing does yet: cured meats commonly
- * declare sulphites and are recorded as carrying none, which is fine for the tags that exist and is
- * the first thing to fix if `sulphite-free` is ever wanted.
+ * reads it (gluten, milk, nuts, peanuts) and thinnest where nothing does yet.
+ *
+ * @limitation Because a processing aid cannot be read off a category or a name, `parmesan` is
+ * `vegetarian` and `white-wine` is `vegan`. That is a real limitation and it is written down
+ * rather than papered over. Whoever wants to close it closes it by splitting the row - a
+ * `parmigiano-reggiano` distinct from `parmesan` - not by making this file hedge, because a hedge
+ * here silently strips `vegetarian` from every pasta dish in the catalog.
+ *
+ * @limitation Cured meats commonly declare sulphites and are recorded as carrying none. Fine for
+ * the tags that exist, and the first thing to fix if `sulphite-free` is ever wanted.
  */
 
 /**
@@ -942,6 +1197,8 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     gramsPerPiece: GRAMS_PER_PIECE[slug],
     gramsPerSlice: GRAMS_PER_SLICE[slug],
     gramsPerMl: GRAMS_PER_ML[slug],
+    shelfLifeDays: SHELF_LIFE_DAYS[slug]?.sealed,
+    openedShelfLifeDays: SHELF_LIFE_DAYS[slug]?.opened,
     nutrition: { calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium },
   }),
 );

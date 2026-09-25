@@ -3,8 +3,8 @@
 <!--
   MAINTENANCE: every line here must be a command, a boundary, a non-obvious pattern,
   or a pointer. No directory trees, no architecture prose — those live in docs/ and
-  are read on demand. Budget is 350 lines — a ceiling, not a target: this file is
-  loaded on every request, so an unnecessary line is paid for on every one. Past 350,
+  are read on demand. Budget is 400 lines — a ceiling, not a target: this file is
+  loaded on every request, so an unnecessary line is paid for on every one. Past 400,
   extract to docs/ rather than trimming what earns its place.
   Nested files live at convex/AGENTS.md and src/ui/AGENTS.md — agents read the
   NEAREST one, so state a rule in the folder it governs rather than adding it here.
@@ -46,7 +46,9 @@ you find a doc that contradicts it, say so and offer to fix the doc.
 **A change crossing two layers starts with a plan.** Copy `docs/plans/_template.md` and agree it
 before building: what it settles — file placement, call stack, what a hook returns — is the seam
 between whoever writes the backend and whoever wires the screen, and a seam discovered during wiring
-is a rewrite for one side. One file, one screen or a dep bump needs none. Deleted when the slice lands.
+is a rewrite for one side. One file, one screen or a dep bump needs none. Its slices are checkboxes:
+a slice found mid-build gets one before it is built, and each is ticked when it is completed. The
+plan file is deleted once every box is ticked, before merging.
 
 Before adding a helper, hook or component, search for one that already exists —
 `docs/CONVENTIONS.md` says where it would live. If it does, call it. If you are about to write the
@@ -105,6 +107,17 @@ domain needs, each named for what it returns — the folder is the binding site,
 root file. `_components/` and `_hooks/` are that module's interior, reached only by relative path
 — lint R8 blocks the aliased form. A hook other modules need is re-exported from the module's
 `hooks.ts`; it does not move. Full contract: `src/modules/AGENTS.md`.
+
+## Running a task
+
+**Keep going unless a step needs the user.** The status note rides with the next action — never
+"want me to continue?". Stop only when a decision is the user's, at a stop this file names (review
+finding, red test, wrong branch, unagreed plan), or before anything destructive or outside this
+worktree (deleting data, force-push, `main`, the shared stash).
+
+**A run that changed or investigated something ends with three headings**, waiting-on-user first:
+**Blocked on you** ("Nothing" when nothing) · **Changed** (by layer, and what verify said) ·
+**Found** (noticed but not acted on, and what you could not confirm, with where you looked).
 
 ## Tests
 
@@ -219,6 +232,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 - No empty `catch {}`, no leftover `console.log`, no commented-out code.
 - No `@deprecated` code left shipping; delete it — git remembers.
 - No new `any` without a comment justifying it.
+- A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
 - Any `docs/` page this change just made wrong.
 
 **Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
@@ -322,7 +336,8 @@ prompt. Every spawn must therefore include:
 - **Which docs apply**: `docs/CONVENTIONS.md`, plus the specific `docs/adr/` files matching the globs
   it will touch.
 - **The commands** it may run (`pnpm verify`, `pnpm test -- <file>`).
-- **The output shape** you expect back (a list of `file:line` findings, a diff, a summary).
+- **The output shape** you expect back (a list of `file:line` findings, a diff, a summary), plus
+  what it could not confirm and where it looked — a silent gap reads as a clean result.
 - **Boundaries** — read-only vs may-edit, and which paths are off limits.
 
 **A spawn you make more than once becomes a definition in `.claude/agents/`.** Everything above then

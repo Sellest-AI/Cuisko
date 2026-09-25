@@ -48,3 +48,36 @@ describe("catalog weights", () => {
     expect(toGrams(2, "pcs", bySlug("garlic"))).toBe(10);
   });
 });
+
+describe("catalog shelf life", () => {
+  /**
+   * Total over the catalog, because an undated purchase is read as "not urgent": a row missing
+   * here would never be cooked first, and nothing else would notice.
+   */
+  test("every row keeps for a whole number of days, sealed and opened", () => {
+    const undated = CATALOG.filter(
+      (entry) =>
+        !Number.isInteger(entry.shelfLifeDays) ||
+        !Number.isInteger(entry.openedShelfLifeDays) ||
+        entry.shelfLifeDays! <= 0 ||
+        entry.openedShelfLifeDays! <= 0,
+    );
+
+    expect(undated.map((entry) => entry.slug)).toEqual([]);
+  });
+
+  test("opening never makes a row keep longer", () => {
+    const longerOpened = CATALOG.filter(
+      (entry) => entry.openedShelfLifeDays! > entry.shelfLifeDays!,
+    );
+
+    expect(longerOpened.map((entry) => entry.slug)).toEqual([]);
+  });
+
+  test("dates the form a shop sells, not the one a recipe names", () => {
+    expect(bySlug("canned-tomatoes")).toMatchObject({ shelfLifeDays: 365, openedShelfLifeDays: 5 });
+    expect(bySlug("milk-whole")).toMatchObject({ shelfLifeDays: 90, openedShelfLifeDays: 3 });
+    expect(bySlug("tomato")).toMatchObject({ shelfLifeDays: 7, openedShelfLifeDays: 2 });
+    expect(bySlug("pasta-dry")).toMatchObject({ shelfLifeDays: 730, openedShelfLifeDays: 365 });
+  });
+});

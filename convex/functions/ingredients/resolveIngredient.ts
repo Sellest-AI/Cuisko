@@ -222,8 +222,8 @@ const _fromDatasets = async (
  * `aboutTheSameFood` is the same predicate `sanitizeIngredient` gates a source's vocabulary and
  * its figures with, applied at the third site where a searched source's words are trusted.
  *
- * **The cost is step 3's cross-language bridge, and it is paid knowingly.** `Potato` is not
- * string-similar to `Pomme de terre`, so this gate drops a correct foreign-language name as
+ * @limitation **The cost is step 3's cross-language bridge, and it is paid knowingly.** `Potato`
+ * is not string-similar to `Pomme de terre`, so this gate drops a correct foreign-language name as
  * readily as a junk one. Measured over the seeded catalog, 132 of 532 cross-language lookups
  * reach this step as their only chance — and of a 20-case sample, Open Food Facts resolved none
  * of them, so the bridge being closed here is one that was not carrying traffic. What the gate

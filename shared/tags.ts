@@ -59,17 +59,17 @@ export const COMPUTED_TAGS = [
  * or worth cooking a double batch of. These are read off the recipe as a whole, which is why they
  * are the ones the model writes.
  *
- * ⚠️ **The Character group is the weakest part of this list, and knowingly so.** Those five are
- * what the planning tunnel's mood step steers a week by (see [`TASTES`](./tastes.ts)), and a steer
- * with no tag behind it filters on nothing — so they are here rather than nowhere. They are the
- * ones to look at first if a tag ever reads as a claim the model cannot support: "gut-friendly"
- * has nothing behind it but the model's judgement, where "spicy" two lines up is decidable from
- * the ingredient list anyone can read.
- *
- * `high-fibre` and `iron-rich` were briefly in this group and have moved to
+ * `high-fibre` and `iron-rich` were briefly in the Character group and have moved to
  * [`COMPUTED_TAGS`](#COMPUTED_TAGS), which is where a nutrition claim belongs: both are now
  * measured from the catalog rather than asserted by a model, against the thresholds EU Regulation
  * 1924/2006 sets for them.
+ *
+ * @limitation **The Character group is the weakest part of this list, and knowingly so.** Those
+ * five are what the planning tunnel's mood step steers a week by (see [`TASTES`](./tastes.ts)),
+ * and a steer with no tag behind it filters on nothing — so they are here rather than nowhere.
+ * They are the ones to look at first if a tag ever reads as a claim the model cannot support:
+ * "gut-friendly" has nothing behind it but the model's judgement, where "spicy" two lines up is
+ * decidable from the ingredient list anyone can read.
  */
 export const AUTHORED_TAGS = [
   // Course — where it lands in a meal

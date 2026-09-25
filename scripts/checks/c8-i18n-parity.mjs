@@ -318,8 +318,9 @@ const flattenNamespace = (locale, namespace) => {
  * check that disagreed with the type would police keys the compiler never offers. One rule, stated
  * in both places: never end an ordinary key with a category name.
  *
- * i18next's ordinal plurals (`key_ordinal_one`) are not covered — nothing uses them, and they draw
- * their categories from a different Intl rule set than the cardinal one asserted here.
+ * @limitation i18next's ordinal plurals (`key_ordinal_one`) are not covered — nothing uses them,
+ * and they draw their categories from a different Intl rule set than the cardinal one asserted
+ * here.
  */
 const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"];
 

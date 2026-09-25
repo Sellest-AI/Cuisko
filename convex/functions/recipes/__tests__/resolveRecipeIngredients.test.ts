@@ -191,7 +191,7 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
    * builds the taxonomy keys and the catalog query — a retrieval change, not a fold change. The
    * cost is one redundant walk, not a wrong link, which is why it is recorded and not rushed.
    */
-  test("still splits `en conserve`, which is the gap preservationIn does not close", async () => {
+  test("limitation: still splits `en conserve`, the gap preservationIn does not close", async () => {
     gather.mockResolvedValue(undecided());
     agent.mockResolvedValue({ status: "refused", reason: "not-food" });
 

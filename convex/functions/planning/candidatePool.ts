@@ -253,9 +253,9 @@ export const candidatePool = async (
   ).map((rows) => _settled(rows, settledAt)) as [Doc<"recipes">[], Doc<"recipes">[]];
 
   /**
-   * ⚠️ **An untimed recipe passes every ceiling.** `undefined` means nobody timed it, not that it
-   * is instant — so the honest answer to "does this fit in 30 minutes?" is "unknown", and unknown
-   * is admitted here.
+   * @limitation Design choice: **an untimed recipe passes every ceiling.** `undefined` means nobody
+   * timed it, not that it is instant — so the honest answer to "does this fit in 30 minutes?" is
+   * "unknown", and unknown is admitted here.
    *
    * This is deliberately the OPPOSITE of the allergen rule in `_loadUntil` above, where an
    * unclassified ingredient is excluded, and the difference is what is at stake: a mistimed dinner

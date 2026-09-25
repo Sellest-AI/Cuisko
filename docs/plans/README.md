@@ -30,7 +30,7 @@ precisely to settle that seam before either half is built.
 ```
 1. Write it        before code, in a short session — the model is cheap and unbiased here
 2. Agree it        the other half of the work reads it and pushes back; this is the point
-3. Build from it   in slice order, thin end-to-end first
+3. Build from it   in slice order, thin end-to-end first; tick each slice as it lands
 4. Take it down    deleted in the commit that finishes the slice
 ```
 

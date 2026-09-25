@@ -201,6 +201,27 @@ export const ingredients = defineTable({
   gramsPerPiece: v.optional(v.number()),
   gramsPerSlice: v.optional(v.number()),
   gramsPerMl: v.optional(v.number()),
+  /**
+   * How many days this keeps in the form a shop usually sells it, unopened and stored the normal
+   * way — the rough date a cellar row is given when it is bought (`addToCellar`).
+   *
+   * **The form a shop sells, not the one a recipe names.** Concassé de tomates is 365, because it
+   * is bought in a tin; milk is 90, because it is bought as a UHT carton; dried pasta is 730. The
+   * short end of the real range, from public references, and not shortened further: a date that
+   * comes too early pushes a meal up the week for food that was fine.
+   *
+   * `openedShelfLifeDays` is the same question once the pack is opened or the vegetable cut — 3 for
+   * that UHT milk, 5 for the concassé, 2 for a cut tomato. **Never more than `shelfLifeDays`**:
+   * opening something never makes it keep longer. The seed test checks it for the catalog, and the
+   * agent's answer is clamped to it. Stored now, read by nothing yet: marking a cellar row opened
+   * when a meal only uses part of it is its own slice.
+   *
+   * Both are rough, and are only ever used to decide what to cook first. Optional because a row can
+   * exist before anything has estimated them; a cellar row bought without one has no date, which
+   * the planner reads as "not urgent".
+   */
+  shelfLifeDays: v.optional(v.number()),
+  openedShelfLifeDays: v.optional(v.number()),
   // All facts per 100g.
   nutrition: vIngredientNutrition,
   // Derived from `nutrition` by @shared/nutrition — absent until every field it needs is present.

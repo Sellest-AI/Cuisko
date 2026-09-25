@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
@@ -42,6 +42,8 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
       emoji: "🥚",
       defaultUnit: "pcs",
       defaultQuantity: 6,
+      shelfLifeDays: 21,
+      openedShelfLifeDays: 2,
       nutrition: { calories: 70, protein: 6, fat: 5, carbohydrates: 0 },
       updatedAt: Date.now(),
     });
@@ -299,5 +301,134 @@ describe("router/cellars/addToCellar", () => {
       expect(claim!.groceryListItemId).toBe(groceryRowId);
       expect(claim!.cellarItemId).toBeUndefined();
     });
+  });
+});
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+describe("router/cellars/addToCellar expiration", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Moves the clock to `day` days after the epoch, which is what every date below counts from. */
+  const onDay = (day: number) => vi.setSystemTime(day * DAY_MS);
+
+  const setup = async (shelfLifeDays: number | undefined) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    onDay(0);
+
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    await t.run((ctx) => ctx.db.patch(ingredientId, { shelfLifeDays }));
+
+    const buy = (quantity: number) =>
+      t
+        .withIdentity(asUser(userId))
+        .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity });
+    const rowDay = async () => {
+      const [row] = await t.run((ctx) => ctx.db.query("cellarItems").collect());
+
+      return row!.expirationDate === undefined ? undefined : row!.expirationDate / DAY_MS;
+    };
+    const seedRow = (row: { quantity: number; expirationDate?: number }) =>
+      t.run((ctx) =>
+        ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", ...row, updatedAt: Date.now() }),
+      );
+
+    return { t, householdId, ingredientId, buy, rowDay, seedRow };
+  };
+
+  test("dates a new row from the ingredient's shelf life", async () => {
+    const { buy, rowDay } = await setup(21);
+
+    onDay(3);
+    await buy(6);
+
+    expect(await rowDay()).toBe(24);
+  });
+
+  test("leaves a new row undated when nothing estimated the ingredient's shelf life", async () => {
+    const { buy, rowDay } = await setup(undefined);
+
+    await buy(6);
+
+    expect(await rowDay()).toBeUndefined();
+  });
+
+  test("dates the row when the purchase strikes a grocery line, too", async () => {
+    const { t, householdId, ingredientId, buy, rowDay } = await setup(21);
+    await t.run((ctx) =>
+      ctx.db.insert("groceryListItems", { householdId, ingredientId, unit: "pcs", quantity: 6, updatedAt: Date.now() }),
+    );
+
+    await buy(6);
+
+    expect(await t.run((ctx) => ctx.db.query("groceryListItems").collect())).toEqual([]);
+    expect(await rowDay()).toBe(21);
+  });
+
+  /**
+   * The case the merge rule was agreed on: milk at 90 days, nothing drunk in between. A merge keeps
+   * the older date while the older stock is a real share of the row, and takes the new one once
+   * that stock is stale by time or swamped by quantity.
+   */
+  test("merges milk bought over three months", async () => {
+    const { buy, rowDay } = await setup(90);
+
+    await buy(4);
+    expect(await rowDay()).toBe(90);
+
+    // 60 days left is more than a third, and 1 is less than 3 × 4.
+    onDay(30);
+    await buy(1);
+    expect(await rowDay()).toBe(90);
+
+    // 30 days left is a third: the first four are taken as drunk.
+    onDay(60);
+    await buy(1);
+    expect(await rowDay()).toBe(150);
+
+    // 60 days left, but 20 is at least 3 × 6: what is on the shelf is mostly the new milk.
+    onDay(90);
+    await buy(20);
+    expect(await rowDay()).toBe(180);
+  });
+
+  test("a row that has run out takes the new date", async () => {
+    const { buy, rowDay, seedRow } = await setup(21);
+    await seedRow({ quantity: 0, expirationDate: 20 * DAY_MS });
+
+    await buy(1);
+
+    expect(await rowDay()).toBe(21);
+  });
+
+  test("an undated row takes the new date", async () => {
+    const { buy, rowDay, seedRow } = await setup(21);
+    await seedRow({ quantity: 6 });
+
+    await buy(1);
+
+    expect(await rowDay()).toBe(21);
+  });
+
+  test("an expired row takes the new date", async () => {
+    const { buy, rowDay, seedRow } = await setup(21);
+    onDay(30);
+    await seedRow({ quantity: 6, expirationDate: 25 * DAY_MS });
+
+    await buy(1);
+
+    expect(await rowDay()).toBe(51);
+  });
+
+  test("a merge leaves a dated row alone when the ingredient has no shelf life", async () => {
+    const { buy, rowDay, seedRow } = await setup(undefined);
+    await seedRow({ quantity: 1, expirationDate: 5 * DAY_MS });
+
+    await buy(10);
+
+    expect(await rowDay()).toBe(5);
   });
 });

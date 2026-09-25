@@ -18,20 +18,22 @@ const UNANSWERED: PreferenceValues = { diet: "omnivore", avoids: [], seeks: [] }
 /**
  * The caller's own preferences, and the one way a screen changes them.
  *
- * ⚠️ **`save` replaces the whole row.** There is one write path per table by design, and the price
- * of that is that every writer sends the whole answer — a caller that sent only `seeks` would
- * silently clear somebody's gluten. The preferences sheet edits all three fields and so has them
- * all to hand; the tunnel edits `diet` and `avoids` and passes `seeks` straight back untouched.
+ * Both writers, the preferences sheet and the tunnel, are asserting the caller's OWN answer. The
+ * tunnel's constraint list also shows what a household imposes, and none of that is ever folded
+ * into what reaches here — see `save` on the Convex side, which takes values rather than ids and so
+ * cannot reach a housemate's row.
  *
- * Both writers are asserting the caller's OWN answer. The tunnel's constraint list also shows what
- * a household imposes, and none of that is ever folded into what reaches here — see `save` on the
- * Convex side, which takes values rather than ids and so cannot reach a housemate's row.
+ * @limitation Design choice: **`save` replaces the whole row.** There is one write path per table
+ * by design, and the price of that is that every writer sends the whole answer — a caller that sent
+ * only `seeks` would silently clear somebody's gluten. The preferences sheet edits all three fields
+ * and so has them all to hand; the tunnel edits `diet` and `avoids` and passes `seeks` straight
+ * back untouched.
  *
- * The local draft is what makes a chip respond to a tap rather than to a round trip. The query
- * stays the source of truth until the first local write, after which the draft leads and the
- * server confirms — so a change made on another device lands only on the next mount. That is the
- * right trade for a sheet somebody has open for four seconds; a longer-lived screen would want the
- * query to win.
+ * @limitation Design choice: **a change made on another device lands only on the next mount.** The
+ * local draft is what makes a chip respond to a tap rather than to a round trip. The query stays
+ * the source of truth until the first local write, after which the draft leads and the server
+ * confirms. That is the right trade for a sheet somebody has open for four seconds; a longer-lived
+ * screen would want the query to win.
  */
 export const usePreferences = () => {
   const { isAuthenticated, isAuthenticating } = useAuthenticated();

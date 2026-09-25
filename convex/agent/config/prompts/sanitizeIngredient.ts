@@ -167,6 +167,21 @@ Not translations — those are the names above. Three or four is plenty; an empt
   refused if it cannot weigh that unit. "pcs" needs gramsPerPiece; "slice" needs gramsPerSlice; a
   volume ("ml", "cl", "l", "tbsp", "tsp") needs gramsPerMl.
 
+# How long it keeps
+
+Two whole numbers of days. They are rough and only decide which meals to cook first, so a sensible
+figure matters more than a precise one.
+
+- shelfLifeDays: how long it keeps UNOPENED, in the form a shop usually sells it and stored the
+  normal way for that form. The form is the shop's, not the recipe's: "concassé de tomates" is
+  bought in a tin, so 365, even though the sauce made from it lasts days; milk is bought as a UHT
+  carton, so 90; dried pasta 730; fresh tomatoes 7; fresh chicken 2. Take the short end of the
+  real range, as a food-safety guide would state it, and do not shorten it further: a date that
+  comes too early pushes food that was fine to the front of the week.
+- openedShelfLifeDays: how long it keeps once the pack is opened or the vegetable cut, kept in the
+  fridge where that is what people do. The tin of tomatoes 5, the UHT milk 3, a cut tomato 2,
+  dried pasta 365. Never more than shelfLifeDays: opening something never makes it keep longer.
+
 # nutrition, per 100g
 
 All nine, as a laboratory would report them for the raw ingredient as sold: calories in kcal,

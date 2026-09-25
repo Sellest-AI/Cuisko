@@ -285,11 +285,11 @@ export const provenanceOf = (hits: readonly LookupHit[]): IngredientSource =>
  * the model offered its own, and the model's fiber is used only because no source published one.
  * Hits are consulted in `AUTHORITY` order, so a laboratory figure beats a label's.
  *
- * ⚠️ **The row still records ONE `source`, and a merged row's numbers no longer all come from it.**
- * Seven measured fields beside one modelled one is a better row than the seven-field row this used
- * to discard, but `source: "foodComposition"` now means "mostly, and the gaps were filled" rather
- * than "a laboratory measured every number here". A screen that caveats a Nutri-Score by `source`
- * is reading a claim that is one field weaker than it looks.
+ * @limitation **The row still records ONE `source`, and a merged row's numbers no longer all come
+ * from it.** Seven measured fields beside one modelled one is a better row than the seven-field row
+ * this used to discard, but `source: "foodComposition"` now means "mostly, and the gaps were
+ * filled" rather than "a laboratory measured every number here". A screen that caveats a
+ * Nutri-Score by `source` is reading a claim that is one field weaker than it looks.
  */
 export const measuredOver = (
   modelled: IngredientNutrition,

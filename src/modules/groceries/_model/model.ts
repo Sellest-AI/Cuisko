@@ -54,6 +54,8 @@ import { roundQuantity, type Unit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 import type { TranslationKeys } from "translations";
 
+import { expiresSoon } from "./expiresSoon";
+
 /**
  * The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too.
  *
@@ -136,6 +138,8 @@ export type CellarEntry = {
   unit: Unit;
   amount: number;
   updatedAt: Date;
+  /** A rough date, epoch ms, estimated when it was bought. Read for the card's clock and nothing else. */
+  expirationDate?: number;
 };
 
 /** A purchase, as logged. Giving one back is the undo; nothing else has to be remembered. */
@@ -463,6 +467,8 @@ export type StockRow = {
    */
   onlyOption: number | null;
   updatedAt: Date;
+  /** A cellar row close to its date — the card's clock (`expiresSoon`). Never set outside the cellar. */
+  expiresSoon: boolean;
 };
 
 /**
@@ -647,6 +653,14 @@ export function buildSections(snapshot: Snapshot): Sections {
 
     const key = stockKey(ref.ingredientId, ref.unit);
 
+    /** The soonest date among the entries this row sums, the one that goes off first. */
+    const soonest = Math.min(
+      ...snapshot.cellar
+        .filter((entry) => matchesRef(ref)(entry) && entry.amount > 0)
+        .map((entry) => entry.expirationDate ?? Infinity),
+    );
+    const clock = expiresSoon(Number.isFinite(soonest) ? soonest : undefined, snapshot.now.getTime());
+
     return present.map(({ section, amount, undoable }, index): StockRow => {
       const intent = INTENT_FOR[section];
       const [only, ...rest] = quantityOptions(stock, ref.unit, intent);
@@ -664,6 +678,7 @@ export function buildSections(snapshot: Snapshot): Sections {
         intent,
         onlyOption: only && rest.length === 0 ? only.amount : null,
         updatedAt: stock.touchedAt,
+        expiresSoon: section === "cellar" && clock,
       };
     });
   });
