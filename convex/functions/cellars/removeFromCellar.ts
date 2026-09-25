@@ -38,7 +38,7 @@ type Args = {
  * canceled "wrong item" tap would leave the list asking for the meal's ingredient while the ledger
  * believed it bought — and dropping the meal later would strike nothing back off.
  *
- * ⚠️ LIMITATION: the row's `expirationDate` is left as it is. An undo of a purchase that moved the
+ * @limitation The row's `expirationDate` is left as it is. An undo of a purchase that moved the
  * date keeps the newer one, since nothing stored the older one — see `_mergedExpiration` in
  * `addToCellar`.
  */

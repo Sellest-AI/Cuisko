@@ -60,11 +60,11 @@ type Args = {
  * it (60 days left, and 1 < 12); +1 on day 60 moves it to day 150 (30 days left is a third); +20
  * on day 90 moves it to day 180 (20 ≥ 18).
  *
- * ⚠️ LIMITATION: the row takes the NEWEST purchase's date, not the one bought just before it. On
+ * @limitation The row takes the NEWEST purchase's date, not the one bought just before it. On
  * day 60 above, the day-30 carton is still in the row and goes off on day 120, not 150. Accepted:
  * that carton carried the older date for a month, so the planner has already been using it up.
  *
- * ⚠️ LIMITATION: an undo cannot put the older date back. The merge overwrites it and nothing keeps
+ * @limitation An undo cannot put the older date back. The merge overwrites it and nothing keeps
  * a copy, so undoing a purchase that moved the date (`removeFromCellar`) leaves the older stock
  * with the newer date, and it reads as less urgent than it is. Accepted: it needs an undo right
  * after a purchase that moved the date, and the next purchase that finds the row stale corrects it.
