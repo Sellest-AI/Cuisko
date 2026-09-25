@@ -26,6 +26,30 @@ const AI_ATTRIBUTION = [
   /co-?authored-by:\s*claude/i,
 ];
 
+/**
+ * A body line shaped like a footer token: one word (hyphens allowed) then a colon, at the start of
+ * the line. The parser takes the first such line as the start of the footer and moves it, and
+ * every line after it, out of the body, so `choices: a, b` halfway down a body swallows the rest
+ * of the explanation. Nothing reports it. AGENTS.md says so in prose and agents still write it,
+ * so this rule refuses the commit instead.
+ */
+const FOOTER_SHAPED_LINE = /^([A-Za-z][\w-]*|BREAKING CHANGE):(\s|$)/;
+
+/** The tokens that really are footers, and so may start a line. Compared case-insensitively. */
+const FOOTER_TOKENS = [
+  "breaking change",
+  "breaking-change",
+  "refs",
+  "closes",
+  "fixes",
+  "resolves",
+  "see-also",
+  "co-authored-by",
+  "signed-off-by",
+  "reviewed-by",
+  "acked-by",
+];
+
 module.exports = {
   extends: ["@commitlint/config-conventional"],
 
@@ -47,6 +71,30 @@ module.exports = {
               "AGENTS.md bans these outright. Delete the trailer and commit again.",
           ];
         },
+
+        /**
+         * Fails the commit when a line below the header starts with `word:` and `word` is not a
+         * real footer token. Reads the RAW message for the same reason as `no-ai-attribution`:
+         * the parsed body has already lost the line. Comment lines are skipped, since git strips
+         * them before the commit is written.
+         */
+        "no-footer-shaped-body-line": ({ raw }) => {
+          const offending = (raw ?? "")
+            .split(/\r?\n/)
+            .slice(1)
+            .filter((line) => !line.startsWith("#"))
+            .filter((line) => {
+              const match = FOOTER_SHAPED_LINE.exec(line);
+              return match !== null && !FOOTER_TOKENS.includes(match[1].toLowerCase());
+            });
+
+          return [
+            offending.length === 0,
+            `body line starts with a footer-shaped token:\n  ${offending.join("\n  ")}\n` +
+              "The parser reads everything from that line on as footers, and drops it from the " +
+              'body. Reword so the colon is not after the first word ("the choices: ...").',
+          ];
+        },
       },
     },
   ],
@@ -58,6 +106,7 @@ module.exports = {
      * that does not read the output of a command that succeeded.
      */
     "no-ai-attribution": [2, "always"],
+    "no-footer-shaped-body-line": [2, "always"],
 
     /**
      * Deliberately smaller than the Angular default set.

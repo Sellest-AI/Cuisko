@@ -318,7 +318,9 @@ Omit the body only when the subject is complete alone (`chore(deps): bump convex
 
 ⚠️ **Never start a body line with `word:`.** The parser reads `Note:`, `Result:`, `enforced:` as a
 footer token and treats everything after it as footers — silently wrecking the structure the history
-is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase mid-line.
+is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase mid-line. The
+`commit-msg` hook refuses it (`no-footer-shaped-body-line`), except for real footer tokens, so
+write the body without it rather than retrying until it passes.
 
 ## Sub-agents
 
