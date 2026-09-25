@@ -362,6 +362,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
             emoji={row.stock.emoji}
             imageUrl={row.stock.imageUrl}
             variant={variantFor(row.stock)}
+            expiresSoon={row.stock.expiresSoon}
             width={itemWidth - 1}
             onPress={() => tap(row.stock)}
           />

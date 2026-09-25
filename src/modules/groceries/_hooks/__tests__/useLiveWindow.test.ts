@@ -80,6 +80,30 @@ describe("useLiveWindow", () => {
     expect(result.current.getTime()).toBe(expiresAt);
   });
 
+  /**
+   * A cellar row's clock can be months out, and `setTimeout` cannot wait past 2^31 - 1 ms (about
+   * 24.8 days): asked to, it fires after 1 ms instead, and the screen re-rendered in a loop. The
+   * clock sleeps in capped stretches and still lands on the deadline itself.
+   */
+  it("neither spins nor misses a deadline further out than a timer can wait", () => {
+    const DAY = 86_400_000;
+    const deadline = MOUNTED_AT + 30 * DAY;
+    const { result } = renderHook(() => useLiveWindow([deadline]));
+
+    act(() => void vi.advanceTimersByTime(1_000));
+
+    expect(result.current.getTime()).toBe(MOUNTED_AT);
+
+    // Two stretches, each in its own `act`: the clock re-arms in an effect after the first wake.
+    act(() => void vi.advanceTimersByTime(25 * DAY));
+
+    expect(result.current.getTime()).toBeLessThan(deadline);
+
+    act(() => void vi.advanceTimersByTime(5 * DAY));
+
+    expect(result.current.getTime()).toBe(deadline);
+  });
+
   /** Nothing ahead: the clock holds still rather than polling. */
   it("never moves when every deadline has passed", () => {
     const { result } = renderHook(() => useLiveWindow([MOUNTED_AT - 1_000]));
