@@ -81,6 +81,16 @@ describe("functions/ingredients/ingredientRow", () => {
     }
   });
 
+  test("both shelf lives reach the row, which is where `addToCellar` reads the date from", () => {
+    for (const { entry, row } of entries) {
+      expect(row.shelfLifeDays).toBe(entry.shelfLifeDays);
+      expect(row.openedShelfLifeDays).toBe(entry.openedShelfLifeDays);
+    }
+
+    const milk = entries.find(({ entry }) => entry.slug === "milk-whole")!.row;
+    expect(milk).toMatchObject({ shelfLifeDays: 90, openedShelfLifeDays: 3 });
+  });
+
   /**
    * `source` is an argument and not a fact: the same carrot recorded by the seed and by a lookup
    * is the same carrot, provenanced differently. Nothing else about the row may move with it —

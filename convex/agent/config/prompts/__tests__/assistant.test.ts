@@ -45,3 +45,19 @@ describe("what the assistant model reads", () => {
     for (const text of _everythingTheModelReads()) expect(text).not.toMatch(/\p{Extended_Pictographic}/u);
   });
 });
+
+describe("the cellar brief", () => {
+  /**
+   * The dates are estimates from `shelfLifeDays`, not read off a packet, so the model may use them
+   * to choose and never say them. Pinned per locale, since the prompt is built per locale.
+   */
+  test("tells the model to use expiry dates only to choose, and never to mention them", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toContain("Expiry dates are rough estimates. Use them only to decide what to cook first.");
+      expect(prompt).toMatch(/Never mention a\s+date, never say something is expiring or going off/);
+      expect(prompt).toContain("never make the person feel rushed");
+    }
+  });
+});

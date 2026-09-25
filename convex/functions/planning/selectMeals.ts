@@ -3,6 +3,8 @@ import type { Cuisine } from "@shared/cuisines";
 import type { RecipeUnit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 
+import { MAX_DAYS } from "./limits";
+
 /**
  * One recipe line, scaled to the plate it will be cooked for — `scaleLines` writes these.
  *
@@ -63,6 +65,11 @@ export const ALTERNATIVES_PER_PLATE = 4;
 type Options = {
   /** The most of the week, as a fraction of its plates, that may come from the caller's own recipes. */
   ownShare: number;
+  /**
+   * The soonest date each ingredient in the cellar goes off, in epoch ms — `soonestExpiries`.
+   * An ingredient with no key is not urgent, and no map at all is the week drawn without dates.
+   */
+  expiries?: Map<Id<"ingredients">, number>;
 };
 
 type Coverage = { covered: Need[]; missing: Need[]; partial: number; taken: Map<Id<"ingredients">, number> };
@@ -112,6 +119,28 @@ const MIN_BASKET_REUSES = 2;
  * it compounds, so a third plate of one cuisine has to be clearly better than the alternatives.
  */
 const CUISINE_REPEAT_FACTOR = 0.7;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * What a covered line of fully urgent stock adds to its own `1`: at `1`, a line of spinach going off
+ * today counts as two lines of pasta. A starting guess — the tests pin the behaviour, not the value.
+ */
+const EXPIRY_WEIGHT = 1;
+
+/**
+ * How far past the first plate stock still counts as urgent: a week, the longest plan there is.
+ * Measured from the first plate rather than to the last, so a one-plate plan still prefers the
+ * spinach over the tins.
+ */
+const URGENCY_WINDOW_MS = MAX_DAYS * DAY_MS;
+
+/**
+ * How urgent an ingredient's stock is, from `1` for one going off by the first plate (or already
+ * gone off) down to `0` for one lasting a week past it, linearly. `0` with no date.
+ */
+const _urgencyOf = (expiry: number | undefined, firstPlate: number) =>
+  expiry === undefined ? 0 : Math.min(1, Math.max(0, (firstPlate + URGENCY_WINDOW_MS - expiry) / URGENCY_WINDOW_MS));
 
 /** Cuisines that name no tradition, so two plates of them are not a repeat. */
 export const UNCOUNTED_CUISINES: ReadonlySet<Cuisine> = new Set(["other", "fusion"]);
@@ -232,14 +261,19 @@ const _reuseCredit = (reused: Need[], basket: Basket, rarity: Map<Id<"ingredient
  * leans on its purchases without becoming one cuisine. The chain is drawn in plate order but not
  * served in it: `spreadMeals` then moves the meals apart, so the links sit side by side only when nothing else is left.
  *
- * Score is the share of lines fully covered by the cellar, plus the reuse credit of the lines the
- * basket holds (`_reuseCredit`: `BASKET_WEIGHT` each, weighed by rarity, faded by prior reuse),
+ * Score is the share of lines fully covered by the cellar, each worth `1 + EXPIRY_WEIGHT × u` for
+ * its stock's urgency `u` (`_urgencyOf`), plus the reuse credit of the lines the basket holds (`_reuseCredit`: `BASKET_WEIGHT` each, weighed by rarity, faded by prior reuse),
  * divided by the recipe's lines and multiplied by `CUISINE_REPEAT_FACTOR` once per earlier plate
  * of its cuisine. Ties break on the share partially covered, then on the order `candidates`
  * arrived in — which the caller has already shuffled, so the last tie-break is random without
  * this function rolling anything. Both terms are shares of the recipe's own lines, so a short
  * recipe reusing one of its two purchases outranks a long one reusing two of seven: fewer new
  * rows on the list, which is the goal, without a bias toward short recipes when nothing is shared.
+ *
+ * **Urgency decides which recipes make the week, not where they land.** Plates are scored in
+ * calendar order, so urgent stock tends to be spent on the early ones, but `spreadMeals` moves the
+ * meals afterwards and may move that one later. Without `expiries`, every covered line counts `1`
+ * and the week is exactly what it was before dates existed.
  *
  * **The cuisine penalty cannot lift a score of zero.** A week with an empty cellar and nothing yet
  * bought is pool order, whatever the cuisines; the penalty only bends choices the basket or the
@@ -268,9 +302,13 @@ export const selectMeals = (
   candidates: Candidate[],
   stock: Stock,
   plates: Plate[],
-  { ownShare }: Options,
+  { ownShare, expiries }: Options,
 ): SelectedMeal[] => {
   if (candidates.length === 0) return [];
+
+  const firstPlate = Math.min(...plates.map((plate) => plate.date));
+  /** What a covered line is worth: `1`, and more for stock that goes off soon. */
+  const worth = (need: Need) => 1 + EXPIRY_WEIGHT * _urgencyOf(expiries?.get(need.ingredientId), firstPlate);
 
   const left: Stock = new Map(stock);
   const basket: Basket = new Map();
@@ -294,7 +332,8 @@ export const selectMeals = (
         const reused = cooked.has(candidate.recipeId) ? [] : _reused(coverage.missing, basket, horizon);
         const credit = _reuseCredit(reused, basket, rarity, horizon);
         const repeats = UNCOUNTED_CUISINES.has(candidate.cuisine) ? 0 : (served.get(candidate.cuisine) ?? 0);
-        const score = ((scoredNeeds(coverage.covered).length + credit) / lines) * CUISINE_REPEAT_FACTOR ** repeats;
+        const covered = scoredNeeds(coverage.covered).reduce((sum, need) => sum + worth(need), 0);
+        const score = ((covered + credit) / lines) * CUISINE_REPEAT_FACTOR ** repeats;
 
         return { candidate, coverage, reused, score, tie: coverage.partial / lines };
       })

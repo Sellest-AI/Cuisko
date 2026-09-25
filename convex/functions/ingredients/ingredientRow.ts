@@ -100,6 +100,10 @@ export type IngredientFacts = {
   gramsPerPiece?: number;
   gramsPerSlice?: number;
   gramsPerMl?: number;
+  /** Unopened, in the form a shop sells it. See the column in `schema/ingredients.ts`. */
+  shelfLifeDays?: number;
+  /** Once opened or cut. Never more than `shelfLifeDays`. */
+  openedShelfLifeDays?: number;
   nutrition: IngredientNutrition;
 };
 
@@ -210,6 +214,8 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
     gramsPerPiece: facts.gramsPerPiece,
     gramsPerSlice: facts.gramsPerSlice,
     gramsPerMl: facts.gramsPerMl,
+    shelfLifeDays: facts.shelfLifeDays,
+    openedShelfLifeDays: facts.openedShelfLifeDays,
     nutrition: facts.nutrition,
     nutriScore: computeNutriScore(
       facts.nutrition,

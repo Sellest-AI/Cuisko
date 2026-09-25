@@ -38,6 +38,8 @@ const _facts = (overrides: Record<string, unknown> = {}) => ({
   defaultQuantity: 100,
   gramsPerPiece: 80,
   gramsPerMl: null,
+  shelfLifeDays: 21,
+  openedShelfLifeDays: 7,
   nutrition: {
     calories: 41,
     protein: 0.9,
@@ -643,5 +645,38 @@ describe("dictionaryOf", () => {
     const wordy: LookupHit = { source: "foodComposition", names: { en: ["a", "b", "c", "d"] } };
 
     expect(dictionaryOf([wordy])).toEqual({ en: ["a", "b", "c"] });
+  });
+});
+
+describe("toSanitizedIngredient shelf life", () => {
+  const _kept = (shelfLife: Record<string, unknown>) =>
+    _new(_answer({ facts: _facts(shelfLife) }));
+
+  it("carries both figures to the row", () => {
+    expect(_kept({})).toMatchObject({ shelfLifeDays: 21, openedShelfLifeDays: 7 });
+  });
+
+  it("rounds to whole days, and never below one", () => {
+    expect(_kept({ shelfLifeDays: 6.6, openedShelfLifeDays: 0.2 }))
+      .toMatchObject({ shelfLifeDays: 7, openedShelfLifeDays: 1 });
+  });
+
+  it("clamps an opened figure above the sealed one down to it", () => {
+    // Opening a carton never makes it keep longer, so the model's 30 is a slip, not a fact.
+    expect(_kept({ shelfLifeDays: 7, openedShelfLifeDays: 30 }))
+      .toMatchObject({ shelfLifeDays: 7, openedShelfLifeDays: 7 });
+  });
+
+  it("leaves a figure the model did not know absent, and keeps the row", () => {
+    const facts = _kept({ shelfLifeDays: null, openedShelfLifeDays: -3 });
+
+    expect(facts.shelfLifeDays).toBeUndefined();
+    expect(facts.openedShelfLifeDays).toBeUndefined();
+    expect(facts.names.en.value).toBe("carrot");
+  });
+
+  it("keeps an opened figure alone when there is no sealed one to clamp it to", () => {
+    expect(_kept({ shelfLifeDays: null, openedShelfLifeDays: 3 }))
+      .toMatchObject({ openedShelfLifeDays: 3 });
   });
 });

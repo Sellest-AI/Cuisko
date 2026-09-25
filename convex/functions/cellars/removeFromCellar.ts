@@ -37,6 +37,10 @@ type Args = {
  * back with it: their ledger rows are re-linked to the row the restore lands on. Without that, a
  * canceled "wrong item" tap would leave the list asking for the meal's ingredient while the ledger
  * believed it bought — and dropping the meal later would strike nothing back off.
+ *
+ * ⚠️ LIMITATION: the row's `expirationDate` is left as it is. An undo of a purchase that moved the
+ * date keeps the newer one, since nothing stored the older one — see `_mergedExpiration` in
+ * `addToCellar`.
  */
 export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<void> => {
   const cellarItems = await ctx.db.query("cellarItems")
