@@ -232,6 +232,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 - No empty `catch {}`, no leftover `console.log`, no commented-out code.
 - No `@deprecated` code left shipping; delete it — git remembers.
 - No new `any` without a comment justifying it.
+- A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
 - Any `docs/` page this change just made wrong.
 
 **Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".

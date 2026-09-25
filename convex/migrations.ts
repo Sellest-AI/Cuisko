@@ -33,10 +33,11 @@ export const migrations = new Migrations<DataModel>(components.migrations);
  * filter hides is incoherent in a way that is worse than either answer alone. Where an old tag is
  * itself wrong, the fix is to re-save the recipe, which corrects the tag and the facet together.
  *
- * `search` is rebuilt from the matched links, and is knowingly incomplete in the same place: the
- * raw text of an unmatched line was never stored, so a recipe whose "nuoc-mâm" never matched stays
- * unfindable by that word until it is re-saved. That is an omission, not a false claim — the
- * recipe is missing from one search, not wrongly present in a filter that promises something.
+ * @limitation `search` is rebuilt from the matched links, and is knowingly incomplete in the same
+ * place: the raw text of an unmatched line was never stored, so a recipe whose "nuoc-mâm" never
+ * matched stays unfindable by that word until it is re-saved. That is an omission, not a false
+ * claim — the recipe is missing from one search, not wrongly present in a filter that promises
+ * something.
  */
 export const backfillRecipeSearch = migrations.define({
   table: "recipes",

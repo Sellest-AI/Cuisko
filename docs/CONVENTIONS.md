@@ -239,6 +239,51 @@ a mount can see — that a hook's write reaches the state its read subscribes to
 `test/setup.dom.ts` carries the browser APIs jsdom omits, and nothing else. A fake for one of our
 own modules belongs in the test that needs it, where a reader can see it.
 
+### 1.6 Known limitations — `@limitation` 👁
+
+**A known choice, taken with its downside and accepted** is declared with an `@limitation` block
+tag in the doc comment of the code that makes it — a behaviour bounded on purpose, a side effect,
+a case not handled, a cost paid for something worth more. It is not always a flaw; it is always
+deliberate. TSDoc has no standard tag for this; `@remarks` hides it among ordinary prose and
+`@todo` reads as unfinished work. `grep -rn "@limitation"` lists every one in the repo.
+
+**Two kinds, told apart by the first words:**
+
+- **a trade we would reverse if it got cheap** — the downside is real and a fix is wanted
+  someday. It carries the four parts below.
+- **a design choice we mean to keep** (latency paid for correctness, a value hard-coded until
+  someone asks to vary it) — opens with `Design choice:` so nobody reads it as waiting on a fix,
+  and needs only what it costs and why:
+  `@limitation Design choice: resolving the ingredients is inside that wait, so creating is slower.`
+
+The first kind carries four things, so the next reader does not rediscover them:
+
+```ts
+/**
+ * Merges the catalog's aliases with the learned ones.
+ *
+ * @limitation The seed can no longer REMOVE an alias: a word deleted from the catalog is
+ * re-emitted on every seed. **Accepted because** the alternative erased the learned cache.
+ * **Until fixed**, remove the alias by hand against the deployment. **The fix** is a second
+ * `learnedAliases` column the seed never writes — a schema change, so not this slice.
+ */
+```
+
+- **the downside**, from the outside — the first sentence, readable alone;
+- **why it is accepted** — the cost of the alternative, or the worse failure it avoids;
+- **the workaround** until it changes, if there is one;
+- **the fix**, when it is known, so reversing it starts from a plan rather than a rediscovery.
+
+**The tag goes last in the comment.** A TSDoc block tag runs until the next tag, so any
+paragraph written after it reads as part of the limitation. Two limitations in one place are two
+tags.
+
+**Pin it where you can.** A test asserting today's accepted behaviour, named for it —
+`"limitation: still splits en conserve"` — turns red the day someone changes it, and the
+existing-assertion rule ([AGENTS.md](../AGENTS.md), "Tests") then makes the change a stated
+decision rather than a surprise. Lifting a limitation deletes the tag and rewrites that test in the
+same commit.
+
 ---
 
 ## 2. The export contract 📐 C1
@@ -936,6 +981,7 @@ would rot into a wish list, and a rule nobody intends to mechanise should say so
 | Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                 |
 | A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).            |
 | A reported bug is pinned; assertions stay put     | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not. |
+| A known, accepted choice carries `@limitation`   | Whether a behaviour is a chosen cost or just how the code works is the judgement itself. The tag makes the answer greppable once someone has given it.           |
 | ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.          |
 
 **The rule about this section: do not promote a tag before its mechanism exists.** A 👁 that claims

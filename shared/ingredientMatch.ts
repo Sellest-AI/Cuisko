@@ -391,19 +391,20 @@ export const gradesIn = (query: string): string[] =>
  * different ingredient. `frozen` and `surgelé` are already `QUALIFIERS`, so leaving them off this
  * list is all it takes — they fold away like any other preparation.
  *
- * ⚠️ **`en conserve` is a known gap, not a decision.** Tinned tomatoes are tomatoes by the same
- *    argument as frozen peas, but `conserve` was never a `QUALIFIER`, so it survives as an
- *    identifying word and `tomates en conserve` gets its own walk today. Fixing it means adding the
- *    word to `QUALIFIERS`, which changes `searchTerms` — and that builds the taxonomy index keys,
- *    the widened catalog query and the client's suggestions, so it is a retrieval change and not a
- *    fold change. It does not belong here, and it costs one redundant walk rather than wrong data.
- *
  * **`fresh` is not here either, because it is the default state.** Dropping it from both sides
  * leaves `coriander` against `dried coriander`, which is already the distinction we want; listing
  * it would instead split `fresh tomatoes` from `tomatoes`, which are the same thing.
  *
  * Both gendered forms, like `QUALIFIERS` — `_singularize` runs once, so `séchées` arrives as
  * `sechee` and `séchés` as `seche`.
+ *
+ * @limitation **`en conserve` is a known gap, not a decision.** Tinned tomatoes are tomatoes by the
+ * same argument as frozen peas, but `conserve` was never a `QUALIFIER`, so it survives as an
+ * identifying word and `tomates en conserve` gets its own walk today. Fixing it means adding the
+ * word to `QUALIFIERS`, which changes `searchTerms` — and that builds the taxonomy index keys,
+ * the widened catalog query and the client's suggestions, so it is a retrieval change and not a
+ * fold change. It does not belong here, and it costs one redundant walk rather than wrong data.
+ * Pinned in `resolveRecipeIngredients.test.ts`.
  */
 const PRESERVATION = new Set(["dried", "seche", "sechee"]);
 

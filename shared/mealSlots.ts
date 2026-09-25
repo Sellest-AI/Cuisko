@@ -19,9 +19,11 @@ export const isMealSlot = (value: string): value is MealSlot =>
 /**
  * The local hour a slot is eaten at — the clock a cook is measured against, not a schedule.
  *
- * From 10 the day's lunch is the meal in progress, from 18 its dinner. Hard-coded for now: a
- * household eating at 13 and 20 is still nearer these than to the other slot, and a per-household
- * setting is a field nobody has asked for yet.
+ * From 10 the day's lunch is the meal in progress, from 18 its dinner.
+ *
+ * @limitation Design choice, for now: the hours are hard-coded, the same for every household. One
+ * eating at 13 and 20 is still nearer these than to the other slot, and a per-household setting
+ * is a field nobody has asked for yet.
  */
 export const SLOT_HOURS: Record<MealSlot, number> = { lunch: 10, dinner: 18 };
 

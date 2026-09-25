@@ -735,17 +735,19 @@ const GRAMS_PER_ML: Record<string, number> = {
  * wine". Processing aids that vary from producer to producer are out of scope and are not guessed
  * at: the rennet in a hard cheese (calf in a PDO Parmigiano, microbial in most supermarket grated
  * parmesan) and the fining agent in a wine or beer (isinglass, gelatin, or neither) cannot be read
- * off a category or a name, so `parmesan` is `vegetarian` and `white-wine` is `vegan`.
- *
- * That is a real limitation and it is written down rather than papered over. Whoever wants to close
- * it closes it by splitting the row - a `parmigiano-reggiano` distinct from `parmesan` - not by
- * making this file hedge, because a hedge here silently strips `vegetarian` from every pasta dish
- * in the catalog.
+ * off a category or a name.
  *
  * Allergen coverage runs to the EU-14 as they would appear on the packet. It is deepest where a tag
- * reads it (gluten, milk, nuts, peanuts) and thinnest where nothing does yet: cured meats commonly
- * declare sulphites and are recorded as carrying none, which is fine for the tags that exist and is
- * the first thing to fix if `sulphite-free` is ever wanted.
+ * reads it (gluten, milk, nuts, peanuts) and thinnest where nothing does yet.
+ *
+ * @limitation Because a processing aid cannot be read off a category or a name, `parmesan` is
+ * `vegetarian` and `white-wine` is `vegan`. That is a real limitation and it is written down
+ * rather than papered over. Whoever wants to close it closes it by splitting the row - a
+ * `parmigiano-reggiano` distinct from `parmesan` - not by making this file hedge, because a hedge
+ * here silently strips `vegetarian` from every pasta dish in the catalog.
+ *
+ * @limitation Cured meats commonly declare sulphites and are recorded as carrying none. Fine for
+ * the tags that exist, and the first thing to fix if `sulphite-free` is ever wanted.
  */
 
 /**

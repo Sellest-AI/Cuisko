@@ -16,9 +16,9 @@ type Args = ObjectType<typeof sharedArgs>;
  * Generating is what the cook waits for; translating is not, so it is scheduled rather than
  * awaited — the recipe id comes back as soon as the row exists, in the language they wrote it.
  *
- * Resolving the ingredients is inside that wait, and the seconds it adds are taken knowingly: a
- * recipe briefly and invisibly wrong about what it contains is worse than one that takes longer to
- * appear, since the detail screen, the tags and the nutrition totals all read those links the
+ * @limitation Design choice: resolving the ingredients is inside that wait, so creating is slower.
+ * A recipe briefly and invisibly wrong about what it contains is worse than one that takes longer
+ * to appear, since the detail screen, the tags and the nutrition totals all read those links the
  * moment the route changes. The cost falls over time on its own — every row the resolver invents
  * and every alias it remembers is one the next import finds for free.
  */

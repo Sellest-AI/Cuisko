@@ -44,8 +44,10 @@ export const discardUploadedImages = async (ctx: MutationCtx, imageIds: (Id<"ima
  * catalog already holds returns its id, writes nothing, and discards the photos uploaded for it.
  *
  * A recipe exported without a cover or a plate is restored without it, and `generateImages` is
- * scheduled for it as `createOne` does, so the catalog ends up whole. It renders both photos, so a
- * recipe missing one gets the other replaced as well; a spend taken knowingly for the rare case.
+ * scheduled for it as `createOne` does, so the catalog ends up whole.
+ *
+ * @limitation `generateImages` renders both photos, so a recipe restored without one gets the
+ * other replaced as well; a spend taken knowingly for the rare case.
  */
 export const persistRestoredRecipe = async (
   ctx: MutationCtx,

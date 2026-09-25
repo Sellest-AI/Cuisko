@@ -309,7 +309,7 @@ export const withAlias = (
  * row; it is stating what the row's list now is, and a merge of two capped lists can legitimately
  * arrive over the bound with neither side at fault.
  *
- * ⚠️ **KNOWN LIMITATION: the seed can no longer REMOVE an alias, and this is where that happens.**
+ * @limitation **The seed can no longer REMOVE an alias, and this is where that happens.**
  * A learned word and a catalog word are indistinguishable once written — the column records only
  * the spelling, not who put it there — so `existing` carries both, and feeding it back in means a
  * word deleted from `ingredientCatalog.ts` is re-emitted on every subsequent seed. Before this

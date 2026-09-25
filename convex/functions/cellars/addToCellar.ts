@@ -75,8 +75,10 @@ export const addToCellar = async (
     .collect();
 
   /**
-   * TODO - Split by the recipes needing the ingredient: if one recipe wants 2 eggs and another 4,
-   * that is two cellar rows, not one of 6. Merging by unit until then.
+   * @limitation Stock merges by unit, not by the recipe that needs it: one recipe wanting 2 eggs
+   * and another 4 make one cellar row of 6, not two. Accepted for now because splitting would
+   * need new tests across the whole app. Splitting by the recipes needing the ingredient is the
+   * intended fix, for a later update; this merges by unit until then.
    */
   const matchingCellarItem = existingCellarItems.find((item) => item.unit === args.unit);
 
