@@ -61,12 +61,12 @@ const LOCALES = ["en", "fr"];
  * position — the release adds columns between versions and a position silently reads the wrong
  * nutrient.
  *
- * ⚠️ **CIQUAL 2020 publishes no energy at all for 176 of the foods we reach**, raw vegetables
- * mostly: raw onion and raw lettuce have `-` in both the EU 1169/2011 column and the Jones-factor
- * one. There is no fallback to reach for — the other energy column is blank on exactly the same
- * rows — and deriving kcal from the macros with Atwater factors would be a calculation wearing a
- * measurement's `source`. Those foods are dropped here and answered by step 3, which is the reason
- * the resolver has one.
+ * @limitation **CIQUAL 2020 publishes no energy at all for 176 of the foods we reach**, raw
+ * vegetables mostly: raw onion and raw lettuce have `-` in both the EU 1169/2011 column and the
+ * Jones-factor one. There is no fallback to reach for — the other energy column is blank on exactly
+ * the same rows — and deriving kcal from the macros with Atwater factors would be a calculation
+ * wearing a measurement's `source`. Those foods are dropped here and answered by step 3, which is
+ * the reason the resolver has one.
  */
 const NUTRIENT_COLUMNS = {
   calories: "Energie, Règlement UE N° 1169/2011 (kcal/100 g)",

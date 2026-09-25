@@ -180,18 +180,6 @@ type Args = {
  * The two caps bound different resources and neither substitutes for the other: `MAX_WALKS` bounds
  * the network, `MAX_JUDGEMENTS` bounds the model.
  *
- * ⚠️ **Two names for one food, both unknown, each invent their own row.** `courgette` and
- *    `zucchini` in one recipe fold to different keys and walk separately — correctly, since nothing
- *    yet knows they are the same food. Both decline every cheap step, both reach the model, and
- *    one vegetable ends up with two permanent rows, each having paid for its own image generation.
- *
- *    Serializing pass two does NOT fix this, and was tried: `resolveWithAgent` is handed the
- *    `candidates` list snapshotted in pass one and never re-reads the catalog, so the second
- *    judgement cannot see the row the first just wrote however long it waits. The guard is at the
- *    write instead: `createIngredient` re-runs the catalog search inside its mutation and reuses a
- *    row of the SAME name. That catches two walks the model named alike — two recipes importing
- *    `coriandre` at once — but not two names for one food, which only a reader can join.
- *
  * **The line's own numbers win.** `resolveIngredient` also answers `defaultUnit` and
  * `defaultQuantity` — how the food is *bought*, which is the navigation bar's question. A recipe
  * states its own amount, so those two are read and discarded here. Using them would rewrite
@@ -199,6 +187,18 @@ type Args = {
  *
  * **A name is walked once; a line still links once.** A recipe listing `oignon` twice buys one
  * walk, and both lines come back as their own link, each with its own position, quantity and unit.
+ *
+ * @limitation **Two names for one food, both unknown, each invent their own row.** `courgette` and
+ * `zucchini` in one recipe fold to different keys and walk separately — correctly, since nothing
+ * yet knows they are the same food. Both decline every cheap step, both reach the model, and one
+ * vegetable ends up with two permanent rows, each having paid for its own image generation.
+ *
+ * Serializing pass two does NOT fix this, and was tried: `resolveWithAgent` is handed the
+ * `candidates` list snapshotted in pass one and never re-reads the catalog, so the second
+ * judgement cannot see the row the first just wrote however long it waits. The guard is at the
+ * write instead: `createIngredient` re-runs the catalog search inside its mutation and reuses a
+ * row of the SAME name. That catches two walks the model named alike — two recipes importing
+ * `coriandre` at once — but not two names for one food, which only a reader can join.
  */
 export const resolveRecipeIngredients = async (
   ctx: ResolveCtx,

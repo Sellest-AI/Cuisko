@@ -46,11 +46,11 @@ export type NutritionPreference = (typeof NUTRITION_PREFERENCES)[number];
  * tags are mutually exclusive on the recipe as well (500 kcal against 850, see `nutritionTagsOf`),
  * so a row holding both would match nothing at all.
  *
- * ⚠️ **Enforced in the UI, not in the validator.** The stored column is a plain subset of
- * `NUTRITION_PREFERENCES`, because a validator that rejects the pair turns a stale row into a
- * write that fails rather than a screen that corrects itself. The screen ticking one unticks the
- * other is where this belongs; anything reading `seeks` should treat the pair as unsatisfiable
- * rather than assume it cannot occur.
+ * @limitation Design choice: **enforced in the UI, not in the validator.** The stored column is a
+ * plain subset of `NUTRITION_PREFERENCES`, because a validator that rejects the pair turns a stale
+ * row into a write that fails rather than a screen that corrects itself. The screen ticking one
+ * unticks the other is where this belongs; anything reading `seeks` should treat the pair as
+ * unsatisfiable rather than assume it cannot occur.
  */
 export const EXCLUSIVE_PREFERENCES = [
   "low-calorie",

@@ -22,21 +22,22 @@ type Args = {
 /**
  * Re-portions one plate of the kept week, and moves the grocery list with it.
  *
+ * `syncMealLines` replaces the ledger rather than appending, and every row it deletes gives its
+ * `groceryQuantity` back first — so the list ends up asking for what the new serving needs and for
+ * nothing the old one did.
+ *
  * **The quantities are recomputed here, never taken from the client** — the rule `commitPlan` runs
  * on a whole week, applied to the one plate that changed. The new lines are weighed against what
  * the cellar can still give once every OTHER plate has taken its share (`availableStock` is told
  * `except` this meal, so its own old reservations are not charged against its new ones).
  *
- * ⚠️ **That pool is an aggregate, and it is exact only for the plate the week was eaten around
- * last.** A sibling's ledger row records its full requirement, not the part it actually drew from
- * the cellar, so a plate scored before its siblings bought under-counts the pool by exactly what
- * they bought. `commitPlan` runs its split in eating order and is exact; a one-plate re-scale
- * cannot recover the order. The no-op guard below keeps the sharpest edge — doing nothing must not
- * move the list — and the true fix, recording what each line drew, is a ledger change not made here.
- *
- * `syncMealLines` replaces the ledger rather than appending, and every row it deletes gives its
- * `groceryQuantity` back first — so the list ends up asking for what the new serving needs and for
- * nothing the old one did.
+ * @limitation **That pool is an aggregate, and it is exact only for the plate the week was eaten
+ * around last.** A sibling's ledger row records its full requirement, not the part it actually
+ * drew from the cellar, so a plate scored before its siblings bought under-counts the pool by
+ * exactly what they bought. `commitPlan` runs its split in eating order and is exact; a one-plate
+ * re-scale cannot recover the order. The no-op guard below keeps the sharpest edge — doing nothing
+ * must not move the list — and the true fix, recording what each line drew, is a ledger change not
+ * made here.
  */
 export const rescaleMeal = async (ctx: MutationCtx, args: Args): Promise<void> => {
   const meal = await loadHouseholdMeal(ctx, args);

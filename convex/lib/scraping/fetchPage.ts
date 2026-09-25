@@ -22,10 +22,10 @@ import { ConvexError } from "convex/values";
  *   - **Size**, read in chunks and abandoned at the cap, so a multi-gigabyte response costs us the
  *     cap and not the response.
  *
- * ⚠️ **A hostname that RESOLVES to a private address still gets through.** The guards read the URL,
- * and the URL is not the packet. Closing that needs resolution before connection, which `fetch`
- * does not expose. It is the known remaining hole in this function, and the reason `importOne` is
- * `authed` — a caller who does it has a name attached.
+ * @limitation **A hostname that RESOLVES to a private address still gets through.** The guards read
+ * the URL, and the URL is not the packet. Closing that needs resolution before connection, which
+ * `fetch` does not expose. It is the known remaining hole in this function, and the reason
+ * `importOne` is `authed` — a caller who does it has a name attached.
  */
 
 /** Long enough for a slow blog, short enough that the cook is not watching a spinner. */

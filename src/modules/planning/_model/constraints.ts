@@ -109,17 +109,17 @@ export const constraintsOf = (
  * > **Your row follows it too, but only for values that were yours.** Nobody else's row is ever
  * > written by anything that happens here.
  *
- * ⚠️ **Unticking an inherited constraint that is also yours clears it from your row too.** Three of
- * us are vegan, the other two are away, I untick — and I have recorded myself omnivore until I
- * re-tick. That is the accepted cost of the second rule: the alternative keeps my row when the
- * value is also inherited, which makes one gesture mean two different things depending on state
- * the caller cannot see. The household self-corrects, because the others still hold vegan and next
- * week's seed brings it back as inherited.
- *
  * ⚠️ **An inherited chip left alone never enters your row.** That is what stops a member
  * inheriting a housemate's answer by pressing next, and it is why there is no conditional write
  * path: ticking is the only thing that ever saves, so what reaches `save` is exactly what the
  * caller asserted.
+ *
+ * @limitation Design choice: **unticking an inherited constraint that is also yours clears it from
+ * your row too.** Three of us are vegan, the other two are away, I untick — and I have recorded
+ * myself omnivore until I re-tick. That is the accepted cost of the second rule: the alternative
+ * keeps my row when the value is also inherited, which makes one gesture mean two different things
+ * depending on state the caller cannot see. The household self-corrects, because the others still
+ * hold vegan and next week's seed brings it back as inherited.
  */
 export const toggleConstraint = (constraints: Constraint[], value: ConstraintValue): Constraint[] =>
   constraints.map((constraint) => {
