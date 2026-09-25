@@ -6,6 +6,7 @@ import type { Locale } from "@shared/translations";
 import { ConvexError } from "convex/values";
 
 import { availableStock } from "../planning/availableStock";
+import { soonestExpiries } from "../planning/soonestExpiries";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -84,18 +85,7 @@ export const turnBrief = async (ctx: QueryCtx, { householdId, locale, today, now
       .collect(),
   ]);
 
-  /**
-   * The soonest date any held lot of an ingredient goes off — the one that decides what to cook first.
-   *
-   * ⚠️ Taken over every lot, including one a planned meal will drain first (`consumeFromCellar`'s
-   * `_drainOrder`), so the date can belong to stock the plan has set aside. Dormant while nothing
-   * writes `expirationDate`; the exact answer drains reservations through that same order.
-   */
-  const expiries = new Map<Id<"ingredients">, number>();
-  for (const lot of lots) {
-    if (lot.quantity <= 0 || lot.expirationDate === undefined) continue;
-    expiries.set(lot.ingredientId, Math.min(expiries.get(lot.ingredientId) ?? Infinity, lot.expirationDate));
-  }
+  const expiries = soonestExpiries(lots);
 
   const lines = (
     await Promise.all(

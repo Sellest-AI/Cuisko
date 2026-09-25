@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 
 /**
+ * The longest `setTimeout` can wait: 2^31 - 1 ms, about 24.8 days. Past it the delay overflows and
+ * the timer fires after 1 ms, and a cellar row's clock deadline can sit months out.
+ */
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
+
+/**
  * The clock the screen's time-sensitive rules are read against.
  *
  * Two things on this screen change on their own: a receipt goes stale, so the cellar row stops
@@ -36,7 +42,10 @@ export const useLiveWindow = (deadlines: number[]) => {
     /** Nothing ahead: the next change can only come from a write, which re-runs this anyway. */
     if (soonest === null) return;
 
-    const timer = setTimeout(() => setNow(new Date()), Math.max(0, soonest - Date.now()));
+    // Capped, because a longer wait overflows and fires after 1 ms. A deadline past the cap wakes
+    // the clock early, finds nothing due, and re-arms for what is left.
+    const wait = Math.min(Math.max(0, soonest - Date.now()), MAX_TIMEOUT_MS);
+    const timer = setTimeout(() => setNow(new Date()), wait);
 
     return () => clearTimeout(timer);
   }, [deadlines, now]);

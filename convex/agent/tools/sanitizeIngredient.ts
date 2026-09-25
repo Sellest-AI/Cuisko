@@ -205,6 +205,15 @@ const _modelFactsSchema = z
       "The density — 0.91 for oil, 1.42 for honey. Left out for anything nobody measures by " +
       "volume (a chicken, a carrot).",
     ),
+    shelfLifeDays: z.number().positive().nullable().optional().describe(
+      "Days it keeps UNOPENED, in the form a shop usually sells it and stored the normal way — " +
+      "365 for canned chopped tomatoes (a tin), 90 for milk (a UHT carton), 7 for fresh " +
+      "tomatoes, 730 for dried pasta. The short end of the real range, not shorter.",
+    ),
+    openedShelfLifeDays: z.number().positive().nullable().optional().describe(
+      "Days it keeps once OPENED or cut — 5 for that tin of tomatoes, 3 for the milk, 2 for a " +
+      "cut tomato, 365 for opened dried pasta. Never more than shelfLifeDays.",
+    ),
     nutrition: _nutritionSchema.describe(
       "Per 100g, for the raw ingredient as sold: calories in kcal, the rest in grams, and sodium " +
       "in MILLIGRAMS — sodium, not salt, which is 2.5x more.",
@@ -372,7 +381,8 @@ export const dictionaryOf = (hits: readonly LookupHit[]): Dictionary =>
 // symptom is a row the column rejects at insert time.
 type _FactsCheck = z.infer<typeof _modelFactsSchema> extends Omit<
   IngredientFacts,
-  "slug" | "names" | "aliases" | "allergens" | "gramsPerPiece" | "gramsPerSlice" | "gramsPerMl"
+  | "slug" | "names" | "aliases" | "allergens" | "gramsPerPiece" | "gramsPerSlice" | "gramsPerMl"
+  | "shelfLifeDays" | "openedShelfLifeDays"
 >
   ? true
   : never;
@@ -473,6 +483,32 @@ const _weighable = (
   const unweighable = failing(repaired);
 
   return unweighable === undefined ? { ratios: repaired } : { unweighable };
+};
+
+/**
+ * The two shelf lives as the row stores them: whole days, and opened never above sealed.
+ *
+ * **Repaired rather than refused**, for the reason `_weighable` repairs a density: a date is a
+ * rough hint about what to cook first, and losing a row's allergens over one is the wrong trade.
+ * So a 3.5 rounds to 4 (never below 1), and an opened figure above the sealed one is clamped down
+ * to it — opening a pack never makes it keep longer, and the sealed figure is the one a model is
+ * more often right about. A figure the model left out stays out: an undated purchase reads as
+ * "not urgent", which is what it should read as when nobody knows.
+ */
+const _shelfLifeOf = (
+  facts: z.infer<typeof _modelFactsSchema>,
+): Pick<IngredientFacts, "shelfLifeDays" | "openedShelfLifeDays"> => {
+  const days = (value: number | null | undefined) =>
+    value == null ? undefined : Math.max(1, Math.round(value));
+
+  const shelfLifeDays = days(facts.shelfLifeDays);
+  const opened = days(facts.openedShelfLifeDays);
+
+  return {
+    shelfLifeDays,
+    openedShelfLifeDays:
+      opened !== undefined && shelfLifeDays !== undefined ? Math.min(opened, shelfLifeDays) : opened,
+  };
 };
 
 /**
@@ -613,6 +649,7 @@ export const toSanitizedIngredient = (
       defaultUnit: facts.defaultUnit,
       defaultQuantity: facts.defaultQuantity,
       ...ratios,
+      ..._shelfLifeOf(facts),
       nutrition: measuredOver(facts.nutrition, measured),
     },
     // Decided here rather than by the caller, because it is a claim ABOUT the numbers above and

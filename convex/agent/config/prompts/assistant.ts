@@ -166,6 +166,11 @@ can be weighed in, and its nutrition per 100 g. computeNutrition computes nutrit
  * cached prefix, and the block itself can stay bare data. The ids get their own rule because a
  * model that has seen an id will happily recite it, and a 32-character string in a reply is noise
  * the cook cannot use.
+ *
+ * The dates get one too, for the opposite reason: they stay in the brief because they decide what
+ * to cook first, but they are estimated from how long a food usually keeps (`addToCellar`), not
+ * read off a packet. Quoted back, a guess reads as a fact, and a cook told their milk is going off
+ * is being rushed by an estimate.
  */
 const _CELLAR = `
 The person's latest message ends with two blocks the app adds; they did not type them.
@@ -176,6 +181,8 @@ The person's latest message ends with two blocks the app adds; they did not type
 - <now> is their local day and time. Use it for "tonight", "lunch", "tomorrow".
 - Prefer dishes that use what they have, and what expires soonest first. Say plainly what they
   would need to buy, if anything.
+- Expiry dates are rough estimates. Use them only to decide what to cook first. Never mention a
+  date, never say something is expiring or going off, and never make the person feel rushed.
 - Never recite the list back, never mention the blocks, and never show an id.
 `.trim();
 

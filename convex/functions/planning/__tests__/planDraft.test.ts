@@ -173,6 +173,66 @@ describe("functions/planning/planDraft", () => {
     expect((await draft(ids, { startedAt }))[0]!.recipeId).toBe(ids.recipeId);
   });
 
+  /**
+   * The cellar's dates reach the selection: with two recipes the cellar covers equally and one
+   * plate, the one whose stock goes off first wins it — whichever of the two that is, so the test
+   * does not lean on pool order.
+   */
+  test("fills the plate with the recipe whose stock goes off first", async () => {
+    const ids = await setup();
+    const { spinachId, soupId } = await t.run(async (ctx) => {
+      const spinachId = await ctx.db.insert("ingredients", {
+        name: { values: { fr: "Épinard" }, meta: {} },
+        category: "VEGETABLE",
+        emoji: "🥬",
+        allergens: [],
+        defaultUnit: "g",
+        defaultQuantity: 500,
+        shelfLifeDays: 5,
+        openedShelfLifeDays: 2,
+        nutrition: { calories: 23, protein: 3, fat: 0, carbohydrates: 4 },
+        updatedAt: Date.now(),
+      });
+      const recipe = await ctx.db.get(ids.recipeId);
+      const { _id, _creationTime, ...fields } = recipe!;
+      const soupId = await ctx.db.insert("recipes", {
+        ...fields,
+        title: { values: { fr: "Soupe d'épinards" }, meta: {} },
+        shuffleKey: 1_500_000_000,
+      });
+      await ctx.db.insert("recipeIngredients", {
+        recipeId: soupId,
+        ingredientId: spinachId,
+        position: 0,
+        quantity: 200,
+        unit: "g",
+        updatedAt: Date.now(),
+      });
+      return { spinachId, soupId };
+    });
+
+    const stockUp = (days: { tomato: number; spinach: number }) =>
+      t.run(async (ctx) => {
+        for (const row of await ctx.db.query("cellarItems").collect()) await ctx.db.delete(row._id);
+        for (const [ingredientId, inDays] of [[ids.ingredientId, days.tomato], [spinachId, days.spinach]] as const) {
+          await ctx.db.insert("cellarItems", {
+            householdId: ids.householdId,
+            ingredientId,
+            quantity: 500,
+            unit: "g",
+            expirationDate: TODAY + inDays * DAY,
+            updatedAt: Date.now(),
+          });
+        }
+      });
+
+    await stockUp({ tomato: 365, spinach: 2 });
+    expect((await draft(ids))[0]!.recipeId).toBe(soupId);
+
+    await stockUp({ tomato: 2, spinach: 365 });
+    expect((await draft(ids))[0]!.recipeId).toBe(ids.recipeId);
+  });
+
   /** The kitchen reaches the pool: the one recipe needs an oven, and a kitchen without one plans nothing. */
   test("draws only recipes the kitchen can make", async () => {
     const ids = await setup();

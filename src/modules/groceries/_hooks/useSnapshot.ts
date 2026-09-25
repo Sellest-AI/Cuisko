@@ -18,6 +18,7 @@ import {
   type Plate,
   type Snapshot,
 } from "../_model/model";
+import { expiresSoonAt } from "../_model/expiresSoon";
 import { useLiveWindow } from "./useLiveWindow";
 
 /**
@@ -49,6 +50,7 @@ const _toCellarEntry = (row: Doc<"cellarItems">): CellarEntry => ({
   unit: row.unit,
   amount: row.quantity,
   updatedAt: new Date(row.updatedAt),
+  expirationDate: row.expirationDate,
 });
 
 const _toHistoryEntry = (row: Doc<"recentlyUsedIngredients">): HistoryEntry => ({
@@ -131,8 +133,8 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
   const receipts = useAtomValue(receiptsAtom);
 
   /**
-   * Every moment this screen would want redrawing at: when each receipt stops being undoable, and
-   * when each touched row finishes settling and goes alphabetical.
+   * Every moment this screen would want redrawing at: when each receipt stops being undoable, when
+   * each touched row finishes settling and goes alphabetical, and when a cellar row gets its clock.
    *
    * The rows are read straight off the query data rather than off the mapped `Snapshot` below,
    * because the mapping lives in the memo this clock is an input to — asking it for `now` would
@@ -143,6 +145,9 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
       ...receipts.map((receipt) => receipt.at.getTime() + UNDO_WINDOW_MS),
       ...[...(lines.data ?? EMPTY), ...(cellar.data ?? EMPTY), ...(history.data ?? EMPTY)].map(
         (row) => row.updatedAt + ALPHABETICAL_ORDERING_DELAY_MS,
+      ),
+      ...(cellar.data ?? EMPTY).flatMap((row) =>
+        row.expirationDate === undefined ? [] : [expiresSoonAt(row.expirationDate)],
       ),
     ],
     [receipts, lines.data, cellar.data, history.data],

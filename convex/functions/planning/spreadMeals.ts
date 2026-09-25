@@ -38,6 +38,9 @@ const _closeness = (a: SelectedMeal, b: SelectedMeal, purchases: Map<SelectedMea
  * the cellar in the order the week is eaten: a meal moved ahead of the one that drew on the last of
  * the butter now owns that butter, and the draft has to say what the commit will do. Alternatives
  * travel with their meal: they were ranked for it, not for the plate.
+ *
+ * ⚠️ LIMITATION: this ignores expiry. A meal picked early in the week to use up food that goes off
+ * soon can be moved to a later plate, after that food has expired.
  */
 export const spreadMeals = (selected: SelectedMeal[], stock: Stock): SelectedMeal[] => {
   const [first, ...remaining] = selected;

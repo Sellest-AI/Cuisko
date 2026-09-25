@@ -943,3 +943,38 @@ describe("what a section param is allowed to mean", () => {
     expect(sectionFromParam(value)).toBeUndefined();
   });
 });
+
+describe("the cellar card's clock", () => {
+  const DAY = 86_400_000;
+  const inDays = (days: number) => NOW.getTime() + days * DAY;
+
+  const withCellar = (cellar: CellarEntry[]): Snapshot => ({ ...base, cellar });
+  const clocks = (snapshot: Snapshot) => {
+    const sections = buildSections(snapshot);
+
+    return { toBuy: sections["to-buy"].map((row) => row.expiresSoon), cellar: sections.cellar.map((row) => row.expiresSoon) };
+  };
+
+  it("shows on the cellar row going off soon, and never on the row still to buy", () => {
+    expect(clocks(withCellar([{ ...base.cellar[0]!, expirationDate: inDays(2) }])))
+      .toEqual({ toBuy: [false], cellar: [true] });
+  });
+
+  it("stays hidden on a row with time left, or with no date at all", () => {
+    expect(clocks(withCellar([{ ...base.cellar[0]!, expirationDate: inDays(10) }])).cellar).toEqual([false]);
+    expect(clocks(base).cellar).toEqual([false]);
+  });
+
+  it("reads the soonest of the entries the row sums, skipping one that has run out", () => {
+    const entry = base.cellar[0]!;
+
+    expect(clocks(withCellar([
+      { ...entry, id: "c1", expirationDate: inDays(10) },
+      { ...entry, id: "c2", expirationDate: inDays(2) },
+    ])).cellar).toEqual([true]);
+    expect(clocks(withCellar([
+      { ...entry, id: "c1", expirationDate: inDays(10) },
+      { ...entry, id: "c2", amount: 0, expirationDate: inDays(2) },
+    ])).cellar).toEqual([false]);
+  });
+});

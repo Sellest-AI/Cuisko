@@ -17,6 +17,7 @@ import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { Image, type ImageProps } from "../image";
+import { ClockAlertIcon } from "../icons";
 
 /**
  * One line of a grocery list — something to buy, or something already owned.
@@ -89,6 +90,12 @@ type Props = {
   imageSrc?: ImageProps["source"];
   markerSrc?: string;
   variant?: GroceryItemVariant | "ghost";
+  /**
+   * A small clock beside the quantity: this is close to going off. Deliberately nothing more — no
+   * date, no number, no tap of its own. The date behind it is a rough estimate, and the card hints
+   * at it rather than rushing anyone. Drawn only where the card has a quantity line.
+   */
+  expiresSoon?: boolean;
   width?: number;
   onPress?: () => void;
   style?: ViewStyle;
@@ -124,7 +131,7 @@ const usePulse = (active: boolean) => {
   return useAnimatedStyle(() => ({ opacity: opacity.value }));
 };
 
-export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", width, onPress, style }: Props) => {
+export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", expiresSoon, width, onPress, style }: Props) => {
   const pulse = usePulse(variant === "resolving");
 
   /** A bundled picture wins over a fetched one, and either wins over the glyph standing in. */
@@ -164,6 +171,10 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageS
           {title}
         </Text.Base>
         {(quantity || markerSrc) && <View style={styles.quantity}>
+          {expiresSoon && <ClockAlertIcon
+            size={12}
+            color={theme.colors.danger.base}
+          />}
           {markerSrc && <View style={styles.marker}>
             <Image
               source={{ uri: markerSrc }}
@@ -265,7 +276,7 @@ const styles = StyleSheet.create({
   quantity: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[4],
+    gap: theme.spacing[6],
   },
   quantityBadge: {
     borderRadius: theme.radius.full,
