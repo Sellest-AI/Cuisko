@@ -270,10 +270,10 @@ const _reuseCredit = (reused: Need[], basket: Basket, rarity: Map<Id<"ingredient
  * recipe reusing one of its two purchases outranks a long one reusing two of seven: fewer new
  * rows on the list, which is the goal, without a bias toward short recipes when nothing is shared.
  *
- * **Urgency decides which recipes make the week, not where they land.** Plates are scored in
- * calendar order, so urgent stock tends to be spent on the early ones, but `spreadMeals` moves the
- * meals afterwards and may move that one later. Without `expiries`, every covered line counts `1`
- * and the week is exactly what it was before dates existed.
+ * **Urgency decides which recipes make the week; the dates then bound where they land.** Plates are
+ * scored in calendar order, so urgent stock tends to be spent on the early ones, and `spreadMeals`
+ * may move a meal later only up to the day its stock goes off. Without `expiries`, every covered
+ * line counts `1` and the week is exactly what it was before dates existed.
  *
  * **The cuisine penalty cannot lift a score of zero.** A week with an empty cellar and nothing yet
  * bought is pool order, whatever the cuisines; the penalty only bends choices the basket or the

@@ -152,3 +152,120 @@ describe("functions/planning/spreadMeals", () => {
     expect(spreadMeals([], new Map())).toEqual([]);
   });
 });
+
+describe("functions/planning/spreadMeals expiry", () => {
+  const DAY = 86_400_000;
+  /** The first plate's day. Dates below are counted from it, as `soonestExpiries` hands them over. */
+  const MONDAY = 20_000 * DAY;
+
+  const SPINACH = id<"ingredients">("spinach");
+  const MILK = id<"ingredients">("milk");
+
+  /** A week drawn one plate a day from Monday, each meal covering the lines `uses` names for it. */
+  const week = (candidates: Candidate[], uses: Record<string, Need[]> = {}): SelectedMeal[] =>
+    drawn(candidates).map((meal, day) => ({
+      ...meal,
+      plate: { ...meal.plate, date: MONDAY + day * DAY },
+      covered: uses[meal.candidate.recipeId] ?? [],
+    }));
+
+  const expiring = (entries: [Id<"ingredients">, number][]) =>
+    new Map(entries.map(([ingredientId, days]) => [ingredientId, MONDAY + days * DAY]));
+
+  const gratins = [
+    recipe("dauphinois", [measured(CREAM)]),
+    recipe("spinach-gratin", [measured(CREAM), measured(SPINACH)]),
+    recipe("risotto", [measured(RICE)]),
+  ];
+
+  /** The reported case: the meal drawn to use up the spinach was moved past the day it goes off. */
+  test("never moves a meal past the day the stock it uses up goes off", () => {
+    const meals = spreadMeals(week(gratins, { "spinach-gratin": [measured(SPINACH)] }), new Map(), expiring([[SPINACH, 1]]));
+
+    expect(names(meals)).toEqual(["dauphinois", "spinach-gratin", "risotto"]);
+  });
+
+  test("still moves it apart when its stock lasts until the later plate", () => {
+    const meals = spreadMeals(week(gratins, { "spinach-gratin": [measured(SPINACH)] }), new Map(), expiring([[SPINACH, 2]]));
+
+    expect(names(meals)).toEqual(["dauphinois", "risotto", "spinach-gratin"]);
+  });
+
+  test("ignores the date of stock the meal does not cover", () => {
+    const meals = spreadMeals(week(gratins), new Map(), expiring([[SPINACH, 1]]));
+
+    expect(names(meals)).toEqual(["dauphinois", "risotto", "spinach-gratin"]);
+  });
+
+  /** Moving the risotto up is least alike, and would leave both gratins one plate for two deadlines. */
+  test("keeps alike meals side by side rather than let one of them expire", () => {
+    const meals = spreadMeals(
+      week(
+        [
+          recipe("dauphinois", [measured(CREAM)]),
+          recipe("spinach-gratin", [measured(CREAM), measured(SPINACH)]),
+          recipe("milk-gratin", [measured(CREAM), measured(MILK)]),
+          recipe("risotto", [measured(RICE)]),
+        ],
+        { "spinach-gratin": [measured(SPINACH)], "milk-gratin": [measured(MILK)] },
+      ),
+      new Map(),
+      expiring([[SPINACH, 2], [MILK, 2]]),
+    );
+
+    expect(names(meals)).toEqual(["dauphinois", "spinach-gratin", "milk-gratin", "risotto"]);
+  });
+
+  /** Nothing can save stock already gone off by the plate it was drawn for; the spread must not add days to it. */
+  test("never serves a meal later than drawn when its stock was already late", () => {
+    const meals = spreadMeals(week(gratins, { "spinach-gratin": [measured(SPINACH)] }), new Map(), expiring([[SPINACH, -1]]));
+
+    expect(names(meals)).toEqual(["dauphinois", "spinach-gratin", "risotto"]);
+  });
+
+  /** Three meals on stock going off the first day: two are late whatever happens, and no later than drawn. */
+  test("keeps meals sharing one expiring stock no later than the plates they were drawn for", () => {
+    const spinach = { "a": [measured(SPINACH)], "b": [measured(SPINACH)], "c": [measured(SPINACH)] };
+    const meals = spreadMeals(
+      week(
+        [
+          recipe("a", [measured(CREAM), measured(SPINACH)]),
+          recipe("b", [measured(CREAM), measured(SPINACH)]),
+          recipe("c", [measured(CREAM), measured(SPINACH)]),
+          recipe("risotto", [measured(RICE)]),
+        ],
+        spinach,
+      ),
+      new Map(),
+      expiring([[SPINACH, 0]]),
+    );
+
+    expect(names(meals)).toEqual(["a", "b", "c", "risotto"]);
+  });
+
+  /**
+   * The `@limitation` on `spreadMeals`: the deadline stays on the gratin, which drew the spinach,
+   * while the risotto moved ahead of it now eats it. This pins what must hold, the stock eaten by
+   * its date, not where the deadline sits, which a future version is free to move to the risotto.
+   */
+  test("serves expiring stock in time when a meal moved ahead takes it from the one that drew it", () => {
+    const meals = spreadMeals(
+      week(
+        [
+          recipe("dauphinois", [measured(CREAM)]),
+          recipe("spinach-gratin", [measured(CREAM), measured(SPINACH, 200)]),
+          recipe("spinach-risotto", [measured(RICE), measured(SPINACH, 200)]),
+        ],
+        { "spinach-gratin": [measured(SPINACH, 200)] },
+      ),
+      new Map([[SPINACH, 200]]),
+      expiring([[SPINACH, 2]]),
+    );
+
+    expect(names(meals)).toEqual(["dauphinois", "spinach-risotto", "spinach-gratin"]);
+
+    const eatsTheSpinach = meals.find((meal) => meal.covered.some((need) => need.ingredientId === SPINACH));
+    expect(eatsTheSpinach?.candidate.recipeId).toBe("spinach-risotto");
+    expect(eatsTheSpinach!.plate.date).toBeLessThanOrEqual(MONDAY + 2 * DAY);
+  });
+});

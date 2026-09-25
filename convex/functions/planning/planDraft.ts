@@ -124,10 +124,8 @@ export const planDraft = async (ctx: QueryCtx, args: Args): Promise<DraftPlate[]
     }),
   ]);
 
-  const selected = spreadMeals(
-    selectMeals(pool.candidates, stock, plates, { ownShare: OWN_SHARE, expiries: soonestExpiries(lots) }),
-    stock,
-  );
+  const expiries = soonestExpiries(lots);
+  const selected = spreadMeals(selectMeals(pool.candidates, stock, plates, { ownShare: OWN_SHARE, expiries }), stock, expiries);
 
   const recipeIds = [
     ...new Set(selected.flatMap(({ candidate, alternatives }) => [candidate, ...alternatives].map(({ recipeId }) => recipeId))),
