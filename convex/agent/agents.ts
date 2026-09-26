@@ -64,7 +64,7 @@ export const recipesAgent = new Agent(components.agent, {
 });
 
 /**
- * The dish suggester behind `catalog:import`. Low effort: the job is naming well-known dishes of
+ * The dish suggester behind `seed:catalog`. Low effort: the job is naming well-known dishes of
  * a cuisine, and the script pays the wait for every call.
  */
 export const catalogAgent = new Agent(components.agent, {

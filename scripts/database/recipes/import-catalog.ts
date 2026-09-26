@@ -1,5 +1,5 @@
 /**
- * `pnpm catalog:import` — one batch of well-reviewed recipes into the catalog.
+ * `pnpm seed:catalog` — one batch of well-reviewed recipes into the catalog.
  *
  * Asks the agent for dishes cuisine by cuisine until the ledger holds `LIMIT_SIZE` accepted recipes
  * not yet imported on this deployment, then imports them `BATCH_SIZE` at a time. The ledger is

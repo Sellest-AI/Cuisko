@@ -5,7 +5,7 @@ your machine and calls `_internal` Convex functions through a deploy key.
 
 | Command                         | What it does                                                                  |
 | ------------------------------- | ----------------------------------------------------------------------------- |
-| `pnpm catalog:import`           | Asks the agent for dishes, finds a well-reviewed page for each, imports 20, ten at a time |
+| `pnpm seed:catalog`             | Asks the agent for dishes, finds a well-reviewed page for each, imports 20, ten at a time |
 | `pnpm catalog:export [dir]`     | The deployment's catalog as `catalog-<deployment>-<date>.zip`; writes nothing |
 | `pnpm catalog:restore <zip>`    | An export into this deployment's catalog                                      |
 

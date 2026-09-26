@@ -61,7 +61,7 @@ export const authed = authAction({
  * returns the id of a row that now exists. That asymmetry is the point rather than an oversight —
  * it is what keeps the app path stopping at a draft a cook can correct.
  *
- * A page the catalog holds returns its id before any fetch: `catalog:import`'s ledger can be lost.
+ * A page the catalog holds returns its id before any fetch: `seed:catalog`'s ledger can be lost.
  */
 export const _internal = internalAction({
   args: { url: v.string(), locale: vLocale },

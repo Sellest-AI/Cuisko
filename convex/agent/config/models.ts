@@ -82,7 +82,7 @@ export const models = {
     ...OPENAI_GPT_6_LUNA_OPTIONS
   },
   /**
-   * The `catalog:import` script's dish suggester. Luna rather than Deepseek because the script
+   * The `seed:catalog` script's dish suggester. Luna rather than Deepseek because the script
    * waits on every call through one HTTP request, and Deepseek at low effort took long enough for
    * the gateway to time out on it. Named on its own so retuning the import cannot move `recipes`.
    */

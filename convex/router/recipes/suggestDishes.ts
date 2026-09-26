@@ -5,7 +5,7 @@ import { VEGETARIAN_DIETS } from "@shared/diets";
 import { v } from "convex/values";
 
 /**
- * Dish names for one cuisine, asked for by the `catalog:import` script through a deploy key.
+ * Dish names for one cuisine, asked for by the `seed:catalog` script through a deploy key.
  *
  * Internal because only that script calls it, and it spends a model call per call. Nothing is
  * written: the script keeps the list of what it searched in its ledger, and hands the dishes of
