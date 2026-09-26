@@ -12,7 +12,7 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/planning/removeOne."))
+      .filter(([path]) => path.startsWith("/convex/router/planning/removeOne.") || path.startsWith("/convex/router/planning/commit."))
       .map(([, load]) => load()),
   ),
 );

@@ -138,7 +138,7 @@ const RECIPE = {
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne."))
+      .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne.") || path.startsWith("/convex/router/recipes/getOne."))
       .map(([, load]) => load()),
   ),
 );

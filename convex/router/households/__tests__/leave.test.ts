@@ -16,7 +16,7 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/households/leave."))
+      .filter(([path]) => path.startsWith("/convex/router/households/leave.") || path.startsWith("/convex/router/households/join."))
       .map(([, load]) => load()),
   ),
 );
