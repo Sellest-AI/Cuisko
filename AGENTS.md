@@ -57,27 +57,27 @@ copy silently.
 
 ## Never
 
-| Rule                                                                                   | ADR  |
-| -------------------------------------------------------------------------------------- | ---- |
-| Never import `convex/_generated/server` outside `convex/procedures.ts`                 | 0001 |
-| Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle)    | 0001 |
-| Never import Convex, `~/modules/*` or `translations` from `src/ui/**`                  | 0002 |
-| Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook         | 0006 |
-| Never import another module's `_hooks/` or `_components/` — use its root or `hooks.ts` | 0006 |
-| Never define a webhook with bare `httpAction` — use `verifiedWebhook`                  | 0004 |
-| Never default a secret to `''` — env is Zod-validated and throws at boot               | 0005 |
-| Never gate a security check on its secret being truthy (`if (secret) verify()`)        | 0005 |
-| Never combine `.filter()` with `.paginate()` — put the predicate in the index          | 0007 |
-| Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                   | 0007 |
-| Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`          | 0003 |
-| Never add a `v.id()` field without its cascade index **and** `CASCADE` entry           | 0007 |
+| Rule                                                                                     | ADR  |
+| ---------------------------------------------------------------------------------------- | ---- |
+| Never import `convex/_generated/server` outside `convex/procedures.ts`                   | 0001 |
+| Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle)      | 0001 |
+| Never import Convex, `~/modules/*` or `translations` from `src/ui/**`                    | 0002 |
+| Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook           | 0006 |
+| Never import another module's `_hooks/` or `_components/` — use its root or `hooks.ts`   | 0006 |
+| Never define a webhook with bare `httpAction` — use `verifiedWebhook`                    | 0004 |
+| Never default a secret to `''` — env is Zod-validated and throws at boot                 | 0005 |
+| Never gate a security check on its secret being truthy (`if (secret) verify()`)          | 0005 |
+| Never combine `.filter()` with `.paginate()` — put the predicate in the index            | 0007 |
+| Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                     | 0007 |
+| Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`            | 0003 |
+| Never add a `v.id()` field without its cascade index **and** `CASCADE` entry             | 0007 |
 | Never leave a test file no Vitest project collects — a `.tsx` under `convex/` never runs | 0008 |
-| Never add a `_model/` file without its test in that folder's `__tests__/`              | 0008 |
-| Never recompute on the client a derived value the server already ships                 | 0015 |
-| Never hold session state about a household in a plain `atom` — use `householdAtom`     | 0016 |
-| Never write an empty `catch {}`                                                        | —    |
-| Never commit secrets, force-push, or `git commit` unless asked                         | —    |
-| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                 | —    |
+| Never add a `_model/` file without its test in that folder's `__tests__/`                | 0008 |
+| Never recompute on the client a derived value the server already ships                   | 0015 |
+| Never hold session state about a household in a plain `atom` — use `householdAtom`       | 0016 |
+| Never write an empty `catch {}`                                                          | —    |
+| Never commit secrets, force-push, or `git commit` unless asked                           | —    |
+| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                   | —    |
 
 ## Non-obvious patterns
 
@@ -115,9 +115,10 @@ root file. `_components/` and `_hooks/` are that module's interior, reached only
 finding, red test, wrong branch, unagreed plan), or before anything destructive or outside this
 worktree (deleting data, force-push, `main`, the shared stash).
 
-**A run that changed or investigated something ends with three headings**, waiting-on-user first:
-**Blocked on you** ("Nothing" when nothing) · **Changed** (by layer, and what verify said) ·
-**Found** (noticed but not acted on, and what you could not confirm, with where you looked).
+**A run that changed or investigated something ends with these headings, in this order:**
+**Changed** (by layer, and what verify said) · **Found** (noticed but not acted on, and what you
+could not confirm, with where you looked) · **Blocked on you** (what you need from the user), or
+**Next** when nothing is. When a section is empty, leave its heading out entirely.
 
 ## Tests
 
