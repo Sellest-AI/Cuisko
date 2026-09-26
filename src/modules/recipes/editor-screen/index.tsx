@@ -19,6 +19,7 @@ import type { Id } from "~/lib/convex/api";
 
 import { computedTagsOf, detailsOf, type EditorDetails, sameDetails } from "../_model/editor";
 import { importedDraftAtom } from "../_hooks/atoms";
+import { useArchiveRecipe } from "../_hooks/useArchiveRecipe";
 import { useCreateRecipe } from "../_hooks/useCreateRecipe";
 import { useRecipeDraft } from "../_hooks/useRecipeDraft";
 import { useUpdateRecipe } from "../_hooks/useUpdateRecipe";
@@ -27,6 +28,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { SCREEN_PADDING } from "../constants";
 import { EditorActions } from "./actions";
 import { CreatingOverlay } from "./creating-overlay";
+import { EditorDelete } from "./delete";
 import { EditorDetailFields } from "./details";
 import { EditorField } from "./field";
 import { ImagePicker } from "./image-picker";
@@ -123,6 +125,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
 
   const { create, isCreating, error: creatingError } = useCreateRecipe();
   const { update, isUpdating, error: updatingError } = useUpdateRecipe();
+  const { archive, isArchiving, error: archivingError } = useArchiveRecipe();
 
   const isSaving = recipeId ? isUpdating : isCreating;
   const error = recipeId ? updatingError : creatingError;
@@ -305,6 +308,18 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
             />
           </>
         )}
+        {/*
+          * Edit only, and only while the recipe is live: one opened from a meal cooked with it may
+          * already be archived, and deleting it twice has nothing to say.
+          */}
+        {recipe && recipeId && !recipe.isArchived && (
+          <EditorDelete
+            onDelete={() => archive(recipeId as Id<"recipes">)}
+            isDeleting={isArchiving}
+            failed={archivingError !== null}
+            style={styles.delete}
+          />
+        )}
         <SafeAreaView edges={{ top: "off", bottom: "additive" }} />
       </KeyboardAwareScrollView>
       <EditorActions
@@ -353,6 +368,8 @@ const styles = StyleSheet.create({
     right: theme.spacing[24],
   },
   field: { marginTop: theme.spacing[20] },
+  /** Set apart from the last field, so it reads as leaving the recipe rather than editing it. */
+  delete: { marginTop: 48 },
   /** Splits what the recipe *is* from what it is made of; a rule, not a section break. */
   divider: {
     height: 2,

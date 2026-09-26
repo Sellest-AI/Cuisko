@@ -56,6 +56,8 @@ const seedRecipe = (title: string, shuffleKey: number, allergens: ("gluten" | "m
       updatedAt: Date.now(),
     });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: title }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },

@@ -33,9 +33,11 @@ export type RecipeFacts = Omit<Doc<"recipes">, "_id" | "_creationTime" | Derived
 /**
  * A row's facts, its derived columns stripped — for a writer handed a whole row, as the restore is,
  * so that what it states is exactly what the other deployment stated and nothing this module
- * would then overwrite.
+ * would then overwrite. The derived columns may be missing, since they are dropped either way.
  */
-export const recipeFactsOf = (row: Omit<Doc<"recipes">, "_id" | "_creationTime">): RecipeFacts => {
+export const recipeFactsOf = (
+  row: RecipeFacts & Partial<Pick<Doc<"recipes">, DerivedField>>,
+): RecipeFacts => {
   const facts: Partial<Doc<"recipes">> = { ...row };
   for (const field of DERIVED_FIELDS) delete facts[field];
 
@@ -86,11 +88,6 @@ export const insertRecipe = async (
     ...facetsOf(recipe.tags),
     search,
     shuffleKey: randomShuffleKey(),
-    /**
-     * Stated by the writer, and defaulted only for a restore from an export written before the
-     * column existed. That export's recipe was never reviewed on this path, so `generated` is true.
-     */
-    status: recipe.status ?? "generated",
     isArchived: false,
     updatedAt: Date.now(),
   });

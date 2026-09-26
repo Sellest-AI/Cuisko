@@ -10,7 +10,7 @@ import { skipAt } from "../functions/planning/skipMeal";
 import { cellarItems, groceryListItems, recentlyUsedIngredients } from "../schema/cellars";
 import { ingredients } from "../schema/ingredients";
 import { plannedMealIngredients } from "../schema/planning";
-import { recipeIngredients } from "../schema/recipes";
+import { recipeIngredients, recipes } from "../schema/recipes";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -41,6 +41,8 @@ const insertRecipe = (
 ) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
       instructions: { values: { fr: "Base\n- Émincer les oignons." }, meta: {} },
@@ -106,12 +108,21 @@ describe("backfillRecipeShuffleKey", () => {
 });
 describe("backfillRecipeStatus", () => {
   /**
+   * The real `recipes` table with validation off, for the reason `legacySchema` gives below: the
+   * columns are required now, so the row the migration exists for cannot otherwise be inserted.
+   */
+  beforeEach(() => {
+    t = convexTest(defineSchema({ recipes }, { schemaValidation: false }), modules);
+    migrationsTest.register(t);
+  });
+
+  /**
    * Every row that predates the columns becomes `generated` and live — nothing recorded a review or
    * a delete before them. A row a writer already stamped keeps what it says: a reviewed recipe the
    * migration reached late must not be demoted, and an archived one must not come back.
    */
   test("stamps generated and live onto recipes that lack both, and leaves stamped recipes alone", async () => {
-    const legacy = await insertRecipe();
+    const legacy = await insertRecipe({ status: undefined, isArchived: undefined });
     const reviewed = await insertRecipe({ status: "reviewed", isArchived: false });
     const archived = await insertRecipe({ status: "generated", isArchived: true });
 

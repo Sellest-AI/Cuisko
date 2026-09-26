@@ -38,6 +38,8 @@ const seedUser = (name: string) =>
 const seedRecipe = (userId: Id<"users">, title: string, search = "") =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: title, fr: title }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },

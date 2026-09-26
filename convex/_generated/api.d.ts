@@ -126,6 +126,7 @@ import type * as functions_planning_weekIdeas from "../functions/planning/weekId
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
 import type * as functions_preferences_getPlanningSeed from "../functions/preferences/getPlanningSeed.js";
 import type * as functions_preferences_save from "../functions/preferences/save.js";
+import type * as functions_recipes_archiveRecipe from "../functions/recipes/archiveRecipe.js";
 import type * as functions_recipes_computeNutrition from "../functions/recipes/computeNutrition.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_deriveRecipeFields from "../functions/recipes/deriveRecipeFields.js";
@@ -226,6 +227,7 @@ import type * as router_planning_skipOne from "../router/planning/skipOne.js";
 import type * as router_preferences_getMine from "../router/preferences/getMine.js";
 import type * as router_preferences_getPlanningSeed from "../router/preferences/getPlanningSeed.js";
 import type * as router_preferences_save from "../router/preferences/save.js";
+import type * as router_recipes_archiveOne from "../router/recipes/archiveOne.js";
 import type * as router_recipes_computeNutrition from "../router/recipes/computeNutrition.js";
 import type * as router_recipes_createOne from "../router/recipes/createOne.js";
 import type * as router_recipes_deleteOne from "../router/recipes/deleteOne.js";
@@ -385,6 +387,7 @@ declare const fullApi: ApiFromModules<{
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;
   "functions/preferences/getPlanningSeed": typeof functions_preferences_getPlanningSeed;
   "functions/preferences/save": typeof functions_preferences_save;
+  "functions/recipes/archiveRecipe": typeof functions_recipes_archiveRecipe;
   "functions/recipes/computeNutrition": typeof functions_recipes_computeNutrition;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/deriveRecipeFields": typeof functions_recipes_deriveRecipeFields;
@@ -485,6 +488,7 @@ declare const fullApi: ApiFromModules<{
   "router/preferences/getMine": typeof router_preferences_getMine;
   "router/preferences/getPlanningSeed": typeof router_preferences_getPlanningSeed;
   "router/preferences/save": typeof router_preferences_save;
+  "router/recipes/archiveOne": typeof router_recipes_archiveOne;
   "router/recipes/computeNutrition": typeof router_recipes_computeNutrition;
   "router/recipes/createOne": typeof router_recipes_createOne;
   "router/recipes/deleteOne": typeof router_recipes_deleteOne;

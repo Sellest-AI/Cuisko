@@ -38,6 +38,8 @@ const seedUser = (name: string) =>
 const seedRecipe = (userId?: Id<"users">) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: "Onion soup", fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { en: "A winter soup.", fr: "Une soupe d'hiver." }, meta: {} },
       instructions: {
@@ -136,6 +138,19 @@ describe("router/recipes/getOne", () => {
       .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
 
     expect(recipe.title).toBe("Onion soup");
+  });
+
+  /** Archiving takes a recipe off every list, not out of reach: a meal cooked with it still opens it. */
+  test("still gives an archived recipe", async () => {
+    const ownerId = await seedUser("Franck");
+    const recipeId = await seedRecipe(ownerId);
+    await t.run((ctx) => ctx.db.patch(recipeId, { isArchived: true }));
+
+    const recipe = await t
+      .withIdentity(asUser(ownerId))
+      .query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+
+    expect(recipe).toMatchObject({ title: "Onion soup", isArchived: true });
   });
 
   /** The planning review links to catalog recipes; a read that refused them landed on "not found". */

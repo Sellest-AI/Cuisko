@@ -56,6 +56,8 @@ const seed = async (
     const userId = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
 
     return ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       userId,
       title,
       description: overrides.description ?? one("fr", "Une soupe d'hiver."),

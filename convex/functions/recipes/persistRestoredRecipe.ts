@@ -63,7 +63,8 @@ export const persistRestoredRecipe = async (
   }
 
   const recipeId = await insertRecipe(ctx, {
-    recipe: { ...recipeFactsOf(row), coverImageId, plateImageId },
+    // An export older than the column has no status; nothing had been reviewed on its way out.
+    recipe: { ...recipeFactsOf({ ...row, status: row.status ?? "generated" }), coverImageId, plateImageId },
     links,
     names: unmatched,
   });

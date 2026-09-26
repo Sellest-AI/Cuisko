@@ -136,6 +136,8 @@ describe("router/recipes/importOne", () => {
   test("_internal returns the catalog recipe already imported from the url, without fetching", async () => {
     const existing = await t.run((ctx) =>
       ctx.db.insert("recipes", {
+        status: "generated",
+        isArchived: false,
         title: { values: { fr: "Tarte" }, meta: {} },
         description: { values: { fr: "" }, meta: {} },
         instructions: { values: { fr: "- Cuire." }, meta: {} },

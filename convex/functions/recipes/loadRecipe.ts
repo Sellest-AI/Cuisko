@@ -119,6 +119,11 @@ export type RecipeDetail = RecipeCard & {
    */
   isOwned?: boolean;
   isFavorited?: boolean;
+  /**
+   * Whether its cook deleted it. Shipped because an archived recipe is still opened — from a meal
+   * cooked with it — and the editor must not offer to delete it a second time.
+   */
+  isArchived: boolean;
 };
 
 /**
@@ -254,5 +259,6 @@ export const loadRecipe = async (
     ingredients: lines,
     nutrition: nutritionOfLines(weighable, lineCount, recipe.servings),
     chef,
+    isArchived: recipe.isArchived,
   };
 };

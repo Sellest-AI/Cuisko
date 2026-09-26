@@ -16,6 +16,8 @@ type Props = {
   style?: StyleExtended | StyleExtended[];
   leftIcon?: Icon;
   rightIcon?: Icon;
+  /** See `ButtonPill`. */
+  doubleTapDelay?: number;
 };
 
 export const Button = ({
@@ -28,6 +30,7 @@ export const Button = ({
   style: buttonStyle,
   leftIcon,
   rightIcon,
+  doubleTapDelay,
 }: Props) => {
   const style = StyleSheet.flatten(buttonStyle) as StyleExtended;
 
@@ -41,6 +44,7 @@ export const Button = ({
     leftContent={leftIcon ? ({ color }) => <MorphIcon icon={leftIcon} size={18} color={color} /> : undefined}
     rightContent={rightIcon ? ({ color }) => <MorphIcon icon={rightIcon} size={18} color={color} /> : undefined}
     size="md"
+    doubleTapDelay={doubleTapDelay}
   >
     {children}
   </ButtonPill>

@@ -56,6 +56,8 @@ const reserve = async (
 ) =>
   t.run(async (ctx) => {
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "x" }, meta: {} },
       description: { values: { fr: "x" }, meta: {} },
       instructions: { values: { fr: "x" }, meta: {} },

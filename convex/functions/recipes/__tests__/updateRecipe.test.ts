@@ -44,6 +44,8 @@ const seed = async () => {
 const seedRecipe = (servings = 4) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: {
         values: { fr: "Soupe à l'oignon", en: "Onion soup" },
         meta: {

@@ -1,4 +1,4 @@
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
@@ -29,6 +29,10 @@ type Args = {
  *
  * A row whose recipe is gone is dropped rather than asserted. The cascade should make that
  * unreachable, but a list is not the place to find out that it did not.
+ *
+ * An archived recipe is dropped too, and its favorite row kept: the cook who wrote it deleted it,
+ * but the row is another cook's choice, and the recipe is still there. Filtered after the read, which
+ * is fine because this is a `take` and not a page — the shelf is only shorter by what was dropped.
  */
 export const listFavorites = async (
   ctx: ListCtx,
@@ -42,5 +46,9 @@ export const listFavorites = async (
 
   const recipes = await Promise.all(favorites.map((favorite) => ctx.db.get(favorite.recipeId)));
 
-  return toRecipeCards(ctx, recipes.filter((recipe) => recipe !== null), locale);
+  return toRecipeCards(
+    ctx,
+    recipes.filter((recipe): recipe is Doc<"recipes"> => recipe !== null && !recipe.isArchived),
+    locale,
+  );
 };

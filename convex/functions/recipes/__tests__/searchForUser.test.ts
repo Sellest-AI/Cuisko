@@ -35,6 +35,8 @@ const seedRecipe = (
 ) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: title, fr: title }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
@@ -117,6 +119,24 @@ describe("functions/recipes/searchForUser", () => {
     await seedRecipe(strangerId, { title: "Bean stew", search: "tomato beans" });
 
     expect(await titlesOf(userId, "tomato")).toEqual(["Tomato soup", "Bean stew"]);
+  });
+
+  /**
+   * Archived is left out of every scope and both indexes: the caller's own recipe and a stranger's,
+   * found by name or by ingredient, are found by nobody once their cook deleted them.
+   */
+  test("never returns an archived recipe, the caller's own or anyone else's", async () => {
+    const userId = await seedUser("Franck");
+    const strangerId = await seedUser("Stranger");
+    await seedRecipe(undefined, { title: "Tomato soup", search: "tomato" });
+    const mine = await seedRecipe(userId, { title: "Tomato tart", search: "tomato" });
+    const theirs = await seedRecipe(strangerId, { title: "Bean stew", search: "tomato beans" });
+    await t.run(async (ctx) => {
+      await ctx.db.patch(mine, { isArchived: true });
+      await ctx.db.patch(theirs, { isArchived: true });
+    });
+
+    expect(await titlesOf(userId, "tomato")).toEqual(["Tomato soup"]);
   });
 
   /**

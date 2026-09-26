@@ -37,6 +37,8 @@ const seedUser = (name: string) =>
 const seedRecipe = (userId: Id<"users"> | undefined, title: string) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: title, fr: `${title} (fr)` }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
@@ -124,6 +126,23 @@ describe("router/recipes/getFavorites", () => {
   });
 
   /** The cascade should make this unreachable; the shelf drops the row rather than failing. */
+  /** Deleted by the cook who wrote it: off this cook's shelf, though the row that kept it stays. */
+  test("skips a favorite whose recipe was archived", async () => {
+    const authorId = await seedUser("Author");
+    const userId = await seedUser("Franck");
+    const kept = await seedRecipe(authorId, "Kept");
+    const archived = await seedRecipe(authorId, "Archived");
+    await seedFavorite(userId, archived);
+    await seedFavorite(userId, kept);
+    await t.run((ctx) => ctx.db.patch(archived, { isArchived: true }));
+
+    const favorites = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.getFavorites.authed, { locale: "en" });
+
+    expect(favorites.map(({ title }) => title)).toEqual(["Kept"]);
+  });
+
   test("skips a favorite whose recipe is gone", async () => {
     const userId = await seedUser("Franck");
     const kept = await seedRecipe(userId, "Kept");

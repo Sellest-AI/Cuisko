@@ -11,7 +11,7 @@ import { TAGS } from "@shared/tags";
  * The fields every search index on `recipes` can filter by, written once because all four must
  * agree — see the comment on the indexes below.
  *
- * Nine of the sixteen a Convex search index allows, leaving room for the authored facets a filter
+ * Ten of the sixteen a Convex search index allows, leaving room for the authored facets a filter
  * row will eventually want (`isQuick`, `isOnePot`) without a schema migration.
  */
 const FACET_FIELDS = [
@@ -24,6 +24,7 @@ const FACET_FIELDS = [
   "cuisine",
   "difficulty",
   "userId",
+  "isArchived",
 ] as const;
 
 export const RECIPE_STATUSES = ["generated", "reviewed"] as const;
@@ -129,10 +130,8 @@ export const recipes = defineTable({
    * typed one too, since the model fills in its tags, cuisine and timings — and becomes `reviewed`
    * the first time its cook saves an edit (`updateRecipe`). Nothing is gated on it yet; `by_status`
    * is what a review queue will read.
-   *
-   * Optional only while `backfillRecipeStatus` brings existing recipes up to date.
    */
-  status: v.optional(vRecipeStatus),
+  status: vRecipeStatus,
   /**
    * A deleted recipe, kept. Deleting cannot remove the row: planned and cooked meals point at it,
    * and a cook opening last week's dinner must still find the recipe. So it leaves every surface a
@@ -142,14 +141,18 @@ export const recipes = defineTable({
    * equality on a prefix, so "generated OR reviewed" would be two reads, and a paginated list cannot
    * be one page of two reads. It also keeps a reviewed recipe's review when it is archived.
    *
-   * Optional only while `backfillRecipeStatus` brings existing recipes up to date.
+   * Required because every list read asks `eq("isArchived", false)`, and an absent field does not
+   * equal `false`: a row without it would be live and on no list.
    */
-  isArchived: v.optional(v.boolean()),
+  isArchived: v.boolean(),
 
   updatedAt: v.number(), // S5
 })
   .index("by_user", ["userId"])
-  .index("by_user_id_and_shuffle_key", ["userId", "shuffleKey"])
+  // The cook's live recipes, newest first: the recipes page (`listForUser`).
+  .index("by_user_and_is_archived", ["userId", "isArchived"])
+  // A random window of one owner's live recipes: the planning pool (`candidatePool`).
+  .index("by_user_and_is_archived_and_shuffle_key", ["userId", "isArchived", "shuffleKey"])
   // "Which recipe of this cook already came from this page" — the dedupe / re-import question.
   // No query reads it yet; it is declared with the column so the answer is indexed from day one.
   .index("by_user_and_source_url", ["userId", "sourceUrl"])

@@ -42,6 +42,8 @@ const seedMember = () =>
 const seedPlates = (householdId: Id<"households">, dates: number[]) =>
   t.run(async (ctx) => {
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Soupe" }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },

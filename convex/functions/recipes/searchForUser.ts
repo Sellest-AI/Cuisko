@@ -32,7 +32,7 @@ type Scope = {
 /** The narrowing every index below accepts; the search field differs per index, the filters do not. */
 type Narrowable = SearchFilterFinalizer<
   Doc<"recipes">,
-  { searchField: string; filterFields: "userId" | keyof DietFacets }
+  { searchField: string; filterFields: "userId" | "isArchived" | keyof DietFacets }
 >;
 
 /**
@@ -40,6 +40,8 @@ type Narrowable = SearchFilterFinalizer<
  * reason it is not a `.filter()` afterwards: the scan spends its 1024-result budget on the rows
  * that qualify rather than on everyone's, so a common word like "soup" cannot exhaust the budget
  * on strangers' omnivore rows and return nothing of the caller's, or nothing vegan.
+ *
+ * `isArchived` is not narrowed here but at each index read below, where C15 can see it (ADR 0017).
  */
 const _narrow = (filter: Narrowable, { userId, facet }: Scope): SearchFilter => {
   let narrowed = filter;
@@ -68,12 +70,16 @@ const _titleMatches = (
     case "fr":
       return ctx.db
         .query("recipes")
-        .withSearchIndex("search_title_fr", (q) => _narrow(q.search("title.values.fr", term), scope))
+        .withSearchIndex("search_title_fr", (q) =>
+          _narrow(q.search("title.values.fr", term).eq("isArchived", false), scope),
+        )
         .take(limit);
     case "en":
       return ctx.db
         .query("recipes")
-        .withSearchIndex("search_title_en", (q) => _narrow(q.search("title.values.en", term), scope))
+        .withSearchIndex("search_title_en", (q) =>
+          _narrow(q.search("title.values.en", term).eq("isArchived", false), scope),
+        )
         .take(limit);
   }
 };
@@ -94,12 +100,16 @@ const _ingredientMatches = (
     case "fr":
       return ctx.db
         .query("recipes")
-        .withSearchIndex("search_fr", (q) => _narrow(q.search("search.fr", term), scope))
+        .withSearchIndex("search_fr", (q) =>
+          _narrow(q.search("search.fr", term).eq("isArchived", false), scope),
+        )
         .take(limit);
     case "en":
       return ctx.db
         .query("recipes")
-        .withSearchIndex("search_en", (q) => _narrow(q.search("search.en", term), scope))
+        .withSearchIndex("search_en", (q) =>
+          _narrow(q.search("search.en", term).eq("isArchived", false), scope),
+        )
         .take(limit);
   }
 };

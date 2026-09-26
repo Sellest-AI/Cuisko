@@ -81,6 +81,8 @@ const seed = async (overrides: { userId?: Id<"users"> | null } = {}) =>
     const perlimpinpin = await catalog("poudre de perlimpinpin", undefined);
 
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       userId: overrides.userId === null ? undefined : (overrides.userId ?? userId),
       title: fr("Soupe à l'oignon"),
       description: fr("Une soupe d'hiver."),

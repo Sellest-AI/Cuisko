@@ -59,6 +59,8 @@ const insertOriginal = (ingredientIds: Id<"ingredients">[], sourceUrl = "https:/
   origin.run(async (ctx) => {
     const search = await recipeSearchText(ctx, { ingredientIds, names: [] });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Soupe", en: "Soup" }, meta: { en: { status: "machine", sourceHash: "h" } } },
       description: { values: { fr: "Une soupe.", en: "A soup." }, meta: {} },
       instructions: { values: { fr: "- Cuire.", en: "- Cook." }, meta: {} },
