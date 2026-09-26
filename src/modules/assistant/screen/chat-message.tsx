@@ -4,7 +4,7 @@ import { useTranslations } from "translations";
 import { Message } from "@ui/message";
 import { theme } from "theme";
 
-import type { ChatMessage as ChatMessageModel } from "../_model/chatMessage";
+import type { AnswerBlock, ChatMessage as ChatMessageModel } from "../_model/chatMessage";
 import { Display } from "./display";
 import { OfferedButton } from "./offered-button";
 import { Substitutions } from "./substitutions";
@@ -14,6 +14,39 @@ type Props = {
   message: ChatMessageModel;
 };
 
+/** One piece of the answer. Text after a card is spaced from it the way a card is from text. */
+const _Block = ({ block, isFirst }: { block: AnswerBlock; isFirst: boolean }) => {
+  switch (block.type) {
+    case "text":
+      return (
+        <Message
+          from="assistant"
+          markdown
+          content={block.text}
+          style={isFirst ? styles.fromAssistant : styles.fromAssistantAfterTool}
+        />
+      );
+    case "display":
+      return (
+        <View style={styles.assistantTool}>
+          <Display card={block.card} />
+        </View>
+      );
+    case "substitutions":
+      return (
+        <View style={styles.assistantTool}>
+          <Substitutions card={block.card} />
+        </View>
+      );
+    case "button":
+      return (
+        <View style={styles.assistantTool}>
+          <OfferedButton button={block.button} />
+        </View>
+      );
+  }
+};
+
 /** One row of the conversation: a question, or everything one answer drew. */
 export const ChatMessage = ({ message }: Props) => {
   const t = useTranslations("Assistant");
@@ -21,12 +54,11 @@ export const ChatMessage = ({ message }: Props) => {
   if (message.from === "user")
     return <Message from="user" content={message.text} style={styles.fromUser} />;
 
+  const hasText = message.blocks.some((block) => block.type === "text");
+
   return (
     <View>
-      {/*
-        * Status lines first, then all the text, then what the turn showed. Text the model wrote
-        * after a card is joined with the rest and drawn above it: text parts arrive pre-joined.
-        */}
+      {/* Status lines first, then the answer in the order it was written: a card sits where it was shown. */}
       {message.steps.map((step) => (
         <ToolStep key={step.key} step={step} />
       ))}
@@ -35,34 +67,12 @@ export const ChatMessage = ({ message }: Props) => {
         * empty bubble. Plainly is the point: PRODUCT.md puts the mascot aside when something has
         * gone wrong, so this is an apology and not a joke.
         */}
-      {(message.text || message.hasFailed) && (
-        <Message
-          from="assistant"
-          markdown
-          content={message.hasFailed && !message.text ? t("failed") : message.text}
-          style={styles.fromAssistant}
-        />
+      {message.hasFailed && !hasText && (
+        <Message from="assistant" markdown content={t("failed")} style={styles.fromAssistant} />
       )}
-      {/* Right under the text it explains, before any recipe cards: it answers the question asked. */}
-      {message.substitutions && (
-        <View style={styles.assistantTool}>
-          <Substitutions card={message.substitutions} />
-        </View>
-      )}
-      {message.cards.map((card, index) => (
-        <View key={index} style={styles.assistantTool}>
-          <Display card={card} />
-        </View>
+      {message.blocks.map((block, index) => (
+        <_Block key={block.key} block={block} isFirst={index === 0} />
       ))}
-      {/*
-        * Last, whenever it was called: it points somewhere else, which is the end of what this
-        * answer has to say, and a pill between the text and its cards would split them.
-        */}
-      {message.button && (
-        <View style={styles.assistantTool}>
-          <OfferedButton button={message.button} />
-        </View>
-      )}
     </View>
   );
 };
@@ -73,6 +83,10 @@ const styles = StyleSheet.create({
   },
   fromAssistant: {
     marginLeft: theme.spacing[20],
+  },
+  fromAssistantAfterTool: {
+    marginLeft: theme.spacing[20],
+    marginTop: theme.spacing[12],
   },
   assistantTool: {
     marginLeft: theme.spacing[20],

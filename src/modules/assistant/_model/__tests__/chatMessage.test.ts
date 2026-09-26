@@ -505,3 +505,132 @@ describe("the substitutions under an answer", () => {
     expect(drawn && isShowingSomething(drawn)).toBe(true);
   });
 });
+
+/** A run of text the model wrote in one step. */
+const said = (text: string) => ({ type: "text", text });
+
+describe("the order an answer is drawn in", () => {
+  /**
+   * The reported bug: every text part arrives joined into `text`, so a sentence written after the
+   * recipe cards was drawn above them, and "a sentence between two cards" never showed between.
+   */
+  test("text and what was shown are drawn in the order the model wrote them", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          said("Trois idées :"),
+          display(card("r1")),
+          said("Et pour la crème :"),
+          showSubstitutions(swaps(["cream", "milk"])),
+          said("Bon appétit !"),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.blocks).toEqual([
+      { type: "text", key: "text-0", text: "Trois idées :" },
+      { type: "display", key: "call-d", card: card("r1") },
+      { type: "text", key: "text-2", text: "Et pour la crème :" },
+      { type: "substitutions", key: "call-s", card: swaps(["cream", "milk"]) },
+      { type: "text", key: "text-4", text: "Bon appétit !" },
+    ]);
+  });
+
+  /** A search draws its line at the top; where it was called, it must not cut the text in two. */
+  test("text on either side of a search stays one bubble, one paragraph per step", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [said("Je regarde."), { type: "step-start" }, search("output-available", found("r1")), said("Voilà.")],
+      }),
+    ]);
+
+    expect(drawn?.blocks).toEqual([{ type: "text", key: "text-0", text: "Je regarde.\n\nVoilà." }]);
+  });
+
+  test("a text part that is blank, or only an id, adds nothing", () => {
+    const [drawn] = toChatMessages([
+      message({ parts: [said("  "), display(card("r1")), said("k57a1b2c3d4e5f6g7h8i9j0k1l2m3n4p")] }),
+    ]);
+
+    expect(drawn?.blocks).toEqual([{ type: "display", key: "call-d", card: card("r1") }]);
+  });
+
+  /** Same rule as `substitutions` and `button`, and the dropped one does not split the text. */
+  test("the swaps and the button keep their last, where it was called", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          showSubstitutions(swaps(["a", "b"]), "output-available", "s1"),
+          said("Plutôt :"),
+          showSubstitutions(swaps(["c", "d"]), "output-available", "s2"),
+          showButton(offer({ text: "Premier" }), "output-available", "b1"),
+          said("Sinon"),
+          showButton(offer(), "output-available", "b2"),
+          said("à toi de voir."),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.blocks).toEqual([
+      { type: "text", key: "text-1", text: "Plutôt :" },
+      { type: "substitutions", key: "s2", card: swaps(["c", "d"]) },
+      { type: "text", key: "text-4", text: "Sinon" },
+      { type: "button", key: "b2", button: offer() },
+      { type: "text", key: "text-6", text: "à toi de voir." },
+    ]);
+  });
+
+  test("a card still streaming, errored or unknown is not drawn", () => {
+    const [drawn] = toChatMessages([
+      message({
+        status: "streaming",
+        parts: [said("Voilà."), display(card("r1"), "input-available"), display({ v: 9 }), showButton(undefined, "output-error")],
+      }),
+    ]);
+
+    expect(drawn?.blocks).toEqual([{ type: "text", key: "text-0", text: "Voilà." }]);
+  });
+
+  /** A thread stored with its text and no text part still draws the text, first. */
+  test("text with no text part is drawn first", () => {
+    const [drawn] = toChatMessages([message({ text: "Voilà.", parts: [display(card("r1"))] })]);
+
+    expect(drawn?.blocks).toEqual([
+      { type: "text", key: "text", text: "Voilà." },
+      { type: "display", key: "call-d", card: card("r1") },
+    ]);
+  });
+
+  test("a question has no blocks: it is drawn from its text", () => {
+    const [drawn] = toChatMessages([message({ role: "user", text: "Salut", parts: [said("Salut")] })]);
+
+    expect(drawn?.blocks).toEqual([]);
+  });
+});
+
+describe("whether Cuisko is still replying", () => {
+  test("an answer streaming in is", () => {
+    expect(toChatMessages([message({ status: "streaming" })])[0]?.isReplying).toBe(true);
+  });
+
+  /**
+   * Between two steps the answer is `pending` while the model reads a tool's result. It is not
+   * streaming, and the turn is not over: the loader must not blink off in that gap.
+   */
+  test("an answer waiting between two steps is, though it is not streaming", () => {
+    const [drawn] = toChatMessages([message({ status: "pending", parts: [said("Je regarde."), display(card("r1"))] })]);
+
+    expect(drawn?.isStreaming).toBe(false);
+    expect(drawn?.isReplying).toBe(true);
+  });
+
+  test("an answer whose turn is over is not, whether it succeeded or failed", () => {
+    for (const status of ["success", "failed"]) {
+      expect(toChatMessages([message({ status })])[0]?.isReplying).toBe(false);
+    }
+  });
+
+  test("a question never is", () => {
+    expect(toChatMessages([message({ role: "user", text: "Salut", status: "pending" })])[0]?.isReplying).toBe(false);
+  });
+});

@@ -133,8 +133,20 @@ export const useAssistantChat = () => {
     setConversation({ threadId, lastActivityAt: lastMessageAt });
   }, [threadId, lastMessageAt, heldActivityAt, setConversation]);
 
+  /**
+   * The rows the screen draws: the transcript without an answer that has nothing on screen yet.
+   *
+   * That answer stays in `messages`, where the checks above need it, but drawn it is an empty row
+   * plus the gap above it, which pushed "Cuisko is thinking" down and back up as the first token
+   * landed. A failed one stays: it draws its apology.
+   */
+  const drawn = useMemo(
+    () => messages.filter((message) => message.from === "user" || isShowingSomething(message) || message.hasFailed),
+    [messages],
+  );
+
   return {
-    messages,
+    messages: drawn,
     ask,
     /**
      * A thread is being read, so an empty `messages` means "not loaded yet", not "nothing here".
@@ -151,6 +163,13 @@ export const useAssistantChat = () => {
      * an answer starts or the turn fails.
      */
     isThinking: pendingQuestion !== undefined && !isAnswered,
+    /**
+     * The answer has started and its turn is not over yet: Cuisko may still write or show more.
+     *
+     * Takes over from `isThinking` once the answer shows something, so exactly one of the two is
+     * true while a turn runs and the cook can always tell whether it has finished.
+     */
+    isReplying: last?.from === "assistant" && last.isReplying && isShowingSomething(last),
     loadMore: stored.loadMore,
     canLoadMore: stored.status === "CanLoadMore",
   };

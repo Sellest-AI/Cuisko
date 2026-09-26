@@ -69,8 +69,8 @@ export const toDisplayCard = (
  */
 export const displayTool = createTool({
   description:
-    "Shows the cook the recipes you chose, as cards under your answer, in the order you give. " +
-    "Call it once per answer. Never write an id in your text; ids go here only.",
+    "Shows the cook the recipes you chose, as cards at this point in your answer, in the order " +
+    "you give. Call it once per answer. Never write an id in your text; ids go here only.",
   inputSchema: _inputSchema,
   execute: async (ctx, input: Input): Promise<DisplayCard> => {
     // One kind so far; a second one branches here on `input.kind`.

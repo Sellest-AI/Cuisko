@@ -44,8 +44,8 @@ const _inputSchema = z.object({
 
 export const showButtonTool = createTool({
   description:
-    "Shows the cook a button to another part of the app, under your answer and any recipe cards, " +
-    "with your sentence above it. At most once per answer.",
+    "Shows the cook a button to another part of the app, with your sentence above it, at this " +
+    "point in your answer. Call it last, at most once per answer.",
   inputSchema: _inputSchema,
   execute: async (_ctx, input: z.infer<typeof _inputSchema>): Promise<AssistantButton> => ({
     v: 1,

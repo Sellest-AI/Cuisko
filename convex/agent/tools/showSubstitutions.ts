@@ -69,9 +69,10 @@ export const toSubstitutionsCard = (
 export const showSubstitutionsTool = createTool({
   description:
     "Shows the cook the ingredient swaps you suggest, one row per swap with each ingredient's " +
-    "picture, under your answer. Call it whenever you suggest replacing an ingredient, including " +
-    "when you offer several alternatives to one: each alternative is a swap. Pass ingredient ids " +
-    "from searchIngredients; never write one in your text, and never list the swaps in your text.",
+    "picture, at this point in your answer. Call it whenever you suggest replacing an ingredient, " +
+    "including when you offer several alternatives to one: each alternative is a swap. Pass " +
+    "ingredient ids from searchIngredients; never write one in your text, and never list the " +
+    "swaps in your text.",
   inputSchema: _inputSchema,
   execute: async (ctx, { swaps }: Input): Promise<SubstitutionsCard> => {
     const missing = await ctx.runQuery(internal.router.ingredients.missingIds._internal, {
