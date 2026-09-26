@@ -151,6 +151,30 @@ describe("persistRestoredRecipe", () => {
     expect(recipe.shuffleKey).not.toBe(exported.row.shuffleKey);
   });
 
+  /**
+   * A review is a fact about the recipe, so it travels: a catalog recipe checked on one deployment
+   * is not unchecked on the next. An export from before the column existed restores as `generated`,
+   * which is what it was. Live either way — no recipe is restored deleted.
+   */
+  test("keeps the exported review status, and restores the recipe live", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot]);
+    const exported = await exportFirst();
+
+    const reviewed = await persist({ ...exported, row: { ...exported.row, status: "reviewed", isArchived: true } });
+    const legacy = await persist({
+      ...exported,
+      row: { ...exported.row, status: undefined, sourceUrl: "https://example.com/other" },
+    });
+
+    const rows = await Promise.all([reviewed, legacy].map(({ recipeId }) => loadRestored(recipeId)));
+
+    expect(rows.map(({ recipe }) => [recipe.status, recipe.isArchived])).toEqual([
+      ["reviewed", false],
+      ["generated", false],
+    ]);
+  });
+
   test("keeps an unmatched line's spelling searchable, with no row for it", async () => {
     const seeds = await seedCatalog(origin);
     await insertOriginal([seeds.carrot, seeds.onion]);

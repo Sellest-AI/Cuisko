@@ -26,6 +26,10 @@ const FACET_FIELDS = [
   "userId",
 ] as const;
 
+export const RECIPE_STATUSES = ["generated", "reviewed"] as const;
+
+export const vRecipeStatus = v.union(...RECIPE_STATUSES.map(v.literal));
+
 export const recipes = defineTable({
   title: vLocalized,
   description: vLocalized,
@@ -120,6 +124,28 @@ export const recipes = defineTable({
    */
   sourceUrl: v.optional(v.string()),
 
+  /**
+   * Whether a person has been through what the model wrote. Every recipe starts `generated` — a
+   * typed one too, since the model fills in its tags, cuisine and timings — and becomes `reviewed`
+   * the first time its cook saves an edit (`updateRecipe`). Nothing is gated on it yet; `by_status`
+   * is what a review queue will read.
+   *
+   * Optional only while `backfillRecipeStatus` brings existing recipes up to date.
+   */
+  status: v.optional(vRecipeStatus),
+  /**
+   * A deleted recipe, kept. Deleting cannot remove the row: planned and cooked meals point at it,
+   * and a cook opening last week's dinner must still find the recipe. So it leaves every surface a
+   * recipe is CHOSEN from — the cook's list, search, favorites, planning — and stays readable by id.
+   *
+   * A boolean beside `status` rather than a third value of it, for the index: a Convex index reads
+   * equality on a prefix, so "generated OR reviewed" would be two reads, and a paginated list cannot
+   * be one page of two reads. It also keeps a reviewed recipe's review when it is archived.
+   *
+   * Optional only while `backfillRecipeStatus` brings existing recipes up to date.
+   */
+  isArchived: v.optional(v.boolean()),
+
   updatedAt: v.number(), // S5
 })
   .index("by_user", ["userId"])
@@ -128,6 +154,9 @@ export const recipes = defineTable({
   // No query reads it yet; it is declared with the column so the answer is indexed from day one.
   .index("by_user_and_source_url", ["userId", "sourceUrl"])
   .index("by_difficulty", ["difficulty"])
+  // "Which recipes has nobody checked yet" — the review queue. Nothing reads it yet; declared with
+  // the column, like `by_user_and_source_url`, so the answer is indexed from day one.
+  .index("by_status", ["status"])
   // Answer "which recipe points at this image", which is what detaches it when the image is deleted
   // (CASCADE.images in functions/cascade.ts). Nothing reads them on a normal path.
   .index("by_cover_image", ["coverImageId"])

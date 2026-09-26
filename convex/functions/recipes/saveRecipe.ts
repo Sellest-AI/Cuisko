@@ -64,6 +64,8 @@ export const saveRecipe = async (
       cuisine: recipe.cuisine,
       timings: recipe.timings,
       sourceUrl,
+      // Nobody has read what the model just wrote.
+      status: "generated",
     },
     links,
     names: recipe.ingredients.map((line) => line.name),

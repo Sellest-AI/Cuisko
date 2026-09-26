@@ -9,12 +9,14 @@ import type { RecipeLink } from "./resolveRecipeIngredients";
 
 /**
  * The columns this module derives, and no writer states: `search` from the links, the six facets
- * from `tags`, and the two the row gets on the way in.
+ * from `tags`, and the three the row gets on the way in. `isArchived` is one of them because no
+ * recipe is born deleted, restored ones included.
  */
 const DERIVED_FIELDS = [
   "search",
   "shuffleKey",
   "updatedAt",
+  "isArchived",
   "isVegan",
   "isVegetarian",
   "isPescatarian",
@@ -84,6 +86,12 @@ export const insertRecipe = async (
     ...facetsOf(recipe.tags),
     search,
     shuffleKey: randomShuffleKey(),
+    /**
+     * Stated by the writer, and defaulted only for a restore from an export written before the
+     * column existed. That export's recipe was never reviewed on this path, so `generated` is true.
+     */
+    status: recipe.status ?? "generated",
+    isArchived: false,
     updatedAt: Date.now(),
   });
 

@@ -36,7 +36,9 @@ beforeAll(() =>
 
 let t: ReturnType<typeof convexTest>;
 
-const insertRecipe = (fields: { shuffleKey?: number } = {}) =>
+const insertRecipe = (
+  fields: { shuffleKey?: number; status?: "generated" | "reviewed"; isArchived?: boolean } = {},
+) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
@@ -102,6 +104,29 @@ describe("backfillRecipeShuffleKey", () => {
     await t.run((ctx) => cascadeDelete(ctx, "recipes", recipeId));
   });
 });
+describe("backfillRecipeStatus", () => {
+  /**
+   * Every row that predates the columns becomes `generated` and live — nothing recorded a review or
+   * a delete before them. A row a writer already stamped keeps what it says: a reviewed recipe the
+   * migration reached late must not be demoted, and an archived one must not come back.
+   */
+  test("stamps generated and live onto recipes that lack both, and leaves stamped recipes alone", async () => {
+    const legacy = await insertRecipe();
+    const reviewed = await insertRecipe({ status: "reviewed", isArchived: false });
+    const archived = await insertRecipe({ status: "generated", isArchived: true });
+
+    await t.mutation(internal.migrations.runBackfillRecipeStatus, {});
+
+    const rows = await t.run((ctx) => Promise.all([legacy, reviewed, archived].map((id) => ctx.db.get(id))));
+
+    expect(rows.map((row) => [row?.status, row?.isArchived])).toEqual([
+      ["generated", false],
+      ["reviewed", false],
+      ["generated", true],
+    ]);
+  });
+});
+
 describe("scheduleSkips", () => {
   const DAY = 86_400_000;
 
