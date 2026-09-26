@@ -34,6 +34,11 @@
       "failed": "Le calcul n'a pas abouti"
     }
   },
+  "cards": {
+    "recipes_one": "Recette",
+    "recipes_many": "Recettes",
+    "recipes_other": "Recettes"
+  },
   "buttons": {
     "planning": "Planifier ma semaine",
     "groceries": "Voir mes courses",

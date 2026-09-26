@@ -75,7 +75,8 @@ export const RESOLVABLE = 0.3;
  * Two rows can both be exact: `Blanc de poulet` and `Blanc de poulet en tranches` normalize to the
  * same two words, and both score 1. Without a margin the winner is whichever the search index
  * happened to return first — a coin flip, silently resolved, between raw chicken and deli slices.
- * A tie is not a confident match; it is the one case worth a tap.
+ * A tie is not a confident match: `resolveIngredient` hands it on to its later steps, where a
+ * model weighs the candidates, rather than linking either one.
  */
 export const MARGIN = 0.05;
 
@@ -98,17 +99,59 @@ const EXTRA_WEIGHT = 0.6;
 const TOKEN_MATCHED = 0.6;
 
 /**
+ * French and English plurals, to the extent three rules can.
+ *
+ * The two English endings are here rather than left to the similarity below because this also
+ * writes the term the *search index* is queried with (`searchTerms`), and an index match is
+ * all-or-nothing: "tomatoe" scores 0.85 against "tomato" but retrieves nothing at all, so the row
+ * never reaches scoring. Nothing beyond these is guessed — "-aux" mangles more words than it saves.
+ */
+const _singularize = (token: string) => {
+  if (token.length <= 3) return token;
+  if (token.endsWith("ies")) return `${token.slice(0, -3)}y`;
+  if (token.endsWith("oes")) return token.slice(0, -2);
+
+  return /[^s]s$|x$/.test(token) ? token.slice(0, -1) : token;
+};
+
+/**
+ * A word list, spelled the way the tokens it is tested against are spelled: singularized.
+ *
+ * Every list below is looked up with a token `_singularize` has already been through, so a word
+ * written in its natural form and ending in `s` could never be found. `frais` arrives as `frai`
+ * and `gros` as `gro`, and both sat in `QUALIFIERS` doing nothing — "Origan frais" did not answer
+ * "origan", and "gros sel" was not salt by the rule meant for it. Written naturally and folded
+ * here, a list cannot hold a word it will never see.
+ */
+const _vocabulary = (words: string[]) => new Set(words.map(_singularize));
+
+/**
  * Words that carry no identity: articles, prepositions, and the packaging words a cook writes
  * around an ingredient. Both sides are stripped, so removing them cannot break a pair that agreed.
+ *
+ * **Two lists, because the fold makes one language's word the other's.** `thé` folds to `the`, and
+ * one list tested after folding dropped the tea as an English article — "thé noir" searched for
+ * `noir`. So each list is tested in the spelling its language is typed in, and no caller needs a
+ * locale. French is tested FOLDED, because a shopper types it with or without accents and the list
+ * is written without them (`boite`, `cuillere`). English has no accents to lose, so it is tested on
+ * the word AS TYPED, where `thé` is still not `the`.
+ *
+ * ⚠️ **`clove` is not here, and that is the rule rather than an oversight.** It is the one packaging
+ * word that is also a food: stripped, "ground cloves" searched for `ground`, which is ground beef's
+ * word, and the spice was never retrieved. The phrasings where it measures garlic ("2 garlic
+ * cloves", "a clove of garlic") are aliases on the garlic row instead, where they cannot collide.
  */
-const STOPWORDS = new Set([
-  // articles and prepositions
-  "de", "du", "des", "d", "la", "le", "les", "l", "un", "une", "au", "aux", "et", "en",
-  "of", "the", "a", "an", "and", "with",
+const STOPWORDS_FR = _vocabulary([
+  // articles and prepositions — `a` is "à" folded, which the English list, tested as typed, misses
+  "de", "du", "des", "d", "la", "le", "les", "l", "un", "une", "au", "aux", "et", "en", "a",
   // how much of it, rather than what it is — "2 gousses d'ail" is garlic
   "gousse", "brin", "pincee", "tranche", "boite", "sachet", "botte", "poignee", "cuillere",
-  "feuille", "branche", "morceau", "tasse", "bocal", "barquette", "paquet",
-  "clove", "pinch", "slice", "can", "tin", "jar", "bunch", "sprig", "handful", "cup",
+  "feuille", "branche", "morceau", "tasse", "bocal", "barquette", "paquet", "piece",
+]);
+
+const STOPWORDS_EN = _vocabulary([
+  "of", "the", "a", "an", "and", "with",
+  "pinch", "slice", "can", "tin", "jar", "bunch", "sprig", "handful", "cup",
   "tablespoon", "teaspoon", "piece", "packet", "package", "bag",
 ]);
 
@@ -118,9 +161,11 @@ const STOPWORDS = new Set([
  *
  * "200g butter, softened" is `butter` plus an action with an hour of lead time. Strip it here and
  * capture it nowhere and the recipe is unmakeable while looking complete; that trade is settled in
- * the prompt, not here. Stripping is symmetric — a catalog name made only of these keeps them.
+ * the prompt, not here. Both sides are stripped to find the row, but only the query's qualifiers
+ * are ignored: one a catalog name carries is identity, and `scoreCandidate` keeps it (see
+ * `_shape`). A catalog name made only of these keeps them.
  */
-const QUALIFIERS = new Set([
+const QUALIFIERS = _vocabulary([
   // en
   "fresh", "freshly", "frozen", "dried", "chopped", "sliced", "diced", "minced", "grated",
   "shredded", "crushed", "peeled", "seeded", "softened", "melted", "sifted", "cooked", "raw",
@@ -222,22 +267,6 @@ const _fold = (value: string) =>
     .trim();
 
 /**
- * French and English plurals, to the extent three rules can.
- *
- * The two English endings are here rather than left to the similarity below because this also
- * writes the term the *search index* is queried with (`searchTerms`), and an index match is
- * all-or-nothing: "tomatoe" scores 0.85 against "tomato" but retrieves nothing at all, so the row
- * never reaches scoring. Nothing beyond these is guessed — "-aux" mangles more words than it saves.
- */
-const _singularize = (token: string) => {
-  if (token.length <= 3) return token;
-  if (token.endsWith("ies")) return `${token.slice(0, -3)}y`;
-  if (token.endsWith("oes")) return token.slice(0, -2);
-
-  return /[^s]s$|x$/.test(token) ? token.slice(0, -1) : token;
-};
-
-/**
  * A name split into the three layers every rule below reads it at: every word, the words carrying
  * meaning, and the words carrying identity.
  *
@@ -246,15 +275,30 @@ const _singularize = (token: string) => {
  * copies disagree about what a qualifier is the first time one of the lists above grows.
  */
 const _layers = (value: string) => {
-  const raw = _fold(value)
-    .split(" ")
-    .filter((token) => token && !_isQuantity(token))
-    .map(_singularize);
-  const meaningful = raw.filter((token) => !STOPWORDS.has(token));
+  const raw = _words(value)
+    .filter(({ folded }) => !_isQuantity(folded))
+    .map(({ typed, folded }) => ({ typed: _singularize(typed), token: _singularize(folded) }));
+  const meaningful = raw
+    .filter(({ typed, token }) => !STOPWORDS_FR.has(token) && !STOPWORDS_EN.has(typed))
+    .map(({ token }) => token);
   const identifying = meaningful.filter((token) => !QUALIFIERS.has(token));
 
-  return { raw, meaningful, identifying };
+  return { raw: raw.map(({ token }) => token), meaningful, identifying };
 };
+
+/**
+ * `_fold`'s words, each paired with the spelling it was typed in — what `STOPWORDS_EN` is tested
+ * against, since the fold is exactly what turns `thé` into `the`.
+ *
+ * Split on the typed text first and folded word by word, so the pairing cannot slip. The two splits
+ * agree: a letter, a combining accent or a digit is what `_fold` keeps, and a character that folds
+ * to nothing it keeps (an `ß`) splits the word here exactly as it would there.
+ */
+const _words = (value: string): { typed: string; folded: string }[] =>
+  _grades(value)
+    .toLowerCase()
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
+    .flatMap((typed) => _fold(typed).split(" ").filter(Boolean).map((folded) => ({ typed, folded })));
 
 /**
  * A name reduced to the words that identify it.
@@ -262,11 +306,10 @@ const _layers = (value: string) => {
  * The two fallbacks are what keep a name from reducing to nothing: an ingredient genuinely called
  * "fresh cream" would otherwise arrive as an empty token list and match everything equally.
  */
-const _tokenize = (value: string): string[] => {
-  const { raw, meaningful, identifying } = _layers(value);
+const _tokenize = (value: string): string[] => _pick(_layers(value));
 
-  return identifying.length > 0 ? identifying : meaningful.length > 0 ? meaningful : raw;
-};
+const _pick = ({ raw, meaningful, identifying }: ReturnType<typeof _layers>): string[] =>
+  identifying.length > 0 ? identifying : meaningful.length > 0 ? meaningful : raw;
 
 /**
  * How many words folding removed from this spelling. 0 means the name survived whole.
@@ -293,14 +336,11 @@ const _tokenize = (value: string): string[] => {
  * ⚠️ **A dropped NUMBER is counted, like any other dropped word**, which is why this counts from
  * the raw fold rather than from `_layers().raw` — that layer has already filtered quantities out.
  * The additives are what force it: OFF files colours as `Vert 1724` and `Noir 7984`, and with the
- * number free those cost 0 and beat `thé vert` and `thé noir` — which cost 1, because `thé` folds
- * to the English stopword `the`. A French shopper asking for green tea got the dye E143, complete
- * with its missing CIQUAL code. A number that is the only thing separating two names is doing
- * identifying work, and a rule that ranks by what folding destroyed has to see it.
- *
- * Counting it does not hand the tea the key on cost — the two tie at 1, and source order settles
- * what the metric cannot. That outcome is pinned by a test in the taxonomy's own suite rather than
- * trusted to the shape of an upstream file nobody here controls.
+ * number free those cost 0 on the bare `vert` and `noir` — keys any food reduced to that one word
+ * would lose to them. That is how a French shopper asking for green tea once got the dye E143,
+ * complete with its missing CIQUAL code, while `thé` still folded into the English stopword `the`
+ * (see `STOPWORDS_EN`). A number that is the only thing separating two names is doing identifying
+ * work, and a rule that ranks by what folding destroyed has to see it.
  */
 export const foldCost = (value: string): number =>
   _fold(value).split(" ").filter(Boolean).length - _tokenize(value).length;
@@ -406,7 +446,7 @@ export const gradesIn = (query: string): string[] =>
  * fold change. It does not belong here, and it costs one redundant walk rather than wrong data.
  * Pinned in `resolveRecipeIngredients.test.ts`.
  */
-const PRESERVATION = new Set(["dried", "seche", "sechee"]);
+const PRESERVATION = _vocabulary(["dried", "seche", "sechee"]);
 
 /**
  * The preservation words in a name — read BEFORE `QUALIFIERS` strips them.
@@ -463,23 +503,69 @@ const _fuzzyScore = (queryTokens: string[], candidateTokens: string[]): number =
  * normalized alias, then the fuzzy comparison — which can never reach either, by `FUZZY_CEILING`.
  */
 export const scoreCandidate = (query: string, candidate: Candidate): number => {
-  const queryTokens = _tokenize(query);
-  if (queryTokens.length === 0) return 0;
+  const asked = _shape(query);
+  if (asked.tokens.length === 0) return 0;
 
-  const key = queryTokens.join(" ");
-  const nameTokens = _tokenize(candidate.name);
-  if (nameTokens.join(" ") === key) return 1;
+  const key = asked.tokens.join(" ");
+  const said = new Set(asked.words);
+  // The row's qualifiers the cook did not write: identity the query never asked for.
+  const unasked = (spelling: Shape) => spelling.qualifiers.filter((token) => !said.has(token));
+  const isExact = (spelling: Shape) =>
+    spelling.tokens.join(" ") === key && unasked(spelling).length === 0;
 
-  const aliasTokens = (candidate.aliases ?? []).map(_tokenize);
-  if (aliasTokens.some((tokens) => tokens.join(" ") === key)) return ALIAS_EXACT;
+  const name = _shape(candidate.name);
+  if (isExact(name)) return 1;
 
-  const fuzzy = [nameTokens, ...aliasTokens].reduce(
-    (best, tokens) => Math.max(best, _fuzzyScore(queryTokens, tokens)),
+  const aliases = (candidate.aliases ?? []).map(_shape);
+  if (aliases.some(isExact)) return ALIAS_EXACT;
+
+  const fuzzy = [name, ...aliases].reduce(
+    (best, spelling) =>
+      Math.max(best, _fuzzyScore(asked.tokens, [...spelling.tokens, ...unasked(spelling)])),
     0,
   );
 
   return Math.min(fuzzy, FUZZY_CEILING);
 };
+
+type Shape = { tokens: string[]; words: string[]; qualifiers: string[] };
+
+/**
+ * A spelling read the two ways `scoreCandidate` needs: what identifies it (`_tokenize`), and the
+ * qualifiers that were folded off to get there.
+ *
+ * **The qualifiers are kept because which side carried them decides what they mean.** In the query
+ * they are the cook's own preparation, and ignoring them is right: "3 oignons émincés" is an onion.
+ * In a catalog name they are the shop's, written there on purpose, and they make the row a
+ * different product: "Sliced cooked chicken" is not what "chicken" asks for, and "Piment en poudre"
+ * is not every chili. So a row's qualifiers must appear in the query for an exact match, and count
+ * as extra words in the fuzzy one when they do not. The same line `PRESERVATION` draws, drawn at
+ * the one place that can see both sides.
+ *
+ * Empty for a name made only of qualifiers, which is `_tokenize`'s fallback: "Frais" is its own name.
+ */
+const _shape = (value: string): Shape => {
+  const { raw, meaningful, identifying } = _layers(value);
+
+  return {
+    tokens: _pick({ raw, meaningful, identifying }),
+    words: meaningful.length > 0 ? meaningful : raw,
+    qualifiers:
+      identifying.length > 0
+        ? meaningful.filter((token) => QUALIFIERS.has(token) && !DEFAULT_STATE.has(token))
+        : [],
+  };
+};
+
+/**
+ * The qualifiers a catalog name may carry without naming a different product: fresh is the state a
+ * food is sold in unless something says otherwise — the reason `PRESERVATION` leaves it out too.
+ * Without this, "ginger" tied `Fresh ginger` with ground ginger, and "tagliatelle" cost a model call
+ * to reach the only tagliatelle the catalog holds.
+ *
+ * Written naturally, like every list here: `_vocabulary` spells it the way tokens arrive.
+ */
+const DEFAULT_STATE = _vocabulary(["fresh", "frais", "fraiche"]);
 
 /**
  * Every candidate scored, best first. Rows sharing nothing with the query are dropped rather than

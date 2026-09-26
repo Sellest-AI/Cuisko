@@ -21,10 +21,12 @@ import {
   DISPLAY_KINDS,
   type DisplayCard,
   type DisplayKind,
+  type IngredientSwap,
+  type SubstitutionsCard,
 } from "@shared/assistant";
 
 /**
- * One part of a stored message. Only the tool parts are read; the text arrives pre-joined.
+ * One part of a stored message: a tool call, or a run of text the model wrote between them.
  *
  * A tool part is named `tool-${name}` by the AI SDK, where `name` is the key the tool is registered
  * under in `answerTurn.ts` — which is why both ends read it from `ASSISTANT_TOOLS`.
@@ -36,13 +38,18 @@ export type MessagePart = {
   /** `input-streaming` · `input-available` · `output-available` · `output-error` · `output-denied` … */
   state?: string;
   output?: unknown;
+  /** Present on text parts: what the model wrote in one step, in the order it wrote it. */
+  text?: string;
 };
 
 /** A message as the agent component stores it, narrowed to what this file actually reads. */
 export type SourceMessage = {
   key: string;
   role: string;
-  /** Every text part of the message, already joined. Empty while only a tool call has arrived. */
+  /**
+   * Every text part of the message, joined with a space. Empty while only a tool call has arrived.
+   * It loses where each part sat between the tool calls; `parts` keeps that.
+   */
   text: string;
   status: string;
   parts: readonly MessagePart[];
@@ -51,10 +58,13 @@ export type SourceMessage = {
 };
 
 /**
- * The tools that show the cook a status line while they work. `display` and `showButton` do not:
- * what they draw is their line.
+ * The tools that show the cook a status line while they work. `display`, `showButton` and
+ * `showSubstitutions` do not: what they draw is their line.
  */
-export type StepTool = Exclude<AssistantTool, typeof ASSISTANT_TOOLS.display | typeof ASSISTANT_TOOLS.showButton>;
+export type StepTool = Exclude<
+  AssistantTool,
+  typeof ASSISTANT_TOOLS.display | typeof ASSISTANT_TOOLS.showButton | typeof ASSISTANT_TOOLS.showSubstitutions
+>;
 
 /** One status line: "🔍 searching recipes", then "🥗 3 recipes found". */
 export type ToolStep = {
@@ -64,6 +74,16 @@ export type ToolStep = {
   /** What a finished call found, when the tool counts something. */
   count?: number;
 };
+
+/**
+ * One piece of an answer, in the order the model produced it: a run of text, or something a show
+ * tool drew. Keyed so a list of them keeps each one mounted while the answer streams in.
+ */
+export type AnswerBlock =
+  | { type: "text"; key: string; text: string }
+  | { type: "display"; key: string; card: DisplayCard }
+  | { type: "substitutions"; key: string; card: SubstitutionsCard }
+  | { type: "button"; key: string; button: AssistantButton };
 
 /** A message as the screen draws it. */
 export type ChatMessage = {
@@ -80,8 +100,29 @@ export type ChatMessage = {
    * a model that sent two gets its last, the one it settled on.
    */
   button?: AssistantButton;
+  /**
+   * The ingredient swaps Cuisko suggested, if any. One card at most, and like the button, a model
+   * that sent two gets its last.
+   */
+  substitutions?: SubstitutionsCard;
+  /**
+   * The answer as the screen draws it below its status lines: its text and what it showed,
+   * interleaved in the order the model wrote them. Empty for a user message.
+   *
+   * `text`, `cards`, `substitutions` and `button` above say what the answer holds; this says where
+   * each piece goes, so a sentence the model wrote after a card is drawn after it.
+   */
+  blocks: AnswerBlock[];
   /** The answer is still arriving — the screen shows it growing rather than waiting. */
   isStreaming: boolean;
+  /**
+   * The turn behind this answer is not over: more text or another card may still come.
+   *
+   * Wider than `isStreaming`, and that is the point: between two steps the answer is `pending`, not
+   * streaming, while the model reads a tool's result. Only a settled status ends it. Always false
+   * for a question.
+   */
+  isReplying: boolean;
   /**
    * The turn failed before it could say anything useful.
    *
@@ -229,6 +270,96 @@ const _buttonOfParts = (parts: readonly MessagePart[]): AssistantButton | undefi
     .filter((button): button is AssistantButton => button !== undefined)
     .at(-1);
 
+const _isSwap = (value: unknown): value is IngredientSwap =>
+  _isObject(value) && typeof value.from === "string" && typeof value.to === "string";
+
+/**
+ * A stored showSubstitutions output → a card, when it is one this build knows.
+ *
+ * A version this build has never seen, or a malformed row, drops the whole card rather than drawing
+ * part of it: a swap list missing a row reads as the full answer, and it is not.
+ */
+const _substitutionsOf = (output: unknown): SubstitutionsCard | undefined => {
+  if (!_isObject(output) || output.v !== 1 || !Array.isArray(output.swaps)) return undefined;
+  if (output.swaps.length === 0 || !output.swaps.every(_isSwap)) return undefined;
+
+  return { v: 1, swaps: output.swaps.map(({ from, to }) => ({ from, to })) };
+};
+
+const _substitutionsOfParts = (parts: readonly MessagePart[]): SubstitutionsCard | undefined =>
+  parts
+    .filter((part) => part.type === _partType(ASSISTANT_TOOLS.showSubstitutions) && part.state === "output-available")
+    .map((part) => _substitutionsOf(part.output))
+    .filter((card): card is SubstitutionsCard => card !== undefined)
+    .at(-1);
+
+/** A show tool's finished part → its block, when its output is one this build can draw. */
+const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined => {
+  if (part.state !== "output-available") return undefined;
+
+  const key = part.toolCallId ?? `${part.type}-${index}`;
+
+  switch (part.type) {
+    case _partType(ASSISTANT_TOOLS.display): {
+      const card = _cardOf(part.output);
+      return card && { type: "display", key, card };
+    }
+    case _partType(ASSISTANT_TOOLS.showSubstitutions): {
+      const card = _substitutionsOf(part.output);
+      return card && { type: "substitutions", key, card };
+    }
+    case _partType(ASSISTANT_TOOLS.showButton): {
+      const button = _buttonOf(part.output);
+      return button && { type: "button", key, button };
+    }
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * The parts → the blocks the screen draws, in the order the model wrote them.
+ *
+ * **Text only splits where something was shown.** A search between two sentences draws nothing
+ * there (its status line is at the top), so the text on either side stays one bubble; the steps it
+ * came from are separate paragraphs. A text part with only whitespace, or only an id, adds nothing.
+ *
+ * **The swaps and the button keep their last, as `substitutions` and `button` do**, at the place it
+ * was called: one each at most, and the one the model settled on.
+ *
+ * A message with text but no text part at all, as a thread stored by an older build may be, gets
+ * its text as one block ahead of the rest rather than none.
+ */
+const _blocksOf = (parts: readonly MessagePart[], text: string): AnswerBlock[] => {
+  const shown = parts.map(_showBlockOf);
+  // Settled before the text is laid out, so a card that is dropped does not split the text around it.
+  const lastOf = (type: AnswerBlock["type"]) => shown.findLastIndex((block) => block?.type === type);
+  const kept = new Set([lastOf("substitutions"), lastOf("button")]);
+  const blocks: AnswerBlock[] = [];
+
+  parts.forEach((part, index) => {
+    const block = shown[index];
+
+    if (block) {
+      const isOneOfMany = block.type === "substitutions" || block.type === "button";
+      if (!isOneOfMany || kept.has(index)) blocks.push(block);
+      return;
+    }
+
+    if (part.type !== "text") return;
+
+    const written = withoutIds(part.text ?? "").trim();
+    if (!written) return;
+
+    const previous = blocks.at(-1);
+    if (previous?.type === "text") previous.text = `${previous.text}\n\n${written}`;
+    else blocks.push({ type: "text", key: `text-${index}`, text: written });
+  });
+
+  const hasTextParts = parts.some((part) => part.type === "text");
+  return !hasTextParts && text.trim() ? [{ type: "text", key: "text", text: text.trim() }, ...blocks] : blocks;
+};
+
 /**
  * Something shaped like a Convex document id: 31 to 37 lowercase letters and digits, with at least
  * one of each. No French or English word is that long, and a hash-like run that is not an id is
@@ -248,7 +379,7 @@ export const withoutIds = (text: string): string =>
   text.replace(_ID_SHAPED, "").replace(/ {2,}/g, " ").replace(/ +([,.])/g, "$1");
 
 /**
- * Whether a message has anything on screen yet: text, a status line, a card or a button.
+ * Whether a message has anything on screen yet: text, a status line, a card, swaps or a button.
  *
  * One definition, because two places ask it: `toChatMessages` to decide what is drawn, and the
  * hook to decide the answer has arrived. Written out twice, the button was added to one and not the
@@ -258,6 +389,7 @@ export const isShowingSomething = (message: ChatMessage): boolean =>
   message.text.length > 0 ||
   message.steps.length > 0 ||
   message.cards.length > 0 ||
+  message.substitutions !== undefined ||
   message.button !== undefined;
 
 /**
@@ -299,8 +431,11 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
       const steps = isUser ? [] : _stepsOf(message.parts, isTurnOver);
       const cards = isUser ? [] : _cardsOf(message.parts);
       const button = isUser ? undefined : _buttonOfParts(message.parts);
+      const substitutions = isUser ? undefined : _substitutionsOfParts(message.parts);
+      const blocks = isUser ? [] : _blocksOf(message.parts, text);
       const endedEmpty =
-        !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button;
+        !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button &&
+        !substitutions;
 
       return {
         key: message.key,
@@ -309,7 +444,10 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
         steps,
         cards,
         ...(button && { button }),
+        ...(substitutions && { substitutions }),
+        blocks,
         isStreaming,
+        isReplying: !isUser && !isTurnOver,
         hasFailed: message.status === "failed" || endedEmpty,
         createdAt: message._creationTime,
       };

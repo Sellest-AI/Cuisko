@@ -34,6 +34,7 @@ import type * as agent_tools_sanitizeRecipe from "../agent/tools/sanitizeRecipe.
 import type * as agent_tools_searchIngredients from "../agent/tools/searchIngredients.js";
 import type * as agent_tools_searchRecipes from "../agent/tools/searchRecipes.js";
 import type * as agent_tools_showButton from "../agent/tools/showButton.js";
+import type * as agent_tools_showSubstitutions from "../agent/tools/showSubstitutions.js";
 import type * as agent_tools_suggestDishes from "../agent/tools/suggestDishes.js";
 import type * as agent_tools_translateRecipe from "../agent/tools/translateRecipe.js";
 import type * as agent_utils_createTool from "../agent/utils/createTool.js";
@@ -83,6 +84,7 @@ import type * as functions_ingredients_lookup_lookupHit from "../functions/ingre
 import type * as functions_ingredients_lookup_openFoodFacts from "../functions/ingredients/lookup/openFoodFacts.js";
 import type * as functions_ingredients_lookup_taxonomy from "../functions/ingredients/lookup/taxonomy.js";
 import type * as functions_ingredients_matchIngredient from "../functions/ingredients/matchIngredient.js";
+import type * as functions_ingredients_missingIngredientIds from "../functions/ingredients/missingIngredientIds.js";
 import type * as functions_ingredients_persistRestoredIngredient from "../functions/ingredients/persistRestoredIngredient.js";
 import type * as functions_ingredients_rememberAlias from "../functions/ingredients/rememberAlias.js";
 import type * as functions_ingredients_resolveIngredient from "../functions/ingredients/resolveIngredient.js";
@@ -203,6 +205,7 @@ import type * as router_ingredients_generateImage from "../router/ingredients/ge
 import type * as router_ingredients_generateImageNode from "../router/ingredients/generateImageNode.js";
 import type * as router_ingredients_getIngredient from "../router/ingredients/getIngredient.js";
 import type * as router_ingredients_list from "../router/ingredients/list.js";
+import type * as router_ingredients_missingIds from "../router/ingredients/missingIds.js";
 import type * as router_ingredients_resolve from "../router/ingredients/resolve.js";
 import type * as router_ingredients_restoreOne from "../router/ingredients/restoreOne.js";
 import type * as router_ingredients_search from "../router/ingredients/search.js";
@@ -300,6 +303,7 @@ declare const fullApi: ApiFromModules<{
   "agent/tools/searchIngredients": typeof agent_tools_searchIngredients;
   "agent/tools/searchRecipes": typeof agent_tools_searchRecipes;
   "agent/tools/showButton": typeof agent_tools_showButton;
+  "agent/tools/showSubstitutions": typeof agent_tools_showSubstitutions;
   "agent/tools/suggestDishes": typeof agent_tools_suggestDishes;
   "agent/tools/translateRecipe": typeof agent_tools_translateRecipe;
   "agent/utils/createTool": typeof agent_utils_createTool;
@@ -349,6 +353,7 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/lookup/openFoodFacts": typeof functions_ingredients_lookup_openFoodFacts;
   "functions/ingredients/lookup/taxonomy": typeof functions_ingredients_lookup_taxonomy;
   "functions/ingredients/matchIngredient": typeof functions_ingredients_matchIngredient;
+  "functions/ingredients/missingIngredientIds": typeof functions_ingredients_missingIngredientIds;
   "functions/ingredients/persistRestoredIngredient": typeof functions_ingredients_persistRestoredIngredient;
   "functions/ingredients/rememberAlias": typeof functions_ingredients_rememberAlias;
   "functions/ingredients/resolveIngredient": typeof functions_ingredients_resolveIngredient;
@@ -469,6 +474,7 @@ declare const fullApi: ApiFromModules<{
   "router/ingredients/generateImageNode": typeof router_ingredients_generateImageNode;
   "router/ingredients/getIngredient": typeof router_ingredients_getIngredient;
   "router/ingredients/list": typeof router_ingredients_list;
+  "router/ingredients/missingIds": typeof router_ingredients_missingIds;
   "router/ingredients/resolve": typeof router_ingredients_resolve;
   "router/ingredients/restoreOne": typeof router_ingredients_restoreOne;
   "router/ingredients/search": typeof router_ingredients_search;

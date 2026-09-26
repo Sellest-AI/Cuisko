@@ -8,6 +8,7 @@ import { displayTool } from "../../../tools/display";
 import { searchIngredientsTool } from "../../../tools/searchIngredients";
 import { searchRecipesTool } from "../../../tools/searchRecipes";
 import { showButtonTool } from "../../../tools/showButton";
+import { showSubstitutionsTool } from "../../../tools/showSubstitutions";
 import { assistantPrompt } from "../assistant";
 
 /**
@@ -23,6 +24,7 @@ const _everythingTheModelReads = (): string[] => {
     computeNutritionTool({ locale: "fr" }),
     displayTool,
     showButtonTool,
+    showSubstitutionsTool,
   ];
 
   return [
@@ -46,6 +48,43 @@ describe("what the assistant model reads", () => {
   });
 });
 
+describe("substitutions", () => {
+  /**
+   * "What can I replace milk with in a gratin" came back as a bullet list and no card: the prompt
+   * said to call the tool for a swap, and bullets for "a few options", and alternatives read as
+   * options. Both halves are pinned: an open question is swaps, and swaps are never bullets.
+   */
+  test("sends the alternatives to an open question to the card, never to a list", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/"what can I use instead of\s+milk" is one swap per alternative you suggest/);
+      expect(prompt).toMatch(/Ingredient swaps are never a\s+list in your text: they go to showSubstitutions/);
+      expect(prompt).toMatch(/Do not list the swaps back in your answer, not as bullets/);
+    }
+  });
+
+  /**
+   * The same question, once the tool was wired: "milk" found only oat, almond and coconut milk, and
+   * "if an ingredient is not found, text only" sent every swap to the text. The catalog holds
+   * "Whole milk"; the model is sent back to search for it before giving up.
+   */
+  test("searches again with the catalog's name before giving a swap in text", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(assistantPrompt(locale)).toMatch(
+        /When the ingredient itself is not\s+in the results, search again once with the name the catalog would use/,
+      );
+    }
+  });
+
+  /** The extra step after a card wrote the same paragraph a second time. */
+  test("never repeats itself after showing something", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(assistantPrompt(locale)).toMatch(/Never repeat or\s+rephrase what you already wrote in this answer/);
+    }
+  });
+});
+
 describe("the cellar brief", () => {
   /**
    * The dates are estimates from `shelfLifeDays`, not read off a packet, so the model may use them
@@ -58,6 +97,20 @@ describe("the cellar brief", () => {
       expect(prompt).toContain("Expiry dates are rough estimates. Use them only to decide what to cook first.");
       expect(prompt).toMatch(/Never mention a\s+date, never say something is expiring or going off/);
       expect(prompt).toContain("never make the person feel rushed");
+    }
+  });
+
+  /**
+   * An empty cellar once got an answer with no recipes: "prefer what they have" read as "only what
+   * they have". The cellar ranks recipes, it never withholds them.
+   */
+  test("still asks for recipes when the cellar is empty", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/What they have decides which recipes come first, never whether they get any/);
+      expect(prompt).toMatch(/When the cellar is\s+empty, or nothing in it makes a dish, still search and show recipes/);
+      expect(prompt).toMatch(/A recipe\s+that needs food they do not have still fits\./);
     }
   });
 });

@@ -31,6 +31,10 @@
       "failed": "The calculation did not go through"
     }
   },
+  "cards": {
+    "recipes_one": "Recipe",
+    "recipes_other": "Recipes"
+  },
   "buttons": {
     "planning": "Plan my week",
     "groceries": "See my groceries",
