@@ -82,6 +82,11 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["oeufs", "egg-whole"],
     ["crème liquide", "heavy-cream"],
     ["huile d'olive", "olive-oil"],
+    // A grade, not another food: a cupboard holding either covers a recipe asking for the other.
+    // CIQUAL files it apart, so step 1 declined and the import invented a second olive oil row.
+    ["huile d'olive vierge extra", "olive-oil"],
+    ["huile d'olive extra-vierge", "olive-oil"],
+    ["huile d'olive vierge", "olive-oil"],
     ["tomates concassées", "canned-tomatoes"],
     ["viande hachée", "ground-beef-80-20"],
     // A whole bird had no row, so step 1 declined and the ranker linked "Poulet piri piri" to
@@ -151,6 +156,8 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["milk", "milk-semi-skimmed"],
     ["whole milk", "milk-whole"],
     ["soy milk", "soy-milk"],
+    ["extra virgin olive oil", "olive-oil"],
+    ["extra-virgin olive oil", "olive-oil"],
     // "clove" measures garlic and names a spice; only the word garlic tells the two apart.
     ["2 garlic cloves", "garlic"],
     ["3 cloves of garlic", "garlic"],

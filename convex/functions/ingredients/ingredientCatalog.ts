@@ -571,7 +571,12 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "brown-sugar": { fr: ["cassonade"] },
   cornstarch: { fr: ["fécule de maïs"] },
   honey: { fr: ["miel liquide"] },
-  "olive-oil": { fr: ["huile d'olive", "huile"] },
+  // Extra virgin is a grade, not another food: a cupboard holding either covers a recipe asking for
+  // the other. CIQUAL files it apart, so without these the recipe import invented a second row.
+  "olive-oil": {
+    fr: ["huile d'olive", "huile", "huile d'olive vierge extra", "huile d'olive extra-vierge", "huile d'olive vierge"],
+    en: ["extra virgin olive oil", "extra-virgin olive oil", "virgin olive oil"],
+  },
   "black-pepper": { fr: ["poivre", "poivre du moulin"] },
   // Without it "noix de muscade" tied with the walnuts on the shared word.
   nutmeg: { fr: ["noix de muscade"] },
