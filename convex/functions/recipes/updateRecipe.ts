@@ -177,6 +177,8 @@ export const updateRecipe = async (
     search,
     cuisine: recipe.cuisine,
     timings: recipe.timings,
+    // The cook has been through every field of it to get here, whatever the model then re-derived.
+    status: "reviewed",
     updatedAt: Date.now(),
   });
 

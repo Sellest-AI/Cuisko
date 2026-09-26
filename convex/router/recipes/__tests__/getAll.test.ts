@@ -44,6 +44,8 @@ const seedRecipe = (
 ) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: title, fr: `${title} (fr)` }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
@@ -99,6 +101,20 @@ describe("router/recipes/getAll", () => {
       .query(api.router.recipes.getAll.authed, FIRST_PAGE);
 
     expect(page.map((recipe) => recipe.title)).toEqual(["Mine"]);
+  });
+
+  /** A recipe the cook deleted is off their list, and the rest of the list is unmoved. */
+  test("leaves out a recipe the caller archived", async () => {
+    const userId = await seedUser("Franck");
+    await seedRecipe(userId, "Kept");
+    const deleted = await seedRecipe(userId, "Deleted");
+    await t.run((ctx) => ctx.db.patch(deleted, { isArchived: true }));
+
+    const { page } = await t
+      .withIdentity(asUser(userId))
+      .query(api.router.recipes.getAll.authed, FIRST_PAGE);
+
+    expect(page.map((recipe) => recipe.title)).toEqual(["Kept"]);
   });
 
   test("answers in the locale it was asked in", async () => {

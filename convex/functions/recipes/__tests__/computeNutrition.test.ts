@@ -43,6 +43,8 @@ const seedRecipe = (
 ) =>
   t.run(async (ctx) => {
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: title, fr: title }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },

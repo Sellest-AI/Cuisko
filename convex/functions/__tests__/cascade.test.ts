@@ -30,6 +30,8 @@ const insertRecipe = (
 ) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
       instructions: { values: { fr: "Base\n- Émincer les oignons." }, meta: {} },

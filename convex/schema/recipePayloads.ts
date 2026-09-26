@@ -15,7 +15,7 @@ import { type Infer, v } from "convex/values";
 import { vLocale, vLocalized, vLocalizedList } from "./i18n";
 import { vRecipeUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
-import { recipes } from "./recipes";
+import { recipes, vRecipeStatus } from "./recipes";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
 import { CUISINES } from "@shared/cuisines";
 import { AUTHORED_TAGS } from "@shared/tags";
@@ -163,9 +163,25 @@ export const vTranslatedRecipe = v.object({
  * exported the day it is added. `userId` is left out because a portable recipe is a catalog recipe
  * — nobody owns it, on either deployment. The two image ids are replaced by `images` below, which
  * spells the rows they point at.
+ *
+ * `status` and `isArchived` are loosened back to optional, because an export written before the
+ * two columns existed carries neither and is still a catalog worth restoring. The restore reads a
+ * missing status as `generated`; `isArchived` it ignores whatever it says, like every derived column.
  */
-const { userId: _userId, coverImageId: _coverImageId, plateImageId: _plateImageId, ...portableRowFields } =
-  recipes.validator.fields;
+const {
+  userId: _userId,
+  coverImageId: _coverImageId,
+  plateImageId: _plateImageId,
+  status: _status,
+  isArchived: _isArchived,
+  ...tableRowFields
+} = recipes.validator.fields;
+
+const portableRowFields = {
+  ...tableRowFields,
+  status: v.optional(vRecipeStatus),
+  isArchived: v.optional(v.boolean()),
+};
 
 /**
  * One catalog recipe as `catalog:export` writes it and `catalog:restore` reads it — the whole row,

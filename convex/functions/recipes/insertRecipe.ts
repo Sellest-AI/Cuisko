@@ -9,12 +9,14 @@ import type { RecipeLink } from "./resolveRecipeIngredients";
 
 /**
  * The columns this module derives, and no writer states: `search` from the links, the six facets
- * from `tags`, and the two the row gets on the way in.
+ * from `tags`, and the three the row gets on the way in. `isArchived` is one of them because no
+ * recipe is born deleted, restored ones included.
  */
 const DERIVED_FIELDS = [
   "search",
   "shuffleKey",
   "updatedAt",
+  "isArchived",
   "isVegan",
   "isVegetarian",
   "isPescatarian",
@@ -31,9 +33,11 @@ export type RecipeFacts = Omit<Doc<"recipes">, "_id" | "_creationTime" | Derived
 /**
  * A row's facts, its derived columns stripped — for a writer handed a whole row, as the restore is,
  * so that what it states is exactly what the other deployment stated and nothing this module
- * would then overwrite.
+ * would then overwrite. The derived columns may be missing, since they are dropped either way.
  */
-export const recipeFactsOf = (row: Omit<Doc<"recipes">, "_id" | "_creationTime">): RecipeFacts => {
+export const recipeFactsOf = (
+  row: RecipeFacts & Partial<Pick<Doc<"recipes">, DerivedField>>,
+): RecipeFacts => {
   const facts: Partial<Doc<"recipes">> = { ...row };
   for (const field of DERIVED_FIELDS) delete facts[field];
 
@@ -84,6 +88,7 @@ export const insertRecipe = async (
     ...facetsOf(recipe.tags),
     search,
     shuffleKey: randomShuffleKey(),
+    isArchived: false,
     updatedAt: Date.now(),
   });
 

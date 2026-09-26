@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { theme, colors } from "theme";
 import { Pressable } from "./pressable";
 import { Text } from "./text";
-import { ReactNode, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import { Icon } from "./icons";
 import { ButtonIcon } from "./button-icon";
 import { BlurView } from "./blur-view";
@@ -27,6 +27,12 @@ type BaseProps = {
   disabled?: boolean;
   style?: ViewStyle;
   size?: "sm" | "md" | "lg";
+  /**
+   * Milliseconds after an accepted press during which the next one is ignored. For a button whose
+   * first press changes what the second does, like arming a delete, so a double tap cannot fire
+   * both. The button looks the same throughout: the extra press is dropped, not disabled.
+   */
+  doubleTapDelay?: number;
 };
 
 /**
@@ -72,7 +78,19 @@ export const ButtonPill = ({
   rightIcon,
   rightContent,
   leftContent,
+  doubleTapDelay,
 }: Props) => {
+  /** A ref, not state: when the last press landed changes nothing on screen. */
+  const lastPressAt = useRef(Number.NEGATIVE_INFINITY);
+
+  const handlePress = () => {
+    const now = Date.now();
+    if (doubleTapDelay !== undefined && now - lastPressAt.current < doubleTapDelay) return;
+
+    lastPressAt.current = now;
+    onPress();
+  };
+
   const gradient: readonly [ColorValue, ColorValue] = variant === "primary" ?
     [colors.primary.base, colors.primary.elevated] :
     variant === "secondary" ? [colors.secondary.base, colors.secondary.elevated] :
@@ -162,7 +180,7 @@ export const ButtonPill = ({
         ...rest,
         opacity: containerOpacity,
       }}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
     >
       <ViewComponent

@@ -44,6 +44,8 @@ const seed = async () => {
 const seedRecipe = (servings = 4) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: {
         values: { fr: "Soupe à l'oignon", en: "Onion soup" },
         meta: {
@@ -183,6 +185,17 @@ describe("functions/recipes/updateRecipe", () => {
     expect(row!.servings).toBe(4);
     expect(row!.difficulty).toBe(3);
     expect(row!.timings).toEqual({ preparation: 20 });
+  });
+
+  /** A saved edit is the cook having been through what the model wrote — see `recipes.status`. */
+  test("marks the recipe reviewed", async () => {
+    const recipeId = await seedRecipe();
+
+    await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.status).toBe("reviewed");
   });
 
   test("recomputes the facets to match the tags the edit produced", async () => {

@@ -15,7 +15,8 @@ type Args = {
 };
 
 /**
- * One page of the caller's own recipes, newest first.
+ * One page of the caller's own live recipes, newest first. An archived one is the cook's deleted
+ * one, so it is left out in the index rather than after it.
  *
  * The owner is in the index rather than in a `.filter()`, which is not a preference: Convex
  * paginates the index read and applies a filter to the resulting page, so a filtered page of 24
@@ -23,7 +24,7 @@ type Args = {
  * and silently hiding recipes (ADR 0007, C3).
  *
  * Newest first because the list is where a cook lands after writing one, and the recipe they just
- * wrote is the one they are looking for. `by_user` orders by creation time within the owner, so
+ * wrote is the one they are looking for. The index orders by creation time within its prefix, so
  * `.order("desc")` is the whole of it — no sort key, and nothing to keep in step.
  */
 export const listForUser = async (
@@ -32,7 +33,7 @@ export const listForUser = async (
 ): Promise<PaginationResult<RecipeCard>> => {
   const page = await ctx.db
     .query("recipes")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .withIndex("by_user_and_is_archived", (q) => q.eq("userId", userId).eq("isArchived", false))
     .order("desc")
     .paginate(paginationOpts);
 

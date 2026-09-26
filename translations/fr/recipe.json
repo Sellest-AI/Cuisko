@@ -71,7 +71,10 @@
     "minute_unit": "min",
     "difficulty": "Difficulté",
     "cuisine": "Cuisine",
-    "save": "Enregistrer la recette"
+    "save": "Enregistrer la recette",
+    "delete": "Supprimer la recette",
+    "delete_confirm": "Touchez à nouveau pour supprimer",
+    "delete_error": "La recette n'a pas pu être supprimée. Réessayez."
   },
   "Import": {
     "url_title": "Importer depuis une page web",

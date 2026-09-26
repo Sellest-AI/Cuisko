@@ -46,6 +46,8 @@ type RecipeExtras = { userId?: Id<"users">; coverImageId?: Id<"images">; plateIm
 const insertRecipe = (title: string, extras: RecipeExtras = {}) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       ...extras,
       title: { values: { fr: title, en: `${title} (en)` }, meta: { en: { status: "machine", sourceHash: "h" } } },
       description: { values: { fr: "" }, meta: {} },

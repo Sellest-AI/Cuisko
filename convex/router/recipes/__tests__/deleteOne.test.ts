@@ -36,6 +36,8 @@ const recipeRow = (userId?: Id<"users">, coverImageId?: Id<"images">) => ({
   servings: 4,
   equipments: [],
   difficulty: 2 as const,
+  status: "generated" as const,
+  isArchived: false,
   userId,
   coverImageId,
   tags: [],

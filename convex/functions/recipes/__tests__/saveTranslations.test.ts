@@ -32,6 +32,8 @@ const ENGLISH: TranslatedRecipe = {
 const seed = async (title: Localized = fr("Soupe à l'oignon")) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       userId: undefined,
       title,
       description: fr("Une soupe d'hiver."),

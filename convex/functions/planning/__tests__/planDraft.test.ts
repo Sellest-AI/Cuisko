@@ -36,6 +36,8 @@ const setup = () =>
       updatedAt: Date.now(),
     });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Salade de tomates" }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },
@@ -138,6 +140,8 @@ describe("functions/planning/planDraft", () => {
     await new Promise((resolve) => setTimeout(resolve, 2));
     const latecomer = await t.run(async (ctx) => {
       const recipeId = await ctx.db.insert("recipes", {
+        status: "generated",
+        isArchived: false,
         title: { values: { fr: "Tarte tardive" }, meta: {} },
         description: { values: { fr: "" }, meta: {} },
         instructions: { values: { fr: "" }, meta: {} },
@@ -196,6 +200,8 @@ describe("functions/planning/planDraft", () => {
       const recipe = await ctx.db.get(ids.recipeId);
       const { _id, _creationTime, ...fields } = recipe!;
       const soupId = await ctx.db.insert("recipes", {
+        status: "generated",
+        isArchived: false,
         ...fields,
         title: { values: { fr: "Soupe d'épinards" }, meta: {} },
         shuffleKey: 1_500_000_000,
@@ -257,6 +263,8 @@ describe("functions/planning/planDraft", () => {
       const recipe = await ctx.db.get(ids.recipeId);
       const { _id, _creationTime, ...fields } = recipe!;
       const soupId = await ctx.db.insert("recipes", {
+        status: "generated",
+        isArchived: false,
         ...fields,
         title: { values: { fr: "Soupe de tomates" }, meta: {} },
         shuffleKey: 3_000_000_000,

@@ -21,6 +21,7 @@ carries the command that proves it still holds.
 | [0014](./0014-a-recipe-is-readable-by-any-cook.md) | A recipe is readable by any signed-in cook; only editing is gated | `convex/router/recipes/*`, `convex/functions/recipes/**`, `src/modules/recipes/**` | `pnpm test` |
 | [0015](./0015-one-producer-for-a-shared-derivation.md) | A value two screens must agree on is computed by one side | `shared/**`, `convex/router/**`, `convex/functions/**`, `src/modules/**` | `pnpm lint` |
 | [0016](./0016-household-state-resets-on-a-switch.md) | Session state about a household resets when the household switches | `src/modules/**`, `src/lib/**`, `app/_layout.tsx` | `pnpm check:households`, `pnpm test` |
+| [0017](./0017-a-deleted-recipe-is-archived-and-unlisted.md) | A deleted recipe is archived, and no list reaches it | `convex/functions/**`, `convex/router/**`, `convex/agent/**`, `convex/schema/recipes.ts` | `pnpm check:recipes`, `pnpm test` |
 `pnpm verify` runs all of them — on demand, in the pre-commit and pre-merge-commit hooks, and in CI.
 
 ## Format

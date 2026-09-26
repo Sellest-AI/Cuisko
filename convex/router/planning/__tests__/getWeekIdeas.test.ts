@@ -80,6 +80,8 @@ const seedRecipe = (
       updatedAt: Date.now(),
     });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       userId,
       title: { values: { fr: title }, meta: {} },
       description: { values: { fr: "" }, meta: {} },

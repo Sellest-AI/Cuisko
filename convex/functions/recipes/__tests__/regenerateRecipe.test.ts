@@ -63,6 +63,7 @@ const stored: RecipeDetail & { userId?: Id<"users"> } = {
   equipments: [],
   tags: ["soup"],
   timings: { preparation: 15 },
+  isArchived: false,
   ingredients: [
     {
       name: "Oignons",

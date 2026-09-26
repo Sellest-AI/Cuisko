@@ -71,6 +71,26 @@ export const backfillRecipeShuffleKey = migrations.define({
 });
 
 /**
+ * Gives every existing recipe a review status and an archive flag: `generated` and live.
+ *
+ * `generated` for every row, the cook's own included, because nothing before this recorded a
+ * review, and a status that claimed one would be the only false thing in the row. Every recipe that
+ * exists was live, since deleting one did not exist either.
+ *
+ * Both fields are optional in the schema until this has run on every deployment; the deploy that
+ * makes them required, and switches the list reads to `eq("isArchived", false)`, must come after.
+ * Idempotent: a row that already carries both is not written.
+ */
+export const backfillRecipeStatus = migrations.define({
+  table: "recipes",
+  migrateOne: (_ctx, recipe) => {
+    if (recipe.status === undefined || recipe.isArchived === undefined) {
+      return { status: recipe.status ?? "generated", isArchived: recipe.isArchived ?? false };
+    }
+  },
+});
+
+/**
  * Rewrites the two French spoon codes onto their English equivalents: `cs` → `tbsp`, `cc` → `tsp`.
  *
  * **Run this BEFORE the deploy that narrows `UNITS`.** Convex validates the schema against the
@@ -171,6 +191,8 @@ export const runBackfillRecipeSearch = migrations.runner([internal.migrations.ba
 export const runBackfillRecipeShuffleKey = migrations.runner([
   internal.migrations.backfillRecipeShuffleKey,
 ]);
+
+export const runBackfillRecipeStatus = migrations.runner([internal.migrations.backfillRecipeStatus]);
 
 export const runRenameSpoonUnits = migrations.runner([
   internal.migrations.renameSpoonUnitsInRecipeIngredients,

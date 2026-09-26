@@ -47,7 +47,7 @@ cuisko/
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
 ├── scripts/              Everything run outside the app.
-│   ├── checks/          C1–C14 architectural checks + the `_lib.mjs` they share.
+│   ├── checks/          C1–C15 architectural checks + the `_lib.mjs` they share.
 │   └── images/          Hand-run asset preparation (compress, sanitize).
 ├── .githooks/            pre-commit (verify + branch name), pre-merge-commit (the same, on a merge), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
@@ -490,6 +490,7 @@ contact with a growing codebase.
 | Every shared vocabulary entry has a word in every locale               | script C12                                        | `pnpm check:vocabulary` |
 | A thread is reached only through `ownedThread` and its allowlisted callers | script C13                                    | `pnpm check:threads`   |
 | Every session atom is sorted: `householdAtom`, or listed as not household | script C14                                     | `pnpm check:households` |
+| Every recipe query reads live rows only (ADR 0017)                     | script C15                                        | `pnpm check:recipes`   |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |

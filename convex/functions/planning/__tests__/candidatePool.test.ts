@@ -35,6 +35,8 @@ type RecipeFacts = {
   equipments?: Equipment[];
   /** Left empty by default: a recipe `computeTags` could not weigh, which is the case the seeks rule is about. */
   tags?: Tag[];
+  /** A recipe its cook deleted; live by default, as nearly every row is. */
+  isArchived?: boolean;
 };
 
 /** A recipe of one line. Keys are 32-bit integers, as `randomShuffleKey` draws them. */
@@ -46,6 +48,7 @@ const recipe = ({
   timings = {},
   equipments = [],
   tags = [],
+  isArchived = false,
 }: RecipeFacts) =>
   t.run(async (ctx) => {
     const allergens = classified ?? undefined;
@@ -60,6 +63,8 @@ const recipe = ({
       updatedAt: Date.now(),
     });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived,
       title: { values: { fr: "x" }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },
@@ -237,6 +242,16 @@ describe("functions/planning/candidatePool", () => {
       { recipeId: catalog, isMine: false },
       { recipeId: mine, isMine: true },
     ]);
+  });
+
+  /** A recipe the cook deleted is never drawn into a new week, on either side of the wrap. */
+  test("never draws an archived recipe", async () => {
+    const me = await user();
+    const kept = await recipe({ shuffleKey: 1, userId: me });
+    await recipe({ shuffleKey: 2, userId: me, isArchived: true });
+    await recipe({ shuffleKey: 2 ** 31, userId: me, isArchived: true });
+
+    expect(await poolFor(me, { seed: 0.25 })).toEqual([{ recipeId: kept, isMine: true }]);
   });
 
   /** `userId` is the index's first field so that a shuffle can never reach another user's recipes. */

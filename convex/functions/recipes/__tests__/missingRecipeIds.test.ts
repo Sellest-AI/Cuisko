@@ -12,6 +12,8 @@ let t: ReturnType<typeof convexTest>;
 const seedRecipe = () =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: "Onion soup" }, meta: {} },
       description: { values: { en: "A winter soup." }, meta: {} },
       instructions: { values: { en: "Base\n- Slice the onions." }, meta: {} },

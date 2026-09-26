@@ -148,7 +148,7 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C14 scripts, which had no runner at all until this project existed, and the
+       * The C1-C15 scripts, which had no runner at all until this project existed, and the
        * catalog scripts under `scripts/recipes/`.
        *
        * Plain node: nothing here needs a DOM or the Convex runtime. The checks' tests spawn the real

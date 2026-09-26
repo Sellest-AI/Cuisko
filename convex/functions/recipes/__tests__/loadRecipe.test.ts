@@ -19,6 +19,8 @@ const seedRecipe = ({ chef }: { chef?: string | null } = { chef: "Franck" }) =>
       chef === null ? undefined : await ctx.db.insert("users", chef ? { name: chef } : {});
 
     return ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { en: "Onion soup" }, meta: {} },
       description: { values: { en: "A winter soup." }, meta: {} },
       instructions: { values: { en: "Base\n- Slice the onions." }, meta: {} },

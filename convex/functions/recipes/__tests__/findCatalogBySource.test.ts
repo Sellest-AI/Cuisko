@@ -14,6 +14,8 @@ let t: ReturnType<typeof convexTest>;
 const insertRecipe = (sourceUrl: string, userId?: Id<"users">) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       userId,
       title: { values: { fr: "Tarte" }, meta: {} },
       description: { values: { fr: "" }, meta: {} },

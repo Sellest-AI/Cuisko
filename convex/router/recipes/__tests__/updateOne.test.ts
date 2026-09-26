@@ -57,6 +57,8 @@ const UNCHANGED_INSTRUCTIONS = serializeInstructions(parseInstructions(SEED_INST
 const seedRecipe = (userId: Id<"users">, sourceUrl?: string) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       sourceUrl,
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },

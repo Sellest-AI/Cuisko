@@ -69,7 +69,10 @@
     "minute_unit": "min",
     "difficulty": "Difficulty",
     "cuisine": "Cuisine",
-    "save": "Save recipe"
+    "save": "Save recipe",
+    "delete": "Delete recipe",
+    "delete_confirm": "Tap again to delete",
+    "delete_error": "The recipe could not be deleted. Try again."
   },
   "Import": {
     "url_title": "Import from a web page",

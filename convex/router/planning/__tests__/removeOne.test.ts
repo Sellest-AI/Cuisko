@@ -64,6 +64,8 @@ const seedRecipe = (title: string, userId?: Id<"users">) =>
       updatedAt: Date.now(),
     });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       userId,
       title: { values: { fr: title }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
@@ -108,6 +110,8 @@ const seedPinchRecipe = () =>
       updatedAt: Date.now(),
     });
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Poulet au thym" }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },

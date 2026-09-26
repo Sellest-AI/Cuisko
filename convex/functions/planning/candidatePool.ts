@@ -100,8 +100,8 @@ const NOT_A_PLATE: readonly Tag[] = ["side", "pastry", "sauce", "dessert", "drin
 const SHUFFLE_KEY_SPAN = 2 ** 32;
 
 /**
- * One owner's recipes, from a random point of `by_user_id_and_shuffle_key`, wrapping once to the
- * start when the range past the seed comes up short.
+ * One owner's live recipes, from a random point of `by_user_and_is_archived_and_shuffle_key`,
+ * wrapping once to the start when the range past the seed comes up short.
  *
  * The seed is a fraction and the keys are 32-bit integers, so it is stretched onto the key's span
  * first. Compared raw, every key but `0` sits past it: the window always opened at the lowest key,
@@ -115,14 +115,18 @@ const _window = async (ctx: PoolCtx, userId: Id<"users"> | undefined, seed: numb
 
   const after = await ctx.db
     .query("recipes")
-    .withIndex("by_user_id_and_shuffle_key", (q) => q.eq("userId", userId).gt("shuffleKey", start))
+    .withIndex("by_user_and_is_archived_and_shuffle_key", (q) =>
+      q.eq("userId", userId).eq("isArchived", false).gt("shuffleKey", start),
+    )
     .take(WINDOW);
 
   if (after.length === WINDOW) return after;
 
   const before = await ctx.db
     .query("recipes")
-    .withIndex("by_user_id_and_shuffle_key", (q) => q.eq("userId", userId).lte("shuffleKey", start))
+    .withIndex("by_user_and_is_archived_and_shuffle_key", (q) =>
+      q.eq("userId", userId).eq("isArchived", false).lte("shuffleKey", start),
+    )
     .take(WINDOW - after.length);
 
   return [...after, ...before];
@@ -233,8 +237,9 @@ const _loadUntil = async (
 /**
  * The recipes a week may be drawn from, already scaled to the plates' servings, in shuffled order.
  *
- * Both halves are index reads on `by_user_id_and_shuffle_key` — the global catalog (`userId`
- * unset) and the caller's own. Components, diet, the time ceiling and the sought tags are filtered on the
+ * Both halves are index reads on `by_user_and_is_archived_and_shuffle_key` — the global catalog
+ * (`userId` unset) and the caller's own — and both read live rows only, so a deleted recipe is
+ * never drawn into a new week. Components, diet, the time ceiling and the sought tags are filtered on the
  * recipe row, which is free; allergens need the lines, so they are read only for the survivors, and only until there
  * are enough to choose from. The catalog comes first, and the caller's own fill whatever it could
  * not: the own-share

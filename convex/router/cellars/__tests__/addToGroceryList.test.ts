@@ -65,6 +65,8 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
 const seedPlate = (t: ReturnType<typeof convexTest>, householdId: Id<"households">) =>
   t.run(async (ctx) => {
     const recipeId = await ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
       title: { values: { fr: "Pain" }, meta: {} },
       description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "" }, meta: {} },

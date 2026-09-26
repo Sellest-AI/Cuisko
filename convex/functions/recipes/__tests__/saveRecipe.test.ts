@@ -157,6 +157,16 @@ describe("functions/recipes/saveRecipe", () => {
     expect(row!.timings).toEqual({ preparation: 15, cooking: 45 });
   });
 
+  /** Nobody has read what the model just wrote, and no recipe is born deleted. */
+  test("stores the recipe as generated and live", async () => {
+    const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.status).toBe("generated");
+    expect(row!.isArchived).toBe(false);
+  });
+
   /**
    * `tags` is the one field that is NOT carried through untouched: what the model authored is kept
    * whole, and the computed half is appended to it. Every fixture row is classified as a plant
