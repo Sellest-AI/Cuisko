@@ -35,6 +35,8 @@
     "empty": "Open slot"
   },
   "PlanRecipe": {
+    "intro_title": "Plan your meal",
+    "intro_body": "We'll automatically add the ingredients you're missing to your grocery list.",
     "portions": "How many are eating?",
     "meal": "Which meal?",
     "day": "Which day?",

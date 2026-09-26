@@ -1,19 +1,19 @@
-import { View, StyleSheet, ViewStyle } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { Text } from "@ui/text";
 import { Icon, MorphIcon } from "./icons";
 import { theme } from "theme";
 
 type Props = {
-  style?: ViewStyle,
+  style?: StyleProp<ViewStyle>,
   title: string,
   icon: Icon,
   children: string,
   /**
    * What the banner is for, not what it looks like: `warning` is something to be careful about,
    * `secondary` something about to happen that the user is expected to welcome, `tip` advice they
-   * are free to take or leave.
+   * are free to take or leave, `neutral` context that asks nothing of the user.
    */
-  variant: "warning" | "secondary" | "tip"
+  variant: "warning" | "secondary" | "tip" | "neutral"
 }
 
 export const InfoBanner = ({ variant, style, title, icon, children }: Props) => {
@@ -73,5 +73,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary.elevated,
     backgroundColor: theme.colors.primary.subtle,
     color: theme.colors.primary.base,
+  },
+  neutral: {
+    borderColor: theme.colors.neutral.elevated,
+    backgroundColor: theme.colors.neutral.subtle,
+    color: theme.colors.neutral.muted,
   }
 })
