@@ -19,13 +19,13 @@ type Args = {
 };
 
 /** How many cards the home shelf holds. */
-export const IDEAS_COUNT = 3;
+export const IDEAS_COUNT = 6;
 
 /**
- * `candidatePool` sizes its window per plate; one plate loads a handful of candidates, of which
- * the shelf shows the first `IDEAS_COUNT`. The few extra line reads are the price of sharing the
- * planner's pool rather than keeping a second one. Servings scale the lines, which ideas discard
- * — `1` buys the pool's signature unchanged.
+ * `candidatePool` sizes its window per plate, and one plate asks for `CANDIDATES_PER_PLATE` — six,
+ * the same as `IDEAS_COUNT`, so a full catalog fills the shelf without a second plate's line reads.
+ * Raising the shelf past that number means asking for more plates. Servings scale the lines,
+ * which ideas discard — `1` buys the pool's signature unchanged.
  */
 const ONE_PLATE = { plates: 1, servings: 1 };
 
