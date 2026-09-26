@@ -138,9 +138,19 @@ every globbing file importing the entire backend measured four times slower than
 
 A test that imports its subject directly — the `functions/` tests, which call `loadRecipe(ctx, …)`
 rather than `api.…` — pays the import at module load, outside any timer, and needs no warm-up.
+"The module under test" means every module the file calls, not only its subject: a test that seeds
+through `planning.commit`, or calls `households.join` on the way to `leave`, warms those too — the
+leave test warmed `leave.` alone and paid for `join` inside a timed test. It extends to a module the
+subject itself runs through `ctx.runQuery` on every call: `recipes/updateOne` checks ownership
+through `recipes/getOne._internal`, so its test warms `getOne.` as well.
+
 C10 rule 4 checks the shape: a `convex-test` file that references `api.` or `internal.` carries a
-`beforeAll`. It reads text, so it cannot tell a warm-up that loads the wrong module from one that
-loads the right one; that is what the filter path in the snippet is for.
+`beforeAll`, and when that warm-up filters with `startsWith("/convex/…")`, every module the file
+names falls under one of those prefixes. A reference into `router/` must end in a legal export name
+(`authed`, `_internal_<verb>`…, the C1 grammar), since that is how the module is read off it;
+`migrations.` keeps one export per migration and is outside the rule. It reads the test's text
+only, so a module the subject calls from inside — the `updateOne` → `getOne` case — is left to the
+author and to review.
 
 ## Not yet — flow tests
 

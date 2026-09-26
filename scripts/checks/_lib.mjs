@@ -45,6 +45,9 @@ export const listFiles = (dir, ext = ".ts") => {
 
 export const relative = (file) => path.relative(ROOT, file).split(path.sep).join("/");
 
+/** The only export names a convex/router/ file may use (C1), and so the only ones a caller may reach (C10). */
+export const ROUTER_EXPORT = /^(anon|authed|admin|server|_internal(_[a-z][a-zA-Z0-9]*)?)$/;
+
 /** Parses a file into a TypeScript AST with parent pointers set. */
 export const parse = (file) =>
   ts.createSourceFile(

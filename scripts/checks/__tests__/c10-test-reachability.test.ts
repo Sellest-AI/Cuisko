@@ -179,6 +179,115 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
     expect(code).toBe(0);
   });
 
+  /** households/leave.test.ts warmed `leave.` and also called `join`, which then loaded cold. */
+  describe("a warm-up filtered by path covers every module the file calls", () => {
+    const leave = "convex/router/households/__tests__/leave.test.ts";
+    const warming = (...prefixes: string[]) => `
+      const modules = import.meta.glob("/convex/**/*.*s");
+      beforeAll(() => Promise.all(Object.entries(modules)
+        .filter(([path]) => ${prefixes.map((p) => `path.startsWith("${p}")`).join(" || ")})
+        .map(([, load]) => load())));
+      const t = convexTest(schema, modules);
+      it('x', () => t.mutation(api.router.households.leave.authed, {}));
+      it('y', () => t.mutation(api.router.households.join.authed, {}));
+    `;
+
+    it("rejects a second module the warm-up does not load", () => {
+      const { code, output } = runC10({ [leave]: warming("/convex/router/households/leave.") }, [leave]);
+
+      expect(code).toBe(1);
+      expect(output).toContain(leave);
+      expect(output).toContain("/convex/router/households/join.");
+    });
+
+    it("accepts it once that module is warmed too", () => {
+      const { code } = runC10(
+        { [leave]: warming("/convex/router/households/leave.", "/convex/router/households/join.") },
+        [leave],
+      );
+
+      expect(code).toBe(0);
+    });
+
+    it("counts a folder prefix as covering every module beneath it", () => {
+      const { code } = runC10({ [leave]: warming("/convex/router/households/") }, [leave]);
+
+      expect(code).toBe(0);
+    });
+
+    it("does not mistake one module's prefix for a longer sibling's", () => {
+      const { code, output } = runC10(
+        {
+          [leave]: warming("/convex/router/households/leave.").replace(
+            "households.join.authed",
+            "households.leaveAll.authed",
+          ),
+        },
+        [leave],
+      );
+
+      expect(code).toBe(1);
+      expect(output).toContain("/convex/router/households/leaveAll.");
+    });
+  });
+
+  /** A router reference ends in its access level; anything else names no function at all. */
+  describe("a router reference names a legal export", () => {
+    const warmed = (call: string) => `
+      beforeAll(() => Promise.all(Object.entries(modules)
+        .filter(([path]) => path.startsWith("/convex/router/"))
+        .map(([, load]) => load())));
+      const modules = import.meta.glob("/convex/**/*.*s");
+      const t = convexTest(schema, modules);
+      it('x', () => ${call});
+    `;
+
+    it("rejects a reference that stops at the module", () => {
+      const { code, output } = runC10({ [file]: warmed("t.query(api.router.recipes.getOne, {})") }, [file]);
+
+      expect(code).toBe(1);
+      expect(output).toContain("api.router.recipes.getOne");
+    });
+
+    it("rejects an export the router grammar does not allow", () => {
+      const { code, output } = runC10(
+        { [file]: warmed("t.query(internal.router.recipes.getOne.step2, {})") },
+        [file],
+      );
+
+      expect(code).toBe(1);
+      expect(output).toContain("internal.router.recipes.getOne.step2");
+    });
+
+    it("accepts every legal access level", () => {
+      const calls = ["anon", "authed", "admin", "server", "_internal", "_internal_persist"]
+        .map((name) => `t.query(api.router.recipes.getOne.${name}, {})`)
+        .join(";");
+      const { code } = runC10({ [file]: warmed(calls) }, [file]);
+
+      expect(code).toBe(0);
+    });
+
+    it("leaves modules outside router/ to their own names — migrations export one per migration", () => {
+      const migrations = "convex/__tests__/migrations.test.ts";
+      const { code } = runC10(
+        {
+          [migrations]: `
+            beforeAll(() => Promise.all(Object.entries(modules)
+              .filter(([path]) => path.startsWith("/convex/migrations."))
+              .map(([, load]) => load())));
+            const modules = import.meta.glob("/convex/**/*.*s");
+            const t = convexTest(schema, modules);
+            it('x', () => t.mutation(internal.migrations.runScheduleSkips, {}));
+          `,
+        },
+        [migrations],
+      );
+
+      expect(code).toBe(0);
+    });
+  });
+
   it("does not ask a file that imports its subject directly to warm anything", () => {
     const direct = "convex/functions/recipes/__tests__/loadRecipe.test.ts";
     const { code } = runC10(

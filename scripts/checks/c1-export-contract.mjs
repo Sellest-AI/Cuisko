@@ -12,9 +12,7 @@
  */
 import path from "node:path";
 
-import { lineOf, listFiles, parse, relative, report, ROOT, ts } from "./_lib.mjs";
-
-const GRAMMAR = /^(anon|authed|admin|server|_internal(_[a-z][a-zA-Z0-9]*)?)$/;
+import { lineOf, listFiles, parse, relative, report, ROOT, ROUTER_EXPORT, ts } from "./_lib.mjs";
 
 const ALLOWED_BUILDERS = {
   anon: [
@@ -81,7 +79,7 @@ for (const file of listFiles(path.join(ROOT, "convex", "router"))) {
     for (const declaration of statement.declarationList.declarations) {
       const name = ts.isIdentifier(declaration.name) ? declaration.name.text : null;
 
-      if (!name || !GRAMMAR.test(name)) {
+      if (!name || !ROUTER_EXPORT.test(name)) {
         findings.push({
           ...at(declaration),
           message: `export \`${name ?? "<destructured>"}\` is not part of the export grammar.`,

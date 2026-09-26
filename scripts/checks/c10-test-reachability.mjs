@@ -22,7 +22,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { listFiles, relative, report, ROOT } from "./_lib.mjs";
+import { listFiles, relative, report, ROOT, ROUTER_EXPORT } from "./_lib.mjs";
 
 const findings = [];
 
@@ -115,24 +115,59 @@ for (const file of testFilesOnDisk) {
  * import"). It fails silently while it passes — 2s and 2ms print the same tick — and grows with
  * the backend, so it surfaces as a timeout on somebody's unrelated commit.
  *
- * Text only: this sees that a `beforeAll` exists, not that it loads the right module. A test that
- * imports its subject directly (the `functions/` tests) pays at module load, outside any timer,
- * and is not asked for one.
+ * A warm-up filtered with `startsWith("/convex/…")` must cover every module the file calls, not
+ * only its subject: households/leave.test.ts warmed `leave.` and called `join` cold, and a test
+ * seeding through `planning.commit` pays for commit's graph the same way. A warm-up this cannot
+ * read — no `startsWith` literal — is taken on trust. A test that imports its subject directly
+ * (the `functions/` tests) pays at module load, outside any timer, and is not asked for one.
  */
+const WARM_UP_FIX =
+  "`beforeAll(() => Promise.all(Object.entries(modules)" +
+  ".filter(([p]) => p.startsWith(\"/convex/<path>.\")).map(([, load]) => load())))`. " +
+  "Filter on the modules the file calls — never load the whole glob.";
+
 for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
   const source = readFileSync(file, "utf8");
   if (!source.includes("convexTest(")) continue;
-  if (!/\b(api|internal)\.[A-Za-z_]/.test(source)) continue;
-  if (/\bbeforeAll\(/.test(source)) continue;
+
+  const references = [...source.matchAll(/\b(?:api|internal)(?:\.[A-Za-z_$][\w$]*){2,}/g)].map(
+    (match) => match[0].split("."),
+  );
+  if (references.length === 0) continue;
+
+  // Below router/ the last segment must be an access level (C1), or the path below reads it wrong.
+  for (const reference of references) {
+    if (reference[1] !== "router" || ROUTER_EXPORT.test(reference.at(-1))) continue;
+
+    findings.push({
+      file: relative(file),
+      message: `\`${reference.join(".")}\` names no router export.`,
+      fix: "End it with the access level it calls: anon · authed · admin · server · _internal · _internal_<verb>.",
+    });
+  }
+
+  // `api.router.households.join.authed` → `/convex/router/households/join.`: the last segment is the export.
+  const called = new Set(references.map((reference) => `/convex/${reference.slice(1, -1).join("/")}.`));
+
+  if (!/\bbeforeAll\(/.test(source)) {
+    findings.push({
+      file: relative(file),
+      message: "Calls a Convex function through the lazy glob with no beforeAll warm-up.",
+      fix: `Preload the module under test before any test is timed: ${WARM_UP_FIX}`,
+    });
+    continue;
+  }
+
+  const warmed = [...source.matchAll(/startsWith\(\s*["'`](\/convex\/[^"'`]*)["'`]/g)].map((match) => match[1]);
+  if (warmed.length === 0) continue;
+
+  const cold = [...called].filter((module) => !warmed.some((prefix) => module.startsWith(prefix)));
+  if (cold.length === 0) continue;
 
   findings.push({
     file: relative(file),
-    message: "Calls a Convex function through the lazy glob with no beforeAll warm-up.",
-    fix:
-      "Preload the module under test before any test is timed: " +
-      "`beforeAll(() => Promise.all(Object.entries(modules)" +
-      ".filter(([p]) => p.startsWith(\"/convex/<path>.\")).map(([, load]) => load())))`. " +
-      "Filter on that file's own module — never load the whole glob.",
+    message: `Its beforeAll does not warm ${cold.join(", ")}, which it calls through the lazy glob.`,
+    fix: `Add each to the warm-up's filter, so no test is billed for its import: ${WARM_UP_FIX}`,
   });
 }
 
