@@ -60,9 +60,53 @@ describe("scoreCandidate", () => {
     expect(scoreCandidate("patates", CHIPS)).toBeLessThan(CONFIDENT);
   });
 
-  test("preparation qualifiers are stripped from both sides", () => {
+  test("a qualifier the cook writes is stripped from the query", () => {
     expect(scoreCandidate("oignons finement émincés", candidate("onion", "Oignon"))).toBe(1);
     expect(scoreCandidate("fresh chopped tomatoes", TOMATO)).toBeGreaterThan(CONFIDENT);
+  });
+
+  /**
+   * The other side of the line above. A qualifier the cook writes is something they will do; one a
+   * catalog name carries is something the shop did, written there on purpose, and it is what makes
+   * the row a different product. Stripped from both sides, the deli slices were `chicken` exactly
+   * and outranked every raw cut for the bare word.
+   */
+  test("a qualifier in the catalog's name is part of what the row is", () => {
+    const deli = candidate("sliced-cooked-chicken", "Sliced cooked chicken");
+
+    expect(scoreCandidate("chicken", deli)).toBeLessThan(
+      scoreCandidate("chicken", candidate("whole-chicken", "Whole chicken")),
+    );
+    expect(scoreCandidate("piment", candidate("chili-powder", "Piment en poudre"))).toBeLessThan(
+      CONFIDENT,
+    );
+  });
+
+  /**
+   * The exception, and `preservationIn` draws the same one: fresh is the state a food is sold in
+   * unless something says otherwise, so a row calling itself fresh has named no different product.
+   * Without it "ginger" tied fresh with ground, and "tagliatelle" cost a model call to reach the
+   * only tagliatelle the catalog holds.
+   */
+  test("fresh in the catalog's name is the default state, not a different product", () => {
+    expect(scoreCandidate("ginger", candidate("x", "Fresh ginger"))).toBe(1);
+    expect(scoreCandidate("coriandre", candidate("x", "Coriandre fraîche"))).toBe(1);
+    expect(scoreCandidate("tagliatelle", candidate("x", "Tagliatelles fraîches"))).toBe(1);
+  });
+
+  /**
+   * `frais` ends in an s, so the singularizer made it `frai` before the qualifier list was
+   * consulted, and the list — written `frais` — never matched it. The masculine was the one form
+   * of fresh the rule above did not reach.
+   */
+  test("frais is fresh too, although it ends in an s", () => {
+    expect(scoreCandidate("origan", candidate("x", "Origan frais"))).toBe(1);
+    expect(scoreCandidate("gingembre", candidate("x", "Gingembre frais"))).toBe(1);
+  });
+
+  test("a query naming the row's own qualifiers still matches it exactly", () => {
+    expect(scoreCandidate("sliced cooked chicken", candidate("x", "Sliced cooked chicken"))).toBe(1);
+    expect(scoreCandidate("2 cuillères de piment en poudre", candidate("x", "Piment en poudre"))).toBe(1);
   });
 
   test("a name made only of qualifiers still identifies itself", () => {
@@ -116,6 +160,21 @@ describe("scoreCandidate", () => {
     expect(scoreCandidate("steak haché", candidate("x", "Steak"))).toBeLessThan(CONFIDENT);
     expect(scoreCandidate("viande hachée", candidate("x", "Viande hachée"))).toBe(1);
     expect(scoreCandidate("3 oignons, émincés", candidate("onion", "Oignon"))).toBe(1);
+  });
+
+  test("a word beside thé is not the tea's whole name", () => {
+    const tea = candidate("black-tea", "Thé noir");
+
+    expect(scoreCandidate("thé noir", tea)).toBe(1);
+    expect(scoreCandidate("noir", tea)).toBeLessThan(CONFIDENT);
+  });
+
+  test("ground cloves are the spice, not ground beef", () => {
+    const cloves = candidate("cloves", "Cloves");
+
+    expect(scoreCandidate("ground cloves", cloves)).toBeGreaterThan(
+      scoreCandidate("ground cloves", candidate("ground-beef", "Ground beef")),
+    );
   });
 
   test("an unrelated ingredient scores below PLAUSIBLE", () => {
@@ -175,6 +234,47 @@ describe("searchTerms", () => {
   test("still drops quantities and qualifiers", () => {
     expect(searchTerms("200g de pâtes")).toBe("pate");
     expect(searchTerms("3 oignons, émincés")).toBe("oignon");
+  });
+
+  /**
+   * The French word folds onto the English stopword, and folding first made it one. "thé" alone
+   * survived only on the all-stopwords fallback; beside another word it vanished, so "thé noir"
+   * searched for `noir` and reached black pepper and dark chocolate as readily as the tea.
+   */
+  test("keeps thé, which only its fold makes an English stopword", () => {
+    expect(searchTerms("thé")).toBe("the");
+    expect(searchTerms("thé noir")).toBe("the noir");
+    expect(searchTerms("the black tea")).toBe("black tea");
+  });
+
+  test("drops a listed qualifier ending in s, which the singularizer used to hide", () => {
+    expect(searchTerms("gros sel")).toBe("sel");
+    expect(searchTerms("origan frais")).toBe("origan");
+  });
+
+  test("still drops a French packaging word typed with its accent", () => {
+    expect(searchTerms("1 boîte de thon")).toBe("thon");
+    expect(searchTerms("2 cuillères de sucre")).toBe("sucre");
+  });
+
+  /**
+   * The other side of the split. `à` and `pièce` were only ever stripped by folding into the
+   * English `a` and `piece`; tested as typed, they stopped matching, and "sauce à la tomate" fell
+   * below the bar against `Sauce tomate`. They are French words, so the French list holds them.
+   */
+  test("drops à and pièce, which only folding used to make English stopwords", () => {
+    expect(searchTerms("sauce à la tomate")).toBe("sauce tomate");
+    expect(searchTerms("1 pièce de bœuf")).toBe("boeuf");
+  });
+
+  /**
+   * "clove" is the one packaging word that is also a food. As a stopword it reduced "ground cloves"
+   * to `ground`, which is ground beef's word — and the spice was never retrieved at all. The garlic
+   * phrasings it used to serve are catalog aliases on garlic instead.
+   */
+  test("keeps clove, which is a spice as well as a measure of garlic", () => {
+    expect(searchTerms("ground cloves")).toBe("ground clove");
+    expect(searchTerms("2 garlic cloves")).toBe("garlic clove");
   });
 });
 
@@ -241,9 +341,8 @@ describe("foldCost", () => {
 
   /**
    * A dropped number counts too, and the additives are why. OFF files colours as `Vert 1724`, which
-   * folds to the bare `vert` — and so does `thé vert`, because `thé` becomes the English stopword
-   * `the`. Leave the number free and the dye costs 0 against the tea's 1, so a shopper asking for
-   * green tea reaches E143.
+   * folds to the bare `vert` — the key of any food whose other word folding strips. Leave the number
+   * free and the dye costs 0 there, and claims that key from every food with a better right to it.
    */
   test("counts a dropped number, so a code is not a free claim on the word beside it", () => {
     expect(foldCost("Vert 1724")).toBe(1);
