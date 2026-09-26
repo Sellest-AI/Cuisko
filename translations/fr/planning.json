@@ -36,6 +36,8 @@
     "empty": "Assiette libre"
   },
   "PlanRecipe": {
+    "intro_title": "Planifiez votre repas",
+    "intro_body": "Les ingrédients qui vous manquent seront ajoutés automatiquement à votre liste de courses.",
     "portions": "Combien à table ?",
     "meal": "Quel repas ?",
     "day": "Quel jour ?",

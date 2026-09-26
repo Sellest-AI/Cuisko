@@ -2,7 +2,7 @@ import { type ReactNode, useCallback, useState } from "react";
 import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
 
 import { GroupSelect } from "@ui/group-select";
-import { DatabaseX } from "@ui/icons";
+import { DatabaseX, ShoppingCart } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { ModalScrollView } from "@ui/modal-scroll-view";
 import { StepSlider } from "@ui/step-slider";
@@ -96,7 +96,7 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
   const dayLabel = (date: Date) => date.toLocaleDateString(locale, { weekday: "short", day: "numeric" });
 
   const banner = failed && (
-    <InfoBanner variant="warning" title={t("PlanRecipe.failed_title")} icon={DatabaseX} style={styles.banner}>
+    <InfoBanner variant="warning" title={t("PlanRecipe.failed_title")} icon={DatabaseX}>
       {t("PlanRecipe.failed_body")}
     </InfoBanner>
   );
@@ -129,8 +129,16 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
 
   return (
     <Scrolling>
+      <InfoBanner
+        variant="neutral"
+        title={t("PlanRecipe.intro_title")}
+        icon={ShoppingCart}
+        style={[styles.intro, banner && styles.aboveBanner]}
+      >
+        {t("PlanRecipe.intro_body")}
+      </InfoBanner>
       {banner}
-      <SectionLabel label={t("PlanRecipe.portions")} value={String(servings)} />
+      <SectionLabel label={t("PlanRecipe.portions")} value={String(servings)} style={styles.portions} />
       <StepSlider value={servings} max={MAX_SERVINGS} onChange={setServings} />
       <GroupSelect
         label={t("PlanRecipe.meal")}
@@ -188,6 +196,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  banner: { marginBottom: theme.spacing[16] },
+  intro: { marginTop: theme.spacing[28] },
+  aboveBanner: { marginBottom: theme.spacing[16] },
+  portions: { marginTop: theme.spacing[20] },
   slots: { marginTop: theme.spacing[24] },
 });

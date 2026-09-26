@@ -12,6 +12,7 @@ type Props = {
    * repeating it, where "how many days" reads as a slider position until a number names it.
    */
   value?: string;
+  style?: View["props"]["style"];
 };
 
 /**
@@ -20,8 +21,8 @@ type Props = {
  * At `_components/` because the setup step and the swap sheet both draw it, and the sheet is not
  * one of the tunnel's steps: dot notation beside `setup.tsx` would claim a parent it does not have.
  */
-export const SectionLabel = ({ label, value }: Props) => (
-  <View style={styles.row}>
+export const SectionLabel = ({ label, value, style }: Props) => (
+  <View style={[styles.row, style]}>
     <Text.Lg color={colors.muted}>{label}</Text.Lg>
     {value !== undefined && (
       <View style={styles.counter}>
