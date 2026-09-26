@@ -52,6 +52,13 @@ const OPENAI_GPT_6_LUNA_OPTIONS = {
 }
 
 const QWEN_3_7_FLASH = openrouter.chat("qwen/qwen3.7-flash");
+/**
+ * `require_parameters` is OFF, unlike every other model here. Alibaba is the only provider, and on
+ * 2026-09-26 OpenRouter stopped listing `structured_outputs` for it: with the flag on, every
+ * `generateObject` call (the recipe image prompts) was refused with "No endpoints found", while the
+ * `generateText` calls kept working. With it off Alibaba still honours the JSON schema — 6 of 6
+ * replies valid that day — and `parseModelOutput` rejects any that does not.
+ */
 const QWEN_3_7_FLASH_OPTIONS = {
   providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
     openrouter: {
@@ -59,7 +66,7 @@ const QWEN_3_7_FLASH_OPTIONS = {
       provider: {
         sort: "price",
         allow_fallbacks: true,
-        require_parameters: true
+        require_parameters: false
       }
     }
   })
