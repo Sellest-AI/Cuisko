@@ -428,3 +428,80 @@ describe("isShowingSomething", () => {
     expect(drawn && isShowingSomething(drawn)).toBe(false);
   });
 });
+
+/** A showSubstitutions call, finished unless told otherwise. */
+const showSubstitutions = (output: unknown, state = "output-available", toolCallId = "call-s") => ({
+  type: "tool-showSubstitutions",
+  toolCallId,
+  state,
+  output,
+});
+
+const swaps = (...pairs: [string, string][]) => ({ v: 1, swaps: pairs.map(([from, to]) => ({ from, to })) });
+
+describe("the substitutions under an answer", () => {
+  test("a finished call is drawn, swaps in the order Cuisko gave", () => {
+    const [drawn] = toChatMessages([
+      message({ parts: [showSubstitutions(swaps(["carrot", "tomato"], ["water", "milk"]))] }),
+    ]);
+
+    expect(drawn?.substitutions).toEqual(swaps(["carrot", "tomato"], ["water", "milk"]));
+  });
+
+  test("draws no status line", () => {
+    const [drawn] = toChatMessages([message({ parts: [showSubstitutions(swaps(["a", "b"]))] })]);
+
+    expect(drawn?.steps).toEqual([]);
+  });
+
+  test("a call still streaming, or one that errored, is not drawn", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          showSubstitutions(undefined, "input-available", "s1"),
+          showSubstitutions(undefined, "output-error", "s2"),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.substitutions).toBeUndefined();
+  });
+
+  /** An older app meeting a newer card shows the answer without it rather than half of it. */
+  test("drops a version this build does not know, and a malformed or empty card", () => {
+    for (const output of [
+      { v: 2, swaps: [{ from: "a", to: "b" }] },
+      { v: 1, swaps: [{ from: "a", to: 7 }] },
+      { v: 1, swaps: [{ from: "a", to: "b" }, "nope"] },
+      { v: 1, swaps: [] },
+      "nope",
+    ]) {
+      const [drawn] = toChatMessages([message({ parts: [showSubstitutions(output)] })]);
+
+      expect(drawn?.substitutions).toBeUndefined();
+    }
+  });
+
+  test("a model that sent two gets its last", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          showSubstitutions(swaps(["a", "b"]), "output-available", "s1"),
+          showSubstitutions(swaps(["c", "d"]), "output-available", "s2"),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.substitutions).toEqual(swaps(["c", "d"]));
+  });
+
+  /** Swaps alone are an answer: the turn is neither dropped nor marked failed. */
+  test("a turn that answered with only swaps is showing something", () => {
+    const [drawn] = toChatMessages([
+      message({ text: "", status: "success", parts: [showSubstitutions(swaps(["a", "b"]))] }),
+    ]);
+
+    expect(drawn?.hasFailed).toBe(false);
+    expect(drawn && isShowingSomething(drawn)).toBe(true);
+  });
+});

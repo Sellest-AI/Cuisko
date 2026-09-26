@@ -7,6 +7,7 @@ import { theme } from "theme";
 import type { ChatMessage as ChatMessageModel } from "../_model/chatMessage";
 import { Display } from "./display";
 import { OfferedButton } from "./offered-button";
+import { Substitutions } from "./substitutions";
 import { ToolStep } from "./tool-step";
 
 type Props = {
@@ -23,8 +24,8 @@ export const ChatMessage = ({ message }: Props) => {
   return (
     <View>
       {/*
-        * Status lines first: in the turn they came first, and the prompt ends every turn on
-        * `display`, so steps, then text, then cards is the order things happened in.
+        * Status lines first, then all the text, then what the turn showed. Text the model wrote
+        * after a card is joined with the rest and drawn above it: text parts arrive pre-joined.
         */}
       {message.steps.map((step) => (
         <ToolStep key={step.key} step={step} />
@@ -41,6 +42,12 @@ export const ChatMessage = ({ message }: Props) => {
           content={message.hasFailed && !message.text ? t("failed") : message.text}
           style={styles.fromAssistant}
         />
+      )}
+      {/* Right under the text it explains, before any recipe cards: it answers the question asked. */}
+      {message.substitutions && (
+        <View style={styles.assistantTool}>
+          <Substitutions card={message.substitutions} />
+        </View>
       )}
       {message.cards.map((card, index) => (
         <View key={index} style={styles.assistantTool}>

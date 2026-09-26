@@ -16,9 +16,6 @@ import { createTool } from "../utils";
  * invents one, cannot produce a button to nowhere. The sentence is the model's, because it is the
  * part that has to fit the conversation: "want the whole week planned?" after a week of dinners,
  * something else after a shopping question.
- *
- * **It does not end the turn**, unlike `display`: the prompt has it called before display, so the
- * turn still stops on the cards. Called alone, it costs one more step for the model to finish.
  */
 
 /** Two short sentences at most. It sits above a button, under an answer that already said its piece. */

@@ -21,6 +21,8 @@ import {
   DISPLAY_KINDS,
   type DisplayCard,
   type DisplayKind,
+  type IngredientSwap,
+  type SubstitutionsCard,
 } from "@shared/assistant";
 
 /**
@@ -51,10 +53,13 @@ export type SourceMessage = {
 };
 
 /**
- * The tools that show the cook a status line while they work. `display` and `showButton` do not:
- * what they draw is their line.
+ * The tools that show the cook a status line while they work. `display`, `showButton` and
+ * `showSubstitutions` do not: what they draw is their line.
  */
-export type StepTool = Exclude<AssistantTool, typeof ASSISTANT_TOOLS.display | typeof ASSISTANT_TOOLS.showButton>;
+export type StepTool = Exclude<
+  AssistantTool,
+  typeof ASSISTANT_TOOLS.display | typeof ASSISTANT_TOOLS.showButton | typeof ASSISTANT_TOOLS.showSubstitutions
+>;
 
 /** One status line: "🔍 searching recipes", then "🥗 3 recipes found". */
 export type ToolStep = {
@@ -80,6 +85,11 @@ export type ChatMessage = {
    * a model that sent two gets its last, the one it settled on.
    */
   button?: AssistantButton;
+  /**
+   * The ingredient swaps Cuisko suggested, if any. One card at most, and like the button, a model
+   * that sent two gets its last.
+   */
+  substitutions?: SubstitutionsCard;
   /** The answer is still arriving — the screen shows it growing rather than waiting. */
   isStreaming: boolean;
   /**
@@ -229,6 +239,29 @@ const _buttonOfParts = (parts: readonly MessagePart[]): AssistantButton | undefi
     .filter((button): button is AssistantButton => button !== undefined)
     .at(-1);
 
+const _isSwap = (value: unknown): value is IngredientSwap =>
+  _isObject(value) && typeof value.from === "string" && typeof value.to === "string";
+
+/**
+ * A stored showSubstitutions output → a card, when it is one this build knows.
+ *
+ * A version this build has never seen, or a malformed row, drops the whole card rather than drawing
+ * part of it: a swap list missing a row reads as the full answer, and it is not.
+ */
+const _substitutionsOf = (output: unknown): SubstitutionsCard | undefined => {
+  if (!_isObject(output) || output.v !== 1 || !Array.isArray(output.swaps)) return undefined;
+  if (output.swaps.length === 0 || !output.swaps.every(_isSwap)) return undefined;
+
+  return { v: 1, swaps: output.swaps.map(({ from, to }) => ({ from, to })) };
+};
+
+const _substitutionsOfParts = (parts: readonly MessagePart[]): SubstitutionsCard | undefined =>
+  parts
+    .filter((part) => part.type === _partType(ASSISTANT_TOOLS.showSubstitutions) && part.state === "output-available")
+    .map((part) => _substitutionsOf(part.output))
+    .filter((card): card is SubstitutionsCard => card !== undefined)
+    .at(-1);
+
 /**
  * Something shaped like a Convex document id: 31 to 37 lowercase letters and digits, with at least
  * one of each. No French or English word is that long, and a hash-like run that is not an id is
@@ -248,7 +281,7 @@ export const withoutIds = (text: string): string =>
   text.replace(_ID_SHAPED, "").replace(/ {2,}/g, " ").replace(/ +([,.])/g, "$1");
 
 /**
- * Whether a message has anything on screen yet: text, a status line, a card or a button.
+ * Whether a message has anything on screen yet: text, a status line, a card, swaps or a button.
  *
  * One definition, because two places ask it: `toChatMessages` to decide what is drawn, and the
  * hook to decide the answer has arrived. Written out twice, the button was added to one and not the
@@ -258,6 +291,7 @@ export const isShowingSomething = (message: ChatMessage): boolean =>
   message.text.length > 0 ||
   message.steps.length > 0 ||
   message.cards.length > 0 ||
+  message.substitutions !== undefined ||
   message.button !== undefined;
 
 /**
@@ -299,8 +333,10 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
       const steps = isUser ? [] : _stepsOf(message.parts, isTurnOver);
       const cards = isUser ? [] : _cardsOf(message.parts);
       const button = isUser ? undefined : _buttonOfParts(message.parts);
+      const substitutions = isUser ? undefined : _substitutionsOfParts(message.parts);
       const endedEmpty =
-        !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button;
+        !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button &&
+        !substitutions;
 
       return {
         key: message.key,
@@ -309,6 +345,7 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
         steps,
         cards,
         ...(button && { button }),
+        ...(substitutions && { substitutions }),
         isStreaming,
         hasFailed: message.status === "failed" || endedEmpty,
         createdAt: message._creationTime,
