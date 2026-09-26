@@ -1,6 +1,5 @@
 import { internal } from "@convex/_generated/api";
-import { ASSISTANT_TOOLS, DISPLAY_KINDS, type DisplayCard, type DisplayKind } from "@shared/assistant";
-import type { StopCondition, ToolSet } from "ai";
+import { DISPLAY_KINDS, type DisplayCard, type DisplayKind } from "@shared/assistant";
 import z from "zod/v4";
 
 import { createTool } from "../utils";
@@ -64,28 +63,14 @@ export const toDisplayCard = (
 };
 
 /**
- * The turn is over once something has been SHOWN: the last step holds a successful `display`.
- *
- * **Not `hasToolCall("display")`**, which is the obvious choice and the wrong one: it reads the
- * step's tool calls, and a call that threw is still a call. The throw exists so the model can read
- * "these ids do not exist" and try again; stopping on the failed call ends the turn first, and the
- * cook gets a sentence promising recipes with nothing under it. A step's `toolResults` holds only
- * the calls that returned — an error is a separate `tool-error` part — so this stops on success
- * alone and lets a failed display cost one more step.
- */
-export const hasDisplayed: StopCondition<ToolSet> = ({ steps }) =>
-  steps[steps.length - 1]?.toolResults.some((result) => result.toolName === ASSISTANT_TOOLS.display) ?? false;
-
-/**
  * A constant rather than a factory like `searchRecipesTool`: nothing here depends on who is asking.
  * Recipes are readable by any cook (ADR 0014), so existing is the whole check. A kind whose rows
  * are private will need the caller, and becomes a factory then.
  */
 export const displayTool = createTool({
   description:
-    "Shows the cook the recipes you chose, as cards under your answer, in the order you give. " +
-    "Call it once, last, after your text: it ends your turn. Never write an id in your text; " +
-    "ids go here only.",
+    "Shows the cook the recipes you chose, as cards at this point in your answer, in the order " +
+    "you give. Call it once per answer. Never write an id in your text; ids go here only.",
   inputSchema: _inputSchema,
   execute: async (ctx, input: Input): Promise<DisplayCard> => {
     // One kind so far; a second one branches here on `input.kind`.

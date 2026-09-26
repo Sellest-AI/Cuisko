@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "translations";
 
 import { CardRecipe } from "@ui/cards/recipe";
+import { Text } from "@ui/text";
 import { theme } from "theme";
 
 import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
@@ -17,6 +18,7 @@ type Props = {
   /** The recipes Cuisko chose to show, in its order. */
   recipeIds: string[];
   layout: DisplayLayout;
+  showHeading?: boolean;
 };
 
 /**
@@ -29,7 +31,8 @@ type Props = {
  * The shelf scrolls past the sheet's gutter on both edges, the way the home shelf does, so a third
  * card is visibly there to be reached rather than cut off at the margin.
  */
-export const RecipeCards = ({ recipeIds, layout }: Props) => {
+export const RecipeCards = ({ recipeIds, layout, showHeading = false }: Props) => {
+  const t = useTranslations("Assistant");
   const tVocabulary = useTranslations("Vocabulary");
   const { recipes } = useAssistantRecipes(recipeIds);
 
@@ -46,21 +49,46 @@ export const RecipeCards = ({ recipeIds, layout }: Props) => {
     />
   ));
 
-  if (layout === "single") return <View style={styles.single}>{cards}</View>;
+  /**
+   * Named, so the cards read as their own section rather than running on from the answer or
+   * into the swaps above them.
+   */
+  const heading = (
+    <Text.Lg weight={600} color={theme.colors.foreground} style={styles.heading}>
+      {t("cards.recipes", { count: recipes.length })}
+    </Text.Lg>
+  );
+
+  if (layout === "single") {
+    return (
+      <View>
+        {showHeading && heading}
+        <View style={styles.single}>{cards}</View>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.shelf}
-      contentContainerStyle={styles.shelfCards}
-    >
-      {cards}
-    </ScrollView>
+    <View>
+      {showHeading && heading}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.shelf}
+        contentContainerStyle={styles.shelfCards}
+      >
+        {cards}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  heading: {
+    paddingLeft: theme.spacing[4],
+    marginTop: theme.spacing[4],
+    marginBottom: theme.spacing[4],
+  },
   single: {
     paddingVertical: theme.spacing[8],
     paddingBottom: theme.spacing[16],

@@ -43,12 +43,11 @@ export const assistantAgent = new Agent(components.agent, {
    */
   contextOptions: { recentMessages: 20, searchOptions: { limit: 0 } },
   /**
-   * Each tool call is a step, and the answer, with its `display` call, is one more. The longest
-   * honest turn is a nutrition question: search the ingredients, search the recipes, compute, then
-   * answer, which is four, and a failed display or a second search adds one each. Seven leaves that
-   * room. Too few is not a cheaper turn but a broken one: cut on a tool call, the turn ends with
-   * nothing to say and the screen can only report it failed. `answerTurn` restates this in its own
-   * `stopWhen`, which replaces the default built from it.
+   * Each tool call is a step, and the answer is one more. The longest honest turn is a nutrition
+   * question: search the ingredients, search the recipes, compute, show, then a closing word, which
+   * is five, and a failed display or a second search adds one each. Seven leaves that room. Too few
+   * is not a cheaper turn but a broken one: cut on a tool call, the turn ends with nothing to say
+   * and the screen can only report it failed.
    */
   maxSteps: 7,
   // usageHandler,

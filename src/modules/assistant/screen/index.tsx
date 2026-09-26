@@ -30,7 +30,7 @@ type Props = {
 
 export const AssistantScreen = ({ style, question }: Props) => {
   const t = useTranslations("Assistant");
-  const { messages, ask, isThinking, hasConversation } = useAssistantChat();
+  const { messages, ask, isThinking, isReplying, hasConversation } = useAssistantChat();
 
   /**
    * The question the bar arrived with, sent exactly once.
@@ -58,7 +58,7 @@ export const AssistantScreen = ({ style, question }: Props) => {
   const isEmpty = !question && !hasConversation && !isThinking;
 
   const scroller = useRef<FlashListRef<ChatMessageModel>>(null);
-  const spin = useSpin(isThinking);
+  const spin = useSpin(isThinking || isReplying);
 
   /**
    * Follows the conversation down as it grows.
@@ -109,17 +109,24 @@ export const AssistantScreen = ({ style, question }: Props) => {
         </>
       }
       /*
-       * Drawn only in the gap the stream has not reached yet. Once the first status line or token
-       * lands, the answer itself is the feedback and a second indicator beside it would read as a
-       * second turn.
+       * "Cuisko is thinking" fills the gap the stream has not reached yet. Once the answer shows
+       * something, only the circle stays, close under it and without a word, so it reads as this
+       * answer still coming rather than a second turn. It goes when the turn is over, which is how
+       * the cook knows nothing more is on its way.
        */
       ListFooterComponent={
         isThinking ? (
           <View style={[styles.thinking, messages.length > 0 && styles.gap]}>
             <Animated.View style={spin}>
-              <MorphIcon icon={LoaderCircle} size={20} color={theme.colors.foreground} />
+              <MorphIcon icon={LoaderCircle} size={16} color={theme.colors.neutral.muted} />
             </Animated.View>
             <Text.Base color={theme.colors.neutral.muted}>{t("thinking")}</Text.Base>
+          </View>
+        ) : isReplying ? (
+          <View style={[styles.thinking, styles.replying]}>
+            <Animated.View style={spin}>
+              <MorphIcon icon={LoaderCircle} size={16} color={theme.colors.neutral.muted} />
+            </Animated.View>
           </View>
         ) : null
       }
@@ -161,6 +168,10 @@ const styles = StyleSheet.create({
   },
   gap: {
     marginTop: theme.spacing[28],
+  },
+  replying: {
+    marginTop: theme.spacing[12],
+    marginLeft: -theme.spacing[2],
   },
   thinking: {
     paddingLeft: theme.spacing[20],

@@ -44,6 +44,7 @@ export const ASSISTANT_TOOLS = {
   computeNutrition: "computeNutrition",
   display: "display",
   showButton: "showButton",
+  showSubstitutions: "showSubstitutions",
 } as const;
 
 export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];
@@ -71,6 +72,23 @@ export type AssistantButton = {
   text: string;
   destination: ButtonDestination;
   variant: ButtonVariant;
+};
+
+/** One ingredient replaced by another, both catalog ingredient ids. */
+export type IngredientSwap = { from: string; to: string };
+
+/**
+ * What the showSubstitutions tool stores in a message: the swaps, in the order the cook asked.
+ *
+ * Its own tool rather than a `display` kind: display takes a list of ids to show, and a swap is a
+ * pair. Folding pairs into display would give its one input fields that apply to some kinds only,
+ * which a model reads as optional and gets wrong.
+ *
+ * Ids only, like a recipe card: the name, emoji and image are resolved when the card is drawn.
+ */
+export type SubstitutionsCard = {
+  v: 1;
+  swaps: IngredientSwap[];
 };
 
 /**
