@@ -530,6 +530,11 @@ const CATEGORY_EMOJI: Record<Category, string> = {
  */
 const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   potato: { fr: ["patates"], en: ["spuds"] },
+  // "clove" measures garlic and names a spice, so it is no stopword (see `STOPWORDS_EN`): the
+  // garlic phrasings are spelled out here, where the word garlic is what tells the two apart.
+  // "clove of garlic" also covers "1 clove garlic" — both reduce to `clove garlic`.
+  garlic: { en: ["garlic clove", "clove of garlic"] },
+  cloves: { en: ["ground cloves"] },
   "sweet-potato": { fr: ["patate douce"] },
   // "passata" alone scored 0.70 as one word of the English name, below the bar, and the ranker
   // then linked it to the tin of chopped tomatoes sitting next to it in the candidate list.
@@ -545,6 +550,13 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   mushroom: { fr: ["champignons", "champignon de paris"] },
   cilantro: { fr: ["coriandre"] },
   "creme-fraiche": { fr: ["crème"] },
+  // The plain word for milk, in both languages, on the carton France buys most. Unaliased, "milk"
+  // tied every two-word milk at 0.70 and the index put oat, almond and coconut milk first.
+  "milk-semi-skimmed": { fr: ["lait", "lait UHT"], en: ["milk"] },
+  // Sold only as a powder or ground, so the bare word means the one row there is. Unaliased, the
+  // row's own "en poudre" or "moulu" counts as a word nobody typed, and the bare word fell to 0.70.
+  "cocoa-powder": { fr: ["cacao"], en: ["cocoa"] },
+  "coffee-ground": { fr: ["café"], en: ["coffee"] },
   "heavy-cream": { fr: ["crème liquide", "crème entière", "crème liquide entière"] },
   "ground-beef-80-20": { fr: ["viande hachée", "steak haché"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },

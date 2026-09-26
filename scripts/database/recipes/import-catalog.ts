@@ -20,7 +20,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { internal } from "@convex/_generated/api";
 
 import { candidatesFor, classifyPages, parseRecipePage, recipeSitemapsOf, recipeUrlsOf } from "./_lib/bbcGoodFood";
-import { connectAdmin } from "./_lib/convexAdmin";
+import { connectAdmin } from "../_lib/convexAdmin";
 import {
   ASKED_CUISINES,
   avoidFor,

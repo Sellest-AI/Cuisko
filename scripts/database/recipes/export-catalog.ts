@@ -21,11 +21,11 @@ import {
   imageFilesOf,
   localizeImages,
   packArchive,
-  uniqueFolder,
   withoutImages,
 } from "./_lib/archive";
-import { connectAdmin } from "./_lib/convexAdmin";
-import { downloadImage } from "./_lib/downloadImage";
+import { connectAdmin } from "../_lib/convexAdmin";
+import { uniqueFolder } from "../_lib/folders";
+import { downloadImage } from "../_lib/downloadImage";
 
 const PAGE_SIZE = 20;
 

@@ -115,17 +115,14 @@ describe("functions/ingredients/lookup/taxonomy", () => {
   });
 
   /**
-   * ⚠️ A tie the cost cannot break, pinned here because the right answer is knowable and the thing
-   * currently holding it is not a rule. `thé` folds to the English stopword `the`, so `thé vert`
-   * reduces to the bare `vert` at cost 1 — and so does the E143 synonym `Vert 1724`, whose number
-   * costs exactly as much. The tea wins only because it sits earlier in the upstream file (3374
-   * against 5127, and 3113 against 4826 for the black).
+   * A tea and a dye, pinned because they used to share a key. `thé` folded to the English stopword
+   * `the`, so `thé vert` reduced to the bare `vert` — which is also what the E143 synonym
+   * `Vert 1724` reduces to — and the tea held the key only by sitting earlier in the upstream file.
    *
-   * Counting the number is what created that tie, and it was worth creating: before it the dye cost
-   * 0 and won outright, so a French shopper asking for green tea reached a colouring with no CIQUAL
-   * code at all. But a tie is not a rule, and this one is not the genuine ambiguity that `pâte`
-   * against `pâtes` is — a tea and a dye have a right answer. A regeneration of the OFF data that
-   * reorders these two would restore the bug in silence, so it fails here instead.
+   * The English stopwords are now tested before the accents come off (`STOPWORDS_EN` in
+   * `@shared/ingredientMatch`), so the tea keys as `the vert` and the dye never competes for it.
+   * The test stays because the failure it guards is silent: a shopper asking for green tea reaching
+   * a colouring with no CIQUAL code at all.
    */
   test.each([
     ["thé vert", "en:green-tea", "18155"],

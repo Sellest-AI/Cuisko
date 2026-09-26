@@ -1,6 +1,7 @@
 import type { PaginationOptions, PaginationResult } from "convex/server";
 
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import { imagePairOf } from "@convex/functions/media/imageTree";
 import type { QueryCtx } from "@convex/procedures";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
@@ -21,27 +22,6 @@ const _coverOf = async (ctx: ExportCtx, coverImageId?: Id<"images">) => {
   const cover = coverImageId ? await ctx.db.get(coverImageId) : null;
 
   return cover ? { url: cover.url } : undefined;
-};
-
-/**
- * The plate cut-out with the base render it was cut from and where it sits on it.
- *
- * `generateImages` uploads the plate as an object on its base, so the pair is one `imageObjects`
- * row away. A plate with no such row cannot be rebuilt by the restore, which uploads the base first
- * and cuts the plate from it, so it is exported as no plate rather than as half of one.
- */
-const _plateOf = async (ctx: ExportCtx, plateImageId?: Id<"images">) => {
-  const plate = plateImageId ? await ctx.db.get(plateImageId) : null;
-  if (!plate) return undefined;
-
-  const object = await ctx.db
-    .query("imageObjects")
-    .withIndex("by_image_id", (q) => q.eq("imageId", plate._id))
-    .first();
-  const base = object ? await ctx.db.get(object.baseImageId) : null;
-  if (!object || !base) return undefined;
-
-  return { url: plate.url, base: { url: base.url }, x: object.x, y: object.y };
 };
 
 /**
@@ -76,7 +56,7 @@ const _portableRecipeOf = async (ctx: ExportCtx, recipe: Doc<"recipes">): Promis
     origin: { recipeId: _id, creationTime: _creationTime },
     row,
     ingredients: await _ingredientsOf(ctx, _id),
-    images: { cover: await _coverOf(ctx, coverImageId), plate: await _plateOf(ctx, plateImageId) },
+    images: { cover: await _coverOf(ctx, coverImageId), plate: await imagePairOf(ctx, plateImageId) },
   };
 };
 

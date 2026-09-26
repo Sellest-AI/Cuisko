@@ -48,6 +48,10 @@ cuisko/
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
 ├── scripts/              Everything run outside the app.
 │   ├── checks/          C1–C15 architectural checks + the `_lib.mjs` they share.
+│   ├── database/        Scripts that talk to a deployment through a deploy key.
+│   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
+│   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
+│   │   └── recipes/     `catalog:import` / `catalog:export` / `catalog:restore` (README inside).
 │   └── images/          Hand-run asset preparation (compress, sanitize).
 ├── .githooks/            pre-commit (verify + branch name), pre-merge-commit (the same, on a merge), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).

@@ -14,11 +14,10 @@
  * rather than the exporting deployment's URL: the restore reads the bytes from beside the recipe,
  * and they do not die with the source bucket.
  */
-import path from "node:path";
-
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
+
+import { imageFileNameOf, slugOf } from "../../_lib/folders";
+import { openZip, zipNameOf, zipOf } from "../../_lib/zip";
 
 export const MANIFEST_FILE = "catalog.json";
 export const RECIPE_FILE = "recipe.json";
@@ -38,47 +37,16 @@ export type ImageFile = { file: string; url: string };
 type ImageRole = "cover" | "plate" | "plate-base";
 
 /**
- * The folder a recipe is written to: its title, lower-cased, accents folded, anything but letters
- * and digits turned into one dash. "Tarte aux pommes" becomes `tarte-aux-pommes`.
- *
- * The two ligatures French titles use are spelled out first: NFD leaves them whole, so "bœuf"
- * would otherwise lose its vowel.
+ * The folder a recipe is written to: its title as a slug (`slugOf`). "Tarte aux pommes" becomes
+ * `tarte-aux-pommes`.
  *
  * Two recipes can share a title, so the caller keeps the folders apart with `uniqueFolder`.
  */
-export const folderOf = (recipe: PortableRecipe): string => {
-  const title = recipe.row.title.values.fr ?? recipe.row.title.values.en ?? "recipe";
-  const slug = title
-    .replace(/œ/gi, "oe")
-    .replace(/æ/gi, "ae")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+export const folderOf = (recipe: PortableRecipe): string =>
+  slugOf(recipe.row.title.values.fr ?? recipe.row.title.values.en ?? "recipe") || "recipe";
 
-  return slug || "recipe";
-};
-
-/** `folder`, or `folder-2`, `folder-3`… when `taken` already holds it. */
-export const uniqueFolder = (folder: string, taken: ReadonlySet<string>): string => {
-  if (!taken.has(folder)) return folder;
-
-  let n = 2;
-  while (taken.has(`${folder}-${n}`)) n++;
-
-  return `${folder}-${n}`;
-};
-
-/**
- * The file name of image `role`: `plate-base.webp`.
- *
- * The extension is the source file's, read from its URL, so the file opens on the computer it is
- * extracted to. A URL with none gets none; the restore uploads bytes, and the upload reads the
- * format from them, not from the name.
- */
-export const imageFileOf = (role: ImageRole, url: string): string =>
-  `${role}${path.posix.extname(new URL(url).pathname)}`;
+/** The file name of image `role`: `plate-base.webp`, the extension read from its URL. */
+export const imageFileOf = (role: ImageRole, url: string): string => imageFileNameOf(role, url);
 
 /**
  * The recipe with every image URL rewritten to its file name in `folder`, and the downloads that
@@ -145,24 +113,17 @@ export const withoutImages = (recipe: PortableRecipe, missing: readonly string[]
 
 /**
  * The zip bytes: the manifest, each recipe's `recipe.json` in its folder, and every image at the
- * path `localizeImages` gave it.
- *
- * Images are stored, not deflated (`level: 0`): they are already compressed, and deflating them
- * again costs time for nothing. The JSON is text, and is.
+ * path `localizeImages` gave it (`zipOf`).
  */
 export const packArchive = (
   manifest: CatalogManifest,
   recipes: Record<string, PortableRecipe>,
   images: Record<string, Uint8Array>,
 ): Uint8Array => {
-  const json = (value: unknown) => strToU8(`${JSON.stringify(value, null, 2)}\n`);
-  const entries: Record<string, [Uint8Array, { level: 0 | 6 }]> = {
-    [MANIFEST_FILE]: [json(manifest), { level: 6 }],
-  };
-  for (const [folder, recipe] of Object.entries(recipes)) entries[`${folder}/${RECIPE_FILE}`] = [json(recipe), { level: 6 }];
-  for (const [file, bytes] of Object.entries(images)) entries[file] = [bytes, { level: 0 }];
+  const json: Record<string, unknown> = { [MANIFEST_FILE]: manifest };
+  for (const [folder, recipe] of Object.entries(recipes)) json[`${folder}/${RECIPE_FILE}`] = recipe;
 
-  return zipSync(entries);
+  return zipOf(json, images);
 };
 
 export type UnpackedRecipe = {
@@ -180,41 +141,25 @@ export type UnpackedRecipe = {
  * server validates each one against `vPortableRecipe` on the way in, and a recipe edited by hand
  * into something else is refused there, by name, rather than twice.
  *
- * A folder the manifest names with no `recipe.json` throws: the zip was edited by hand, and a
- * restore should stop rather than restore part of what was asked.
+ * A folder the manifest names with no `recipe.json` throws (`openZip`).
  */
 export const unpackArchive = (bytes: Uint8Array): { manifest: CatalogManifest; recipes: UnpackedRecipe[] } => {
-  const entries = unzipSync(bytes);
-  const json = (file: string): unknown => {
-    const entry = entries[file];
-    if (!entry) throw new Error(`${file} is not in the zip`);
+  const zip = openZip(bytes);
 
-    return JSON.parse(strFromU8(entry));
-  };
-
-  const manifest = json(MANIFEST_FILE) as Partial<CatalogManifest>;
+  const manifest = zip.json(MANIFEST_FILE) as Partial<CatalogManifest>;
   if (manifest.version !== 1 || typeof manifest.deployment !== "string" || !Array.isArray(manifest.recipes)) {
     throw new Error(`${MANIFEST_FILE} is not a catalog manifest`);
   }
 
   const recipes = manifest.recipes.map((folder): UnpackedRecipe => ({
     folder,
-    recipe: json(`${folder}/${RECIPE_FILE}`) as PortableRecipe,
-    bytesOf: (file) => {
-      const entry = entries[`${folder}/${file}`];
-      if (!entry) throw new Error(`${folder}/${file} is not in the zip`);
-
-      return entry;
-    },
+    recipe: zip.json(`${folder}/${RECIPE_FILE}`) as PortableRecipe,
+    bytesOf: (file) => zip.bytes(`${folder}/${file}`),
   }));
 
   return { manifest: manifest as CatalogManifest, recipes };
 };
 
-/**
- * The zip's file name: `catalog-dev-happy-otter-123-2026-09-21.zip`.
- *
- * The deployment's colon becomes a dash, because a colon is not allowed in a Windows file name.
- */
+/** The zip's file name: `catalog-dev-happy-otter-123-2026-09-21.zip`. */
 export const archiveNameOf = (deployment: string, exportedAt: string): string =>
-  `catalog-${deployment.replace(":", "-")}-${exportedAt.slice(0, 10)}.zip`;
+  zipNameOf("catalog", deployment, exportedAt);

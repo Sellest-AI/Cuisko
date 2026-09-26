@@ -127,6 +127,15 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["citron jaune", "lemon"],
     ["persil plat", "parsley"],
     ["crème liquide entière", "heavy-cream"],
+    // Plain "lait" is the carton France buys most, not whichever milk the index returned first.
+    ["lait", "milk-semi-skimmed"],
+    ["lait UHT", "milk-semi-skimmed"],
+    ["lait entier", "milk-whole"],
+    // Sold only as a powder or ground, so the bare word names the one row the catalog holds.
+    ["cacao", "cocoa-powder"],
+    ["café", "coffee-ground"],
+    ["origan", "oregano-fresh"],
+    ["gros sel", "salt"],
   ])("%s links to %s", async (name, slug) => {
     expect(await linked(name)).toBe(slug);
   });
@@ -138,6 +147,17 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["fresh tomatoes", "tomato"],
     ["chicken breast", "chicken-breast"],
     ["dark chocolate", "dark-chocolate"],
+    // The same row as French "lait", so a recipe's "milk" and a shopper's "lait" are one grocery line.
+    ["milk", "milk-semi-skimmed"],
+    ["whole milk", "milk-whole"],
+    ["soy milk", "soy-milk"],
+    // "clove" measures garlic and names a spice; only the word garlic tells the two apart.
+    ["2 garlic cloves", "garlic"],
+    ["3 cloves of garlic", "garlic"],
+    ["ground cloves", "cloves"],
+    ["cocoa", "cocoa-powder"],
+    ["coffee", "coffee-ground"],
+    ["curry", "curry-powder"],
   ])("%s links to %s in English", async (name, slug) => {
     expect(await linked(name, "en")).toBe(slug);
   });
