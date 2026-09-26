@@ -10,7 +10,6 @@ import {
   imageFilesOf,
   localizeImages,
   packArchive,
-  uniqueFolder,
   unpackArchive,
   withoutImages,
 } from "../archive";
@@ -52,14 +51,6 @@ describe("folderOf", () => {
     expect(folderOf(english)).toBe("apple-pie");
 
     expect(folderOf(recipe("???"))).toBe("recipe");
-  });
-});
-
-describe("uniqueFolder", () => {
-  it("numbers a folder already taken", () => {
-    expect(uniqueFolder("tarte", new Set())).toBe("tarte");
-    expect(uniqueFolder("tarte", new Set(["tarte"]))).toBe("tarte-2");
-    expect(uniqueFolder("tarte", new Set(["tarte", "tarte-2"]))).toBe("tarte-3");
   });
 });
 

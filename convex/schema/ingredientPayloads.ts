@@ -9,10 +9,11 @@
  * the `ingredients` table forces a look at it.
  */
 
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
 import { everyLocale, vLocale, vLocalizedList, vTranslationStatus } from "./i18n";
 import {
+  ingredients,
   vAllergen,
   vCategory,
   vDiet,
@@ -80,3 +81,52 @@ export const vIngredientFacts = v.object({
   openedShelfLifeDays: v.optional(v.number()),
   nutrition: vNutritionFacts,
 });
+
+/**
+ * The `ingredients` columns a portable ingredient carries: every one but the id, and the three a
+ * restore derives rather than writes.
+ *
+ * Taken from the table's own validator rather than restated, so a column added to `ingredients` is
+ * exported the day it is added. `imageId` is replaced by `image` below, which spells the rows it
+ * points at. `search` and `nutriScore` are left out because `ingredientRow` derives both (ADR 0011),
+ * and `updatedAt` because the restore stamps its own.
+ */
+const {
+  imageId: _imageId,
+  search: _search,
+  nutriScore: _nutriScore,
+  updatedAt: _updatedAt,
+  ...portableRowFields
+} = ingredients.validator.fields;
+
+/**
+ * One ingredient as `ingredients:export` writes it and `ingredients:restore` reads it: the row,
+ * and its image spelled as URLs rather than as an id.
+ *
+ * The image is the pair `generateImageNode` uploads: the cut-out, the base render it was cut from,
+ * and the offset it sits at, which is what `uploadMany` takes to rebuild the pair. On the server
+ * the URLs are the exporting deployment's; the export script downloads the bytes into the
+ * ingredient's folder in the zip and rewrites each URL to the file's name there.
+ */
+export const vPortableIngredient = v.object({
+  /**
+   * Where the ingredient came from. A string rather than `v.id("ingredients")`: it is an id of the
+   * EXPORTING deployment, which a `v.id` validator on the restore's arguments would reject.
+   */
+  origin: v.object({ ingredientId: v.string(), creationTime: v.number() }),
+  row: v.object(portableRowFields),
+  image: v.optional(
+    v.object({ url: v.string(), base: v.object({ url: v.string() }), x: v.number(), y: v.number() }),
+  ),
+});
+
+export type PortableIngredient = Infer<typeof vPortableIngredient>;
+
+/**
+ * A portable ingredient's image files as the restore receives them: the bytes, base64, of the
+ * cut-out and of its base render. Both or nothing, because the cut-out is uploaded as an object on
+ * the base and half of the pair is no image.
+ */
+export const vRestoredIngredientImage = v.optional(v.object({ image: v.string(), base: v.string() }));
+
+export type RestoredIngredientImage = Infer<typeof vRestoredIngredientImage>;

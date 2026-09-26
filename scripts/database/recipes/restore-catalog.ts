@@ -20,7 +20,7 @@ import type { RestoredRecipe } from "@convex/functions/recipes/restoreRecipe";
 import type { RestoredPhotos } from "@convex/schema/recipePayloads";
 
 import { type UnpackedRecipe, unpackArchive } from "./_lib/archive";
-import { connectAdmin } from "./_lib/convexAdmin";
+import { connectAdmin } from "../_lib/convexAdmin";
 import { readLedger, recordImport, writeLedger } from "./_lib/ledger";
 
 const LEDGER_FILE = path.join(__dirname, "catalog.ledger.json");

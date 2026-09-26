@@ -6,7 +6,7 @@ import { computeNutriScore } from "@shared/nutrition";
 import { searchTextOf } from "@shared/search";
 
 import { CATALOG } from "../ingredientCatalog";
-import { ingredientRow } from "../ingredientRow";
+import { ingredientRow, restoredIngredientRow } from "../ingredientRow";
 
 /** The catalog's flat `en`/`fr` pair in the locale-keyed shape the sanitizer takes. */
 const factsOf = (entry: (typeof CATALOG)[number]) => {
@@ -224,7 +224,8 @@ describe("functions/ingredients/ingredientRow", () => {
     const row = ingredientRow(
       {
         ...factsOf(CATALOG[0]!),
-        sourceLocale: "en",
+        // Not `DEFAULT_LOCALE`, which a restore that recovered nothing would fall back to.
+        sourceLocale: "fr",
         names: {
           fr: { value: "carotte", status: "edited" },
           en: { value: "carrot", status: "machine" },
@@ -248,5 +249,48 @@ describe("functions/ingredients/ingredientRow", () => {
 
     expect(row.nutriScore).toEqual(computeNutriScore(vegetable.nutrition, 100));
     expect(row.nutriScore).not.toEqual(computeNutriScore(vegetable.nutrition, 0));
+  });
+});
+
+/** The row as `ingredients:export` ships it: everything but the columns a restore derives. */
+const exported = ({ search: _search, nutriScore: _nutriScore, ...row }: ReturnType<typeof ingredientRow>) => row;
+
+describe("functions/ingredients/restoredIngredientRow", () => {
+  /** Across the whole catalog for the reason the ADR 0011 guard above is: one bad row has no symptom. */
+  test("gives back every seeded row exactly as it was built", () => {
+    for (const entry of CATALOG.filter((each) => each.diet)) {
+      const row = ingredientRow(factsOf(entry), "seed");
+
+      expect(restoredIngredientRow(exported(row))).toEqual(row);
+    }
+  });
+
+  /**
+   * A name the model rendered is hashed against the name it was rendered FROM, which the row does
+   * not store. Recovered from the hash, the restored row keeps its derivation the right way round.
+   */
+  test("recovers the language a machine name was rendered from", () => {
+    const [entry] = CATALOG.filter((each) => each.diet);
+    const row = ingredientRow(
+      {
+        ...factsOf(entry!),
+        names: { fr: { value: "Chocolat Lindt", status: "machine" }, en: { value: "Lindt chocolate", status: "machine" } },
+        // Not `DEFAULT_LOCALE`, which a restore that recovered nothing would fall back to.
+        sourceLocale: "fr",
+      },
+      "agent",
+    );
+
+    expect(restoredIngredientRow(exported(row)).name).toEqual(row.name);
+  });
+
+  test("refuses a row missing a fact it would otherwise have to guess", () => {
+    const [entry] = CATALOG.filter((each) => each.diet);
+    const row = exported(ingredientRow(factsOf(entry!), "seed"));
+
+    expect(() => restoredIngredientRow({ ...row, allergens: undefined })).toThrow(`${entry!.fr} has no allergens`);
+    expect(() => restoredIngredientRow({ ...row, nutrition: { ...row.nutrition, sugars: undefined } })).toThrow(
+      "has no sugars",
+    );
   });
 });

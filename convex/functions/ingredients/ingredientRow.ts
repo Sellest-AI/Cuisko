@@ -7,6 +7,7 @@ import {
   type LocalizedList,
   type TranslationStatus,
 } from "@convex/schema/i18n";
+import type { PortableIngredient } from "@convex/schema/ingredientPayloads";
 import type { Allergen } from "@shared/allergens";
 import type { Category } from "@shared/categories";
 import type { Diet } from "@shared/diets";
@@ -223,6 +224,58 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
     ),
     source,
   };
+};
+
+/**
+ * A row exported from another deployment (`ingredients:export`), rebuilt for this one — through
+ * `ingredientRow`, so `search` and `nutriScore` are derived here as on every other path (ADR 0011)
+ * and the exported ones, which the export leaves out anyway, are never trusted.
+ *
+ * Every fact is written as exported, each name with its exported status. The one thing read back
+ * rather than known is **the pivot** a `machine` name was rendered from: it is not stored, but its
+ * hash is, so the locale whose own value hashes to that `sourceHash` becomes `sourceLocale`.
+ *
+ * **Throws on a row `ingredientRow` could not have written** — a name, `diet`, `allergens`,
+ * `source` or a Nutri-Score input missing. Every writer sets them all today, so such a row was
+ * edited by hand or predates the column, and guessing the gap is how a recipe gets a confident
+ * `vegan` nobody checked. The restore reports it and goes on.
+ */
+export const restoredIngredientRow = (row: PortableIngredient["row"]): IngredientRow => {
+  const { name, aliases, diet, allergens, source, nutrition, ...facts } = row;
+  const need = <T,>(fact: T | undefined, field: string): T => {
+    if (fact === undefined) throw new Error(`${name.values.fr ?? name.values.en ?? row.slug} has no ${field}`);
+
+    return fact;
+  };
+
+  const names = LOCALES.map((locale) => ({
+    locale,
+    value: need(name.values[locale], `name.${locale}`),
+    meta: need(name.meta[locale], `name.${locale} status`),
+  }));
+  const renderedFrom = names.find(({ meta }) => meta.status === "machine")?.meta.sourceHash;
+  const sourceLocale = names.find(({ value }) => hashText(value) === renderedFrom)?.locale;
+
+  return ingredientRow(
+    {
+      ...facts,
+      names: Object.fromEntries(
+        names.map(({ locale, value, meta }) => [locale, { value, status: meta.status }]),
+      ) as IngredientFacts["names"],
+      sourceLocale,
+      aliases: aliases ?? {},
+      diet: need(diet, "diet"),
+      allergens: need(allergens, "allergens"),
+      nutrition: {
+        ...nutrition,
+        saturatedFat: need(nutrition.saturatedFat, "saturatedFat"),
+        sugars: need(nutrition.sugars, "sugars"),
+        fiber: need(nutrition.fiber, "fiber"),
+        sodium: need(nutrition.sodium, "sodium"),
+      },
+    },
+    need(source, "source"),
+  );
 };
 
 /**
