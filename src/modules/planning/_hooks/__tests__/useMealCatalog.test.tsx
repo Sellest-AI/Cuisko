@@ -15,6 +15,7 @@ type Card = { id: string; title: string; coverImageUrl?: string; plateImageUrl?:
 const state = vi.hoisted(() => ({
   list: { recipes: [] as Card[], isSearching: false, isLoading: false, isStale: false },
   pinned: { recipe: undefined as Card | undefined },
+  ideas: [] as Card[],
   asked: [] as { query: string; pinned: string | undefined }[],
 }));
 
@@ -31,6 +32,11 @@ vi.mock("~/modules/recipes/hooks", () => ({
   },
 }));
 
+/** The week's picks, set per test like the list — the hook reads only `ideas`. */
+vi.mock("../useWeekIdeas", () => ({
+  useWeekIdeas: () => ({ ideas: state.ideas, isLoading: false }),
+}));
+
 const card = (id: string, images: Pick<Card, "coverImageUrl" | "plateImageUrl"> = {}): Card => ({
   id, title: `Plat ${id}`, ...images,
 });
@@ -38,6 +44,7 @@ const card = (id: string, images: Pick<Card, "coverImageUrl" | "plateImageUrl"> 
 beforeEach(() => {
   state.list = { recipes: [card("a"), card("b")], isSearching: false, isLoading: false, isStale: false };
   state.pinned = { recipe: undefined };
+  state.ideas = [];
   state.asked = [];
 });
 
@@ -100,6 +107,34 @@ describe("useMealCatalog", () => {
     it("steps aside while a term narrows the grid", () => {
       state.list = { ...state.list, isSearching: true };
       const { result } = renderHook(() => useMealCatalog("soupe", undefined, alternatives));
+
+      expect(result.current.recipes.map((choice) => choice.id)).toEqual(["a", "b"]);
+    });
+  });
+
+  describe("week ideas", () => {
+    it("follow the cook's own recipes, each recipe once", () => {
+      state.pinned = { recipe: card("z") };
+      state.ideas = [card("i1", { coverImageUrl: "i1.png" }), card("a"), card("z"), card("i2")];
+      const { result } = renderHook(() => useMealCatalog("", "z", [{ id: "x", title: "Plat x" }]));
+
+      expect(result.current.recipes.map((choice) => choice.id)).toEqual(["z", "x", "a", "b", "i1", "i2"]);
+      expect(result.current.recipes[4]!.imageSrc).toEqual({ uri: "i1.png" });
+    });
+
+    /** A library with nothing in it yet still offers the week's picks rather than an empty grid. */
+    it("fill the grid alone when the cook has no recipes", () => {
+      state.list.recipes = [];
+      state.ideas = [card("i1"), card("i2")];
+      const { result } = catalog("");
+
+      expect(result.current.recipes.map((choice) => choice.id)).toEqual(["i1", "i2"]);
+    });
+
+    it("step aside while a term narrows the grid", () => {
+      state.list = { ...state.list, isSearching: true };
+      state.ideas = [card("i1")];
+      const { result } = catalog("soupe");
 
       expect(result.current.recipes.map((choice) => choice.id)).toEqual(["a", "b"]);
     });

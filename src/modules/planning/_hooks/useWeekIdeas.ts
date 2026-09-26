@@ -16,8 +16,11 @@ export type WeekIdea = {
   coverImageUrl?: string;
 };
 
+/** One identity for "none yet", so the meal sheet's grid does not rebuild on every render while the query is pending. */
+const NO_IDEAS: WeekIdea[] = [];
+
 /**
- * The home shelf's picks for this week.
+ * The week's picks: the home shelf, and the tail of the meal sheet's grid (`useMealCatalog`).
  *
  * The key is the device's local Monday, computed once per mount: a screen left open across
  * midnight on Sunday keeps its shelf until it is next opened, which is the quiet rotation the
@@ -35,7 +38,7 @@ export const useWeekIdeas = (): { ideas: WeekIdea[]; isLoading: boolean } => {
   );
 
   return {
-    ideas: data ?? [],
+    ideas: data ?? NO_IDEAS,
     /** A signed-in user whose household has not resolved is loading, not householdless. */
     isLoading: isResolvingHousehold || (!!householdId && isPending),
   };

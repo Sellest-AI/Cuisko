@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useRecipe, useRecipeList } from "~/modules/recipes/hooks";
 
 import type { ImageSource } from "../_model/model";
+import { useWeekIdeas } from "./useWeekIdeas";
 
 /** One tile of the meal sheet's grid: a dish that could go on the plate. */
 export type MealChoice = {
@@ -23,7 +24,8 @@ const _imageOf = (recipe: { plateImageUrl?: string; coverImageUrl?: string }): I
 
 /**
  * The dishes the meal sheet offers: the one already on the plate first, then the plate's
- * alternatives, then the cook's own library — or, under a term, what it narrows the catalog to.
+ * alternatives, then the cook's own library, then the week's ideas — or, under a term, what it
+ * narrows the catalog to.
  *
  * **The grid is the recipes page's grid.** `useRecipeList` is what decides whether an empty box
  * shows the cook's own recipes or a term's ranked matches, and the ranking — own first, the cook's
@@ -44,11 +46,18 @@ const _imageOf = (recipe: { plateImageUrl?: string; coverImageUrl?: string }): I
  * a generated plate was ranked with, handed in already ranked; a term means the cook wants
  * something else, so the matches stand alone. Keyed on `isSearching` rather than on the raw text,
  * so they leave exactly when the grid turns into matches and not a debounce earlier. Each recipe
- * is drawn once: the pinned tile wins, then the alternative, then the list.
+ * is drawn once: the pinned tile wins, then the alternative, then the list, then the idea.
+ *
+ * **The week's ideas close the grid on the same terms.** They are the home shelf's picks
+ * (`useWeekIdeas`, the same cached query), so a cook with a thin library still has somewhere to
+ * go, and the dish they saw on Home is the one they find here. They come last because the cook's
+ * own recipes are the ones they chose to keep, and they leave under a term for the same reason
+ * alternatives do. They land when their query does, at the end, so nothing ahead of them moves.
  */
 export const useMealCatalog = (query: string, pinnedRecipeId?: string, alternatives: MealChoice[] = NO_ALTERNATIVES) => {
   const list = useRecipeList(query);
   const pinned = useRecipe(pinnedRecipeId);
+  const { ideas } = useWeekIdeas();
 
   const recipes = useMemo((): MealChoice[] => {
     const head: MealChoice[] = [
@@ -59,6 +68,7 @@ export const useMealCatalog = (query: string, pinnedRecipeId?: string, alternati
     const choices = [
       ...head,
       ...list.recipes.map((recipe) => ({ id: recipe.id, title: recipe.title, imageSrc: _imageOf(recipe) })),
+      ...(list.isSearching ? [] : ideas.map((idea) => ({ id: idea.id, title: idea.title, imageSrc: _imageOf(idea) }))),
     ];
 
     return choices.filter((choice) => {
@@ -67,7 +77,7 @@ export const useMealCatalog = (query: string, pinnedRecipeId?: string, alternati
 
       return true;
     });
-  }, [list.recipes, list.isSearching, pinned.recipe, alternatives]);
+  }, [list.recipes, list.isSearching, pinned.recipe, alternatives, ideas]);
 
   return {
     recipes,
