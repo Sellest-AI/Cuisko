@@ -38,7 +38,6 @@ export const Message = ({ from = "user", style, content, children, markdown }: P
         <View style={[
           styles.message,
           isUser ? styles.userMessage : styles.assistantMessage,
-          isUser && styles.elevated,
         ]}>
           {markdown ? (
             <Markdown content={content} color={theme.colors.foreground} />
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     borderRadius: theme.radius.md,
     borderBottomRightRadius: theme.radius.xs,
-    backgroundColor: theme.colors.surface.elevated,
+    backgroundColor: theme.colors.neutral.subtle,
   },
   assistantMessage: {
     alignSelf: "flex-start",
@@ -74,16 +73,5 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: theme.radius.xs,
     backgroundColor: "transparent",
     flexShrink: 1,
-  },
-  elevated: {
-    boxShadow: [
-      {
-        offsetX: 0,
-        offsetY: 1,
-        blurRadius: 16,
-        spreadDistance: 0,
-        color: "rgba(0, 0, 0, 0.07)",
-      },
-    ],
   }
 })
