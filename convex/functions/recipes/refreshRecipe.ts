@@ -1,0 +1,81 @@
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import type { MutationCtx } from "@convex/procedures";
+import { LOCALES } from "@convex/schema/i18n";
+import { AUTHORED_TAGS, type AuthoredTag, type Tag } from "@shared/tags";
+
+import { deriveRecipeFields } from "./deriveRecipeFields";
+import { recipeSearchText } from "./recipeSearchText";
+
+const _isAuthored = (tag: Tag): tag is AuthoredTag => (AUTHORED_TAGS as readonly Tag[]).includes(tag);
+
+/**
+ * Whether the stored lines are every line the recipe had.
+ *
+ * `position` is the line's index in the recipe as it was written, and a line the resolver refused
+ * at import is never stored — so it leaves a hole in the numbering, and the hole is the only trace
+ * of it anywhere. Nothing else deletes a single line: an edit rewrites them all, renumbered.
+ *
+ * @limitation A refused LAST line leaves no hole, and a recipe missing only that line reads as
+ * whole. Closing it means storing the recipe's line count, which no writer does yet.
+ */
+const _isWhole = (lines: Doc<"recipeIngredients">[]): boolean => {
+  const positions = new Set(lines.map((line) => line.position));
+
+  return lines.length > 0 && positions.size === lines.length && Math.max(...positions) === lines.length - 1;
+};
+
+const _sameTags = (a: readonly Tag[], b: readonly Tag[]) =>
+  a.length === b.length && a.every((tag, index) => tag === b[index]);
+
+/**
+ * Rewrites what a recipe stores that is derived from its lines — the calculated tags, the six
+ * facets and `search` — from its lines and the catalog as they are now. Nutrition is not stored,
+ * so it has nothing to refresh.
+ *
+ * The tags somebody chose (`main`, `comfort-food`…) are kept, and only the calculated ones are
+ * replaced: stored `tags` holds both kinds, and they are told apart by vocabulary.
+ *
+ * **A recipe missing a line is left exactly as it is**, tags AND search. Its tags would be refused
+ * anyway (`computeTags` claims nothing from a subset), and its `search` is the only place the
+ * dropped line's words survive — Katsudon's "tonkatsu" — which a rebuild from the stored lines
+ * would erase.
+ *
+ * Writes only when something changed, so running it twice in a row writes nothing the second time.
+ * Returns whether it wrote, and whether the recipe was whole — `refreshed: false` alone cannot tell
+ * "already current" from "skipped for a missing line", and a caller reporting to a person must.
+ */
+export const refreshRecipe = async (
+  ctx: MutationCtx,
+  recipeId: Id<"recipes">,
+): Promise<{ refreshed: boolean; whole: boolean }> => {
+  const recipe = await ctx.db.get(recipeId);
+  if (!recipe) throw new Error(`refreshRecipe: recipe ${recipeId} does not exist.`);
+
+  const lines = await ctx.db
+    .query("recipeIngredients")
+    .withIndex("by_recipe", (q) => q.eq("recipeId", recipeId))
+    .collect();
+
+  if (!_isWhole(lines)) return { refreshed: false, whole: false };
+
+  const links = lines.map(({ ingredientId, position, quantity, unit }) => ({ ingredientId, position, quantity, unit }));
+
+  const { tags, facets } = await deriveRecipeFields(ctx, {
+    tags: recipe.tags.filter(_isAuthored),
+    servings: recipe.servings,
+    links,
+    lineCount: lines.length,
+  });
+
+  // ADR 0011: the serializer is called HERE, where `search` is assigned. No names: the model's
+  // spelling of each line was never stored, and each linked row's own blob carries its words.
+  const search = await recipeSearchText(ctx, { ingredientIds: links.map((link) => link.ingredientId), names: [] });
+
+  const unchanged =
+    _sameTags(tags, recipe.tags) && LOCALES.every((locale) => search[locale] === recipe.search[locale]);
+  if (unchanged) return { refreshed: false, whole: true };
+
+  await ctx.db.patch(recipeId, { tags, ...facets, search, updatedAt: Date.now() });
+
+  return { refreshed: true, whole: true };
+};

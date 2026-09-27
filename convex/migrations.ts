@@ -1,9 +1,12 @@
 import { Migrations } from "@convex-dev/migrations";
+import { v } from "convex/values";
 
 import { components, internal } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
 import { skipAt } from "./functions/planning/skipMeal";
+import { refreshRecipe } from "./functions/recipes/refreshRecipe";
 import { randomShuffleKey } from "./lib/nanoid";
+import { internalMutation } from "./procedures";
 
 export const migrations = new Migrations<DataModel>(components.migrations);
 
@@ -133,6 +136,41 @@ export const scheduleSkips = migrations.define({
     if (plate.status !== "planned") return;
 
     await ctx.scheduler.runAt(skipAt(plate.date), internal.router.planning.skipOne._internal, { mealId: plate._id });
+  },
+});
+
+/**
+ * Brings every recipe's calculated tags, facets and `search` up to date with its lines and the
+ * catalog as they are now — after a re-seed, a catalog row gaining its diet, or `replaceInRecipes`.
+ *
+ * Not a one-off like the migrations above: it is meant to be run again every time the catalog
+ * changes, which is why it is only reached through `runRefreshRecipes`. Idempotent — a recipe
+ * already current is not written — and `refreshRecipe` leaves a recipe missing a line untouched.
+ */
+export const refreshRecipes = migrations.define({
+  table: "recipes",
+  migrateOne: async (ctx, recipe) => {
+    await refreshRecipe(ctx, recipe._id);
+  },
+});
+
+/**
+ * `npx convex run migrations:runRefreshRecipes` — or the same from the dashboard.
+ *
+ * Always from the first recipe. The component records a finished migration and a plain second
+ * run does nothing, so a refresh started without `reset` would report success having refreshed
+ * nothing. `dryRun: true` runs one batch and commits nothing, to see what would change.
+ *
+ * Returns nothing: the batches run after this returns, so any status it could hand back would be
+ * the first instant's. Progress is `npx convex run --component migrations lib:getStatus`.
+ */
+export const runRefreshRecipes = internalMutation({
+  args: { dryRun: v.optional(v.boolean()) },
+  returns: v.null(),
+  handler: async (ctx, { dryRun }) => {
+    await migrations.runOne(ctx, internal.migrations.refreshRecipes, { reset: true, dryRun });
+
+    return null;
   },
 });
 

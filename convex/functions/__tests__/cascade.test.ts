@@ -174,6 +174,17 @@ describe("cascadeDelete", () => {
       expect(await scheduledDeletions()).toEqual([coverImageId, plateImageId]);
     });
 
+    test("queues a deleted ingredient's photo for deletion", async () => {
+      const imageId = await insertImage("onion.webp");
+      const ingredientId = await insertIngredient();
+      await t.run((ctx) => ctx.db.patch(ingredientId, { imageId }));
+
+      await t.run((ctx) => cascadeDelete(ctx, "ingredients", ingredientId));
+
+      expect(await t.run((ctx) => ctx.db.get(ingredientId))).toBeNull();
+      expect(await scheduledDeletions()).toEqual([imageId]);
+    });
+
     test("schedules nothing for a recipe with no photos", async () => {
       const recipeId = await insertRecipe();
 
