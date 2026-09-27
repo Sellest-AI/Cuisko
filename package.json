@@ -2,6 +2,7 @@
   "name": "cuisko",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "main": "expo-router/entry",
   "packageManager": "pnpm@11.20.0",
   "scripts": {

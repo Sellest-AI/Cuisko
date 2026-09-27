@@ -2,6 +2,10 @@ name: CI
 
 on: [push, pull_request]
 
+# The repo is public, so anyone can open a pull request that runs this job. It only reads.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
