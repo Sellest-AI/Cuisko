@@ -583,7 +583,13 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   paprika: { fr: ["paprika doux"] },
   salt: { fr: ["fleur de sel", "gros sel", "sel fin"] },
   "mustard-yellow": { fr: ["moutarde de dijon"] },
-  "chicken-broth": { fr: ["bouillon de volaille"] },
+  // A British recipe says "stock" where this row says "broth". Without these, "chicken stock"
+  // scored 0.45 here and was linked to a stock CUBE the import had invented.
+  "chicken-broth": { fr: ["bouillon de volaille", "bouillon de poule"], en: ["chicken stock"] },
+  "vegetable-broth": { en: ["vegetable stock"] },
+  "beef-broth": { en: ["beef stock"] },
+  // "tomato ketchup" tied Ketchup and Tomato at 0.5, and the tie went to the tomato.
+  ketchup: { en: ["tomato ketchup"] },
   lemon: { fr: ["citron jaune"] },
   parsley: { fr: ["persil plat"] },
   couscous: { fr: ["semoule"] },
@@ -598,7 +604,10 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   // A recipe writing "de la salade" means leaves, and the catalog's only leaves are these.
   "lettuce-romaine": { fr: ["salade", "salade verte"] },
   "spring-onion": { fr: ["oignon nouveau", "cébette", "ciboule"] },
-  "bouillon-cube": { fr: ["bouillon cube", "tablette de bouillon"] },
+  "bouillon-cube": {
+    fr: ["bouillon cube", "tablette de bouillon", "cube de bouillon de volaille"],
+    en: ["stock cube"],
+  },
   "curry-powder": { fr: ["curry"] },
   hummus: { en: ["houmous"] },
   "raisins-dried": { fr: ["raisin sec"] },
@@ -648,21 +657,36 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   "bell-pepper-green": 150, "cherry-tomato": 10, "spring-onion": 15, "chili-green": 15,
   "bell-pepper-yellow": 150, "onion-red": 150, celeriac: 800, jalapeno: 15, "bok-choy": 150,
   // Sold by weight, written by the piece — "un morceau de gingembre", "2 bâtons de citronnelle".
-  "ginger-fresh": 15, lemongrass: 20, "preserved-lemon": 40,
+  "ginger-fresh": 15, lemongrass: 20, "preserved-lemon": 40, carrot: 80, potato: 170,
+  "sweet-potato": 250, cauliflower: 600, broccoli: 350, radish: 10, "brussels-sprouts": 15,
+  mushroom: 20, asparagus: 20, "butternut-squash": 1000, pumpkin: 1200,
+  // A stalk, not the head — "2 branches de céleri", the way `garlic` is a clove.
+  celery: 40,
   // Fruits
   apple: 180, banana: 120, orange: 130, lemon: 100, lime: 65, cantaloupe: 550, pineapple: 900,
   mango: 200, kiwi: 75, peach: 150, pear: 180, plum: 65, apricot: 40, fig: 50, pomegranate: 280,
-  grapefruit: 250, avocado: 200, clementine: 70, "prunes-dried": 10,
+  grapefruit: 250, avocado: 200, clementine: 70, "prunes-dried": 10, strawberry: 15, cherry: 8,
   // Grains, meat, dairy, egg
   baguette: 250, "tortilla-wrap": 60, "tortilla-corn": 30, "pizza-dough": 250, "puff-pastry": 230,
   "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
   "flavoured-yogurt": 125, "egg-whole": 50, "egg-yolk": 17, camembert: 250,
+  "chicken-breast": 150, "duck-breast": 350, "pork-chop": 180, "sausage-pork": 80, "egg-noodles": 50,
+  // Bone-in, so edible weight like the birds below: ~170 g as sold, ~120 g off the bone.
+  "chicken-thigh": 120,
+  // Fish and seafood — a raw peeled prawn, a whole fresh sardine
+  shrimp: 15, sardines: 50,
+  // One of them out of the packet or the jar — a nori sheet, an olive.
+  nori: 3, "olives-black": 4,
   // Whole birds — meat and skin off the carcass, per the note above, not the weight on the label.
   "chicken-whole": 1000, "duck-whole": 1000, "turkey-whole": 3000,
   // A cube, as every recipe that calls for one means, and as the box is portioned.
   "bouillon-cube": 10,
   // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
   "bay-leaf": 0.2,
+  // A sprig, as "2 brins de thym" means — sold by the bunch, and nobody counts bunches. A recipe
+  // counting basil or sage in LEAVES is read as sprigs too: a gram either way.
+  thyme: 1, rosemary: 2, basil: 2, parsley: 2, cilantro: 2, mint: 1, "oregano-fresh": 1, dill: 1,
+  tarragon: 1, sage: 1, chives: 0.5,
 };
 
 /**
@@ -702,6 +726,15 @@ const GRAMS_PER_SLICE: Record<string, number> = {
  * The dry values are for the loose, unsifted, unpacked state a cook actually spoons — flour packs
  * from 0.53 to 0.7 depending on how it is scooped, which is the built-in imprecision of measuring
  * a solid by volume and not something a second decimal here would fix.
+ *
+ * `mussels` is in its shell, as "1 litre de moules" is bought: 0.75, about half of it shell.
+ *
+ * @limitation A shellfish line counts its shell as meat. 1 L of mussels weighs 750 g and is totalled
+ * as 750 g of the row's per-100 g figures, which are for the meat alone. **Accepted because** a
+ * density of the meat only would make "1 l" and "750 g" of the same purchase disagree, and a line
+ * in grams already counts the shell, since mass units never read the row. **The fix** is an edible
+ * share on the ingredient row, applied by `toGrams` to every unit. The `mussels` row's figures are
+ * also for COOKED meat (172 kcal against ~86 raw), which doubles the error again.
  */
 const GRAMS_PER_ML: Record<string, number> = {
   // Dairy
@@ -716,6 +749,10 @@ const GRAMS_PER_ML: Record<string, number> = {
   salt: 1.2, "soy-sauce": 1.15, "vinegar-white": 1.01, "balsamic-vinegar": 1.1, "hot-sauce": 1.05,
   "worcestershire-sauce": 1.1, ketchup: 1.14, "mustard-yellow": 1.05, mayonnaise: 0.91,
   "tomato-paste": 1.07, "peanut-butter": 1.08, capers: 0.85, "olives-green": 0.75, "olives-black": 0.75,
+  harissa: 1.05, pesto: 1, mascarpone: 1, hummus: 1.05, "preserved-lemon": 0.9, ghee: 0.91,
+  lemongrass: 0.5,
+  // Grated or chopped fresh, spooned loose — "1 tsp of grated ginger", "2 tbsp of parmesan".
+  "ginger-fresh": 0.5, parmesan: 0.35,
   // Sweeteners
   "white-sugar": 0.85, "brown-sugar": 0.8, "powdered-sugar": 0.56, "vanilla-sugar": 0.85, honey: 1.42,
   "maple-syrup": 1.32, "agave-syrup": 1.37,
@@ -723,9 +760,10 @@ const GRAMS_PER_ML: Record<string, number> = {
   "flour-all-purpose": 0.53, "whole-wheat-flour": 0.55, cornstarch: 0.6, cornmeal: 0.65,
   polenta: 0.65, breadcrumbs: 0.4, oats: 0.4, "cocoa-powder": 0.5, "baking-powder": 0.92,
   "baking-soda": 1.2, "dry-yeast": 0.75, gelatin: 0.8,
-  // Seeds
+  // Seeds, nuts and pulses, spooned dry
   "chia-seeds": 0.65, "flax-seeds": 0.6, "sesame-seeds": 0.6, "poppy-seeds": 0.6,
-  "sunflower-seeds": 0.55, "pumpkin-seeds": 0.55, "hemp-seeds": 0.5,
+  "sunflower-seeds": 0.55, "pumpkin-seeds": 0.55, "hemp-seeds": 0.5, "pine-nuts": 0.6,
+  "almonds-flaked": 0.4, peas: 0.6, "lentils-red": 0.8,
   // Ground spices, and the two dried herbs that behave like them
   "black-pepper": 0.45, cinnamon: 0.45, cumin: 0.45, paprika: 0.46, turmeric: 0.5,
   "ginger-ground": 0.5, nutmeg: 0.5, "chili-powder": 0.5, "cayenne-pepper": 0.5,
@@ -743,6 +781,8 @@ const GRAMS_PER_ML: Record<string, number> = {
   "hoisin-sauce": 1.2, "miso-paste": 1.2, "curry-paste-red": 1.1, "orange-blossom-water": 1,
   "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "tomato-sauce": 1.05, "white-wine": 0.99,
   "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
+  // Shellfish by the litre, in the shell — see the limitation above.
+  mussels: 0.75,
 };
 
 /**

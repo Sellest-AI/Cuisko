@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { toGrams } from "@shared/ingredients";
+import type { Category } from "@shared/categories";
+import { type RecipeUnit, toGrams } from "@shared/ingredients";
 
 import { CATALOG } from "../ingredientCatalog";
 
@@ -46,6 +47,48 @@ describe("catalog weights", () => {
     expect(toGrams(3, "pcs", bySlug("egg-whole"))).toBe(150);
     // A clove, not a head — the one row where `pcs` had to pick a side.
     expect(toGrams(2, "pcs", bySlug("garlic"))).toBe(10);
+  });
+
+  /**
+   * A recipe writes a food in the unit a COOK uses, whatever the shop sells it by: "2 carottes"
+   * of a row sold by the kilo, "1 tsp of harissa" of one sold by the jar. A row that cannot weigh
+   * that unit costs every recipe using it its nutrition — "2 carottes" alone blanked 24.
+   *
+   * So the rule is over the whole catalog, by category, and a row added tomorrow is held to it
+   * the day it lands. What a category rules in is decided here; what it rules out is named in the
+   * exemptions with the reason, so leaving a row unweighed is a choice someone reviewed.
+   */
+  const LEAVES = "leaves, with no single one to count";
+  const HANDFUL = "counted by the handful or the punnet, never one at a time";
+
+  test.each<{ unit: RecipeUnit; categories: Category[]; exempt: Record<string, string> }>([
+    {
+      unit: "pcs",
+      categories: ["VEGETABLE", "FRUIT", "HERB"],
+      exempt: {
+        spinach: LEAVES, kale: LEAVES, chard: LEAVES, arugula: LEAVES, "lambs-lettuce": LEAVES,
+        "bean-sprouts": HANDFUL, "green-beans": HANDFUL, peas: HANDFUL, blueberry: HANDFUL,
+        raspberry: HANDFUL, blackberry: HANDFUL, grape: HANDFUL, "raisins-dried": HANDFUL,
+        "corn-sweet": "kernels from a tin; a cob would be a row of its own",
+        watermelon: "bought whole and written by the slice or in grams, never as one",
+        "coconut-fresh": "the shell and water outweigh the flesh, so a piece weight would lie",
+        "lemon-juice": "a liquid",
+      },
+    },
+    {
+      unit: "tsp",
+      categories: ["SPICE", "HERB", "SEED", "CONDIMENT", "SWEETENER", "OIL"],
+      exempt: { "bay-leaf": "counted by the leaf, never spooned" },
+    },
+  ])("every $categories row can be weighed in $unit", ({ unit, categories, exempt }) => {
+    const inScope = CATALOG.filter((entry) => categories.includes(entry.category));
+    const unweighable = inScope.filter((entry) => toGrams(1, unit, entry) === undefined);
+
+    expect(
+      unweighable.filter((entry) => !(entry.slug in exempt)).map((entry) => `${entry.slug} (${entry.category})`),
+    ).toEqual([]);
+    // An exemption for a row that is gone, out of scope, or weighable after all is a stale reason.
+    expect(Object.keys(exempt).filter((slug) => !unweighable.some((entry) => entry.slug === slug))).toEqual([]);
   });
 });
 

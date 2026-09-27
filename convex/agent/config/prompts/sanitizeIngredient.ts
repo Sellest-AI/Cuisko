@@ -142,14 +142,16 @@ Not translations — those are the names above. Three or four is plenty; an empt
 
 - defaultUnit: exactly one of: ${_list(UNITS)} — the unit a recipe writes this ingredient in.
   "tbsp" and "tsp" are the metric tablespoon and teaspoon, 15 ml and 5 ml. "pcs" is a countable
-  single thing as the shop hands it over (an onion, a clove of garlic, a bay leaf, a loaf). Nothing
-  is stocked by the slice: a recipe that counts slices is weighed through gramsPerSlice below. Pick
-  what a cook would write, not what converts most neatly.
+  single thing as a recipe counts it (an onion, a clove of garlic, a bay leaf, a loaf, a sprig of
+  thyme). Nothing is stocked by the slice: a recipe that counts slices is weighed through
+  gramsPerSlice below. Pick what a cook would write, not what converts most neatly.
 - defaultQuantity: how much of it one recipe line typically calls for, in that unit.
 - gramsPerPiece: what ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove, 80
   for a carrot, 120 for a chicken thigh. Give it for anything a recipe could COUNT, even when you
-  chose "g" as the unit: a recipe says "2 carrots" as readily as "200 g of carrots". Leave it out
-  only for something that has no single one of it (flour, oil, milk).
+  chose "g" as the unit: a recipe says "2 carrots" as readily as "200 g of carrots". A fresh herb
+  is counted by the SPRIG — "2 sprigs of rosemary" — so its piece is one sprig, 1 for thyme and 2
+  for rosemary, never the bunch it is sold in. Leave it out only for something that has no single
+  one of it (flour, oil, milk).
 - gramsPerSlice: what ONE SLICE of it weighs, in grams — 35 for a slice of baguette, 30 for a
   slice of cheese, 20 for a slice of ham, 10 for a round of lemon. Give it for anything sold whole
   and eaten cut, whatever unit you chose: a recipe says "8 slices of bread" as readily as "1
@@ -166,6 +168,10 @@ Not translations — those are the names above. Three or four is plenty; an empt
   for this row is written in its own unit, which is named to you when there is one, and the row is
   refused if it cannot weigh that unit. "pcs" needs gramsPerPiece; "slice" needs gramsPerSlice; a
   volume ("ml", "cl", "l", "tbsp", "tsp") needs gramsPerMl.
+- A PIECE is what is eaten off it: 120 for a chicken thigh is the meat, not the bone. A VOLUME is
+  what is bought, shell included: mussels by the litre are 0.75 g/ml although half of that is
+  shell, because "750 g of mussels" counts the shell too and the two ways of writing the same
+  purchase must weigh the same.
 
 # How long it keeps
 
@@ -184,9 +190,13 @@ figure matters more than a precise one.
 
 # nutrition, per 100g
 
-All nine, as a laboratory would report them for the raw ingredient as sold: calories in kcal,
-protein / fat / saturatedFat / carbohydrates / sugars / fiber in grams, sodium and iron in
-MILLIGRAMS.
+All nine, as a laboratory would report them for the raw ingredient, the part that is eaten:
+calories in kcal, protein / fat / saturatedFat / carbohydrates / sugars / fiber in grams, sodium
+and iron in MILLIGRAMS.
+
+RAW is the word people slip on with shellfish: tables often list mussels, clams and prawns cooked,
+and cooked mussel meat is 172 kcal where raw is 86. Write the raw figure, for the part that is
+eaten.
 
 Sodium is the one people get wrong twice over: it is milligrams, not grams, and it is sodium, not
 salt — salt is 2.5x sodium, so 1 g of salt per 100 g is 400, not 1000 and not 1.
