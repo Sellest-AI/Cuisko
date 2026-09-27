@@ -158,8 +158,8 @@ const ROWS: Row[] = [
   ["coconut-fresh", "Coconut", "Noix de coco", "FRUIT", "g", 200, 354, 3.3, 33, 29.7, 15, 6.2, 9, 20],
 
   // ── Grains ──────────────────────────────────────────────────────────────────────────────
-  ["white-rice", "White rice", "Riz blanc", "GRAIN", "g", 500, 130, 2.7, 0.3, 0.1, 28, 0.1, 0.4, 1],
-  ["brown-rice", "Brown rice", "Riz complet", "GRAIN", "g", 500, 123, 2.6, 1, 0.2, 26, 0.4, 1.6, 4],
+  ["white-rice", "White rice", "Riz blanc", "GRAIN", "g", 500, 352, 7, 0.9, 0.2, 78, 0.2, 1, 2],
+  ["brown-rice", "Brown rice", "Riz complet", "GRAIN", "g", 500, 350, 7, 2.8, 0.6, 71.4, 0.7, 5, 4],
   ["pasta-dry", "Pasta", "Pâtes", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
   ["whole-wheat-pasta", "Whole wheat pasta", "Pâtes complètes", "GRAIN", "g", 500, 348, 14.6, 2.5, 0.5, 71, 3, 10.7, 7],
   ["flour-all-purpose", "All-purpose flour", "Farine blanche", "GRAIN", "g", 1000, 364, 10.3, 1, 0.2, 76, 0.3, 2.7, 2],
@@ -194,20 +194,20 @@ const ROWS: Row[] = [
   ["granola", "Granola", "Granola", "GRAIN", "g", 500, 471, 10, 20, 3.2, 61, 20, 7, 26],
 
   // ── Meat ────────────────────────────────────────────────────────────────────────────────
-  ["chicken-breast", "Chicken breast", "Blanc de poulet", "MEAT", "g", 400, 165, 31, 3.6, 1, 0, 0, 0, 74],
-  ["chicken-thigh", "Chicken thigh", "Cuisse de poulet", "MEAT", "g", 400, 209, 26, 10.9, 3.1, 0, 0, 0, 90],
+  ["chicken-breast", "Chicken breast", "Blanc de poulet", "MEAT", "g", 400, 110, 23.4, 1.5, 0.4, 0, 0, 0, 43],
+  ["chicken-thigh", "Chicken leg", "Cuisse de poulet", "MEAT", "g", 400, 192, 17.3, 13.5, 3.9, 0, 0, 0, 86],
   ["ground-beef-80-20", "Ground beef (80/20)", "Bœuf haché (80/20)", "MEAT", "g", 500, 254, 17, 20, 7.8, 0, 0, 0, 66],
-  ["beef-steak-sirloin", "Sirloin steak", "Bavette de bœuf", "MEAT", "g", 300, 183, 27, 7.4, 2.9, 0, 0, 0, 56],
-  ["pork-chop", "Pork chop", "Côte de porc", "MEAT", "g", 300, 231, 25, 14, 5, 0, 0, 0, 62],
-  ["pork-loin", "Pork loin", "Filet mignon de porc", "MEAT", "g", 400, 143, 26, 3.5, 1.2, 0, 0, 0, 54],
-  ["bacon", "Bacon", "Lard fumé", "MEAT", "g", 200, 541, 37, 42, 14, 1.4, 0, 0, 1717],
+  ["beef-steak-sirloin", "Flank steak", "Bavette de bœuf", "MEAT", "g", 300, 133, 20.4, 5.7, 2.2, 0, 0, 0, 34],
+  ["pork-chop", "Pork chop", "Côte de porc", "MEAT", "g", 300, 164, 19.8, 9.3, 3.8, 0.4, 0, 0, 49],
+  ["pork-loin", "Pork loin", "Filet mignon de porc", "MEAT", "g", 400, 123, 21.2, 4.1, 1.7, 0.4, 0, 0, 44],
+  ["bacon", "Bacon", "Lard fumé", "MEAT", "g", 200, 303, 15.6, 26.1, 9.4, 0.8, 0.8, 1, 956],
   ["ham", "Ham", "Jambon", "MEAT", "g", 150, 145, 21, 5.5, 1.8, 1.5, 1.4, 0, 1203],
-  ["ground-turkey", "Ground turkey", "Dinde hachée", "MEAT", "g", 500, 189, 20, 12, 3.2, 0, 0, 0, 79],
-  ["turkey-breast", "Turkey breast", "Blanc de dinde", "MEAT", "g", 400, 135, 30, 1, 0.3, 0, 0, 0, 55],
-  ["lamb", "Lamb", "Agneau", "MEAT", "g", 400, 294, 25, 21, 9, 0, 0, 0, 72],
+  ["ground-turkey", "Ground turkey", "Dinde hachée", "MEAT", "g", 500, 148, 19.7, 7.7, 2, 0, 0, 0, 58],
+  ["turkey-breast", "Turkey breast", "Blanc de dinde", "MEAT", "g", 400, 109, 24.1, 1.2, 0.3, 0.5, 0.3, 0, 83],
+  ["lamb", "Lamb", "Agneau", "MEAT", "g", 400, 170, 18.3, 10.6, 3.9, 0.5, 0, 0, 79],
   ["duck-breast", "Duck breast", "Magret de canard", "MEAT", "g", 300, 337, 19, 28, 9.7, 0, 0, 0, 74],
   ["sausage-pork", "Pork sausage", "Saucisse de porc", "MEAT", "g", 300, 296, 12, 27, 9.5, 2, 0, 0, 850],
-  ["veal", "Veal", "Veau", "MEAT", "g", 400, 172, 26, 7, 2.7, 0, 0, 0, 88],
+  ["veal", "Veal", "Veau", "MEAT", "g", 400, 124, 20.7, 4.6, 1.6, 0, 0, 0, 61],
   ["beef-ground-90-10", "Lean ground beef (90/10)", "Bœuf haché maigre (90/10)", "MEAT", "g", 500, 176, 20, 10, 4, 0, 0, 0, 66],
   ["chicken-slices", "Sliced cooked chicken", "Blanc de poulet en tranches", "MEAT", "pcs", 4, 111, 21, 2.5, 0.7, 1.2, 0.6, 0, 900],
   ["turkey-slices", "Sliced cooked turkey", "Blanc de dinde en tranches", "MEAT", "pcs", 4, 104, 19, 1.8, 0.5, 2.5, 1.3, 0, 1010],
@@ -216,19 +216,19 @@ const ROWS: Row[] = [
   ["chorizo", "Chorizo", "Chorizo", "MEAT", "g", 150, 455, 24, 38, 14, 1.9, 0.5, 0, 1235],
   ["merguez", "Merguez", "Merguez", "MEAT", "pcs", 6, 314, 15, 28, 11, 1, 0.5, 0, 900],
   ["lardons", "Bacon lardons", "Lardons", "MEAT", "g", 200, 285, 16, 24, 9.5, 0.5, 0, 0, 1400],
-  ["chicken-wings", "Chicken wings", "Ailes de poulet", "MEAT", "g", 500, 203, 30, 8.1, 2.3, 0, 0, 0, 82],
-  ["rabbit", "Rabbit", "Lapin", "MEAT", "g", 500, 173, 33, 3.5, 1, 0, 0, 0, 47],
-  ["beef-roast", "Beef roast", "Rôti de bœuf", "MEAT", "g", 700, 195, 27, 9, 3.5, 0, 0, 0, 55],
+  ["chicken-wings", "Chicken wings", "Ailes de poulet", "MEAT", "g", 500, 181, 20.4, 11, 3, 0, 0, 0, 86],
+  ["rabbit", "Rabbit", "Lapin", "MEAT", "g", 500, 189, 20.4, 11.6, 4.7, 0.7, 0, 0, 56],
+  ["beef-roast", "Beef roast", "Rôti de bœuf", "MEAT", "g", 700, 125, 23.4, 3.5, 1.2, 0, 0, 0, 55],
   ["lamb-leg", "Leg of lamb", "Gigot d'agneau", "MEAT", "g", 1500, 230, 18, 17, 7.5, 0, 0, 0, 65],
   ["pork-roast", "Pork roast", "Rôti de porc", "MEAT", "g", 1000, 190, 21, 11, 4, 0, 0, 0, 60],
   ["chicken-whole", "Whole chicken", "Poulet entier", "MEAT", "pcs", 1, 215, 18.6, 15.1, 4.3, 0, 0, 0, 70],
   ["duck-whole", "Whole duck", "Canard entier", "MEAT", "pcs", 1, 404, 11.5, 39.3, 13.2, 0, 0, 0, 59],
-  ["turkey-whole", "Whole turkey", "Dinde entière", "MEAT", "pcs", 1, 160, 21.9, 7.4, 2.1, 0, 0, 0, 65],
+  ["turkey-whole", "Whole turkey", "Dinde entière", "MEAT", "pcs", 1, 144, 21.6, 5.6, 1.5, 0.1, 0.1, 0, 112],
 
   // ── Seafood ─────────────────────────────────────────────────────────────────────────────
   ["salmon", "Salmon", "Saumon", "SEAFOOD", "g", 300, 208, 20, 13, 3.1, 0, 0, 0, 59],
   ["tuna-canned-water", "Canned tuna (in water)", "Thon en boîte (au naturel)", "SEAFOOD", "g", 150, 116, 26, 0.8, 0.2, 0, 0, 0, 247],
-  ["shrimp", "Shrimp", "Crevette", "SEAFOOD", "g", 300, 99, 24, 0.3, 0.1, 0.2, 0, 0, 111],
+  ["shrimp", "Shrimp", "Crevette", "SEAFOOD", "g", 300, 85, 20.1, 0.5, 0.1, 0, 0, 0, 119],
   ["cod", "Cod", "Cabillaud", "SEAFOOD", "g", 300, 82, 18, 0.7, 0.1, 0, 0, 0, 54],
   ["tilapia", "Tilapia", "Tilapia", "SEAFOOD", "g", 300, 96, 20, 1.7, 0.6, 0, 0, 0, 52],
   ["sardines", "Sardines", "Sardines", "SEAFOOD", "g", 150, 208, 25, 11, 1.5, 0, 0, 0, 307],
@@ -278,7 +278,7 @@ const ROWS: Row[] = [
   ["butter-salted", "Salted butter", "Beurre demi-sel", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 570],
 
   // ── Eggs ────────────────────────────────────────────────────────────────────────────────
-  ["egg-whole", "Egg", "Œuf", "EGG", "pcs", 6, 155, 13, 11, 3.3, 1.1, 1.1, 0, 124],
+  ["egg-whole", "Egg", "Œuf", "EGG", "pcs", 6, 143, 12.6, 9.5, 3.1, 0.7, 0.4, 0, 142],
   ["egg-white", "Egg white", "Blanc d'œuf", "EGG", "g", 100, 52, 11, 0.2, 0, 0.7, 0.7, 0, 166],
   ["egg-yolk", "Egg yolk", "Jaune d'œuf", "EGG", "pcs", 6, 322, 15.9, 26.5, 9.6, 3.6, 0.6, 0, 48],
 
@@ -286,13 +286,13 @@ const ROWS: Row[] = [
   ["black-beans", "Black beans", "Haricots noirs", "LEGUME", "g", 400, 132, 8.9, 0.5, 0.1, 24, 0.3, 8.7, 1],
   ["kidney-beans", "Kidney beans", "Haricots rouges", "LEGUME", "g", 400, 127, 8.7, 0.5, 0.1, 23, 0.3, 6.4, 1],
   ["chickpeas", "Chickpeas", "Pois chiches", "LEGUME", "g", 400, 164, 8.9, 2.6, 0.3, 27, 4.8, 7.6, 7],
-  ["lentils-red", "Red lentils", "Lentilles corail", "LEGUME", "g", 400, 116, 9, 0.4, 0.1, 20, 1.8, 7.9, 2],
-  ["lentils-green", "Green lentils", "Lentilles vertes", "LEGUME", "g", 400, 116, 9, 0.4, 0.1, 20, 1.8, 7.9, 2],
+  ["lentils-red", "Red lentils", "Lentilles corail", "LEGUME", "g", 400, 328, 27.7, 0.8, 0.1, 44.9, 1.3, 15.4, 2],
+  ["lentils-green", "Green lentils", "Lentilles vertes", "LEGUME", "g", 400, 327, 25.1, 1.8, 0.2, 44.5, 1.1, 16.4, 2],
   ["white-beans-cannellini", "Cannellini beans", "Haricots blancs", "LEGUME", "g", 400, 139, 9.7, 0.4, 0.1, 25, 0.3, 6.3, 2],
   ["pinto-beans", "Pinto beans", "Haricots pinto", "LEGUME", "g", 400, 143, 9, 0.7, 0.1, 26, 0.3, 9, 1],
-  ["split-peas", "Split peas", "Pois cassés", "LEGUME", "g", 400, 118, 8.3, 0.4, 0.1, 21, 3.8, 8.3, 2],
+  ["split-peas", "Split peas", "Pois cassés", "LEGUME", "g", 400, 344, 22.8, 1.4, 0.2, 52, 2.8, 15.8, 15],
   ["edamame", "Edamame", "Edamame", "LEGUME", "g", 300, 121, 11, 5, 0.6, 10, 2.2, 5.2, 6],
-  ["soybeans", "Soybeans", "Graines de soja", "LEGUME", "g", 300, 173, 16.6, 9, 1.3, 10, 3, 6, 15],
+  ["soybeans", "Soybeans", "Graines de soja", "LEGUME", "g", 300, 432, 34.5, 19.2, 2.7, 20.8, 7.3, 13, 3],
 
   // ── Nuts ────────────────────────────────────────────────────────────────────────────────
   ["almonds", "Almonds", "Amandes", "NUT", "g", 150, 579, 21, 50, 3.8, 22, 4.4, 12.5, 1],
@@ -570,6 +570,10 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "ground-beef-80-20": { fr: ["viande hachée", "steak haché"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },
   "chicken-breast": { fr: ["blanc de poulet", "escalope de poulet"] },
+  // The whole leg, as France sells a cuisse; English recipes buy the same piece as a thigh.
+  "chicken-thigh": { en: ["chicken thigh"] },
+  // The slug predates the row's cut: it is the French bavette, flank, never a sirloin.
+  "beef-steak-sirloin": { fr: ["bavette"], en: ["bavette"] },
   // Not bare "poulet": a line reading "500 g de poulet" means pieces, and belongs on a part row.
   "chicken-whole": { fr: ["poulet fermier"] },
   "egg-whole": { fr: ["oeufs", "œufs"] },
@@ -678,8 +682,9 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
   "flavoured-yogurt": 125, "egg-whole": 50, "egg-yolk": 17, camembert: 250,
   "chicken-breast": 150, "duck-breast": 350, "pork-chop": 180, "sausage-pork": 80, "egg-noodles": 50,
-  // Bone-in, as sold: ~120 g of it comes off the bone (see `EDIBLE_SHARE`).
-  "chicken-thigh": 170,
+  // The whole leg, thigh and drumstick, as a French "cuisse" is sold: ~175 g of it comes off the
+  // bone (see `EDIBLE_SHARE`).
+  "chicken-thigh": 250,
   // Fish and seafood — a raw peeled prawn, a whole fresh sardine
   shrimp: 15, sardines: 50,
   // One of them out of the packet or the jar — a nori sheet, an olive.

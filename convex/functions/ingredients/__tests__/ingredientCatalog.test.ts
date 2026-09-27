@@ -122,6 +122,31 @@ describe("catalog edible shares", () => {
   });
 });
 
+describe("catalog nutrition", () => {
+  /**
+   * A grain or a pulse that keeps three months once opened is sold dry, and a recipe weighs it dry:
+   * "200 g de riz" is 200 g out of the packet. Every dry grain and pulse is above 300 kcal per
+   * 100 g, and every cooked one is well under 200, so a row below the bar took the reference's
+   * boiled entry and counts a dish of it at a third of its calories. A tin, a loaf or fresh pasta
+   * keeps days once opened and is left out, since the form it is sold in is the cooked one.
+   *
+   * `edamame` keeps as long because it is frozen, blanched in the pod, which is the form it is
+   * bought and weighed in.
+   */
+  test("a grain or pulse sold dry carries its dry figures", () => {
+    const soldCooked = new Set(["edamame"]);
+    const boiled = CATALOG.filter(
+      (entry) =>
+        (entry.category === "GRAIN" || entry.category === "LEGUME") &&
+        entry.openedShelfLifeDays! >= 90 &&
+        !soldCooked.has(entry.slug) &&
+        entry.nutrition.calories < 300,
+    );
+
+    expect(boiled.map((entry) => entry.slug)).toEqual([]);
+  });
+});
+
 describe("catalog shelf life", () => {
   /**
    * Total over the catalog, because an undated purchase is read as "not urgent": a row missing

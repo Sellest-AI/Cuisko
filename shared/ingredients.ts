@@ -250,7 +250,7 @@ export const pickQuantity = (
  * `ingredients` table, passed structurally so this file never has to reach for a `Doc`.
  */
 export type GramWeights = {
-  /** Grams in one of them as sold: 150 for an onion, 250 for a baguette, 170 for a bone-in thigh. */
+  /** Grams in one of them as sold: 150 for an onion, 250 for a baguette, 250 for a chicken leg. */
   gramsPerPiece?: number;
   /** Grams in one slice of it: 35 for that baguette. Only for what is sold whole and eaten cut. */
   gramsPerSlice?: number;

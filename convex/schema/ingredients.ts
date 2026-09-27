@@ -182,7 +182,7 @@ export const ingredients = defineTable({
    * and "2 onions" or "1 tbsp of oil" cannot get there on arithmetic alone. **Every weight is AS
    * SOLD**, bone and shell included, because the shopping list buys the whole thing; `edibleShare`
    * below is what takes nutrition down to the part that is eaten. `gramsPerPiece` weighs a single
-   * one (150 for an onion, 250 for a baguette, 170 for a bone-in thigh); `gramsPerMl` is the
+   * one (150 for an onion, 250 for a baguette, 250 for a bone-in chicken leg); `gramsPerMl` is the
    * density, and it is the difference between oil at 0.91 and honey at 1.42 — assuming 1.0
    * understates honey by 40%. `gramsPerSlice` weighs one slice of something sold whole and eaten cut (35 for a slice of
    * that baguette): a recipe counts slices, the shop sells the loaf, and one ratio cannot answer
