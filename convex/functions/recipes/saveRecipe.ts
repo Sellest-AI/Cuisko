@@ -49,7 +49,12 @@ export const saveRecipe = async (
   ctx: MutationCtx,
   { userId, locale, recipe, links, sourceUrl }: Args,
 ) => {
-  const { tags } = await deriveRecipeFields(ctx, { recipe, links });
+  const { tags } = await deriveRecipeFields(ctx, {
+    tags: recipe.tags,
+    servings: recipe.servings,
+    links,
+    lineCount: recipe.ingredients.length,
+  });
 
   return insertRecipe(ctx, {
     recipe: {

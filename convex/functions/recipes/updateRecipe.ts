@@ -144,7 +144,8 @@ export const updateRecipe = async (
   // count it answers for is their own and not the edited recipe's — holding three old links against
   // a four-line edit reads as an unresolved line and wipes every tag.
   const { tags, facets } = await deriveRecipeFields(ctx, {
-    recipe: { ...recipe, servings },
+    tags: recipe.tags,
+    servings,
     links: resolved,
     lineCount: complete ? recipe.ingredients.length : resolved.length,
   });

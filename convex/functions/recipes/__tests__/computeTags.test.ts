@@ -32,7 +32,11 @@ const catalog = (
   // `null` and not `undefined`: an explicit `undefined` would take the default and silently give
   // the row a weight, which is the one thing the "cannot be weighed" test needs it not to have.
   gramsPerPiece: number | null = 100,
-  { diet = "vegan", allergens = [] }: { diet?: Diet | null; allergens?: Allergen[] | null } = {},
+  {
+    diet = "vegan",
+    allergens = [],
+    edibleShare,
+  }: { diet?: Diet | null; allergens?: Allergen[] | null; edibleShare?: number } = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("ingredients", {
@@ -45,6 +49,7 @@ const catalog = (
       defaultUnit: "pcs",
       defaultQuantity: 1,
       ...(gramsPerPiece !== null && { gramsPerPiece }),
+      ...(edibleShare !== undefined && { edibleShare }),
       nutrition,
       updatedAt: Date.now(),
     }),
@@ -246,6 +251,19 @@ describe("functions/recipes/computeTags", () => {
 
       expect(await compute([line(rich)], 1, 1)).not.toContain("low-calorie");
       expect(await compute([line(rich)], 1, 2)).toContain("low-calorie");
+    });
+
+    /**
+     * The shells are bought, not eaten. A tag read off the as-bought weight would deny a dish of
+     * mussels a claim the plate earns, so the tags count the same eaten grams the figures do.
+     */
+    test("decides the tags on the share of each line that is eaten", async () => {
+      const rich = { calories: 700, protein: 5, fat: 20, carbohydrates: 100 };
+      const whole = await catalog("GRAIN", rich);
+      const halfEaten = await catalog("GRAIN", rich, 100, { edibleShare: 0.5 });
+
+      expect(await compute([line(whole)])).not.toContain("low-calorie");
+      expect(await compute([line(halfEaten)])).toContain("low-calorie");
     });
 
     /**

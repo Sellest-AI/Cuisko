@@ -680,3 +680,31 @@ describe("toSanitizedIngredient shelf life", () => {
       .toMatchObject({ openedShelfLifeDays: 3 });
   });
 });
+
+/**
+ * Absent is the whole of it, which is what every row counted before the share existed, so a share
+ * the model did not give or gave wrong costs a row nothing but the shells it keeps counting. Losing
+ * a correct row's allergens over it would be the wrong trade, as it is for a shelf life.
+ */
+describe("toSanitizedIngredient edible share", () => {
+  const _kept = (share: unknown) => _new(_answer({ facts: _facts({ edibleShare: share }) }));
+
+  it("carries a stated share to the row", () => {
+    expect(_kept(0.4).edibleShare).toBe(0.4);
+  });
+
+  it("writes the whole of it as absent, its one spelling", () => {
+    expect(_kept(1).edibleShare).toBeUndefined();
+    expect(_kept(null).edibleShare).toBeUndefined();
+    expect(_kept(undefined).edibleShare).toBeUndefined();
+  });
+
+  it("drops a share outside (0, 1], and keeps the row", () => {
+    for (const share of [0, -0.3, 1.5, 40]) {
+      const facts = _kept(share);
+
+      expect(facts.edibleShare, String(share)).toBeUndefined();
+      expect(facts.names.en.value).toBe("carrot");
+    }
+  });
+});

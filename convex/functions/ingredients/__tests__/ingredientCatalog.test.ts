@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { Category } from "@shared/categories";
 import { type RecipeUnit, toGrams } from "@shared/ingredients";
 
-import { CATALOG } from "../ingredientCatalog";
+import { CATALOG, EDIBLE_SHARE } from "../ingredientCatalog";
 
 const bySlug = (slug: string) => CATALOG.find((entry) => entry.slug === slug)!;
 
@@ -89,6 +89,61 @@ describe("catalog weights", () => {
     ).toEqual([]);
     // An exemption for a row that is gone, out of scope, or weighable after all is a stale reason.
     expect(Object.keys(exempt).filter((slug) => !unweighable.some((entry) => entry.slug === slug))).toEqual([]);
+  });
+});
+
+describe("catalog edible shares", () => {
+  /**
+   * A share is the part of the as-bought weight that is eaten, so it is above 0 (something is
+   * eaten) and at most 1 (nothing is eaten that was not bought). 1 itself is never written: absent
+   * is how the catalog says "all of it", and one spelling keeps a reader from wondering why a row
+   * states the default.
+   */
+  test("every share is above 0 and below 1", () => {
+    for (const [slug, share] of Object.entries(EDIBLE_SHARE)) {
+      expect(share, slug).toBeGreaterThan(0);
+      expect(share, slug).toBeLessThan(1);
+    }
+  });
+
+  /**
+   * A key typo'd into a slug that does not exist is silent everywhere else: the row it meant keeps
+   * counting its bones, and nothing fails. So every key must name a row, and every row it names
+   * must carry exactly that share through to what the seed writes.
+   */
+  test("every share names a real row, and that row carries it", () => {
+    for (const [slug, share] of Object.entries(EDIBLE_SHARE)) {
+      expect(CATALOG.find((entry) => entry.slug === slug)?.edibleShare, slug).toBe(share);
+    }
+
+    expect(CATALOG.filter((entry) => entry.edibleShare !== undefined)).toHaveLength(
+      Object.keys(EDIBLE_SHARE).length,
+    );
+  });
+});
+
+describe("catalog nutrition", () => {
+  /**
+   * A grain or a pulse that keeps three months once opened is sold dry, and a recipe weighs it dry:
+   * "200 g de riz" is 200 g out of the packet. Every dry grain and pulse is above 300 kcal per
+   * 100 g, and every cooked one is well under 200, so a row below the bar took the reference's
+   * boiled entry and counts a dish of it at a third of its calories. A tin, a loaf or fresh pasta
+   * keeps days once opened and is left out, since the form it is sold in is the cooked one.
+   *
+   * `edamame` keeps as long because it is frozen, blanched in the pod, which is the form it is
+   * bought and weighed in.
+   */
+  test("a grain or pulse sold dry carries its dry figures", () => {
+    const soldCooked = new Set(["edamame"]);
+    const boiled = CATALOG.filter(
+      (entry) =>
+        (entry.category === "GRAIN" || entry.category === "LEGUME") &&
+        entry.openedShelfLifeDays! >= 90 &&
+        !soldCooked.has(entry.slug) &&
+        entry.nutrition.calories < 300,
+    );
+
+    expect(boiled.map((entry) => entry.slug)).toEqual([]);
   });
 });
 

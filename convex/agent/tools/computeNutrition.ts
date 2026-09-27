@@ -17,7 +17,7 @@ import { createTool } from "../utils";
  * **The model reads numbers; it never makes them.** Asked "how many calories in an egg", a model
  * multiplies in its head, and the answer is confident, unchecked and a little wrong in a way nobody
  * notices until they do. So the model hands this QUANTITIES ("1 egg" is `{ id, 1, "pcs" }`), the
- * egg is weighed from its catalog row by `toGrams` and counted by `totalsOf`, exactly as a recipe
+ * egg is weighed from its catalog row by `edibleGrams` and counted by `totalsOf`, exactly as a recipe
  * line is, and every figure it could be asked for comes back computed and rounded: total, per
  * serving, per 100 g, and each line's share. Nothing in the output needs a division to reach.
  *

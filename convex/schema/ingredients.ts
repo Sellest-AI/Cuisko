@@ -179,10 +179,12 @@ export const ingredients = defineTable({
    * What one of this ingredient weighs, for the units that do not carry a weight themselves.
    *
    * `nutrition` below is per 100g, so every quantity has to reach grams before it can be counted —
-   * and "2 onions" or "1 tbsp of oil" cannot get there on arithmetic alone. `gramsPerPiece` weighs a
-   * single one AS SOLD (150 for an onion, 250 for a baguette); `gramsPerMl` is the density, and it
-   * is the difference between oil at 0.91 and honey at 1.42 — assuming 1.0 understates honey by
-   * 40%. `gramsPerSlice` weighs one slice of something sold whole and eaten cut (35 for a slice of
+   * and "2 onions" or "1 tbsp of oil" cannot get there on arithmetic alone. **Every weight is AS
+   * SOLD**, bone and shell included, because the shopping list buys the whole thing; `edibleShare`
+   * below is what takes nutrition down to the part that is eaten. `gramsPerPiece` weighs a single
+   * one (150 for an onion, 250 for a baguette, 250 for a bone-in chicken leg); `gramsPerMl` is the
+   * density, and it is the difference between oil at 0.91 and honey at 1.42 — assuming 1.0
+   * understates honey by 40%. `gramsPerSlice` weighs one slice of something sold whole and eaten cut (35 for a slice of
    * that baguette): a recipe counts slices, the shop sells the loaf, and one ratio cannot answer
    * both. How many slices make a loaf is derived from the two weights, never stored.
    *
@@ -201,6 +203,20 @@ export const ingredients = defineTable({
   gramsPerPiece: v.optional(v.number()),
   gramsPerSlice: v.optional(v.number()),
   gramsPerMl: v.optional(v.number()),
+  /**
+   * The share of the as-sold weight that is eaten, in (0, 1]: 0.4 for mussels in their shells, 0.7
+   * for a bone-in chicken thigh. **Absent is 1**, the whole of it, which is every row whose waste is
+   * too small to count or is not bought with it.
+   *
+   * `nutrition` is per 100 g of the edible part and every weight above is as sold, so a line's grams
+   * are multiplied by this before they are counted (`edibleGrams` in shared/ingredients.ts) and by
+   * nothing else: shopping, stock and the grocery conversion keep buying the shells. It applies in
+   * every unit, grams included, because "1 kg de moules" is bought in the shell too.
+   *
+   * Not validated here, because a validator cannot say "(0, 1]". The seed's catalog test checks the
+   * catalog, and the sanitizer drops a model's out-of-range answer before it reaches a row.
+   */
+  edibleShare: v.optional(v.number()),
   /**
    * How many days this keeps in the form a shop usually sells it, unopened and stored the normal
    * way — the rough date a cellar row is given when it is bought (`addToCellar`).
@@ -222,7 +238,14 @@ export const ingredients = defineTable({
    */
   shelfLifeDays: v.optional(v.number()),
   openedShelfLifeDays: v.optional(v.number()),
-  // All facts per 100g.
+  /**
+   * All facts per 100 g of the RAW, EDIBLE part.
+   *
+   * **Raw**, because a recipe line is a raw weight: cooking drives out water, not calories, so a
+   * cooked figure times a raw weight counts the same energy again (cooked mussels are 172 kcal per
+   * 100 g, raw 86). A reference listing a food several times is read at its raw entry.
+   * **Edible**, because `edibleShare` above takes the bone and shell out of the weight first.
+   */
   nutrition: vIngredientNutrition,
   // Derived from `nutrition` by @shared/nutrition — absent until every field it needs is present.
   nutriScore: v.optional(v.object({

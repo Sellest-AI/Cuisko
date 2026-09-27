@@ -77,6 +77,7 @@ export const vIngredientFacts = v.object({
   gramsPerPiece: v.optional(v.number()),
   gramsPerSlice: v.optional(v.number()),
   gramsPerMl: v.optional(v.number()),
+  edibleShare: v.optional(v.number()),
   shelfLifeDays: v.optional(v.number()),
   openedShelfLifeDays: v.optional(v.number()),
   nutrition: vNutritionFacts,

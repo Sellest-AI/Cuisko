@@ -110,6 +110,8 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     { table: "recentlyUsedIngredients", index: "by_ingredient", field: "ingredientId" },
     { table: "recipeIngredients", index: "by_ingredient", field: "ingredientId" },
     { table: "plannedMealIngredients", index: "by_ingredient", field: "ingredientId" },
+    // Its generated photo goes with it, as a recipe's do — nothing else points at that tree.
+    { field: "imageId", onDelete: "delete-image-tree" },
   ],
   groceryListItems: [
     {
@@ -185,6 +187,35 @@ export const cascadeDelete = async <T extends TableNames>(
   }
 
   await ctx.db.delete(id);
+};
+
+/**
+ * The tables still holding a row that points at `id`, read off the same `CASCADE` rules the delete
+ * follows — so a foreign key added there is checked here without anyone remembering to.
+ *
+ * Empty means deleting `id` would only remove the row itself (and its owned images). One `.first()`
+ * per rule: the question is whether anything is left, not how much.
+ */
+export const referencedBy = async <T extends TableNames>(
+  ctx: MutationCtx,
+  table: T,
+  id: Id<T>,
+): Promise<TableNames[]> => {
+  const tables: TableNames[] = [];
+
+  for (const rule of CASCADE[table] ?? []) {
+    if (rule.onDelete === "delete-image-tree") continue;
+
+    const row = await ctx.db
+      .query(rule.table)
+      // Data, not literals — see `cascadeDelete`. C4 proves the index answers the field.
+      .withIndex(rule.index as never, (q) => (q as unknown as QEq).eq(rule.field, id))
+      .first();
+
+    if (row && !tables.includes(rule.table)) tables.push(rule.table);
+  }
+
+  return tables;
 };
 
 /** The one operation we need from an index range builder, minus the field-name typing. */

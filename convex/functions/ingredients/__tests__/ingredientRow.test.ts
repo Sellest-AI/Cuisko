@@ -92,6 +92,22 @@ describe("functions/ingredients/ingredientRow", () => {
   });
 
   /**
+   * Nutrition counts only the share of a row that is eaten, so a share that stopped here would put
+   * the shells back into every total. An absent one must still be WRITTEN, as `undefined`: that is
+   * how the seed's `patch` clears a share the catalog no longer states, where an omitted key would
+   * leave the old one counting.
+   */
+  test("the edible share reaches the row, and an absent one is written so a patch clears it", () => {
+    const mussels = factsOf(CATALOG.find((entry) => entry.slug === "mussels")!);
+
+    expect(ingredientRow({ ...mussels, edibleShare: 0.4 }, "seed").edibleShare).toBe(0.4);
+
+    const cleared = ingredientRow({ ...mussels, edibleShare: undefined }, "seed");
+    expect("edibleShare" in cleared).toBe(true);
+    expect(cleared.edibleShare).toBeUndefined();
+  });
+
+  /**
    * `source` is an argument and not a fact: the same carrot recorded by the seed and by a lookup
    * is the same carrot, provenanced differently. Nothing else about the row may move with it —
    * a name's status included, which travels with the name rather than with the writer.

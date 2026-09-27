@@ -2,11 +2,13 @@ import { describe, expect, test } from "vitest";
 
 import {
   convertQuantity,
+  edibleGrams,
   formatQuantity,
   fromStockUnit,
   mergeGroupOf,
   normalizeUnit,
   pickQuantity,
+  RECIPE_UNITS,
   roundQuantity,
   serializeIngredients,
   stockUnitOf,
@@ -151,6 +153,49 @@ describe("toGrams", () => {
 
   test("refuses a piece with no weight per piece", () => {
     expect(toGrams(2, "pcs", { gramsPerMl: 1 })).toBeUndefined();
+  });
+});
+
+/**
+ * Every weight is as bought; nutrition counts only what is eaten. The two answers split here and
+ * nowhere else, so the shell a shopper pays for never reaches a calorie total, and the calorie
+ * total never shrinks what the shopping list buys.
+ */
+describe("edibleGrams", () => {
+  const mussels = { gramsPerMl: 0.75, edibleShare: 0.4 };
+
+  test("counts the eaten share of what toGrams weighs as bought", () => {
+    expect(toGrams(1, "l", mussels)).toBe(750);
+    expect(edibleGrams(1, "l", mussels)).toBeCloseTo(300);
+  });
+
+  test("applies the share in every unit, a mass unit included", () => {
+    const thigh = { gramsPerPiece: 170, edibleShare: 0.7 };
+
+    expect(edibleGrams(500, "g", thigh)).toBeCloseTo(350);
+    expect(edibleGrams(1, "kg", thigh)).toBeCloseTo(700);
+    expect(edibleGrams(2, "pcs", thigh)).toBeCloseTo(238);
+  });
+
+  test("counts the whole weight when the row states no share", () => {
+    expect(edibleGrams(2, "pcs", { gramsPerPiece: 150 })).toBe(300);
+    expect(edibleGrams(500, "g", {})).toBe(500);
+  });
+
+  test("is undefined exactly where toGrams is", () => {
+    const rows = [{}, { gramsPerPiece: 150, edibleShare: 0.5 }, mussels, { gramsPerSlice: 35 }];
+
+    for (const row of rows) {
+      for (const unit of RECIPE_UNITS) {
+        expect(edibleGrams(1, unit, row) === undefined).toBe(toGrams(1, unit, row) === undefined);
+      }
+    }
+  });
+
+  test("leaves what is bought alone: the shell still reaches the stock and the list", () => {
+    const row = { ...mussels, defaultUnit: "g" } as const;
+
+    expect(toStockUnit(1, "l", row)).toBe(750);
   });
 });
 

@@ -101,6 +101,8 @@ export type IngredientFacts = {
   gramsPerPiece?: number;
   gramsPerSlice?: number;
   gramsPerMl?: number;
+  /** The share of the as-sold weight that is eaten. Absent is 1. See the column in `schema/ingredients.ts`. */
+  edibleShare?: number;
   /** Unopened, in the form a shop sells it. See the column in `schema/ingredients.ts`. */
   shelfLifeDays?: number;
   /** Once opened or cut. Never more than `shelfLifeDays`. */
@@ -215,6 +217,7 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
     gramsPerPiece: facts.gramsPerPiece,
     gramsPerSlice: facts.gramsPerSlice,
     gramsPerMl: facts.gramsPerMl,
+    edibleShare: facts.edibleShare,
     shelfLifeDays: facts.shelfLifeDays,
     openedShelfLifeDays: facts.openedShelfLifeDays,
     nutrition: facts.nutrition,

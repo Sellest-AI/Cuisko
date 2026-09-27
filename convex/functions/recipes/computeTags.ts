@@ -1,6 +1,6 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
-import { toGrams } from "@shared/ingredients";
+import { edibleGrams } from "@shared/ingredients";
 import type { RecipeUnit } from "@shared/ingredients";
 import { totalsOf } from "@shared/nutrition";
 import { allergenTagsOf, type ComputedTag, dietTagsOf, nutritionTagsOf } from "@shared/tags";
@@ -77,7 +77,7 @@ export const computeTags = async (
   const totals = totalsOf(
     rows.map((ingredient, index) => ({
       facts: ingredient.nutrition,
-      grams: toGrams(lines[index]!.quantity, lines[index]!.unit, ingredient),
+      grams: edibleGrams(lines[index]!.quantity, lines[index]!.unit, ingredient),
       // Irrelevant to the tags — it only feeds the Nutri-Score, which this file does not read.
       produce: false,
     })),

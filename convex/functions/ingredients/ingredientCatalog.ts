@@ -12,6 +12,13 @@ import type { Diet } from "@shared/diets";
  * much curation on top. `defaultUnit`/`defaultQuantity` are a starting point for "how much of this
  * does a household usually buy at once", not a measured fact — edit freely.
  *
+ * **Every figure is per 100 g of the RAW, EDIBLE part**, and a reference that lists a food several
+ * times (raw, boiled, roasted) is read at its raw entry. A recipe line is a raw weight, and cooking
+ * drives out water, not calories, so a cooked figure times a raw weight counts the same energy
+ * again: `mussels` took USDA's "cooked, moist heat" entry, 172 kcal against 86 raw, and every dish
+ * of them came out at twice its calories. The edible part is the other half of that rule: bone and
+ * shell are in the weights below and out of these figures, and `EDIBLE_SHARE` reconciles the two.
+ *
  * One row per tuple keeps ~200 entries reviewable; `CATALOG` below is what the rest of the code
  * actually consumes.
  */
@@ -50,6 +57,8 @@ export type CatalogEntry = {
   gramsPerPiece?: number;
   gramsPerSlice?: number;
   gramsPerMl?: number;
+  /** Absent for the whole of it. See `EDIBLE_SHARE`. */
+  edibleShare?: number;
   /** Optional in the type only: the catalog test fails on a row `SHELF_LIFE_DAYS` misses. */
   shelfLifeDays?: number;
   openedShelfLifeDays?: number;
@@ -149,8 +158,8 @@ const ROWS: Row[] = [
   ["coconut-fresh", "Coconut", "Noix de coco", "FRUIT", "g", 200, 354, 3.3, 33, 29.7, 15, 6.2, 9, 20],
 
   // ── Grains ──────────────────────────────────────────────────────────────────────────────
-  ["white-rice", "White rice", "Riz blanc", "GRAIN", "g", 500, 130, 2.7, 0.3, 0.1, 28, 0.1, 0.4, 1],
-  ["brown-rice", "Brown rice", "Riz complet", "GRAIN", "g", 500, 123, 2.6, 1, 0.2, 26, 0.4, 1.6, 4],
+  ["white-rice", "White rice", "Riz blanc", "GRAIN", "g", 500, 352, 7, 0.9, 0.2, 78, 0.2, 1, 2],
+  ["brown-rice", "Brown rice", "Riz complet", "GRAIN", "g", 500, 350, 7, 2.8, 0.6, 71.4, 0.7, 5, 4],
   ["pasta-dry", "Pasta", "Pâtes", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
   ["whole-wheat-pasta", "Whole wheat pasta", "Pâtes complètes", "GRAIN", "g", 500, 348, 14.6, 2.5, 0.5, 71, 3, 10.7, 7],
   ["flour-all-purpose", "All-purpose flour", "Farine blanche", "GRAIN", "g", 1000, 364, 10.3, 1, 0.2, 76, 0.3, 2.7, 2],
@@ -185,20 +194,20 @@ const ROWS: Row[] = [
   ["granola", "Granola", "Granola", "GRAIN", "g", 500, 471, 10, 20, 3.2, 61, 20, 7, 26],
 
   // ── Meat ────────────────────────────────────────────────────────────────────────────────
-  ["chicken-breast", "Chicken breast", "Blanc de poulet", "MEAT", "g", 400, 165, 31, 3.6, 1, 0, 0, 0, 74],
-  ["chicken-thigh", "Chicken thigh", "Cuisse de poulet", "MEAT", "g", 400, 209, 26, 10.9, 3.1, 0, 0, 0, 90],
+  ["chicken-breast", "Chicken breast", "Blanc de poulet", "MEAT", "g", 400, 110, 23.4, 1.5, 0.4, 0, 0, 0, 43],
+  ["chicken-thigh", "Chicken leg", "Cuisse de poulet", "MEAT", "g", 400, 192, 17.3, 13.5, 3.9, 0, 0, 0, 86],
   ["ground-beef-80-20", "Ground beef (80/20)", "Bœuf haché (80/20)", "MEAT", "g", 500, 254, 17, 20, 7.8, 0, 0, 0, 66],
-  ["beef-steak-sirloin", "Sirloin steak", "Bavette de bœuf", "MEAT", "g", 300, 183, 27, 7.4, 2.9, 0, 0, 0, 56],
-  ["pork-chop", "Pork chop", "Côte de porc", "MEAT", "g", 300, 231, 25, 14, 5, 0, 0, 0, 62],
-  ["pork-loin", "Pork loin", "Filet mignon de porc", "MEAT", "g", 400, 143, 26, 3.5, 1.2, 0, 0, 0, 54],
-  ["bacon", "Bacon", "Lard fumé", "MEAT", "g", 200, 541, 37, 42, 14, 1.4, 0, 0, 1717],
+  ["beef-steak-sirloin", "Flank steak", "Bavette de bœuf", "MEAT", "g", 300, 133, 20.4, 5.7, 2.2, 0, 0, 0, 34],
+  ["pork-chop", "Pork chop", "Côte de porc", "MEAT", "g", 300, 164, 19.8, 9.3, 3.8, 0.4, 0, 0, 49],
+  ["pork-loin", "Pork loin", "Filet mignon de porc", "MEAT", "g", 400, 123, 21.2, 4.1, 1.7, 0.4, 0, 0, 44],
+  ["bacon", "Bacon", "Lard fumé", "MEAT", "g", 200, 303, 15.6, 26.1, 9.4, 0.8, 0.8, 1, 956],
   ["ham", "Ham", "Jambon", "MEAT", "g", 150, 145, 21, 5.5, 1.8, 1.5, 1.4, 0, 1203],
-  ["ground-turkey", "Ground turkey", "Dinde hachée", "MEAT", "g", 500, 189, 20, 12, 3.2, 0, 0, 0, 79],
-  ["turkey-breast", "Turkey breast", "Blanc de dinde", "MEAT", "g", 400, 135, 30, 1, 0.3, 0, 0, 0, 55],
-  ["lamb", "Lamb", "Agneau", "MEAT", "g", 400, 294, 25, 21, 9, 0, 0, 0, 72],
+  ["ground-turkey", "Ground turkey", "Dinde hachée", "MEAT", "g", 500, 148, 19.7, 7.7, 2, 0, 0, 0, 58],
+  ["turkey-breast", "Turkey breast", "Blanc de dinde", "MEAT", "g", 400, 109, 24.1, 1.2, 0.3, 0.5, 0.3, 0, 83],
+  ["lamb", "Lamb", "Agneau", "MEAT", "g", 400, 170, 18.3, 10.6, 3.9, 0.5, 0, 0, 79],
   ["duck-breast", "Duck breast", "Magret de canard", "MEAT", "g", 300, 337, 19, 28, 9.7, 0, 0, 0, 74],
   ["sausage-pork", "Pork sausage", "Saucisse de porc", "MEAT", "g", 300, 296, 12, 27, 9.5, 2, 0, 0, 850],
-  ["veal", "Veal", "Veau", "MEAT", "g", 400, 172, 26, 7, 2.7, 0, 0, 0, 88],
+  ["veal", "Veal", "Veau", "MEAT", "g", 400, 124, 20.7, 4.6, 1.6, 0, 0, 0, 61],
   ["beef-ground-90-10", "Lean ground beef (90/10)", "Bœuf haché maigre (90/10)", "MEAT", "g", 500, 176, 20, 10, 4, 0, 0, 0, 66],
   ["chicken-slices", "Sliced cooked chicken", "Blanc de poulet en tranches", "MEAT", "pcs", 4, 111, 21, 2.5, 0.7, 1.2, 0.6, 0, 900],
   ["turkey-slices", "Sliced cooked turkey", "Blanc de dinde en tranches", "MEAT", "pcs", 4, 104, 19, 1.8, 0.5, 2.5, 1.3, 0, 1010],
@@ -207,23 +216,23 @@ const ROWS: Row[] = [
   ["chorizo", "Chorizo", "Chorizo", "MEAT", "g", 150, 455, 24, 38, 14, 1.9, 0.5, 0, 1235],
   ["merguez", "Merguez", "Merguez", "MEAT", "pcs", 6, 314, 15, 28, 11, 1, 0.5, 0, 900],
   ["lardons", "Bacon lardons", "Lardons", "MEAT", "g", 200, 285, 16, 24, 9.5, 0.5, 0, 0, 1400],
-  ["chicken-wings", "Chicken wings", "Ailes de poulet", "MEAT", "g", 500, 203, 30, 8.1, 2.3, 0, 0, 0, 82],
-  ["rabbit", "Rabbit", "Lapin", "MEAT", "g", 500, 173, 33, 3.5, 1, 0, 0, 0, 47],
-  ["beef-roast", "Beef roast", "Rôti de bœuf", "MEAT", "g", 700, 195, 27, 9, 3.5, 0, 0, 0, 55],
+  ["chicken-wings", "Chicken wings", "Ailes de poulet", "MEAT", "g", 500, 181, 20.4, 11, 3, 0, 0, 0, 86],
+  ["rabbit", "Rabbit", "Lapin", "MEAT", "g", 500, 189, 20.4, 11.6, 4.7, 0.7, 0, 0, 56],
+  ["beef-roast", "Beef roast", "Rôti de bœuf", "MEAT", "g", 700, 125, 23.4, 3.5, 1.2, 0, 0, 0, 55],
   ["lamb-leg", "Leg of lamb", "Gigot d'agneau", "MEAT", "g", 1500, 230, 18, 17, 7.5, 0, 0, 0, 65],
   ["pork-roast", "Pork roast", "Rôti de porc", "MEAT", "g", 1000, 190, 21, 11, 4, 0, 0, 0, 60],
   ["chicken-whole", "Whole chicken", "Poulet entier", "MEAT", "pcs", 1, 215, 18.6, 15.1, 4.3, 0, 0, 0, 70],
   ["duck-whole", "Whole duck", "Canard entier", "MEAT", "pcs", 1, 404, 11.5, 39.3, 13.2, 0, 0, 0, 59],
-  ["turkey-whole", "Whole turkey", "Dinde entière", "MEAT", "pcs", 1, 160, 21.9, 7.4, 2.1, 0, 0, 0, 65],
+  ["turkey-whole", "Whole turkey", "Dinde entière", "MEAT", "pcs", 1, 144, 21.6, 5.6, 1.5, 0.1, 0.1, 0, 112],
 
   // ── Seafood ─────────────────────────────────────────────────────────────────────────────
   ["salmon", "Salmon", "Saumon", "SEAFOOD", "g", 300, 208, 20, 13, 3.1, 0, 0, 0, 59],
   ["tuna-canned-water", "Canned tuna (in water)", "Thon en boîte (au naturel)", "SEAFOOD", "g", 150, 116, 26, 0.8, 0.2, 0, 0, 0, 247],
-  ["shrimp", "Shrimp", "Crevette", "SEAFOOD", "g", 300, 99, 24, 0.3, 0.1, 0.2, 0, 0, 111],
+  ["shrimp", "Shrimp", "Crevette", "SEAFOOD", "g", 300, 85, 20.1, 0.5, 0.1, 0, 0, 0, 119],
   ["cod", "Cod", "Cabillaud", "SEAFOOD", "g", 300, 82, 18, 0.7, 0.1, 0, 0, 0, 54],
   ["tilapia", "Tilapia", "Tilapia", "SEAFOOD", "g", 300, 96, 20, 1.7, 0.6, 0, 0, 0, 52],
   ["sardines", "Sardines", "Sardines", "SEAFOOD", "g", 150, 208, 25, 11, 1.5, 0, 0, 0, 307],
-  ["mussels", "Mussels", "Moules", "SEAFOOD", "g", 500, 172, 24, 4.5, 0.9, 7.4, 0, 0, 369],
+  ["mussels", "Mussels", "Moules", "SEAFOOD", "g", 500, 86, 11.9, 2.2, 0.4, 3.7, 0, 0, 286],
   ["scallops", "Scallops", "Noix de Saint-Jacques", "SEAFOOD", "g", 200, 88, 16.8, 0.8, 0.1, 2.4, 0, 0, 392],
   ["crab", "Crab", "Crabe", "SEAFOOD", "g", 200, 97, 19, 1.5, 0.2, 0, 0, 0, 293],
   ["trout", "Trout", "Truite", "SEAFOOD", "g", 300, 148, 20, 6.6, 1.6, 0, 0, 0, 52],
@@ -269,7 +278,7 @@ const ROWS: Row[] = [
   ["butter-salted", "Salted butter", "Beurre demi-sel", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 570],
 
   // ── Eggs ────────────────────────────────────────────────────────────────────────────────
-  ["egg-whole", "Egg", "Œuf", "EGG", "pcs", 6, 155, 13, 11, 3.3, 1.1, 1.1, 0, 124],
+  ["egg-whole", "Egg", "Œuf", "EGG", "pcs", 6, 143, 12.6, 9.5, 3.1, 0.7, 0.4, 0, 142],
   ["egg-white", "Egg white", "Blanc d'œuf", "EGG", "g", 100, 52, 11, 0.2, 0, 0.7, 0.7, 0, 166],
   ["egg-yolk", "Egg yolk", "Jaune d'œuf", "EGG", "pcs", 6, 322, 15.9, 26.5, 9.6, 3.6, 0.6, 0, 48],
 
@@ -277,13 +286,13 @@ const ROWS: Row[] = [
   ["black-beans", "Black beans", "Haricots noirs", "LEGUME", "g", 400, 132, 8.9, 0.5, 0.1, 24, 0.3, 8.7, 1],
   ["kidney-beans", "Kidney beans", "Haricots rouges", "LEGUME", "g", 400, 127, 8.7, 0.5, 0.1, 23, 0.3, 6.4, 1],
   ["chickpeas", "Chickpeas", "Pois chiches", "LEGUME", "g", 400, 164, 8.9, 2.6, 0.3, 27, 4.8, 7.6, 7],
-  ["lentils-red", "Red lentils", "Lentilles corail", "LEGUME", "g", 400, 116, 9, 0.4, 0.1, 20, 1.8, 7.9, 2],
-  ["lentils-green", "Green lentils", "Lentilles vertes", "LEGUME", "g", 400, 116, 9, 0.4, 0.1, 20, 1.8, 7.9, 2],
+  ["lentils-red", "Red lentils", "Lentilles corail", "LEGUME", "g", 400, 328, 27.7, 0.8, 0.1, 44.9, 1.3, 15.4, 2],
+  ["lentils-green", "Green lentils", "Lentilles vertes", "LEGUME", "g", 400, 327, 25.1, 1.8, 0.2, 44.5, 1.1, 16.4, 2],
   ["white-beans-cannellini", "Cannellini beans", "Haricots blancs", "LEGUME", "g", 400, 139, 9.7, 0.4, 0.1, 25, 0.3, 6.3, 2],
   ["pinto-beans", "Pinto beans", "Haricots pinto", "LEGUME", "g", 400, 143, 9, 0.7, 0.1, 26, 0.3, 9, 1],
-  ["split-peas", "Split peas", "Pois cassés", "LEGUME", "g", 400, 118, 8.3, 0.4, 0.1, 21, 3.8, 8.3, 2],
+  ["split-peas", "Split peas", "Pois cassés", "LEGUME", "g", 400, 344, 22.8, 1.4, 0.2, 52, 2.8, 15.8, 15],
   ["edamame", "Edamame", "Edamame", "LEGUME", "g", 300, 121, 11, 5, 0.6, 10, 2.2, 5.2, 6],
-  ["soybeans", "Soybeans", "Graines de soja", "LEGUME", "g", 300, 173, 16.6, 9, 1.3, 10, 3, 6, 15],
+  ["soybeans", "Soybeans", "Graines de soja", "LEGUME", "g", 300, 432, 34.5, 19.2, 2.7, 20.8, 7.3, 13, 3],
 
   // ── Nuts ────────────────────────────────────────────────────────────────────────────────
   ["almonds", "Almonds", "Amandes", "NUT", "g", 150, 579, 21, 50, 3.8, 22, 4.4, 12.5, 1],
@@ -561,6 +570,10 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "ground-beef-80-20": { fr: ["viande hachée", "steak haché"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },
   "chicken-breast": { fr: ["blanc de poulet", "escalope de poulet"] },
+  // The whole leg, as France sells a cuisse; English recipes buy the same piece as a thigh.
+  "chicken-thigh": { en: ["chicken thigh"] },
+  // The slug predates the row's cut: it is the French bavette, flank, never a sirloin.
+  "beef-steak-sirloin": { fr: ["bavette"], en: ["bavette"] },
   // Not bare "poulet": a line reading "500 g de poulet" means pieces, and belongs on a part row.
   "chicken-whole": { fr: ["poulet fermier"] },
   "egg-whole": { fr: ["oeufs", "œufs"] },
@@ -633,17 +646,15 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
  * What one of an ingredient weighs, in grams — for the 66 rows a household counts rather than
  * weighs, plus the few written per piece in a recipe whatever the shop sells them by.
  *
- * Hand-compiled like the nutrition values above, for a medium specimen as sold: a whole raw item
- * before trimming, since that is what someone holds when they write "2 onions". Sparse by nature,
- * not by neglect — there is no such thing as one flour (see schema/ingredients.ts).
+ * Hand-compiled like the nutrition values above, for a medium specimen AS SOLD: a whole raw item
+ * before trimming, since that is what someone holds when they write "2 onions", and what the
+ * shopping list has to buy. Sparse by nature, not by neglect — there is no such thing as one flour
+ * (see schema/ingredients.ts).
  *
- * **The three whole birds are the exception, and they are EDIBLE weight, not as sold.** A 1.4 kg
- * `poulet entier` is ~1000 g of meat and skin over ~400 g of carcass, and this number is what the
- * nutrition figures above are multiplied by: as-sold would bill the cook for the calories of a
- * frame they will boil for stock and throw away. An apple's 180 g still includes its core and a
- * cantaloupe's 550 g its rind, so this is an inconsistency rather than a rule — it is taken here
- * because a bird's inedible fraction is ~30% where a core is a rounding error, and because a
- * recipe writes "1 poulet" and means the meat on it.
+ * **No exception for bone.** A `poulet entier` is the 1.4 kg bird on the label, carcass and all;
+ * the ~1000 g of meat and skin a cook eats off it is `EDIBLE_SHARE` below, and only nutrition reads
+ * that. The birds and `chicken-thigh` used to store the meat instead, which billed the cook for
+ * the right calories and sent them shopping for a bird 400 g too small.
  *
  * `garlic` is a clove, as every recipe that ever called for one means. Worth writing down only
  * because a shop sells it by the head and the two are ~17x apart, so whatever eventually turns a
@@ -671,14 +682,15 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
   "flavoured-yogurt": 125, "egg-whole": 50, "egg-yolk": 17, camembert: 250,
   "chicken-breast": 150, "duck-breast": 350, "pork-chop": 180, "sausage-pork": 80, "egg-noodles": 50,
-  // Bone-in, so edible weight like the birds below: ~170 g as sold, ~120 g off the bone.
-  "chicken-thigh": 120,
+  // The whole leg, thigh and drumstick, as a French "cuisse" is sold: ~175 g of it comes off the
+  // bone (see `EDIBLE_SHARE`).
+  "chicken-thigh": 250,
   // Fish and seafood — a raw peeled prawn, a whole fresh sardine
   shrimp: 15, sardines: 50,
   // One of them out of the packet or the jar — a nori sheet, an olive.
   nori: 3, "olives-black": 4,
-  // Whole birds — meat and skin off the carcass, per the note above, not the weight on the label.
-  "chicken-whole": 1000, "duck-whole": 1000, "turkey-whole": 3000,
+  // Whole birds — the weight on the label, carcass included (see `EDIBLE_SHARE`).
+  "chicken-whole": 1400, "duck-whole": 2000, "turkey-whole": 4500,
   // A cube, as every recipe that calls for one means, and as the box is portioned.
   "bouillon-cube": 10,
   // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
@@ -727,14 +739,8 @@ const GRAMS_PER_SLICE: Record<string, number> = {
  * from 0.53 to 0.7 depending on how it is scooped, which is the built-in imprecision of measuring
  * a solid by volume and not something a second decimal here would fix.
  *
- * `mussels` is in its shell, as "1 litre de moules" is bought: 0.75, about half of it shell.
- *
- * @limitation A shellfish line counts its shell as meat. 1 L of mussels weighs 750 g and is totalled
- * as 750 g of the row's per-100 g figures, which are for the meat alone. **Accepted because** a
- * density of the meat only would make "1 l" and "750 g" of the same purchase disagree, and a line
- * in grams already counts the shell, since mass units never read the row. **The fix** is an edible
- * share on the ingredient row, applied by `toGrams` to every unit. The `mussels` row's figures are
- * also for COOKED meat (172 kcal against ~86 raw), which doubles the error again.
+ * `mussels` is in its shell, as "1 litre de moules" is bought: 0.75, shells included, so "1 l" and
+ * "750 g" of the same purchase weigh the same. The shell leaves the count through `EDIBLE_SHARE`.
  */
 const GRAMS_PER_ML: Record<string, number> = {
   // Dairy
@@ -781,8 +787,36 @@ const GRAMS_PER_ML: Record<string, number> = {
   "hoisin-sauce": 1.2, "miso-paste": 1.2, "curry-paste-red": 1.1, "orange-blossom-water": 1,
   "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "tomato-sauce": 1.05, "white-wine": 0.99,
   "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
-  // Shellfish by the litre, in the shell — see the limitation above.
+  // Shellfish by the litre, in the shell — see the note above.
   mussels: 0.75,
+};
+
+/**
+ * The share of the as-sold weight that is eaten, for the rows bought with a part nobody eats.
+ *
+ * Every weight in this file is as sold and every figure is per 100 g eaten, so nutrition counts a
+ * line at its weight times this (shared/ingredients.ts `edibleGrams`), and shopping ignores it.
+ * It applies in every unit, grams included: "1 kg de moules" is bought in the shell too.
+ *
+ * **Only where a line in GRAMS of the row conventionally includes the waste**, because the share
+ * applies to those lines as well. Estimates from typical yields, not measurements. Left at the
+ * whole of it, on purpose:
+ * - Fruit and vegetables. A peel, rind or core is bought with them, but "200 g de carottes râpées"
+ *   is written trimmed, and a share would undercount it. Their piece weights overcount a little.
+ * - `egg-whole`, whose 50 g piece is already the egg out of its shell, as "100 g d'œufs" means.
+ * - `shrimp` (a peeled prawn), `crab` (the figures are crab meat), `sardines` (the figures are the
+ *   tin, eaten bones and all).
+ *
+ * Exported for the catalog test, which checks every key names a row: a typo'd one is otherwise
+ * silent, and the row it meant keeps counting its bones.
+ */
+export const EDIBLE_SHARE: Record<string, number> = {
+  // Whole birds: meat and skin off the carcass. 1.4 kg of chicken is ~1 kg eaten.
+  "chicken-whole": 0.7, "duck-whole": 0.5, "turkey-whole": 0.67,
+  // Bone-in cuts, as a French butcher sells them: a cuisse, the wings, a côte, a gigot, a lapin.
+  "chicken-thigh": 0.7, "chicken-wings": 0.55, "pork-chop": 0.8, "lamb-leg": 0.75, rabbit: 0.65,
+  // In the shell, raw meat against live weight.
+  mussels: 0.4,
 };
 
 /**
@@ -1254,6 +1288,7 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     gramsPerPiece: GRAMS_PER_PIECE[slug],
     gramsPerSlice: GRAMS_PER_SLICE[slug],
     gramsPerMl: GRAMS_PER_ML[slug],
+    edibleShare: EDIBLE_SHARE[slug],
     shelfLifeDays: SHELF_LIFE_DAYS[slug]?.sealed,
     openedShelfLifeDays: SHELF_LIFE_DAYS[slug]?.opened,
     nutrition: { calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium },

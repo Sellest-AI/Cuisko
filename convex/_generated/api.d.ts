@@ -87,6 +87,7 @@ import type * as functions_ingredients_matchIngredient from "../functions/ingred
 import type * as functions_ingredients_missingIngredientIds from "../functions/ingredients/missingIngredientIds.js";
 import type * as functions_ingredients_persistRestoredIngredient from "../functions/ingredients/persistRestoredIngredient.js";
 import type * as functions_ingredients_rememberAlias from "../functions/ingredients/rememberAlias.js";
+import type * as functions_ingredients_replaceInRecipes from "../functions/ingredients/replaceInRecipes.js";
 import type * as functions_ingredients_resolveIngredient from "../functions/ingredients/resolveIngredient.js";
 import type * as functions_ingredients_restoreIngredient from "../functions/ingredients/restoreIngredient.js";
 import type * as functions_ingredients_searchCatalog from "../functions/ingredients/searchCatalog.js";
@@ -152,6 +153,7 @@ import type * as functions_recipes_recipeChangesOf from "../functions/recipes/re
 import type * as functions_recipes_recipeImages from "../functions/recipes/recipeImages.js";
 import type * as functions_recipes_recipeNutrition from "../functions/recipes/recipeNutrition.js";
 import type * as functions_recipes_recipeSearchText from "../functions/recipes/recipeSearchText.js";
+import type * as functions_recipes_refreshRecipe from "../functions/recipes/refreshRecipe.js";
 import type * as functions_recipes_regenerateRecipe from "../functions/recipes/regenerateRecipe.js";
 import type * as functions_recipes_resolveRecipeIngredients from "../functions/recipes/resolveRecipeIngredients.js";
 import type * as functions_recipes_restoreRecipe from "../functions/recipes/restoreRecipe.js";
@@ -206,6 +208,7 @@ import type * as router_ingredients_generateImageNode from "../router/ingredient
 import type * as router_ingredients_getIngredient from "../router/ingredients/getIngredient.js";
 import type * as router_ingredients_list from "../router/ingredients/list.js";
 import type * as router_ingredients_missingIds from "../router/ingredients/missingIds.js";
+import type * as router_ingredients_replaceInRecipes from "../router/ingredients/replaceInRecipes.js";
 import type * as router_ingredients_resolve from "../router/ingredients/resolve.js";
 import type * as router_ingredients_restoreOne from "../router/ingredients/restoreOne.js";
 import type * as router_ingredients_search from "../router/ingredients/search.js";
@@ -356,6 +359,7 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/missingIngredientIds": typeof functions_ingredients_missingIngredientIds;
   "functions/ingredients/persistRestoredIngredient": typeof functions_ingredients_persistRestoredIngredient;
   "functions/ingredients/rememberAlias": typeof functions_ingredients_rememberAlias;
+  "functions/ingredients/replaceInRecipes": typeof functions_ingredients_replaceInRecipes;
   "functions/ingredients/resolveIngredient": typeof functions_ingredients_resolveIngredient;
   "functions/ingredients/restoreIngredient": typeof functions_ingredients_restoreIngredient;
   "functions/ingredients/searchCatalog": typeof functions_ingredients_searchCatalog;
@@ -421,6 +425,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/recipeImages": typeof functions_recipes_recipeImages;
   "functions/recipes/recipeNutrition": typeof functions_recipes_recipeNutrition;
   "functions/recipes/recipeSearchText": typeof functions_recipes_recipeSearchText;
+  "functions/recipes/refreshRecipe": typeof functions_recipes_refreshRecipe;
   "functions/recipes/regenerateRecipe": typeof functions_recipes_regenerateRecipe;
   "functions/recipes/resolveRecipeIngredients": typeof functions_recipes_resolveRecipeIngredients;
   "functions/recipes/restoreRecipe": typeof functions_recipes_restoreRecipe;
@@ -475,6 +480,7 @@ declare const fullApi: ApiFromModules<{
   "router/ingredients/getIngredient": typeof router_ingredients_getIngredient;
   "router/ingredients/list": typeof router_ingredients_list;
   "router/ingredients/missingIds": typeof router_ingredients_missingIds;
+  "router/ingredients/replaceInRecipes": typeof router_ingredients_replaceInRecipes;
   "router/ingredients/resolve": typeof router_ingredients_resolve;
   "router/ingredients/restoreOne": typeof router_ingredients_restoreOne;
   "router/ingredients/search": typeof router_ingredients_search;

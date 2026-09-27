@@ -147,7 +147,7 @@ Not translations — those are the names above. Three or four is plenty; an empt
   gramsPerSlice below. Pick what a cook would write, not what converts most neatly.
 - defaultQuantity: how much of it one recipe line typically calls for, in that unit.
 - gramsPerPiece: what ONE of them weighs, in grams — 150 for an onion, 5 for a garlic clove, 80
-  for a carrot, 120 for a chicken thigh. Give it for anything a recipe could COUNT, even when you
+  for a carrot, 250 for a chicken leg (cuisse). Give it for anything a recipe could COUNT, even when you
   chose "g" as the unit: a recipe says "2 carrots" as readily as "200 g of carrots". A fresh herb
   is counted by the SPRIG — "2 sprigs of rosemary" — so its piece is one sprig, 1 for thyme and 2
   for rosemary, never the bunch it is sold in. Leave it out only for something that has no single
@@ -168,10 +168,15 @@ Not translations — those are the names above. Three or four is plenty; an empt
   for this row is written in its own unit, which is named to you when there is one, and the row is
   refused if it cannot weigh that unit. "pcs" needs gramsPerPiece; "slice" needs gramsPerSlice; a
   volume ("ml", "cl", "l", "tbsp", "tsp") needs gramsPerMl.
-- A PIECE is what is eaten off it: 120 for a chicken thigh is the meat, not the bone. A VOLUME is
-  what is bought, shell included: mussels by the litre are 0.75 g/ml although half of that is
-  shell, because "750 g of mussels" counts the shell too and the two ways of writing the same
-  purchase must weigh the same.
+- Every weight is AS BOUGHT, bone and shell included, because the shopping list buys the whole
+  thing: a chicken leg is 250 g, a whole chicken 1400, mussels by the litre 0.75 g/ml.
+  What is eaten of it is edibleShare below, never a smaller weight.
+- edibleShare: the share of that weight that is eaten, between 0 and 1 — 0.4 for mussels in their
+  shells, 0.7 for a bone-in thigh or a whole chicken, 0.2 for clams. It applies to every way of
+  writing the food, "500 g of mussels" as much as "1 l", so give it only when a cook buying this
+  by weight gets the waste with it: 1 for anything eaten whole or sold already trimmed (a fillet,
+  peeled prawns, minced meat), and 1 for fruit and vegetables, whose weight a recipe writes
+  trimmed.
 
 # How long it keeps
 
