@@ -13,6 +13,11 @@ type Props = {
   rightIcon?: Icon,
   onRightPress?: () => void,
   rightContent?: React.ReactNode,
+  /**
+   * Drawn where the text field was, keeping the shell and both side buttons. For a field that has
+   * stopped taking typing for a moment — the navigation bar while it listens.
+   */
+  centerContent?: React.ReactNode,
   elevated?: boolean,
   /**
    * Opt-in, because the inputs differ in what focus means to them. A field on a form the cook is
@@ -33,7 +38,7 @@ type Props = {
 
 export { TextInput } from "react-native";
 
-export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, isLoading, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent }: Props) => {
+export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, isLoading, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent, centerContent }: Props) => {
   const color = elevated ? styles.neutralElevated : styles.neutral;
 
   /**
@@ -78,13 +83,13 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
         {leftIcon && <ButtonIcon
           variant={"neutral-subtle"}
           elevated={true}
-          composite
+          composite={!onLeftPress}
           size="sm"
           onPress={onLeftPress}
         >
           {leftIcon}
         </ButtonIcon>}
-        <TextInput
+        {centerContent ?? <TextInput
           ref={ref}
           inputMode={type === "numeric" ? "numeric" :
             type === "decimal" ? "decimal" :
@@ -116,7 +121,7 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
             { fontWeight: 400 },
             { color: color.color },
           ]}
-        />
+        />}
         {rightIcon && <ButtonIcon
           variant={"neutral-subtle"}
           elevated={true}

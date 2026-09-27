@@ -7,11 +7,12 @@ import { ArrowLeft, ForkKnife, House, Plus } from "@ui/icons";
 import { theme } from "theme";
 import { router, usePathname } from "expo-router";
 import { m, AnimatePresence } from "@ui/motion";
-import { NAVIGATION_BAR_OFFSET } from "./constants";
+import { NAVIGATION_BAR_OFFSET } from "../constants";
 import { useRef, useState } from "react";
-import { NavigationBarInput } from "./navigation-bar.input";
-import { useNavigationBar } from "./hooks";
-import { useBackLeadsHome } from "./_hooks/useBackLeadsHome";
+import { NavigationBarInput } from "./input";
+import { NavigationBarVoice } from "./voice";
+import { useNavigationBar } from "../hooks";
+import { useBackLeadsHome } from "../_hooks/useBackLeadsHome";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
 import { SafeAreaView } from "~/ui/components/safe-area-view";
@@ -54,14 +55,59 @@ export const NavigationBar = () => {
   const insets = useSafeAreaInsets();
   const { reset, blur } = useNavigationBar();
 
+  /**
+   * Which bar is up: the text field, or the voice bar that listens. Two components that never talk
+   * to each other — this is the only place that knows both, and the only thing that crosses from
+   * one to the other is `heard`.
+   */
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+
+  /**
+   * A page without the bar ends a spoken entry — the voice bar unmounts, and unmounting is what
+   * stops the recognizer. The mode goes with it: kept at "voice", the bar would open listening the
+   * next time a page shows it, without anyone having pressed the mic. Set during render rather than
+   * in an effect, so no frame ever draws the voice bar on the way back.
+   */
+  if (inputMode === "voice" && (!hasNavigationBar || isRecipes)) setInputMode("text");
+
+  /**
+   * What the voice bar heard, handed to the text bar as it comes back. `undefined` whenever the
+   * text bar is not returning from a spoken entry, so an old one is never typed in again.
+   */
+  const [heard, setHeard] = useState<string>();
+
   const cancelResetRef = useRef(() => { });
+  const onFocus = () => {
+    setInputFocused(true);
+    cancelResetRef.current();
+  }
+
+  /**
+   * Leaving the bar also leaves the voice bar: the tap outside is the shopper walking off, not
+   * asking for what they half-said to be typed in behind them. Unmounting it is what stops the
+   * recognizer.
+   */
   const onBlur = () => {
     // The field's native focus is not React's: collapsing the bar leaves the keyboard standing
     // unless the input is asked to give it up, and the shopper then has to tap outside twice.
     blur();
     setInputFocused(false);
+    setInputMode("text");
+    setHeard(undefined);
     // Store the reset function timeout to cancel it on focus
     cancelResetRef.current = reset({ delayed: true });
+  }
+
+  /** The mic: full width for the wave, and the voice bar in the text bar's place. */
+  const onVoice = () => {
+    onFocus();
+    setHeard(undefined);
+    setInputMode("voice");
+  }
+
+  const onHeard = (text: string) => {
+    setHeard(text);
+    setInputMode("text");
   }
 
   return (
@@ -113,11 +159,17 @@ export const NavigationBar = () => {
                       </ButtonIcon>
                     </m.View>}
                 </AnimatePresence>
-                {!isRecipes && <NavigationBarInput
+                {!isRecipes && inputMode === "text" && <NavigationBarInput
                   style={{ maxWidth: inputFocused ? "100%" : (isAssistant ? 320 : 242) }}
                   focused={inputFocused}
-                  onFocus={() => { setInputFocused(true); cancelResetRef.current(); }}
+                  onFocus={onFocus}
                   onBlur={() => onBlur()}
+                  onVoice={onVoice}
+                  initialValue={heard}
+                />}
+                {!isRecipes && inputMode === "voice" && <NavigationBarVoice
+                  onDone={onHeard}
+                  onDiscard={() => onBlur()}
                 />}
                 {isRecipes && <ButtonPill
                   leftIcon={Plus}

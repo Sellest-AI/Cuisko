@@ -1,24 +1,25 @@
 import { View, StyleSheet, ViewStyle, Platform } from "react-native";
 import Animated from "react-native-reanimated";
 import { Input, type TextInput } from "@ui/input";
-import { Camera, LoaderCircle, Mic, MorphIcon } from "@ui/icons";
+import { Camera, LoaderCircle, Mic, MorphIcon, SendHorizontal, X } from "@ui/icons";
+import { Pressable } from "@ui/pressable";
 import { useSpin } from "@ui/hooks/useSpin";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { useEffect, useRef, useState } from "react";
-import { NAVIGATION_BAR_HEIGHT } from "./constants";
+import { NAVIGATION_BAR_HEIGHT } from "../constants";
 import { AnimatePresence, m } from "@ui/motion";
 import { BlurView } from "~/ui/components/blur-view";
-import { Suggestions } from "./_components/suggestions";
+import { Suggestions } from "../_components/suggestions";
 import { pickQuantity, type Unit } from "@shared/ingredients";
-import { useBarSuggestions } from "./_hooks/useBarSuggestions";
-import { useNavigationBar } from "./_hooks/useNavigationBar";
+import { useBarSuggestions } from "../_hooks/useBarSuggestions";
+import { useNavigationBar } from "../_hooks/useNavigationBar";
 import { useAskCuisko } from "~/modules/assistant/hooks";
 import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
 import { type Intent } from "@shared/inputIntent";
-import { useInputIntent } from "./_hooks/useInputIntent";
-import type { AssistantMode } from "./_hooks/useNavigationBar";
+import { useInputIntent } from "../_hooks/useInputIntent";
+import type { AssistantMode } from "../_hooks/useNavigationBar";
 
 const MIC_ICON_SIZE = 20;
 
@@ -44,9 +45,17 @@ type Props = {
   focused: boolean,
   onFocus: () => void,
   onBlur?: () => void,
+  /** The mic was pressed: the parent swaps this bar for the voice bar. */
+  onVoice: () => void,
+  /**
+   * What the voice bar heard, when this bar comes back from it — empty if nothing was. Present only
+   * on that return, and the field takes the keyboard back when it is: the shopper reads what was
+   * heard, fixes a misheard word, and presses Enter like for anything typed.
+   */
+  initialValue?: string,
 }
 
-export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) => {
+export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, initialValue }: Props) => {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
 
@@ -64,7 +73,8 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
   // The suggestions panel is laid out above the input and then pulled back down over it, so it
   // needs the input's height. Measured rather than assumed: the row grows with the font scale.
   const [inputHeight, setInputHeight] = useState(0);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue ?? "");
+  const isLongEnough = value.trim().length > 3;
 
   /**
    * Called once, here, and handed down to the panel. Calling it there as well would give the two
@@ -102,6 +112,12 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
    * hand the field back to the one that stayed. See `registerInputRef`.
    */
   useEffect(() => registerInputRef(ref), [registerInputRef]);
+
+  /** Back from the voice bar: the keyboard comes up on what was heard. Mount only, on purpose. */
+  const isBackFromVoice = initialValue !== undefined;
+  useEffect(() => {
+    if (isBackFromVoice) ref.current?.focus();
+  }, [isBackFromVoice]);
 
   /**
    * Lands the shopper on the page their submission went to: an ingredient aimed at the cellar
@@ -211,6 +227,44 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
     release();
   }
 
+  /**
+   * Enter, and the send icon — one path, so a tap and the keyboard can never disagree about where
+   * the words go.
+   */
+  const submit = () => {
+    // In a conversation there is nothing to work out: the words are a message. This returns before
+    // `isChecking` is even consulted, because nothing is ever checked here.
+    if (isChatOnly) return sendToChat();
+
+    // A second Enter while the first is still being confirmed would route twice — once on each
+    // answer — and put the same word on the list twice.
+    if (isChecking) return;
+
+    /**
+     * What Enter means is `useInputIntent`'s to work out, from the rules and, for the two it can
+     * only guess at, from the model. All this has to do is hand over what the panel is showing, and
+     * route the answer.
+     *
+     * **`value` and not `rest`.** The resolver is asked about the food with the quantity taken
+     * out, but a quantity is the strongest evidence there is that a phrase names one — strip it
+     * and "500g yuzu" would be judged as bare "yuzu".
+     *
+     * Nothing is cleared until the answer lands. Most submissions settle locally and land in the
+     * same breath; the ones that ask keep their words on screen with the microphone spinning,
+     * because a bar that emptied itself first would look like it had swallowed the input for as
+     * long as the request took.
+     */
+    void resolve(value, {
+      hasCatalogHit: matchingSuggestion !== null,
+      hasRecipeHit: kind === "recipe",
+    }).then((intent) => {
+      route(intent);
+      release();
+    });
+  }
+
+  const isSendIcon = Platform.OS === "web" || isLongEnough;
+
   return (
     <View style={[
       focused && { maxWidth: "100%", width: "100%", paddingHorizontal: theme.spacing[16] },
@@ -278,8 +332,11 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
           ref={ref}
           elevated
           placeholder={t("ask_anything").slice(0, 15).trim().concat("…")}
-          leftIcon={Camera}
-          onLeftPress={() => console.log("camera pressed")}
+          leftIcon={isLongEnough ? X : Camera}
+          onLeftPress={() => {
+            if (isLongEnough) setValue("");
+            else console.log("camera pressed")
+          }}
           /**
            * The microphone, which becomes the wait while the bar is confirming what was typed.
            *
@@ -287,48 +344,28 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur }: Props) =
            * a check that resolves quickly reads as the icon flexing rather than as a spinner
            * appearing and vanishing. Same pairing `ButtonIcon` uses for its loading state — the mic
            * cannot use `Input`'s `isLoading`, which drives `rightIcon`'s button and not this.
+           *
+           * Pressed, it swaps this bar for the voice bar. Not on web: listening is a phone feature
+           * for now, and a mic that does nothing there would be a promise the bar cannot keep.
            */
-          rightContent={
+          rightContent={<Pressable
+            disabled={isChecking}
+            hitSlop={12}
+            onPress={() => {
+              if (isSendIcon) submit();
+              else onVoice();
+            }}
+          >
             <Animated.View style={spin}>
               <MorphIcon
-                icon={isChecking ? LoaderCircle : Mic}
+                icon={isChecking ? LoaderCircle : (isSendIcon ? SendHorizontal : Mic)}
                 size={MIC_ICON_SIZE}
                 color={theme.colors.foreground}
               />
             </Animated.View>
-          }
+          </Pressable>}
           style={{ width: "100%" }}
-          onSubmit={() => {
-            // In a conversation there is nothing to work out: the words are a message. This
-            // returns before `isChecking` is even consulted, because nothing is ever checked here.
-            if (isChatOnly) return sendToChat();
-
-            // A second Enter while the first is still being confirmed would route twice — once on
-            // each answer — and put the same word on the list twice.
-            if (isChecking) return;
-
-            /**
-             * What Enter means is `useInputIntent`'s to work out, from the rules and, for the two
-             * it can only guess at, from the model. All this has to do is hand over what the panel
-             * is showing, and route the answer.
-             *
-             * **`value` and not `rest`.** The resolver is asked about the food with the quantity
-             * taken out, but a quantity is the strongest evidence there is that a phrase names one
-             * — strip it and "500g yuzu" would be judged as bare "yuzu".
-             *
-             * Nothing is cleared until the answer lands. Most submissions settle locally and land
-             * in the same breath; the ones that ask keep their words on screen with the microphone
-             * spinning, because a bar that emptied itself first would look like it had swallowed
-             * the input for as long as the request took.
-             */
-            void resolve(value, {
-              hasCatalogHit: matchingSuggestion !== null,
-              hasRecipeHit: kind === "recipe",
-            }).then((intent) => {
-              route(intent);
-              release();
-            });
-          }}
+          onSubmit={submit}
           value={value}
           onChangeText={(text) => setValue(text)}
           onFocus={onFocus}
