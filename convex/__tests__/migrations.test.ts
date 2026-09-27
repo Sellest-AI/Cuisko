@@ -106,6 +106,41 @@ describe("backfillRecipeShuffleKey", () => {
     await t.run((ctx) => cascadeDelete(ctx, "recipes", recipeId));
   });
 });
+describe("runRefreshRecipes", () => {
+  /**
+   * The refresh is run again every time the catalog changes, and the migrations component records a
+   * finished run — a second plain run would do nothing and report success. This is the rule that the
+   * runner always starts over: the second run, after the catalog changed, still reaches the recipe.
+   */
+  test("a second run after a catalog change refreshes the recipe again", async () => {
+    const recipeId = await insertRecipe();
+    const leek = await t.run((ctx) =>
+      ctx.db.insert("ingredients", {
+        name: { values: { fr: "poireau", en: "leek" }, meta: {} },
+        search: { fr: "poireau", en: "leek" },
+        category: "OTHER",
+        emoji: "🥬",
+        allergens: [],
+        defaultUnit: "pcs",
+        defaultQuantity: 1,
+        nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
+        updatedAt: Date.now(),
+      }),
+    );
+    await t.run((ctx) =>
+      ctx.db.insert("recipeIngredients", { recipeId, ingredientId: leek, position: 0, quantity: 1, unit: "pcs", updatedAt: 1 }),
+    );
+
+    await t.mutation(internal.migrations.runRefreshRecipes, {});
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))?.isVegan).toBe(false);
+
+    await t.run((ctx) => ctx.db.patch(leek, { diet: "vegan" }));
+    await t.mutation(internal.migrations.runRefreshRecipes, {});
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))?.isVegan).toBe(true);
+  });
+});
+
 describe("backfillRecipeStatus", () => {
   /**
    * The real `recipes` table with validation off, for the reason `legacySchema` gives below: the
