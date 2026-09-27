@@ -119,7 +119,7 @@ export const ParallaxScrollView = ({
   // eslint-disable-next-line react-hooks/refs
   const headerBackgroundImageOpacity = scrollY.interpolate({
     inputRange: [-headerHeight / 4, 0, headerHeight / 1.3, headerHeight],
-    outputRange: [1.1, backgroundImageOpacity, 0.05, 0],
+    outputRange: [1.1, backgroundImageOpacity, 0.5, 0.2],
     extrapolate: "clamp",
   });
 
