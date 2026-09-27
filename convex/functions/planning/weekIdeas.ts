@@ -1,7 +1,7 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { candidatePool } from "@convex/functions/planning/candidatePool";
 import { getForUser } from "@convex/functions/preferences/getForUser";
-import { coverOf, toRecipeCard, type RecipeCard } from "@convex/functions/recipes/recipeCard";
+import { coverOf, plateOf, toRecipeCard, type RecipeCard } from "@convex/functions/recipes/recipeCard";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { sortAllergens } from "@shared/allergens";
@@ -89,9 +89,10 @@ export const weekIdeas = async (
   return Promise.all(
     pool.candidates.slice(0, IDEAS_COUNT).map(async ({ recipeId }) => {
       const recipe = pool.recipes.get(recipeId)!;
+      // The shelf draws the cover; the meal sheet's grid draws the plate, falling back to the cover.
+      const [cover, plate] = await Promise.all([coverOf(ctx, recipe), plateOf(ctx, recipe)]);
 
-      // The plate image is a read ideas never use: the shelf shows covers only.
-      return toRecipeCard(recipe, locale, await coverOf(ctx, recipe), null);
+      return toRecipeCard(recipe, locale, cover, plate);
     }),
   );
 };
