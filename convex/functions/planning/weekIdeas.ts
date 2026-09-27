@@ -1,5 +1,5 @@
 import type { Id } from "@convex/_generated/dataModel";
-import { candidatePool } from "@convex/functions/planning/candidatePool";
+import { CANDIDATES_PER_PLATE, candidatePool } from "@convex/functions/planning/candidatePool";
 import { getForUser } from "@convex/functions/preferences/getForUser";
 import { coverOf, plateOf, toRecipeCard, type RecipeCard } from "@convex/functions/recipes/recipeCard";
 import type { QueryCtx } from "@convex/procedures";
@@ -19,15 +19,15 @@ type Args = {
 };
 
 /** How many cards the home shelf holds. */
-export const IDEAS_COUNT = 6;
+export const IDEAS_COUNT = 7;
 
 /**
- * `candidatePool` sizes its window per plate, and one plate asks for `CANDIDATES_PER_PLATE` — six,
- * the same as `IDEAS_COUNT`, so a full catalog fills the shelf without a second plate's line reads.
- * Raising the shelf past that number means asking for more plates. Servings scale the lines,
- * which ideas discard — `1` buys the pool's signature unchanged.
+ * `candidatePool` sizes its window per plate, one plate asking for `CANDIDATES_PER_PLATE`, so the
+ * shelf asks for as many plates as it takes to cover `IDEAS_COUNT` — two for seven, whose surplus
+ * lines are read and dropped. Servings scale the lines, which ideas discard — `1` buys the pool's
+ * signature unchanged.
  */
-const ONE_PLATE = { plates: 1, servings: 1 };
+const SHELF_PLATES = { plates: Math.ceil(IDEAS_COUNT / CANDIDATES_PER_PLATE), servings: 1 };
 
 /**
  * The household's constraint set: the strictest diet of everyone who answered, and every allergen
@@ -83,7 +83,7 @@ export const weekIdeas = async (
     avoids,
     equipments: household?.equipments,
     seeks,
-    ...ONE_PLATE,
+    ...SHELF_PLATES,
   });
 
   return Promise.all(

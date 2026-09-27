@@ -265,13 +265,13 @@ describe("router/planning/getWeekIdeas", () => {
     expect(new Set(ideas.map((card) => card.id))).toEqual(new Set([soupId, mineId]));
   });
 
-  test("answers exactly six when more qualify", async () => {
+  test("answers exactly seven when more qualify", async () => {
     const { householdId, userId } = await seedMember();
-    for (const [index, title] of ["A", "B", "C", "D", "E", "F", "G", "H"].entries())
-      await seedRecipe(title, { shuffleKey: (index + 1) * 450_000_000 });
+    for (const [index, title] of ["A", "B", "C", "D", "E", "F", "G", "H", "I"].entries())
+      await seedRecipe(title, { shuffleKey: (index + 1) * 400_000_000 });
 
     const ideas = await ideasFor(userId, householdId);
 
-    expect(ideas).toHaveLength(6);
+    expect(ideas).toHaveLength(7);
   });
 });
