@@ -122,6 +122,14 @@ describe("useMealCatalog", () => {
       expect(result.current.recipes[4]!.imageSrc).toEqual({ uri: "i1.png" });
     });
 
+    it("are drawn as plates, like every other tile", () => {
+      state.list.recipes = [];
+      state.ideas = [card("i1", { plateImageUrl: "plate.png", coverImageUrl: "cover.png" })];
+      const { result } = catalog("");
+
+      expect(result.current.recipes[0]!.imageSrc).toEqual({ uri: "plate.png" });
+    });
+
     /** A library with nothing in it yet still offers the week's picks rather than an empty grid. */
     it("fill the grid alone when the cook has no recipes", () => {
       state.list.recipes = [];

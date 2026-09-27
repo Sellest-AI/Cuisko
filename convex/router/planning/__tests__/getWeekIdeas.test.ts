@@ -150,6 +150,32 @@ describe("router/planning/getWeekIdeas", () => {
     expect(ideas[0]).toMatchObject({ id: soupId, title: "Soupe", cuisine: "french", minutes: 20 });
   });
 
+  /** The meal sheet draws ideas as plates, so a card carries the plate's url beside the cover's. */
+  test("carries the cover and the plate urls", async () => {
+    const { householdId, userId } = await seedMember();
+    const soupId = await seedRecipe("Soupe", { shuffleKey: 1_000_000_000 });
+
+    await t.run(async (ctx) => {
+      const image = (url: string) =>
+        ctx.db.insert("images", {
+          hasAlpha: url.endsWith(".png"),
+          key: `public/${url}`,
+          url,
+          width: 600,
+          height: 400,
+          size: 6_000,
+          mimeType: url.endsWith(".png") ? "image/png" : "image/webp",
+          tags: ["IMAGE"],
+          updatedAt: Date.now(),
+        });
+      await ctx.db.patch(soupId, { coverImageId: await image("cover.webp"), plateImageId: await image("plate.png") });
+    });
+
+    const ideas = await ideasFor(userId, householdId);
+
+    expect(ideas[0]).toMatchObject({ coverImageUrl: "cover.webp", plateImageUrl: "plate.png" });
+  });
+
   /** Diet is read from the stored row, never from the client: a vegan household never sees meat. */
   test("filters on the household's diet", async () => {
     const { householdId, userId } = await seedMember();
@@ -239,13 +265,13 @@ describe("router/planning/getWeekIdeas", () => {
     expect(new Set(ideas.map((card) => card.id))).toEqual(new Set([soupId, mineId]));
   });
 
-  test("answers exactly six when more qualify", async () => {
+  test("answers exactly seven when more qualify", async () => {
     const { householdId, userId } = await seedMember();
-    for (const [index, title] of ["A", "B", "C", "D", "E", "F", "G", "H"].entries())
-      await seedRecipe(title, { shuffleKey: (index + 1) * 450_000_000 });
+    for (const [index, title] of ["A", "B", "C", "D", "E", "F", "G", "H", "I"].entries())
+      await seedRecipe(title, { shuffleKey: (index + 1) * 400_000_000 });
 
     const ideas = await ideasFor(userId, householdId);
 
-    expect(ideas).toHaveLength(6);
+    expect(ideas).toHaveLength(7);
   });
 });

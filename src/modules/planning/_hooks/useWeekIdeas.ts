@@ -14,6 +14,8 @@ export type WeekIdea = {
   title: string;
   cuisine: Cuisine;
   coverImageUrl?: string;
+  /** What the meal sheet's grid draws, before the cover (`useMealCatalog`). */
+  plateImageUrl?: string;
 };
 
 /** One identity for "none yet", so the meal sheet's grid does not rebuild on every render while the query is pending. */
