@@ -165,10 +165,13 @@ export type IngredientFacts = {
   iron?: number;
 };
 
-/** One line of a recipe, already weighed by `toGrams` and already looked up in the catalog. */
+/** One line of a recipe, already weighed by `edibleGrams` and already looked up in the catalog. */
 export type RecipeLine = {
   facts: IngredientFacts;
-  /** `undefined` when the line's unit could not be converted — see `toGrams`. */
+  /**
+   * The grams EATEN, never the weight as bought: the facts are per 100 g of the edible part.
+   * `undefined` when the line's unit could not be converted — see `toGrams`.
+   */
   grams?: number;
   /**
    * Whether this line counts toward the fruit/vegetable/legume/nut share the score rewards.
@@ -180,7 +183,10 @@ export type RecipeLine = {
 };
 
 export type RecipeNutrition = {
-  /** What the whole recipe weighs. The denominator behind every per-100g figure below. */
+  /**
+   * What the whole recipe weighs, eaten: the shells and bones it was bought with are not in it.
+   * The denominator behind every per-100g figure below.
+   */
   grams: number;
   /** Everything the recipe contains, across all of the servings it is written for. */
   total: IngredientFacts;

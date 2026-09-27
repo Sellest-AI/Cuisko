@@ -12,6 +12,13 @@ import type { Diet } from "@shared/diets";
  * much curation on top. `defaultUnit`/`defaultQuantity` are a starting point for "how much of this
  * does a household usually buy at once", not a measured fact — edit freely.
  *
+ * **Every figure is per 100 g of the RAW, EDIBLE part**, and a reference that lists a food several
+ * times (raw, boiled, roasted) is read at its raw entry. A recipe line is a raw weight, and cooking
+ * drives out water, not calories, so a cooked figure times a raw weight counts the same energy
+ * again: `mussels` took USDA's "cooked, moist heat" entry, 172 kcal against 86 raw, and every dish
+ * of them came out at twice its calories. The edible part is the other half of that rule: bone and
+ * shell are in the weights below and out of these figures, and `EDIBLE_SHARE` reconciles the two.
+ *
  * One row per tuple keeps ~200 entries reviewable; `CATALOG` below is what the rest of the code
  * actually consumes.
  */
@@ -50,6 +57,8 @@ export type CatalogEntry = {
   gramsPerPiece?: number;
   gramsPerSlice?: number;
   gramsPerMl?: number;
+  /** Absent for the whole of it. See `EDIBLE_SHARE`. */
+  edibleShare?: number;
   /** Optional in the type only: the catalog test fails on a row `SHELF_LIFE_DAYS` misses. */
   shelfLifeDays?: number;
   openedShelfLifeDays?: number;
@@ -223,7 +232,7 @@ const ROWS: Row[] = [
   ["cod", "Cod", "Cabillaud", "SEAFOOD", "g", 300, 82, 18, 0.7, 0.1, 0, 0, 0, 54],
   ["tilapia", "Tilapia", "Tilapia", "SEAFOOD", "g", 300, 96, 20, 1.7, 0.6, 0, 0, 0, 52],
   ["sardines", "Sardines", "Sardines", "SEAFOOD", "g", 150, 208, 25, 11, 1.5, 0, 0, 0, 307],
-  ["mussels", "Mussels", "Moules", "SEAFOOD", "g", 500, 172, 24, 4.5, 0.9, 7.4, 0, 0, 369],
+  ["mussels", "Mussels", "Moules", "SEAFOOD", "g", 500, 86, 11.9, 2.2, 0.4, 3.7, 0, 0, 286],
   ["scallops", "Scallops", "Noix de Saint-Jacques", "SEAFOOD", "g", 200, 88, 16.8, 0.8, 0.1, 2.4, 0, 0, 392],
   ["crab", "Crab", "Crabe", "SEAFOOD", "g", 200, 97, 19, 1.5, 0.2, 0, 0, 0, 293],
   ["trout", "Trout", "Truite", "SEAFOOD", "g", 300, 148, 20, 6.6, 1.6, 0, 0, 0, 52],
@@ -633,17 +642,15 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
  * What one of an ingredient weighs, in grams — for the 66 rows a household counts rather than
  * weighs, plus the few written per piece in a recipe whatever the shop sells them by.
  *
- * Hand-compiled like the nutrition values above, for a medium specimen as sold: a whole raw item
- * before trimming, since that is what someone holds when they write "2 onions". Sparse by nature,
- * not by neglect — there is no such thing as one flour (see schema/ingredients.ts).
+ * Hand-compiled like the nutrition values above, for a medium specimen AS SOLD: a whole raw item
+ * before trimming, since that is what someone holds when they write "2 onions", and what the
+ * shopping list has to buy. Sparse by nature, not by neglect — there is no such thing as one flour
+ * (see schema/ingredients.ts).
  *
- * **The three whole birds are the exception, and they are EDIBLE weight, not as sold.** A 1.4 kg
- * `poulet entier` is ~1000 g of meat and skin over ~400 g of carcass, and this number is what the
- * nutrition figures above are multiplied by: as-sold would bill the cook for the calories of a
- * frame they will boil for stock and throw away. An apple's 180 g still includes its core and a
- * cantaloupe's 550 g its rind, so this is an inconsistency rather than a rule — it is taken here
- * because a bird's inedible fraction is ~30% where a core is a rounding error, and because a
- * recipe writes "1 poulet" and means the meat on it.
+ * **No exception for bone.** A `poulet entier` is the 1.4 kg bird on the label, carcass and all;
+ * the ~1000 g of meat and skin a cook eats off it is `EDIBLE_SHARE` below, and only nutrition reads
+ * that. The birds and `chicken-thigh` used to store the meat instead, which billed the cook for
+ * the right calories and sent them shopping for a bird 400 g too small.
  *
  * `garlic` is a clove, as every recipe that ever called for one means. Worth writing down only
  * because a shop sells it by the head and the two are ~17x apart, so whatever eventually turns a
@@ -671,14 +678,14 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
   "flavoured-yogurt": 125, "egg-whole": 50, "egg-yolk": 17, camembert: 250,
   "chicken-breast": 150, "duck-breast": 350, "pork-chop": 180, "sausage-pork": 80, "egg-noodles": 50,
-  // Bone-in, so edible weight like the birds below: ~170 g as sold, ~120 g off the bone.
-  "chicken-thigh": 120,
+  // Bone-in, as sold: ~120 g of it comes off the bone (see `EDIBLE_SHARE`).
+  "chicken-thigh": 170,
   // Fish and seafood — a raw peeled prawn, a whole fresh sardine
   shrimp: 15, sardines: 50,
   // One of them out of the packet or the jar — a nori sheet, an olive.
   nori: 3, "olives-black": 4,
-  // Whole birds — meat and skin off the carcass, per the note above, not the weight on the label.
-  "chicken-whole": 1000, "duck-whole": 1000, "turkey-whole": 3000,
+  // Whole birds — the weight on the label, carcass included (see `EDIBLE_SHARE`).
+  "chicken-whole": 1400, "duck-whole": 2000, "turkey-whole": 4500,
   // A cube, as every recipe that calls for one means, and as the box is portioned.
   "bouillon-cube": 10,
   // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
@@ -727,14 +734,8 @@ const GRAMS_PER_SLICE: Record<string, number> = {
  * from 0.53 to 0.7 depending on how it is scooped, which is the built-in imprecision of measuring
  * a solid by volume and not something a second decimal here would fix.
  *
- * `mussels` is in its shell, as "1 litre de moules" is bought: 0.75, about half of it shell.
- *
- * @limitation A shellfish line counts its shell as meat. 1 L of mussels weighs 750 g and is totalled
- * as 750 g of the row's per-100 g figures, which are for the meat alone. **Accepted because** a
- * density of the meat only would make "1 l" and "750 g" of the same purchase disagree, and a line
- * in grams already counts the shell, since mass units never read the row. **The fix** is an edible
- * share on the ingredient row, applied by `toGrams` to every unit. The `mussels` row's figures are
- * also for COOKED meat (172 kcal against ~86 raw), which doubles the error again.
+ * `mussels` is in its shell, as "1 litre de moules" is bought: 0.75, shells included, so "1 l" and
+ * "750 g" of the same purchase weigh the same. The shell leaves the count through `EDIBLE_SHARE`.
  */
 const GRAMS_PER_ML: Record<string, number> = {
   // Dairy
@@ -781,8 +782,36 @@ const GRAMS_PER_ML: Record<string, number> = {
   "hoisin-sauce": 1.2, "miso-paste": 1.2, "curry-paste-red": 1.1, "orange-blossom-water": 1,
   "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "tomato-sauce": 1.05, "white-wine": 0.99,
   "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
-  // Shellfish by the litre, in the shell — see the limitation above.
+  // Shellfish by the litre, in the shell — see the note above.
   mussels: 0.75,
+};
+
+/**
+ * The share of the as-sold weight that is eaten, for the rows bought with a part nobody eats.
+ *
+ * Every weight in this file is as sold and every figure is per 100 g eaten, so nutrition counts a
+ * line at its weight times this (shared/ingredients.ts `edibleGrams`), and shopping ignores it.
+ * It applies in every unit, grams included: "1 kg de moules" is bought in the shell too.
+ *
+ * **Only where a line in GRAMS of the row conventionally includes the waste**, because the share
+ * applies to those lines as well. Estimates from typical yields, not measurements. Left at the
+ * whole of it, on purpose:
+ * - Fruit and vegetables. A peel, rind or core is bought with them, but "200 g de carottes râpées"
+ *   is written trimmed, and a share would undercount it. Their piece weights overcount a little.
+ * - `egg-whole`, whose 50 g piece is already the egg out of its shell, as "100 g d'œufs" means.
+ * - `shrimp` (a peeled prawn), `crab` (the figures are crab meat), `sardines` (the figures are the
+ *   tin, eaten bones and all).
+ *
+ * Exported for the catalog test, which checks every key names a row: a typo'd one is otherwise
+ * silent, and the row it meant keeps counting its bones.
+ */
+export const EDIBLE_SHARE: Record<string, number> = {
+  // Whole birds: meat and skin off the carcass. 1.4 kg of chicken is ~1 kg eaten.
+  "chicken-whole": 0.7, "duck-whole": 0.5, "turkey-whole": 0.67,
+  // Bone-in cuts, as a French butcher sells them: a cuisse, the wings, a côte, a gigot, a lapin.
+  "chicken-thigh": 0.7, "chicken-wings": 0.55, "pork-chop": 0.8, "lamb-leg": 0.75, rabbit: 0.65,
+  // In the shell, raw meat against live weight.
+  mussels: 0.4,
 };
 
 /**
@@ -1254,6 +1283,7 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     gramsPerPiece: GRAMS_PER_PIECE[slug],
     gramsPerSlice: GRAMS_PER_SLICE[slug],
     gramsPerMl: GRAMS_PER_ML[slug],
+    edibleShare: EDIBLE_SHARE[slug],
     shelfLifeDays: SHELF_LIFE_DAYS[slug]?.sealed,
     openedShelfLifeDays: SHELF_LIFE_DAYS[slug]?.opened,
     nutrition: { calories, protein, fat, saturatedFat, carbohydrates, sugars, fiber, sodium },

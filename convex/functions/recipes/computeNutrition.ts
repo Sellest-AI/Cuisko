@@ -1,7 +1,7 @@
 import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
-import { type RecipeUnit, roundQuantity, toGrams, weighableUnits } from "@shared/ingredients";
+import { edibleGrams, type RecipeUnit, roundQuantity, toGrams, weighableUnits } from "@shared/ingredients";
 import {
   type IngredientFacts,
   type NutriScoreGrade,
@@ -86,7 +86,11 @@ const UNAVAILABLE =
  *
  * The total is `nutritionOfLines`' and nothing else's, so a recipe's figure here is the recipe
  * screen's figure at the same servings. The per-line shares are the only arithmetic of this file's
- * own, and they are the same `toGrams` × per-100 g that total is the sum of.
+ * own, and they are the same `edibleGrams` × per-100 g that total is the sum of.
+ *
+ * Every `grams` here is the weight EATEN, the dish's and each line's, so every figure in one answer
+ * obeys grams × per-100 g = total and nothing the model copies contradicts another field. What the
+ * cook bought stays in each line's `quantity` and `unit`, as the recipe writes it.
  */
 const _figuresOf = (
   lines: WeighableLine[],
@@ -107,8 +111,8 @@ const _figuresOf = (
     per100g: roundFacts(scaleFacts(totals.total, 100 / totals.grams)),
     ...(totals.nutriScore && { nutriScore: totals.nutriScore.grade }),
     lines: lines.map(({ ingredient, quantity, unit }) => {
-      // Defined: `totalsOf` has just refused any line `toGrams` could not weigh.
-      const grams = (toGrams(quantity, unit, ingredient) ?? 0) * factor;
+      // Defined: `totalsOf` has just refused any line `edibleGrams` could not weigh.
+      const grams = (edibleGrams(quantity, unit, ingredient) ?? 0) * factor;
       const share = roundFacts(scaleFacts(ingredient.nutrition, grams / 100));
 
       return {
@@ -175,6 +179,7 @@ const _linesNutrition = async (
     if (!ingredient) {
       missing.push(line.ingredientId);
     } else if (toGrams(line.quantity, line.unit, ingredient) === undefined) {
+      // Weighability, not a count: `edibleGrams` refuses exactly the units `toGrams` does.
       unweighable.push({
         ingredientId: line.ingredientId,
         name: resolvei18n(ingredient.name, locale),
@@ -198,8 +203,8 @@ const _linesNutrition = async (
  *
  * The assistant's calculator, and the reason it exists is that the model must never produce a
  * nutrition figure itself: asked "how many calories in an egg", it multiplies in its head, and
- * the answer is confident and unchecked. Here the egg is weighed by `toGrams` from its catalog row
- * and counted by `totalsOf`, exactly as a recipe line is.
+ * the answer is confident and unchecked. Here the egg is weighed by `edibleGrams` from its catalog
+ * row and counted by `totalsOf`, exactly as a recipe line is.
  */
 export const computeNutrition = (
   ctx: ComputeCtx,

@@ -205,6 +205,11 @@ const _modelFactsSchema = z
       "The density — 0.91 for oil, 1.42 for honey. Left out for anything nobody measures by " +
       "volume (a chicken, a carrot).",
     ),
+    edibleShare: z.number().positive().nullable().optional().describe(
+      "The share of the weight AS SOLD that is eaten, between 0 and 1 — 0.4 for mussels in their " +
+      "shells, 0.7 for a bone-in chicken thigh, 0.7 for a whole chicken. 1 for anything eaten " +
+      "whole or sold already trimmed, which is most foods.",
+    ),
     shelfLifeDays: z.number().positive().nullable().optional().describe(
       "Days it keeps UNOPENED, in the form a shop usually sells it and stored the normal way — " +
       "365 for canned chopped tomatoes (a tin), 90 for milk (a UHT carton), 7 for fresh " +
@@ -215,8 +220,8 @@ const _modelFactsSchema = z
       "cut tomato, 365 for opened dried pasta. Never more than shelfLifeDays.",
     ),
     nutrition: _nutritionSchema.describe(
-      "Per 100g, for the raw ingredient as sold: calories in kcal, the rest in grams, and sodium " +
-      "in MILLIGRAMS — sodium, not salt, which is 2.5x more.",
+      "Per 100g of the RAW part that is EATEN — the meat, not the shell or the bone: calories in " +
+      "kcal, the rest in grams, and sodium in MILLIGRAMS — sodium, not salt, which is 2.5x more.",
     ),
   })
   // **The weighability rule is NOT enforced here, and that is deliberate — see `_weighable`.** A
@@ -382,7 +387,7 @@ export const dictionaryOf = (hits: readonly LookupHit[]): Dictionary =>
 type _FactsCheck = z.infer<typeof _modelFactsSchema> extends Omit<
   IngredientFacts,
   | "slug" | "names" | "aliases" | "allergens" | "gramsPerPiece" | "gramsPerSlice" | "gramsPerMl"
-  | "shelfLifeDays" | "openedShelfLifeDays"
+  | "edibleShare" | "shelfLifeDays" | "openedShelfLifeDays"
 >
   ? true
   : never;
@@ -509,6 +514,24 @@ const _shelfLifeOf = (
     openedShelfLifeDays:
       opened !== undefined && shelfLifeDays !== undefined ? Math.min(opened, shelfLifeDays) : opened,
   };
+};
+
+/**
+ * The share of the row that is eaten, as the column stores it: a number below 1, or absent.
+ *
+ * **Absent rather than refused**, for the reason `_shelfLifeOf` repairs a date: absent is the whole
+ * of it, which is what every row counted before shares existed, so a share the model left out or
+ * got wrong costs the row only the shells it keeps counting. Zero and below never arrive here (the
+ * schema's `.positive()` drops them); above 1 is dropped here, because more eaten than bought is a
+ * slip — most likely a percentage — and guessing which is an invention. Exactly 1 is written as
+ * absent too, so "all of it" has one spelling on every row, seeded or not.
+ */
+const _edibleShareOf = (
+  facts: z.infer<typeof _modelFactsSchema>,
+): Pick<IngredientFacts, "edibleShare"> => {
+  const share = facts.edibleShare;
+
+  return { edibleShare: share != null && share < 1 ? share : undefined };
 };
 
 /**
@@ -649,6 +672,7 @@ export const toSanitizedIngredient = (
       defaultUnit: facts.defaultUnit,
       defaultQuantity: facts.defaultQuantity,
       ...ratios,
+      ..._edibleShareOf(facts),
       ..._shelfLifeOf(facts),
       nutrition: measuredOver(facts.nutrition, measured),
     },

@@ -21,7 +21,11 @@ beforeEach(() => {
 /** Round per-100 g figures, so every expected value below can be checked by hand. */
 const seedIngredient = (
   name: string,
-  { gramsPerPiece, category = "VEGETABLE" }: { gramsPerPiece?: number; category?: "VEGETABLE" | "DAIRY" } = {},
+  {
+    gramsPerPiece,
+    edibleShare,
+    category = "VEGETABLE",
+  }: { gramsPerPiece?: number; edibleShare?: number; category?: "VEGETABLE" | "DAIRY" } = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("ingredients", {
@@ -33,6 +37,7 @@ const seedIngredient = (
       nutrition: { calories: 140, protein: 12, fat: 10, carbohydrates: 2 },
       updatedAt: Date.now(),
       ...(gramsPerPiece !== undefined && { gramsPerPiece }),
+      ...(edibleShare !== undefined && { edibleShare }),
     }),
   );
 
@@ -92,6 +97,26 @@ describe("functions/recipes/computeNutrition", () => {
         perServing: { calories: 70, protein: 6, fat: 5, carbohydrates: 1 },
         per100g: { calories: 140, protein: 12, fat: 10, carbohydrates: 2 },
         lines: [{ name: "Egg", quantity: 1, unit: "pcs", grams: 50, calories: 70 }],
+      },
+    });
+  });
+
+  /**
+   * A weight is as bought and the facts are per 100 g eaten, so only the eaten share is counted:
+   * in the total, in the line's own share, and in the grams every per-100 g figure is read against.
+   * What the cook bought stays in the quantity, which is what they read on the recipe.
+   */
+  test("counts only the share of a line that is eaten, and still quotes what was bought", async () => {
+    const mussels = await seedIngredient("Mussels", { gramsPerPiece: 100, edibleShare: 0.4 });
+
+    const answer = await compute({ lines: [{ ingredientId: mussels, quantity: 1, unit: "pcs" }] });
+
+    expect(answer).toMatchObject({
+      figures: {
+        grams: 40,
+        total: { calories: 56, fat: 4 },
+        per100g: { calories: 140, fat: 10 },
+        lines: [{ quantity: 1, unit: "pcs", grams: 40, calories: 56 }],
       },
     });
   });

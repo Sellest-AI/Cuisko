@@ -250,7 +250,7 @@ export const pickQuantity = (
  * `ingredients` table, passed structurally so this file never has to reach for a `Doc`.
  */
 export type GramWeights = {
-  /** Grams in one of them as sold: 150 for an onion, 250 for a baguette. */
+  /** Grams in one of them as sold: 150 for an onion, 250 for a baguette, 170 for a bone-in thigh. */
   gramsPerPiece?: number;
   /** Grams in one slice of it: 35 for that baguette. Only for what is sold whole and eaten cut. */
   gramsPerSlice?: number;
@@ -286,6 +286,9 @@ const ML_PER_VOLUME_UNIT = {
 /**
  * A quantity in grams, or `undefined` when this ingredient does not know what it weighs.
  *
+ * The weight AS BOUGHT, shell and bone included, which is what shopping and stock need. Nutrition
+ * reads `edibleGrams` below instead, which is this times the share that is eaten.
+ *
  * Every nutrition fact in the catalog is per 100g, so this is the gate every recipe line passes
  * through before it can be counted. Returning `undefined` rather than guessing is the point: a
  * caller that substituted 1 g/ml for a missing density would understate honey by 40% and report it
@@ -315,6 +318,29 @@ export const toGrams = (quantity: number, unit: RecipeUnit, weights: GramWeights
   }
 
   return undefined;
+};
+
+/** A row's weights, and how much of that weight is eaten. See `edibleGrams`. */
+export type EdibleWeights = GramWeights & {
+  /** The share of the as-bought weight that is eaten, in (0, 1]: 0.4 for mussels. Absent is 1. */
+  edibleShare?: number;
+};
+
+/**
+ * The grams nutrition counts: what `toGrams` weighs as bought, times the share that is eaten.
+ *
+ * Every weight on a row is AS BOUGHT, because the shopping list, the stock and the grocery
+ * conversion must buy the whole thing: 1 l of mussels is 750 g at the fishmonger, shells and all.
+ * The per-100 g facts are for the part that is eaten, so they are multiplied by this and never by
+ * `toGrams` directly: 750 g of mussels counted as meat was a dish at twice its calories.
+ *
+ * The one place the share is applied, so the shopping side and the counting side cannot disagree
+ * about which is which. A unit `toGrams` cannot weigh stays `undefined` here, for the same reason.
+ */
+export const edibleGrams = (quantity: number, unit: RecipeUnit, weights: EdibleWeights): number | undefined => {
+  const grams = toGrams(quantity, unit, weights);
+
+  return grams === undefined ? undefined : grams * (weights.edibleShare ?? 1);
 };
 
 /**

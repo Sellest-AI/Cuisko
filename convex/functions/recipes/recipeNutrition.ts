@@ -1,7 +1,7 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Category } from "@shared/categories";
-import { type RecipeUnit, toGrams } from "@shared/ingredients";
+import { edibleGrams, type RecipeUnit } from "@shared/ingredients";
 import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
 
 type NutritionCtx = Pick<QueryCtx, "db">;
@@ -13,7 +13,7 @@ type NutritionCtx = Pick<QueryCtx, "db">;
  * computes it on its own.
  */
 
-/** A quantity of a catalog row: what `toGrams` weighs and `totalsOf` counts. */
+/** A quantity of a catalog row: what `edibleGrams` weighs and `totalsOf` counts. */
 export type WeighableLine = {
   ingredient: Doc<"ingredients">;
   quantity: number;
@@ -76,6 +76,10 @@ const PRODUCE_CATEGORIES: readonly Category[] = ["VEGETABLE", "FRUIT", "LEGUME",
  * reason: no lines, lines that did not all resolve (`lineCount` above `lines.length`), and —
  * inside `totalsOf` — a line that cannot reach grams. A dish quietly missing its olive oil reads
  * as a health food, and nothing downstream could tell a partial total from a real one.
+ *
+ * Each line is counted on the share of it that is eaten (`edibleGrams`), never on what it weighs as
+ * bought: a litre of mussels is 750 g at the fishmonger and 300 g on the fork. So the `grams` this
+ * returns, and every per-100 g figure read against it, are the weight of what is eaten.
  */
 export const nutritionOfLines = (
   lines: WeighableLine[],
@@ -87,7 +91,7 @@ export const nutritionOfLines = (
   return totalsOf(
     lines.map(({ ingredient, quantity, unit }) => ({
       facts: ingredient.nutrition,
-      grams: toGrams(quantity, unit, ingredient),
+      grams: edibleGrams(quantity, unit, ingredient),
       produce: PRODUCE_CATEGORIES.includes(ingredient.category),
     })),
     servings,
