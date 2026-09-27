@@ -125,9 +125,11 @@ could not confirm, with where you looked) · **Blocked on you** (what you need f
 **Existing tests are the specification.** A fix adds tests. It never edits an existing assertion to
 make itself pass.
 
-- **A reported bug or edge case is pinned by a test before it is fixed.** Use the user's input and the
-  output they expected, added to the function's existing test file (`convex/`, `shared/`, `_model/`).
-  Never a new file just for it, never a component test. Watch it fail on the old code, then fix.
+- **A reported bug or edge case is pinned by a test before it is fixed: the rule that broke, not the
+  instance.** A wrong output: the user's input and the output they expected. Bad data: the invariant
+  over the whole table, or the function that let it in. Added to the existing test file (`convex/`,
+  `shared/`, `_model/`). Never a new file just for it, never a component test. Watch it fail on the
+  old code, then fix; a test only a revert can turn red again pins nothing.
 - **A fix that turns an existing test red: STOP and report before touching the test.** Asking for a
   fix is not asking for a new behaviour. Either the fix is too wide, or the rule really changes, and
   that is the user's call. List every broken test, then wait:
