@@ -742,9 +742,10 @@ Is it a React hook?
 └─ Presentation-only (useColorScheme)?                → src/ui/hooks/
 
 Is it domain logic with no React, Jotai or Convex import — types, invariants, pure functions?
-├─ Used by one `_hooks/` file only?                   → stays inline in that hook, for now
-└─ Several `_hooks/` files in the module need it?      → src/modules/{domain}/_model/
-   (unit-tested directly, no provider tree — see src/modules/groceries/_model/model.ts)
+├─ Has rules worth a test of their own,               → src/modules/{domain}/_model/
+│  or several `_hooks/` files need it?                  named for the concept, never the hook
+│  (unit-tested directly, no provider tree — see src/modules/groceries/_model/model.ts)
+└─ A trivial helper, one `_hooks/` file uses it?      → stays inline in that hook, for now
 
 Is it a screen?                                       → app/  (routing only — no useQuery)
 
@@ -774,6 +775,14 @@ Is it a test?                                           📐 C10 · [ADR 0008](.
                                                         src/** and app/**       → `app` project
                                                         scripts/**              → `scripts` project
 ```
+
+**Domain logic goes to `_model/` for what it holds, not for how many files call it.** A state
+machine with edge cases — `navigation/_model/voice.ts` decides when a spoken entry ends, and every
+one of its rules is a bug somebody hit — earns `_model/` from its first caller: pinned there against
+plain data, each rule is one line of test, where inline it needs the hook mounted over a fake
+recognizer. A `formatLabel` one-liner stays in its hook until a second one needs it. Either way the
+file is named for what it holds — `voice.ts`, not `useVoiceInput.helpers.ts`: a name tied to one
+hook reads as misplaced the day a second hook imports it.
 
 A directory is created the first time a file belongs in it — but the destination is decided here,
 not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may and may not do.

@@ -56,9 +56,10 @@ takes no Jotai, and an atom is neither a component nor a hook.
 `_model/` is where the domain lives once it grows past a couple of pure functions used by one
 hook — types, invariants, derivations, all of it framework-free and unit-testable without
 mounting anything. `_hooks/` is what's left once that moves out: the Jotai/Convex glue that
-turns `_model/`'s pure functions into what a screen reads and calls. A one-off helper used by a
-single hook can stay inline; `_model/` is for a domain shape that several files in the module
-need to agree on. See `src/modules/groceries/_model/model.ts` for the pattern in practice.
+turns `_model/`'s pure functions into what a screen reads and calls. A trivial helper used by a
+single hook can stay inline; `_model/` is for logic that has rules worth a test of their own, or
+that several `_hooks/` files need. See `src/modules/groceries/_model/model.ts` for the pattern in
+practice.
 
 `hooks.ts` re-exports and nothing else. The moment logic lands in it, it has stopped being a door.
 It is also created at the first real consumer, not in advance: a door nobody walks through is how
@@ -70,7 +71,7 @@ a convention becomes decoration.
 | --------------------------------------- | -------------------------------------------------- |
 | one parent                             | dot notation beside it — `screen.list.filters.tsx` |
 | several parents in this module         | `_components/`                                     |
-| several `_hooks/` files, framework-free | `_model/`                                          |
+| several `_hooks/` files, or rules worth a test, framework-free | `_model/`                   |
 | another module, and it is pure         | not here at all — `src/ui/`                        |
 | another module, and it needs data      | this module's root                                 |
 
