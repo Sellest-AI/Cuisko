@@ -5,7 +5,6 @@ import Animated from "react-native-reanimated";
 
 import { StepSlider } from "@ui/step-slider";
 import { Text } from "@ui/text";
-import { TextField } from "@ui/text-field";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
@@ -38,7 +37,7 @@ const SLOTS = {
 /** What this week is, who is eating, and what the kitchen can do. */
 export const TunnelSetup = () => {
   const t = useTranslations("Planning");
-  const { note, setNote, people, setPeople, days, setDays, slots, toggleSlot, isSeedLoading } =
+  const { people, setPeople, days, setDays, slots, toggleSlot, isSeedLoading } =
     useTunnel();
   const resetTunnel = useSetAtom(resetTunnelAtom);
   const onScroll = useTunnelScrollHandler();
@@ -73,14 +72,11 @@ export const TunnelSetup = () => {
         <Text.Base color={colors.muted}>{t("Tunnel.Setup.loading")}</Text.Base>
       ) : (
         <>
-          <TextField
-            multiline
-            value={note}
-            onChangeText={setNote}
-            placeholder={t("Tunnel.Setup.placeholder")}
-            style={styles.note}
+          {/** Notes are removed for now, until implemented. */}
+          <SectionLabel
+            label={t("Tunnel.Setup.meals")}
+            style={{ marginTop: theme.spacing[4] }}
           />
-          <SectionLabel label={t("Tunnel.Setup.meals")} />
           <ChoiceRows
             options={MEAL_SLOTS.map((slot) => ({
               id: slot,
@@ -100,15 +96,8 @@ export const TunnelSetup = () => {
   );
 };
 
-const NOTE_MIN_HEIGHT = 96;
-
 const styles = StyleSheet.create({
   /** Clears the tunnel bar, which floats over the page rather than sitting in it. */
   page: { paddingBottom: NAVIGATION_BAR_OFFSET, paddingHorizontal: GUTTER },
-  note: {
-    minHeight: NOTE_MIN_HEIGHT,
-    textAlignVertical: "top",
-    paddingTop: theme.spacing[16],
-  },
   slider: { marginBottom: theme.spacing[4] },
 });
