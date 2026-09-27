@@ -120,6 +120,20 @@ worktree (deleting data, force-push, `main`, the shared stash).
 could not confirm, with where you looked) · **Blocked on you** (what you need from the user), or
 **Next** when nothing is. When a section is empty, leave its heading out entirely.
 
+**When the user asks for clarification or says they did not understand, change the form, not the
+wording.** Prose that failed once fails again rephrased. Show it instead, picked by the shape of the
+idea:
+
+| The idea is…                             | Show it as                                                                                     |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| a rule or a behaviour                    | a concrete example — the input, and what comes out                                             |
+| a choice between options, a before/after | a table, one row per option or case                                                            |
+| a flow, a call stack, layers             | a diagram, drawn with your client's visual tool (the Claude app renders no Mermaid), else ASCII |
+
+Build the example from this project — its files, its data (eggs owned, a recipe needing two) —
+never `foo` / `bar`. Lead with it, then state the point in one sentence. If you cannot tell which
+part lost them, name the one you think did and explain that, rather than repeating the whole answer.
+
 ## Tests
 
 **Existing tests are the specification.** A fix adds tests. It never edits an existing assertion to
