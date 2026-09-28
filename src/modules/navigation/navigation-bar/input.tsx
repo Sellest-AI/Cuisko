@@ -20,6 +20,7 @@ import { usePathname, router } from "expo-router";
 import { type Intent } from "@shared/inputIntent";
 import { useInputIntent } from "../_hooks/useInputIntent";
 import type { AssistantMode } from "../_hooks/useNavigationBar";
+import { useDebounce } from "~/hooks/useDebounce";
 
 const MIC_ICON_SIZE = 20;
 
@@ -100,7 +101,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
   const { resolve, isChecking } = useInputIntent();
   // Parked at 0 when it stops, and the morph below cross-fades at that same moment, so the jump
   // back to a still microphone is invisible.
-  const spin = useSpin(isChecking);
+  const isSendIcon = Platform.OS === "web" || isLongEnough;
+  const isCheckingAnimation = useDebounce(isChecking, 200);
+  const spin = useSpin(isCheckingAnimation && !isSendIcon);
 
   const { mode, registerInputRef } = useNavigationBar();
   const ref = useRef<TextInput>(null);
@@ -263,8 +266,6 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
     });
   }
 
-  const isSendIcon = Platform.OS === "web" || isLongEnough;
-
   return (
     <View style={[
       focused && { maxWidth: "100%", width: "100%", paddingHorizontal: theme.spacing[16] },
@@ -350,7 +351,8 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
            */
           rightContent={<Pressable
             disabled={isChecking}
-            hitSlop={12}
+            haptic
+            hitSlop={24}
             onPress={() => {
               if (isSendIcon) submit();
               else onVoice();
@@ -358,7 +360,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
           >
             <Animated.View style={spin}>
               <MorphIcon
-                icon={isChecking ? LoaderCircle : (isSendIcon ? SendHorizontal : Mic)}
+                icon={isCheckingAnimation ? LoaderCircle : (isSendIcon ? SendHorizontal : Mic)}
                 size={MIC_ICON_SIZE}
                 color={theme.colors.foreground}
               />
