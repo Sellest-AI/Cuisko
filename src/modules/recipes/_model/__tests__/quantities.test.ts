@@ -87,6 +87,12 @@ describe("scaleInstruction", () => {
     expect(scaleInstruction("Faites revenir 2 oignons", LINES, 3, 1)).toBe("Faites revenir 0.7 oignons");
   });
 
+  /** A method is followed, not shopped from: 1.33 onions is 1.3, and 66.2 g is 66 g, never up. */
+  test("rounds to the nearest amount, as the ingredients tab does", () => {
+    expect(scaleInstruction("Faites revenir 2 oignons", LINES, 3, 2)).toBe("Faites revenir 1.3 oignons");
+    expect(scaleInstruction("Ajoutez 331 g de farine", LINES, 5, 1)).toBe("Ajoutez 66 g de farine");
+  });
+
   /**
    * The measure is the whole evidence here: the recipe stores `Citron`, the method says "jus de
    * citron", and a matcher that called those the same thing would be a matcher that links a lemon
