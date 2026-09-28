@@ -7,6 +7,7 @@ import {
   formatGroceryQuantity,
   fromStockUnit,
   mergeGroupOf,
+  mergeRecipeLines,
   normalizeUnit,
   pickQuantity,
   RECIPE_UNITS,
@@ -494,5 +495,177 @@ describe("weighableUnits", () => {
   /** "An egg in ml" is the question with no answer; the list must not offer it. */
   test("never offers a volume to an ingredient with no density", () => {
     expect(weighableUnits({ gramsPerPiece: 60 })).not.toContain("ml");
+  });
+});
+
+describe("mergeRecipeLines", () => {
+  const WEIGHTS: Record<string, { gramsPerPiece?: number; gramsPerSlice?: number; gramsPerMl?: number }> = {
+    cumin: {},
+    chicken: { gramsPerPiece: 250 },
+    oil: { gramsPerMl: 0.91 },
+    onion: { gramsPerPiece: 150 },
+  };
+  const weightsOf = (ingredientId: string) => WEIGHTS[ingredientId] ?? {};
+
+  /** The Moroccan harira: "cumin seeds" and "ground cumin" both resolved to the one cumin row. */
+  test("sums two spoons of one ingredient into the smaller spoon", () => {
+    const { lines, absorbed } = mergeRecipeLines(
+      [
+        { ingredientId: "cumin", position: 0, quantity: 1, unit: "tbsp" },
+        { ingredientId: "cumin", position: 1, quantity: 2, unit: "tsp" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines).toEqual([{ ingredientId: "cumin", position: 0, quantity: 5, unit: "tsp" }]);
+    expect(absorbed).toBe(1);
+  });
+
+  /** Smallest-unit-wins alone wrote 1 l of stock and 1 tbsp of it as 67 tbsp. */
+  test("sums a spoon into the metric unit beside it, never the other way", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "oil", position: 0, quantity: 1, unit: "l" },
+        { ingredientId: "oil", position: 1, quantity: 1, unit: "tbsp" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines).toEqual([{ ingredientId: "oil", position: 0, quantity: 1.015, unit: "l" }]);
+  });
+
+  test("sums two masses into the smaller unit used", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "chicken", position: 0, quantity: 1, unit: "kg" },
+        { ingredientId: "chicken", position: 1, quantity: 300, unit: "g" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines).toEqual([{ ingredientId: "chicken", position: 0, quantity: 1300, unit: "g" }]);
+  });
+
+  /** The stored number is compared exactly, so the ratio arithmetic's drift must not reach it. */
+  test("stores a converted sum without float noise", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "chicken", position: 0, quantity: 0.2, unit: "lb" },
+        { ingredientId: "chicken", position: 1, quantity: 1, unit: "g" },
+      ],
+      weightsOf,
+    );
+
+    // 0.2 × 453.59237 + 1 is 91.71847400000001 in floating point.
+    expect(lines[0]).toMatchObject({ quantity: 91.718474, unit: "g" });
+  });
+
+  test("sums lines already in one unit", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "onion", position: 0, quantity: 4, unit: "pcs" },
+        { ingredientId: "onion", position: 1, quantity: 2, unit: "pcs" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines).toEqual([{ ingredientId: "onion", position: 0, quantity: 6, unit: "pcs" }]);
+  });
+
+  test("sums across kinds of unit through the ingredient's own weights, in grams", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "chicken", position: 0, quantity: 500, unit: "g" },
+        { ingredientId: "chicken", position: 1, quantity: 2, unit: "pcs" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines).toEqual([{ ingredientId: "chicken", position: 0, quantity: 1000, unit: "g" }]);
+  });
+
+  test("writes a merge with no mass line in it in grams", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "chicken", position: 0, quantity: 2, unit: "pcs" },
+        { ingredientId: "chicken", position: 1, quantity: 1, unit: "slice" },
+      ],
+      (ingredientId) => ({ ...weightsOf(ingredientId), gramsPerSlice: 50 }),
+    );
+
+    expect(lines).toEqual([{ ingredientId: "chicken", position: 0, quantity: 550, unit: "g" }]);
+  });
+
+  /** A guess would put a made-up amount on the grocery list; two honest lines are better. */
+  test("keeps the lines apart when one of them cannot be weighed", () => {
+    const input = [
+      { ingredientId: "chicken", position: 0, quantity: 500, unit: "g" as const },
+      { ingredientId: "chicken", position: 1, quantity: 1, unit: "tbsp" as const },
+    ];
+
+    expect(mergeRecipeLines(input, weightsOf)).toEqual({ lines: input, absorbed: 0 });
+  });
+
+  test("folds into the group's last position, closing the gap and moving every later line down", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "cumin", position: 0, quantity: 1, unit: "tbsp" },
+        { ingredientId: "onion", position: 1, quantity: 1, unit: "pcs" },
+        { ingredientId: "cumin", position: 2, quantity: 2, unit: "tsp" },
+        { ingredientId: "oil", position: 3, quantity: 2, unit: "tbsp" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines.map(({ ingredientId, position }) => [ingredientId, position])).toEqual([
+      ["onion", 0],
+      ["cumin", 1],
+      ["oil", 2],
+    ]);
+  });
+
+  /**
+   * The Katsudon on dev: dashi, rice, a pork fillet refused at import, rice. Folding the rice into
+   * its FIRST line left dashi 0, rice 1, a recipe that read as whole and was tagged from a subset.
+   */
+  test("keeps a hole alive when every line above it belongs to a merged group", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "dashi", position: 0, quantity: 1, unit: "pcs" },
+        { ingredientId: "rice", position: 1, quantity: 1, unit: "pcs" },
+        // position 2 was refused at import
+        { ingredientId: "rice", position: 3, quantity: 1, unit: "pcs" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines.map(({ ingredientId, position }) => [ingredientId, position])).toEqual([
+      ["dashi", 0],
+      ["rice", 2],
+    ]);
+  });
+
+  /** `refreshRecipe` reads a hole as a line the resolver refused; the merge must not erase that. */
+  test("keeps the hole a refused line left, shifted with the lines around it", () => {
+    const { lines } = mergeRecipeLines(
+      [
+        { ingredientId: "cumin", position: 0, quantity: 1, unit: "tbsp" },
+        { ingredientId: "cumin", position: 1, quantity: 2, unit: "tsp" },
+        // position 2 was refused at import
+        { ingredientId: "onion", position: 3, quantity: 1, unit: "pcs" },
+      ],
+      weightsOf,
+    );
+
+    expect(lines.map(({ position }) => position)).toEqual([0, 2]);
+  });
+
+  test("leaves a recipe with no duplicate exactly as it was", () => {
+    const input = [
+      { ingredientId: "onion", position: 0, quantity: 1, unit: "pcs" as const },
+      { ingredientId: "oil", position: 1, quantity: 2, unit: "tbsp" as const },
+    ];
+
+    expect(mergeRecipeLines(input, weightsOf)).toEqual({ lines: input, absorbed: 0 });
   });
 });

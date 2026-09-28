@@ -7,8 +7,10 @@ import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
 
 import { deriveRecipeFields } from "./deriveRecipeFields";
+import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import { recipeSearchText } from "./recipeSearchText";
 import type { RecipeLink } from "./resolveRecipeIngredients";
+import { syncRecipeLinks } from "./syncRecipeLinks";
 
 type Args = {
   recipeId: Id<"recipes">;
@@ -35,30 +37,6 @@ type Args = {
    * never got to.
    */
   complete: boolean;
-};
-
-/**
- * Whether two link sets name the same ingredients, in the same amounts, in the same order.
- *
- * Both sides are sorted by `position` first: the old rows come back from an index in whatever order
- * Convex happens to store them, and a set that is genuinely unchanged must not be reported as
- * different because it was compared in the wrong order.
- */
-const _sameLinks = (a: RecipeLink[], b: RecipeLink[]): boolean => {
-  if (a.length !== b.length) return false;
-
-  const sort = (links: RecipeLink[]) => [...links].sort((x, y) => x.position - y.position);
-  const [left, right] = [sort(a), sort(b)];
-
-  return left.every((link, index) => {
-    const other = right[index]!;
-    return (
-      link.ingredientId === other.ingredientId &&
-      link.position === other.position &&
-      link.quantity === other.quantity &&
-      link.unit === other.unit
-    );
-  });
 };
 
 /**
@@ -113,7 +91,9 @@ export const updateRecipe = async (
    *    surface an incomplete resolve rather than swallow it, and that needs a screen to surface it
    *    to.
    */
-  const resolved = complete ? links : oldLinks;
+  // Only a complete resolve is written, so only its links are worth the reads a merge costs.
+  const merged = complete ? await mergeDuplicateLinks(ctx, { links, lineCount: recipe.ingredients.length }) : undefined;
+  const resolved = merged ? merged.links : oldLinks;
 
   /**
    * The serving count `resolved` is stated for — written to the row AND handed to the tags, so the
@@ -147,7 +127,7 @@ export const updateRecipe = async (
     tags: recipe.tags,
     servings,
     links: resolved,
-    lineCount: complete ? recipe.ingredients.length : resolved.length,
+    lineCount: merged ? merged.lineCount : resolved.length,
   });
 
   // ADR 0011: the serializer is called HERE, where `search` is assigned — see `saveRecipe`.
@@ -184,19 +164,11 @@ export const updateRecipe = async (
   });
 
   /**
-   * Skipped when the links did not change — a title-only edit resolves to the same rows and would
-   * otherwise delete and reinsert every one of them for nothing. An incomplete resolve is already
-   * handled above: `resolved` is then the row's own links, so this compares equal and does nothing.
+   * Writes only the rows that changed: a title-only edit resolves to the same links and touches
+   * none of them. An incomplete resolve is already handled above: `resolved` is then the row's own
+   * links, so every row matches and nothing is written.
    */
-  if (!_sameLinks(oldLinks, resolved)) {
-    await Promise.all(old.map((row) => ctx.db.delete(row._id)));
-
-    await Promise.all(
-      resolved.map((link) =>
-        ctx.db.insert("recipeIngredients", { recipeId, ...link, updatedAt: Date.now() }),
-      ),
-    );
-  }
+  await syncRecipeLinks(ctx, { recipeId, rows: old, links: resolved });
 
   return recipeId;
 };

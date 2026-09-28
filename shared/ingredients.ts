@@ -539,3 +539,127 @@ export const convertQuantity = (quantity: number, from: Unit, to: Unit): number 
 
   return (quantity * fromScale) / toScale;
 };
+
+/** One recipe line as the merge sees it: which food, where it sits, and how much. */
+type MergeableLine = { ingredientId: string; position: number; quantity: number; unit: RecipeUnit };
+
+/**
+ * One group's lines as a single quantity, or `undefined` when they cannot honestly be summed.
+ *
+ * In the SMALLEST unit the lines used, because that is the one every other converts into without a
+ * fraction: 1 tbsp + 2 tsp is 5 tsp, 1 kg + 300 g is 1300 g. Spoons lose to any metric unit beside
+ * them, since a spoon is how a cook measures, not how a quantity is stated: 1 l of stock and 1 tbsp
+ * of it is 1.015 l. Across kinds of unit the sum goes
+ * through `toGrams`, so it needs the ingredient's own weights and is written in the smallest mass
+ * unit used, or in grams when none was.
+ */
+const _sumLines = (
+  lines: MergeableLine[],
+  weights: GramWeights,
+): { quantity: number; unit: RecipeUnit } | undefined => {
+  const units = new Set(lines.map((line) => line.unit));
+
+  if (units.size === 1) return { quantity: lines.reduce((sum, line) => sum + line.quantity, 0), unit: lines[0]!.unit };
+
+  const sameKind = new Set(lines.map((line) => _dimensionOf(line.unit))).size === 1;
+  const smallest = (candidates: RecipeUnit[]) =>
+    candidates
+      .filter(isUnit)
+      .filter((unit) => unitScale(unit) !== undefined)
+      .sort((a, b) => unitScale(a)! - unitScale(b)!)[0];
+
+  if (sameKind) {
+    // A spoon is only kept when every line was a spoon: 1 l + 1 tbsp is 1.015 l, not 67 tbsp.
+    const metric = [...units].filter((unit) => unit !== "tbsp" && unit !== "tsp");
+    const unit = smallest(metric.length > 0 ? metric : [...units]);
+    if (unit === undefined) return undefined;
+
+    let quantity = 0;
+    for (const line of lines) {
+      const converted = convertQuantity(line.quantity, line.unit as Unit, unit);
+      if (converted === undefined) return undefined;
+      quantity += converted;
+    }
+
+    return { quantity, unit };
+  }
+
+  let grams = 0;
+  for (const line of lines) {
+    const weighed = toGrams(line.quantity, line.unit, weights);
+    if (weighed === undefined) return undefined;
+    grams += weighed;
+  }
+
+  const unit = smallest([...units].filter((candidate) => candidate in GRAMS_PER_MASS_UNIT)) ?? "g";
+
+  return { quantity: convertQuantity(grams, "g", unit)!, unit };
+};
+
+/**
+ * A merged quantity with the float noise of its conversion taken off: 0.2 lb + 1 g is 91.718474 g,
+ * not the 91.71847400000001 the ratio arithmetic produces.
+ *
+ * Not `roundQuantity`, which rounds for a cook's eye and would lose a real quarter teaspoon. Six
+ * decimals is far below anything a recipe states and far above what the arithmetic drifts by, and
+ * it matters because the stored number is compared exactly: the editor's change check would read
+ * 17.000000000000004 against a typed 17 as an edit.
+ */
+const _settled = (quantity: number) => Math.round(quantity * 1e6) / 1e6;
+
+/**
+ * A recipe's lines with every food that appears twice folded into one line.
+ *
+ * Two lines on one catalog row are a mistake whoever made it: a cook typing chicken twice, or an
+ * import whose "cumin seeds" and "ground cumin" both resolved to cumin. Either way the cook would
+ * read one food twice, so the lines are summed (`_sumLines`). A group whose lines cannot be summed
+ * without a guess, 500 g of chicken beside 1 tbsp of it, stays as it is: a made-up amount on the
+ * grocery list is worse than two honest lines.
+ *
+ * **Positions shift down to close the gap a merged line leaves, and only that gap.** A line the
+ * resolver refused at import is never stored, and the hole it leaves is how `refreshRecipe` knows
+ * the recipe is not whole; renumbering from zero would erase it. `absorbed` is how many lines were
+ * folded away, so a caller holding a line count can take the same number off it.
+ *
+ * ⚠️ The merged line takes its group's LAST position, not its first, and that is what keeps a hole
+ *    alive. A hole only reads as one while a stored line sits above it. Folding into the first
+ *    position would let the highest line in a recipe be folded away: dashi 0, rice 1, a refused
+ *    line at 2, rice 3 became dashi 0, rice 1, which reads as whole and earns tags from a subset.
+ *    Keeping the last, the highest line is never the one removed.
+ */
+export const mergeRecipeLines = <Line extends MergeableLine>(
+  lines: Line[],
+  weightsOf: (ingredientId: Line["ingredientId"]) => GramWeights,
+): { lines: Line[]; absorbed: number } => {
+  const sorted = [...lines].sort((a, b) => a.position - b.position);
+
+  const groups = new Map<Line["ingredientId"], Line[]>();
+  for (const line of sorted) {
+    const group = groups.get(line.ingredientId) ?? [];
+    group.push(line);
+    groups.set(line.ingredientId, group);
+  }
+
+  const kept: Line[] = [];
+  const gone: number[] = [];
+
+  for (const group of groups.values()) {
+    const sum = group.length > 1 ? _sumLines(group, weightsOf(group[0]!.ingredientId)) : undefined;
+
+    if (!sum) {
+      kept.push(...group);
+      continue;
+    }
+
+    kept.push({ ...group[group.length - 1]!, unit: sum.unit, quantity: _settled(sum.quantity) });
+    gone.push(...group.slice(0, -1).map((line) => line.position));
+  }
+
+  if (gone.length === 0) return { lines, absorbed: 0 };
+
+  const shifted = kept
+    .map((line) => ({ ...line, position: line.position - gone.filter((position) => position < line.position).length }))
+    .sort((a, b) => a.position - b.position);
+
+  return { lines: shifted, absorbed: gone.length };
+};

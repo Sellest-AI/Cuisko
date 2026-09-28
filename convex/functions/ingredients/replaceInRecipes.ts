@@ -23,6 +23,11 @@ export type ReplaceOutcome = {
    * describe the old ingredient, and need checking by hand.
    */
   recipesSkipped: Id<"recipes">[];
+  /**
+   * Recipes where a moved line landed on a food they already held, and the refresh folded the two
+   * into one line: the recipe now has one line fewer than before the call.
+   */
+  recipesWithMergedLines: Id<"recipes">[];
   deleted: boolean;
   /** Why `from` was kept: a seeded row, or the tables still pointing at it. Empty when deleted. */
   keptBecause: ("seed" | TableNames)[];
@@ -68,10 +73,12 @@ export const replaceInRecipes = async (
   const recipeIds = [...new Set(lines.map((line) => line!.recipeId))];
   let recipesRefreshed = 0;
   const recipesSkipped: Id<"recipes">[] = [];
+  const recipesWithMergedLines: Id<"recipes">[] = [];
 
   for (const recipeId of recipeIds) {
-    const { refreshed, whole } = await refreshRecipe(ctx, recipeId);
+    const { refreshed, merged, whole } = await refreshRecipe(ctx, recipeId);
     if (refreshed) recipesRefreshed++;
+    if (merged) recipesWithMergedLines.push(recipeId);
     if (!whole) recipesSkipped.push(recipeId);
   }
 
@@ -89,6 +96,7 @@ export const replaceInRecipes = async (
     linesMoved: ids.length,
     recipesRefreshed,
     recipesSkipped,
+    recipesWithMergedLines,
     deleted: keptBecause.length === 0,
     keptBecause,
   };

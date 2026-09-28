@@ -6,6 +6,7 @@ import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
 import { findCatalogBySource } from "./findCatalogBySource";
 import { insertRecipe, recipeFactsOf } from "./insertRecipe";
+import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 export type UploadedImages = {
@@ -62,10 +63,12 @@ export const persistRestoredRecipe = async (
     return { recipeId: existingId, created: false };
   }
 
+  const merged = await mergeDuplicateLinks(ctx, { links });
+
   const recipeId = await insertRecipe(ctx, {
     // An export older than the column has no status; nothing had been reviewed on its way out.
     recipe: { ...recipeFactsOf({ ...row, status: row.status ?? "generated" }), coverImageId, plateImageId },
-    links,
+    links: merged.links,
     names: unmatched,
   });
 

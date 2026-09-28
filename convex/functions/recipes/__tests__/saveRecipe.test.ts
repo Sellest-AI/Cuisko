@@ -284,11 +284,11 @@ describe("functions/recipes/saveRecipe", () => {
   });
 
   /**
-   * The regression this file exists for: keying a line by NAME collapses two lines of the same
-   * ingredient into one, and gives both the first line's quantity. Each link carries its own
-   * `position`, and this writer inserts them as given rather than re-deriving one.
+   * Two lines on one food are one line, summed: the cook would otherwise read onions twice. The
+   * regression this file was first written for still holds inside it: keying a line by NAME gave
+   * both lines the FIRST one's quantity, which would sum to 4, not 3.
    */
-  test("keeps both lines when the same ingredient appears twice with different amounts", async () => {
+  test("merges the same ingredient appearing twice into one line, summing both amounts", async () => {
     const recipeId = await save([
       { name: "oignon", quantity: 2, unit: "pcs" },
       { name: "huile d'olive", quantity: 2, unit: "tbsp" },
@@ -297,9 +297,26 @@ describe("functions/recipes/saveRecipe", () => {
 
     const rows = (await links(recipeId)).sort((a, b) => a.position - b.position);
 
-    expect(rows.map((row) => row.position)).toEqual([0, 1, 2]);
-    expect(rows.map((row) => row.quantity)).toEqual([2, 2, 1]);
-    expect(rows[0]!.ingredientId).toBe(rows[2]!.ingredientId);
+    // The merged line takes the last position its food held — see `mergeRecipeLines` for why.
+    expect(rows.map((row) => [row.ingredientId, row.position, row.quantity, row.unit])).toEqual([
+      [catalog["huile d'olive"], 0, 2, "tbsp"],
+      [catalog["oignon"], 1, 3, "pcs"],
+    ]);
+  });
+
+  /**
+   * `computeTags` refuses every tag when fewer links come back than the recipe has lines, so a merge
+   * that did not take the folded line off the count would read as an unresolved line.
+   */
+  test("keeps its computed tags when two lines were merged", async () => {
+    const recipeId = await save([
+      { name: "oignon", quantity: 2, unit: "pcs" },
+      { name: "oignon", quantity: 1, unit: "pcs" },
+    ]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(row!.tags).toEqual(expect.arrayContaining(["vegan", "gluten-free"]));
   });
 
   /**

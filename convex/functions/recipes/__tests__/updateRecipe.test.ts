@@ -216,15 +216,55 @@ describe("functions/recipes/updateRecipe", () => {
    */
   test("replaces the recipe's ingredient links with the edited set", async () => {
     const recipeId = await seedRecipe();
-    const staleLink = await seedLink(recipeId, onionId as Id<"ingredients">);
+    const onionLine = await seedLink(recipeId, onionId as Id<"ingredients">);
 
     await update(recipeId, [{ name: "oignon", quantity: 5, unit: "pcs" }]);
 
     const rows = await links(recipeId);
 
+    // The row is updated in place, not reinserted: line ids are handed to `replaceInRecipes` from
+    // the dashboard, and an edit must not turn them into "does not exist".
     expect(rows).toHaveLength(1);
-    expect(rows[0]!._id).not.toBe(staleLink);
+    expect(rows[0]!._id).toBe(onionLine);
     expect(rows[0]!.quantity).toBe(5);
+  });
+
+  /**
+   * Two lines of one food that cannot merge (no density, so pieces and millilitres stay apart) keep
+   * their own ids through a reorder. The Grilled Mackerel's `4 pcs` black pepper is really its bell
+   * peppers: an admin repointing that line by id must not get the seasoning instead.
+   */
+  test("keeps each unmerged line's id on the line it held when the edit reorders them", async () => {
+    const recipeId = await seedRecipe();
+    const pieces = await seedLink(recipeId, onionId as Id<"ingredients">, { position: 0, quantity: 1, unit: "pcs" });
+    const volume = await seedLink(recipeId, onionId as Id<"ingredients">, { position: 1, quantity: 100, unit: "ml" });
+
+    await update(recipeId, [
+      { name: "oignon", quantity: 100, unit: "ml" },
+      { name: "oignon", quantity: 1, unit: "pcs" },
+    ]);
+
+    const rows = await links(recipeId);
+    expect(rows.find((row) => row._id === pieces)).toMatchObject({ position: 1, quantity: 1, unit: "pcs" });
+    expect(rows.find((row) => row._id === volume)).toMatchObject({ position: 0, quantity: 100, unit: "ml" });
+  });
+
+  /** A cook who types onions twice made a mistake; the edit stores one line, and keeps its tags. */
+  test("merges an edit naming one ingredient twice into one link, without losing the tags", async () => {
+    const recipeId = await seedRecipe();
+
+    await update(recipeId, [
+      { name: "oignon", quantity: 2, unit: "pcs" },
+      { name: "oignon", quantity: 1, unit: "pcs" },
+    ]);
+
+    const rows = await links(recipeId);
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+
+    expect(rows.map(({ position, quantity, unit }) => ({ position, quantity, unit }))).toEqual([
+      { position: 0, quantity: 3, unit: "pcs" },
+    ]);
+    expect(row!.tags).toContain("vegan");
   });
 
   test("throws for a recipe that does not exist", async () => {

@@ -8,6 +8,7 @@ import { serializeInstructions } from "@shared/recipes";
 
 import { deriveRecipeFields } from "./deriveRecipeFields";
 import { insertRecipe } from "./insertRecipe";
+import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 type Args = {
@@ -49,11 +50,12 @@ export const saveRecipe = async (
   ctx: MutationCtx,
   { userId, locale, recipe, links, sourceUrl }: Args,
 ) => {
+  const merged = await mergeDuplicateLinks(ctx, { links, lineCount: recipe.ingredients.length });
+
   const { tags } = await deriveRecipeFields(ctx, {
     tags: recipe.tags,
     servings: recipe.servings,
-    links,
-    lineCount: recipe.ingredients.length,
+    ...merged,
   });
 
   return insertRecipe(ctx, {
@@ -72,7 +74,7 @@ export const saveRecipe = async (
       // Nobody has read what the model just wrote.
       status: "generated",
     },
-    links,
+    links: merged.links,
     names: recipe.ingredients.map((line) => line.name),
   });
 };

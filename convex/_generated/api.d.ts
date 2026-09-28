@@ -146,6 +146,7 @@ import type * as functions_recipes_listForUser from "../functions/recipes/listFo
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
 import type * as functions_recipes_loadRecipe from "../functions/recipes/loadRecipe.js";
 import type * as functions_recipes_loadRecipeCards from "../functions/recipes/loadRecipeCards.js";
+import type * as functions_recipes_mergeDuplicateLinks from "../functions/recipes/mergeDuplicateLinks.js";
 import type * as functions_recipes_missingRecipeIds from "../functions/recipes/missingRecipeIds.js";
 import type * as functions_recipes_persistRestoredRecipe from "../functions/recipes/persistRestoredRecipe.js";
 import type * as functions_recipes_recipeCard from "../functions/recipes/recipeCard.js";
@@ -161,6 +162,7 @@ import type * as functions_recipes_saveRecipe from "../functions/recipes/saveRec
 import type * as functions_recipes_saveTranslations from "../functions/recipes/saveTranslations.js";
 import type * as functions_recipes_searchForUser from "../functions/recipes/searchForUser.js";
 import type * as functions_recipes_setFavorite from "../functions/recipes/setFavorite.js";
+import type * as functions_recipes_syncRecipeLinks from "../functions/recipes/syncRecipeLinks.js";
 import type * as functions_recipes_toModelRecipe from "../functions/recipes/toModelRecipe.js";
 import type * as functions_recipes_updateRecipe from "../functions/recipes/updateRecipe.js";
 import type * as functions_recipes_uploadRestoredImages from "../functions/recipes/uploadRestoredImages.js";
@@ -418,6 +420,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
   "functions/recipes/loadRecipe": typeof functions_recipes_loadRecipe;
   "functions/recipes/loadRecipeCards": typeof functions_recipes_loadRecipeCards;
+  "functions/recipes/mergeDuplicateLinks": typeof functions_recipes_mergeDuplicateLinks;
   "functions/recipes/missingRecipeIds": typeof functions_recipes_missingRecipeIds;
   "functions/recipes/persistRestoredRecipe": typeof functions_recipes_persistRestoredRecipe;
   "functions/recipes/recipeCard": typeof functions_recipes_recipeCard;
@@ -433,6 +436,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/saveTranslations": typeof functions_recipes_saveTranslations;
   "functions/recipes/searchForUser": typeof functions_recipes_searchForUser;
   "functions/recipes/setFavorite": typeof functions_recipes_setFavorite;
+  "functions/recipes/syncRecipeLinks": typeof functions_recipes_syncRecipeLinks;
   "functions/recipes/toModelRecipe": typeof functions_recipes_toModelRecipe;
   "functions/recipes/updateRecipe": typeof functions_recipes_updateRecipe;
   "functions/recipes/uploadRestoredImages": typeof functions_recipes_uploadRestoredImages;

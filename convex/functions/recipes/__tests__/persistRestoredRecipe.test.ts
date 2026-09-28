@@ -142,6 +142,26 @@ describe("persistRestoredRecipe", () => {
     ]);
   });
 
+  /**
+   * The harira's own path: the catalog import. Two exported lines ("cumin seeds", "ground cumin")
+   * resolving to one row on this deployment are stored as one line, summed.
+   */
+  test("folds two exported lines that resolve to one row into one line", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot, seeds.onion]);
+    const exported = await exportFirst();
+    const targetSeeds = await seedCatalog(target);
+
+    const { recipeId } = await persist(exported, {
+      links: linksOnto(exported, [targetSeeds.carrot, targetSeeds.carrot]),
+    });
+    const { lines } = await loadRestored(recipeId);
+
+    expect(lines.map(({ ingredientId, position, quantity, unit }) => ({ ingredientId, position, quantity, unit }))).toEqual([
+      { ingredientId: targetSeeds.carrot, position: 0, quantity: 2, unit: "pcs" },
+    ]);
+  });
+
   test("gives the recipe a shuffle key of its own", async () => {
     const seeds = await seedCatalog(origin);
     await insertOriginal([seeds.carrot]);

@@ -20,6 +20,7 @@ export const _internal = internalMutation({
     linesMoved: v.number(),
     recipesRefreshed: v.number(),
     recipesSkipped: v.array(v.id("recipes")),
+    recipesWithMergedLines: v.array(v.id("recipes")),
     deleted: v.boolean(),
     keptBecause: v.array(v.string()),
   }),

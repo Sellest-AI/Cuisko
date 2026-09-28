@@ -128,6 +128,28 @@ describe("replaceInRecipes", () => {
     expect(outcome).toMatchObject({ linesMoved: 1, recipesRefreshed: 0, recipesSkipped: [recipeId] });
   });
 
+  /**
+   * The harira: "cumin seeds" had its own row, and repointing it onto cumin put two lines on one
+   * food. The refresh folds them, so the recipe has one line fewer, and the report must say so.
+   */
+  test("a repoint that lands on a food the recipe already holds merges the two, and reports it", async () => {
+    const seeds = await seedIngredient("cumin seeds");
+    const cumin = await seedIngredient("cumin", { source: "seed" });
+    const recipeId = await seedRecipe();
+    const seedLineId = await seedLine(recipeId, seeds, 0, 1, "tbsp");
+    await seedLine(recipeId, cumin, 1, 2, "tsp");
+
+    const outcome = await replace(seeds, cumin, [seedLineId]);
+
+    expect(outcome).toMatchObject({ linesMoved: 1, recipesWithMergedLines: [recipeId] });
+    const lines = await t.run(async (ctx) =>
+      (await ctx.db.query("recipeIngredients").collect()).filter((line) => line.recipeId === recipeId),
+    );
+    expect(lines.map(({ ingredientId, quantity, unit }) => ({ ingredientId, quantity, unit }))).toEqual([
+      { ingredientId: cumin, quantity: 5, unit: "tsp" },
+    ]);
+  });
+
   test("a line that is not on `from` refuses the whole call, and nothing moves", async () => {
     const tomato = await seedIngredient("tomato");
     const ketchup = await seedIngredient("ketchup");
@@ -175,7 +197,7 @@ describe("replaceInRecipes", () => {
 
     const outcome = await replace(light, broth, [line]);
 
-    expect(outcome).toEqual({ linesMoved: 1, recipesRefreshed: 1, recipesSkipped: [], deleted: true, keptBecause: [] });
+    expect(outcome).toEqual({ linesMoved: 1, recipesRefreshed: 1, recipesSkipped: [], recipesWithMergedLines: [], deleted: true, keptBecause: [] });
     expect(await get(light)).toBeNull();
     expect(await scheduledDeletions()).toEqual([imageId]);
   });
