@@ -71,6 +71,7 @@ const stored: RecipeDetail & { userId?: Id<"users"> } = {
       unit: "pcs",
       emoji: "🧅",
       category: "VEGETABLE",
+      conversion: { defaultUnit: "pcs", gramsPerPiece: 150 },
     },
   ],
 };

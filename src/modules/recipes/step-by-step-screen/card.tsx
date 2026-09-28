@@ -6,20 +6,18 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { IngredientGroup } from "../_components/ingredient-group";
+import { IngredientGroup, type IngredientItem } from "../_components/ingredient-group";
 import { InstructionText } from "../_components/instruction-text";
 import type { RecipeLine } from "../_model/detail";
 import { stepNumber } from "../_model/step";
 import { columnWidth } from "../constants";
 
 /**
- * A line as either card draws it — the tile's photo when the catalog has one, its emoji otherwise.
- *
- * One type rather than the same three fields written at both cards: they hand it to the same
- * `IngredientGroup`, so a field added for one and not the other is a tile that draws differently
- * on the step page than on the mise en place above it.
+ * A line as either card draws it — `IngredientGroup`'s own item type rather than one restated
+ * here, so a field added for one card and not the other cannot draw a tile differently on the step
+ * page than on the mise en place above it.
  */
-type StepIngredient = { emoji: string; name: string; quantity: string; imageUrl?: string };
+type StepIngredient = IngredientItem;
 
 type Props = {
   /** 1-based, because it is what the cook reads — the array index is the screen's business. */

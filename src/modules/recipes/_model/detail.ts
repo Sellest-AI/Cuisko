@@ -10,6 +10,8 @@ import { CATEGORIES, type Category } from "@shared/categories";
 import type { RecipeUnit } from "@shared/ingredients";
 import type { InstructionGroup } from "@shared/recipes";
 
+import type { Conversion } from "./units";
+
 /**
  * One line of a recipe, as everything below reads it.
  *
@@ -24,6 +26,8 @@ export type RecipeLine = {
   emoji: string;
   imageUrl?: string;
   category: Category;
+  /** What the tile converts the line through when a cook taps it for another unit. */
+  conversion: Conversion;
 };
 
 /**

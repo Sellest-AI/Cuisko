@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 
-import { formatQuantity } from "@shared/ingredients";
-
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
 import { Minus, Plus, X } from "@ui/icons";
@@ -11,7 +9,6 @@ import { ParallaxScrollView } from "@ui/parallax-scroll-view";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { theme } from "theme";
 
-import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { RecipeScreen } from "../_components/recipe-screen";
@@ -49,7 +46,6 @@ type Props = {
  */
 export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
   const { height } = useWindowDimensions();
-  const unit = useUnitLabel();
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
   const { cook, isCooking, failed } = useCookRecipe();
   const [index, setIndex] = useState(0);
@@ -139,7 +135,9 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
                 emoji: line.emoji,
                 imageUrl: line.imageUrl,
                 name: line.name,
-                quantity: formatQuantity(line.quantity, line.unit, unit),
+                amount: line.quantity,
+                unit: line.unit,
+                conversion: line.conversion,
               }))}
             />}
             {step && <StepCard
@@ -159,7 +157,9 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
                 emoji: mention.line.emoji,
                 imageUrl: mention.line.imageUrl,
                 name: mention.line.name,
-                quantity: formatQuantity(mention.amount, mention.unit, unit),
+                amount: mention.amount,
+                unit: mention.unit,
+                conversion: mention.line.conversion,
               }))}
               isLast={isLast}
             />}

@@ -8,6 +8,7 @@ const line = (name: string, category: RecipeLine["category"], quantity: number):
   quantity,
   unit: "g",
   emoji: "🥕",
+  conversion: { defaultUnit: "g", gramsPerPiece: 150 },
 });
 
 const LINES: RecipeLine[] = [
