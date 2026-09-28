@@ -340,6 +340,11 @@ and back into the cellar. Grouped by the beat it serves.
 ### Household and account
 
 - Sign in with Google or with email and password; the splash holds until the profile is loaded.
+- **Every sign-in walks the onboarding** before home: a promise screen, then the list filled from the
+  navigation bar, a recipe searched and planned, a step-by-step cook and a generated week, each
+  opened by a screenshot of the real screen. It runs on pretend data and writes nothing to the
+  account. It ends on home with Cuisko's chat open. For now it runs again after a sign-out or a
+  reinstall, since nothing records that it was seen.
 - Create, join (by invite code), leave and switch households, from an account drawer. Each cook has
   a generated avatar and their own preferences.
 
@@ -359,6 +364,7 @@ is the wrong trade.
 | **Photos in the navigation bar chat** | A photo of the fridge or of a dish is faster than typing it, and the bar is where the user already talks to Cuisko. | A photo feed or a place to post. The photo is input to the assistant, nothing else. |
 | **One weekly planning reminder** | The week starts on planning day; a nudge at that moment protects the hero moment. | A daily-engagement lever. One reminder a week, on the planning beat, easy to turn off. |
 | **Favorites in the planning pool** | A recipe the household loves should be able to come back in a planned week. | A way to plan somebody else's private recipes. The requirements for the hookup are already recorded. |
+| **Sign in with Apple** | The App Store requires it (guideline 4.8) once Google sign-in is offered. The button is on the sign-in page today, disabled. | A reason to ask for more than the name and email the other sign-ins already give. |
 | **Replace the photo in the recipe editor** | A cook's own recipe should look like their dish. Today the editor displays the image but cannot change it. | — |
 
 Further out, and still real product: an assistant that performs the changes it is asked for instead
