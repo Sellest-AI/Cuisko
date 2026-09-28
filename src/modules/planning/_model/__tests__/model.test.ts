@@ -27,6 +27,7 @@ import {
   plateIdFor,
   removeMeal,
   replaceMeal,
+  setDraftMealServings,
   setMealServings,
   toDateParam,
   toggleTaste,
@@ -550,6 +551,39 @@ describe("setMealServings", () => {
     expect(setMealServings(week, "a", 0)[0]?.servings).toBe(1);
     expect(setMealServings(week, "a", 99)[0]?.servings).toBe(MAX_SERVINGS);
     expect(setMealServings(week, "a", 2.6)[0]?.servings).toBe(3);
+  });
+});
+
+describe("setDraftMealServings", () => {
+  const LASAGNA_BEEF: DraftIngredient = { ...BEEF_TO_BUY, amount: 500 };
+  const lasagna = (): DraftMeal => ({ ...draft("lasagna", "dinner", [LASAGNA_BEEF]), servings: 2 });
+
+  /** The tunnel's grocery step reads the draft's amounts: a plate cooked for more must ask for more. */
+  it("scales the plate's lines to the servings it is now cooked for", () => {
+    const week = setDraftMealServings([lasagna()], "lasagna", 8);
+
+    expect(week[0]?.servings).toBe(8);
+    expect(groceriesFor(week).missing[0]?.rows[0]?.amount).toBe(2000);
+  });
+
+  it("scales by the clamped count, not the one asked for", () => {
+    const [plate] = setDraftMealServings([lasagna()], "lasagna", 99);
+
+    expect(plate?.servings).toBe(MAX_SERVINGS);
+    expect(plate?.ingredients[0]?.amount).toBe((500 * MAX_SERVINGS) / 2);
+  });
+
+  it("comes back to the recipe's amounts after a round trip", () => {
+    const there = setDraftMealServings([lasagna()], "lasagna", 3);
+    const [back] = setDraftMealServings(there, "lasagna", 2);
+
+    expect(back?.ingredients[0]?.amount).toBeCloseTo(500);
+  });
+
+  it("leaves the other plates alone", () => {
+    const week = setDraftMealServings([lasagna(), draft("b", "lunch")], "lasagna", 8);
+
+    expect(week[1]).toEqual(draft("b", "lunch"));
   });
 });
 

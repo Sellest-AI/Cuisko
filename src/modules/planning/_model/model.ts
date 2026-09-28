@@ -510,13 +510,42 @@ export const addMeal = <M extends Plate>(meals: M[], meal: M): M[] => [
 ];
 
 /**
- * How many that one plate is cooked for.
+ * How many that one plate is cooked for — the count alone.
  *
- * It does not touch the ingredient amounts — see `groceriesFor`, which still sums what the recipe
- * was written for.
+ * For any plate, it leaves the lines as they are: a draft plate, whose lines `groceriesFor` sums,
+ * goes through `setDraftMealServings` instead.
  */
 export const setMealServings = <M extends Plate>(meals: M[], mealId: string, servings: number): M[] =>
   _replaceOne(meals, mealId, (meal) => ({ ...meal, servings: _clampServings(servings) }));
+
+/**
+ * How many a draft plate is cooked for, with its lines scaled to match.
+ *
+ * The tunnel's grocery step sums these lines before anything is committed, so a plate set from 2 to
+ * 8 has to ask for four times as much here — `commitPlan` rescales from the recipe on its own, and the
+ * two must agree. Both counts are clamped, so the ratio is the one the plate actually moved by.
+ *
+ * ⚠️ Approximate until commit, in two ways, both towards buying more:
+ * - `covered` is the generation's answer for the original count; it is not recomputed here, so a line
+ *   the cellar covered for 2 can read covered for 8 until `commitPlan` checks it against the cellar.
+ * - A piece count arrives already rounded up by `scaleLines`, and the recipe's own quantity is not on
+ *   the draft: 1 egg for 4 is 0.5 on a plate for 2, shown as 1, and scaled to 8 reads 4 where the
+ *   commit asks for 2.
+ *
+ * The amount is kept exact, not rounded — the screen rounds it for display — so moving the slider
+ * back returns the line to what it was.
+ */
+export const setDraftMealServings = (meals: DraftMeal[], mealId: string, servings: number): DraftMeal[] =>
+  _replaceOne(meals, mealId, (meal) => {
+    const next = _clampServings(servings);
+    const ratio = next / _clampServings(meal.servings);
+
+    return {
+      ...meal,
+      servings: next,
+      ingredients: meal.ingredients.map((ingredient) => ({ ...ingredient, amount: ingredient.amount * ratio })),
+    };
+  });
 
 /**
  * A different dish on the same plate.
@@ -635,6 +664,9 @@ const _rowIdFor = (ingredient: DraftIngredient) => `${ingredient.ingredientId}:$
  * covered asks for its uncovered lines only, so the page and the list that `commit` writes agree
  * about what is being bought. What is finally asked for is still decided server-side, against the
  * cellar as it is then.
+ *
+ * Amounts are read as they stand: a line is already scaled to its plate's servings, by the server
+ * when the week was generated and by `setDraftMealServings` when the cook changed it since.
  *
  * ⚠️ It is still an approximation in one direction: a line the cellar part-covers counts in full,
  * because a `DraftIngredient` says whether it was covered and not by how much. It overstates that

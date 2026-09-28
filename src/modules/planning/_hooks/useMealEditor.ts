@@ -13,7 +13,7 @@ import {
   plateIdFor,
   removeMeal,
   replaceMeal,
-  setMealServings,
+  setDraftMealServings,
   startOfDay,
   type MealSlot,
 } from "../_model/model";
@@ -201,7 +201,7 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
         if (isKept) return void rescaleKept(servings);
         if (!meal) return setDraftServings(servings);
 
-        setDrafted((current) => setMealServings(current, meal.id, servings));
+        setDrafted((current) => setDraftMealServings(current, meal.id, servings));
       },
       [isKept, rescaleKept, meal, setDrafted],
     ),
