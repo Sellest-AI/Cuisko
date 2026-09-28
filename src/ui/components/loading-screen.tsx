@@ -25,6 +25,11 @@ type Props = {
 
   showBackground?: boolean;
   /**
+   * The screen's own progress bar. Off where the screen is drawn inside a flow that already shows
+   * one above it, and two bars would count two different things on one page.
+   */
+  showProgress?: boolean;
+  /**
    * Fade in on mount, and out on unmount. The fade out only runs when the caller mounts the screen
    * inside `AnimatePresence`, which is what keeps a removed child alive long enough to animate.
    */
@@ -66,6 +71,7 @@ export const LoadingScreen = ({
   durationMs,
   footer,
   showBackground = true,
+  showProgress = true,
   fadeInOut = false,
   finished = false,
 }: Props) => {
@@ -101,12 +107,14 @@ export const LoadingScreen = ({
           * reads as the step list's own tally rather than racing it. `linear` because
           * `curvedStepDuration` already bends the clock these steps advance on.
           */}
-        <StepProgress
-          step={finished ? count : Math.min(active + 1, count - 1)}
-          total={count}
-          curve="linear"
-          style={styles.progress}
-        />
+        {showProgress && (
+          <StepProgress
+            step={finished ? count : Math.min(active + 1, count - 1)}
+            total={count}
+            curve="linear"
+            style={styles.progress}
+          />
+        )}
         <View style={styles.body}>
           {/*
             * The box sets the size, not the player. On web lottie-react-native ignores `style` and

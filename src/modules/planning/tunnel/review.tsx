@@ -21,8 +21,8 @@ import {
 } from "../_model/model";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { PlanningListRow } from "../_components/planning-row";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { PlanningListRow } from "../planning-row";
+import { StepHeader } from "@ui/step-header";
 
 /** FlashList is generic; the animated wrapper needs a concrete props type to attach `onScroll`. */
 const AnimatedFlashList = Animated.createAnimatedComponent(
@@ -75,7 +75,7 @@ export const TunnelReview = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={
-        <TunnelHeader
+        <StepHeader
           title={t("Tunnel.Review.title")}
           subtitle={t("Tunnel.Review.subtitle")}
           icon={CalendarIcon}

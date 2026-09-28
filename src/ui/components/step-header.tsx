@@ -6,39 +6,42 @@ import { IconComponent } from "@ui/icons";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 
-import { CUISKO } from "~/lib/mascots";
-
 type Props = {
   title: string;
   subtitle?: string;
-  /**
-   * Which Cuisko asks this one — `CUISKO.calendar`, `CUISKO.forbidden`.
-   *
-   * Defaults to `CUISKO.idle`, the pose that is holding nothing: a step that has not chosen a
-   * face still gets Cuisko rather than a 148px hole, and the empty hands say nothing the step
-   * has not earned.
-   *
-   * Passed in rather than picked here from the step's name, so the header stays a header: the
-   * step owns the question and the face that asks it, and a mapping living in this file would be
-   * a second place to edit every time a step is added, renamed or reordered.
-   */
-  mascot?: ImageProps["source"];
-  /** Replaces the mascot on the steps that report rather than ask. */
-  icon?: IconComponent;
   tone?: "onTint" | "onLight";
-};
+} & (
+    | {
+      /**
+       * Which Cuisko asks this one: `CUISKO.calendar`, `CUISKO.forbidden`.
+       *
+       * Passed in rather than picked here from the step's name, so the header stays a header: the
+       * step owns the question and the face that asks it, and a mapping living in this file would be
+       * a second place to edit every time a step is added, renamed or reordered. Required, with no
+       * default, because the poses live in `~/lib/mascots`, which this layer cannot import.
+       */
+      mascot: ImageProps["source"];
+      icon?: never;
+    }
+    | {
+      /** Replaces the mascot on the steps that report rather than ask. */
+      icon: IconComponent;
+      mascot?: never;
+    }
+  );
 
 const MASCOT_SIZE = 148;
 const ICON_SIZE = 24;
 
 /**
- * The question at the top of a tunnel step, and whoever is asking it.
+ * The question at the top of a flow's step, and whoever is asking it: the planning tunnel's and the
+ * onboarding's alike.
  *
  * Cuisko leads every step that asks the user for something, and steps back on the ones that report
  * what came back — those open with an icon and the thing itself, which is the answer they came for.
  * Which pose asks which question is the step's own decision; see `mascot` below.
  */
-export const TunnelHeader = ({ title, subtitle, mascot = CUISKO.idle, icon, tone = "onTint" }: Props) => {
+export const StepHeader = ({ title, subtitle, mascot, icon, tone = "onTint" }: Props) => {
   const Icon = icon;
 
   return (
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[8],
+    gap: theme.spacing[12],
   },
   subtitle: {
     marginTop: theme.spacing[8],

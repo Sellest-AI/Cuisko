@@ -8,9 +8,13 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { m } from "@ui/motion";
 import { colors, theme } from "theme";
 
-import { NAVIGATION_BAR_HEIGHT } from "~/modules/navigation/constants";
-
 type Props = {
+  /**
+   * How far below its place the bar slides in from: the height of the app's navigation bar, so
+   * the two sit at the same height on the same phone. Passed in because this layer cannot import
+   * the navigation module that owns it (ADR 0002).
+   */
+  travel: number;
   step: number;
   total: number;
   showProgress?: boolean;
@@ -28,22 +32,24 @@ type Props = {
   isLoading?: boolean;
   onNext: () => void;
   onBack?: () => void;
-  /** Leaving the first step abandons the tunnel, so it closes rather than goes back. */
+  /** Leaving the first step abandons the flow, so it closes rather than goes back. */
   backIcon?: Icon;
+  /** Defaults to an arrow, and to a list on the last step, where the tunnel writes the groceries. */
   nextIcon?: Icon;
   style?: ViewStyle;
 };
 
 /**
- * The tunnel's own bottom bar: a dark disc to leave by, and a pill to go on with.
+ * A flow's own bottom bar: a dark disc to leave by, and a pill to go on with. The planning tunnel
+ * and the onboarding both walk on it, so the two flows cannot drift apart.
  *
  * A separate component from the global `NavigationBar` rather than a mode of it. That bar is a
  * standing offer — ask Cuisko anything, from anywhere — and this one is the single next move in a
  * flow with an end. Folding the two together would make the global bar answerable to every screen
- * that ever wants a different button in it. They share only the geometry, imported above, so the
- * two sit at the same height on the same phone.
+ * that ever wants a different button in it. They share only the geometry, handed in as `travel`.
  */
-export const TunnelBar = ({
+export const StepBar = ({
+  travel,
   step,
   total,
   label,
@@ -55,21 +61,23 @@ export const TunnelBar = ({
   onNext,
   onBack,
   backIcon,
-  nextIcon = ArrowRight,
+  nextIcon,
   style,
 }: Props) => {
   const isLast = step === total;
 
+  const stretch = style?.alignItems === "stretch";
+
   return (
     <m.View
       style={[styles.container, style]}
-      from={{ opacity: 0, translateY: NAVIGATION_BAR_HEIGHT }}
+      from={{ opacity: 0, translateY: travel }}
       animate={{ opacity: 1, translateY: 0 }}
-      exit={{ opacity: 0, translateY: NAVIGATION_BAR_HEIGHT }}
+      exit={{ opacity: 0, translateY: travel }}
       transition={{ type: "timing", duration: 300, delay: 300 }}
     >
       <SafeAreaView
-        style={styles.flex}
+        style={[styles.flex, stretch && { alignItems: "stretch" }]}
         edges={{ bottom: "android", top: "off" }}
       >
         {onBack && <ButtonIcon
@@ -82,13 +90,14 @@ export const TunnelBar = ({
           {backIcon ?? (step === 1 ? X : ArrowLeft)}
         </ButtonIcon>}
         <ButtonPill
+          style={stretch ? { width: "100%" } : undefined}
           elevated
           variant={variant}
           size="lg"
           disabled={disabled}
           isLoading={isLoading}
           onPress={onNext}
-          rightIcon={isLast ? ListPlus : nextIcon}
+          rightIcon={nextIcon ?? (isLast ? ListPlus : ArrowRight)}
           onRightPress={onNext}
           leftContent={showProgress && (
             isLast ? undefined : (
@@ -100,14 +109,14 @@ export const TunnelBar = ({
         >
           <View style={styles.labels}>
             <Text.Base
-              color={variant === "secondary" ? colors.secondary.foreground : colors.primary.foreground}
+              color={colors[variant].foreground}
               weight={700}
             >
               {label}
             </Text.Base>
             {sublabel && (
               <Text.Sm
-                color={variant === "secondary" ? colors.secondary.subtle : colors.primary.subtle}
+                color={colors[variant].subtle}
                 style={styles.sublabel}
               >
                 {sublabel}

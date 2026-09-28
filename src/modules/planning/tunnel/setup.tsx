@@ -15,9 +15,9 @@ import { MAX_DAYS, MEAL_SLOTS, type MealSlot } from "../_model/model";
 import { resetTunnelAtom } from "../_hooks/atoms";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { SectionLabel } from "../_components/section-label";
-import { ChoiceRows } from "./_components/choice-rows";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { SectionLabel } from "@ui/section-label";
+import { ChoiceRows } from "@ui/choice-rows";
+import { StepHeader } from "@ui/step-header";
 
 const GUTTER = theme.spacing[16];
 const MAX_PEOPLE = 10;
@@ -55,7 +55,7 @@ export const TunnelSetup = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader
+      <StepHeader
         title={t("Tunnel.Setup.title")}
         subtitle={t("Tunnel.Setup.subtitle")}
         mascot={CUISKO.calendar}

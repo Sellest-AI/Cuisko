@@ -11,7 +11,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { type CategoryId } from "../_model/model";
 import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { StepHeader } from "@ui/step-header";
 import { TunnelGroceryRow } from "./groceries.row";
 
 /**
@@ -55,7 +55,7 @@ export const TunnelGroceries = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader
+      <StepHeader
         title={t("Tunnel.Groceries.title")}
         subtitle={t("Tunnel.Groceries.subtitle")}
         icon={ReceiptTextIcon}

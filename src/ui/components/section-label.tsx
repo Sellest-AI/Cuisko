@@ -18,8 +18,7 @@ type Props = {
 /**
  * A section's question, with its current answer beside it.
  *
- * At `_components/` because the setup step and the swap sheet both draw it, and the sheet is not
- * one of the tunnel's steps: dot notation beside `setup.tsx` would claim a parent it does not have.
+ * In `@ui` because the planning tunnel, its sheets and the onboarding all draw it.
  */
 export const SectionLabel = ({ label, value, style }: Props) => (
   <View style={[styles.row, style]}>

@@ -15,11 +15,11 @@ import { MODAL_MAX_DETENT } from "~/modules/navigation/constants";
 import { useDeclaredModalSheet, useMeasuredModalSheet } from "~/modules/navigation/modal-sheet";
 import { useRecipe } from "~/modules/recipes/hooks";
 
-import { SectionLabel } from "../_components/section-label";
+import { SectionLabel } from "@ui/section-label";
 import { usePlanRecipe, type PlannableDay } from "../_hooks/usePlanRecipe";
 import { MAX_SERVINGS, MEAL_SLOTS, type MealSlot } from "../_model/model";
 import { Confirm } from "./confirm";
-import { DayGrid } from "./day-grid";
+import { DayGrid } from "@ui/day-grid";
 
 /** A plate with nothing on it yet: a tile's picture until a dish lands there, and a dish with no photo. */
 const EMPTY_PLATE = require("assets/placeholders/empty-plate.png");

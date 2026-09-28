@@ -15,7 +15,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { isDietConstraint, type Constraint, type ConstraintValue } from "../_model/constraints";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { StepHeader } from "@ui/step-header";
 
 const COLUMNS = 2;
 const GUTTER = theme.spacing[16];
@@ -87,7 +87,7 @@ export const TunnelDiet = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader
+      <StepHeader
         title={t("Tunnel.Diet.title")}
         subtitle={t("Tunnel.Diet.subtitle")}
         mascot={CUISKO.fish}

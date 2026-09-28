@@ -5,9 +5,9 @@ import { DayMarker } from "@ui/day-marker";
 import { ArrowLeftRight, EllipsisVertical, Plus } from "@ui/icons";
 import { resolveLocale, useTranslations } from "translations";
 
-import { isSettled, type MealCard, type PlanningRow } from "../_model/model";
-import { EMPTY_PLATE_IMAGE, MEAL_IMAGE } from "../_hooks/placeholders";
-import { MEAL_STATUS } from "./meal-status";
+import { isSettled, type MealCard, type PlanningRow } from "./_model/model";
+import { EMPTY_PLATE_IMAGE, MEAL_IMAGE } from "./_hooks/placeholders";
+import { MEAL_STATUS } from "./_components/meal-status";
 
 /** The rail the date marker sits in. Rows without one indent past it, so the cards stay aligned. */
 const MARKER_RAIL = 48;
@@ -30,8 +30,8 @@ type Props = {
  * The marker is a sibling of the card rather than a header above it, because a day is a column
  * here: two meals on Tuesday read as one day with two plates, not as two rows under a title.
  *
- * At `_components/` rather than beside a screen because both the planning list and the tunnel's
- * review step draw it — dot notation would claim a single parent it no longer has.
+ * At the module's root, public, because three screens draw it: the planning list, the tunnel's
+ * review step, and the onboarding's generated week, which has to look like the real one.
  */
 export const PlanningListRow = ({ style, row, variant = "plan", onPress, onLongPress, onTrailingPress }: Props) => {
   const t = useTranslations("Planning");
@@ -41,7 +41,8 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onLongP
   const status = row.kind === "meal" ? row.meal.status : "empty";
 
   const isToday = row.date.toLocaleDateString(locale) === new Date().toLocaleDateString(locale);
-  const hasTrailing = variant === "review" || !isSettled(status);
+  /** A settled plate draws nothing; in review the arrows are the swap, so a row with no handler draws none either. */
+  const hasTrailing = !isSettled(status) && (variant !== "review" || onTrailingPress !== undefined);
   const maxTitleLength = hasTrailing ? 17 : 23;
 
   return (

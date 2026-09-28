@@ -14,8 +14,8 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { isDietConstraint } from "../_model/constraints";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { ChoiceRows } from "./_components/choice-rows";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { ChoiceRows } from "@ui/choice-rows";
+import { StepHeader } from "@ui/step-header";
 
 const GUTTER = theme.spacing[16];
 
@@ -52,7 +52,7 @@ export const TunnelAllergies = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader
+      <StepHeader
         title={t("Tunnel.Allergies.title")}
         subtitle={t("Tunnel.Allergies.subtitle")}
         mascot={CUISKO.forbidden}

@@ -5,20 +5,28 @@ import type { ImageProps } from "@ui/image";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 
-import type { PlannableDay } from "../_hooks/usePlanRecipe";
+/**
+ * What a tile needs: its day, and the dish already on it if there is one. Structural, so the
+ * planning sheet's kept plates and the onboarding's fixtures both satisfy it (ADR 0002).
+ */
+export type DayGridDay = {
+  date: Date;
+  meal?: { title: string; imageSrc?: ImageProps["source"] };
+};
 
 const COLUMNS = 3;
 const GAP = theme.spacing[8];
 const TILE_IMAGE_HEIGHT = 128;
 
-type Props = {
-  days: PlannableDay[];
+/** Generic in the day, so `onChoose` hands the caller back its own type, not the narrowed one. */
+type Props<D extends DayGridDay> = {
+  days: readonly D[];
   /** The picture of a plate with nothing on it: the caller's, so this file owns no asset. */
   emptyPlate: ImageProps["source"];
   /** The word under a tile with no dish on it. */
   emptyLabel: string;
   dayLabel: (date: Date) => string;
-  onChoose: (day: PlannableDay) => void;
+  onChoose: (day: D) => void;
 };
 
 /**
@@ -28,7 +36,13 @@ type Props = {
  * Padding on each tile rather than `gap` on the row: three tiles at a third of the width plus two
  * gaps is wider than the row, and the third tile wraps. A tile that pads itself stays a third.
  */
-export const DayGrid = ({ days, emptyPlate, emptyLabel, dayLabel, onChoose }: Props) => (
+export const DayGrid = <D extends DayGridDay>({
+  days,
+  emptyPlate,
+  emptyLabel,
+  dayLabel,
+  onChoose,
+}: Props<D>) => (
   <View style={styles.grid}>
     {days.map((day) => (
       <View key={day.date.getTime()} style={styles.tile}>

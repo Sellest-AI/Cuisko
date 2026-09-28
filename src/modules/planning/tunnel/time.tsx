@@ -11,7 +11,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { COOKING_TIMES, type CookingTime } from "../_model/model";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { StepHeader } from "@ui/step-header";
 
 const GUTTER = theme.spacing[16];
 
@@ -48,7 +48,7 @@ export const TunnelTime = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader
+      <StepHeader
         title={t("Tunnel.Time.title")}
         subtitle={t("Tunnel.Time.subtitle")}
         mascot={CUISKO.stopwatch}

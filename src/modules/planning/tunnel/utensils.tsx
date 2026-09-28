@@ -13,7 +13,7 @@ import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
-import { TunnelHeader } from "./_components/tunnel-header";
+import { StepHeader } from "@ui/step-header";
 
 const COLUMNS = 2;
 const GUTTER = theme.spacing[16];
@@ -37,7 +37,7 @@ export const TunnelUtensils = () => {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <TunnelHeader
+      <StepHeader
         title={t("Tunnel.Utensils.title")}
         subtitle={t("Tunnel.Utensils.subtitle")}
         mascot={CUISKO.saucepan}

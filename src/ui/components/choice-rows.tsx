@@ -26,7 +26,8 @@ type Props<T extends string> = {
 };
 
 /**
- * The list the tunnel's idea-shaped steps are answered from: moods, seeks, allergies.
+ * The list idea-shaped questions are answered from: the tunnel's moods, seeks and allergies, and
+ * the onboarding's goals.
  *
  * One component rather than three near-identical screens. What actually differs between those
  * steps is their question, their catalogue and their ceiling — all three of which are arguments —

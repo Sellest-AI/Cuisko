@@ -14,7 +14,7 @@ import { useTranslations } from "translations";
 
 import { useModalAction } from "~/modules/navigation/modal-action";
 
-import { SectionLabel } from "./_components/section-label";
+import { SectionLabel } from "@ui/section-label";
 import type { MealChoice } from "./_hooks/useMealCatalog";
 import { useMealEditor, type MealScope, type MealTarget } from "./_hooks/useMealEditor";
 import { MAX_SERVINGS, parseDateParam, parseMealSlot } from "./_model/model";

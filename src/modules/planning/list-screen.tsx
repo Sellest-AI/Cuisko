@@ -20,7 +20,7 @@ import { recipeRoute } from "~/modules/recipes/routes";
 
 import { MEAL_IMAGE } from "./_hooks/placeholders";
 import { usePlanningList } from "./_hooks/usePlanningList";
-import { PlanningListRow } from "./_components/planning-row";
+import { PlanningListRow } from "./planning-row";
 import { toDateParam, type MealCard, type PlanningRow } from "./_model/model";
 
 type Props = {

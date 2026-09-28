@@ -12,12 +12,14 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
+import { NAVIGATION_BAR_HEIGHT } from "~/modules/navigation/constants";
+
 import { usePlanCommit } from "../_hooks/usePlanCommit";
 import { useTunnel, TUNNEL_STEPS } from "./_hooks/useTunnel";
 import { tunnelScrollY } from "./_hooks/useTunnelScrollHandler";
 import { useTunnelGroceries } from "./_hooks/useTunnelGroceries";
 import { StepProgress } from "@ui/step-progress";
-import { TunnelBar } from "./_components/tunnel-bar";
+import { StepBar } from "@ui/step-bar";
 
 /**
  * Per-step chrome, keyed by the step's own name.
@@ -196,7 +198,8 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
         </m.View>
       )}
       {chrome.bar && (
-        <TunnelBar
+        <StepBar
+          travel={NAVIGATION_BAR_HEIGHT}
           step={step}
           total={total}
           showProgress={false}
