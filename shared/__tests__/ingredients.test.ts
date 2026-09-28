@@ -4,12 +4,14 @@ import {
   convertQuantity,
   edibleGrams,
   formatQuantity,
+  formatGroceryQuantity,
   fromStockUnit,
   mergeGroupOf,
   normalizeUnit,
   pickQuantity,
   RECIPE_UNITS,
   roundQuantity,
+  roundGroceryQuantity,
   serializeIngredients,
   stockUnitOf,
   toGrams,
@@ -199,29 +201,29 @@ describe("edibleGrams", () => {
   });
 });
 
-describe("roundQuantity", () => {
+describe("roundGroceryQuantity", () => {
   /** The bug this exists for: 100 g for three, cooked for one, read `33.333333333333336 g` on a tile. */
   test("raises a gram amount to a whole number", () => {
-    expect(roundQuantity(100 / 3, "g")).toBe(34);
-    expect(roundQuantity(33.1, "g")).toBe(34);
+    expect(roundGroceryQuantity(100 / 3, "g")).toBe(34);
+    expect(roundGroceryQuantity(33.1, "g")).toBe(34);
   });
 
   /** Up, never down: every amount on screen is bought, weighed or taken out, and short is worse. */
   test("never gives back less than it was handed", () => {
-    expect(roundQuantity(0.2, "g")).toBe(1);
-    expect(roundQuantity(1.21, "kg")).toBe(1.3);
+    expect(roundGroceryQuantity(0.2, "g")).toBe(1);
+    expect(roundGroceryQuantity(1.21, "kg")).toBe(1.3);
   });
 
   /** Half a slice is not cut, any more than half an onion is bought. */
   test("raises a slice count to a whole", () => {
-    expect(roundQuantity(1.2, "slice")).toBe(2);
-    expect(roundQuantity(3, "slice")).toBe(3);
+    expect(roundGroceryQuantity(1.2, "slice")).toBe(2);
+    expect(roundGroceryQuantity(3, "slice")).toBe(3);
   });
 
   test("keeps one decimal on the units a shopper buys in tenths", () => {
-    expect(roundQuantity(1.256, "kg")).toBe(1.3);
-    expect(roundQuantity(0.75, "l")).toBe(0.8);
-    expect(roundQuantity(0.25, "tsp")).toBe(0.3);
+    expect(roundGroceryQuantity(1.256, "kg")).toBe(1.3);
+    expect(roundGroceryQuantity(0.75, "l")).toBe(0.8);
+    expect(roundGroceryQuantity(0.25, "tsp")).toBe(0.3);
   });
 
   /**
@@ -229,39 +231,81 @@ describe("roundQuantity", () => {
    * `13.3 kg` — so the epsilon guard is what makes the direction safe to apply.
    */
   test("takes the float noise off a difference rather than rounding it up", () => {
-    expect(roundQuantity(33.3 - 20.1, "kg")).toBe(13.2);
-    expect(roundQuantity(0.1 + 0.2, "l")).toBe(0.3);
-    expect(roundQuantity((100 / 3) * 3, "g")).toBe(100);
+    expect(roundGroceryQuantity(33.3 - 20.1, "kg")).toBe(13.2);
+    expect(roundGroceryQuantity(0.1 + 0.2, "l")).toBe(0.3);
+    expect(roundGroceryQuantity((100 / 3) * 3, "g")).toBe(100);
   });
 
   test("returns a number that prints without a trailing zero", () => {
-    expect(String(roundQuantity(2.04, "kg"))).toBe("2.1");
-    expect(String(roundQuantity(33.34, "g"))).toBe("34");
+    expect(String(roundGroceryQuantity(2.04, "kg"))).toBe("2.1");
+    expect(String(roundGroceryQuantity(33.34, "g"))).toBe("34");
   });
 
   /** 33 g owed on an ingredient shopped by the kilo is 0.033 kg — a need, not nothing. */
   test("never shows a positive amount as nothing", () => {
-    expect(roundQuantity(0.033, "kg")).toBe(0.1);
-    expect(roundQuantity(0.4, "ml")).toBe(1);
-    expect(roundQuantity(0.2, "pcs")).toBe(1);
+    expect(roundGroceryQuantity(0.033, "kg")).toBe(0.1);
+    expect(roundGroceryQuantity(0.4, "ml")).toBe(1);
+    expect(roundGroceryQuantity(0.2, "pcs")).toBe(1);
   });
 
   test("leaves zero and the whole numbers alone", () => {
-    expect(roundQuantity(0, "kg")).toBe(0);
-    expect(roundQuantity(500, "g")).toBe(500);
+    expect(roundGroceryQuantity(0, "kg")).toBe(0);
+    expect(roundGroceryQuantity(500, "g")).toBe(500);
+    expect(roundGroceryQuantity(2, "pcs")).toBe(2);
+  });
+});
+
+describe("roundQuantity", () => {
+  /** A cook told 2 onions for 1.3 puts too much in the pan; a shopper told 1.3 cannot buy it. */
+  test("keeps a tenth of a piece", () => {
+    expect(roundQuantity(1.3, "pcs")).toBe(1.3);
+    expect(roundQuantity(1.34, "pcs")).toBe(1.3);
+  });
+
+  test("rounds to the nearest, not up", () => {
+    expect(roundQuantity(66.2, "g")).toBe(66);
+    expect(roundQuantity(66.6, "g")).toBe(67);
+    expect(roundQuantity(2.04, "kg")).toBe(2);
+  });
+
+  /** 0.35 × 10 is 3.4999999999999996 in floating point, which would round a half down. */
+  test("rounds a half up despite float noise", () => {
+    expect(roundQuantity(0.35, "pcs")).toBe(0.4);
+  });
+
+  test("never shows a positive amount as nothing", () => {
+    expect(roundQuantity(0.02, "pcs")).toBe(0.1);
+    expect(roundQuantity(0.3, "g")).toBe(1);
+  });
+
+  test("leaves zero and the whole numbers alone", () => {
+    expect(roundQuantity(0, "pcs")).toBe(0);
     expect(roundQuantity(2, "pcs")).toBe(2);
+    expect(roundQuantity(500, "g")).toBe(500);
+  });
+
+  /** A slice is cut whole: only the piece gained a decimal. */
+  test("keeps slices whole", () => {
+    expect(roundQuantity(1.4, "slice")).toBe(1);
   });
 });
 
 describe("formatQuantity", () => {
+  test("writes the cooking amount beside its unit", () => {
+    expect(formatQuantity(1.34, "pcs")).toBe("1.3 pcs");
+    expect(formatQuantity(66.2, "g", (unit) => `[${unit}]`)).toBe("66 [g]");
+  });
+});
+
+describe("formatGroceryQuantity", () => {
   test("shows the amount at its unit's precision", () => {
-    expect(formatQuantity(100 / 3, "g")).toBe("34 g");
-    expect(formatQuantity(1.256, "kg")).toBe("1.3 kg");
-    expect(formatQuantity(2, "kg")).toBe("2 kg");
+    expect(formatGroceryQuantity(100 / 3, "g")).toBe("34 g");
+    expect(formatGroceryQuantity(1.256, "kg")).toBe("1.3 kg");
+    expect(formatGroceryQuantity(2, "kg")).toBe("2 kg");
   });
 
   test("spells the unit through the resolver it is given", () => {
-    expect(formatQuantity(1.5, "tbsp", () => "c. à s.")).toBe("1.5 c. à s.");
+    expect(formatGroceryQuantity(1.5, "tbsp", () => "c. à s.")).toBe("1.5 c. à s.");
   });
 });
 
@@ -282,7 +326,7 @@ describe("serializeIngredients", () => {
   });
 
   /**
-   * The reason this does not reuse `formatQuantity`. That formatter rounds to one decimal, so a
+   * The reason this does not reuse `formatGroceryQuantity`. That formatter rounds to one decimal, so a
    * quarter-teaspoon would come back as `0.3` — and because this same string seeds the editor and
    * feeds `recipeChangesOf`'s comparison, the rounded value is what a later save would persist.
    */
@@ -290,7 +334,7 @@ describe("serializeIngredients", () => {
     const text = serializeIngredients([{ name: "cumin", quantity: 0.25, unit: "tsp" }]);
 
     expect(text).toBe("0.25 tsp cumin");
-    expect(formatQuantity(0.25, "tsp")).toBe("0.3 tsp");
+    expect(formatGroceryQuantity(0.25, "tsp")).toBe("0.3 tsp");
   });
 
   /** `unitLabel` spells `l` as `L`; the stored code is what a re-parse has to see. */
@@ -298,7 +342,7 @@ describe("serializeIngredients", () => {
     const text = serializeIngredients([{ name: "milk", quantity: 1, unit: "l" }]);
 
     expect(text).toBe("1 l milk");
-    expect(formatQuantity(1, "l")).toBe("1 L");
+    expect(formatGroceryQuantity(1, "l")).toBe("1 L");
   });
 
   test("returns an empty string for a recipe with no ingredients", () => {

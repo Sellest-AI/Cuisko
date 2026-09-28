@@ -6,7 +6,7 @@ import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 
-import { formatQuantity } from "@shared/ingredients";
+import { formatGroceryQuantity } from "@shared/ingredients";
 
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 
@@ -63,7 +63,7 @@ export const TunnelGroceryRow = ({ row, meals, owned, onToggle }: Props) => {
             owned ? { opacity: 0.5 } : {}
           ]}>
             <Text.Base>
-              {formatQuantity(Math.ceil(row.amount), row.unit, unit)}
+              {formatGroceryQuantity(Math.ceil(row.amount), row.unit, unit)}
             </Text.Base>
           </View>
         </View>

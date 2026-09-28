@@ -50,7 +50,7 @@
 
 import type { Category } from "@shared/categories";
 import { UNDO_WINDOW_MS } from "@shared/groceries";
-import { roundQuantity, type Unit } from "@shared/ingredients";
+import { roundGroceryQuantity, type Unit } from "@shared/ingredients";
 import type { MealSlot } from "@shared/mealSlots";
 import type { TranslationKeys } from "translations";
 
@@ -60,10 +60,10 @@ import { expiresSoon } from "./expiresSoon";
  * The unit vocabulary and its formatting now live in `shared/`, where planning reaches them too.
  *
  * `unitLabel` is deliberately NOT among them. It spells the stored English code, and every screen
- * in this module wants the cook's word for it — `useUnitLabel`, passed to `formatQuantity`. Left
+ * in this module wants the cook's word for it — `useUnitLabel`, passed to `formatGroceryQuantity`. Left
  * re-exported it is the shorter import that renders `2 tbsp` to a French cook and looks right.
  */
-export { formatQuantity, normalizeUnit, roundQuantity, UNITS, type Unit } from "@shared/ingredients";
+export { formatGroceryQuantity, normalizeUnit, roundGroceryQuantity, UNITS, type Unit } from "@shared/ingredients";
 
 /** Which section a tap came from. Each one can only move stock its own way. */
 export const INTENTS = ["buy", "remove", "relist"] as const;
@@ -401,7 +401,7 @@ const OPTION_COUNT = 9;
 export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent, needed?: number): QuantityOption[] => {
   /** At the unit's precision, as the ladder is: a tile below the row by float noise reads as the row. */
   const partial = intent === "buy" && needed !== undefined && needed > 0 &&
-    roundQuantity(needed, unit) < roundQuantity(stock.toBuy, unit);
+    roundGroceryQuantity(needed, unit) < roundGroceryQuantity(stock.toBuy, unit);
 
   const proposed = (): { amount: number; captionKey: TranslationKeys<"Groceries">; type: "undo" | "default" } => {
     if (intent === "buy") {
@@ -423,7 +423,7 @@ export const quantityOptions = (stock: Stock, unit: Unit, intent: Intent, needed
 
   const ladder = STEPS[unit]
     .filter((step) =>
-      offered.every((taken) => roundQuantity(step, unit) !== roundQuantity(taken, unit)) &&
+      offered.every((taken) => roundGroceryQuantity(step, unit) !== roundGroceryQuantity(taken, unit)) &&
       (ceiling === null || step <= ceiling))
     .map((step): QuantityOption => ({ amount: step, unit }));
 

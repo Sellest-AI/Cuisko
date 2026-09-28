@@ -14,6 +14,7 @@ const line = (name: string, unit: RecipeLine["unit"] = "g"): RecipeLine => ({
   quantity: 100,
   category: "VEGETABLE",
   emoji: "🥕",
+  conversion: { defaultUnit: "g", gramsPerPiece: 150 },
 });
 
 const LINES: RecipeLine[] = [
@@ -84,6 +85,12 @@ describe("scaleInstruction", () => {
   /** A bare count has no unit to take a precision from, so it keeps the single decimal. */
   test("keeps one decimal on a number the sentence gave no unit", () => {
     expect(scaleInstruction("Faites revenir 2 oignons", LINES, 3, 1)).toBe("Faites revenir 0.7 oignons");
+  });
+
+  /** A method is followed, not shopped from: 1.33 onions is 1.3, and 66.2 g is 66 g, never up. */
+  test("rounds to the nearest amount, as the ingredients tab does", () => {
+    expect(scaleInstruction("Faites revenir 2 oignons", LINES, 3, 2)).toBe("Faites revenir 1.3 oignons");
+    expect(scaleInstruction("Ajoutez 331 g de farine", LINES, 5, 1)).toBe("Ajoutez 66 g de farine");
   });
 
   /**

@@ -18,7 +18,7 @@ import { useLocale } from "~/hooks/useLocale";
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 
 import {
-  formatQuantity,
+  formatGroceryQuantity,
   orderSections,
   rowsOf,
   type GroceryRow,
@@ -359,7 +359,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
 
         const type = variantFor(row.stock);
         const quantity = type === "memory" ? undefined :
-          formatQuantity(row.stock.amount, row.stock.unit, unit);
+          formatGroceryQuantity(row.stock.amount, row.stock.unit, unit);
 
         return (
           <GroceryItem

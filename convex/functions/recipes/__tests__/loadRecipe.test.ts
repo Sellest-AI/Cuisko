@@ -206,6 +206,20 @@ describe("functions/recipes/loadRecipe", () => {
     expect(recipe.ingredients.map((line) => line.emoji)).toEqual(["🧅", "🧈"]);
   });
 
+  /** What the tile converts a line through when a cook taps it: the row's ratios, not a result. */
+  test("carries each line's conversion facts from its catalog row", async () => {
+    const recipeId = await seedRecipe();
+    await seedLine(recipeId, { name: "Onion", category: "VEGETABLE", gramsPerPiece: 150 }, { position: 0, quantity: 2 });
+    await seedLine(recipeId, { name: "Butter", category: "DAIRY" }, { position: 1, quantity: 1 });
+
+    const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en" }));
+
+    expect(recipe.ingredients.map((line) => line.conversion)).toEqual([
+      { defaultUnit: "pcs", gramsPerPiece: 150 },
+      { defaultUnit: "pcs" },
+    ]);
+  });
+
   /**
    * A line carries the THUMBNAIL url and nothing else — not the image document the catalog hands
    * out. A twenty-ingredient recipe would otherwise ship twenty documents of five sizes each to

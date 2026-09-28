@@ -133,13 +133,13 @@ const UNIT_LABELS: Record<RecipeUnit, string> = {
 export const unitLabel = (unit: RecipeUnit) => UNIT_LABELS[unit];
 
 /**
- * How many decimals an amount in each unit is allowed to carry — the precision a kitchen scale
- * or a shop shelf actually offers, not the one a division produces.
+ * How many decimals an amount in each unit carries on screen — the precision a kitchen scale or a
+ * cook's hand actually offers, not the one a division produces.
  *
- * A gram is already the finest cut a cook measures, so `g`, `mg`, `ml` and `cl` are whole numbers
- * and a piece or a slice cannot be split at all. The large units are where a tenth means
- * something: 1.3 kg of potatoes and 0.5 L of milk are amounts a shopper buys, while 33.333 g is
- * arithmetic.
+ * A gram is already the finest cut a cook measures, so `g`, `mg`, `ml` and `cl` are whole numbers,
+ * and a slice is cut whole. The large units are where a tenth means something: 1.3 kg of potatoes
+ * and 0.5 L of milk are real amounts, while 33.333 g is arithmetic. A piece takes a tenth too: 1.3
+ * onions is an instruction to someone holding a knife. `GROCERY_DECIMALS` below is where it cannot.
  */
 const UNIT_DECIMALS: Record<RecipeUnit, number> = {
   g: 0,
@@ -150,52 +150,76 @@ const UNIT_DECIMALS: Record<RecipeUnit, number> = {
   cl: 0,
   ml: 0,
   l: 1,
-  pcs: 0,
+  pcs: 1,
   slice: 0,
   tbsp: 1,
   tsp: 1,
 };
 
-/**
- * Absorbs the float noise a ratio leaves behind before rounding up, the same guard `scaleLines`
- * keeps for piece counts. Without it a third of 100 g scaled back by three is `100.00000000000001`
- * and a ceiling turns it into 101 g.
- */
-const CEIL_EPSILON = 1e-9;
+/** `UNIT_DECIMALS` on a shop shelf, where a piece is sold whole: nobody buys 1.3 onions. */
+const GROCERY_DECIMALS: Record<RecipeUnit, number> = { ...UNIT_DECIMALS, pcs: 0 };
 
 /**
- * An amount raised to the precision its unit allows — a DISPLAY rule, for a number a person reads.
+ * Absorbs the float noise a ratio leaves behind before rounding, the same guard `scaleLines` keeps
+ * for piece counts. Without it a third of 100 g scaled back by three is `100.00000000000001` and a
+ * ceiling turns it into 101 g, and 0.35 × 10 is `3.4999999999999996`, which rounds a half down.
+ */
+const ROUNDING_EPSILON = 1e-9;
+
+/**
+ * An amount at the precision its unit allows — a DISPLAY rule, for a number a cook reads: the
+ * recipe's tiles, its method and its nutrition breakdown.
  *
- * **Up, never down.** A quantity on screen is something to buy, weigh or take out, and every one of
- * those is worse short than long: nobody sells 0.2 g of saffron, so the sheet asks for 1 g. Down
- * would also let a real need display as nothing — 33 g owed on an ingredient shopped by the kilo is
- * 0.033 kg — and a row reading `0 kg` is a need the shopper cannot see.
+ * **Nearest.** A cook told 2 onions for 1.3 puts two thirds of an onion too many in the pan, so
+ * 1.34 pieces is 1.3 and 66.2 g is 66 g. The one thing it never does is show a positive amount as
+ * nothing: 0.02 of a piece is the smallest step, 0.1, rather than a `0` that drops the ingredient.
+ * Anything about to be BOUGHT rounds up instead — `roundGroceryQuantity`.
  *
- * The stored figure stays exact: a plate's claim of 100 g for three is 33.333… g in the ledger, and
- * buying against it must write that same figure or the gap never quite closes. So a screen shows
- * `roundQuantity` and submits the amount it was given — the quantity sheet's tiles are the case.
- * `formatQuantity` is the usual way in; this is for a caller that draws the number and the unit
- * apart.
+ * The stored figure stays exact; this is for drawing it. `formatQuantity` is the usual way in; this
+ * is for a caller that draws the number and the unit apart.
  *
  * Arithmetic on the shifted integer, not `toFixed`: the result is a NUMBER, so `String(33.3)` prints
  * `33.3` with no trailing zero to trim.
  */
 export const roundQuantity = (amount: number, unit: RecipeUnit): number => {
-  /** Nothing to raise, and a bare `Math.ceil` would hand back `-0` here. */
   if (amount <= 0) return 0;
 
   const scale = 10 ** UNIT_DECIMALS[unit];
 
-  return Math.ceil(amount * scale - CEIL_EPSILON) / scale;
+  return Math.max(Math.round(amount * scale + ROUNDING_EPSILON), 1) / scale;
 };
 
 /**
- * An amount and its unit, for a person READING a recipe. Lossy on purpose.
+ * An amount raised to the precision a shop sells it in — `roundQuantity`'s rule for the grocery
+ * list, the quantity sheet and anything else about to be bought, stocked or taken out.
+ *
+ * **Up, never down.** Every one of those is worse short than long: nobody sells 0.2 g of saffron,
+ * so the sheet asks for 1 g, and a piece is sold whole, so 1.3 onions is 2. Down would also let a
+ * real need display as nothing — 33 g owed on an ingredient shopped by the kilo is 0.033 kg — and a
+ * row reading `0 kg` is a need the shopper cannot see.
+ *
+ * The stored figure stays exact: a plate's claim of 100 g for three is 33.333… g in the ledger, and
+ * buying against it must write that same figure or the gap never quite closes. So a screen shows
+ * `roundGroceryQuantity` and submits the amount it was given — the quantity sheet's tiles are the
+ * case.
+ */
+export const roundGroceryQuantity = (amount: number, unit: RecipeUnit): number => {
+  /** Nothing to raise, and a bare `Math.ceil` would hand back `-0` here. */
+  if (amount <= 0) return 0;
+
+  const scale = 10 ** GROCERY_DECIMALS[unit];
+
+  return Math.ceil(amount * scale - ROUNDING_EPSILON) / scale;
+};
+
+/**
+ * An amount and its unit, for a person READING it. Lossy on purpose.
  *
  * Placeholder formatting. Real copy normalises per ingredient — "4 yaourts", not "500 g of
  * yoghurt" — which needs the ingredient to carry its own preferred unit, and that is not
- * modelled yet. The amount is raised to its unit's precision (`roundQuantity`) so a halved recipe
- * does not read `0.5000000001`, and a third of 100 g reads `34 g` rather than `33.333 g`.
+ * modelled yet. The amount is cut to its unit's precision (`roundQuantity`) so a halved recipe
+ * does not read `0.5000000001`, and a third of 100 g reads `33 g` rather than `33.333 g`. What is
+ * about to be bought reads `formatGroceryQuantity`, which rounds up.
  *
  * ⚠️ Never use this for text that will be read back and re-parsed — `exactQuantity` is that one.
  *    Both the rounding and `unitLabel` (which spells `l` as `L`) are display decisions, and a round
@@ -212,6 +236,16 @@ export const formatQuantity = (
   unit: RecipeUnit,
   label: (unit: RecipeUnit) => string = unitLabel,
 ) => `${roundQuantity(amount, unit)} ${label(unit)}`;
+
+/**
+ * `formatQuantity` for what is about to be bought, stocked or taken out: the amount raised by
+ * `roundGroceryQuantity` rather than cut to the nearest. The same warnings hold.
+ */
+export const formatGroceryQuantity = (
+  amount: number,
+  unit: RecipeUnit,
+  label: (unit: RecipeUnit) => string = unitLabel,
+) => `${roundGroceryQuantity(amount, unit)} ${label(unit)}`;
 
 /**
  * The same pair, for text a MACHINE will read back — the editor's textarea, and the comparison that

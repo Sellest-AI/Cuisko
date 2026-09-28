@@ -10,7 +10,7 @@ import { useTranslations } from "translations";
 
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { useModalAction } from "~/modules/navigation/modal-action";
-import { formatQuantity, isIntent, normalizeUnit, roundQuantity, type Intent, type Unit } from "./_model/model";
+import { formatGroceryQuantity, isIntent, normalizeUnit, roundGroceryQuantity, type Intent, type Unit } from "./_model/model";
 import { useQuantityPicker } from "./_hooks/useQuantityPicker";
 import { useRemoveItem } from "./_hooks/useRemoveItem";
 import { AmountInput } from "./quantity-screen.amount-input";
@@ -107,7 +107,7 @@ const Picker = ({
    */
   if (!ingredient) return <Nothing />;
 
-  const subtitle = [ingredient?.name, owned > 0 ? formatQuantity(owned, entryUnit, unitWord) : undefined]
+  const subtitle = [ingredient?.name, owned > 0 ? formatGroceryQuantity(owned, entryUnit, unitWord) : undefined]
     .filter(Boolean)
     .join(" · ");
 
@@ -133,7 +133,7 @@ const Picker = ({
         {options.map((option) => (
           <QuantityOption
             key={`${option.amount}:${option.unit}`}
-            amount={roundQuantity(option.amount, option.unit)}
+            amount={roundGroceryQuantity(option.amount, option.unit)}
             unit={unitWord(option.unit)}
             caption={option.captionKey ? t(option.captionKey) : undefined}
             type={option.type}

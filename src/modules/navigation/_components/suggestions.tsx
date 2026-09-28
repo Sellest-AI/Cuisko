@@ -5,7 +5,7 @@ import { Text } from "@ui/text";
 import { GroceryItem } from "@ui/cards/grocery-item";
 import { CardRecipe } from "@ui/cards/recipe";
 import { useTranslations } from "translations";
-import { formatQuantity, pickQuantity, roundQuantity, type Unit } from "@shared/ingredients";
+import { formatGroceryQuantity, pickQuantity, roundGroceryQuantity, type Unit } from "@shared/ingredients";
 
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
@@ -82,7 +82,7 @@ export const Suggestions = ({ bar, style, onSelect, onSelectRecipe }: Props) => 
           // Rounded once, then both shown and written: a card reading "0.1 kg" that puts 0.03 kg
           // on the shelf is the shopper being answered with a number they never chose.
           const { amount: typed, unit: measure } = pickQuantity({ amount, unit }, suggestion);
-          const quantity = roundQuantity(typed, measure);
+          const quantity = roundGroceryQuantity(typed, measure);
 
           return (
             <GroceryItem
@@ -91,7 +91,7 @@ export const Suggestions = ({ bar, style, onSelect, onSelectRecipe }: Props) => 
               emoji={suggestion.emoji}
               imageUrl={suggestion.imageUrl}
               style={{ backgroundColor: theme.colors.surface.elevated }}
-              quantity={formatQuantity(quantity, measure, unitWord)}
+              quantity={formatGroceryQuantity(quantity, measure, unitWord)}
               onPress={() => onSelect?.({
                 id: suggestion.id,
                 amount: quantity,

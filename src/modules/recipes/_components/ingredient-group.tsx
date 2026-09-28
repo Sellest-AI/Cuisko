@@ -1,13 +1,33 @@
+import { useState } from "react";
 import { View, StyleSheet } from "react-native";
 
 import { GroceryItem } from "@ui/cards/grocery-item";
 import { Text } from "@ui/text";
 import { theme } from "theme";
+import { formatQuantity, type RecipeUnit } from "@shared/ingredients";
+
+import { useUnitLabel } from "~/hooks/useUnitLabel";
+
+import { convertLine, displayUnits, type Conversion } from "../_model/units";
+
+/** How much of a line, in the recipe's own unit, and what it takes to read it in another. */
+type Measure = { amount: number; unit: RecipeUnit; conversion: Conversion };
+
+/**
+ * A line as a tile draws it — the photo when the catalog has one, its emoji otherwise.
+ *
+ * The measure comes whole or not at all: the overview names what a dish contains without saying
+ * how much, and a tile with an amount but no unit to read it in is not a state worth drawing.
+ */
+export type IngredientItem = { emoji: string; name: string; imageUrl?: string } & (
+  | Measure
+  | { amount?: undefined }
+);
 
 type Props = {
   title: string;
   titleSize?: "base" | "lg";
-  items: { emoji: string; name: string; quantity?: string; imageUrl?: string }[];
+  items: IngredientItem[];
   /** Measured by the screen, so every group's columns line up on one grid. */
   itemWidth: number;
 };
@@ -26,21 +46,55 @@ export const IngredientGroup = ({ titleSize, title, items, itemWidth }: Props) =
       {title}
     </Title>
     <View style={styles.grid}>
-      {items.map((item) => (
-        <GroceryItem
-          key={item.name + item.quantity}
-          emoji={item.emoji}
-          imageUrl={item.imageUrl}
-          name={item.name}
-          quantity={item.quantity}
-          variant="ghost"
-          width={itemWidth}
-          style={{ marginBottom: theme.spacing[16] }}
-        />
-      ))}
+      {items.map((item) =>
+        item.amount === undefined ? (
+          <GroceryItem
+            key={item.name}
+            emoji={item.emoji}
+            imageUrl={item.imageUrl}
+            name={item.name}
+            variant="ghost"
+            width={itemWidth}
+            style={{ marginBottom: theme.spacing[16] }}
+          />
+        ) : (
+          <MeasuredTile key={item.name + item.amount + item.unit} item={item} width={itemWidth} />
+        ),
+      )}
     </View>
   </View>);
 }
+
+/**
+ * One line, read in the next unit it can be measured in on each tap: 500 g of chicken, a third of
+ * one, 500 g again. The choice is this tile's alone and is forgotten with the screen; a line that
+ * cannot be read in any other unit ignores the tap.
+ */
+const MeasuredTile = ({ item, width }: { item: IngredientItem & Measure; width: number }) => {
+  const label = useUnitLabel();
+  const [shown, setShown] = useState(0);
+
+  const units = displayUnits(item.unit, item.conversion);
+  const unit = units[shown % units.length] ?? item.unit;
+  const converted = convertLine(item.amount, item.unit, unit, item.conversion);
+
+  return (
+    <GroceryItem
+      emoji={item.emoji}
+      imageUrl={item.imageUrl}
+      name={item.name}
+      quantity={
+        converted === undefined
+          ? formatQuantity(item.amount, item.unit, label)
+          : formatQuantity(converted, unit, label)
+      }
+      variant="ghost"
+      width={width}
+      onPress={units.length > 1 ? () => setShown((index) => index + 1) : undefined}
+      style={{ marginBottom: theme.spacing[16] }}
+    />
+  );
+};
 
 const styles = StyleSheet.create({
   grid: {

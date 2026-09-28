@@ -7,7 +7,7 @@ import type { Locale } from "@convex/schema/i18n";
 import { getImage } from "@convex/functions/media/getImage";
 import { avatarSeed } from "@shared/avatars";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
-import type { RecipeUnit } from "@shared/ingredients";
+import type { GramWeights, RecipeUnit, Unit } from "@shared/ingredients";
 import type { RecipeNutrition } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
@@ -45,6 +45,16 @@ type RecipeIngredient = {
    * because of anything this function knows.
    */
   category: Category;
+  /**
+   * What the catalog row knows about converting this ingredient, for the tile a cook taps to read
+   * the line in another unit — 500 g of chicken as a third of one.
+   *
+   * The ratios themselves rather than the line already converted, because the client scales the
+   * line to the servings chosen and a quantity converted here would be wrong the moment the stepper
+   * moved. Grouped apart from `unit`, so the unit the line is written in and the one it converts
+   * from are never side by side at the call site.
+   */
+  conversion: GramWeights & { defaultUnit: Unit };
 };
 
 /** Who wrote the recipe, for the line that credits them. Absent on a recipe with no owner. */
@@ -152,6 +162,12 @@ const _linesOf = async (
         emoji: ingredient.emoji,
         imageUrl: image?.sizes.thumbnail.url,
         category: ingredient.category,
+        conversion: {
+          defaultUnit: ingredient.defaultUnit,
+          gramsPerPiece: ingredient.gramsPerPiece,
+          gramsPerSlice: ingredient.gramsPerSlice,
+          gramsPerMl: ingredient.gramsPerMl,
+        },
       };
     }),
   );
