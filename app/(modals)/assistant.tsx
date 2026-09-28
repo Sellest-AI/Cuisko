@@ -33,7 +33,7 @@ export default function Assistant() {
   return <>
     <LinearGradient
       colors={[theme.colors.neutral.subtle, theme.colors.background]}
-      style={StyleSheet.absoluteFill}
+      style={[{ opacity: 0.5 }, StyleSheet.absoluteFill]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
     />

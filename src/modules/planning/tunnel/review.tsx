@@ -93,6 +93,7 @@ export const TunnelReview = () => {
               if (item.kind === "empty") return _openPlate(item);
               router.push(recipeRoute(item.meal.recipeId, item.meal.servings));
             }}
+            onLongPress={() => _openPlate(item)}
             onTrailingPress={() => _openPlate(item)}
             style={{
               marginBottom: isLast ? theme.spacing[12] :

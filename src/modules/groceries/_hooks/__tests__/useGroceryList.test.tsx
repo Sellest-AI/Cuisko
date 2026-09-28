@@ -268,7 +268,7 @@ describe("useGroceryList — sorted", () => {
       ["plate:plate-1", [3]],
       ["unplanned", [1]],
     ]);
-    expect(result.current.toBuy[0]!.heading).toEqual({ kind: "plate", recipeId: "recipe-soup", title: "Soupe", date: new Date(at), slot: "dinner" });
+    expect(result.current.toBuy[0]!.heading).toEqual({ kind: "plate", mealId: "plate-1", recipeId: "recipe-soup", title: "Soupe", date: new Date(at), slot: "dinner" });
   });
 });
 

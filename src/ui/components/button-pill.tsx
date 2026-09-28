@@ -33,6 +33,11 @@ type BaseProps = {
    * both. The button looks the same throughout: the extra press is dropped, not disabled.
    */
   doubleTapDelay?: number;
+  /**
+   * A tick on each tap of a side disc, for a pill used as a stepper. The label's own press stays
+   * silent: on a stepper it does nothing, and a tick for nothing reads as a press that failed.
+   */
+  sideHaptic?: boolean;
 };
 
 /**
@@ -42,10 +47,15 @@ type BaseProps = {
 type LeftSide = {
   leftIcon?: Icon;
   onLeftPress?: () => void;
+  onLeftLongPress?: () => void;
+  /** How long the left disc must be held for `onLeftLongPress` — see `ButtonIcon`. */
+  leftLongPressDelay?: number;
   leftContent?: undefined
 } | {
   leftContent?: ReactNode | ((props: { color: string }) => ReactNode);
   onLeftPress?: undefined;
+  onLeftLongPress?: undefined;
+  leftLongPressDelay?: undefined;
   leftIcon?: undefined
 };
 
@@ -67,6 +77,8 @@ export const ButtonPill = ({
   children,
   onPress,
   onLeftPress,
+  onLeftLongPress,
+  leftLongPressDelay,
   onRightPress,
   variant = "primary",
   size = "md",
@@ -79,6 +91,7 @@ export const ButtonPill = ({
   rightContent,
   leftContent,
   doubleTapDelay,
+  sideHaptic = false,
 }: Props) => {
   /** A ref, not state: when the last press landed changes nothing on screen. */
   const lastPressAt = useRef(Number.NEGATIVE_INFINITY);
@@ -214,6 +227,9 @@ export const ButtonPill = ({
             size={size === "sm" ? "xs" : "sm"}
             isLoading={isLoading}
             onPress={onLeftPress}
+            onLongPress={onLeftLongPress}
+            delayLongPress={leftLongPressDelay}
+            haptic={sideHaptic}
           >
             {leftIcon}
           </ButtonIcon> : typeof leftContent === "function" ? leftContent({ color: color.color as string }) : leftContent}
@@ -240,6 +256,7 @@ export const ButtonPill = ({
             size={size === "sm" ? "xs" : "sm"}
             isLoading={isLoading}
             onPress={onRightPress}
+            haptic={sideHaptic}
           >
             {rightIcon}
           </ButtonIcon> : typeof rightContent === "function" ? rightContent({ color: color.color as string }) : rightContent}

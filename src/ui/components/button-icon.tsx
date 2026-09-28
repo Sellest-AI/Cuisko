@@ -18,6 +18,14 @@ type Props = {
   style?: ViewStyle;
   disabled?: boolean;
   onPress?: () => void;
+  /** Ticks on its own, like every long press: see `Pressable`. */
+  onLongPress?: () => void;
+  /** How long a press must be held to count as one, when `Pressable`'s default is too eager. */
+  delayLongPress?: number;
+  /** A tick on each tap — see `Pressable`'s `haptic`. */
+  haptic?: boolean;
+  /** Room around the disc that still counts as a tap, for a disc drawn smaller than a finger. */
+  hitSlop?: number;
   /**
    * The icon is one part of a larger control — a `ButtonPill` side, an `ActionRow` — rather than a
    * button in its own right. Visual only: it drives the press animation. It used to swap the
@@ -30,6 +38,10 @@ type Props = {
 export const ButtonIcon = ({
   children,
   onPress,
+  onLongPress,
+  delayLongPress,
+  haptic,
+  hitSlop,
   disabled,
   variant = "primary",
   composite = false,
@@ -94,6 +106,10 @@ export const ButtonIcon = ({
         ...outerStyle
       }}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
+      haptic={haptic}
+      hitSlop={hitSlop}
       disabled={disabled || isLoading}
       animated={!composite}
       intensity={pressIntensity}

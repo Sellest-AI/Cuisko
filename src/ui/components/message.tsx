@@ -66,6 +66,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     borderBottomRightRadius: theme.radius.xs,
     backgroundColor: theme.colors.neutral.subtle,
+    borderWidth: 2,
+    borderColor: theme.colors.border.medium,
   },
   assistantMessage: {
     alignSelf: "flex-start",

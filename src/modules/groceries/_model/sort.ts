@@ -24,7 +24,8 @@ export const isSort = (value: string): value is Sort => SORTS.some((sort) => sor
  */
 export type ToBuyHeading =
   | null
-  | { kind: "plate"; recipeId: string; title: string; date: Date; slot: MealSlot }
+  /** `mealId` is the plate itself, which the meal sheet opens on; `recipeId` is the page it is of. */
+  | { kind: "plate"; mealId: string; recipeId: string; title: string; date: Date; slot: MealSlot }
   | { kind: "category"; category: Category }
   | { kind: "unplanned" };
 
@@ -104,7 +105,7 @@ const _byPlan = (rows: StockRow[], snapshot: Snapshot): ToBuyGroup[] => {
   return [
     ...plates.map((plate): ToBuyGroup => ({
       id: `plate:${plate.id}`,
-      heading: { kind: "plate", recipeId: plate.recipeId, title: plate.title, date: plate.date, slot: plate.slot },
+      heading: { kind: "plate", mealId: plate.id, recipeId: plate.recipeId, title: plate.title, date: plate.date, slot: plate.slot },
       rows: shares.get(plate.id)!,
     })),
     { id: "unplanned", heading: { kind: "unplanned" } as const, rows: unplanned },

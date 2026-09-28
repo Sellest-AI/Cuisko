@@ -18,6 +18,8 @@ type Props = {
   /** The swap arrows in the tunnel's review step, the overflow dots on the planning screen. */
   variant?: "plan" | "review";
   onPress?: () => void;
+  /** A plate only: an empty row's tap already opens the sheet a long press would. */
+  onLongPress?: () => void;
   onTrailingPress?: () => void;
   style?: ViewStyle;
 };
@@ -31,7 +33,7 @@ type Props = {
  * At `_components/` rather than beside a screen because both the planning list and the tunnel's
  * review step draw it — dot notation would claim a single parent it no longer has.
  */
-export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrailingPress }: Props) => {
+export const PlanningListRow = ({ style, row, variant = "plan", onPress, onLongPress, onTrailingPress }: Props) => {
   const t = useTranslations("Planning");
   const locale = resolveLocale();
 
@@ -68,6 +70,8 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onTrail
           emoji={row.meal.emoji}
           imageSrc={row.meal.imageSrc ?? MEAL_IMAGE}
           onPress={onPress}
+          /** A shortcut to the trailing button's sheet, so it goes wherever that button goes. */
+          onLongPress={hasTrailing ? onLongPress : undefined}
           /** A settled plate is history: nothing left to re-portion, swap or drop, so no menu to open. */
           trailingIcon={!hasTrailing ? undefined : variant === "review" ? ArrowLeftRight : EllipsisVertical}
           onTrailingPress={onTrailingPress}

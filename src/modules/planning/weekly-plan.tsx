@@ -8,6 +8,7 @@ import { WeekStrip } from "@ui/week-strip";
 import { theme } from "theme";
 import { resolveLocale, useTranslations } from "translations";
 
+import { isSettled } from "./_model/model";
 import { useWeeklyPlan } from "./_hooks/useWeeklyPlan";
 import { WeeklyPlanEmpty } from "./weekly-plan.empty";
 import { MEAL_STATUS } from "./_components/meal-status";
@@ -85,6 +86,13 @@ export const WeeklyPlan = () => {
           imageSrc: meal.imageSrc ?? EMPTY_PLATE_IMAGE,
           subtitle: t(MEAL_STATUS[meal.status].key),
           onPress: () => router.push(recipeRoute(meal.recipeId, meal.servings)),
+          /**
+           * The same sheet the planning list's menu opens. Not on a cooked or skipped plate: that
+           * one is history, and the list offers it no menu either.
+           */
+          onLongPress: isSettled(meal.status)
+            ? undefined
+            : () => router.push({ pathname: "/meal", params: { mealId: meal.id } }),
         }))}
         selectedIndex={selectedMealIndex}
         onSelect={selectMeal}

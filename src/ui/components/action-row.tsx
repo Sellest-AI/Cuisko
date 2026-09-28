@@ -82,6 +82,8 @@ export const ActionRow = ({
       {leftIcon && <View style={styles.leftButton}>
         <ButtonIcon
           composite={false}
+          /** The row navigates; its disc adds in place, and the tick is what says it took. */
+          haptic
           onPress={onLeftIconPress}
           elevated
           variant={color.variant}

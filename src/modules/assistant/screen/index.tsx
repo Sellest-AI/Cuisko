@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
 import { useTranslations } from "translations";
 
-import { LoaderCircle, MorphIcon, SparklesIcon } from "@ui/icons";
+import { Image } from "@ui/image";
+import { LoaderCircle, MorphIcon } from "@ui/icons";
 import { ModalScrollView } from "@ui/modal-scroll-view";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -16,6 +17,7 @@ import { ChatMessage } from "./chat-message";
 import { AssistantEmpty } from "./empty";
 import { useSpin } from "~/ui/hooks/useSpin";
 import Animated from "react-native-reanimated";
+import { CUISKO_HEAD } from "~/lib/mascots";
 
 type Props = {
   style?: ViewStyle;
@@ -93,8 +95,11 @@ export const AssistantScreen = ({ style, question }: Props) => {
         <>
           <View style={styles.header}>
             <View style={styles.title}>
-              <SparklesIcon size={20} strokeWidth={theme.icon.titleStrokeWidth} />
-              <Text.H4 color="currentColor">{t("title")}</Text.H4>
+              <Image
+                style={{ width: 28, height: 28, objectFit: "contain" }}
+                source={CUISKO_HEAD}
+              />
+              <Text.H4 color="currentColor" style={{ marginTop: theme.spacing[4] }}>{t("title")}</Text.H4>
             </View>
           </View>
           {/*
@@ -155,7 +160,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: theme.spacing[24],
-    paddingTop: theme.spacing[20],
+    paddingTop: theme.spacing[16],
     marginBottom: theme.spacing[8],
     gap: theme.spacing[12],
     alignItems: "center",

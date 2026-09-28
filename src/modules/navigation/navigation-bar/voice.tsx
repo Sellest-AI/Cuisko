@@ -35,7 +35,7 @@ export const NavigationBarVoice = ({ onDone, onDiscard }: Props) => {
         style={styles.fill}
         leftIcon={Trash2}
         onLeftPress={onDiscard}
-        rightContent={<Pressable onPress={finish}>
+        rightContent={<Pressable hitSlop={24} onPress={finish} haptic>
           <SendHorizontalIcon size={20} />
         </Pressable>}
         centerContent={

@@ -64,6 +64,7 @@ export const GroupSelect = ({ style, items, label, labelColor, onSelect }: Props
                 if (!item.locked) onSelect(item.value);
               }}
               disabled={item.locked}
+              haptic
               accessibilityState={{ selected: item.selected || item.locked, disabled: item.locked }}
               style={[
                 styles.button,

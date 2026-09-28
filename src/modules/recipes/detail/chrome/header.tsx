@@ -96,6 +96,7 @@ export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) =>
           */}
         <ButtonIcon
           onPress={onHeart}
+          haptic
           disabled={onHeart === undefined}
           variant={isFavorited ? "primary" : "neutral"}
           size="sm"
