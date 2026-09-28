@@ -20,14 +20,20 @@ SplashScreen.preventAutoHideAsync().catch((cause) => {
 
 /** Where the gate sends people: the root stack's route name, and the path it is reached by. */
 const AUTH = { name: "auth", href: "/auth" } as const;
-const HOME = { name: "index", href: "/" } as const;
+/**
+ * Reset to by the group's name, so its layout's `initialRouteName` picks the first step. The href
+ * names that step outright, because the group has no index route for `/onboarding` to land on.
+ */
+const ONBOARDING = { name: "onboarding", href: "/onboarding/promise" } as const;
 
-type Destination = typeof AUTH | typeof HOME;
+type Destination = typeof AUTH | typeof ONBOARDING;
 
 /**
  * Sends each person to the side of the app they belong on, and holds the splash until it has.
  *
- * Signed out, every route but `/auth` redirects there; signed in, `/auth` redirects home. Nothing
+ * Signed out, every route but `/auth` redirects there; signed in, `/auth` redirects to the
+ * onboarding, which ends on home by itself. A cold start with a live session never passes through
+ * `/auth`, so it opens wherever it opens, home included. Nothing
  * is decided while auth is settling or a signed-in person's row is still arriving: the first
  * screen drawn is the right one, rather than home flashing before a bounce to `/auth`, or a header
  * drawn anonymous before its avatar lands.
@@ -39,6 +45,12 @@ type Destination = typeof AUTH | typeof HOME;
  * spinner, then its page spinner — which a cover would only blank out and hand back.
  *
  * Mounted beside the navigator rather than around it: it navigates, so the navigator must exist.
+ *
+ * @limitation Every sign-in walks the onboarding, not only an account's first. **Accepted because**
+ * nothing records that it was seen, and adding that was kept out of this slice on purpose. **Until
+ * fixed**, a returning cook walks it again after a reinstall or a sign-out, to the end.
+ * **The fix** is an optional `onboardedAt` on `usersExtended`, exposed by `getMe`, with existing
+ * rows backfilled so current users are not sent through it.
  */
 export const AuthGate = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -49,7 +61,7 @@ export const AuthGate = () => {
   const destination: Destination | null =
     isLoading ? null
     : !isAuthenticated && !isOnAuth ? AUTH
-    : isAuthenticated && isOnAuth ? HOME
+    : isAuthenticated && isOnAuth ? ONBOARDING
     : null;
   const isSettled = !isLoading && destination === null;
 

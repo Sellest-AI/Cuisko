@@ -78,8 +78,11 @@ describe("AuthGate", () => {
     expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
   });
 
-  /** Signing in must not leave /auth under home, where a swipe back would find it. */
-  it("clears the history when a signed-in person leaves /auth for home", () => {
+  /**
+   * Every sign-in walks the onboarding, a reinstall and a sign-out included, and must not leave
+   * /auth under it, where a swipe back would find it.
+   */
+  it("clears the history when a signed-in person leaves /auth for the onboarding", () => {
     state.pathname = "/auth";
     const view = render(<AuthGate />);
 
@@ -89,7 +92,26 @@ describe("AuthGate", () => {
 
     state.auth = { isAuthenticated: true, isLoading: false };
     view.rerender(<AuthGate />);
-    expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("index"));
+    expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("onboarding"));
+  });
+
+  /** The last step resets to home and the assistant itself; the gate must not race it. */
+  it("leaves a signed-in person on the onboarding", () => {
+    state.auth = { isAuthenticated: true, isLoading: false };
+    state.pathname = "/onboarding/week";
+
+    render(<AuthGate />);
+
+    expect(state.reset).not.toHaveBeenCalled();
+    expect(state.replace).not.toHaveBeenCalled();
+  });
+
+  it("sends a signed-out person on the onboarding to /auth", () => {
+    state.pathname = "/onboarding/promise";
+
+    render(<AuthGate />);
+
+    expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
   });
 
   /** `/auth` draws its own spinners mid sign-in; a cover over them blanked the page, then gave it back. */
