@@ -8,13 +8,20 @@ const PRESS_LOCK_MS = 300;
 type PressableProps = {
   disabled?: boolean;
   animated?: boolean;
+  /**
+   * A selection tick on every accepted tap. Opt-in, because most presses navigate and the screen
+   * changing is feedback enough; this is for a control that stays where it is — a stepper, a chip,
+   * a heart. A long press ticks regardless: it has no visible start, so the tick is how the finger
+   * learns it landed.
+   */
+  haptic?: boolean;
   onDoublePress?: (e: GestureResponderEvent) => void;
   children: React.ReactNode;
   intensity?: number;
   style?: ViewStyle | (ViewStyle | undefined | false)[];
 } & ComponentProps<typeof NativePressable>;
 
-export const Pressable = ({ disabled, onPress, children, animated = true, intensity = 0.98, onDoublePress, style: styleProp, ...props }: PressableProps) => {
+export const Pressable = ({ disabled, onPress, children, animated = true, haptic = false, intensity = 0.98, onDoublePress, style: styleProp, ...props }: PressableProps) => {
   // eslint-disable-next-line react-hooks/refs
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -108,6 +115,7 @@ export const Pressable = ({ disabled, onPress, children, animated = true, intens
           lockPress();
         }
 
+        if (haptic && onPress) void Haptics.selectionAsync();
         if (onPress) onPress(e);
 
         if (onDoublePress) {

@@ -36,6 +36,7 @@ type Props = {
   emoji?: string;
   imageSrc?: ImageProps["source"];
   onPress?: () => void;
+  onLongPress?: () => void;
   /** The swap arrows in the tunnel, the overflow dots on the planning screen. */
   trailingIcon?: Icon;
   onTrailingPress?: () => void;
@@ -64,6 +65,7 @@ export const CardMeal = ({
   emoji,
   imageSrc,
   onPress,
+  onLongPress,
   trailingIcon,
   onTrailingPress,
   style,
@@ -77,6 +79,7 @@ export const CardMeal = ({
       <Pressable
         style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
         onPress={onPress}
+        onLongPress={onLongPress}
       >
         <Image
           source={imageSrc}

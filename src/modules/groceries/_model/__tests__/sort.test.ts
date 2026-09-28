@@ -152,10 +152,11 @@ describe("by plan", () => {
     ]);
   });
 
-  it("carries the plate's title, day and slot on the heading, and none of that on unplanned", () => {
+  it("carries the plate, its title, day and slot on the heading, and none of that on unplanned", () => {
     const [monday, , unplanned] = groupToBuy(toBuyOf(base), "by-plan", base);
 
-    expect(monday!.heading).toEqual({ kind: "plate", recipeId: "lasagna", title: "Lasagnes", date: day(0), slot: "dinner" });
+    // Both plates are the same lasagna: only `mealId` says which one a long press should open.
+    expect(monday!.heading).toEqual({ kind: "plate", mealId: "monday", recipeId: "lasagna", title: "Lasagnes", date: day(0), slot: "dinner" });
     expect(unplanned!.heading).toEqual({ kind: "unplanned" });
   });
 });

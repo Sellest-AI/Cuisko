@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { formatQuantity } from "@shared/ingredients";
+import { MIN_SERVINGS } from "@shared/servings";
 
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
@@ -19,7 +20,7 @@ import { useCookRecipe } from "../_hooks/useCookRecipe";
 import { useRecipe } from "../_hooks/useRecipe";
 import { flattenSteps } from "../_model/detail";
 import { ingredientsIn } from "../_model/quantities";
-import { CONTENT_NEGATIVE_SPACE, COVER_PLACEHOLDER, SCREEN_PADDING } from "../constants";
+import { CONTENT_NEGATIVE_SPACE, COVER_PLACEHOLDER, SCREEN_PADDING, SERVINGS_RESET_DELAY } from "../constants";
 import { StepBar } from "./bar";
 import { PrepCard, StepCard } from "./card";
 import { StepMedia } from "./media";
@@ -188,7 +189,10 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
               leftIcon={Minus}
               rightIcon={Plus}
               onLeftPress={() => setServings(servings - 1)}
+              onLeftLongPress={() => setServings(MIN_SERVINGS)}
+              leftLongPressDelay={SERVINGS_RESET_DELAY}
               onRightPress={() => setServings(servings + 1)}
+              sideHaptic
               onPress={() => null}
               size="sm"
             >

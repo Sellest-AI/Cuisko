@@ -6,6 +6,8 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import { SERVINGS_RESET_DELAY } from "../constants";
+
 type Props = {
   servings: number;
   onChange: (servings: number) => void;
@@ -25,8 +27,13 @@ export const Servings = ({ servings, onChange, style }: Props) => {
           iconSize={STEP_ICON_SIZE}
           variant="primary-subtle"
           size="sm"
+          haptic
+          hitSlop={STEP_HIT_SLOP}
           disabled={servings <= MIN_SERVINGS}
           onPress={() => onChange(servings - 1)}
+          /** Straight to one: stepping a recipe for eight down to a solo dinner is seven taps otherwise. */
+          onLongPress={() => onChange(MIN_SERVINGS)}
+          delayLongPress={SERVINGS_RESET_DELAY}
         >
           {Minus}
         </ButtonIcon>
@@ -36,6 +43,8 @@ export const Servings = ({ servings, onChange, style }: Props) => {
           iconSize={STEP_ICON_SIZE}
           variant="primary-subtle"
           size="sm"
+          haptic
+          hitSlop={STEP_HIT_SLOP}
           onPress={() => onChange(servings + 1)}
         >
           {Plus}
@@ -56,6 +65,12 @@ const MIN_SERVINGS = 1;
 
 /** The stepper's discs are smaller than any `size` gives, so both dimensions are set by hand. */
 const STEP_ICON_SIZE = 12;
+
+/**
+ * Those small discs are under 30pt across, well short of a fingertip. The slop stays under half
+ * the stepper's gap plus the count between them, so the two discs' areas never meet.
+ */
+const STEP_HIT_SLOP = 12;
 
 const styles = StyleSheet.create({
   servings: {

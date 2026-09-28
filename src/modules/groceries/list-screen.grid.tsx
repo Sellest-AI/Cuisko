@@ -135,6 +135,9 @@ const SectionHeader = ({
  * A plate's name opens its recipe: a shopper wondering why the list wants thyme for the lasagna
  * has the answer one tap away, on the page that lists it. The other two headings name nothing
  * that has a page.
+ *
+ * A long press opens the plate's meal sheet instead, where it can be swapped: the shopper who sees
+ * the lasagna wants three things they do not have can change the dinner rather than buy them.
  */
 const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; style?: ViewStyle }) => {
   const t = useTranslations("Groceries");
@@ -163,7 +166,11 @@ const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; sty
       style={[styles.subheader, style]}
     >
       {heading.kind === "plate"
-        ? <Pressable onPress={() => router.push(`/recipe/${heading.recipeId}`)} style={styles.subheaderTitle}>
+        ? <Pressable
+          onPress={() => router.push(`/recipe/${heading.recipeId}`)}
+          onLongPress={() => router.push({ pathname: "/meal", params: { mealId: heading.mealId } })}
+          style={styles.subheaderTitle}
+        >
           <Text.Base weight={600} color={theme.colors.neutral.muted} numberOfLines={1}>
             {title}
           </Text.Base>

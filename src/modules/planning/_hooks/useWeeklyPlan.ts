@@ -30,6 +30,8 @@ import {
  * handful of fields a `Plate` needs. One name over both left the call site unable to say which.
  */
 export type CarouselMeal = {
+  /** The planned plate, which the meal sheet opens on. */
+  id: string;
   title: string;
   status: MealStatus;
   recipeId: string;
@@ -87,6 +89,7 @@ export const useWeeklyPlan = () => {
 
   const meals: CarouselMeal[] = useMemo(
     () => inEatingOrder((data ?? []).map(keptMealCardOf)).map((meal) => ({
+      id: meal.id,
       recipeId: meal.recipeId,
       servings: meal.servings,
       title: meal.title,

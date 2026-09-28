@@ -14,6 +14,15 @@ export const SCREEN_PADDING = theme.spacing[16];
 /** How far the content pulls up over the parallax header, so its rounded top overlaps the image. */
 export const CONTENT_NEGATIVE_SPACE = 24;
 
+/**
+ * How long the servings minus must be held before it drops to the minimum, in milliseconds.
+ *
+ * Longer than the app's 320ms long press, because this one throws the count away: a slow but
+ * deliberate tap on a small disc lands around a third of a second, and at 320ms it reset a recipe
+ * for six to one. Shared by both steppers — the ingredients tab and the step-by-step pill.
+ */
+export const SERVINGS_RESET_DELAY = 500;
+
 /** The gap between the columns of an ingredient grid — the grid itself lays out on the same value. */
 export const COLUMN_GAP = theme.spacing[8];
 

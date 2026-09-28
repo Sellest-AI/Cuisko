@@ -80,6 +80,7 @@ export type Plate = {
   imageSrc: ImageProps["source"],
   title: string,
   onPress?: () => void,
+  onLongPress?: () => void,
   onReplace?: () => void,
   subtitle?: string
   icon?: Icon,
@@ -401,7 +402,7 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
 
   return (
     <Animated.View style={[animatedStyle]}>
-      <Pressable style={styles.item} onPress={plate.onPress}>
+      <Pressable style={styles.item} onPress={plate.onPress} onLongPress={plate.onLongPress}>
         <Image
           source={plate.imageSrc}
           contentFit="contain"
