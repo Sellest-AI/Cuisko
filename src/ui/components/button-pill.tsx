@@ -226,6 +226,8 @@ export const ButtonPill = ({
             composite={!onLeftPress}
             size={size === "sm" ? "xs" : "sm"}
             isLoading={isLoading}
+            /** The pill's own state reaches its sides: a greyed pill must not answer at its arrow. */
+            disabled={isDisabled}
             onPress={onLeftPress}
             onLongPress={onLeftLongPress}
             delayLongPress={leftLongPressDelay}
@@ -255,6 +257,7 @@ export const ButtonPill = ({
             composite={!onRightPress}
             size={size === "sm" ? "xs" : "sm"}
             isLoading={isLoading}
+            disabled={isDisabled}
             onPress={onRightPress}
             haptic={sideHaptic}
           >
