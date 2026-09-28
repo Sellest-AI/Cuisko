@@ -20,6 +20,10 @@ export const NOT_HOUSEHOLD = {
   "src/modules/navigation/_hooks/useNavigationBar.ts:refsAtom": "the bar's input refs: UI chrome",
   "src/modules/navigation/modal-action.tsx:modalActionAtom": "the open sheet's header action: UI chrome",
   "src/modules/navigation/modal-sheet/state.ts:sheetSizeAtom": "the open sheet's measured size: UI chrome",
+  "src/modules/onboarding/_hooks/atoms.ts:doneStepsAtom":
+    "which onboarding steps were done on fake data; the onboarding reads and writes no household",
+  "src/modules/onboarding/_hooks/atoms.ts:pantryAtom":
+    "the onboarding's pretend kitchen, on fixtures; never a household's cellar and never written",
   "src/modules/recipes/_hooks/atoms.ts:importedDraftAtom":
     "a recipe being imported belongs to the cook, and recipes are not household-scoped (ADR 0014)",
   "src/modules/recipes/_hooks/atoms.ts:servingsAtom": "the servings picked on the recipe on screen",

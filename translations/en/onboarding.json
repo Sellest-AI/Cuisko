@@ -1,0 +1,126 @@
+{
+  "continue": "Continue",
+  "meet_cuisko": "Meet Cuisko",
+  "Promise": {
+    "title": "Cook better. Spend less. Save time.",
+    "subtitle": "Our chefs save 2 hours and €3 a week on average with Cuisko.",
+    "Chips": {
+      "from_cellar": "Cook from what you have",
+      "only_missing": "Buy only what's missing",
+      "spend_less": "Spend less",
+      "week_one_tap": "A week in one tap",
+      "waste_less": "Waste less",
+      "swap": "Swap any meal",
+      "step_by_step": "Cook step by step",
+      "import": "Recipes from anywhere",
+      "allergies": "Allergies always respected",
+      "type_it": "Type groceries like you talk",
+      "cellar_updates": "A cellar that keeps up",
+      "fits_evening": "Meals that fit your evening"
+    }
+  },
+  "Groceries": {
+    "title": "Track your groceries",
+    "Hints": {
+      "carrots": "500 g carrots",
+      "onions": "2 onions"
+    },
+    "tip_send": "Tap a suggestion below and Cuisko types it into the bar for you. In the app you simply type what you need, the way you'd say it: \"500 g carrots\", \"2 onions\". Cuisko understands.",
+    "tip_buy": "They're on your shopping list now. Back from the shop, tap each card to move it into your cellar, so Cuisko knows it's in your kitchen.",
+    "tip_done": "Your cellar is what Cuisko cooks from: it suggests recipes with what you have, and never asks you to buy what's already there.",
+    "buy_title": "Bought them?",
+    "send_title": "Add to your shopping list",
+    "done_title": "All in your cellar"
+  },
+  "Recipes": {
+    "title": "Search recipes",
+    "Hints": {
+      "potatoes-cream": "Potatoes and cream",
+      "cosy": "Something cosy with what I have"
+    },
+    "tip_send": "Tap a suggestion below. Search by ingredient, like potatoes and cream, or just describe what you feel like eating: Cuisko finds the recipes that match.",
+    "suggested": "For you",
+    "results": "Results for “{{query}}”",
+    "search_title": "Try a search",
+    "done_title": "Two ways, one bar",
+    "tip_done": "Ingredients or a mood, Cuisko understands both. Search whichever way comes to mind."
+  },
+  "PlanRecipe": {
+    "title": "Plan it",
+    "tip": "Tap a free day to put the gratin on your week. Cuisko checks your cellar and adds whatever the recipe needs and you don't have to your shopping list.",
+    "added": "{{items}} added to your shopping list. Once you've bought them, they move to your cellar, ready for the day you cook.",
+    "added_title": "Planned",
+    "tip_title": "Pick a free day"
+  },
+  "Cook": {
+    "Steps": {
+      "one": "Slice the 3 potatoes thin and layer them in a buttered dish.",
+      "two": "Pour the 20 cl of cream over, top with the 100 g of gruyère, and bake for an hour at 180 °C."
+    }
+  },
+  "Week": {
+    "ready": "Your week is ready",
+    "tip_swap": "Every dish is only a suggestion. Tap the arrows next to {{recipe}} to swap it for another recipe that fits your week.",
+    "swapped": "Your shopping list follows by itself: what the old dish needed is gone, and what the new one needs is added.",
+    "swap_title": "Not feeling it?",
+    "swapped_title": "Swapped"
+  },
+  "minutes": "{{minutes}} min",
+  "Ingredients": {
+    "carrot": "Carrots",
+    "onion": "Onions",
+    "potato": "Potatoes",
+    "cream": "Cream",
+    "gruyere": "Gruyère",
+    "beef": "Beef",
+    "egg": "Eggs",
+    "rice": "Rice",
+    "chicken": "Chicken",
+    "sausage": "Sausages",
+    "mushroom": "Mushrooms"
+  },
+  "RecipeNames": {
+    "gratin": "Dauphinoise potatoes",
+    "tartiflette": "Tartiflette",
+    "hachis-parmentier": "Hachis parmentier",
+    "bangers-and-mash": "Bangers and mash with onion gravy",
+    "ribollita": "Tuscan-style ribollita",
+    "mushroom-risotto": "Mushroom risotto",
+    "beef-noodles": "Quick beef and broccoli noodles",
+    "spanish-tortilla": "Spanish potato tortilla",
+    "chili-con-carne": "Easy chili con carne",
+    "salad-nicoise": "Salad niçoise",
+    "tikka-masala": "Chicken tikka masala"
+  },
+  "Intros": {
+    "groceries": {
+      "title": "Store your groceries",
+      "subtitle": "Everything you buy lands in your cellar, so Cuisko always knows what you have.",
+      "cta": "Start tracking"
+    },
+    "recipes": {
+      "title": "Find your next recipe",
+      "subtitle": "Search the catalogue your way, or bring one from any website.",
+      "cta": "Find recipes"
+    },
+    "plan": {
+      "title": "Put it on your week",
+      "subtitle": "Pick a day for a recipe. Whatever's missing goes straight on your shopping list.",
+      "cta": "Pick a day"
+    },
+    "cook": {
+      "title": "Cook it step by step",
+      "subtitle": "Follow your recipes step by step and automatically track your cellar.",
+      "cta": "Let's cook"
+    },
+    "week": {
+      "title": "A whole week in one tap",
+      "subtitle": "A week of meals built from your cellar and what you feel like eating.",
+      "cta": "Plan my week"
+    },
+    "import": {
+      "title": "Import your recipes from anywhere",
+      "subtitle": "Instagram, TikTok, a link, or typed by hand."
+    }
+  }
+}

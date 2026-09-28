@@ -12,6 +12,7 @@ import enCommon from "./en/common.json";
 import enGroceries from "./en/groceries.json";
 import enHome from "./en/home.json";
 import enNavigation from "./en/navigation.json";
+import enOnboarding from "./en/onboarding.json";
 import enPlanning from "./en/planning.json";
 import enRecipe from "./en/recipe.json";
 import enRecipes from "./en/recipes.json";
@@ -23,6 +24,7 @@ import frCommon from "./fr/common.json";
 import frGroceries from "./fr/groceries.json";
 import frHome from "./fr/home.json";
 import frNavigation from "./fr/navigation.json";
+import frOnboarding from "./fr/onboarding.json";
 import frPlanning from "./fr/planning.json";
 import frRecipe from "./fr/recipe.json";
 import frRecipes from "./fr/recipes.json";
@@ -58,6 +60,7 @@ i18n.use(initReactI18next).init({
         Groceries: enGroceries,
         Home: enHome,
         Navigation: enNavigation,
+        Onboarding: enOnboarding,
         Planning: enPlanning,
         Recipe: enRecipe,
         Recipes: enRecipes,
@@ -73,6 +76,7 @@ i18n.use(initReactI18next).init({
         Groceries: frGroceries,
         Home: frHome,
         Navigation: frNavigation,
+        Onboarding: frOnboarding,
         Planning: frPlanning,
         Recipe: frRecipe,
         Recipes: frRecipes,

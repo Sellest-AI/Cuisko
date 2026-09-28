@@ -5,6 +5,7 @@ import common from "./en/common.json";
 import groceries from "./en/groceries.json";
 import home from "./en/home.json";
 import navigation from "./en/navigation.json";
+import onboarding from "./en/onboarding.json";
 import planning from "./en/planning.json";
 import recipe from "./en/recipe.json";
 import recipes from "./en/recipes.json";
@@ -19,6 +20,7 @@ type TranslationResources = {
   Groceries: typeof groceries;
   Home: typeof home;
   Navigation: typeof navigation;
+  Onboarding: typeof onboarding;
   Planning: typeof planning;
   Recipe: typeof recipe;
   Recipes: typeof recipes;

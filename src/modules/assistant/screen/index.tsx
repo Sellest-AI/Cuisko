@@ -95,10 +95,10 @@ export const AssistantScreen = ({ style, question }: Props) => {
         <>
           <View style={styles.header}>
             <View style={styles.title}>
-              <Image
+              {!isEmpty && <Image
                 style={{ width: 28, height: 28, objectFit: "contain" }}
                 source={CUISKO_HEAD}
-              />
+              />}
               <Text.H4 color="currentColor" style={{ marginTop: theme.spacing[4] }}>{t("title")}</Text.H4>
             </View>
           </View>

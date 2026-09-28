@@ -1,0 +1,126 @@
+{
+  "continue": "Continuer",
+  "meet_cuisko": "Rencontrer Cuisko",
+  "Promise": {
+    "title": "Cuisine mieux. Dépense moins. Gagne du temps.",
+    "subtitle": "Nos chefs économisent en moyenne 2h et 3€ par semaine grâce à Cuisko.",
+    "Chips": {
+      "from_cellar": "Cuisine avec ce que tu as",
+      "only_missing": "N'achète que ce qui manque",
+      "spend_less": "Dépense moins",
+      "week_one_tap": "Une semaine en un geste",
+      "waste_less": "Gaspille moins",
+      "swap": "Change un plat quand tu veux",
+      "step_by_step": "Cuisine pas à pas",
+      "import": "Des recettes de partout",
+      "allergies": "Tes allergies toujours respectées",
+      "type_it": "Écris tes courses comme tu parles",
+      "cellar_updates": "Un cellier qui suit tout seul",
+      "fits_evening": "Des repas à la mesure de ta soirée"
+    }
+  },
+  "Groceries": {
+    "title": "Suis tes courses",
+    "Hints": {
+      "carrots": "500 g de carottes",
+      "onions": "2 oignons"
+    },
+    "tip_send": "Touche une suggestion en dessous et Cuisko l'écrit dans la barre pour toi. Dans l'appli, tu écris simplement ce qu'il te faut, comme tu le dirais : « 500 g de carottes », « 2 oignons ». Cuisko comprend.",
+    "tip_buy": "Ils sont sur ta liste de courses. De retour des courses, touche chaque carte pour la ranger dans ton cellier : Cuisko sait alors que c'est dans ta cuisine.",
+    "tip_done": "Ton cellier, c'est ce avec quoi Cuisko cuisine : il te propose des recettes avec ce que tu as, et ne te fait jamais racheter ce qui y est déjà.",
+    "buy_title": "C'est acheté ?",
+    "send_title": "Ajoute à ta liste de courses",
+    "done_title": "Tout est dans ton cellier"
+  },
+  "Recipes": {
+    "title": "Cherche des recettes",
+    "Hints": {
+      "potatoes-cream": "Pommes de terre et crème",
+      "cosy": "Un plat réconfortant avec ce que j'ai"
+    },
+    "tip_send": "Touche une suggestion en dessous. Cherche par ingrédient, comme pommes de terre et crème, ou décris simplement ce dont tu as envie : Cuisko trouve les recettes qui correspondent.",
+    "suggested": "Pour toi",
+    "results": "Résultats pour « {{query}} »",
+    "search_title": "Lance une recherche",
+    "done_title": "Deux façons, une seule barre",
+    "tip_done": "Des ingrédients ou une envie, Cuisko comprend les deux. Cherche comme ça te vient."
+  },
+  "PlanRecipe": {
+    "title": "Planifie-la",
+    "tip": "Touche un jour libre pour placer le gratin dans ta semaine. Cuisko regarde ton cellier et ajoute à ta liste de courses tout ce qu'il manque pour la recette.",
+    "added": "{{items}} ajoutés à ta liste de courses. Une fois achetés, ils passent dans ton cellier, prêts pour le jour où tu cuisines.",
+    "added_title": "C'est planifié",
+    "tip_title": "Choisis un jour libre"
+  },
+  "Cook": {
+    "Steps": {
+      "one": "Coupe les 3 pommes de terre en fines rondelles et range-les dans un plat beurré.",
+      "two": "Verse les 20 cl de crème, parsème des 100 g de gruyère et enfourne une heure à 180 °C."
+    }
+  },
+  "Week": {
+    "ready": "Ta semaine est prête",
+    "tip_swap": "Chaque plat n'est qu'une suggestion. Touche les flèches à côté de {{recipe}} pour le remplacer par une autre recette qui va avec ta semaine.",
+    "swapped": "Ta liste de courses suit toute seule : ce qu'il fallait pour l'ancien plat part, ce qu'il faut pour le nouveau arrive.",
+    "swap_title": "Pas envie ?",
+    "swapped_title": "C'est changé"
+  },
+  "minutes": "{{minutes}} min",
+  "Ingredients": {
+    "carrot": "Carottes",
+    "onion": "Oignons",
+    "potato": "Pommes de terre",
+    "cream": "Crème",
+    "gruyere": "Gruyère",
+    "beef": "Bœuf",
+    "egg": "Œufs",
+    "rice": "Riz",
+    "chicken": "Poulet",
+    "sausage": "Saucisses",
+    "mushroom": "Champignons"
+  },
+  "RecipeNames": {
+    "gratin": "Gratin dauphinois",
+    "tartiflette": "Tartiflette",
+    "hachis-parmentier": "Hachis parmentier",
+    "bangers-and-mash": "Saucisses purée, sauce aux oignons",
+    "ribollita": "Ribollita à la toscane",
+    "mushroom-risotto": "Risotto aux champignons",
+    "beef-noodles": "Nouilles au bœuf et au brocoli express",
+    "spanish-tortilla": "Tortilla espagnole aux pommes de terre",
+    "chili-con-carne": "Chili con carne facile",
+    "salad-nicoise": "Salade niçoise",
+    "tikka-masala": "Poulet tikka masala"
+  },
+  "Intros": {
+    "groceries": {
+      "title": "Range tes courses",
+      "subtitle": "Tout ce que tu achètes arrive dans ton cellier, pour que Cuisko sache toujours ce que tu as.",
+      "cta": "Commencer le suivi"
+    },
+    "recipes": {
+      "title": "Trouve ta prochaine recette",
+      "subtitle": "Cherche dans le catalogue à ta façon, ou importe-en une depuis n'importe quel site.",
+      "cta": "Trouver des recettes"
+    },
+    "plan": {
+      "title": "Place-la dans ta semaine",
+      "subtitle": "Choisis un jour pour une recette. Ce qui manque va directement dans ta liste de courses.",
+      "cta": "Choisir un jour"
+    },
+    "cook": {
+      "title": "Cuisine pas à pas",
+      "subtitle": "Suis tes recettes étape par étape et ton cellier se met à jour tout seul.",
+      "cta": "On cuisine"
+    },
+    "week": {
+      "title": "Toute une semaine en un geste",
+      "subtitle": "Une semaine de plats pensée à partir de ton cellier et de tes envies.",
+      "cta": "Planifier ma semaine"
+    },
+    "import": {
+      "title": "Importe tes recettes de partout",
+      "subtitle": "Instagram, TikTok, un lien, ou écrites à la main."
+    }
+  }
+}
