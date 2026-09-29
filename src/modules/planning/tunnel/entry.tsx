@@ -25,7 +25,8 @@ export const TunnelEntry = () => {
 
   useEffect(() => {
     resetTunnel();
-    router.replace(routeFor(TUNNEL_STEPS[0]));
+    /** Never empty: the list is a constant, and the tunnel has no way in without a first step. */
+    router.replace(routeFor(TUNNEL_STEPS[0]!));
   }, [resetTunnel]);
 
   return null;

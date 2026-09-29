@@ -37,11 +37,10 @@ import {
 import { usePlanningSeed } from "./usePlanningSeed";
 
 /**
- * The tunnel in order. The route *is* the step — deriving the number from the path rather than
- * holding a counter beside it means the two cannot disagree, and the hardware back button stays
- * correct for free.
+ * Every step the tunnel can draw, in order. What a step *is* — its screen, its route, its chrome —
+ * is keyed on this list, so a step parked below keeps compiling and stays one line from returning.
  */
-export const TUNNEL_STEPS = [
+const _ALL_STEPS = [
   "time",
   "week",
   "diet",
@@ -54,7 +53,23 @@ export const TUNNEL_STEPS = [
   "groceries",
 ] as const;
 
-export type TunnelStep = (typeof TUNNEL_STEPS)[number];
+export type TunnelStep = (typeof _ALL_STEPS)[number];
+
+/**
+ * Steps that exist but are not walked.
+ *
+ * @limitation `mood` is parked: the moods it collects reach no query or mutation yet, so asking
+ * would be a question whose answer changes nothing about the week. Its screen and route stay; it
+ * comes back by leaving this list.
+ */
+const _PARKED_STEPS: readonly TunnelStep[] = ["mood"];
+
+/**
+ * The tunnel in order, as the user walks it. The route *is* the step — deriving the number from
+ * the path rather than holding a counter beside it means the two cannot disagree, and the hardware
+ * back button stays correct for free.
+ */
+export const TUNNEL_STEPS = _ALL_STEPS.filter((step) => !_PARKED_STEPS.includes(step));
 
 export const routeFor = (step: TunnelStep) => `/planning/new/${step}` as const;
 
