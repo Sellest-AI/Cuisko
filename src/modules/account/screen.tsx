@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { type Href, router } from "expo-router";
 
 import { ButtonIcon } from "@ui/button-icon";
@@ -86,14 +86,20 @@ export const AccountScreen = () => {
             transition={SLIDE}
             style={[styles.panel, { width: panelWidth }]}
           >
-            <View style={[styles.safeArea, { paddingTop: top, paddingBottom: bottom }]}>
+            <View style={[styles.safeArea, Platform.OS === "android" && { paddingTop: top }]}>
               <LinearGradient
                 colors={[theme.colors.neutral.subtle, theme.colors.background]}
                 style={[StyleSheet.absoluteFill, { height: 500 }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
               />
-              <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+              <ScrollView
+                contentContainerStyle={[styles.content,
+                { paddingBottom: Math.max(styles.content.padding, bottom) },
+                Platform.OS === "ios" && { paddingTop: Math.max(styles.content.paddingTop, top * 1.2) }
+                ]}
+                showsVerticalScrollIndicator={false}
+              >
                 <AccountIdentity />
                 <HouseholdList onSelect={() => { setTimeout(close, 300); }} />
                 <AccountQuickAccess onGo={go} />
@@ -142,7 +148,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: {
     padding: theme.spacing[16],
-    paddingTop: theme.spacing[8],
+    paddingTop: theme.spacing[20],
     gap: theme.spacing[32],
   },
   logOut: { marginTop: theme.spacing[12] }
