@@ -9,9 +9,9 @@ import { PlanRecipeScreen } from "~/modules/planning/plan-recipe-screen";
  * thing it cannot know, which is where a planned dish leads. The sheet's height is the screen's to
  * set, not this route's — it changes shape between the day grid and the swap confirmation.
  *
- * A planned dish leads to the list: the write just put the missing ingredients on it, and that is
- * the promise the sheet's intro made. The sheet closes first, so going back from the list lands on
- * the recipe it was planned from.
+ * A planned dish leads to the week, opened on the day it landed, so the cook sees the plate in
+ * place rather than trusting that it went somewhere. The sheet closes first, so going back from
+ * the week lands on the recipe it was planned from.
  */
 export default function PlanRecipe() {
   const router = useRouter();
@@ -20,9 +20,9 @@ export default function PlanRecipe() {
   return (
     <PlanRecipeScreen
       params={params}
-      onPlanned={() => {
+      onPlanned={(date) => {
         router.back();
-        router.push("/groceries");
+        router.push({ pathname: "/planning", params: { date } });
       }}
     />
   );

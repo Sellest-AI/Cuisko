@@ -17,7 +17,15 @@ import { useRecipe } from "~/modules/recipes/hooks";
 
 import { SectionLabel } from "@ui/section-label";
 import { usePlanRecipe, type PlannableDay } from "../_hooks/usePlanRecipe";
-import { addDays, isSameDay, MAX_SERVINGS, MEAL_SLOTS, startOfDay, type MealSlot } from "../_model/model";
+import {
+  addDays,
+  isSameDay,
+  MAX_SERVINGS,
+  MEAL_SLOTS,
+  startOfDay,
+  toDateParam,
+  type MealSlot,
+} from "../_model/model";
 import { Confirm } from "./confirm";
 import { DayGrid } from "@ui/day-grid";
 
@@ -38,8 +46,8 @@ const SLOTS = {
 
 type Props = {
   params: { recipeId?: string };
-  /** A plate landed: the sheet is done, and the route decides where that leads. */
-  onPlanned: () => void;
+  /** A plate landed on `date` (`YYYY-MM-DD`): the sheet is done, and the route decides where that leads. */
+  onPlanned: (date: string) => void;
 };
 
 /**
@@ -69,7 +77,7 @@ const Scrolling = ({ children }: { children: ReactNode }) => {
   return <ModalScrollView contentContainerStyle={styles.page}>{children}</ModalScrollView>;
 };
 
-const Picker = ({ recipeId, onPlanned }: { recipeId: string; onPlanned: () => void }) => {
+const Picker = ({ recipeId, onPlanned }: { recipeId: string; onPlanned: (date: string) => void }) => {
   const t = useTranslations("Planning");
   const locale = useLocale();
   const { recipe, servings: recipeServings, isMissing } = useRecipe(recipeId);
@@ -81,7 +89,7 @@ const Picker = ({ recipeId, onPlanned }: { recipeId: string; onPlanned: () => vo
 
   /** Leaves on a plate that landed; a refused one keeps the sheet open, with the banner saying why. */
   const commit = useCallback(async (date: Date) => {
-    if (await plan(date)) onPlanned();
+    if (await plan(date)) onPlanned(toDateParam(date));
     else setPending(undefined);
   }, [plan, onPlanned]);
 
