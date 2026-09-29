@@ -2,7 +2,7 @@ import { View, StyleSheet, ViewStyle, Keyboard, TextInput } from "react-native";
 import { colors, theme } from "theme";
 import { Text } from "@ui/text";
 import { EmptyState } from "@ui/empty-state";
-import { ForkKnife, ForkKnifeIcon, Search, X } from "@ui/icons";
+import { ChefHat, ForkKnifeIcon, Search, X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { RadialGradient } from "@ui/radial-gradient";
 import { Input } from "@ui/input";
@@ -81,7 +81,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
             />
           ) : (
             <EmptyState
-              icon={ForkKnife}
+              icon={ChefHat}
               title={t("empty_title")}
               body={t("empty_body")}
               actions={[

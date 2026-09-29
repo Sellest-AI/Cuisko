@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanim
 
 import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
 import { EmptyState } from "@ui/empty-state";
-import { CalendarPlus, CheckIcon, IconComponent, ShoppingCartIcon, Store } from "@ui/icons";
+import { CalendarPlus, CheckIcon, IconComponent, ShoppingBasket, ShoppingCartIcon } from "@ui/icons";
 import { Pressable } from "@ui/pressable";
 import { Select } from "@ui/select";
 import { Text } from "@ui/text";
@@ -298,7 +298,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
       {showsEmpty && (
         <View style={styles.empty}>
           <EmptyState
-            icon={Store}
+            icon={ShoppingBasket}
             title={t("Empty.title")}
             body={t("Empty.body")}
             actions={[{
