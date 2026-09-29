@@ -71,9 +71,22 @@ const _PARKED_STEPS: readonly TunnelStep[] = ["mood"];
  */
 export const TUNNEL_STEPS = _ALL_STEPS.filter((step) => !_PARKED_STEPS.includes(step));
 
-export const routeFor = (step: TunnelStep) => `/planning/new/${step}` as const;
+const _TUNNEL_ROOT = "/planning/new";
 
-const _isStepPath = (path: string) => TUNNEL_STEPS.some((step) => path.endsWith(`/${step}`));
+/**
+ * The first step lives at the tunnel's root, every other one below it.
+ *
+ * The root is where every link into the tunnel points, so it draws the first step itself rather
+ * than redirecting to it: a redirect is a `replace`, which the stack animates, and the user watched
+ * an empty screen slide away on every entry. Its own route (`/planning/new/time`) still resolves,
+ * so the step keeps working the day it is no longer first.
+ */
+export const routeFor = (step: TunnelStep) =>
+  step === TUNNEL_STEPS[0] ? _TUNNEL_ROOT : (`${_TUNNEL_ROOT}/${step}` as const);
+
+/** The position of the step at `path` in the walk, or `-1` for a route that is not a step. */
+const _stepIndexOf = (path: string) =>
+  path === _TUNNEL_ROOT ? 0 : TUNNEL_STEPS.findIndex((step) => path.endsWith(`/${step}`));
 
 export const useTunnel = () => {
   const rawPath = usePathname();
@@ -95,7 +108,7 @@ export const useTunnel = () => {
    * for exactly one render. Nothing here waits on the state either — a step path is read straight
    * off `rawPath`, and the setter only records it for the render where it is gone.
    */
-  const isStepPath = _isStepPath(rawPath);
+  const isStepPath = _stepIndexOf(rawPath) !== -1;
   const [lastStepPath, setLastStepPath] = useState(rawPath);
 
   if (isStepPath && lastStepPath !== rawPath) setLastStepPath(rawPath);
@@ -196,7 +209,7 @@ export const useTunnel = () => {
     setAfter(planAfter(startOfDay(new Date()), lastDate));
   }, [lastDate, after, setAfter]);
 
-  const index = TUNNEL_STEPS.findIndex((step) => path.endsWith(`/${step}`));
+  const index = _stepIndexOf(path);
   const step = index === -1 ? 0 : index;
 
   /**

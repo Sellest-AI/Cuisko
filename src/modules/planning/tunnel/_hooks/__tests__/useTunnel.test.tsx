@@ -1,12 +1,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { getFunctionName } from "convex/server";
+import { router } from "expo-router";
 import { Provider, createStore } from "jotai";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { daysAtom, planAfterAtom, resetTunnelAtom } from "../../../_hooks/atoms";
 import { dayOffset } from "../../../_hooks/__tests__/fixtures";
-import { useTunnel } from "../useTunnel";
+import { routeFor, TUNNEL_STEPS, useTunnel } from "../useTunnel";
 
 /**
  * The seam `_model/model.test.ts` cannot reach: that the week's start is seeded once per run from
@@ -20,11 +21,12 @@ import { useTunnel } from "../useTunnel";
 const state = vi.hoisted(() => ({
   lastDate: undefined as number | null | undefined,
   failLastDate: false,
+  pathname: "/planning/new/time",
 }));
 
 vi.mock("expo-router", () => ({
   router: { push: vi.fn(), replace: vi.fn(), back: vi.fn(), dismissTo: vi.fn(), canGoBack: () => false },
-  usePathname: () => "/planning/new/time",
+  usePathname: () => state.pathname,
 }));
 
 vi.mock("~/modules/households/hooks", () => ({
@@ -55,6 +57,8 @@ let store: ReturnType<typeof createStore>;
 beforeEach(() => {
   state.lastDate = undefined;
   state.failLastDate = false;
+  state.pathname = "/planning/new/time";
+  vi.mocked(router.push).mockClear();
   store = createStore();
   store.set(daysAtom, 3);
 });
@@ -132,5 +136,28 @@ describe("useTunnel — where the week starts", () => {
 
     expect(store.get(planAfterAtom)).toEqual(new Date(dayOffset(6)));
     expect(asked(result)).toEqual([dayOffset(7), dayOffset(8), dayOffset(9)]);
+  });
+});
+
+/**
+ * Every link into the tunnel points at its root, and the root draws the first step in place rather
+ * than redirecting to it. So the root must *be* step one — read off the path, it matches no step's
+ * name, and a hook that fell back to step one there was right only while nobody reordered.
+ */
+describe("useTunnel — the root is the first step", () => {
+  it("routes the first step to the tunnel's root, and every other step below it", () => {
+    expect(routeFor(TUNNEL_STEPS[0]!)).toBe("/planning/new");
+    expect(routeFor(TUNNEL_STEPS[1]!)).toBe(`/planning/new/${TUNNEL_STEPS[1]}`);
+  });
+
+  it("reads the root as step one, and moves on from it to step two", () => {
+    state.pathname = "/planning/new";
+
+    const { result } = tunnel();
+    expect(result.current.step).toBe(1);
+
+    act(() => result.current.next());
+
+    expect(router.push).toHaveBeenCalledWith(routeFor(TUNNEL_STEPS[1]!));
   });
 });
