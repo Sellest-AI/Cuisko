@@ -24,7 +24,7 @@ import { table } from "./table";
 import type { Attempt, BakeOff, BakeOffResult, Entrant } from "./types";
 
 const DEFAULTS = {
-  judge: "google/gemini-3.7-flash",
+  judge: "google/gemini-3.8-flash",
   runs: 3,
   maxConcurrency: 15,
 } as const;
