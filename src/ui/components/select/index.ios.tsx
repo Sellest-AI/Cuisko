@@ -34,7 +34,12 @@ export const Select = <T extends string>({
   const selected = options.find((option) => option.value === value);
 
   return (
-    <Host matchContents style={style}>
+    /**
+     * `ignoreSafeArea` keeps the picker glued to its React Native frame. By default the hosting
+     * view insets its content by the window's safe area, so a Select scrolled under the status
+     * bar (or above the keyboard) gets pushed back into the safe region and lags the scroll.
+     */
+    <Host matchContents ignoreSafeArea="all" style={style}>
       <Picker
         /**
          * A `.menu` picker already renders the selected row as its own label, so passing one
