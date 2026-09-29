@@ -20,8 +20,8 @@ type Defaults = {
  * one round trip, atomic with the generation, and no client left deciding what to do when one of
  * the two writes succeeds.
  *
- * ⚠️ **Every field is overwritten, including with an empty list.** That is what makes the setup
- * step's answer the answer: a household that unticks its last appliance means it, and a merge that
+ * ⚠️ **Every field is overwritten, including with an empty list.** That is what makes the
+ * tunnel's answer the answer: a household that unticks its last appliance means it, and a merge that
  * preserved the old value would leave the kitchen holding a machine the user just said was gone.
  * The column is optional so that *never having answered* stays distinguishable from answering
  * nothing — see `convex/schema/households.ts` — and this is the only writer that can end that

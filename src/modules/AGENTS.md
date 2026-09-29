@@ -10,7 +10,7 @@ One folder per domain. It owns that domain's data and everything drawn with it.
     ├── hooks.ts            PUBLIC  — the door: re-exports the hooks other modules may call
     ├── tunnel/             PUBLIC  — a sub-module: one flow, several screens of its own
     │   ├── chrome.tsx              the frame its routes mount into
-    │   ├── setup.tsx, diet.tsx     one file per step
+    │   ├── time.tsx, week.tsx      one file per step
     │   └── _components/, _hooks/   PRIVATE to the sub-module, same rules one level down
     ├── _components/        PRIVATE — this module only, by relative path
     ├── _hooks/             PRIVATE — the ONLY place api.router.planning.* is referenced
@@ -24,7 +24,7 @@ never with `~/modules/other/_hooks/useX`. Sharing a hook across modules is one l
 **A named subfolder holding several routed screens is a sub-module, and may carry the same shape as
 a module.** Reach for one when a single flow owns several screens that belong together — a
 generation tunnel, an onboarding — rather than scattering them across the root, or claiming a parent
-that does not exist (`tunnel.setup.tsx` says there is a `tunnel.tsx` to read first). It may grow its
+that does not exist (`tunnel.week.tsx` says there is a `tunnel.tsx` to read first). It may grow its
 own `_components/`, `_hooks/` and `_model/` on exactly the rules above, one level down. A single
 screen is not a sub-module — but it may still be a folder. Under three files it stays a root file
 with its parts in dot notation beside it; at three it becomes a folder entered through `index`, on

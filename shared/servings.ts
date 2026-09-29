@@ -14,7 +14,7 @@ export const MIN_SERVINGS = 1;
 /**
  * The most a single plate is cooked for: a plate is a meal, not a batch for a freezer.
  *
- * Separate from the household size the setup step asks: a plate can be cooked for more than the
+ * Separate from the household size the week step asks: a plate can be cooked for more than the
  * table when the point is leftovers, which is the whole reason portions are editable per meal.
  */
 export const MAX_SERVINGS = 8;

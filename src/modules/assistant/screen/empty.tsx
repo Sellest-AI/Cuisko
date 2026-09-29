@@ -40,7 +40,7 @@ export const AssistantEmpty = () => {
       </Text.Base>
       <Button
         variant="primary"
-        onPress={() => router.replace("/planning/new/setup")}
+        onPress={() => router.replace("/planning/new")}
         style={styles.action}
         leftIcon={CalendarPlus}
       >

@@ -28,7 +28,7 @@ const EMPTY_PLATE = require("assets/placeholders/empty-plate.png");
 const CHROME_HEIGHT = 32;
 
 /**
- * Named keys rather than `t(`Meal.${slot}`)`, for the reason the setup step gives: the template form
+ * Named keys rather than `t(`Meal.${slot}`)`, for the reason the week step gives: the template form
  * types as `string`, so a slot added without its copy would ship the key itself as the label.
  */
 const SLOTS = {

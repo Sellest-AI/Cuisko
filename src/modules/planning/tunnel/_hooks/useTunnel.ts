@@ -25,7 +25,7 @@ import {
   daysAtom,
   draftMealsAtom,
   equipmentsAtom,
-  isSetupSeededAtom,
+  isHouseholdSeededAtom,
   moodsAtom,
   noteAtom,
   peopleAtom,
@@ -42,8 +42,8 @@ import { usePlanningSeed } from "./usePlanningSeed";
  * correct for free.
  */
 export const TUNNEL_STEPS = [
-  "setup",
   "time",
+  "week",
   "diet",
   "allergies",
   "mood",
@@ -56,7 +56,7 @@ export const TUNNEL_STEPS = [
 
 export type TunnelStep = (typeof TUNNEL_STEPS)[number];
 
-const routeFor = (step: TunnelStep) => `/planning/new/${step}` as const;
+export const routeFor = (step: TunnelStep) => `/planning/new/${step}` as const;
 
 const _isStepPath = (path: string) => TUNNEL_STEPS.some((step) => path.endsWith(`/${step}`));
 
@@ -96,7 +96,7 @@ export const useTunnel = () => {
   const [cookingTime, setCookingTime] = useAtom(cookingTimeAtom);
   const [equipments, setEquipments] = useAtom(equipmentsAtom);
   const [constraints, setConstraints] = useAtom(constraintsAtom);
-  const [isSetupSeeded, setSetupSeeded] = useAtom(isSetupSeededAtom);
+  const [isHouseholdSeeded, setHouseholdSeeded] = useAtom(isHouseholdSeededAtom);
   const [meals, setMeals] = useAtom(draftMealsAtom);
   const [after, setAfter] = useAtom(planAfterAtom);
   const dates = useAtomValue(planDatesAtom);
@@ -111,7 +111,7 @@ export const useTunnel = () => {
    *
    * Guarded on `null` rather than on emptiness: seeding a second time would discard whatever the
    * user has ticked since, and every re-render of a step that reads this hook re-runs the effect.
-   * `resetTunnelAtom` puts it back to `null` when the setup step opens, which is what makes the
+   * `resetTunnelAtom` puts it back to `null` when the tunnel is entered, which is what makes the
    * *next* run re-read rather than reuse.
    */
   useEffect(() => {
@@ -140,7 +140,8 @@ export const useTunnel = () => {
   }, [seed, seeks, setSeeks]);
 
   /**
-   * The setup step's four answers, seeded once per run from what the household last said.
+   * The household's four standing answers — the week step's three and the kitchen — seeded once
+   * per run from what the household last said.
    *
    * ⚠️ **Each field is seeded only if it was answered, and `undefined` is what "unanswered" means.**
    * An absent column leaves the atom on `TUNNEL_OFFERS`, which is the tunnel's opening bid; a
@@ -150,11 +151,11 @@ export const useTunnel = () => {
    * this does.
    *
    * The one exception is an empty `defaultSlots`. `slotsAtom` documents that it never empties, and
-   * the setup step's `toggleSlot` upholds it, so `[]` can only arrive from a client that predates
+   * the week step's `toggleSlot` upholds it, so `[]` can only arrive from a client that predates
    * that rule; taking it would leave the generating step sizing a week out of no plates at all.
    */
   useEffect(() => {
-    if (!seed || isSetupSeeded) return;
+    if (!seed || isHouseholdSeeded) return;
 
     const { equipments: kitchen, defaultPeople, defaultSlots, defaultDays } = seed.household;
 
@@ -163,8 +164,8 @@ export const useTunnel = () => {
     if (defaultDays !== undefined) setDays(defaultDays);
     if (defaultSlots?.length) setSlots(defaultSlots);
 
-    setSetupSeeded(true);
-  }, [seed, isSetupSeeded, setSetupSeeded, setEquipments, setPeople, setDays, setSlots]);
+    setHouseholdSeeded(true);
+  }, [seed, isHouseholdSeeded, setHouseholdSeeded, setEquipments, setPeople, setDays, setSlots]);
 
   /**
    * The day the week counts from, seeded once per run from the household's latest kept plate.

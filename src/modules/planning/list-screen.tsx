@@ -62,7 +62,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
 
   const [show, setShow] = useState(false);
 
-  if (isUnplanned) return <Redirect href="/planning/new/setup" />;
+  if (isUnplanned) return <Redirect href="/planning/new" />;
 
   return (
     <>
@@ -140,7 +140,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
             <ActionRow
               variant="primary"
               style={{ alignSelf: "center" }}
-              onPress={() => router.push("/planning/new/setup")}
+              onPress={() => router.push("/planning/new")}
               content={t("Screen.plan_next_days")}
               contentIcon={CalendarPlus}
               subtitle={t("Screen.plan_next_days_subtitle")}

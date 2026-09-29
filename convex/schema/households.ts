@@ -16,7 +16,7 @@ export const vMealSlots = v.array(vMealSlot);
  * ⚠️ **`equipments` and the three defaults are optional, and the `undefined` is doing work.** The
  * household row always exists, so unlike `userPreferences` it cannot use row absence to mean
  * "never asked" — and without that distinction an empty `equipments` reads identically to a
- * kitchen nobody has described yet. The tunnel's setup step needs to tell those apart: one is an
+ * kitchen nobody has described yet. The tunnel needs to tell those apart: one is an
  * answer to prefill, the other is a default to offer. This is what
  * [`shared/allergens.ts`](../../shared/allergens.ts) already insists on for `ingredients.allergens`
  * and for the same reason, `[]` earns a claim that silence does not.

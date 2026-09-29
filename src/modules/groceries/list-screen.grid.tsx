@@ -305,7 +305,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
             actions={[{
               label: t("Empty.action"),
               icon: CalendarPlus,
-              onPress: () => router.push("/planning/new/setup"),
+              onPress: () => router.push("/planning/new"),
               variant: "primary"
             }]}
           />

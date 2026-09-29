@@ -79,7 +79,7 @@ export const useMealEditor = (target: MealTarget, scope: MealScope) => {
 
   /**
    * The portions a plate would be created for. Seeded from the household: a plate cooked for the
-   * table is the answer the setup step already gave, so the common case is one nobody has to set.
+   * table is the answer the week step already gave, so the common case is one nobody has to set.
    */
   const [draftServings, setDraftServings] = useState(people);
 

@@ -229,7 +229,7 @@ export type GroceryList = {
 /**
  * Every plate a day can hold, in the order a day is eaten.
  *
- * Exported because the setup step offers the same list to choose from: a second copy there would
+ * Exported because the week step offers the same list to choose from: a second copy there would
  * be free to drift, and the day a third slot exists the two would disagree about what a day is.
  */
 export const MEAL_SLOTS: MealSlot[] = [...MEAL_SLOT_VOCABULARY];

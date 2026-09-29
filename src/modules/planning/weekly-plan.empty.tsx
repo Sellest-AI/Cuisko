@@ -24,7 +24,7 @@ import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 export const WeeklyPlanEmpty = () => {
   const t = useTranslations("Planning");
 
-  const plan = () => router.push("/planning/new/setup");
+  const plan = () => router.push("/planning/new");
 
   return (
     <View>

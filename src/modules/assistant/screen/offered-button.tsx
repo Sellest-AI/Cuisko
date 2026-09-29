@@ -20,7 +20,7 @@ type Props = {
  * the chat came to build one. A `Record` so a new destination cannot ship without a route.
  */
 const _DESTINATIONS: Record<ButtonDestination, { href: Href; icon: Icon }> = {
-  planning: { href: "/planning/new/setup", icon: CalendarPlus },
+  planning: { href: "/planning/new", icon: CalendarPlus },
   groceries: { href: "/groceries", icon: ShoppingCart },
   recipes: { href: "/recipes", icon: ForkKnife },
 };

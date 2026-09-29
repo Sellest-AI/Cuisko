@@ -27,7 +27,7 @@ import { AskCuiskoPill } from "~/modules/assistant/ask-cuisko-pill";
 const STARTS: { key: "ask_cuisko" | "import_recipe" | "plan_week" | "my_recipes"; icon: Icon; href: Href }[] = [
   { key: "ask_cuisko", icon: Sparkles, href: "/assistant" },
   { key: "import_recipe", icon: Plus, href: "/import-recipe" },
-  { key: "plan_week", icon: CalendarPlus, href: "/planning/new/setup" },
+  { key: "plan_week", icon: CalendarPlus, href: "/planning/new" },
   { key: "my_recipes", icon: ForkKnife, href: "/recipes" },
 ];
 
