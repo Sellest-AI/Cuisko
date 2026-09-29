@@ -132,5 +132,11 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vitest": "^4.1.10"
+  },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true,
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
   }
 }
