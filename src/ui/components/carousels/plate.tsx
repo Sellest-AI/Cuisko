@@ -78,7 +78,7 @@ const SETTLE_TOLERANCE = 1;
 /** How long a release is assumed to keep coasting at its exit speed before it picks a slot, and
  *  the most slots one flick may cover. Together they are what makes a fast flick cross several
  *  plates and a lazy nudge cross one — a fixed one-item snap is what reads as mechanical. */
-const FLING_REACH = 190;
+const FLING_REACH = 80;
 const FLING_MAX = 2;
 
 /** Deliberately under-damped: the plate arrives, overshoots by a hair and rocks back. Raising
