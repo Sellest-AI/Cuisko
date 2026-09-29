@@ -95,8 +95,9 @@ const EMPTY: never[] = [];
  * and `toBuy` is the plain total until the recipe→grocery link is built. The distinction is kept
  * in the model, not dropped, because that link is what it is for.
  *
- * **`plates` is not that link.** It is read for the by-plan view alone — which plate still claims
- * which row, and how much of it — and changes nothing about what the list asks for. It is cached,
+ * **`plates` is not that link.** It is read for the by-plan view, and for the recipe a long press
+ * on a card opens — which plate still claims which row, and how much of it — and changes nothing
+ * about what the list asks for. It is cached,
  * not held: a plate that vanishes for a round trip only collapses a sub-heading, never the grid.
  */
 export const useSnapshot = (): Snapshot & { isLoading: boolean } => {

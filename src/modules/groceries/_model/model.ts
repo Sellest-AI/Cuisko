@@ -203,9 +203,10 @@ export type HistoryEntry = {
  * what `claims` holds — the plate's own amount against a list row, where the row itself only knows
  * the merged total.
  *
- * Read by the "by plan" view alone. Deliberately NOT the same thing as `GroceryLine.meal`: that
- * field decides whether the cellar may answer a line (`stockFor`), and a plate here changes nothing
- * about what the list asks for — only about how it is read.
+ * Read by the "by plan" view, and by `recipeFor` for a card's long press. Deliberately NOT the
+ * same thing as `GroceryLine.meal`: that field decides whether the cellar may answer a line
+ * (`stockFor`), and a plate here changes nothing about what the list asks for — only about how it
+ * is read.
  */
 export type Plate = {
   id: string;

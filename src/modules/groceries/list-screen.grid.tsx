@@ -100,7 +100,8 @@ const REASON_KEY: Record<PendingFailure, TranslationKeys<"Groceries">> = {
 type Row =
   | { kind: "header"; id: string; label: string; icon?: IconComponent; color: string }
   | { kind: "subheader"; id: string; heading: NonNullable<ToBuyHeading>; first: boolean }
-  | { kind: "item"; stock: StockRow }
+  /** `heading` is the "To Buy" group the card sits under: it decides which recipe a long press opens. */
+  | { kind: "item"; stock: StockRow; heading?: ToBuyHeading }
   | { kind: "ghost"; ghost: PendingIngredient };
 
 /**
@@ -217,7 +218,7 @@ type GroceryGridProps = { lead?: Section };
  */
 export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const { width } = useWindowDimensions();
-  const { sections, toBuy, submit, isEmpty } = useGroceryList();
+  const { sections, toBuy, submit, recipeFor, isEmpty } = useGroceryList();
   const { sort, setSort } = useGrocerySort();
   const { pending, dismiss } = usePendingIngredients();
   const t = useTranslations("Groceries");
@@ -273,7 +274,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
         ? [{ kind: "subheader" as const, id: `header:to-buy:${group.id}`, heading: group.heading, first: index === 0 }]
         : []),
       ...(index === 0 ? ghosts : []),
-      ...group.rows.map((stock): Row => ({ kind: "item", stock })),
+      ...group.rows.map((stock): Row => ({ kind: "item", stock, heading: group.heading })),
     ]);
   };
 
@@ -357,6 +358,12 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
           );
         }
 
+        /**
+         * A long press answers "why is this on my list?" with the recipe asking for it. Only in
+         * "To Buy": the cellar and "recently bought" are not on the list because of anything.
+         */
+        const recipeId = row.stock.section === "to-buy" ? recipeFor(row.stock, row.heading ?? null) : null;
+
         const type = variantFor(row.stock);
         const quantity = type === "memory" ? undefined :
           formatGroceryQuantity(row.stock.amount, row.stock.unit, unit);
@@ -372,6 +379,7 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
             expiresSoon={row.stock.expiresSoon}
             width={itemWidth - 1}
             onPress={() => tap(row.stock)}
+            onLongPress={recipeId ? () => router.push(`/recipe/${recipeId}`) : undefined}
           />
         )
       })}

@@ -98,6 +98,8 @@ type Props = {
   expiresSoon?: boolean;
   width?: number;
   onPress?: () => void;
+  /** Left unset, a long press does nothing, not even the haptic: there is nothing to feel for. */
+  onLongPress?: () => void;
   style?: ViewStyle;
 };
 
@@ -131,7 +133,7 @@ const usePulse = (active: boolean) => {
   return useAnimatedStyle(() => ({ opacity: opacity.value }));
 };
 
-export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", expiresSoon, width, onPress, style }: Props) => {
+export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", expiresSoon, width, onPress, onLongPress, style }: Props) => {
   const pulse = usePulse(variant === "resolving");
 
   /** A bundled picture wins over a fetched one, and either wins over the glyph standing in. */
@@ -150,6 +152,7 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageS
           void Haptics.selectionAsync();
           onPress?.();
         }}
+        onLongPress={onLongPress}
         style={{
           ...styles.container,
           ...styles[variant],

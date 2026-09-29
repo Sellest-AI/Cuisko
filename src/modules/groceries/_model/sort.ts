@@ -130,6 +130,24 @@ const _byCategory = (rows: StockRow[], snapshot: Snapshot): ToBuyGroup[] => {
 };
 
 /**
+ * The recipe a to-buy card is on the list for: what a long press on it opens, for the shopper
+ * wondering why the list wants thyme.
+ *
+ * Under a plate's heading, that plate, because the card is its share. Under "unplanned", nobody's.
+ * Anywhere else the card is the merged row, and it answers for the plate the by-plan view would
+ * draw it under first: the soonest one still asking. A plate whose share was already bought is not
+ * why the row is still here. `null` when the shopper typed it themselves.
+ */
+export const recipeFor = (row: StockRow, heading: ToBuyHeading, snapshot: Snapshot): string | null => {
+  if (heading?.kind === "plate") return heading.recipeId;
+  if (heading?.kind === "unplanned") return null;
+
+  const soonest = _byPlan([row], snapshot)[0]?.heading;
+
+  return soonest?.kind === "plate" ? soonest.recipeId : null;
+};
+
+/**
  * The to-buy rows, grouped the way the shopper asked to read them.
  *
  * Rows arrive in section order — recency, then name — and keep it inside each group; a sort

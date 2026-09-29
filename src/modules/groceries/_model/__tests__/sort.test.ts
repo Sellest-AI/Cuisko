@@ -8,7 +8,7 @@ import {
   type Snapshot,
   type StockRef,
 } from "../model";
-import { groupToBuy, isSort, SORTS } from "../sort";
+import { groupToBuy, isSort, recipeFor, SORTS } from "../sort";
 
 const NOW = new Date("2026-08-10T12:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms);
@@ -158,6 +158,45 @@ describe("by plan", () => {
     // Both plates are the same lasagna: only `mealId` says which one a long press should open.
     expect(monday!.heading).toEqual({ kind: "plate", mealId: "monday", recipeId: "lasagna", title: "Lasagnes", date: day(0), slot: "dinner" });
     expect(unplanned!.heading).toEqual({ kind: "unplanned" });
+  });
+});
+
+describe("the recipe a card is on the list for", () => {
+  /** Two different dishes this time, so the answer says which one it picked. */
+  const snapshot: Snapshot = {
+    ...base,
+    plates: [
+      { ...base.plates[0]!, recipeId: "gratin", title: "Gratin" },
+      base.plates[1]!,
+    ],
+  };
+  const rowOf = (from: Snapshot, ingredientId: string) =>
+    toBuyOf(from).find((stock) => stock.ingredientId === ingredientId)!;
+
+  it("answers for the soonest plate still asking, when the card is the merged row", () => {
+    expect(recipeFor(rowOf(snapshot, "parmesan"), null, snapshot)).toBe("lasagna");
+  });
+
+  it("skips a plate whose share was already bought", () => {
+    /** 200 g bought: Monday's claim is covered, and Friday is why 100 g is still on the list. */
+    const bought = { ...snapshot, lines: [line("l-parmesan", PARMESAN, 100), base.lines[1]!] };
+
+    expect(recipeFor(rowOf(bought, "parmesan"), { kind: "category", category: "DAIRY" }, bought)).toBe("gratin");
+  });
+
+  it("answers for nobody when the shopper typed it themselves", () => {
+    expect(recipeFor(rowOf(snapshot, "carrots"), null, snapshot)).toBeNull();
+  });
+
+  it("follows the heading the card sits under, in the by-plan view", () => {
+    /** 50 g beyond the plates' claims, so there is an unplanned copy of the row too. */
+    const extra = { ...snapshot, lines: [line("l-parmesan", PARMESAN, 350)] };
+    const groups = groupToBuy(toBuyOf(extra), "by-plan", extra);
+    const friday = groups.find((group) => group.id === "plate:friday")!;
+    const unplanned = groups.find((group) => group.id === "unplanned")!;
+
+    expect(recipeFor(friday.rows[0]!, friday.heading, extra)).toBe("gratin");
+    expect(recipeFor(unplanned.rows[0]!, unplanned.heading, extra)).toBeNull();
   });
 });
 

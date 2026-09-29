@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai";
 import { useCallback, useMemo } from "react";
 
 import { buildSections, type StockRow } from "../_model/model";
-import { groupToBuy } from "../_model/sort";
+import { groupToBuy, recipeFor, type ToBuyHeading } from "../_model/sort";
 import { sortAtom } from "./atoms";
 import { useSnapshot } from "./useSnapshot";
 import { useStockActions } from "./useStockActions";
@@ -21,6 +21,9 @@ import { useStockActions } from "./useStockActions";
  *
  * `submit` exists for the rows that need no sheet: a card whose `onlyOption` is set has exactly
  * one amount it could move, and asking a question with one answer is worse than acting.
+ *
+ * `recipeFor` is the recipe a to-buy card is on the list for, given the heading it sits under
+ * (`null` in the plain list) — what a long press on the card opens.
  */
 export const useGroceryList = () => {
   const snapshot = useSnapshot();
@@ -36,10 +39,16 @@ export const useGroceryList = () => {
     [apply],
   );
 
+  const recipeOf = useCallback(
+    (row: StockRow, heading: ToBuyHeading) => recipeFor(row, heading, snapshot),
+    [snapshot],
+  );
+
   return {
     sections,
     toBuy,
     submit,
+    recipeFor: recipeOf,
     error,
     /**
      * Nothing wanted and nothing owned: the household has not started. Recently bought does not
