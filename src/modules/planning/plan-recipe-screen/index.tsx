@@ -17,7 +17,7 @@ import { useRecipe } from "~/modules/recipes/hooks";
 
 import { SectionLabel } from "@ui/section-label";
 import { usePlanRecipe, type PlannableDay } from "../_hooks/usePlanRecipe";
-import { MAX_SERVINGS, MEAL_SLOTS, type MealSlot } from "../_model/model";
+import { addDays, isSameDay, MAX_SERVINGS, MEAL_SLOTS, startOfDay, type MealSlot } from "../_model/model";
 import { Confirm } from "./confirm";
 import { DayGrid } from "@ui/day-grid";
 
@@ -32,13 +32,14 @@ const CHROME_HEIGHT = 32;
  * types as `string`, so a slot added without its copy would ship the key itself as the label.
  */
 const SLOTS = {
-  lunch: { key: "Meal.lunch", emoji: "☀️" },
-  dinner: { key: "Meal.dinner", emoji: "🌙" },
-} as const satisfies Record<MealSlot, { key: string; emoji: string }>;
+  lunch: { key: "Meal.lunch", today: "PlanRecipe.lunch_today", emoji: "☀️" },
+  dinner: { key: "Meal.dinner", today: "PlanRecipe.dinner_today", emoji: "🌙" },
+} as const satisfies Record<MealSlot, { key: string; today: string; emoji: string }>;
 
 type Props = {
   params: { recipeId?: string };
-  onClose: () => void;
+  /** A plate landed: the sheet is done, and the route decides where that leads. */
+  onPlanned: () => void;
 };
 
 /**
@@ -68,7 +69,7 @@ const Scrolling = ({ children }: { children: ReactNode }) => {
   return <ModalScrollView contentContainerStyle={styles.page}>{children}</ModalScrollView>;
 };
 
-const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }) => {
+const Picker = ({ recipeId, onPlanned }: { recipeId: string; onPlanned: () => void }) => {
   const t = useTranslations("Planning");
   const locale = useLocale();
   const { recipe, servings: recipeServings, isMissing } = useRecipe(recipeId);
@@ -78,11 +79,11 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
   /** The tile tapped while a dish was already on it: the sheet asks before it replaces. */
   const [pending, setPending] = useState<PlannableDay>();
 
-  /** Closes on a plate that landed; a refused one keeps the sheet open, with the banner saying why. */
+  /** Leaves on a plate that landed; a refused one keeps the sheet open, with the banner saying why. */
   const commit = useCallback(async (date: Date) => {
-    if (await plan(date)) onClose();
+    if (await plan(date)) onPlanned();
     else setPending(undefined);
-  }, [plan, onClose]);
+  }, [plan, onPlanned]);
 
   const choose = useCallback((day: PlannableDay) => {
     if (day.meal) setPending(day);
@@ -93,7 +94,20 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
   /** The recipe is being asked for; an empty sheet beats a slider that jumps when the seed lands. */
   if (!recipe || servings === undefined) return <Measured style={styles.empty} />;
 
-  const dayLabel = (date: Date) => date.toLocaleDateString(locale, { weekday: "short", day: "numeric" });
+  const dateLabel = (date: Date) => date.toLocaleDateString(locale, { weekday: "short", day: "numeric" });
+
+  /**
+   * The first two tiles say when rather than which date: "mar. 29" on the first tile did not read
+   * as today. Today names the slot too ("Ce midi"), which fits a tile where "Aujourd'hui" would not.
+   * The swap sentence keeps the date, since "au déjeuner de ce midi" does not read.
+   */
+  const tileLabel = (date: Date) => {
+    const today = startOfDay(new Date());
+    if (isSameDay(date, today)) return t(SLOTS[slot].today);
+    if (isSameDay(date, addDays(today, 1))) return t("PlanRecipe.tomorrow");
+
+    return dateLabel(date);
+  };
 
   const banner = failed && (
     <InfoBanner variant="warning" title={t("PlanRecipe.failed_title")} icon={DatabaseX}>
@@ -117,7 +131,7 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
             previous: pending.meal.title,
             next: recipe.title,
             meal: t(SLOTS[slot].key).toLowerCase(),
-            day: dayLabel(pending.date),
+            day: dateLabel(pending.date),
           })}
           isSaving={isSaving}
           onConfirm={() => void commit(pending.date)}
@@ -157,7 +171,7 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
         days={days}
         emptyPlate={EMPTY_PLATE}
         emptyLabel={t("Status.empty")}
-        dayLabel={dayLabel}
+        dayLabel={tileLabel}
         onChoose={choose}
       />
     </Scrolling>
@@ -168,18 +182,18 @@ const Picker = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }
  * The sheet under the recipe screen's "add to my list": when, for how many, and at which meal.
  *
  * A route of its own so the recipe tabs need not carry it; its one param is untrusted and checked
- * here before a hook reads it. Tapping a day plans the dish and closes, unless a dish is already
- * on that plate, in which case the sheet asks first.
+ * here before a hook reads it. Tapping a day plans the dish and hands over to `onPlanned`, unless a
+ * dish is already on that plate, in which case the sheet asks first.
  *
  * The screen sizes the sheet itself rather than leaving it to the route, because it changes shape:
  * see `Measured` and `Scrolling`.
  */
-export const PlanRecipeScreen = ({ params, onClose }: Props) => {
+export const PlanRecipeScreen = ({ params, onPlanned }: Props) => {
   const t = useTranslations("Planning");
 
   if (!params.recipeId) return <Nothing label={t("PlanRecipe.missing")} />;
 
-  return <Picker recipeId={params.recipeId} onClose={onClose} />;
+  return <Picker recipeId={params.recipeId} onPlanned={onPlanned} />;
 };
 
 const styles = StyleSheet.create({
