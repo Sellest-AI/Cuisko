@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   carousel: {
-    marginTop: theme.spacing[28],
     minHeight: 188,
   },
   week: {

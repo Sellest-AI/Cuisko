@@ -1,15 +1,18 @@
 import { StyleSheet, View, ViewStyle } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, type SharedValue } from "react-native-reanimated";
 
 import { theme } from "theme";
 
 import { Image } from "../image";
 import { CalendarPlus } from "../icons";
-import { PLATE_GAP, PLATE_SIZE, SIDE_SCALE } from "./plate";
+import { PLATE_GAP, PLATE_SIZE, PlateShadow, SIDE_SCALE, SIDE_TILT, TILT_SHIFT } from "./plate";
 import { Button } from "../button";
+import { TiltSensor, type Tilt } from "@ui/tilt-sensor";
 import { ComponentProps } from "react";
 
 /** Three slots: one in focus and the week continuing either side of it. */
 const SLOTS = 3;
+const CENTRE = (SLOTS - 1) / 2;
 
 type Props = {
   /** The one thing to do here. Worded by the caller: `src/ui/**` does not read translations (ADR 0002). */
@@ -35,38 +38,82 @@ type Props = {
  *
  * Every slot draws the image the caller passes: the planned week's empty plate, the same one it
  * falls back to for a meal with no photo, so the empty week is drawn in the carousel's own material.
+ *
+ * It tilts and casts shadows by the real carousel's rules too, with the camera held on the middle
+ * slot: an empty week that sat flat and still beside a full one would read as a different object.
  */
-export const PlateCarouselEmpty = ({ label, onPress, emptyPlateImageSrc, style }: Props) => (
-  <View style={[styles.container, style]}>
-    <View style={styles.row}>
-      {Array.from({ length: SLOTS }, (_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.slot,
-            // The middle slot is the one in focus; its neighbours sit back at the carousel's own scale.
-            index === (SLOTS - 1) / 2 ? undefined : { transform: [{ scale: SIDE_SCALE * 1.1 }] },
-          ]}
-        >
-          <Image
-            source={emptyPlateImageSrc}
-            style={{ width: PLATE_SIZE, height: PLATE_SIZE }}
+export const PlateCarouselEmpty = ({ label, onPress, emptyPlateImageSrc, style }: Props) => {
+  const tilt: Tilt = {
+    shift: useSharedValue(0),
+    neutral: useSharedValue<number | null>(null)
+  };
+
+  /** The row never scrolls, so the camera stays on the middle slot. */
+  const centredSlot = useSharedValue(CENTRE);
+
+  return (
+    <View style={[styles.container, style]}>
+      <TiltSensor tilt={tilt} maxShift={TILT_SHIFT} />
+      <View style={styles.row}>
+        {Array.from({ length: SLOTS }, (_, index) => (
+          <EmptySlot
+            key={index}
+            index={index}
+            centredSlot={centredSlot}
+            tiltShift={tilt.shift}
+            imageSrc={emptyPlateImageSrc}
           />
-        </View>
-      ))}
+        ))}
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button
+          elevated
+          variant="primary"
+          onPress={onPress}
+          leftIcon={CalendarPlus}
+        >
+          {label}
+        </Button>
+      </View>
     </View>
-    <View style={styles.buttonContainer}>
-      <Button
-        elevated
-        variant="primary"
-        onPress={onPress}
-        leftIcon={CalendarPlus}
-      >
-        {label}
-      </Button>
-    </View>
-  </View>
-);
+  );
+};
+
+type EmptySlotProps = {
+  index: number,
+  centredSlot: SharedValue<number>,
+  tiltShift: SharedValue<number>,
+  imageSrc: Props["emptyPlateImageSrc"]
+};
+
+const EmptySlot = ({ index, centredSlot, tiltShift, imageSrc }: EmptySlotProps) => {
+  const isCentre = index === CENTRE;
+
+  /** One transform for both: a second `transform` in the style array would replace this one, not
+   *  add to it. The middle slot is the one in focus; its neighbours sit back at the carousel's scale. */
+  const slotStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: tiltShift.value * (isCentre ? 1 : SIDE_TILT) },
+      { scale: isCentre ? 1 : SIDE_SCALE * 1.1 }
+    ]
+  }));
+
+  return (
+    <Animated.View style={[styles.slot, slotStyle]}>
+      <PlateShadow
+        index={index}
+        centredSlot={centredSlot}
+        slotWidth={1}
+        tiltShift={tiltShift}
+        shadowStrength={0.2}
+      />
+      <Image
+        source={imageSrc}
+        style={{ width: PLATE_SIZE, height: PLATE_SIZE }}
+      />
+    </Animated.View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

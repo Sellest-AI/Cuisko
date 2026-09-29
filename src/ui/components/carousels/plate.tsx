@@ -25,6 +25,8 @@ import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { Pressable } from "@ui/pressable";
 import { ButtonIcon } from "@ui/button-icon";
 import { ArrowLeftRight, Icon, MorphIcon } from "@ui/icons";
+import { TiltSensor, type Tilt } from "@ui/tilt-sensor";
+import plateShadow from "assets/images/ui/plate-shadow.webp";
 
 const MAX_TITLE_LENGTH = 16;
 
@@ -35,6 +37,36 @@ const MAX_TITLE_LENGTH = 16;
 export const PLATE_SIZE = 164;
 export const PLATE_GAP = theme.spacing[16];
 export const SIDE_SCALE = 0.7;
+
+/** How far tilting the phone slides the centre plate, and how much of that a side plate follows.
+ *  Side plates moving less is what reads as depth rather than the whole row sliding. */
+export const TILT_SHIFT = 6;
+export const SIDE_TILT = 0.5;
+
+/**
+ * The shadow each plate casts on the table. The plates read as raised above it, seen by a camera
+ * over the centre slot, so a shadow shows up displaced towards the camera by however far its plate
+ * sits from it: a plate a slot away rests with its shadow tucked a little inwards, and tilting the
+ * phone — the camera moving — leaves every shadow lagging behind its plate. The displacement also
+ * stretches the shadow, which is most of what sells the depth.
+ *
+ * The shadow is a bitmap rather than a drawn gradient: pure black throughout, with only its alpha
+ * fading out. A gradient from black to transparent *white* passes through translucent grey on the
+ * way, which lightens the surface under it instead of darkening it. `SHADOW_OPACITY` is the
+ * strength.
+ *
+ * `SHADOW_SPREAD` is the displacement one slot away, `SHADOW_LAG` the share of the tilt shift a
+ * shadow does not follow, `SHADOW_STRETCH` the widening at a full `SHADOW_SPREAD` of displacement.
+ */
+const SHADOW_SIZE = PLATE_SIZE * 1.25;
+const SHADOW_DROP = 6;
+/** Resting offset to the right, as if lit from the upper left. Without it the centre plate's
+ *  shadow sits exactly under the plate, and the sliver past its rim is too faint to see. */
+const SHADOW_NUDGE = 10;
+const SHADOW_OPACITY = 0.3;
+const SHADOW_SPREAD = 10;
+const SHADOW_LAG = 0.8;
+const SHADOW_STRETCH = 0.15;
 
 /** One item advances by exactly this much, so a snap offset is always `index * SNAP`. */
 const SNAP = PLATE_SIZE + PLATE_GAP;
@@ -159,6 +191,13 @@ export const PlateCarousel = <T extends Plate>({
   });
 
   const centred = useRef(selectedIndex ?? 0);
+
+  /** Only ever a visual offset on each plate, never the scroll position: the snap and the
+   *  selection read `contentOffset`, so tilting can nudge the plates but never change the day. */
+  const tilt: Tilt = {
+    shift: useSharedValue(0),
+    neutral: useSharedValue<number | null>(null)
+  };
 
   /** Half a viewport minus half a plate on each end, so item 0 and item n-1 can both sit centred.
    *  The right side drops one gap: the last item still carries its trailing margin, and without
@@ -333,6 +372,7 @@ export const PlateCarousel = <T extends Plate>({
 
   return (
     <View onLayout={onLayout} style={style}>
+      <TiltSensor tilt={tilt} maxShift={TILT_SHIFT} movedAt={lastAt} />
       <AnimatedFlashList
         ref={((node: FlashListRef<Plate> | null) => {
           listRef.current = node;
@@ -355,7 +395,7 @@ export const PlateCarousel = <T extends Plate>({
           <PlateItem plate={{
             ...item,
             onPress: item.onPress ?? (onSelect ? () => onSelect(item as T) : undefined)
-          }} index={index} scrollX={x} />
+          }} index={index} scrollX={x} tiltShift={tilt.shift} />
         )}
       />
     </View>
@@ -365,13 +405,14 @@ export const PlateCarousel = <T extends Plate>({
 type PlateItemProps = {
   plate: Plate,
   index: number,
-  scrollX: SharedValue<number>
+  scrollX: SharedValue<number>,
+  tiltShift: SharedValue<number>
 }
 
 /** Where the badge landed inside the item, in layout coordinates with its centring applied. */
 type BadgeFrame = { left: number, top: number, width: number, height: number };
 
-const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
+const PlateItem = ({ plate, index, scrollX, tiltShift }: PlateItemProps) => {
   /** The badge frosts the plate under it, so the plate is what the badge's blur samples. */
   const cover = useBlurTarget();
 
@@ -395,14 +436,19 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
     /** 0 when this plate is centred, ±1 when it is one slot away. */
     const distance = Math.abs(scrollX.value / SNAP - index);
 
+    /** On the whole item, badge included: Android's blur copy lives inside it and must move with it. */
     return {
-      transform: [{ scale: interpolate(distance, [0, 1], [1, SIDE_SCALE], Extrapolation.CLAMP) }],
+      transform: [
+        { translateX: tiltShift.value * interpolate(distance, [0, 1], [1, SIDE_TILT], Extrapolation.CLAMP) },
+        { scale: interpolate(distance, [0, 1], [1, SIDE_SCALE], Extrapolation.CLAMP) }
+      ],
     };
   });
 
   return (
     <Animated.View style={[animatedStyle]}>
       <Pressable style={styles.item} onPress={plate.onPress} onLongPress={plate.onLongPress}>
+        <PlateShadow index={index} centredSlot={scrollX} slotWidth={SNAP} tiltShift={tiltShift} />
         <Image
           source={plate.imageSrc}
           contentFit="contain"
@@ -478,9 +524,44 @@ const PlateItem = ({ plate, index, scrollX }: PlateItemProps) => {
   )
 }
 
+type PlateShadowProps = {
+  index: number,
+  /** Where the camera is, in the same unit as `slotWidth`: the scroll offset for the carousel, a
+   *  fixed slot for a row that does not scroll. */
+  centredSlot: SharedValue<number>,
+  slotWidth: number,
+  tiltShift: SharedValue<number>,
+  shadowStrength?: number
+}
+
+/** The plate's shadow on the table, placed behind a `PLATE_SIZE` plate. Exported so the empty
+ *  carousel casts the same shadow, moved by the same rules, as the real one. */
+export const PlateShadow = ({ index, centredSlot, slotWidth, tiltShift, shadowStrength = SHADOW_OPACITY }: PlateShadowProps) => {
+  const shadowStyle = useAnimatedStyle(() => {
+    /** Signed, in slots: positive when this plate sits right of the centre. Clamped past the next
+     *  slot, where a plate is off screen and its shadow has nowhere further worth going. */
+    const offCentre = Math.max(Math.min(index - centredSlot.value / slotWidth, 1.5), -1.5);
+    const displacement = -offCentre * SHADOW_SPREAD - tiltShift.value * SHADOW_LAG;
+
+    return {
+      transform: [
+        { translateX: displacement },
+        { scaleX: 1 + Math.min(Math.abs(displacement) / SHADOW_SPREAD, 1) * SHADOW_STRETCH }
+      ],
+    };
+  });
+
+  return (
+    <Animated.View pointerEvents="none" style={[styles.shadow, { opacity: shadowStrength }, shadowStyle]}>
+      <Image source={plateShadow} style={styles.shadowImage} />
+    </Animated.View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 36
+    paddingBottom: 36,
+    paddingTop: theme.spacing[28],
   },
   item: {
     width: PLATE_SIZE,
@@ -489,6 +570,17 @@ const styles = StyleSheet.create({
   plate: {
     width: PLATE_SIZE,
     height: PLATE_SIZE
+  },
+  /** Under the plate, pushed down and right as if lit from the upper left. */
+  shadow: {
+    position: "absolute",
+    left: (PLATE_SIZE - SHADOW_SIZE) / 2 + SHADOW_NUDGE,
+    top: (PLATE_SIZE - SHADOW_SIZE) / 2 + SHADOW_DROP,
+    opacity: SHADOW_OPACITY
+  },
+  shadowImage: {
+    width: SHADOW_SIZE,
+    height: SHADOW_SIZE
   },
   /** Sized and placed by the badge's measured frame. */
   plateTarget: {
