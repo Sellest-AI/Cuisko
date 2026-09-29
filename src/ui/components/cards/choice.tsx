@@ -7,6 +7,7 @@ import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { ComponentProps, ReactNode } from "react";
+import plateShadow from "assets/images/ui/plate-shadow.webp";
 
 /**
  * What a picked tile is filled with, and what an unpicked one looks like beside it.
@@ -113,7 +114,14 @@ export const CardChoice = ({
             <Text.H4 style={styles.emoji}>{emoji}</Text.H4>
           </View>
         ) : (
-          <Image source={imageSrc} contentFit="contain" style={[styles.image, imageStyle, { marginTop: theme.spacing[4] }]} />
+          <View style={[styles.image, imageStyle, { marginTop: theme.spacing[4] }]}>
+            <Image source={plateShadow} style={styles.shadowImage} />
+            <Image
+              source={imageSrc}
+              contentFit="contain"
+              style={{ width: "100%", height: "100%" }}
+            />
+          </View>
         )}
       </View>
       <View style={styles.labelRow}>
@@ -144,6 +152,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     overflow: "hidden",
+  },
+  shadowImage: {
+    width: "80%",
+    aspectRatio: 1,
+    position: "absolute",
+    transform: [{ translateY: "2%" }, { translateX: "5%" }],
+    opacity: 0.2,
   },
   shadow: {
     boxShadow: [
@@ -179,6 +194,8 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: IMAGE_HEIGHT,
+    justifyContent: "center",
+    alignItems: "center",
   },
   emojiBox: {
     alignItems: "center",

@@ -7,6 +7,7 @@ import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { ButtonIcon } from "@ui/button-icon";
 import { colors, theme } from "theme";
+import plateShadow from "assets/images/ui/plate-shadow.webp";
 
 /**
  * How far a plate has got. The union drives colour and icon so the five states stay exhaustive and
@@ -81,13 +82,19 @@ export const CardMeal = ({
         onPress={onPress}
         onLongPress={onLongPress}
       >
-        <Image
-          source={imageSrc}
-          contentFit="contain"
-          style={styles.plate}
-          // The plate is the card's subject, drawn beside the text rather than inside a frame.
-          pointerEvents="none"
-        />
+        <View style={styles.plate}>
+          <Image
+            source={plateShadow}
+            style={styles.shadowImage}
+          />
+          <Image
+            source={imageSrc}
+            contentFit="contain"
+            style={{ width: "100%", height: "100%", zIndex: 1 }}
+            // The plate is the card's subject, drawn beside the text rather than inside a frame.
+            pointerEvents="none"
+          />
+        </View>
         <View style={styles.body}>
           <View style={{ ...styles.cardContent, ...(isEmpty ? styles.cardEmpty : null) }}>
             <View style={{
@@ -181,6 +188,14 @@ const styles = StyleSheet.create({
     /** Overlaps the card so the plate reads as sitting on it, not inside it. */
     marginRight: -10,
     zIndex: 1,
+  },
+  shadowImage: {
+    position: "absolute",
+    width: PLATE_SIZE * 1.2,
+    height: PLATE_SIZE * 1.2,
+    top: -PLATE_SIZE * 0.1,
+    opacity: 0.4,
+    left: 0,
   },
   cardContent: {
     backgroundColor: colors.surface.elevatedSubtle,
