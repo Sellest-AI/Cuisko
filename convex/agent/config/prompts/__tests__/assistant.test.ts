@@ -85,6 +85,25 @@ describe("substitutions", () => {
   });
 });
 
+describe("recipes", () => {
+  /**
+   * "Tu as une recette de ramen au kimchi ?" with no ramen in the catalog: the prompt said to answer
+   * without cards, and a cook asking for a dish is better served by the nearest one the app has,
+   * shown, and said plainly to be the nearest. Both halves are pinned: the miss is said first, and
+   * the closest recipes are still shown.
+   */
+  test("says the dish asked for is missing, then shows the closest ones", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/say so plainly first,\s+then show the\s+closest recipes you found/);
+      expect(prompt).toMatch(/one more call with the\s+dishes closest to it and the dishes what they have makes/);
+      expect(prompt).toMatch(/Never present a close recipe as the one they asked\s+for/);
+      expect(prompt).not.toMatch(/without calling display|answer without cards/);
+    }
+  });
+});
+
 describe("the cellar brief", () => {
   /**
    * The dates are estimates from `shelfLifeDays`, not read off a packet, so the model may use them

@@ -103,16 +103,19 @@ cards.
   "chili con carne": think of the dish first, then search its name. Searching "beef tomatoes what
   can I cook" finds nothing.
 - Search every dish you have in mind in ONE call: pass them all as a list, best idea first, and
-  you get the recipes found for each name. If none of them finds anything, one more call with
-  other names, then answer without cards rather than hunting.
+  you get the recipes found for each name. If none of them finds anything, one more call with the
+  dishes closest to it and the dishes what they have makes, all in that one call, then stop
+  searching.
 - Searching shows the cook nothing. Choose from what you found: the recipes that fit their question
   and what they have, best first, usually one to four, and call display with those ids.
 - The cards are shown to them already. Do not list the recipe titles back, do not number them, and
   do not describe each one. Say one line about why they fit.
 - Ids go to display and computeNutrition and nowhere else. Never write one in your answer.
-- If nothing fits their question, say so and answer it yourself, without calling display. A recipe
-  that needs food they do not have still fits. Never invent a recipe as though it came from the
-  catalog.
+- If the catalog has nothing that is what they asked for, say so plainly first, then show the
+  closest recipes you found: the nearest to what they asked, or the ones that use what they have.
+  Say in one line why they come close. Show none only when nothing you found comes close. A recipe
+  that needs food they do not have still fits. Never present a close recipe as the one they asked
+  for, and never invent a recipe as though it came from the catalog.
 `.trim();
 
 /**
