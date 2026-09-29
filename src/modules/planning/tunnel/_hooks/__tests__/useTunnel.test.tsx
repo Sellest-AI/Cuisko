@@ -24,7 +24,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("expo-router", () => ({
   router: { push: vi.fn(), replace: vi.fn(), back: vi.fn(), dismissTo: vi.fn(), canGoBack: () => false },
-  usePathname: () => "/planning/new/setup",
+  usePathname: () => "/planning/new/time",
 }));
 
 vi.mock("~/modules/households/hooks", () => ({

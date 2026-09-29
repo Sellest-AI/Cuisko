@@ -49,7 +49,7 @@ export const TUNNEL_OFFERS = {
  * the middle of a tunnel.
  *
  * Seeded from the household when the planning seed lands, so the second run through the tunnel
- * opens on what the first one answered — see `isSetupSeededAtom`.
+ * opens on what the first one answered — see `isHouseholdSeededAtom`.
  */
 export const peopleAtom = householdAtom<number>(TUNNEL_OFFERS.people);
 
@@ -72,16 +72,16 @@ export const equipmentsAtom = householdAtom<Equipment[]>([...TUNNEL_OFFERS.equip
  * Whether this run has already taken the household's answers.
  *
  * A flag beside the four atoms rather than `null` in each of them, which is what `constraintsAtom`
- * does: those four have a value the setup step can draw from the first frame, so making them
- * nullable would push a fallback into every reader to express something only the seeding effect
- * cares about. The constraint list has no such value — an unseeded chip row is genuinely empty —
+ * does: those four have a value the week and utensil steps can draw from the first frame, so
+ * making them nullable would push a fallback into every reader to express something only the
+ * seeding effect cares about. The constraint list has no such value — an unseeded chip row is genuinely empty —
  * so the two guards are shaped differently on purpose.
  *
  * ⚠️ **It guards against re-seeding, not against seeding twice.** Every step reads `useTunnel`, so
- * the effect re-runs on each of them; without this, walking back to setup after ticking an
+ * the effect re-runs on each of them; without this, walking back to the week step after ticking an
  * appliance would put the household's saved kitchen back over the answer just given.
  */
-export const isSetupSeededAtom = householdAtom(false);
+export const isHouseholdSeededAtom = householdAtom(false);
 
 /**
  * The one list the diet step draws: every diet and allergen, each carrying whether it is ticked
@@ -198,5 +198,5 @@ export const resetTunnelAtom = atom(null, (_get, set) => {
   set(cookingTimeAtom, "any");
   /** Back to unseeded, so the next run re-reads the household rather than reusing last week's ticks. */
   set(constraintsAtom, null);
-  set(isSetupSeededAtom, false);
+  set(isHouseholdSeededAtom, false);
 });

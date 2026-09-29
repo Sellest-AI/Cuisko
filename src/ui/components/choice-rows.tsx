@@ -9,7 +9,7 @@ type Option<T extends string> = { id: T; label: string; emoji: string };
 /**
  * Generic in the id, so a caller holding a narrower one keeps it.
  *
- * The setup step's slots are `MealSlot`, not `string`, and its toggle refuses anything else — a
+ * The week step's slots are `MealSlot`, not `string`, and its toggle refuses anything else — a
  * `string` id here would have forced a cast at that call site, which is the one place the narrowing
  * was doing real work.
  */

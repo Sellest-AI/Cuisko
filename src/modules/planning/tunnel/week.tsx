@@ -1,5 +1,3 @@
-import { useSetAtom } from "jotai";
-import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -12,7 +10,6 @@ import { CUISKO } from "~/lib/mascots";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { MAX_DAYS, MEAL_SLOTS, type MealSlot } from "../_model/model";
-import { resetTunnelAtom } from "../_hooks/atoms";
 import { useTunnel } from "./_hooks/useTunnel";
 import { useTunnelScrollHandler } from "./_hooks/useTunnelScrollHandler";
 import { SectionLabel } from "@ui/section-label";
@@ -34,19 +31,12 @@ const SLOTS = {
   dinner: { key: "Meal.dinner", emoji: "🌙" },
 } as const satisfies Record<MealSlot, { key: string; emoji: string }>;
 
-/** What this week is, who is eating, and what the kitchen can do. */
-export const TunnelSetup = () => {
+/** The shape of this week: which meals, how many at the table, over how many days. */
+export const TunnelWeek = () => {
   const t = useTranslations("Planning");
   const { people, setPeople, days, setDays, slots, toggleSlot, isSeedLoading } =
     useTunnel();
-  const resetTunnel = useSetAtom(resetTunnelAtom);
   const onScroll = useTunnelScrollHandler();
-
-  /**
-   * Entering the first step starts a run, so whatever the last one left behind goes now. The
-   * atoms outlive the tunnel, and a second run would otherwise open on the previous week's meals.
-   */
-  useEffect(() => resetTunnel(), [resetTunnel]);
 
   return (
     <Animated.ScrollView
@@ -56,8 +46,8 @@ export const TunnelSetup = () => {
       showsVerticalScrollIndicator={false}
     >
       <StepHeader
-        title={t("Tunnel.Setup.title")}
-        subtitle={t("Tunnel.Setup.subtitle")}
+        title={t("Tunnel.Week.title")}
+        subtitle={t("Tunnel.Week.subtitle")}
         mascot={CUISKO.calendar}
       />
       {isSeedLoading ? (
@@ -69,12 +59,12 @@ export const TunnelSetup = () => {
          * that value back at the end of the tunnel. A short wait is the honest version of "opens
          * already knowing how the household eats"; the diet step waits for the same reason.
          */
-        <Text.Base color={colors.muted}>{t("Tunnel.Setup.loading")}</Text.Base>
+        <Text.Base color={colors.muted}>{t("Tunnel.Week.loading")}</Text.Base>
       ) : (
         <>
           {/** Notes are removed for now, until implemented. */}
           <SectionLabel
-            label={t("Tunnel.Setup.meals")}
+            label={t("Tunnel.Week.meals")}
             style={{ marginTop: theme.spacing[4] }}
           />
           <ChoiceRows
@@ -86,9 +76,9 @@ export const TunnelSetup = () => {
             selected={slots}
             onToggle={toggleSlot}
           />
-          <SectionLabel label={t("Tunnel.Setup.people")} value={String(people)} />
+          <SectionLabel label={t("Tunnel.Week.people")} value={String(people)} />
           <StepSlider value={people} max={MAX_PEOPLE} onChange={setPeople} style={styles.slider} />
-          <SectionLabel label={t("Tunnel.Setup.days")} value={String(days)} />
+          <SectionLabel label={t("Tunnel.Week.days")} value={String(days)} />
           <StepSlider value={days} max={MAX_DAYS} onChange={setDays} style={styles.slider} />
         </>
       )}

@@ -142,7 +142,7 @@ describe("functions/preferences/getPlanningSeed", () => {
 
   /**
    * `undefined` is the answer for a household nobody has described, and it has to survive the trip:
-   * the setup step tells "never asked" from "answered nothing" by exactly this.
+   * the tunnel tells "never asked" from "answered nothing" by exactly this.
    */
   test("passes the household's defaults through, undefined included", async () => {
     const householdId = await seedHousehold();

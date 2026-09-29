@@ -40,6 +40,9 @@
     "portions": "How many are eating?",
     "meal": "Which meal?",
     "day": "Which day?",
+    "lunch_today": "Today",
+    "dinner_today": "Tonight",
+    "tomorrow": "Tomorrow",
     "replace_title": "Swap the dish?",
     "replace_body": "{{previous}} makes way for {{next}} at {{meal}} on {{day}}. Its groceries come off the list, and {{next}}'s go on.",
     "confirm": "Swap it",
@@ -50,7 +53,7 @@
   },
   "Tunnel": {
     "next_step": "Next step",
-    "Setup": {
+    "Week": {
       "title": "Who is eating this week?",
       "loading": "Looking up your kitchen…",
       "placeholder": "Craving pasta? Short on time? Tell me.",

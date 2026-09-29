@@ -5,7 +5,7 @@ import { vMealSlots } from "@convex/schema/households";
 import { v } from "convex/values";
 
 /**
- * The kitchen and the shape of a usual week, as the tunnel's setup step just answered them.
+ * The kitchen and the shape of a usual week, as the tunnel just answered them.
  *
  * `householdMutation` takes the `householdId` and proves membership before the handler runs, so
  * there is no path here that writes a household the caller does not belong to. No `userId`

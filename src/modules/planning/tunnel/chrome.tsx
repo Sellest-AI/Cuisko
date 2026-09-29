@@ -29,12 +29,12 @@ import { StepBar } from "@ui/step-bar";
  * because there is nothing to answer and nothing to go back to while it runs.
  */
 const CHROME = {
-  setup: { tinted: true, bar: true, progress: true },
+  time: { tinted: true, bar: true, progress: true },
+  week: { tinted: true, bar: true, progress: true },
   diet: { tinted: true, bar: true, progress: true },
   allergies: { tinted: true, bar: true, progress: true },
   mood: { tinted: true, bar: true, progress: true },
   focus: { tinted: true, bar: true, progress: true },
-  time: { tinted: true, bar: true, progress: true },
   utensils: { tinted: true, bar: true, progress: true },
   generating: { tinted: false, bar: false, progress: false },
   review: { tinted: false, bar: true, progress: true },

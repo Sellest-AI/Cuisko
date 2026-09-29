@@ -6,7 +6,7 @@
  * would otherwise have to reach into another module's interior to find him.
  *
  * Keyed by **what he is holding**, never by the screen he leads. A pose named `setup` is wrong the
- * first time it is drawn anywhere but the setup step, and a rename of an asset is the one kind of
+ * first time it is drawn anywhere but the week step, and a rename of an asset is the one kind of
  * change a screen diff does not show. `calendar` stays true wherever it is used.
  *
  * A total `Record` over the pose union, so a file added to `assets/images/cuisko/` and forgotten
