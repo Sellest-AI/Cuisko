@@ -102,6 +102,36 @@ describe("recipes", () => {
       expect(prompt).not.toMatch(/without calling display|answer without cards/);
     }
   });
+
+  /**
+   * "Qu'est-ce que je peux cuisiner ce soir ?" got cards and nothing after them, and cooks did not
+   * know a card opens: the steps, the ingredients, and planning it, which is what fills the
+   * shopping list. The answer ends by saying so, and the "nothing more" rule no longer stops it.
+   */
+  test("ends with an invitation to open a card and plan it", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/end your answer with one short sentence inviting them to tap a\s+recipe/);
+      expect(prompt).toMatch(/plan it for the day they want/);
+      expect(prompt).toMatch(/shopping list/);
+      expect(prompt).toMatch(/The\s+invitation after recipe cards is not a repeat/);
+    }
+  });
+
+  /**
+   * Two different questions: "je veux des lasagnes ce soir" asks about a dish, and is answered by
+   * the card and the invitation to plan it; "aide-moi à planifier ma semaine" asks about planning,
+   * and is answered by the planning button. The week never gets the invitation.
+   */
+  test("a request to plan the week ends with the button, not the invitation", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/call showButton with destination "planning"/);
+      expect(prompt).toMatch(/request to plan several days or their week: that answer ends with the\s+planning button instead, and never with this invitation/);
+    }
+  });
 });
 
 describe("the cellar brief", () => {
