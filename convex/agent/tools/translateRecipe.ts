@@ -212,10 +212,9 @@ const _translate = async <const L extends Locale = Locale>(
   ctx: ToolCtx,
   args: _Input<L>,
 ): Promise<TranslatedRecipe<L>[]> => {
-  // The `.min(1)` on `locales` guards the MODEL's call — the SDK parses its arguments against
-  // `_inputSchema` before this runs. Nothing parses a direct `run`, so the same rule is stated
-  // again here, where it is the difference between a clear error and `z.enum([])` rejecting every
-  // answer a model could possibly give.
+  // The `.min(1)` on `locales` already refuses an empty list on both doors: `createTool` parses a
+  // direct `run` against `_inputSchema` too. Stated again here because an empty list is the
+  // difference between a clear error and `z.enum([])` rejecting every answer a model could give.
   if (!args.locales.length) throw new Error("translateRecipe: no target locale to translate into.");
 
   /**

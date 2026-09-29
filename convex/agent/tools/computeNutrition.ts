@@ -34,7 +34,6 @@ const MAX_LINES = 30;
 const _inputSchema = z.object({
   recipeIds: z
     .array(z.string())
-    .min(1)
     .max(MAX_RECIPES)
     .optional()
     .describe("Recipe ids from searchRecipes, copied exactly. When given, lines are ignored."),
@@ -46,7 +45,6 @@ const _inputSchema = z.object({
         unit: z.enum(RECIPE_UNITS).describe("One of the units searchIngredients listed for it."),
       }),
     )
-    .min(1)
     .max(MAX_LINES)
     .optional()
     .describe("Ingredients and their quantities, for anything that is not a whole recipe."),
@@ -112,6 +110,8 @@ export const computeNutritionTool = ({ locale }: Caller) =>
       "per serving, per 100 g and each ingredient's share, already rounded. Every nutrition number " +
       "you give must come from here, copied as it is.",
     inputSchema: _inputSchema,
+    // An id sent as a stand-in (`recipeIds: [""]` beside real lines) is gone by here: `createTool`
+    // reads every input through `parseToolInput`.
     execute: async (ctx, { recipeIds, lines, servings }: Input): Promise<NutritionOutput> => {
       if (!recipeIds && !lines) throw new Error("Pass recipeIds, or lines of ingredients.");
 

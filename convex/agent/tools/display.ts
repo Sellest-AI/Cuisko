@@ -27,7 +27,12 @@ import { createTool } from "../utils";
 const MAX_DISPLAYED = 6;
 
 const _inputSchema = z.object({
-  kind: z.enum(DISPLAY_KINDS).describe("What the ids are. \"recipes\" for ids from searchRecipes."),
+  // Optional: a field with one legal value reads to some models as one they need not send (GLM 5.3
+  // left it out of 29 calls in a bake-off), and a refusal costs the cook a round trip.
+  kind: z
+    .enum(DISPLAY_KINDS)
+    .optional()
+    .describe("What the ids are. \"recipes\" for ids from searchRecipes, and if left out."),
   ids: z
     .array(z.string())
     .min(1)
@@ -49,7 +54,7 @@ type Input = z.infer<typeof _inputSchema>;
  * the model's order survives.
  */
 export const toDisplayCard = (
-  { kind, ids }: { kind: DisplayKind; ids: string[] },
+  { kind = "recipes", ids }: { kind?: DisplayKind; ids: string[] },
   missing: readonly string[],
 ): DisplayCard => {
   if (missing.length > 0) {

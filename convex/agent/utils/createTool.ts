@@ -1,5 +1,8 @@
 import { createTool as _createTool, type ToolCtx as _ToolCtx, } from "@convex-dev/agent";
 import type { Tool } from "ai";
+import * as z from "zod/v4";
+
+import { parseToolInput } from "./parseModelOutput";
 
 type ToolCtx = _ToolCtx;
 
@@ -25,10 +28,20 @@ export type ToolExtended<INPUT, OUTPUT, Ctx extends ToolCtx = ToolCtx> = Tool<IN
   ) => (OUTPUT | Promise<OUTPUT>);
 };
 
+/**
+ * Both doors read the input through `parseToolInput` before the tool's own code runs, so no tool
+ * writes a cleaner of its own: what a model sends as a stand-in, every tool reads as left out. A
+ * schema that is not zod (none today) is handed through as it came.
+ */
 export const createTool = <INPUT, OUTPUT, Ctx extends ToolCtx = ToolCtx>(
   args: Params<INPUT, OUTPUT, Ctx>
 ): ToolExtended<INPUT, OUTPUT, Ctx> => {
-  const tool = _createTool<INPUT, OUTPUT, Ctx>(args);
+  const { inputSchema, execute } = args;
+  const parse = (input: INPUT): INPUT =>
+    inputSchema instanceof z.ZodType ? (parseToolInput(inputSchema, input) as INPUT) : input;
 
-  return Object.assign(tool, { run: args.execute }) as ToolExtended<INPUT, OUTPUT, Ctx>;
+  const run: typeof execute = execute && ((ctx, input, options) => execute(ctx, parse(input), options));
+  const tool = _createTool<INPUT, OUTPUT, Ctx>({ ...args, execute: run } as Params<INPUT, OUTPUT, Ctx>);
+
+  return Object.assign(tool, { run }) as ToolExtended<INPUT, OUTPUT, Ctx>;
 };

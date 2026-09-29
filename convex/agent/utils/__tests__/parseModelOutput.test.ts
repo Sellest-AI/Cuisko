@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as z from "zod/v4";
 
-import { modelNumber, modelText, parseModelOutput } from "../parseModelOutput";
+import { modelNumber, modelText, parseModelOutput, parseToolInput } from "../parseModelOutput";
 
 describe("modelText", () => {
   it("keeps a real answer, trimmed", () => {
@@ -100,5 +100,66 @@ describe("parseModelOutput", () => {
     expect(() => parseModelOutput(_schema, _answer({ size: "xl" }))).toThrow();
     expect(() => parseModelOutput(_schema, _answer({ count: "many" }))).toThrow();
     expect(() => parseModelOutput(_schema, _answer({ name: undefined }))).toThrow();
+  });
+});
+
+describe("an array a model wrote", () => {
+  it("loses the empty items it holds: blank, null or missing", () => {
+    const groups = [{ steps: ["Boil", "", null, "  ", undefined, "Drain"] }];
+
+    expect(parseModelOutput(_schema, _answer({ groups })).groups[0]?.steps).toEqual(["Boil", "Drain"]);
+  });
+
+  it("loses the items that are a word for nothing, or a number that is not one", () => {
+    const groups = [{ steps: ["Boil", "null", "N/A", "NaN", "Drain"] }];
+    const schema = z.object({ counts: z.array(z.number()) });
+
+    expect(parseModelOutput(_schema, _answer({ groups })).groups[0]?.steps).toEqual(["Boil", "Drain"]);
+    expect(parseModelOutput(schema, { counts: [2, "NaN", Number.NaN, null, 3] })).toEqual({ counts: [2, 3] });
+  });
+
+  it("goes absent when it was absentable and held nothing but empty items", () => {
+    const schema = z.object({ tags: z.array(z.string()).optional() });
+
+    expect(parseModelOutput(schema, { tags: ["", null] })).toEqual({});
+  });
+});
+
+/**
+ * What a tool's `execute` receives. A model fills the fields it was told it may leave out: GPT-6 Luna
+ * asked for two eggs sent `recipeIds: [""]` beside the real lines, and a recipe with
+ * `lines: [{ ingredientId: "" }]` beside its real id. A stand-in is read as the field left out;
+ * anything that is not one still reaches the tool, which refuses it by name (ADR 0010).
+ */
+describe("parseToolInput", () => {
+  const _nutrition = z.object({
+    recipeIds: z.array(z.string()).max(5).optional(),
+    lines: z.array(z.object({ ingredientId: z.string(), quantity: z.number().positive(), unit: z.enum(["g", "pcs"]) })).optional(),
+    servings: z.number().int().min(1).optional(),
+  });
+  const eggs = [{ ingredientId: "egg", quantity: 2, unit: "pcs" }];
+
+  it("leaves a well-formed call alone", () => {
+    expect(parseToolInput(_nutrition, { recipeIds: ["chili"], servings: 2 })).toEqual({ recipeIds: ["chili"], servings: 2 });
+  });
+
+  it("reads a list of empty ids as the field left out", () => {
+    expect(parseToolInput(_nutrition, { recipeIds: [""], lines: eggs })).toEqual({ lines: eggs });
+  });
+
+  it("drops an item whose required text is empty, and the list with it when nothing is left", () => {
+    const standIn = [{ ingredientId: "", quantity: 1, unit: "g" }];
+
+    expect(parseToolInput(_nutrition, { recipeIds: ["chili"], lines: standIn })).toEqual({ recipeIds: ["chili"] });
+    expect(parseToolInput(_nutrition, { lines: [...standIn, ...eggs] })).toEqual({ lines: eggs });
+  });
+
+  it("reads an empty list it may leave out as left out", () => {
+    expect(parseToolInput(_nutrition, { recipeIds: [], lines: eggs })).toEqual({ lines: eggs });
+  });
+
+  it("still refuses a wrong call, as opposed to a stand-in", () => {
+    expect(() => parseToolInput(_nutrition, { lines: [{ ingredientId: "egg", quantity: 2, unit: "dozen" }] })).toThrow();
+    expect(parseToolInput(_nutrition, { recipeIds: ["k57-mangled"] })).toEqual({ recipeIds: ["k57-mangled"] });
   });
 });

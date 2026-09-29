@@ -136,8 +136,9 @@ const _inputSchema = z.object({
 });
 
 const _suggest = async (ctx: ToolCtx, args: z.infer<typeof _inputSchema>): Promise<SuggestedDish[]> => {
-  // The schema's bounds guard the MODEL's call; nothing parses a direct `run`, which is how the
-  // router calls this, so they are stated again where a bad count would otherwise be paid for.
+  // The schema's bounds already guard both doors: `createTool` parses a direct `run`, which is how
+  // the router calls this, against `_inputSchema` too. Stated again where a bad count would
+  // otherwise be paid for.
   if (!Number.isInteger(args.count) || args.count < 1 || args.count > _MAX_COUNT) {
     throw new Error(`suggestDishes: count must be an integer from 1 to ${_MAX_COUNT}.`);
   }

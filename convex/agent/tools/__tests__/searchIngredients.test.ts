@@ -62,4 +62,22 @@ describe("searchIngredientsTool", () => {
 
     expect(runQuery).toHaveBeenCalledTimes(1);
   });
+
+  /** The rule `searchRecipesTool` pins: a name that names nothing is no name. */
+  it("skips a blank name or a word for nothing beside a real one", async () => {
+    const { ctx, runQuery } = _ctx({ oeuf: [_row("oeuf", { gramsPerPiece: 50 })] });
+
+    const found = await _search(ctx, ["oeuf", "  ", "null"]);
+
+    expect(found.map(({ query }) => query)).toEqual(["oeuf"]);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a list of names that are only spaces or words for nothing, as it refuses an empty one", async () => {
+    const { ctx, runQuery } = _ctx({});
+
+    for (const queries of [[], ["   "], ["null", "N/A"]])
+      await expect(async () => _search(ctx, queries)).rejects.toThrow();
+    expect(runQuery).not.toHaveBeenCalled();
+  });
 });

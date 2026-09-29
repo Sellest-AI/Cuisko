@@ -10,7 +10,7 @@ import * as z from "zod/v4";
  */
 const _NOTHING_WORDS = new Set([
   "", "-", "--", "n/a", "na", "nil", "none", "no", "null", "nothing", "empty", "undefined",
-  "unknown", "not applicable", "not specified", "not provided",
+  "unknown", "not applicable", "not specified", "not provided", "nan",
 ]);
 
 /**
@@ -86,13 +86,46 @@ const _unwrap = (schema: z.ZodType) => {
 };
 
 /**
+ * An item a list cannot mean: nothing at all, `null`, a number that is not one, or text that is one
+ * of the words for nothing (`modelText`). Also what a required text field of a stand-in holds.
+ */
+const _isBlank = (value: unknown) =>
+  value == null ||
+  (typeof value === "number" && !Number.isFinite(value)) ||
+  (typeof value === "string" && modelText(value) === undefined);
+
+/**
+ * An object item a model wrote as a stand-in: one of its required text fields is blank, as in
+ * `{ ingredientId: "", quantity: 1, unit: "g" }`. It names nothing, so it cannot be a wrong answer
+ * to refuse, only an empty one to drop.
+ */
+const _isStandIn = (element: z.ZodType, item: unknown) => {
+  const { inner } = _unwrap(element);
+  if (_def(inner).type !== "object" || item === null || typeof item !== "object") return false;
+
+  return Object.entries(_def(inner).shape!).some(([key, field]) => {
+    const { inner: fieldType, absentable } = _unwrap(field);
+
+    return !absentable && _def(fieldType).type === "string" && _isBlank((item as Record<string, unknown>)[key]);
+  });
+};
+
+/**
+ * `forTool` is the input of a tool call rather than an answer. Two rules change with it: an item a
+ * model wrote as a stand-in is dropped, and an absentable value that breaks its rule THROWS rather
+ * than going absent, because a tool the model misused must say so (ADR 0010), where an answer is
+ * better with a field missing than refused whole.
+ */
+type _Mode = { forTool: boolean };
+
+/**
  * The value a model wrote, in the shape the schema at that position asks for.
  *
  * Only two things happen here, and both are per-leaf: a number field is read through
  * `modelNumber`, a string field through `modelText`. Objects and arrays exist to carry the walk
  * down to those leaves.
  */
-const _clean = (schema: z.ZodType, value: unknown): unknown => {
+const _clean = (schema: z.ZodType, value: unknown, mode: _Mode): unknown => {
   const { inner, absentable } = _unwrap(schema);
   const absent = absentable ? undefined : value;
 
@@ -107,7 +140,7 @@ const _clean = (schema: z.ZodType, value: unknown): unknown => {
         // and a key holding undefined is not the same value to Convex.
         return Object.entries(_def(inner).shape!).reduce<Record<string, unknown>>(
           (fields, [key, field]) => {
-            const cleanedField = _clean(field, source[key]);
+            const cleanedField = _clean(field, source[key], mode);
             if (cleanedField !== undefined) fields[key] = cleanedField;
 
             return fields;
@@ -116,10 +149,24 @@ const _clean = (schema: z.ZodType, value: unknown): unknown => {
         );
       }
 
-      case "array":
-        return Array.isArray(value)
-          ? value.map((item) => _clean(_def(inner).element!, item))
-          : absent;
+      case "array": {
+        if (!Array.isArray(value)) return absent;
+
+        // No list in the app holds a blank, a null, a NaN or a word for nothing, so an item that is
+        // one is dropped rather than failing the list it sits in. A required list left empty then
+        // fails its own `.min(1)`, as `[]` always did.
+        const element = _def(inner).element!;
+        const items = value
+          .filter((item) => !_isBlank(item))
+          .map((item) => _clean(element, item, mode))
+          .filter((item) => !(mode.forTool && _isStandIn(element, item)));
+
+        // A list the model may leave out, holding nothing once its empties are gone, was left out.
+        // For a tool that includes `[]`; an answer keeps a `[]` it wrote, which says "none".
+        const emptied = items.length === 0 && (mode.forTool || value.length > 0);
+
+        return absentable && emptied ? undefined : items;
+      }
 
       case "number": {
         const parsed = modelNumber(value);
@@ -142,7 +189,7 @@ const _clean = (schema: z.ZodType, value: unknown): unknown => {
   // it goes absent.** So `z.number().positive().nullable().optional()` is how a tool says "drop a
   // 0" — the 0 survives `modelNumber`, fails `.positive()`, and disappears here. No tool needs a
   // hand-written normalizer to express that, and a required field still fails loudly in `.parse`.
-  if (absentable && cleaned !== undefined && !inner.safeParse(cleaned).success) return undefined;
+  if (!mode.forTool && absentable && cleaned !== undefined && !inner.safeParse(cleaned).success) return undefined;
 
   return cleaned;
 };
@@ -162,4 +209,18 @@ const _clean = (schema: z.ZodType, value: unknown): unknown => {
 export const parseModelOutput = <T extends z.ZodType>(
   schema: T,
   raw: unknown,
-): WithoutNulls<z.infer<T>> => schema.parse(_clean(schema, raw)) as WithoutNulls<z.infer<T>>;
+): WithoutNulls<z.infer<T>> => schema.parse(_clean(schema, raw, { forTool: false })) as WithoutNulls<z.infer<T>>;
+
+/**
+ * The arguments a model called a tool with, its stand-ins taken out, then validated.
+ *
+ * A model fills the fields it was told it may leave out: GPT-6 Luna, asked for two eggs, sent
+ * `recipeIds: [""]` beside the real lines. Read as a bad id, that call is refused three times and
+ * the cook gets no figure. So blank items leave their list, an object item with a blank required
+ * text leaves it too, and a list the model may leave out that ends up empty goes absent.
+ *
+ * Everything else is still refused: an id that is not blank reaches the tool and is checked there,
+ * a unit outside the enum throws here, by name, for the model to read and retry.
+ */
+export const parseToolInput = <T extends z.ZodType>(schema: T, raw: unknown): WithoutNulls<z.infer<T>> =>
+  schema.parse(_clean(schema, raw, { forTool: true })) as WithoutNulls<z.infer<T>>;

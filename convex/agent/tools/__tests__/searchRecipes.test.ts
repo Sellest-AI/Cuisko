@@ -45,10 +45,16 @@ describe("searchRecipesTool", () => {
     expect(found.map(({ query }) => query)).toEqual(["pizza"]);
   });
 
-  it("skips a name that is only spaces", async () => {
+  /**
+   * A blank name, or a word for nothing, is no name: the list holding only those is refused as an
+   * empty one is, for the model to read and search again. It used to pass the schema and come back
+   * as an empty answer, which the model could read as "the catalog has none".
+   */
+  it("refuses a list of names that are only spaces or words for nothing, as it refuses an empty one", async () => {
     const { ctx, runQuery } = _ctx({});
 
-    expect(await _search(ctx, ["   "])).toEqual([]);
+    for (const queries of [[], ["   "], ["null", "N/A"]])
+      await expect(async () => _search(ctx, queries)).rejects.toThrow();
     expect(runQuery).not.toHaveBeenCalled();
   });
 });
