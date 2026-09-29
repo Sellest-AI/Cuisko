@@ -32,7 +32,7 @@ export const defaultAgent = new Agent(components.agent, {
  */
 export const assistantAgent = new Agent(components.agent, {
   name: "Cuisko Assistant",
-  providerOptions: models.assistant.providerOptions({ effort: "low" }),
+  providerOptions: models.assistant.providerOptions({ effort: false }),
   languageModel: models.assistant.model,
   instructions: "",
   /**
