@@ -68,10 +68,9 @@ export const WeeklyPlan = () => {
               : selectedDate.toLocaleDateString(locale, { weekday: "long", day: "numeric" })}
           </Text.H4>
           <ButtonPill
-            elevated
-            variant="primary"
+            variant="neutral"
             onPress={toggleMealType}
-            rightContent={<ArrowLeftRightIcon size={TOGGLE_ICON_SIZE} color={theme.colors.primary.foreground} />}
+            rightContent={<ArrowLeftRightIcon size={TOGGLE_ICON_SIZE} color={theme.colors.neutral.muted} />}
             style={styles.mealToggle}
           >
             {mealType === "lunch" ? t("Meal.lunch") : t("Meal.dinner")}

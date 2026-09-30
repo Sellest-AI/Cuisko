@@ -271,6 +271,8 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 40,
     lineHeight: 48,
+    minWidth: 48,
+    textAlign: "center",
   },
   icon: {
     width: 48,

@@ -1,5 +1,5 @@
 import { useFonts } from "expo-font";
-import UnboundedMedium from "assets/fonts/Unbounded-Medium.ttf";
+import Nunito750 from "assets/fonts/Nunito-750.ttf";
 import { H4_FONT_FAMILY } from "fonts";
 
 /**
@@ -21,7 +21,7 @@ import { H4_FONT_FAMILY } from "fonts";
  */
 
 /** Registered under the name `theme.font.h4` asks for — the same constant, so they cannot drift. */
-const ASSETS = { [H4_FONT_FAMILY]: UnboundedMedium };
+const ASSETS = { [H4_FONT_FAMILY]: Nunito750 };
 
 export const FontsProvider = ({ children }: { children: React.ReactNode }) => {
   const [loaded, error] = useFonts(ASSETS);

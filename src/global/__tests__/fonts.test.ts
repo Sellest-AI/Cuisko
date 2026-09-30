@@ -19,7 +19,7 @@ describe("the H4 font", () => {
 
   it("is the only font file shipped", () => {
     // Every file in `assets/fonts` is bundled for every user, loaded or not — a leftover from
-    // trying faces costs 300 KB and shows nothing. `Unbounded-Medium.ttf` → `UnboundedMedium`.
+    // trying faces costs 300 KB and shows nothing. `Nunito-750.ttf` → `Nunito750`.
     //
     // From the project root, where Vitest runs: under the jsdom environment `import.meta.url` is not
     // a `file:` URL.

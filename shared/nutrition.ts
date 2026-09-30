@@ -360,7 +360,7 @@ const _toTenth = (value: number) => Math.round(value * 10) / 10;
  * it nothing to do but copy.
  *
  * **Calories and the three macros are whole, because the recipe screen's nutrition card shows them
- * whole** (`nutrition-card.tsx`). Cuisko saying "12.3 g of protein" above a card reading "12 g" is
+ * whole** (`nutrition-row.tsx`). Cuisko saying "12.3 g of protein" above a card reading "12 g" is
  * two answers to one question. The facts the card does not show keep a tenth, since they are
  * often under one: an egg's fiber rounded whole is a zero that was never measured as one. Sodium is
  * in milligrams and needs no decimal.

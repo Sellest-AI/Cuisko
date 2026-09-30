@@ -8,11 +8,10 @@
     "start_cooking": "Start cooking",
     "not_found_title": "This recipe is not here",
     "not_found_body": "It may have been deleted, or the link is wrong.",
-    "not_found_action": "Back to my recipes"
+    "not_found_action": "Back to my recipes",
+    "created_by": "Created by"
   },
   "Overview": {
-    "difficulty": "Difficulty",
-    "chef": "Chef",
     "utensils": "Utensils",
     "ingredients": "Ingredients",
     "preparation": "Prep",
@@ -22,15 +21,16 @@
     "minutes_other": "{{count}} mins",
     "no_utensils": "Nothing but a pan and a knife.",
     "resting": "Rest",
-    "unknown_chef": "A Cuisko cook"
+    "dial_unit": "Minutes",
+    "meal_score": "Cui-Score"
   },
   "Nutrition": {
-    "title": "Nutrition",
-    "estimated": "AI estimate",
     "protein": "Protein",
     "fat": "Fat",
     "carbs": "Carbs",
     "calories": "Calories",
+    "iron": "Iron",
+    "saturated_fat": "Saturated fat",
     "per_serving": "Per serving",
     "for_people_one": "For {{count}} person",
     "for_people_other": "For {{count}} people"

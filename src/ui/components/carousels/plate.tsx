@@ -40,7 +40,7 @@ export const SIDE_SCALE = 0.7;
 
 /** How far tilting the phone slides the centre plate, and how much of that a side plate follows.
  *  Side plates moving less is what reads as depth rather than the whole row sliding. */
-export const TILT_SHIFT = 6;
+export const TILT_SHIFT = 8;
 export const SIDE_TILT = 0.5;
 
 /**

@@ -101,6 +101,7 @@ export const RecipeTabs = ({ tabs, activeKey }: Props) => {
 const styles = StyleSheet.create({
   row: {
     paddingHorizontal: SCREEN_PADDING,
+    paddingTop: theme.spacing[8],
     paddingBottom: theme.spacing[8],
     gap: theme.spacing[8],
   },

@@ -12,7 +12,7 @@ export const COVER_PLACEHOLDER = require("assets/placeholders/recipe-placeholder
 export const SCREEN_PADDING = theme.spacing[16];
 
 /** How far the content pulls up over the parallax header, so its rounded top overlaps the image. */
-export const CONTENT_NEGATIVE_SPACE = 24;
+export const CONTENT_NEGATIVE_SPACE = 20;
 
 /**
  * How long the servings minus must be held before it drops to the minimum, in milliseconds.

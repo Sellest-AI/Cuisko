@@ -45,6 +45,7 @@ export const ChromeNavigationBar = ({ style, onBack, onStepByStep }: Props) => {
           size="lg"
           onPress={onStepByStep}
           leftIcon={Play}
+          style={styles.elevated}
         >
           {t("Chrome.start_cooking")}
         </ButtonPill>
@@ -69,4 +70,15 @@ const styles = StyleSheet.create({
     gap: theme.spacing[16],
   },
   back: { alignSelf: "auto" },
+  elevated: {
+    boxShadow: [
+      {
+        offsetX: 2,
+        offsetY: -2,
+        blurRadius: 32,
+        spreadDistance: 5,
+        color: "rgba(0, 0, 0, 0.07)",
+      },
+    ],
+  },
 })

@@ -115,22 +115,28 @@ export const RecipeChrome = ({ children, servings }: Props) => {
         headerContent={
           <RecipeHeader
             recipeId={id}
-            tags={recipe?.tags ?? []}
             isOwned={recipe?.isOwned}
             isFavorited={recipe?.isFavorited}
           />
         }
         contentHeader={
-          <>
+          /*
+           * The tabs carry an 8 pt top padding so they still clear the lip once pinned. Off the
+           * overview the intro collapses and that padding alone leaves the tabs too far below the
+           * lip, so the gap is pulled in by 4 here. Pinning is unaffected: it reads the tabs' own
+           * padding, which stays.
+           */
+          <View style={activeIndex === 0 ? undefined : styles.tuckedTabs}>
             <View style={styles.lip} />
             <View style={styles.ground}>
               <RecipeIntro
+                chef={recipe?.chef ? { avatarSeed: recipe.chef.seed, name: recipe.chef.name } : undefined}
                 title={recipe?.title ?? ""}
                 description={recipe?.description ?? ""}
                 expanded={active === "overview"}
               />
             </View>
-          </>
+          </View>
         }
         /**
          * Pinned, because it is the only way between the three tabs: scrolled halfway down the
@@ -140,7 +146,6 @@ export const RecipeChrome = ({ children, servings }: Props) => {
         stickyHeader={
           <View>
             <RecipeTabs tabs={tabs} activeKey={active} />
-            <View style={styles.border} />
           </View>}
       >
         {/*
@@ -183,11 +188,6 @@ const styles = StyleSheet.create({
   ground: {
     backgroundColor: theme.colors.neutral.subtle,
   },
-  border: {
-    height: 2,
-    width: "100%",
-    backgroundColor: theme.colors.background,
-    marginTop: theme.spacing[12],
-  },
+  tuckedTabs: { marginBottom: -4 },
   missing: { flex: 1, justifyContent: "center" },
 });
