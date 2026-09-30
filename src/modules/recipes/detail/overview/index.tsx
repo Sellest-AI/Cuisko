@@ -1,16 +1,15 @@
 import { View, StyleSheet, useWindowDimensions } from "react-native";
 
-import { ANONYMOUS_AVATAR_SEED } from "@shared/avatars";
-import { Avatar } from "@ui/avatar";
-import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { difficultyKey } from "@shared/recipes";
+import { ScoreHorizontal } from "@ui/cards/score-horizontal";
 
-import { NutritionCard } from "../../_components/nutrition-card";
+import { NutritionRow } from "../../_components/nutrition-row";
 import { RecipeScreen } from "../../_components/recipe-screen";
 import { columnWidth, SCREEN_PADDING } from "../../constants";
 import { useRecipe } from "../../_hooks/useRecipe";
+import { mealScore } from "../../_model/detail";
 import { EQUIPMENT_EMOJI, EQUIPMENT_IMAGE } from "~/lib/vocabulary";
 import { Difficulty } from "./difficulty";
 import { GroceryRow } from "./grocery-row";
@@ -42,80 +41,49 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
    * declares one timing still shows a total — and the total never disagrees with the parts.
    */
   const timings: Timing[] = [
-    { emoji: "🕑", minutes: recipe.minutes, label: t("Overview.total") },
-    { emoji: "🍪", minutes: recipe.timings.preparation, label: t("Overview.preparation") },
-    { emoji: "🔥", minutes: recipe.timings.cooking, label: t("Overview.cooking") },
-    { emoji: "😴", minutes: recipe.timings.resting, label: t("Overview.resting") },
+    { minutes: recipe.timings.preparation, label: t("Overview.preparation") },
+    { minutes: recipe.timings.cooking, label: t("Overview.cooking") },
+    { minutes: recipe.timings.resting, label: t("Overview.resting") },
+    { minutes: recipe.minutes, label: t("Overview.total"), isTotal: true },
   ]
     .filter((timing) => timing.minutes !== undefined)
-    .map(({ emoji, label, minutes }) => ({
-      emoji,
-      label,
-      value: t("Overview.minutes", { count: minutes! }),
-    }));
+    .map(({ label, minutes, isTotal }) => ({ isTotal, label, value: t("Overview.minutes", { count: minutes! }) }));
 
   return (
-    <RecipeScreen>
-      <View style={styles.facts}>
-        <View style={styles.credits}>
-          <View style={[styles.tile, styles.difficulty]}>
-            <Difficulty
-              label={t(`Difficulties.${difficultyKey(recipe.difficulty)}`)}
-              level={recipe.difficulty}
-            />
-          </View>
-          <View style={[styles.tile, styles.chef]}>
-            {/*
-              * An uncredited recipe wears the one anonymous face rather than none: the tile is
-              * labelled "Chef", and a label over a gap reads as the page having failed. Every
-              * uncredited recipe wears the same one, so it reads as a stand-in and not as an author.
-              */}
-            <Avatar seed={recipe.chef?.seed ?? ANONYMOUS_AVATAR_SEED} elevated animated />
-            <View style={styles.chefName}>
-              {/*
-                * An unnamed owner is credited generically rather than left blank: the tile is
-                * labelled "Chef", and a label over an empty line reads as the page having failed.
-                */}
-              <Text.Base numberOfLines={1} color={theme.colors.neutral.base}>
-                {recipe.chef?.name ?? t("Overview.unknown_chef")}
-              </Text.Base>
-              <Text.Sm numberOfLines={1} color={theme.colors.neutral.muted}>{t("Overview.chef")}</Text.Sm>
-            </View>
-          </View>
-        </View>
-        {/*
-          * Per serving here, because this tab has no servings stepper — the figure has to stand on
-          * its own. The ingredients tab shows the batch instead, and both cards say which they are.
-          * Absent entirely when a line could not be weighed: `totalsOf` refuses a partial total.
-          */}
-        {recipe.nutrition && (
-          <NutritionCard
-            scope={t("Nutrition.per_serving")}
-            protein={recipe.nutrition.perServing.protein}
-            carbs={recipe.nutrition.perServing.carbohydrates}
-            fat={recipe.nutrition.perServing.fat}
-            calories={recipe.nutrition.perServing.calories}
-          />
-        )}
-        {timings.length > 0 && (
-          <View style={[styles.tile, { paddingHorizontal: 0 }]}>
-            <Timings
-              style={{ paddingHorizontal: styles.tile.padding }}
-              timings={timings}
-            />
-          </View>
-        )}
+    <RecipeScreen style={styles.screen}>
+      {/*
+      * Per serving here, because this tab has no servings stepper — the figure has to stand on
+      * its own. The ingredients tab shows the batch instead, and both cards say which they are.
+      * Absent entirely when a line could not be weighed: `totalsOf` refuses a partial total.
+      */}
+      {recipe.nutrition && (
+        <NutritionRow
+          style={styles.nutrition}
+          paddingHorizontal={SCREEN_PADDING}
+          scope={t("Nutrition.per_serving")}
+          protein={recipe.nutrition.perServing.protein}
+          carbs={recipe.nutrition.perServing.carbohydrates}
+          fat={recipe.nutrition.perServing.fat}
+          calories={recipe.nutrition.perServing.calories}
+          iron={recipe.nutrition.perServing.iron}
+          saturatedFat={recipe.nutrition.perServing.saturatedFat}
+        />
+      )}
+      <View style={[styles.horizontalRow, styles.paddingHorizontal]}>
+        <Difficulty
+          label={t(`Difficulties.${difficultyKey(recipe.difficulty)}`)}
+          level={recipe.difficulty}
+        />
+        <ScoreHorizontal
+          label={t("Overview.meal_score")}
+          score={recipe.nutrition?.nutriScore?.grade ?
+            mealScore(recipe.nutrition?.nutriScore?.grade, recipe.id) : -1}
+          style={styles.score}
+        />
       </View>
-      {recipe.equipments.length > 0 && (
-        <View style={styles.section}>
-          <GroceryRow
-            title={t("Overview.utensils")}
-            items={recipe.equipments.map((equipment) => ({
-              emoji: EQUIPMENT_EMOJI[equipment],
-              imageSrc: EQUIPMENT_IMAGE[equipment],
-              name: tVocabulary(`Equipments.${equipment}`),
-            }))}
-          />
+      {timings.length > 0 && (
+        <View style={[styles.paddingHorizontal, styles.timings]}>
+          <Timings timings={timings} total={recipe.minutes} />
         </View>
       )}
       {recipe.ingredients.length > 0 && (
@@ -142,38 +110,40 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           />
         </View>
       )}
+      {recipe.equipments.length > 0 && (
+        <View style={[styles.section, styles.utensils]}>
+          <GroceryRow
+            title={t("Overview.utensils")}
+            items={recipe.equipments.map((equipment) => ({
+              emoji: EQUIPMENT_EMOJI[equipment],
+              imageSrc: EQUIPMENT_IMAGE[equipment],
+              name: tVocabulary(`Equipments.${equipment}`),
+            }))}
+          />
+        </View>
+      )}
     </RecipeScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  facts: {
-    marginTop: theme.spacing[4],
+  screen: { marginTop: -theme.spacing[6] },
+  /** Takes the row's width left over by the difficulty card. */
+  score: { flex: 1 },
+  paddingHorizontal: {
     paddingHorizontal: SCREEN_PADDING,
-    gap: theme.spacing[8],
   },
-  credits: {
+  horizontalRow: {
     flexDirection: "row",
     gap: theme.spacing[8],
   },
-  tile: {
-    backgroundColor: theme.colors.surface.elevatedSubtle,
-    borderColor: theme.colors.border.default,
-    borderWidth: 2,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing[16],
-    minHeight: 72,
-    justifyContent: "center",
+  nutrition: {
+    marginBottom: theme.spacing[8]
   },
-  chef: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: theme.spacing[12],
+  timings: {
+    marginTop: theme.spacing[8],
+    marginBottom: theme.spacing[8],
   },
-  chefName: { flexShrink: 1 },
-  /** Room on the right so the gauge's five bars never sit flush against the tile's border. */
-  difficulty: { paddingRight: theme.spacing[24] },
-  section: { marginTop: theme.spacing[28] },
+  section: { marginTop: theme.spacing[24] },
+  utensils: { marginTop: theme.spacing[8] }
 });

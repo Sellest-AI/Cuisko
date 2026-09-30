@@ -8,11 +8,10 @@
     "start_cooking": "Passer en cuisine",
     "not_found_title": "Cette recette est introuvable",
     "not_found_body": "Elle a peut-être été supprimée, ou le lien est incorrect.",
-    "not_found_action": "Retour à mes recettes"
+    "not_found_action": "Retour à mes recettes",
+    "created_by": "Créée par"
   },
   "Overview": {
-    "difficulty": "Difficulté",
-    "chef": "Chef",
     "utensils": "Ustensiles",
     "ingredients": "Ingrédients",
     "preparation": "Préparation",
@@ -23,15 +22,16 @@
     "minutes_other": "{{count}} min",
     "no_utensils": "Rien de plus qu'une poêle et un couteau.",
     "resting": "Repos",
-    "unknown_chef": "Un cuisinier Cuisko"
+    "dial_unit": "Minutes",
+    "meal_score": "Cui-Score"
   },
   "Nutrition": {
-    "title": "Nutrition",
-    "estimated": "Estimation IA",
     "protein": "Protéines",
     "fat": "Lipides",
     "carbs": "Glucides",
     "calories": "Calories",
+    "iron": "Fer",
+    "saturated_fat": "Graisses saturées",
     "per_serving": "Par portion",
     "for_people_one": "Pour {{count}} personne",
     "for_people_many": "Pour {{count}} personnes",

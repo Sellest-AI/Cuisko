@@ -1,15 +1,11 @@
 import { View, StyleSheet } from "react-native";
 import { router } from "expo-router";
 
-import { Badge } from "@ui/badge";
 import { ButtonIcon } from "@ui/button-icon";
 import { CalendarPlus, Heart, Share2, SquarePen } from "@ui/icons";
 import { theme } from "theme";
-import { useTranslations } from "translations";
-import type { Tag } from "@shared/tags";
 
 import type { Id } from "~/lib/convex/api";
-import { TAG_EMOJI } from "~/lib/vocabulary";
 
 import { useSetRecipeFavorite } from "../../_hooks/useSetRecipeFavorite";
 import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
@@ -17,8 +13,6 @@ import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
 type Props = {
   /** The recipe the heart and the pencil act on. Absent only before the route parameter has arrived. */
   recipeId?: string;
-  /** Stored keys, not words — the chip's glyph and its wording are this component's to look up. */
-  tags: Tag[];
   /** From the `getOne` payload. The pencil renders only when this is exactly true. */
   isOwned?: boolean;
   /** From the `getOne` payload. Drives the heart's variant; absent until the recipe has arrived. */
@@ -26,29 +20,20 @@ type Props = {
 };
 
 /**
- * How many chips fit across the photo before they start wrapping over the title.
- *
- * A recipe carries as many tags as apply and the computed half alone can be nine, so this is a
- * layout limit rather than an editorial one. The first few are the diet claims, which are the ones
- * somebody scanning a photo is looking for.
- */
-const VISIBLE_TAGS = 3;
-
-/**
- * What sits on top of the recipe photo: the actions on one corner, the tags on the other.
+ * What sits on top of the recipe photo: the planning action on one corner, the recipe's own
+ * actions (edit, share, favorite) on the other.
  *
  * Both rows are absolutely positioned against a fixed-height box rather than laid out in flow,
  * because the parallax header scales and translates this whole view as the page scrolls — a flow
  * layout would reflow under the transform instead of moving with it.
  *
- * It takes the tags and the two flags rather than fetching them. The chrome above it already holds
+ * It takes the two flags rather than fetching them. The chrome above it already holds
  * the recipe, and this view is re-rendered by the parallax on every scroll frame — a subscription
  * here would be a second reader of one cache entry for data its parent had in hand. The favorite
  * WRITE is called from here, though: a mutation is not a subscription, and the heart is the only
  * thing that sends it.
  */
-export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) => {
-  const t = useTranslations("Vocabulary");
+export const RecipeHeader = ({ recipeId, isOwned, isFavorited }: Props) => {
   const { set } = useSetRecipeFavorite();
 
   /**
@@ -65,7 +50,8 @@ export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) =>
       <View style={[styles.actions, styles.leftActions]}>
         <ButtonIcon
           onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId } })}
-          variant="neutral"
+          variant="primary"
+          elevated
           size="sm"
         >
           {CalendarPlus}
@@ -104,19 +90,12 @@ export const RecipeHeader = ({ recipeId, tags, isOwned, isFavorited }: Props) =>
           {Heart}
         </ButtonIcon>
       </View>
-      <View style={styles.tags}>
-        {tags.slice(0, VISIBLE_TAGS).map((tag) => (
-          <Badge key={tag} textColor={theme.colors.foreground}>
-            {`${TAG_EMOJI[tag]} ${t(`Tags.${tag}`)}`}
-          </Badge>
-        ))}
-      </View>
     </View>
   );
 };
 
 /** Tall enough for the photo to read as a photo before the content starts covering it. */
-const HEADER_HEIGHT = 320;
+const HEADER_HEIGHT = 240;
 
 const styles = StyleSheet.create({
   header: {
@@ -138,14 +117,5 @@ const styles = StyleSheet.create({
   leftActions: {
     left: SCREEN_PADDING,
     justifyContent: "flex-start",
-  },
-  tags: {
-    position: "absolute",
-    bottom: SCREEN_PADDING + CONTENT_NEGATIVE_SPACE,
-    left: SCREEN_PADDING,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: theme.spacing[12],
   },
 });

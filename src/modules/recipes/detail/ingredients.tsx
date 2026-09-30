@@ -8,7 +8,7 @@ import { Image } from "@ui/image";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { NutritionCard } from "../_components/nutrition-card";
+import { NutritionRow } from "../_components/nutrition-row";
 import { RecipeScreen } from "../_components/recipe-screen";
 import { columnWidth, SCREEN_PADDING } from "../constants";
 import { IngredientGroup } from "../_components/ingredient-group";
@@ -40,7 +40,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
    */
   if (ingredients.length === 0) {
     return (
-      <RecipeScreen style={styles.screen}>
+      <RecipeScreen style={styles.paddingHorizontal}>
         <EmptyState icon={ForkKnife} title={t("Ingredients.title")} body={t("Ingredients.empty")} />
       </RecipeScreen>
     );
@@ -56,8 +56,8 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
   const ingredientsWithImages = ingredients.filter((line) => line.imageUrl);
 
   return (
-    <RecipeScreen style={styles.screen}>
-      <Servings servings={servings} onChange={setServings} />
+    <RecipeScreen>
+      <Servings servings={servings} onChange={setServings} style={styles.paddingHorizontal} />
       {/*
         * The batch, not a portion — this is the one screen with a servings stepper on it, and the
         * quantities under this card are the scaled ones, so the macros beside them are too. The
@@ -65,57 +65,63 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
         * per-serving figure.
         */}
       {recipe.nutrition && (
-        <NutritionCard
+        <NutritionRow
           style={styles.nutrition}
+          paddingHorizontal={SCREEN_PADDING}
           scope={t("Nutrition.for_people", { count: servings })}
+          scopePosition="left"
           protein={recipe.nutrition.total.protein}
           carbs={recipe.nutrition.total.carbohydrates}
           fat={recipe.nutrition.total.fat}
           calories={recipe.nutrition.total.calories}
+          iron={recipe.nutrition.total.iron}
+          saturatedFat={recipe.nutrition.total.saturatedFat}
         />
       )}
-      {groups.map((group) => (
-        <View key={group.category} style={styles.group}>
-          <IngredientGroup
-            title={tVocabulary(`Categories.${group.category}`)}
-            items={group.lines.map((line) => ({
-              emoji: line.emoji,
-              imageUrl: line.imageUrl,
-              name: line.name,
-              amount: line.quantity,
-              unit: line.unit,
-              conversion: line.conversion,
-            }))}
-            itemWidth={itemWidth}
-          />
-        </View>
-      ))}
-      {/*
+      <View style={styles.paddingHorizontal}>
+        {groups.map((group) => (
+          <View key={group.category} style={styles.group}>
+            <IngredientGroup
+              title={tVocabulary(`Categories.${group.category}`)}
+              items={group.lines.map((line) => ({
+                emoji: line.emoji,
+                imageUrl: line.imageUrl,
+                name: line.name,
+                amount: line.quantity,
+                unit: line.unit,
+                conversion: line.conversion,
+              }))}
+              itemWidth={itemWidth}
+            />
+          </View>
+        ))}
+        {/*
         * The sheet asks when and for how many, seeded from this tab's stepper through the shared
         * servings atom, so the count set here is the count the sheet opens on.
         */}
-      <ActionRow
-        variant="secondary"
-        style={styles.action}
-        onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId: recipe.id } })}
-        content={t("Ingredients.add_to_list")}
-        contentIcon={ListPlus}
-        subtitle={t("Ingredients.add_to_list_subtitle")}
-        leftContent={
-          <View style={styles.actionArt}>
-            <Image
-              source={ingredientsWithImages[1]?.imageUrl ?? INGREDIENT_IMAGE}
-              style={[styles.actionIngredient, styles.actionIngredientBack]}
-              contentFit="contain"
-            />
-            <Image
-              source={ingredientsWithImages[0]?.imageUrl ?? INGREDIENT_IMAGE}
-              style={[styles.actionIngredient, styles.actionIngredientFront]}
-              contentFit="contain"
-            />
-          </View>
-        }
-      />
+        <ActionRow
+          variant="secondary"
+          style={styles.action}
+          onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId: recipe.id } })}
+          content={t("Ingredients.add_to_list")}
+          contentIcon={ListPlus}
+          subtitle={t("Ingredients.add_to_list_subtitle")}
+          leftContent={
+            <View style={styles.actionArt}>
+              <Image
+                source={ingredientsWithImages[1]?.imageUrl ?? INGREDIENT_IMAGE}
+                style={[styles.actionIngredient, styles.actionIngredientBack]}
+                contentFit="contain"
+              />
+              <Image
+                source={ingredientsWithImages[0]?.imageUrl ?? INGREDIENT_IMAGE}
+                style={[styles.actionIngredient, styles.actionIngredientFront]}
+                contentFit="contain"
+              />
+            </View>
+          }
+        />
+      </View>
     </RecipeScreen>
   );
 };
@@ -137,8 +143,8 @@ const INGREDIENT_SIZE = 64;
 const COLUMNS = 3;
 
 const styles = StyleSheet.create({
-  screen: { paddingHorizontal: SCREEN_PADDING },
-  nutrition: { marginTop: theme.spacing[12], marginBottom: theme.spacing[8] },
+  paddingHorizontal: { paddingHorizontal: SCREEN_PADDING },
+  nutrition: { marginTop: theme.spacing[6], marginBottom: theme.spacing[8] },
   group: { marginTop: theme.spacing[16] },
   action: {
     alignSelf: "center",
