@@ -24,6 +24,7 @@ type Props = {
   onPress?: () => void,
   elevated?: boolean,
   animated?: boolean,
+  variant?: "ringed" | "bare";
 }
 
 /**
@@ -33,7 +34,7 @@ type Props = {
  * a source was the same grey placeholder. A blobatar is per-person from the first render, with no
  * upload, no empty state and no request.
  */
-export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = false, onPress }: Props) => {
+export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = false, variant = "ringed", onPress }: Props) => {
   const Component = onPress ? Pressable : View;
   const reduceMotion = useReduceMotion();
 
@@ -42,7 +43,7 @@ export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = 
    * given — the geometry is generated at that size, not scaled into a container — so passing the
    * full `size` would put the ring over the edge of the face instead of around it.
    */
-  const face = size - BORDER * 2;
+  const face = variant === "bare" ? size : size - BORDER * 2;
 
   return (
     <Component
@@ -51,7 +52,13 @@ export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = 
        * order lets a caller set `width` in `style` and resize the ring while the face stays at
        * `face` — the two are drawn from different numbers, so nothing makes them disagree loudly.
        */
-      style={[styles.container, elevated && styles.elevated, style, { width: size, height: size }]}
+      style={[
+        styles.container,
+        elevated && styles.elevated,
+        variant === "ringed" && styles.ring,
+        style,
+        { width: size, height: size }
+      ]}
       onPress={onPress}
     >
       {/*
@@ -68,11 +75,13 @@ export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = 
 
 const styles = StyleSheet.create({
   container: {
+    overflow: "hidden",
+  },
+  ring: {
     borderRadius: theme.radius.full,
     backgroundColor: theme.colors.surface.elevatedSubtle,
     borderWidth: BORDER,
     borderColor: theme.colors.border.default,
-    overflow: "hidden",
   },
   elevated: {
     boxShadow: [
