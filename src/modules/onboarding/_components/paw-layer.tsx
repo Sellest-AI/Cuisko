@@ -16,7 +16,7 @@ import { m } from "@ui/motion";
 import paw from "assets/images/onboarding/paw.webp";
 
 /** The paw's drawn size: the file is 205 × 240, the tip of its pointing toe near its top-left corner. */
-const PAW_WIDTH = 40;
+const PAW_WIDTH = 48;
 const PAW_HEIGHT = Math.round((PAW_WIDTH * 240) / 205);
 /** How far the drawing reaches back over its target, so the fingertip lands just inside the corner. */
 const TIP_INSET = 22;
