@@ -77,7 +77,8 @@ const FIXTURES: readonly (readonly [string, Expected])[] = [
   ["remove the milk from my cellar", "chat"],
 
   // A dish with a day, a meal or a head count: Cuisko plans it. The bare dish still opens the recipe.
-  ["je veux faire des lasagnes ce soir", "chat"],
+  // "je veux faire des lasagnes ce soir" is not here: "je veux" is a trigger, so a rule answers it
+  // before the model is asked, and a row the model never sees measures nothing.
   ["on mange un curry jeudi midi", "chat"],
   ["lasagnes ce soir pour 4", "chat"],
   ["mets des lasagnes au menu vendredi", "chat"],

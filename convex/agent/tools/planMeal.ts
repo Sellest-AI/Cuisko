@@ -77,7 +77,8 @@ export const planMealTool = ({ householdId, locale, today, now }: Caller) =>
       "undo it. Call it when the cook asked for it, or said yes when you offered. Pass a recipe id " +
       "from searchRecipes. If the answer is `occupied`, nothing was planned: another dish already " +
       "holds that meal, so tell the cook which and ask whether to replace it; call again with " +
-      "replace only on a yes. Do not describe the planned meal in your text: the card shows it.",
+      "replace only on a yes. Never say a meal is planned unless this tool answered `planned`. Do " +
+      "not describe the planned meal in your text: the card shows it.",
     inputSchema: _inputSchema,
     execute: async (ctx, { recipeId, date, slot, servings, replace }: Input): Promise<PlanMealResult> => {
       const missing = await ctx.runQuery(internal.router.recipes.missingIds._internal, { ids: [recipeId] });

@@ -45,14 +45,15 @@ type Option = "ingredient" | "recipe" | "request";
  * Below it the answer is discarded and `{ kind: "unknown" }` goes back, which the caller reads as
  * "no opinion, keep what you decided" — so an unconfident judgment costs a call and changes
  * nothing. A number picked by feel would be a number nothing could defend, so this one is measured:
- * `__tests__/classifyIntent.manual.test.ts` runs the real model over 23 real bar inputs and prints
+ * `__tests__/classifyIntent.manual.test.ts` runs the real model over 28 real bar inputs and prints
  * the two ranges a floor has to sit between.
  *
- * **Measured 2026-09-30: right answers 0.93–1.00, wrong answers none**, after the `request`
- * criterion learned that moving stock is a request (the five "ajoute / retire" rows landed at
- * 0.97–1.00). The floor's job in that picture is the long tail rather than the fixture: the
- * previous run's least confident correct answer was 0.72, and 0.6 keeps its headroom under that
- * run too, which is the margin, not the answer. Re-run the file when the criteria
+ * **Measured 2026-10-01: right answers 0.79–1.00, wrong answers none**, after the `request`
+ * criterion learned that a dish said with a day, a meal or a head count is a request (the four
+ * "lasagnes ce soir pour 4" rows landed at 0.97–0.99). The low end is the bare dish those rows lean
+ * against: "lasagnes" still reads as a recipe, at 0.79, and 0.6 keeps headroom under it. The
+ * floor's job in that picture is the long tail rather than the fixture: an earlier run's least
+ * confident correct answer was 0.72, which is the margin, not the answer. Re-run the file when the criteria
  * change: the one miss the fixture ever had was a criteria gap at 0.53, and widening the `request`
  * criterion took it to 0.94 without moving anything else.
  */
