@@ -8,6 +8,7 @@
 
 import { CATEGORIES, type Category } from "@shared/categories";
 import type { RecipeUnit } from "@shared/ingredients";
+import type { NutriScoreGrade } from "@shared/nutrition";
 import type { InstructionGroup } from "@shared/recipes";
 
 import type { Conversion } from "./units";
@@ -129,3 +130,25 @@ export const flattenSteps = (groups: InstructionGroup[]): FlatStep[] =>
       })),
     )
     .map((step, index) => ({ ...step, position: index + 1 }));
+
+const MEAL_SCORE_BY_GRADE: Record<NutriScoreGrade, number> = { A: 92, B: 80, C: 60, D: 40, E: 20 };
+
+/**
+ * The recipe's Nutri-Score grade as the 0–100 the meal score card fills its ring with.
+ *
+ * By grade, not by points, so the card never disagrees with the letter. The grade itself is the
+ * backend's, graded on the whole dish per 100 g (`totalsOf`).
+ *
+ * `seed` (the recipe id) nudges the score up by 0 to 3, so two dishes of the same grade do not
+ * show the identical number. The nudge is a hash, not a random draw: a recipe always shows the
+ * same score, and it never reaches the next grade's step.
+ */
+export const mealScore = (grade: NutriScoreGrade, seed?: number | string): number => {
+  if (seed === undefined) return MEAL_SCORE_BY_GRADE[grade];
+
+  return Math.min(MEAL_SCORE_BY_GRADE[grade] + Math.floor(_seedOffset(`${seed}`)), 100);
+};
+
+/** A stable 0–3 from a string: a 32-bit string hash (`h * 31 + c`), folded onto the offset's range. */
+const _seedOffset = (seed: string) =>
+  Math.abs([...seed].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) | 0, 0)) % 4;
