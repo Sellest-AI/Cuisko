@@ -78,7 +78,10 @@ const QUESTION: ChoiceQuestion<Option> = {
       "sentence: a fact looked up ABOUT a food, written as bare keywords, is a request and not the " +
       "food — its calories, its cooking time, how to store it, what to replace it with. An " +
       "instruction to add or remove food is a request too, and so is a list of several foods: " +
-      "\"retire 2 carottes\", \"add milk and eggs\", \"500 g de patates, 3 tomates\".",
+      "\"retire 2 carottes\", \"add milk and eggs\", \"500 g de patates, 3 tomates\". So is a dish " +
+      "said with when it will be cooked or eaten, or for how many: the shopper wants it planned, " +
+      "not looked up. \"je veux faire des lasagnes ce soir\", \"curry jeudi midi\", \"lasagna " +
+      "tonight for four\".",
   },
 };
 

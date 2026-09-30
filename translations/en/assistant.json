@@ -42,5 +42,9 @@
   },
   "cellar": {
     "undo": "Undo"
+  },
+  "meal": {
+    "undo": "Undo",
+    "canceled": "Canceled"
   }
 }

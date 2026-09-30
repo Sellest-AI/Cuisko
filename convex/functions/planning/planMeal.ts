@@ -17,8 +17,18 @@ type Args = {
   today: number;
 };
 
+export type PlannedMeal = {
+  mealPlanId: Id<"mealPlans">;
+  plannedMealId: Id<"plannedMeals">;
+  /**
+   * The planned plate this one took the slot of, so an undo can put it back. Absent on an empty
+   * slot. A cooked or skipped plate is never replaced — `commitPlan` refuses it — so it is never here.
+   */
+  replaced?: { recipeId: Id<"recipes">; servings: number };
+};
+
 /**
- * Puts one dish on one plate of the kept week, from the recipe screen.
+ * Puts one dish on one plate of the kept week, from the recipe screen or from Cuisko.
  *
  * The second caller of `commitPlan`, not a second implementation: a plate planned here goes down
  * the same path as a week the tunnel generated — the recipe's lines are weighed against the cellar,
@@ -33,15 +43,28 @@ type Args = {
  *
  * Yesterday is refused: a plate behind the household is a week it lived, and `availableStock` would
  * not count its reservations anyway.
+ *
+ * The replaced plate is the one `commitPlan` dropped to make room, so what an undo would put back
+ * is exactly what was there.
  */
-export const planMeal = async (ctx: MutationCtx, args: Args): Promise<Id<"mealPlans">> => {
+export const planMeal = async (ctx: MutationCtx, args: Args): Promise<PlannedMeal> => {
   if (args.date < args.today) throw new ConvexError({ code: "INVALID_INPUT", message: "The day has passed." });
 
-  return commitPlan(ctx, {
+  const { mealPlanId, plannedMealIds, replaced } = await commitPlan(ctx, {
     householdId: args.householdId,
     plates: [{ recipeId: args.recipeId, date: args.date, slot: args.slot, servings: args.servings }],
     people: args.servings,
     today: args.today,
     owned: [],
   });
+
+  // A plan of one plate: one id, since `commitPlan` refuses a plan with none, and at most one plate
+  // replaced, since one slot holds one.
+  const [previous] = replaced;
+
+  return {
+    mealPlanId,
+    plannedMealId: plannedMealIds[0]!,
+    replaced: previous && { recipeId: previous.recipeId, servings: previous.servings },
+  };
 };

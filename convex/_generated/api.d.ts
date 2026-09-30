@@ -30,6 +30,7 @@ import type * as agent_tools_computeNutrition from "../agent/tools/computeNutrit
 import type * as agent_tools_display from "../agent/tools/display.js";
 import type * as agent_tools_generateIngredientImage from "../agent/tools/generateIngredientImage.js";
 import type * as agent_tools_generateRecipeImages from "../agent/tools/generateRecipeImages.js";
+import type * as agent_tools_planMeal from "../agent/tools/planMeal.js";
 import type * as agent_tools_sanitizeIngredient from "../agent/tools/sanitizeIngredient.js";
 import type * as agent_tools_sanitizeRecipe from "../agent/tools/sanitizeRecipe.js";
 import type * as agent_tools_searchIngredients from "../agent/tools/searchIngredients.js";
@@ -305,6 +306,7 @@ declare const fullApi: ApiFromModules<{
   "agent/tools/display": typeof agent_tools_display;
   "agent/tools/generateIngredientImage": typeof agent_tools_generateIngredientImage;
   "agent/tools/generateRecipeImages": typeof agent_tools_generateRecipeImages;
+  "agent/tools/planMeal": typeof agent_tools_planMeal;
   "agent/tools/sanitizeIngredient": typeof agent_tools_sanitizeIngredient;
   "agent/tools/sanitizeRecipe": typeof agent_tools_sanitizeRecipe;
   "agent/tools/searchIngredients": typeof agent_tools_searchIngredients;

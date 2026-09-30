@@ -8,6 +8,7 @@ import { assistantPrompt } from "../../agent/config/prompts/assistant";
 import { addToCellarTool, removeFromCellarTool } from "../../agent/tools/cellar";
 import { computeNutritionTool } from "../../agent/tools/computeNutrition";
 import { displayTool } from "../../agent/tools/display";
+import { planMealTool } from "../../agent/tools/planMeal";
 import { searchIngredientsTool } from "../../agent/tools/searchIngredients";
 import { searchRecipesTool } from "../../agent/tools/searchRecipes";
 import { showButtonTool } from "../../agent/tools/showButton";
@@ -32,6 +33,9 @@ type Args = {
   locale: Locale;
   /** What the household can cook with, and the cook's clock — `turnBrief`, read when they pressed send. */
   brief: string;
+  /** The cook's clock (`shared/clock.ts`), which the plan tool counts the day of a plate from. */
+  today: number;
+  now: string;
 };
 
 /**
@@ -56,7 +60,7 @@ type Args = {
  */
 export const answerTurn = async (
   ctx: ActionCtx,
-  { threadId, promptMessageId, userId, householdId, locale, brief }: Args,
+  { threadId, promptMessageId, userId, householdId, locale, brief, today, now }: Args,
 ): Promise<void> => {
   const result = await assistantAgent.streamText(
     ctx,
@@ -77,6 +81,7 @@ export const answerTurn = async (
         [ASSISTANT_TOOLS.showSubstitutions]: showSubstitutionsTool,
         [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId }),
         [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
+        [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, locale, today, now }),
       },
       /*
        * No `stopWhen`: the turn ends when the model stops calling tools, capped by the agent's

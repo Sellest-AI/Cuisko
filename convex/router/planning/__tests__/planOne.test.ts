@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -222,5 +222,49 @@ describe("router/planning/planOne", () => {
     const { recipeId } = await seedRecipe("Soupe");
 
     await expect(planOne(userId, householdId, recipeId, { servings: 0 })).rejects.toThrow();
+  });
+});
+
+/** Cuisko's way in: the chat's undo drops the plate by its id, and puts back what it replaced. */
+describe("router/planning/planOne _internal", () => {
+  const planInternal = (householdId: Id<"households">, recipeId: Id<"recipes">, servings = 2) =>
+    t.mutation(internal.router.planning.planOne._internal, {
+      householdId, recipeId, date: TODAY + DAY, slot: "dinner", servings, today: TODAY,
+    });
+
+  test("returns the plate it wrote, and nothing replaced on an empty slot", async () => {
+    const { householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Lasagnes");
+
+    const planned = await planInternal(householdId, recipeId, 4);
+
+    const [plate] = await platesOf(householdId);
+    expect(planned).toEqual({ mealPlanId: plate!.mealPlanId, plannedMealId: plate!._id });
+    expect(plate).toMatchObject({ recipeId, slot: "dinner", servings: 4 });
+  });
+
+  test("returns the planned plate it replaced, with its recipe and servings", async () => {
+    const { householdId } = await seedMember();
+    const curry = await seedRecipe("Curry");
+    const lasagne = await seedRecipe("Lasagnes");
+
+    await planInternal(householdId, curry.recipeId, 3);
+    const planned = await planInternal(householdId, lasagne.recipeId, 4);
+
+    expect(planned.replaced).toEqual({ recipeId: curry.recipeId, servings: 3 });
+    expect(await platesOf(householdId)).toMatchObject([{ _id: planned.plannedMealId, recipeId: lasagne.recipeId }]);
+  });
+
+  test("leaves the other slot's plate out of what it replaced", async () => {
+    const { userId, householdId } = await seedMember();
+    const curry = await seedRecipe("Curry");
+    const lasagne = await seedRecipe("Lasagnes");
+
+    // Lunch that day, planned from the screen; Cuisko plans dinner.
+    await planOne(userId, householdId, curry.recipeId);
+    const planned = await planInternal(householdId, lasagne.recipeId);
+
+    expect(planned.replaced).toBeUndefined();
+    expect(await platesOf(householdId)).toHaveLength(2);
   });
 });

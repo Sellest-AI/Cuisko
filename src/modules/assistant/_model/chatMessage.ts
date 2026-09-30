@@ -25,9 +25,11 @@ import {
   type DisplayCard,
   type DisplayKind,
   type IngredientSwap,
+  type MealPlanned,
   type SubstitutionsCard,
 } from "@shared/assistant";
 import { UNITS } from "@shared/ingredients";
+import { MEAL_SLOTS } from "@shared/mealSlots";
 
 /**
  * One part of a stored message: a tool call, or a run of text the model wrote between them.
@@ -63,7 +65,7 @@ export type SourceMessage = {
 
 /**
  * The tools that show the cook a status line while they work. `display`, `showButton`,
- * `showSubstitutions` and the two cellar tools do not: what they draw is their line.
+ * `showSubstitutions`, the two cellar tools and `planMeal` do not: what they draw is their line.
  */
 export type StepTool = Exclude<
   AssistantTool,
@@ -72,6 +74,7 @@ export type StepTool = Exclude<
   | typeof ASSISTANT_TOOLS.showSubstitutions
   | typeof ASSISTANT_TOOLS.addToCellar
   | typeof ASSISTANT_TOOLS.removeFromCellar
+  | typeof ASSISTANT_TOOLS.planMeal
 >;
 
 /**
@@ -98,6 +101,7 @@ export type AnswerBlock =
   | { type: "display"; key: string; card: DisplayCard }
   | { type: "substitutions"; key: string; card: SubstitutionsCard }
   | { type: "cellar"; key: string; change: DrawnCellarChange }
+  | { type: "meal"; key: string; meal: MealPlanned }
   | { type: "button"; key: string; button: AssistantButton };
 
 /** A message as the screen draws it. */
@@ -125,6 +129,11 @@ export type ChatMessage = {
    * take out the carrots" is two changes, and each has its own undo.
    */
   cellarChanges: DrawnCellarChange[];
+  /**
+   * The plates Cuisko planned, in call order, each with its own undo. A slot it found taken is not
+   * one: nothing was planned, and the model asks about it in its text.
+   */
+  plannedMeals: MealPlanned[];
   /**
    * The answer as the screen draws it below its status lines: its text and what it showed,
    * interleaved in the order the model wrote them. Empty for a user message.
@@ -361,6 +370,47 @@ const _cellarChangesOf = (parts: readonly MessagePart[]): DrawnCellarChange[] =>
     .map((part) => _cellarChangeOf(part.output))
     .filter((change): change is DrawnCellarChange => change !== undefined);
 
+const _isServings = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value > 0;
+
+/**
+ * A stored planMeal output → the plate to draw, when one landed and this build knows its shape.
+ *
+ * `occupied` is dropped with the malformed: nothing was planned, so there is no card and no undo. A
+ * malformed `replaced` drops the whole plate rather than just the field, since the undo would then
+ * take the new dish off the slot and never put back the one it replaced.
+ */
+const _mealPlannedOf = (output: unknown): MealPlanned | undefined => {
+  if (!_isObject(output) || output.v !== 1 || output.status !== "planned") return undefined;
+
+  const { householdId, plannedMealId, recipeId, date, servings, replaced } = output;
+  const slot = MEAL_SLOTS.find((known) => known === output.slot);
+
+  if (typeof householdId !== "string" || typeof plannedMealId !== "string" || typeof recipeId !== "string") return undefined;
+  if (typeof date !== "number" || !slot || !_isServings(servings)) return undefined;
+
+  const isReplaced = _isObject(replaced) && typeof replaced.recipeId === "string" && _isServings(replaced.servings);
+  if (replaced !== undefined && !isReplaced) return undefined;
+
+  return {
+    v: 1,
+    status: "planned",
+    householdId,
+    plannedMealId,
+    recipeId,
+    date,
+    slot,
+    servings,
+    ...(isReplaced && { replaced: { recipeId: replaced.recipeId as string, servings: replaced.servings as number } }),
+  };
+};
+
+const _plannedMealsOf = (parts: readonly MessagePart[]): MealPlanned[] =>
+  parts
+    .filter((part) => part.type === _partType(ASSISTANT_TOOLS.planMeal) && part.state === "output-available")
+    .map((part) => _mealPlannedOf(part.output))
+    .filter((meal): meal is MealPlanned => meal !== undefined);
+
 /** A show tool's finished part → its block, when its output is one this build can draw. */
 const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined => {
   if (part.state !== "output-available") return undefined;
@@ -384,6 +434,10 @@ const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined
     case _partType(ASSISTANT_TOOLS.removeFromCellar): {
       const change = _cellarChangeOf(part.output);
       return change && { type: "cellar", key, change };
+    }
+    case _partType(ASSISTANT_TOOLS.planMeal): {
+      const meal = _mealPlannedOf(part.output);
+      return meal && { type: "meal", key, meal };
     }
     default:
       return undefined;
@@ -465,7 +519,8 @@ export const isShowingSomething = (message: ChatMessage): boolean =>
   message.cards.length > 0 ||
   message.substitutions !== undefined ||
   message.button !== undefined ||
-  message.cellarChanges.length > 0;
+  message.cellarChanges.length > 0 ||
+  message.plannedMeals.length > 0;
 
 /**
  * Stored messages → what the screen renders.
@@ -508,10 +563,11 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
       const button = isUser ? undefined : _buttonOfParts(message.parts);
       const substitutions = isUser ? undefined : _substitutionsOfParts(message.parts);
       const cellarChanges = isUser ? [] : _cellarChangesOf(message.parts);
+      const plannedMeals = isUser ? [] : _plannedMealsOf(message.parts);
       const blocks = isUser ? [] : _blocksOf(message.parts, text);
       const endedEmpty =
         !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button &&
-        !substitutions && cellarChanges.length === 0;
+        !substitutions && cellarChanges.length === 0 && plannedMeals.length === 0;
 
       return {
         key: message.key,
@@ -522,6 +578,7 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
         ...(button && { button }),
         ...(substitutions && { substitutions }),
         cellarChanges,
+        plannedMeals,
         blocks,
         isStreaming,
         isReplying: !isUser && !isTurnOver,

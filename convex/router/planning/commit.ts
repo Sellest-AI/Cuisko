@@ -33,6 +33,6 @@ export const authed = householdMutation({
     today: v.number(),
     owned: v.array(v.object({ ingredientId: v.id("ingredients"), unit: vRecipeUnit })),
   },
-  handler: (ctx, args) =>
-    commitPlan(ctx, { ...args, householdId: ctx.householdId }),
+  handler: async (ctx, args) =>
+    (await commitPlan(ctx, { ...args, householdId: ctx.householdId })).mealPlanId,
 });

@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -159,5 +159,25 @@ describe("router/planning/getMany", () => {
         householdId, locale: "fr", from: TODAY, to: TODAY + 10 * DAY,
       }),
     ).rejects.toThrow();
+  });
+});
+
+/**
+ * Cuisko's slot check: no signed-in cook, so the household it names is the only boundary. A
+ * neighbour's plate on the same day must never read as the slot being taken.
+ */
+describe("router/planning/getMany _internal", () => {
+  test("answers only the named household's plates, within the range", async () => {
+    const home = await seedMember();
+    const neighbour = await seedMember();
+    const { plateIds } = await seedPlates(home.householdId, [TODAY - DAY, TODAY, TODAY + DAY]);
+    await seedPlates(neighbour.householdId, [TODAY]);
+
+    const meals = await t.query(internal.router.planning.getMany._internal, {
+      householdId: home.householdId, locale: "fr", from: TODAY, to: TODAY + DAY,
+    });
+
+    expect(meals.map((meal) => meal.id)).toEqual([plateIds[1]]);
+    expect(meals[0]).toMatchObject({ date: TODAY, slot: "lunch", status: "ready", recipe: { title: "Soupe" } });
   });
 });

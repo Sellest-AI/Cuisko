@@ -7,6 +7,7 @@ import { theme } from "theme";
 import type { AnswerBlock, ChatMessage as ChatMessageModel } from "../_model/chatMessage";
 import { CellarChange } from "./cellar-change";
 import { Display } from "./display";
+import { PlannedMeal } from "./planned-meal";
 import { OfferedButton } from "./offered-button";
 import { Substitutions } from "./substitutions";
 import { ToolStep } from "./tool-step";
@@ -50,6 +51,12 @@ const _Block = ({ block, isFirst, messageKey }: { block: AnswerBlock; isFirst: b
         <View style={styles.assistantTool}>
           {/* The message's key too: a block's own falls back to its index when a part has no call id. */}
           <CellarChange change={block.change} changeKey={`${messageKey}:${block.key}`} />
+        </View>
+      );
+    case "meal":
+      return (
+        <View style={styles.assistantTool}>
+          <PlannedMeal meal={block.meal} changeKey={`${messageKey}:${block.key}`} />
         </View>
       );
   }

@@ -1,4 +1,5 @@
 import type { Unit } from "./ingredients";
+import type { MealSlot } from "./mealSlots";
 
 /**
  * Where one conversation with Cuisko stops and the next one begins.
@@ -49,6 +50,7 @@ export const ASSISTANT_TOOLS = {
   showSubstitutions: "showSubstitutions",
   addToCellar: "addToCellar",
   removeFromCellar: "removeFromCellar",
+  planMeal: "planMeal",
 } as const;
 
 export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];
@@ -122,6 +124,37 @@ export type CellarChange = {
   /** Read by the model, never drawn. */
   failed: { ingredientId: string; reason: string }[];
 };
+
+/**
+ * What the planMeal tool stores in a message when the plate landed: which plate, where, and what it
+ * took the slot of — the chat's card, and its undo's receipt.
+ */
+export type MealPlanned = {
+  v: 1;
+  status: "planned";
+  /** The household whose week changed, which the undo targets — see `CellarChange.householdId`. */
+  householdId: string;
+  plannedMealId: string;
+  recipeId: string;
+  /** The cook's local midnight of the day it landed on. */
+  date: number;
+  slot: MealSlot;
+  servings: number;
+  /** The planned plate it replaced, which the undo plans again on the same day and slot. */
+  replaced?: { recipeId: string; servings: number };
+};
+
+/**
+ * What the planMeal tool answers when a planned plate already holds the slot and the cook has not
+ * said to replace it. Nothing was written. Read by the model, which asks; never drawn.
+ */
+export type MealSlotTaken = {
+  v: 1;
+  status: "occupied";
+  current: { title: string; servings: number };
+};
+
+export type PlanMealResult = MealPlanned | MealSlotTaken;
 
 /** One ingredient replaced by another, both catalog ingredient ids. */
 export type IngredientSwap = { from: string; to: string };

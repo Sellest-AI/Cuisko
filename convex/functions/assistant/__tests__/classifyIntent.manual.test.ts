@@ -75,6 +75,14 @@ const FIXTURES: readonly (readonly [string, Expected])[] = [
   ["retire 2 carottes", "chat"],
   ["add 2 onions and a pack of butter", "chat"],
   ["remove the milk from my cellar", "chat"],
+
+  // A dish with a day, a meal or a head count: Cuisko plans it. The bare dish still opens the recipe.
+  ["je veux faire des lasagnes ce soir", "chat"],
+  ["on mange un curry jeudi midi", "chat"],
+  ["lasagnes ce soir pour 4", "chat"],
+  ["mets des lasagnes au menu vendredi", "chat"],
+  ["lasagna tonight for four", "chat"],
+  ["lasagnes", "recipe"],
 ];
 
 /** Crude on purpose: it picks the `locale` field of the state, not a user's setting. */

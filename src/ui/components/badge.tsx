@@ -1,4 +1,4 @@
-import { StyleSheet, ViewStyle } from "react-native";
+import { StyleSheet, ViewProps } from "react-native";
 import { theme } from "theme";
 import { IconComponent } from "./icons";
 import { Text } from "./text";
@@ -7,7 +7,7 @@ import { BlurView } from "./blur-view";
 type Variant = "neutral" | "warning" | "success" | "subtle";
 
 type Props = {
-  style?: ViewStyle | ViewStyle[],
+  style?: ViewProps["style"],
   icon?: IconComponent,
   children: string
   variant?: Variant

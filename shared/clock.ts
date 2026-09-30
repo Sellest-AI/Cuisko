@@ -27,6 +27,12 @@ export const localStamp = (date: Date): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+/**
+ * How many days a plate can be planned on from today, today included: the recipe screen's grid, and
+ * how far ahead Cuisko plans.
+ */
+export const PLANNABLE_DAYS = 9;
+
 /** `date` as the server reads it — see `Clock`. */
 export const localClock = (date: Date): Clock => ({
   today: startOfDay(date).getTime(),

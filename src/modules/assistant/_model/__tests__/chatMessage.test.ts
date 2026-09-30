@@ -718,3 +718,74 @@ describe("the cellar changes under an answer", () => {
     expect(drawn && isShowingSomething(drawn)).toBe(true);
   });
 });
+
+/** A planMeal call, finished unless told otherwise. */
+const planCall = (output: unknown, state = "output-available", toolCallId = "call-p") =>
+  ({ type: "tool-planMeal", toolCallId, state, output });
+
+/** Lasagne for four, Friday's dinner, in place of a curry for two. */
+const lasagne = {
+  v: 1,
+  status: "planned",
+  householdId: "home",
+  plannedMealId: "plate-1",
+  recipeId: "lasagne",
+  date: 1_000_000,
+  slot: "dinner",
+  servings: 4,
+  replaced: { recipeId: "curry", servings: 2 },
+};
+
+describe("the meals planned under an answer", () => {
+  test("a planned plate is drawn where it was called, with what it replaced", () => {
+    const [drawn] = toChatMessages([message({ parts: [said("C'est noté."), planCall(lasagne)] })]);
+
+    expect(drawn?.plannedMeals).toEqual([lasagne]);
+    expect(drawn?.blocks.map((block) => block.type)).toEqual(["text", "meal"]);
+    expect(drawn?.steps).toEqual([]);
+  });
+
+  /** Nothing was planned: the model's text asks about the slot, and there is nothing to undo. */
+  test("a slot found taken is not drawn", () => {
+    const [drawn] = toChatMessages([
+      message({ parts: [planCall({ v: 1, status: "occupied", current: { title: "Curry", servings: 2 } })] }),
+    ]);
+
+    expect(drawn?.plannedMeals).toEqual([]);
+  });
+
+  /**
+   * The output is the undo's receipt. A `replaced` that cannot be read drops the whole plate: the
+   * undo would take the lasagne off and never put the curry back.
+   */
+  test("drops an unknown version, a missing id, an unknown slot, a plate for nobody, and an unreadable replaced", () => {
+    for (const output of [
+      { ...lasagne, v: 2 },
+      { ...lasagne, plannedMealId: undefined },
+      { ...lasagne, householdId: undefined },
+      { ...lasagne, slot: "brunch" },
+      { ...lasagne, servings: 0 },
+      { ...lasagne, date: "friday" },
+      { ...lasagne, replaced: { recipeId: "curry" } },
+      "nope",
+    ]) {
+      const [drawn] = toChatMessages([message({ parts: [planCall(output)] })]);
+
+      expect(drawn?.plannedMeals).toEqual([]);
+    }
+  });
+
+  test("a plate on an empty slot has no replaced", () => {
+    const { replaced: _, ...onEmptySlot } = lasagne;
+    const [drawn] = toChatMessages([message({ parts: [planCall(onEmptySlot)] })]);
+
+    expect(drawn?.plannedMeals).toEqual([onEmptySlot]);
+  });
+
+  test("a turn that answered with only a planned plate is showing something", () => {
+    const [drawn] = toChatMessages([message({ text: "", status: "success", parts: [planCall(lasagne)] })]);
+
+    expect(drawn?.hasFailed).toBe(false);
+    expect(drawn && isShowingSomething(drawn)).toBe(true);
+  });
+});

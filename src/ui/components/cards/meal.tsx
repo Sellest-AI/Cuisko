@@ -75,8 +75,10 @@ export const CardMeal = ({
   const StatusIcon = statusIcon;
   const isEmpty = status === "empty";
 
+  const { backgroundColor, ...restStyle } = StyleSheet.flatten(style);
+
   return (
-    <View style={[styles.row, style]}>
+    <View style={[styles.row, restStyle]}>
       <Pressable
         style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
         onPress={onPress}
@@ -96,7 +98,11 @@ export const CardMeal = ({
           />
         </View>
         <View style={styles.body}>
-          <View style={{ ...styles.cardContent, ...(isEmpty ? styles.cardEmpty : null) }}>
+          <View style={[
+            styles.cardContent,
+            isEmpty && styles.cardEmpty,
+            backgroundColor && { backgroundColor }
+          ]}>
             <View style={{
               flexDirection: "row",
               alignItems: "center",
@@ -148,7 +154,10 @@ export const CardMeal = ({
           </View>
           <View style={styles.tags}>
             {slotLabel && (
-              <Badge icon={SlotIcon}>
+              <Badge
+                style={[backgroundColor && { backgroundColor }]}
+                icon={SlotIcon}
+              >
                 {slotLabel}
               </Badge>
             )}

@@ -56,6 +56,8 @@ export const authed = householdMutationI18n({
       householdId: ctx.householdId,
       locale,
       brief,
+      today,
+      now,
     });
 
     return { threadId: thread };
@@ -74,6 +76,8 @@ export const _internal_answer = internalAction({
     householdId: v.id("households"),
     locale: vLocale,
     brief: v.string(),
+    today: v.number(),
+    now: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

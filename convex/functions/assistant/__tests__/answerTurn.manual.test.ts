@@ -59,6 +59,7 @@ import { assistantPrompt } from "../../../agent/config/prompts/assistant";
 import { addToCellarTool, removeFromCellarTool } from "../../../agent/tools/cellar";
 import { computeNutritionTool } from "../../../agent/tools/computeNutrition";
 import { displayTool } from "../../../agent/tools/display";
+import { planMealTool } from "../../../agent/tools/planMeal";
 import { searchIngredientsTool } from "../../../agent/tools/searchIngredients";
 import { searchRecipesTool } from "../../../agent/tools/searchRecipes";
 import { showButtonTool } from "../../../agent/tools/showButton";
@@ -225,6 +226,13 @@ const RECIPES = {
     keywords: ["dal", "dahl", "curry", "lentilles", "lentils", "vegetarien", "vegetarian"],
     nutrition: { servings: 4, grams: 350, perServing: { calories: 402, protein: 19, fat: 12, carbohydrates: 52 } },
   },
+  // Its keywords stop at the dish's own names, so it does not join the beef and pasta searches the
+  // older cases were written against.
+  lasagne: {
+    title: { fr: "Lasagnes à la bolognaise", en: "Beef lasagna" },
+    keywords: ["lasagne", "lasagnes", "lasagna"],
+    nutrition: { servings: 6, grams: 400, perServing: { calories: 620, protein: 33, fat: 30, carbohydrates: 52 } },
+  },
   pastaBake: {
     title: { fr: "Gratin de pâtes", en: "Pasta bake" },
     keywords: ["gratin", "bake", "pates", "pasta", "fromage", "cheese"],
@@ -387,11 +395,21 @@ const _removeFromStock = (stock: Stock[], { ingredientId, unit, quantity }: { in
  * Everything above and below them — each tool's `run`, its input dedupe, its thrown errors, its
  * output shape — is the app's code.
  */
-const _fakeCtx = (locale: Locale, stock: Stock[]) => ({
+const _fakeCtx = (locale: Locale, stock: Stock[], week: FakePlate[]) => ({
   runMutation: async (mutation: FunctionReference<"mutation", "internal">, args: Record<string, unknown>) => {
     const name = getFunctionName(mutation);
 
     switch (name) {
+      // What planMeal reports back: the plate it wrote, and the planned one it took the slot of.
+      case "router/planning/planOne:_internal": {
+        const replaced = week.find((plate) => _dateOf(plate) === args.date && plate.slot === args.slot);
+        return {
+          mealPlanId: "k57testplan",
+          plannedMealId: "k57testplate",
+          ...(replaced && { replaced: { recipeId: R[replaced.recipe], servings: replaced.servings } }),
+        };
+      }
+
       // Nothing on the fake list, so an add strikes nothing.
       case "router/cellars/addToCellar:_internal":
         return { cellarItemId: _rowId(String(args.ingredientId)), struck: 0 };
@@ -428,6 +446,17 @@ const _fakeCtx = (locale: Locale, stock: Stock[]) => ({
       case "router/recipes/computeNutrition:_internal":
         return _nutrition(args as Parameters<typeof _nutrition>[0], locale);
 
+      case "router/planning/getMany:_internal":
+        return week
+          .filter((plate) => _dateOf(plate) >= Number(args.from) && _dateOf(plate) < Number(args.to))
+          .map((plate) => ({
+            date: _dateOf(plate),
+            slot: plate.slot,
+            servings: plate.servings,
+            status: "ready",
+            recipe: { id: R[plate.recipe], title: RECIPES[plate.recipe].title[locale] },
+          }));
+
       default:
         throw new Error(`The fake ctx does not serve ${name}. A tool started calling something new: add it here.`);
     }
@@ -439,9 +468,9 @@ const _fakeCtx = (locale: Locale, stock: Stock[]) => ({
  * fake ctx. Rebuilding with `tool()` rather than passing the Convex tools through is what lets the
  * ctx in: theirs reads it off `this`, which only the agent sets.
  */
-const _tools = (locale: Locale, stock: Stock[]) => {
+const _tools = (locale: Locale, stock: Stock[], week: FakePlate[]) => {
   // A copy: the fake removal spends it, and the case's own stock is read again by the next run.
-  const ctx = _fakeCtx(locale, stock.map((row) => ({ ...row }))) as never;
+  const ctx = _fakeCtx(locale, stock.map((row) => ({ ...row })), week) as never;
   const userId = "k57testuser" as Id<"users">;
   const householdId = "k57testhousehold" as Id<"households">;
   const real = {
@@ -453,6 +482,7 @@ const _tools = (locale: Locale, stock: Stock[]) => {
     [ASSISTANT_TOOLS.showSubstitutions]: showSubstitutionsTool,
     [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId }),
     [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
+    [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, locale, today: TODAY_MS, now: `${TODAY}T19:05` }),
   };
 
   return Object.fromEntries(
@@ -471,6 +501,16 @@ const _tools = (locale: Locale, stock: Stock[]) => {
 
 const TODAY = "2026-09-29";
 const NOW = `Tuesday ${TODAY} 19:05`;
+/** The cook's local midnight, as the phone sends it. The bench's cook lives on UTC. */
+const TODAY_MS = Date.parse(`${TODAY}T00:00:00Z`);
+
+/** A plate already on the case's week, `days` after today. */
+type FakePlate = { recipe: RecipeKey; days: number; slot: "lunch" | "dinner"; servings: number };
+
+const _dateOf = (plate: FakePlate) => TODAY_MS + plate.days * 86_400_000;
+
+/** The calendar date `days` after today, as the model passes it to planMeal. */
+const _day = (days: number) => new Date(TODAY_MS + days * 86_400_000).toISOString().slice(0, 10);
 
 type Stock = { ingredient: IngredientKey; amount: number; unit: "g" | "ml" | "pcs"; expiresIn?: number };
 
@@ -529,6 +569,17 @@ const _asked = (turn: Turn, name: string, ingredient: IngredientKey, quantity: n
 const _asks = (turn: Turn, what: string) =>
   turn.text.includes("?") || /\b(dis-moi|dites-moi|tell me)\b/i.test(turn.text) || `the answer does not ask ${what}`;
 
+/** planMeal was called for this recipe, day, meal and head count, and planned it (not `occupied`). */
+const _planned = (turn: Turn, recipe: RecipeKey, days: number, slot: "lunch" | "dinner", servings: number) => {
+  const calls = _succeeded(turn, ASSISTANT_TOOLS.planMeal);
+  const landed = calls.some((call) =>
+    call.input.recipeId === R[recipe] && call.input.date === _day(days) && call.input.slot === slot &&
+    call.input.servings === servings && (call.output as { status?: string } | undefined)?.status === "planned");
+
+  return landed ||
+    `planMeal did not plan ${recipe} on ${_day(days)} ${slot} for ${servings} (got: ${JSON.stringify(calls.map((call) => ({ ...call.input, recipeId: _nameOf(String(call.input.recipeId)) })))})`;
+};
+
 const _nameOf = (id: string) => {
   const ingredient = INGREDIENT_BY_ID.get(id);
   const recipe = RECIPE_BY_ID.get(id);
@@ -568,7 +619,8 @@ const _invariants = (turn: Turn, stock: Stock[]): string[] => {
         : call.tool === ASSISTANT_TOOLS.showSubstitutions ? ((call.input.swaps as { from: string; to: string }[]) ?? []).flatMap(({ from, to }) => [from, to])
           : call.tool === ASSISTANT_TOOLS.computeNutrition ? [...((call.input.recipeIds as string[]) ?? []), ...((call.input.lines as LineRequest[]) ?? []).map((line) => line.ingredientId)]
             : call.tool === ASSISTANT_TOOLS.addToCellar || call.tool === ASSISTANT_TOOLS.removeFromCellar ? _items(call).map((item) => item.ingredientId)
-              : [];
+              : call.tool === ASSISTANT_TOOLS.planMeal ? [String(call.input.recipeId ?? "")]
+                : [];
     // An empty id is a stand-in for a field left out, which `createTool` drops (`parseToolInput`).
     for (const id of carried.filter((id) => id.trim() !== "" && !seen.has(id))) failures.push(`${call.tool} was given an id no search returned: ${id}`);
 
@@ -595,6 +647,8 @@ type Case = {
   stock: Stock[];
   /** Earlier exchanges in the thread, as plain text. Only the question takes the brief. */
   history?: ModelMessage[];
+  /** Plates already planned, which planMeal finds on the slot it is asked for. */
+  week?: FakePlate[];
   question: string;
   /** What this question must produce, beyond `_invariants`: `true` for a hit, a message for a miss. */
   expect: (turn: Turn) => (string | true)[];
@@ -921,6 +975,106 @@ const CASES: Case[] = [
     ],
   },
 
+  /* Planning one plate: a wish is an offer, an order with everything in it is done, a week is the planner's. */
+  {
+    // "The invitation that ends your answer is your one question: it offers to plan it and asks for
+    // everything still missing at once." Nothing is planned before the cook answers it.
+    name: "fr · a dish for tonight is shown with an offer to plan it",
+    locale: "fr",
+    stock: [],
+    question: "Je veux faire des lasagnes ce soir",
+    expect: (turn) => [
+      _showsAnyOf(turn, ["lasagne"]),
+      _mustNot(turn, ASSISTANT_TOOLS.planMeal),
+      /combien|personnes/i.test(turn.text) || "the answer does not ask how many they will be",
+      /planifi/i.test(turn.text) || "the answer does not offer to plan it",
+      /liste|courses/i.test(turn.text) || "the offer does not say the shopping list will be updated",
+    ],
+  },
+  {
+    // "Ask for everything still missing in ONE short question, never one after the other." A cook
+    // asked the head count, then the meal, answers twice for one plate.
+    name: "fr · a day with no meal and no count asks both at once",
+    locale: "fr",
+    stock: [],
+    question: "Je veux faire des lasagnes vendredi",
+    expect: (turn) => [
+      _mustNot(turn, ASSISTANT_TOOLS.planMeal),
+      /combien|personnes/i.test(turn.text) || "the answer does not ask how many they will be",
+      /midi|soir|déjeuner|dîner/i.test(turn.text) || "the answer does not ask lunch or dinner",
+    ],
+  },
+  {
+    // "When they answer that offer with what was missing, that is their yes: plan it at once,
+    // without asking again."
+    name: "fr · answering the offer with the head count plans it",
+    locale: "fr",
+    stock: [],
+    history: [
+      { role: "user", content: "Je veux faire des lasagnes ce soir" },
+      {
+        role: "assistant",
+        content: "Voici des lasagnes à la bolognaise. Touche la recette pour la voir, ou dis-moi pour combien, " +
+          "je la planifie pour ce soir et je mets à jour ta liste de courses.",
+      },
+    ],
+    question: "On sera 4",
+    expect: (turn) => [_planned(turn, "lasagne", 0, "dinner", 4)],
+  },
+  {
+    // "When they ask you to plan it and already said the dish, the day and how many, plan it at once."
+    name: "fr · an order with everything in it plans at once",
+    locale: "fr",
+    stock: [],
+    question: "Mets des lasagnes pour 4 ce soir au menu",
+    expect: (turn) => [_planned(turn, "lasagne", 0, "dinner", 4)],
+  },
+  {
+    // "Tonight is dinner, noon is lunch." Thursday is two days after the bench's Tuesday.
+    name: "fr · a weekday and noon land on the right plate",
+    locale: "fr",
+    stock: [],
+    question: "Planifie un dal jeudi midi pour 2",
+    expect: (turn) => [_planned(turn, "dal", 2, "lunch", 2)],
+  },
+  {
+    // "When planMeal answers occupied ... say which dish is already there and ask."
+    name: "fr · a taken slot is named and asked about, not replaced",
+    locale: "fr",
+    stock: [],
+    week: [{ recipe: "chili", days: 0, slot: "dinner", servings: 4 }],
+    question: "Mets des lasagnes pour 4 ce soir au menu",
+    expect: (turn) => [
+      _must(turn, ASSISTANT_TOOLS.planMeal),
+      _calls(turn, ASSISTANT_TOOLS.planMeal).every((call) => call.input.replace !== true) ||
+      "planMeal replaced the chili without asking",
+      /chili/i.test(turn.text) || "the answer does not name the chili already planned",
+      _asks(turn, "whether to replace it"),
+    ],
+  },
+  {
+    // "To plan several days or their week, do not call planMeal."
+    name: "fr · a whole week goes to the planner",
+    locale: "fr",
+    stock: [],
+    question: "Planifie mes repas de la semaine",
+    expect: (turn) => {
+      const button = _calls(turn, ASSISTANT_TOOLS.showButton)[0]?.input;
+      return [
+        _mustNot(turn, ASSISTANT_TOOLS.planMeal),
+        !button || button.destination === "planning" || `showButton went to "${String(button.destination)}", not planning`,
+      ];
+    },
+  },
+  {
+    // "Further ahead, say so and point them to the planning screen." A failed call is an invariant miss.
+    name: "en · three weeks out is beyond the chat",
+    locale: "en",
+    stock: [],
+    question: "Plan lasagna for 4 on October 20",
+    expect: (turn) => [_mustNot(turn, ASSISTANT_TOOLS.planMeal)],
+  },
+
   /* Nothing to show. */
   {
     name: "fr · a technique question needs no card",
@@ -934,6 +1088,7 @@ const CASES: Case[] = [
       _mustNot(turn, ASSISTANT_TOOLS.computeNutrition),
       _mustNot(turn, ASSISTANT_TOOLS.addToCellar),
       _mustNot(turn, ASSISTANT_TOOLS.removeFromCellar),
+      _mustNot(turn, ASSISTANT_TOOLS.planMeal),
     ],
   },
 ];
@@ -1009,7 +1164,7 @@ const _runTurn = async (entrant: Entrant, testCase: Case, run: number): Promise<
         ...(testCase.history ?? []),
         appendBrief({ role: "user", content: testCase.question }, _brief(testCase.stock, testCase.locale)),
       ],
-      tools: _tools(testCase.locale, testCase.stock),
+      tools: _tools(testCase.locale, testCase.stock, testCase.week ?? []),
       stopWhen: isStepCount(MAX_STEPS),
       providerOptions: routing(entrant.effort, ROUTING),
       maxRetries: 2,

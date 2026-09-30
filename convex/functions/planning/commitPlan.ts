@@ -98,8 +98,13 @@ const _inOrder = (plates: CommittedPlate[]) =>
  * Each date is read once for all its plates. `dropMeal` refuses a cooked plate, and the refusal
  * is the week's: a cooked meal is a record the cook step settles against, and a week that would
  * have to overwrite one is refused whole rather than written around it.
+ *
+ * Returns the plates it dropped, so a caller that undoes the write can put them back. All of them
+ * were planned: anything else made `dropMeal` throw.
  */
-const _dropReplaced = async (ctx: MutationCtx, { householdId, plates, today }: Args) => {
+const _dropReplaced = async (ctx: MutationCtx, { householdId, plates, today }: Args): Promise<Doc<"plannedMeals">[]> => {
+  const dropped: Doc<"plannedMeals">[] = [];
+
   for (const date of new Set(plates.map((plate) => plate.date))) {
     const onThatDay = await ctx.db
       .query("plannedMeals")
@@ -111,9 +116,14 @@ const _dropReplaced = async (ctx: MutationCtx, { householdId, plates, today }: A
 
       const replaced = onThatDay.find((meal) => meal.slot === plate.slot);
 
-      if (replaced) await dropMeal(ctx, { householdId, mealId: replaced._id, today });
+      if (replaced) {
+        await dropMeal(ctx, { householdId, mealId: replaced._id, today });
+        dropped.push(replaced);
+      }
     }
   }
+
+  return dropped;
 };
 
 /**
@@ -139,13 +149,22 @@ const _dropReplaced = async (ctx: MutationCtx, { householdId, plates, today }: A
  * The plan's `startDate`, `days` and `slots` are derived from the plates rather than sent, so a week
  * the user dropped meals from in review cannot describe itself as one it is not.
  */
-export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"mealPlans">> => {
+export const commitPlan = async (
+  ctx: MutationCtx,
+  args: Args,
+): Promise<{
+  mealPlanId: Id<"mealPlans">;
+  /** The plates written, in the order the week is eaten (`_inOrder`), not the order they were sent in. */
+  plannedMealIds: Id<"plannedMeals">[];
+  /** The planned plates already on a day and slot the week wrote, dropped to make room — see `_dropReplaced`. */
+  replaced: Doc<"plannedMeals">[];
+}> => {
   if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_INPUT" });
 
   const plates = _inOrder(args.plates);
   const recipes = await _recipesFor(ctx, plates);
 
-  await _dropReplaced(ctx, args);
+  const replaced = await _dropReplaced(ctx, args);
   /** Every plate's recipe lines, read once however many plates repeat the dish. */
   const lines = new Map<Id<"recipes">, ResolvedLine[]>();
 
@@ -169,6 +188,8 @@ export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"meal
     updatedAt: Date.now(),
   });
 
+  const plannedMealIds: Id<"plannedMeals">[] = [];
+
   for (const plate of plates) {
     const recipe = recipes.get(plate.recipeId)!;
     const rows = lines.get(plate.recipeId)!;
@@ -183,6 +204,7 @@ export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"meal
       status: "planned",
       updatedAt: Date.now(),
     });
+    plannedMealIds.push(plannedMealId);
 
     const needs = scaleLines(rows.map((row) => row.line), {
       recipeServings: recipe.servings,
@@ -205,5 +227,5 @@ export const commitPlan = async (ctx: MutationCtx, args: Args): Promise<Id<"meal
     await ctx.scheduler.runAt(skipAt(plate.date), internal.router.planning.skipOne._internal, { mealId: plannedMealId });
   }
 
-  return mealPlanId;
+  return { mealPlanId, plannedMealIds, replaced };
 };

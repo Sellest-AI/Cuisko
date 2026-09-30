@@ -2,7 +2,9 @@ import { act, renderHook } from "@testing-library/react";
 import { getFunctionName } from "convex/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PLANNABLE_DAYS, usePlanRecipe } from "../usePlanRecipe";
+import { PLANNABLE_DAYS } from "@shared/clock";
+
+import { usePlanRecipe } from "../usePlanRecipe";
 import { dayOffset, keptMeal } from "./fixtures";
 
 /**

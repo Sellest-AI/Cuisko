@@ -9,7 +9,7 @@ import type { Id } from "~/lib/convex/api";
 import { useMutation, useQuery } from "~/lib/convex/client";
 
 import type { DrawnCellarChange } from "../_model/chatMessage";
-import { undoneCellarLinesAtom } from "./atoms";
+import { undoneChangesAtom } from "./atoms";
 
 /** One empty list for every change nothing was undone in, so `pending` does not recompute each render. */
 const NONE_UNDONE: readonly number[] = [];
@@ -31,7 +31,7 @@ export type CellarChangeCard = {
  * off the list (ADR 0009, the receipt decides), and what a removal took goes back without striking
  * anything, since nothing was bought.
  *
- * **Which lines are undone lives in `undoneCellarLinesAtom`, under `changeKey`**, so closing and
+ * **Which lines are undone lives in `undoneChangesAtom`, under `changeKey`**, so closing and
  * reopening the chat does not offer an undo already made; killing the app does forget it. For an
  * add, the rows it landed on are also checked against the cellar: once one is gone, the stock it
  * held is gone with it, and there is nothing left to take back. A removal has no such check, since
@@ -41,7 +41,7 @@ export type CellarChangeCard = {
  * what did not go through, instead of replaying lines already taken back.
  *
  * The ids are cast as `useAssistantSubstitutions` casts them: they came out of a tool that wrote
- * them, and the chat model checked their shape before they got here.
+ * them, and the chat smodel checked their shape before they got here.
  *
  * @limitation Undoing a removal that emptied a row puts the stock back on a new row, dated fresh
  * from the ingredient's shelf life: the old date went with the row. Accepted: it takes an undo of a
@@ -53,7 +53,7 @@ export const useCellarChange = (change: DrawnCellarChange, changeKey: string) =>
   const unitLabel = useUnitLabel();
   const householdId = change.householdId as Id<"households">;
 
-  const [undoneAll, setUndoneAll] = useAtom(undoneCellarLinesAtom);
+  const [undoneAll, setUndoneAll] = useAtom(undoneChangesAtom);
   const undoneLines = undoneAll[changeKey] ?? NONE_UNDONE;
   const [isUndoing, setIsUndoing] = useState(false);
 

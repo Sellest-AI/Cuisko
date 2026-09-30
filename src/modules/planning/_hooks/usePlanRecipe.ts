@@ -4,6 +4,7 @@ import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
 import { useMutation, useQueryCached } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
+import { PLANNABLE_DAYS } from "@shared/clock";
 import { clampServings } from "@shared/servings";
 
 import {
@@ -14,9 +15,6 @@ import {
   type MealCard,
   type MealSlot,
 } from "../_model/model";
-
-/** Today and the eight days after it: the nine tiles of the "when do you want to cook this?" grid. */
-export const PLANNABLE_DAYS = 9;
 
 /** One tile of the grid: a day, and the plate already on it at the chosen slot, if any. */
 export type PlannableDay = {

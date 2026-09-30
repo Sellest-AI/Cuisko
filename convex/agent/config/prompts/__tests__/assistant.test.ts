@@ -3,8 +3,10 @@ import { SUPPORTED_LOCALES } from "@shared/translations";
 import { describe, expect, test } from "vitest";
 import z from "zod/v4";
 
+import { addToCellarTool, removeFromCellarTool } from "../../../tools/cellar";
 import { computeNutritionTool } from "../../../tools/computeNutrition";
 import { displayTool } from "../../../tools/display";
+import { planMealTool } from "../../../tools/planMeal";
 import { searchIngredientsTool } from "../../../tools/searchIngredients";
 import { searchRecipesTool } from "../../../tools/searchRecipes";
 import { showButtonTool } from "../../../tools/showButton";
@@ -25,6 +27,9 @@ const _everythingTheModelReads = (): string[] => {
     displayTool,
     showButtonTool,
     showSubstitutionsTool,
+    addToCellarTool({ householdId: "home" as Id<"households"> }),
+    removeFromCellarTool({ householdId: "home" as Id<"households"> }),
+    planMealTool({ householdId: "home" as Id<"households">, locale: "fr", today: 0, now: "2026-09-30T19:12" }),
   ];
 
   return [
