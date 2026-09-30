@@ -1,5 +1,8 @@
 import { Platform, StyleSheet, Text as TextNative, TextStyle, View } from "react-native";
 import { theme } from "theme";
+import { H4_NATURAL_LINE_HEIGHT_RATIO } from "fonts";
+
+export { Text as TextNative } from "react-native";
 
 type Props = {
   className?: string;
@@ -50,16 +53,34 @@ export const Text = () => {
  */
 type H4Props = Omit<Props, "weight">;
 
+/**
+ * How far to move the letters down so they sit centred in a line box shorter than the face's own
+ * (`H4_NATURAL_LINE_HEIGHT_RATIO` has why). A transform, so it moves what is drawn and nothing
+ * else: the box, the gaps around it and the spacing between wrapped lines are all untouched.
+ *
+ * From the final size and leading, so a call site that overrides either still gets the right
+ * shift, and one that gives the face its full line gets none.
+ *
+ * iOS only: that is where the trimmed space comes off the top of the line.
+ */
+const _h4Recentre = (fontSize: number, lineHeight: number) => {
+  if (Platform.OS !== "ios") return {};
+  const trimmed = fontSize * H4_NATURAL_LINE_HEIGHT_RATIO - lineHeight;
+  return trimmed > 0 ? { transform: [{ translateY: trimmed / 2 }] } : {};
+};
+
 const H4 = ({ children, color, className, style, ...props }: H4Props) => {
   const textBreakProps = style?.textBalance ? {
     textBreakStrategy: "balanced" as const,
     lineBreakStrategyIOS: Platform.OS === "ios" ? "push-out" as const : undefined,
   } : {};
   const overflow = props.numberOfLines ? "hidden" : undefined;
+  const fontSize = style?.fontSize ?? Texts.h4.fontSize;
+  const recentre = _h4Recentre(fontSize, style?.lineHeight ?? Texts.h4.lineHeight);
 
   return (
     <NativeText
-      style={{ ...Texts.h4, color, ...styles.shared, overflow, ...style }}
+      style={{ ...Texts.h4, color, ...styles.shared, overflow, ...recentre, ...style }}
       {...props}
       {...textBreakProps}
     >

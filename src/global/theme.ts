@@ -101,7 +101,7 @@ const TONES = {
  * leading, tracking and weight come from that face, in `fonts.ts`. That module holds names and
  * numbers and no asset, which is what makes it safe to import here.
  */
-const H4_SIZE = 18;
+const H4_SIZE = 22;
 
 const Texts = {
   h4: {
@@ -178,7 +178,7 @@ export const theme = {
    * that is not a style key does not belong in one.
    *
    * `titleStrokeWidth` is for the icon drawn beside an H4 screen title, heavier than lucide's
-   * default 2 so it holds its own next to the Unbounded Medium heading.
+   * default 2 so it holds its own next to the Nunito heading.
    */
   icon: { titleStrokeWidth: 2.3 },
 } as const;

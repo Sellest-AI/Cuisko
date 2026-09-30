@@ -117,7 +117,9 @@ const styles = StyleSheet.create({
   /** Overrides the H4 metrics — an emoji needs the room a heading does not. */
   emoji: {
     fontSize: 32,
-    lineHeight: 40
+    lineHeight: 40,
+    minWidth: 40,
+    textAlign: "center",
   },
   ingredientImage: {
     height: 44,
