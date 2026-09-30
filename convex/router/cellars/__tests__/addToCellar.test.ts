@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -432,5 +432,71 @@ describe("router/cellars/addToCellar expiration", () => {
     await buy(10);
 
     expect(await rowDay()).toBe(5);
+  });
+});
+
+/** A grocery line wanting `quantity` eggs, as the cook wrote it. */
+const seedListLine = (t: ReturnType<typeof convexTest>, householdId: Id<"households">, ingredientId: Id<"ingredients">, quantity: number) =>
+  t.run((ctx) => ctx.db.insert("groceryListItems", { householdId, ingredientId, unit: "pcs", quantity, updatedAt: Date.now() }));
+
+/**
+ * What the assistant's undo of an add gives back to the list is what the add struck, and the add is
+ * the only moment it can be known: the lines it strikes are deleted.
+ */
+describe("router/cellars/addToCellar._internal", () => {
+  test("reports the row it landed on and what it struck off the list", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+    await seedListLine(t, householdId, ingredientId, 2);
+
+    const added = await t.mutation(internal.router.cellars.addToCellar._internal, {
+      householdId, ingredientId, unit: "pcs", quantity: 6,
+    });
+
+    const [row] = await t.run((ctx) => ctx.db.query("cellarItems").collect());
+    expect(added).toEqual({ cellarItemId: row!._id, struck: 2 });
+  });
+
+  test("a purchase nobody wrote down struck nothing", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+
+    const added = await t.mutation(internal.router.cellars.addToCellar._internal, {
+      householdId, ingredientId, unit: "pcs", quantity: 6,
+    });
+
+    expect(added.struck).toBe(0);
+  });
+
+  test("a purchase smaller than the line struck all of itself", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+    await seedListLine(t, householdId, ingredientId, 10);
+
+    const added = await t.mutation(internal.router.cellars.addToCellar._internal, {
+      householdId, ingredientId, unit: "pcs", quantity: 4,
+    });
+
+    expect(added.struck).toBe(4);
+  });
+});
+
+/**
+ * The undo of a removal puts the stock back without buying anything: "retire 2 oeufs" then Annuler
+ * must leave the 2 eggs the cook still wants on the list.
+ */
+describe("router/cellars/addToCellar strikeList", () => {
+  test("false puts the stock back and leaves the grocery list alone", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    const lineId = await seedListLine(t, householdId, ingredientId, 2);
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 3, strikeList: false });
+
+    expect((await t.run((ctx) => ctx.db.get(lineId)))?.quantity).toBe(2);
+    const [row] = await t.run((ctx) => ctx.db.query("cellarItems").collect());
+    expect(row?.quantity).toBe(3);
   });
 });

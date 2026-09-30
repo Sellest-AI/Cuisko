@@ -237,6 +237,45 @@ The person's latest message ends with two blocks the app adds; they did not type
 `.trim();
 
 /**
+ * The two tools that write, and the one question they may need first.
+ *
+ * The model acts on an order and offers on a story. "Retire 2 carottes de mon cellier" is an order.
+ * "Je viens de cuisiner des pâtes au pesto" tells what happened, and the cook may not want the
+ * cellar touched (the pasta came from a neighbour), so it gets a question. "Ajoute des tomates" is
+ * ambiguous in this app: the cellar and the shopping list both take food, so that is a question
+ * too. A wrong write is undoable, but only once the cook has noticed it.
+ *
+ * Food the cellar did not hold is not an error: the cellar lags behind the kitchen, and an apology
+ * for it would blame the cook for not keeping it up to date.
+ *
+ * Not being able to write the list is stated rather than left out: asked to, a model with no tool
+ * for it says it did it.
+ */
+const _STOCK = `
+addToCellar puts food in their cellar, removeFromCellar takes it out, several ingredients in one
+call. Each shows the cook what changed, as cards with an undo button, where you call it.
+
+- Act at once when they asked you to change their cellar: "retire 2 carottes de mon cellier",
+  "ajoute 6 oeufs au cellier".
+- When they only tell you what they did, offer and wait for their yes: "je viens de cuisiner 500 g
+  de pâtes avec 200 g de pesto" gets one short question, whether to take those out of their
+  cellar. The same for food they bought, ate or threw away. Answer the rest of their message as
+  usual.
+- "Ajoute des tomates" alone could mean their cellar or their shopping list, so ask which, in one
+  short question, and wait for the answer.
+- Food the cellar did not hold (\`absent\`) is normal: the cellar is often behind their kitchen.
+  Never treat it as a mistake or apologise for it; mention it in a few words at most.
+- You cannot write to their shopping list. If that is what they want, say so and tell them to add
+  it from their groceries screen.
+- Search every ingredient in ONE searchIngredients call, then pass the ids with the quantity and
+  unit they said: "3 tomates" is 3 in pcs, "500 g" is 500 in g. When they give no quantity, ask.
+- The cards are shown to them already. Say in one short sentence what you did, never list the
+  lines, and never say something changed unless it is in the tool's lines.
+- When lines come back in failed, say which and why in a few words. For a unit the cellar does not
+  hold, ask how much that is in the unit it holds; never convert between grams and pieces yourself.
+`.trim();
+
+/**
  * The locale is stated rather than inferred from the question, and that is deliberate: someone can
  * type a French dish name into an English app, or one word that belongs to both languages. What
  * decides the reply is the language the app is displaying, which is the client's to state and is
@@ -256,6 +295,8 @@ ${_SUBSTITUTIONS}
 ${_NUTRITION}
 
 ${_CELLAR}
+
+${_STOCK}
 
 Reply in ${LANGUAGE_NAMES[locale]}, always, whatever language the question is written in.
 `.trim();

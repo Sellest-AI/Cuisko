@@ -68,6 +68,13 @@ const FIXTURES: readonly (readonly [string, Expected])[] = [
   ["pas de viande pour ma bolognaise ce soir", "chat"],
   ["substitute for butter in a cake", "chat"],
   ["vegan dinner ideas for tonight", "chat"],
+
+  // Stock to move, several foods or a verb saying which way: Cuisko asks or acts, the bar cannot.
+  ["ajoute 500 g de patates, 3 tomates et 400 g de carottes", "chat"],
+  ["retire 500 g de tomates et 2 carottes de mon cellier", "chat"],
+  ["retire 2 carottes", "chat"],
+  ["add 2 onions and a pack of butter", "chat"],
+  ["remove the milk from my cellar", "chat"],
 ];
 
 /** Crude on purpose: it picks the `locale` field of the state, not a user's setting. */

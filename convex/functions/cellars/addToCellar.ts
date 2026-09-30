@@ -17,6 +17,21 @@ type Args = {
   ingredientId: Id<"ingredients">;
   unit: Unit;
   quantity: number;
+  /**
+   * `false` puts the stock back without striking anything off the list. For the undo of a removal:
+   * nothing was bought, so a grocery line for the same food is still wanted. Omitted is a purchase.
+   */
+  strikeList?: boolean;
+};
+
+export type AddedToCellar = {
+  /** The row the quantity ended up on, whether it was merged or minted. */
+  cellarItemId: Id<"cellarItems">;
+  /**
+   * How much of the quantity struck grocery lines, in `unit`. What an undo gives back to the list,
+   * and the only moment it can be known: the lines it struck are deleted.
+   */
+  struck: number;
 };
 
 /**
@@ -90,8 +105,8 @@ const _mergedExpiration = (
 export const addToCellar = async (
   ctx: MutationCtx,
   args: Args,
-): Promise<Id<"cellarItems">> => {
-  const groceryListItems = await ctx.db
+): Promise<AddedToCellar> => {
+  const groceryListItems = args.strikeList === false ? [] : await ctx.db
     .query("groceryListItems")
     .withIndex("by_household_id_and_ingredient_id", (q) =>
       q.eq("householdId", args.householdId).eq("ingredientId", args.ingredientId))
@@ -185,5 +200,5 @@ export const addToCellar = async (
     }
   }
 
-  return cellarItemId;
+  return { cellarItemId, struck: args.quantity - remainingQuantity };
 };

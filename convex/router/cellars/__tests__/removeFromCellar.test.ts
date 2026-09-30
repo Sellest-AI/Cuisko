@@ -5,7 +5,7 @@ import { UNDO_WINDOW_MS } from "@shared/groceries";
 import type { Unit } from "@shared/ingredients";
 
 import type { Id } from "../../../_generated/dataModel";
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -477,5 +477,98 @@ describe("router/cellars/removeFromCellar", () => {
       expect(claim).toMatchObject({ groceryListItemId: rowId, groceryQuantity: 0.5 });
       expect(claim!.cellarItemId).toBeUndefined();
     });
+  });
+});
+
+/** The assistant's removeFromCellar tool calls this once per line, and builds its undo from the answer. */
+describe("router/cellars/removeFromCellar._internal", () => {
+  test("names the row it took from and what it took", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+    const rowId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 6, updatedAt: Date.now() }),
+    );
+
+    const removed = await t.mutation(internal.router.cellars.removeFromCellar._internal, {
+      householdId, ingredientId, unit: "pcs", quantity: 2,
+    });
+
+    expect(removed).toEqual({ cellarItemId: rowId, unit: "pcs", removed: 2 });
+  });
+
+  /** "Retire 5 oeufs" with 3 in the cellar took 3; an undo that put back 5 would invent 2. */
+  test("reports what the row held when it held less than asked", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+    const rowId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 3, updatedAt: Date.now() }),
+    );
+
+    const removed = await t.mutation(internal.router.cellars.removeFromCellar._internal, {
+      householdId, ingredientId, unit: "pcs", quantity: 5,
+    });
+
+    expect(removed).toEqual({ cellarItemId: rowId, unit: "pcs", removed: 3 });
+    expect(await t.run((ctx) => ctx.db.get(rowId))).toBeNull();
+  });
+
+  test("takes a kilogram from a row kept in grams, and answers in grams", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, flourId } = await seedHousehold(t);
+    const rowId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId: flourId, unit: "g", quantity: 1500, updatedAt: Date.now() }),
+    );
+
+    const removed = await t.mutation(internal.router.cellars.removeFromCellar._internal, {
+      householdId, ingredientId: flourId, unit: "kg", quantity: 1,
+    });
+
+    expect(removed).toEqual({ cellarItemId: rowId, unit: "g", removed: 1000 });
+    expect((await t.run((ctx) => ctx.db.get(rowId)))?.quantity).toBe(500);
+  });
+
+  test("a row in the asked unit wins over one that needs converting", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, flourId } = await seedHousehold(t);
+    const [gramsId, kilosId] = await t.run(async (ctx) => [
+      await ctx.db.insert("cellarItems", { householdId, ingredientId: flourId, unit: "g", quantity: 800, updatedAt: Date.now() + 1 }),
+      await ctx.db.insert("cellarItems", { householdId, ingredientId: flourId, unit: "kg", quantity: 2, updatedAt: Date.now() }),
+    ]);
+
+    await t.mutation(internal.router.cellars.removeFromCellar._internal, {
+      householdId, ingredientId: flourId, unit: "kg", quantity: 1,
+    });
+
+    expect((await t.run((ctx) => ctx.db.get(kilosId)))?.quantity).toBe(1);
+    expect((await t.run((ctx) => ctx.db.get(gramsId)))?.quantity).toBe(800);
+  });
+
+  /** Grams against pieces needs a piece weight: nothing is guessed, and the model is told what is there. */
+  test("grams asked of a row kept in pieces throws, naming what the cellar holds", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+    await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now() }),
+    );
+
+    await expect(
+      t.mutation(internal.router.cellars.removeFromCellar._internal, { householdId, ingredientId, unit: "g", quantity: 100 }),
+    ).rejects.toMatchObject({ data: { code: "INVALID_INPUT", message: expect.stringMatching(/The cellar holds: 4 pcs/) } });
+
+    const [row] = await t.run((ctx) => ctx.db.query("cellarItems").collect());
+    expect(row?.quantity).toBe(4);
+  });
+
+  /**
+   * The cellar is often behind the kitchen, so "none of it here" is an ordinary answer, not a unit
+   * problem: a different code lets the assistant pass over it rather than ask the cook a question.
+   */
+  test("none of the food on the shelf is NOT_FOUND, told apart from a unit it cannot convert", async () => {
+    const t = convexTest(schema, modules);
+    const { householdId, ingredientId } = await seedHousehold(t);
+
+    await expect(
+      t.mutation(internal.router.cellars.removeFromCellar._internal, { householdId, ingredientId, unit: "pcs", quantity: 2 }),
+    ).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
   });
 });

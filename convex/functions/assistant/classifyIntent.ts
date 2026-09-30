@@ -45,12 +45,14 @@ type Option = "ingredient" | "recipe" | "request";
  * Below it the answer is discarded and `{ kind: "unknown" }` goes back, which the caller reads as
  * "no opinion, keep what you decided" — so an unconfident judgment costs a call and changes
  * nothing. A number picked by feel would be a number nothing could defend, so this one is measured:
- * `__tests__/classifyIntent.manual.test.ts` runs the real model over 18 real bar inputs and prints
+ * `__tests__/classifyIntent.manual.test.ts` runs the real model over 23 real bar inputs and prints
  * the two ranges a floor has to sit between.
  *
- * **Measured 2026-09-20: right answers 0.72–1.00, wrong answers none.** The floor's job in that
- * picture is the long tail rather than the fixture — 0.6 leaves 0.12 of headroom under the least
- * confident correct answer, which is the margin, not the answer. Re-run the file when the criteria
+ * **Measured 2026-09-30: right answers 0.93–1.00, wrong answers none**, after the `request`
+ * criterion learned that moving stock is a request (the five "ajoute / retire" rows landed at
+ * 0.97–1.00). The floor's job in that picture is the long tail rather than the fixture: the
+ * previous run's least confident correct answer was 0.72, and 0.6 keeps its headroom under that
+ * run too, which is the margin, not the answer. Re-run the file when the criteria
  * change: the one miss the fixture ever had was a criteria gap at 0.53, and widening the `request`
  * criterion took it to 0.94 without moving anything else.
  */
@@ -74,7 +76,9 @@ const QUESTION: ChoiceQuestion<Option> = {
       "request for ideas. It may well mention foods or dishes — what makes it this option is that " +
       "the shopper is asking for something rather than naming something. It need not be a full " +
       "sentence: a fact looked up ABOUT a food, written as bare keywords, is a request and not the " +
-      "food — its calories, its cooking time, how to store it, what to replace it with.",
+      "food — its calories, its cooking time, how to store it, what to replace it with. An " +
+      "instruction to add or remove food is a request too, and so is a list of several foods: " +
+      "\"retire 2 carottes\", \"add milk and eggs\", \"500 g de patates, 3 tomates\".",
   },
 };
 

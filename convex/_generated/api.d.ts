@@ -25,6 +25,7 @@ import type * as agent_config_prompts_sanitizeIngredient from "../agent/config/p
 import type * as agent_config_prompts_sanitizeRecipe from "../agent/config/prompts/sanitizeRecipe.js";
 import type * as agent_config_prompts_suggestDishes from "../agent/config/prompts/suggestDishes.js";
 import type * as agent_config_prompts_translateRecipe from "../agent/config/prompts/translateRecipe.js";
+import type * as agent_tools_cellar from "../agent/tools/cellar.js";
 import type * as agent_tools_computeNutrition from "../agent/tools/computeNutrition.js";
 import type * as agent_tools_display from "../agent/tools/display.js";
 import type * as agent_tools_generateIngredientImage from "../agent/tools/generateIngredientImage.js";
@@ -299,6 +300,7 @@ declare const fullApi: ApiFromModules<{
   "agent/config/prompts/sanitizeRecipe": typeof agent_config_prompts_sanitizeRecipe;
   "agent/config/prompts/suggestDishes": typeof agent_config_prompts_suggestDishes;
   "agent/config/prompts/translateRecipe": typeof agent_config_prompts_translateRecipe;
+  "agent/tools/cellar": typeof agent_tools_cellar;
   "agent/tools/computeNutrition": typeof agent_tools_computeNutrition;
   "agent/tools/display": typeof agent_tools_display;
   "agent/tools/generateIngredientImage": typeof agent_tools_generateIngredientImage;

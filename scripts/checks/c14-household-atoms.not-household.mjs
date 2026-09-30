@@ -11,9 +11,12 @@ export const NOT_HOUSEHOLD = {
   "src/lib/convex/client.ts:cachedAtom":
     "action results keyed by their arguments, which already carry any householdId they depend on",
   "src/modules/assistant/_hooks/atoms.ts:conversationAtom":
-    "the cook's own conversation with Cuisko; the assistant reads no household",
+    "the cook's own conversation with Cuisko; every cellar change inside it names its household",
   "src/modules/assistant/_hooks/atoms.ts:pendingQuestionAtom":
     "a question in flight in that conversation",
+  "src/modules/assistant/_hooks/atoms.ts:undoneCellarLinesAtom":
+    "which of Cuisko's cellar changes were undone; it must outlive a switch as the conversation does, " +
+    "or the undo is offered again, and each change names its own household",
   "src/modules/groceries/_hooks/atoms.ts:sortAtom":
     "a way of looking at the list, not a fact about the kitchen",
   "src/modules/navigation/_hooks/useNavigationBar.ts:modeAtom": "the bar's own mode: UI chrome",

@@ -5,6 +5,7 @@ import { Message } from "@ui/message";
 import { theme } from "theme";
 
 import type { AnswerBlock, ChatMessage as ChatMessageModel } from "../_model/chatMessage";
+import { CellarChange } from "./cellar-change";
 import { Display } from "./display";
 import { OfferedButton } from "./offered-button";
 import { Substitutions } from "./substitutions";
@@ -15,7 +16,7 @@ type Props = {
 };
 
 /** One piece of the answer. Text after a card is spaced from it the way a card is from text. */
-const _Block = ({ block, isFirst }: { block: AnswerBlock; isFirst: boolean }) => {
+const _Block = ({ block, isFirst, messageKey }: { block: AnswerBlock; isFirst: boolean; messageKey: string }) => {
   switch (block.type) {
     case "text":
       return (
@@ -42,6 +43,13 @@ const _Block = ({ block, isFirst }: { block: AnswerBlock; isFirst: boolean }) =>
       return (
         <View style={styles.assistantTool}>
           <OfferedButton button={block.button} />
+        </View>
+      );
+    case "cellar":
+      return (
+        <View style={styles.assistantTool}>
+          {/* The message's key too: a block's own falls back to its index when a part has no call id. */}
+          <CellarChange change={block.change} changeKey={`${messageKey}:${block.key}`} />
         </View>
       );
   }
@@ -71,7 +79,7 @@ export const ChatMessage = ({ message }: Props) => {
         <Message from="assistant" markdown content={t("failed")} style={styles.fromAssistant} />
       )}
       {message.blocks.map((block, index) => (
-        <_Block key={block.key} block={block} isFirst={index === 0} />
+        <_Block key={block.key} block={block} isFirst={index === 0} messageKey={message.key} />
       ))}
     </View>
   );

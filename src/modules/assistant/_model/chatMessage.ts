@@ -18,12 +18,16 @@ import {
   type AssistantTool,
   BUTTON_DESTINATIONS,
   BUTTON_VARIANTS,
+  CELLAR_ACTIONS,
+  type CellarChange,
+  type CellarChangeLine,
   DISPLAY_KINDS,
   type DisplayCard,
   type DisplayKind,
   type IngredientSwap,
   type SubstitutionsCard,
 } from "@shared/assistant";
+import { UNITS } from "@shared/ingredients";
 
 /**
  * One part of a stored message: a tool call, or a run of text the model wrote between them.
@@ -58,13 +62,23 @@ export type SourceMessage = {
 };
 
 /**
- * The tools that show the cook a status line while they work. `display`, `showButton` and
- * `showSubstitutions` do not: what they draw is their line.
+ * The tools that show the cook a status line while they work. `display`, `showButton`,
+ * `showSubstitutions` and the two cellar tools do not: what they draw is their line.
  */
 export type StepTool = Exclude<
   AssistantTool,
-  typeof ASSISTANT_TOOLS.display | typeof ASSISTANT_TOOLS.showButton | typeof ASSISTANT_TOOLS.showSubstitutions
+  | typeof ASSISTANT_TOOLS.display
+  | typeof ASSISTANT_TOOLS.showButton
+  | typeof ASSISTANT_TOOLS.showSubstitutions
+  | typeof ASSISTANT_TOOLS.addToCellar
+  | typeof ASSISTANT_TOOLS.removeFromCellar
 >;
+
+/**
+ * A cellar change as the screen draws it: the lines that landed. What was absent or failed is the
+ * model's to say.
+ */
+export type DrawnCellarChange = Omit<CellarChange, "absent" | "failed">;
 
 /** One status line: "🔍 searching recipes", then "🥗 3 recipes found". */
 export type ToolStep = {
@@ -83,6 +97,7 @@ export type AnswerBlock =
   | { type: "text"; key: string; text: string }
   | { type: "display"; key: string; card: DisplayCard }
   | { type: "substitutions"; key: string; card: SubstitutionsCard }
+  | { type: "cellar"; key: string; change: DrawnCellarChange }
   | { type: "button"; key: string; button: AssistantButton };
 
 /** A message as the screen draws it. */
@@ -105,6 +120,11 @@ export type ChatMessage = {
    * that sent two gets its last.
    */
   substitutions?: SubstitutionsCard;
+  /**
+   * The cellar changes Cuisko made, in call order. Several, unlike the swaps: "add the potatoes,
+   * take out the carrots" is two changes, and each has its own undo.
+   */
+  cellarChanges: DrawnCellarChange[];
   /**
    * The answer as the screen draws it below its status lines: its text and what it showed,
    * interleaved in the order the model wrote them. Empty for a user message.
@@ -293,6 +313,54 @@ const _substitutionsOfParts = (parts: readonly MessagePart[]): SubstitutionsCard
     .filter((card): card is SubstitutionsCard => card !== undefined)
     .at(-1);
 
+const _CELLAR_TOOL_PARTS = [
+  _partType(ASSISTANT_TOOLS.addToCellar),
+  _partType(ASSISTANT_TOOLS.removeFromCellar),
+];
+
+const _isCellarLine = (value: unknown): value is CellarChangeLine =>
+  _isObject(value) &&
+  typeof value.ingredientId === "string" &&
+  typeof value.cellarItemId === "string" &&
+  UNITS.some((unit) => unit === value.unit) &&
+  typeof value.quantity === "number" &&
+  value.quantity > 0 &&
+  (value.restoreToList === undefined || typeof value.restoreToList === "number");
+
+/**
+ * A stored cellar tool output → the change to draw, when it is one this build knows.
+ *
+ * **One malformed line drops the whole card, never just that line.** The lines are the undo's
+ * receipt: a card missing one would offer to undo the change and leave part of it standing. A change
+ * with no line that landed is dropped too, since there is nothing to show and nothing to undo.
+ */
+const _cellarChangeOf = (output: unknown): DrawnCellarChange | undefined => {
+  if (!_isObject(output) || output.v !== 1 || !Array.isArray(output.lines)) return undefined;
+
+  const action = CELLAR_ACTIONS.find((known) => known === output.action);
+  if (!action || typeof output.householdId !== "string") return undefined;
+  if (output.lines.length === 0 || !output.lines.every(_isCellarLine)) return undefined;
+
+  return {
+    v: 1,
+    action,
+    householdId: output.householdId,
+    lines: output.lines.map(({ ingredientId, cellarItemId, unit, quantity, restoreToList }) => ({
+      ingredientId,
+      cellarItemId,
+      unit,
+      quantity,
+      ...(restoreToList !== undefined && { restoreToList }),
+    })),
+  };
+};
+
+const _cellarChangesOf = (parts: readonly MessagePart[]): DrawnCellarChange[] =>
+  parts
+    .filter((part) => _CELLAR_TOOL_PARTS.includes(part.type) && part.state === "output-available")
+    .map((part) => _cellarChangeOf(part.output))
+    .filter((change): change is DrawnCellarChange => change !== undefined);
+
 /** A show tool's finished part → its block, when its output is one this build can draw. */
 const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined => {
   if (part.state !== "output-available") return undefined;
@@ -311,6 +379,11 @@ const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined
     case _partType(ASSISTANT_TOOLS.showButton): {
       const button = _buttonOf(part.output);
       return button && { type: "button", key, button };
+    }
+    case _partType(ASSISTANT_TOOLS.addToCellar):
+    case _partType(ASSISTANT_TOOLS.removeFromCellar): {
+      const change = _cellarChangeOf(part.output);
+      return change && { type: "cellar", key, change };
     }
     default:
       return undefined;
@@ -379,7 +452,8 @@ export const withoutIds = (text: string): string =>
   text.replace(_ID_SHAPED, "").replace(/ {2,}/g, " ").replace(/ +([,.])/g, "$1");
 
 /**
- * Whether a message has anything on screen yet: text, a status line, a card, swaps or a button.
+ * Whether a message has anything on screen yet: text, a status line, a card, swaps, a button or a
+ * cellar change.
  *
  * One definition, because two places ask it: `toChatMessages` to decide what is drawn, and the
  * hook to decide the answer has arrived. Written out twice, the button was added to one and not the
@@ -390,7 +464,8 @@ export const isShowingSomething = (message: ChatMessage): boolean =>
   message.steps.length > 0 ||
   message.cards.length > 0 ||
   message.substitutions !== undefined ||
-  message.button !== undefined;
+  message.button !== undefined ||
+  message.cellarChanges.length > 0;
 
 /**
  * Stored messages → what the screen renders.
@@ -432,10 +507,11 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
       const cards = isUser ? [] : _cardsOf(message.parts);
       const button = isUser ? undefined : _buttonOfParts(message.parts);
       const substitutions = isUser ? undefined : _substitutionsOfParts(message.parts);
+      const cellarChanges = isUser ? [] : _cellarChangesOf(message.parts);
       const blocks = isUser ? [] : _blocksOf(message.parts, text);
       const endedEmpty =
         !isUser && isTurnOver && !text && steps.length === 0 && cards.length === 0 && !button &&
-        !substitutions;
+        !substitutions && cellarChanges.length === 0;
 
       return {
         key: message.key,
@@ -445,6 +521,7 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
         cards,
         ...(button && { button }),
         ...(substitutions && { substitutions }),
+        cellarChanges,
         blocks,
         isStreaming,
         isReplying: !isUser && !isTurnOver,

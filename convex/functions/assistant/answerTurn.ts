@@ -5,6 +5,7 @@ import type { Locale } from "@shared/translations";
 
 import { assistantAgent } from "../../agent/agents";
 import { assistantPrompt } from "../../agent/config/prompts/assistant";
+import { addToCellarTool, removeFromCellarTool } from "../../agent/tools/cellar";
 import { computeNutritionTool } from "../../agent/tools/computeNutrition";
 import { displayTool } from "../../agent/tools/display";
 import { searchIngredientsTool } from "../../agent/tools/searchIngredients";
@@ -22,6 +23,12 @@ type Args = {
    */
   promptMessageId: string;
   userId: Id<"users">;
+  /**
+   * The household the brief was read for, which the cellar tools write to. Passed rather than looked
+   * up from `userId`: a cook who switches household mid-turn must not see Cuisko write to a cellar
+   * it never read (ADR 0016).
+   */
+  householdId: Id<"households">;
   locale: Locale;
   /** What the household can cook with, and the cook's clock — `turnBrief`, read when they pressed send. */
   brief: string;
@@ -49,7 +56,7 @@ type Args = {
  */
 export const answerTurn = async (
   ctx: ActionCtx,
-  { threadId, promptMessageId, userId, locale, brief }: Args,
+  { threadId, promptMessageId, userId, householdId, locale, brief }: Args,
 ): Promise<void> => {
   const result = await assistantAgent.streamText(
     ctx,
@@ -68,6 +75,8 @@ export const answerTurn = async (
         [ASSISTANT_TOOLS.display]: displayTool,
         [ASSISTANT_TOOLS.showButton]: showButtonTool,
         [ASSISTANT_TOOLS.showSubstitutions]: showSubstitutionsTool,
+        [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId }),
+        [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
       },
       /*
        * No `stopWhen`: the turn ends when the model stops calling tools, capped by the agent's

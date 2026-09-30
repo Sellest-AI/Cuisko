@@ -634,3 +634,87 @@ describe("whether Cuisko is still replying", () => {
     expect(toChatMessages([message({ role: "user", text: "Salut", status: "pending" })])[0]?.isReplying).toBe(false);
   });
 });
+
+/** A cellar tool call, finished unless told otherwise. */
+const cellarCall = (
+  tool: "addToCellar" | "removeFromCellar",
+  output: unknown,
+  state = "output-available",
+  toolCallId = "call-c",
+) => ({ type: `tool-${tool}`, toolCallId, state, output });
+
+const potatoes = { ingredientId: "potato", cellarItemId: "row-potato", unit: "g", quantity: 500, restoreToList: 200 };
+const tomatoes = { ingredientId: "tomato", cellarItemId: "row-tomato", unit: "pcs", quantity: 3 };
+
+const change = (action: string, lines: unknown[], failed: unknown[] = []) => ({ v: 1, action, householdId: "home", lines, failed });
+
+describe("the cellar changes under an answer", () => {
+  test("an add and a remove are both drawn, in call order, without what failed", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          cellarCall("addToCellar", change("add", [potatoes], [{ ingredientId: "yuzu", reason: "nope" }]), "output-available", "c1"),
+          cellarCall("removeFromCellar", change("remove", [tomatoes]), "output-available", "c2"),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.cellarChanges).toEqual([
+      { v: 1, action: "add", householdId: "home", lines: [potatoes] },
+      { v: 1, action: "remove", householdId: "home", lines: [tomatoes] },
+    ]);
+    expect(drawn?.blocks.map((block) => block.type)).toEqual(["text", "cellar", "cellar"]);
+  });
+
+  test("draws no status line", () => {
+    const [drawn] = toChatMessages([message({ parts: [cellarCall("addToCellar", change("add", [potatoes]))] })]);
+
+    expect(drawn?.steps).toEqual([]);
+  });
+
+  test("a call still running, or one that errored, is not drawn", () => {
+    const [drawn] = toChatMessages([
+      message({
+        parts: [
+          cellarCall("addToCellar", undefined, "input-available", "c1"),
+          cellarCall("removeFromCellar", undefined, "output-error", "c2"),
+        ],
+      }),
+    ]);
+
+    expect(drawn?.cellarChanges).toEqual([]);
+  });
+
+  /**
+   * The lines are the undo's receipt: a card missing one would offer to undo the change and leave
+   * part of it standing. So one bad line drops the whole card, and a change where nothing landed has
+   * nothing to show or undo.
+   */
+  test("drops an unknown version or action, a missing household, a malformed line, and a change where nothing landed", () => {
+    for (const output of [
+      { ...change("add", [potatoes]), v: 2 },
+      change("restock", [potatoes]),
+      { ...change("add", [potatoes]), householdId: undefined },
+      change("add", [potatoes, { ...tomatoes, unit: "handful" }]),
+      change("add", [potatoes, { ...tomatoes, quantity: 0 }]),
+      change("add", [potatoes, { ...tomatoes, cellarItemId: undefined }]),
+      change("add", [{ ...potatoes, restoreToList: "200" }]),
+      change("remove", [], [{ ingredientId: "tomato", reason: "not in the cellar" }]),
+      "nope",
+    ]) {
+      const [drawn] = toChatMessages([message({ parts: [cellarCall("addToCellar", output)] })]);
+
+      expect(drawn?.cellarChanges).toEqual([]);
+    }
+  });
+
+  /** A change alone is an answer: the turn is neither dropped nor marked failed. */
+  test("a turn that answered with only a cellar change is showing something", () => {
+    const [drawn] = toChatMessages([
+      message({ text: "", status: "success", parts: [cellarCall("removeFromCellar", change("remove", [tomatoes]))] }),
+    ]);
+
+    expect(drawn?.hasFailed).toBe(false);
+    expect(drawn && isShowingSomething(drawn)).toBe(true);
+  });
+});

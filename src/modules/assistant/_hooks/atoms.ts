@@ -51,3 +51,21 @@ export const conversationAtom = atom<Conversation | undefined>(undefined);
  * `undefined` means nothing is in flight.
  */
 export const pendingQuestionAtom = atom<string | undefined>(undefined);
+
+/**
+ * The lines of each cellar change Cuisko made that have been undone, by the change's key (its
+ * message and tool call), as indexes into its `lines`.
+ *
+ * **Jotai and not `useState`, because the card unmounts every time the modal closes.** Held in the
+ * component, an undone change offered its undo again on reopening, and undoing a removal twice puts
+ * the stock back twice.
+ *
+ * **A plain atom and not a `householdAtom`, deliberately.** A household switch resets those, and
+ * this must survive it: the conversation does (`conversationAtom`), so the undone change is still
+ * on screen when the cook switches back, and an emptied atom would offer its undo again. Each change
+ * names the household it wrote to, so nothing here can land on the wrong cellar.
+ *
+ * Like the conversation, it is never persisted: killing the app forgets it, and a change whose rows
+ * were emptied by its undo still reads as done, from the cellar (`useCellarChange`).
+ */
+export const undoneCellarLinesAtom = atom<Readonly<Record<string, readonly number[]>>>({});

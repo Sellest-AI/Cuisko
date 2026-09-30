@@ -41,12 +41,13 @@ import { fileURLToPath } from "node:url";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { isStepCount, streamText, tool, type ModelMessage } from "ai";
 import { getFunctionName, type FunctionReference } from "convex/server";
+import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
 import type { NutritionAnswer, NutritionFigures, RecipeFigures } from "@convex/functions/recipes/computeNutrition";
 import { ASSISTANT_TOOLS } from "@shared/assistant";
-import { toGrams, weighableUnits, type RecipeUnit } from "@shared/ingredients";
+import { convertQuantity, toGrams, weighableUnits, type RecipeUnit, type Unit } from "@shared/ingredients";
 import { roundFacts, type IngredientFacts } from "@shared/nutrition";
 import type { Locale } from "@shared/translations";
 
@@ -55,6 +56,7 @@ import { reportedCost, routing } from "../../../agent/__bench__/provider";
 import type { Candidate, Effort, ProviderRouting } from "../../../agent/__bench__/types";
 import { assistantAgent } from "../../../agent/agents";
 import { assistantPrompt } from "../../../agent/config/prompts/assistant";
+import { addToCellarTool, removeFromCellarTool } from "../../../agent/tools/cellar";
 import { computeNutritionTool } from "../../../agent/tools/computeNutrition";
 import { displayTool } from "../../../agent/tools/display";
 import { searchIngredientsTool } from "../../../agent/tools/searchIngredients";
@@ -349,12 +351,58 @@ const _nutrition = (
   };
 };
 
+/** A cellar row's id, stable per ingredient: the fake cellar holds one row each. */
+const _rowId = (ingredientId: string) => _id(`c:${ingredientId}`);
+
+/**
+ * `removeFromCellar._internal` over the case's cellar, with the app's own conversion and the same
+ * two refusals: none of the food held is NOT_FOUND, held in a unit it cannot convert to is
+ * INVALID_INPUT naming what is there. Each turn gets its own copy, so a removal never leaks into
+ * the next case.
+ */
+const _removeFromStock = (stock: Stock[], { ingredientId, unit, quantity }: { ingredientId: string; unit: Unit; quantity: number }) => {
+  const held = stock.filter((row) => I[row.ingredient] === ingredientId);
+  if (held.length === 0) throw new ConvexError({ code: "NOT_FOUND", message: "No cellar row to remove." });
+
+  const row = held.find((candidate) => candidate.unit === unit) ??
+    held.find((candidate) => convertQuantity(quantity, unit, candidate.unit) !== undefined);
+
+  if (!row) {
+    throw new ConvexError({
+      code: "INVALID_INPUT",
+      message: `No cellar row in ${unit} or a unit convertible to it. The cellar holds: ${held.map((candidate) => `${candidate.amount} ${candidate.unit}`).join(", ")}.`,
+    });
+  }
+
+  const asked = row.unit === unit ? quantity : convertQuantity(quantity, unit, row.unit)!;
+  const removed = Math.min(asked, row.amount);
+  row.amount -= removed;
+
+  return { cellarItemId: _rowId(ingredientId), unit: row.unit, removed };
+};
+
 /**
  * The only fake in the loop: `ctx.runQuery`, answering the five internal queries the assistant's
- * tools call. Everything above and below it — each tool's `run`, its input dedupe, its thrown
- * errors, its output shape — is the app's code.
+ * tools call, and `ctx.runMutation`, answering the two cellar writes against the case's stock.
+ * Everything above and below them — each tool's `run`, its input dedupe, its thrown errors, its
+ * output shape — is the app's code.
  */
-const _fakeCtx = (locale: Locale) => ({
+const _fakeCtx = (locale: Locale, stock: Stock[]) => ({
+  runMutation: async (mutation: FunctionReference<"mutation", "internal">, args: Record<string, unknown>) => {
+    const name = getFunctionName(mutation);
+
+    switch (name) {
+      // Nothing on the fake list, so an add strikes nothing.
+      case "router/cellars/addToCellar:_internal":
+        return { cellarItemId: _rowId(String(args.ingredientId)), struck: 0 };
+
+      case "router/cellars/removeFromCellar:_internal":
+        return _removeFromStock(stock, args as Parameters<typeof _removeFromStock>[1]);
+
+      default:
+        throw new Error(`The fake ctx does not serve ${name}. A tool started calling something new: add it here.`);
+    }
+  },
   runQuery: async (query: FunctionReference<"query", "internal">, args: Record<string, unknown>) => {
     const name = getFunctionName(query);
 
@@ -391,9 +439,11 @@ const _fakeCtx = (locale: Locale) => ({
  * fake ctx. Rebuilding with `tool()` rather than passing the Convex tools through is what lets the
  * ctx in: theirs reads it off `this`, which only the agent sets.
  */
-const _tools = (locale: Locale) => {
-  const ctx = _fakeCtx(locale) as never;
+const _tools = (locale: Locale, stock: Stock[]) => {
+  // A copy: the fake removal spends it, and the case's own stock is read again by the next run.
+  const ctx = _fakeCtx(locale, stock.map((row) => ({ ...row }))) as never;
   const userId = "k57testuser" as Id<"users">;
+  const householdId = "k57testhousehold" as Id<"households">;
   const real = {
     [ASSISTANT_TOOLS.searchRecipes]: searchRecipesTool({ userId, locale }),
     [ASSISTANT_TOOLS.searchIngredients]: searchIngredientsTool({ locale }),
@@ -401,6 +451,8 @@ const _tools = (locale: Locale) => {
     [ASSISTANT_TOOLS.display]: displayTool,
     [ASSISTANT_TOOLS.showButton]: showButtonTool,
     [ASSISTANT_TOOLS.showSubstitutions]: showSubstitutionsTool,
+    [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId }),
+    [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
   };
 
   return Object.fromEntries(
@@ -457,6 +509,26 @@ const _swaps = (turn: Turn) =>
 
 const _queries = (turn: Turn, name: string) => _calls(turn, name).flatMap((call) => (call.input.queries as string[]) ?? []);
 
+type CellarItemRequest = { ingredientId: string; quantity: number; unit: Unit };
+
+/** The lines one cellar call asked for. */
+const _items = (call: Call) => (call.input.items as CellarItemRequest[] | undefined) ?? [];
+
+/** Every line a cellar tool was asked for, across the turn, successful calls only. */
+const _cellarItems = (turn: Turn, name: string) => _succeeded(turn, name).flatMap(_items);
+
+/** A cellar tool was asked for this ingredient, in one of these units, in this quantity. */
+const _asked = (turn: Turn, name: string, ingredient: IngredientKey, quantity: number, units: Unit[]) =>
+  _cellarItems(turn, name).some((item) => item.ingredientId === I[ingredient] && item.quantity === quantity && units.includes(item.unit)) ||
+  `${name} was not asked for ${quantity} ${units.join("/")} of ${ingredient} (got: ${JSON.stringify(_cellarItems(turn, name).map((item) => ({ ...item, ingredientId: _nameOf(item.ingredientId) })))})`;
+
+/**
+ * The answer puts a question to the cook: what an offer, or a clarification, reads as. A question
+ * mark, or the imperative a cook reads as one ("dis-moi combien…", "tell me how many…").
+ */
+const _asks = (turn: Turn, what: string) =>
+  turn.text.includes("?") || /\b(dis-moi|dites-moi|tell me)\b/i.test(turn.text) || `the answer does not ask ${what}`;
+
 const _nameOf = (id: string) => {
   const ingredient = INGREDIENT_BY_ID.get(id);
   const recipe = RECIPE_BY_ID.get(id);
@@ -495,7 +567,8 @@ const _invariants = (turn: Turn, stock: Stock[]): string[] => {
       call.tool === ASSISTANT_TOOLS.display ? ((call.input.ids as string[]) ?? [])
         : call.tool === ASSISTANT_TOOLS.showSubstitutions ? ((call.input.swaps as { from: string; to: string }[]) ?? []).flatMap(({ from, to }) => [from, to])
           : call.tool === ASSISTANT_TOOLS.computeNutrition ? [...((call.input.recipeIds as string[]) ?? []), ...((call.input.lines as LineRequest[]) ?? []).map((line) => line.ingredientId)]
-            : [];
+            : call.tool === ASSISTANT_TOOLS.addToCellar || call.tool === ASSISTANT_TOOLS.removeFromCellar ? _items(call).map((item) => item.ingredientId)
+              : [];
     // An empty id is a stand-in for a field left out, which `createTool` drops (`parseToolInput`).
     for (const id of carried.filter((id) => id.trim() !== "" && !seen.has(id))) failures.push(`${call.tool} was given an id no search returned: ${id}`);
 
@@ -758,6 +831,96 @@ const CASES: Case[] = [
     ],
   },
 
+  /* The cellar: act on an order, offer on a story, ask when the place is unclear. */
+  {
+    name: "fr · an order to remove acts",
+    locale: "fr",
+    stock: BEEF_NIGHT,
+    question: "Retire 200 g de spaghetti et 2 tomates de mon cellier.",
+    expect: (turn) => [
+      _asked(turn, ASSISTANT_TOOLS.removeFromCellar, "spaghetti", 200, ["g"]),
+      _asked(turn, ASSISTANT_TOOLS.removeFromCellar, "tomato", 2, ["pcs"]),
+      _mustNot(turn, ASSISTANT_TOOLS.addToCellar),
+    ],
+  },
+  {
+    name: "en · an order to add acts",
+    locale: "en",
+    stock: [],
+    question: "Add 6 eggs and 500 g of spaghetti to my cellar.",
+    expect: (turn) => [
+      _asked(turn, ASSISTANT_TOOLS.addToCellar, "egg", 6, ["pcs"]),
+      _asked(turn, ASSISTANT_TOOLS.addToCellar, "spaghetti", 500, ["g"]),
+      _mustNot(turn, ASSISTANT_TOOLS.removeFromCellar),
+    ],
+  },
+  {
+    // "When they only tell you what they did, offer and wait for their yes." Pesto is not in the
+    // catalog on purpose: the offer is about the pasta whatever the rest of the sentence holds.
+    name: "fr · a cooked dish is offered, not removed",
+    locale: "fr",
+    stock: BEEF_NIGHT,
+    question: "Je viens de cuisiner 500 g de pâtes avec 200 g de pesto.",
+    expect: (turn) => [
+      _mustNot(turn, ASSISTANT_TOOLS.removeFromCellar),
+      _mustNot(turn, ASSISTANT_TOOLS.addToCellar),
+      _asks(turn, "whether to take the pasta out of the cellar"),
+    ],
+  },
+  {
+    name: "fr · the yes after the offer removes",
+    locale: "fr",
+    stock: BEEF_NIGHT,
+    history: [
+      { role: "user", content: "Je viens de cuisiner 500 g de pâtes avec 200 g de pesto." },
+      { role: "assistant", content: "Bon appétit ! Je retire les 500 g de spaghetti de ton cellier ?" },
+    ],
+    question: "Oui vas-y",
+    expect: (turn) => [
+      _asked(turn, ASSISTANT_TOOLS.removeFromCellar, "spaghetti", 500, ["g"]),
+      _mustNot(turn, ASSISTANT_TOOLS.addToCellar),
+    ],
+  },
+  {
+    // "'Ajoute des tomates' alone could mean their cellar or their shopping list, so ask which."
+    name: "fr · add with no place asks where",
+    locale: "fr",
+    stock: [],
+    question: "Ajoute 3 tomates",
+    expect: (turn) => [
+      _mustNot(turn, ASSISTANT_TOOLS.addToCellar),
+      _mustNot(turn, ASSISTANT_TOOLS.removeFromCellar),
+      _asks(turn, "whether the tomatoes go in the cellar or on the list"),
+    ],
+  },
+  {
+    // Food the cellar did not hold is `absent`: normal, never an apology.
+    name: "fr · removing what the cellar lacks is no error",
+    locale: "fr",
+    stock: [],
+    question: "Retire 2 tomates de mon cellier.",
+    expect: (turn) => [
+      _must(turn, ASSISTANT_TOOLS.removeFromCellar),
+      !/d[ée]sol[ée]|pardon|excuse|erreur/i.test(turn.text) || "the answer apologises for food the cellar did not hold",
+    ],
+  },
+  {
+    // "For a unit the cellar does not hold, ask how much that is; never convert between grams and
+    // pieces yourself." A removal in pieces within the same turn is that conversion. The tool call
+    // is NOT required: the brief already says the tomatoes are in pieces, and a model that reads it
+    // and asks straight away has done better than one that tries and fails first (run 2026-09-30,
+    // 3 of 3 asked without calling).
+    name: "fr · grams against pieces asks, never converts",
+    locale: "fr",
+    stock: [{ ingredient: "tomato", amount: 6, unit: "pcs" }],
+    question: "Retire 500 g de tomates de mon cellier.",
+    expect: (turn) => [
+      _cellarItems(turn, ASSISTANT_TOOLS.removeFromCellar).every((item) => item.unit !== "pcs") ||
+      "the model converted the grams to pieces itself and removed them",
+      _asks(turn, "how many tomatoes that is"),
+    ],
+  },
+
   /* Nothing to show. */
   {
     name: "fr · a technique question needs no card",
@@ -769,6 +932,8 @@ const CASES: Case[] = [
       _mustNot(turn, ASSISTANT_TOOLS.showSubstitutions),
       _mustNot(turn, ASSISTANT_TOOLS.showButton),
       _mustNot(turn, ASSISTANT_TOOLS.computeNutrition),
+      _mustNot(turn, ASSISTANT_TOOLS.addToCellar),
+      _mustNot(turn, ASSISTANT_TOOLS.removeFromCellar),
     ],
   },
 ];
@@ -844,7 +1009,7 @@ const _runTurn = async (entrant: Entrant, testCase: Case, run: number): Promise<
         ...(testCase.history ?? []),
         appendBrief({ role: "user", content: testCase.question }, _brief(testCase.stock, testCase.locale)),
       ],
-      tools: _tools(testCase.locale),
+      tools: _tools(testCase.locale, testCase.stock),
       stopWhen: isStepCount(MAX_STEPS),
       providerOptions: routing(entrant.effort, ROUTING),
       maxRetries: 2,

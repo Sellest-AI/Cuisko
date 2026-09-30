@@ -19,6 +19,15 @@ type Args = {
   restoreToList?: number;
 };
 
+export type RemovedFromCellar = {
+  /** The row the quantity came from. Gone if the removal emptied it. */
+  cellarItemId: Id<"cellarItems">;
+  /** The row's unit, which `removed` is in: it differs from the asked one after a conversion. */
+  unit: Unit;
+  /** What actually came off the shelf, which is less than asked when the row held less. */
+  removed: number;
+};
+
 /**
  * Takes a quantity off a household's shelf, and optionally puts some of it back on the list.
  *
@@ -38,20 +47,47 @@ type Args = {
  * canceled "wrong item" tap would leave the list asking for the meal's ingredient while the ledger
  * believed it bought — and dropping the meal later would strike nothing back off.
  *
+ * **A row in another unit of the same dimension is taken too**, the quantity converted to it: "retire
+ * 1 kg de patates" against a row kept in grams. A row of the asked unit wins over one that needs a
+ * conversion. Across dimensions (grams asked, pieces held) nothing is guessed: it throws, naming
+ * what the cellar holds, and the assistant asks the cook rather than weighing a tomato.
+ *
  * @limitation The row's `expirationDate` is left as it is. An undo of a purchase that moved the
  * date keeps the newer one, since nothing stored the older one — see `_mergedExpiration` in
  * `addToCellar`.
  */
-export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<void> => {
-  const cellarItems = await ctx.db.query("cellarItems")
+export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<RemovedFromCellar> => {
+  const cellarItems = (await ctx.db.query("cellarItems")
     .withIndex("by_household_id_and_ingredient_id", q => q.eq("householdId", args.householdId).eq("ingredientId", args.ingredientId))
-    .collect();
+    .collect())
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 
-  const matchingCellarItem = cellarItems
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .find(item => item.unit === args.unit);
+  const matchingCellarItem =
+    cellarItems.find(item => item.unit === args.unit) ??
+    cellarItems.find(item => convertQuantity(args.quantity, args.unit, item.unit) !== undefined);
 
-  if (!matchingCellarItem) throw new ConvexError({ code: "NOT_FOUND", message: "No cellar row to remove." });
+  // Two different answers, so a caller can tell them apart by code: none of this food on the shelf
+  // (the cellar was not kept up to date, which is ordinary), or some of it in a unit this removal
+  // cannot be converted to (the caller has to ask how much that is).
+  if (cellarItems.length === 0) throw new ConvexError({ code: "NOT_FOUND", message: "No cellar row to remove." });
+
+  if (!matchingCellarItem) {
+    const held = cellarItems.map((item) => `${item.quantity} ${item.unit}`).join(", ");
+
+    throw new ConvexError({
+      code: "INVALID_INPUT",
+      message: `No cellar row in ${args.unit} or a unit convertible to it. The cellar holds: ${held}.`,
+    });
+  }
+
+  /**
+   * The removal in the row's own unit. Same unit, same figure: `pcs` has no ratio to itself. The
+   * `!` is safe: a row of another unit is only ever picked above because this same conversion
+   * answered.
+   */
+  const quantity = matchingCellarItem.unit === args.unit
+    ? args.quantity
+    : convertQuantity(args.quantity, args.unit, matchingCellarItem.unit)!;
 
   const restored = args.restoreToList ?? 0;
 
@@ -78,13 +114,13 @@ export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<vo
         Date.now() - row.updatedAt < UNDO_WINDOW_MS)
     : [];
 
-  const emptiesTheRow = args.quantity >= matchingCellarItem.quantity;
+  const emptiesTheRow = quantity >= matchingCellarItem.quantity;
 
   if (emptiesTheRow) {
     await ctx.db.delete(matchingCellarItem._id);
   } else {
     await ctx.db.patch(matchingCellarItem._id, {
-      quantity: matchingCellarItem.quantity - args.quantity,
+      quantity: matchingCellarItem.quantity - quantity,
       updatedAt: Date.now(),
     });
   }
@@ -102,17 +138,18 @@ export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<vo
     // pointing at the list and at no lot. Dropping the meal later now takes its groceryQuantity
     // back off the restored row, instead of finding a pointer that names nothing.
     //
-    // Every captured claim carries its groceryQuantity in `args.unit`: `addToCellar` strikes only
-    // rows of the unit it buys in, and a claim's figure is in the unit of the row it named. When
-    // the restore merged into a row of another unit, the claims follow it by that one ratio, so
-    // the figure stays in the unit of the row the pointer names. Same unit, same figure — `pcs`
-    // has no ratio to itself, and the common case must not go through one.
-    const crossUnit = landed.unit !== args.unit;
+    // Every captured claim carries its groceryQuantity in the unit of the lot it named:
+    // `addToCellar` strikes only rows of the unit it buys in, and lands the purchase on a lot of
+    // that unit. When the restore merged into a row of another unit, the claims follow it by that
+    // one ratio, so the figure stays in the unit of the row the pointer names. Same unit, same
+    // figure — `pcs` has no ratio to itself, and the common case must not go through one.
+    const lotUnit = matchingCellarItem.unit;
+    const crossUnit = landed.unit !== lotUnit;
 
     for (const claim of settledClaims) {
       await ctx.db.patch(claim._id, {
         groceryListItemId: landed.id,
-        groceryQuantity: crossUnit ? convertQuantity(claim.groceryQuantity!, args.unit, landed.unit) : claim.groceryQuantity,
+        groceryQuantity: crossUnit ? convertQuantity(claim.groceryQuantity!, lotUnit, landed.unit) : claim.groceryQuantity,
         cellarItemId: undefined,
         updatedAt: Date.now(),
       });
@@ -124,16 +161,22 @@ export const removeFromCellar = async (ctx: MutationCtx, args: Args): Promise<vo
    * the list, so the household will want it again. An undo is neither — the quantity is already
    * back on the list, and offering it a second time from recently-used would list it twice.
    */
-  if (!emptiesTheRow || restored > 0) return;
+  if (emptiesTheRow && restored === 0) {
+    // Make sure to not duplicate the recently used ingredients, so we remove it first if it exists.
+    await removeFromRecentlyUsed(ctx, args);
 
-  // Make sure to not duplicate the recently used ingredients, so we remove it first if it exists.
-  await removeFromRecentlyUsed(ctx, args);
+    await ctx.db.insert("recentlyUsedIngredients", {
+      householdId: args.householdId,
+      ingredientId: args.ingredientId,
+      unit: matchingCellarItem.unit,
+      quantity,
+      updatedAt: Date.now(),
+    });
+  }
 
-  await ctx.db.insert("recentlyUsedIngredients", {
-    householdId: args.householdId,
-    ingredientId: args.ingredientId,
-    unit: args.unit,
-    quantity: args.quantity,
-    updatedAt: Date.now(),
-  });
+  return {
+    cellarItemId: matchingCellarItem._id,
+    unit: matchingCellarItem.unit,
+    removed: Math.min(quantity, matchingCellarItem.quantity),
+  };
 };

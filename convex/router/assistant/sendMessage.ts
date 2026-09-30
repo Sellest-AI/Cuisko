@@ -53,6 +53,7 @@ export const authed = householdMutationI18n({
       threadId: thread,
       promptMessageId: messageId,
       userId: ctx.userId,
+      householdId: ctx.householdId,
       locale,
       brief,
     });
@@ -70,6 +71,7 @@ export const _internal_answer = internalAction({
     threadId: v.string(),
     promptMessageId: v.string(),
     userId: v.id("users"),
+    householdId: v.id("households"),
     locale: vLocale,
     brief: v.string(),
   },

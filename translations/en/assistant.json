@@ -39,5 +39,8 @@
     "planning": "Plan my week",
     "groceries": "See my groceries",
     "recipes": "See my recipes"
+  },
+  "cellar": {
+    "undo": "Undo"
   }
 }

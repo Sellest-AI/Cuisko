@@ -1,3 +1,5 @@
+import type { Unit } from "./ingredients";
+
 /**
  * Where one conversation with Cuisko stops and the next one begins.
  *
@@ -45,6 +47,8 @@ export const ASSISTANT_TOOLS = {
   display: "display",
   showButton: "showButton",
   showSubstitutions: "showSubstitutions",
+  addToCellar: "addToCellar",
+  removeFromCellar: "removeFromCellar",
 } as const;
 
 export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];
@@ -72,6 +76,51 @@ export type AssistantButton = {
   text: string;
   destination: ButtonDestination;
   variant: ButtonVariant;
+};
+
+/** Which way a cellar change went: stock put on the shelf, or taken off it. */
+export const CELLAR_ACTIONS = ["add", "remove"] as const;
+
+export type CellarAction = (typeof CELLAR_ACTIONS)[number];
+
+/** One ingredient a cellar tool changed, and what it takes to undo it. */
+export type CellarChangeLine = {
+  ingredientId: string;
+  /** The row the stock landed on, or came from. It may be gone since: a removal can empty it. */
+  cellarItemId: string;
+  unit: Unit;
+  /** What actually moved, which for a removal can be less than was asked: the row held less. */
+  quantity: number;
+  /** Add only: what the add struck off the grocery list, which its undo puts back. */
+  restoreToList?: number;
+};
+
+/**
+ * What the addToCellar and removeFromCellar tools store in a message: the lines they changed, and
+ * the ones they could not.
+ *
+ * **The lines are the undo's receipt.** The client undoes a change by replaying each line the
+ * other way, so only lines that landed are in it. Each line is its own mutation, which is why a
+ * call can half-apply, and why `failed` exists: the model reads it and tells the cook, and the card
+ * never offers to undo what never happened.
+ */
+export type CellarChange = {
+  v: 1;
+  action: CellarAction;
+  /**
+   * The household whose cellar changed. The undo targets it, not whichever household is current:
+   * a conversation outlives a household switch, and replaying the lines against the new household
+   * would take its potatoes out instead.
+   */
+  householdId: string;
+  lines: CellarChangeLine[];
+  /**
+   * Remove only: ingredients the cellar held none of, so nothing was taken. Not a failure: the
+   * cellar is often behind the kitchen. Read by the model, never drawn.
+   */
+  absent: string[];
+  /** Read by the model, never drawn. */
+  failed: { ingredientId: string; reason: string }[];
 };
 
 /** One ingredient replaced by another, both catalog ingredient ids. */

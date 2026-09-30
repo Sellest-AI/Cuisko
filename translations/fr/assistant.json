@@ -43,5 +43,8 @@
     "planning": "Planifier ma semaine",
     "groceries": "Voir mes courses",
     "recipes": "Voir mes recettes"
+  },
+  "cellar": {
+    "undo": "Annuler"
   }
 }
