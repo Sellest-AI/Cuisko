@@ -162,4 +162,16 @@ describe("parseToolInput", () => {
     expect(() => parseToolInput(_nutrition, { lines: [{ ingredientId: "egg", quantity: 2, unit: "dozen" }] })).toThrow();
     expect(parseToolInput(_nutrition, { recipeIds: ["k57-mangled"] })).toEqual({ recipeIds: ["k57-mangled"] });
   });
+
+  /**
+   * `sanitizeRecipe`'s `outdated` is `.nullable()` alone: null means "a creation", and leaving it
+   * out is not allowed. Read as absent, the null became a missing key the schema then refused, and
+   * no recipe could be created.
+   */
+  it("keeps the null of a field that may be null but not left out", () => {
+    const sanitize = z.object({ instructions: z.string(), outdated: z.object({ title: z.string() }).nullable() });
+
+    expect(parseToolInput(sanitize, { instructions: "Boil", outdated: null })).toEqual({ instructions: "Boil", outdated: null });
+    expect(parseModelOutput(sanitize, { instructions: "Boil", outdated: "N/A" })).toEqual({ instructions: "Boil", outdated: null });
+  });
 });
