@@ -1,5 +1,7 @@
 import { atom } from "jotai";
 
+import type { Refusal } from "../_model/chatMessage";
+
 /** The conversation the shopper is in, and when anything last happened in it. */
 export type Conversation = {
   threadId: string;
@@ -58,6 +60,21 @@ export type PendingQuestion = { text: string, image?: string };
  * `undefined` means nothing is in flight.
  */
 export const pendingQuestionAtom = atom<PendingQuestion | undefined>(undefined);
+
+/**
+ * The latest refusal, drawn in the transcript where it happened.
+ *
+ * **An atom with a timestamp rather than a flag or an error, because it is part of the
+ * conversation.** The refused question was never stored, so there is nothing in the transcript to
+ * hang the explanation on; `at` is what slots the notice between the messages either side of it
+ * (`withRefusal`), and it keeps its place once later questions land beneath it. Same reason as
+ * `pendingQuestionAtom`: the navigation bar sends and the assistant screen draws, and no component
+ * tree joins them.
+ *
+ * Only the latest is held, and it is dropped once it is older than the idle window, like the
+ * conversation it belongs to (`useAssistantChat`). Never persisted.
+ */
+export const refusalAtom = atom<Refusal | undefined>(undefined);
 
 /**
  * Cuisko is on a turn: thinking, or still writing its answer.

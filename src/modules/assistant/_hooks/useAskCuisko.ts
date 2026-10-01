@@ -3,6 +3,7 @@ import { useCallback } from "react";
 
 import { isConversationStale } from "@shared/assistant";
 import { localClock, localStamp } from "@shared/clock";
+import { isRateLimited } from "@shared/errors";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
@@ -10,7 +11,7 @@ import { useAction, useMutation } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 import { useStagedPhoto } from "~/modules/navigation/hooks";
 
-import { conversationAtom, pendingQuestionAtom } from "./atoms";
+import { conversationAtom, pendingQuestionAtom, refusalAtom } from "./atoms";
 
 /**
  * Whether a send is currently in flight, shared by every caller in the app.
@@ -49,6 +50,7 @@ export const useAskCuisko = () => {
   const { householdId } = useHousehold();
   const [conversation, setConversation] = useAtom(conversationAtom);
   const setPending = useSetAtom(pendingQuestionAtom);
+  const setRefusal = useSetAtom(refusalAtom);
   const { mutate: send } = useMutation(api.router.assistant.sendMessage.authed);
   const { action: upload } = useAction(api.router.media.images.uploadOne.authed);
   const { unstage: unstagePhoto, restore: restorePhoto } = useStagedPhoto();
@@ -114,17 +116,18 @@ export const useAskCuisko = () => {
 
         setConversation({ threadId, lastActivityAt: Date.now() });
       } catch (error) {
-        // Logged rather than surfaced: the question left no message on screen and no spinner
-        // running, so retyping it is the obvious move. When this screen has somewhere to put an
-        // error, it goes here.
-        console.error("Cuisko could not take the question", error);
+        // A refusal for asking too much is said in the transcript. Anything else
+        // is logged rather than surfaced: the question left no message on screen and no spinner
+        // running, so retyping it is the obvious move.
+        if (isRateLimited(error)) setRefusal({ at: Date.now() });
+        else console.error("Cuisko could not take the question", error);
         setPending(undefined);
         if (photo && base64) restorePhoto(photo.uri, base64);
       } finally {
         _inFlight = false;
       }
     },
-    [conversation, householdId, locale, restorePhoto, send, setConversation, setPending, unstagePhoto, upload],
+    [conversation, householdId, locale, restorePhoto, send, setConversation, setPending, setRefusal, unstagePhoto, upload],
   );
 
   return { ask };

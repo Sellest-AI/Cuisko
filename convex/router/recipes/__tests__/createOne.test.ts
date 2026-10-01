@@ -4,6 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -75,7 +76,7 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/recipes/createOne"))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 /**
@@ -92,6 +93,7 @@ beforeAll(() =>
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  registerRateLimiter(t);
   sanitizeRun.mockReset();
   sanitizeRun.mockResolvedValue(RECIPE);
   resolveRun.mockReset();
@@ -132,6 +134,17 @@ describe("router/recipes/createOne", () => {
     await expect(
       t.withIdentity(asUser(ghost)).action(api.router.recipes.createOne.authed, FREE_TEXT),
     ).rejects.toThrow();
+  });
+
+  test("refuses a caller who has hit their rate limit, before the agent runs, and stores nothing", async () => {
+    const { cook } = await rateLimitedCook(t, "recipeWrite");
+
+    await expect(cook.action(api.router.recipes.createOne.authed, FREE_TEXT)).rejects.toMatchObject({
+      data: { code: "RATE_LIMITED" },
+    });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+    expect(await t.run((ctx) => ctx.db.query("recipes").collect())).toHaveLength(0);
   });
 
   /** The prompt tells the model to keep every `>` line; it can only keep one it was actually handed. */

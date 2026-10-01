@@ -74,6 +74,9 @@ export const ChatMessage = ({ message }: Props) => {
       style={styles.fromUser}
     />;
 
+  // The notice for a refused question: Cuisko saying so, plainly.
+  if (message.isRefusal) return <Message from="assistant" content={t("limited")} style={styles.fromAssistant} />;
+
   const hasText = message.blocks.some((block) => block.type === "text");
 
   return (

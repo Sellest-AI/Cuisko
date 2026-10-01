@@ -6,6 +6,9 @@ import { ASSISTANT_IDLE_MS } from "../../../../shared/assistant";
 import { assistantAgent } from "../../../agent/agents";
 import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
+import { enforceRateLimit } from "../../../functions/rateLimits/enforceRateLimit";
+import { registerRateLimiter, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
+import { RATE_LIMITS } from "../../../lib/rateLimits";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -24,6 +27,7 @@ beforeAll(() =>
       .filter(([path]) => path.startsWith("/convex/router/assistant/sendMessage."))
       .map(([, load]) => load()),
     ...Object.values(agentTest.modules).map((load) => load()),
+    warmRateLimiter(),
   ]),
 );
 
@@ -96,6 +100,7 @@ const lastContentOf = (threadId: string) =>
 beforeEach(() => {
   t = convexTest(schema, modules);
   registerAgent(t);
+  registerRateLimiter(t);
 });
 
 afterEach(() => {
@@ -128,6 +133,21 @@ describe("router/assistant/sendMessage", () => {
     const { userId } = await seedUser("Franck");
 
     await expect(ask({ userId, householdId: stranger.householdId }, "salut")).rejects.toThrow(/FORBIDDEN/);
+  });
+
+  test("refuses a cook who has hit their rate limit, and saves and schedules nothing", async () => {
+    const cook = await seedUser("Franck");
+    const { threadId } = await ask(cook, "salut");
+    for (let spent = 1; spent < RATE_LIMITS.assistant.capacity; spent++) {
+      await t.run((ctx) => enforceRateLimit({ ...ctx, userId: cook.userId, user: { role: "USER" } }, "assistant"));
+    }
+    const saved = await messagesOf(threadId);
+    const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+
+    await expect(ask(cook, "encore", threadId)).rejects.toMatchObject({ data: { code: "RATE_LIMITED" } });
+
+    expect(await messagesOf(threadId)).toEqual(saved);
+    expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toHaveLength(scheduled.length);
   });
 
   test("hands the household's cellar and the cook's clock to the answer", async () => {

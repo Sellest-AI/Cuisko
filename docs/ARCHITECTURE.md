@@ -47,7 +47,7 @@ cuisko/
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
 ├── scripts/              Everything run outside the app.
-│   ├── checks/          C1–C15 architectural checks + the `_lib.mjs` they share.
+│   ├── checks/          C1–C16 architectural checks + the `_lib.mjs` they share.
 │   ├── database/        Scripts that talk to a deployment through a deploy key.
 │   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
@@ -496,6 +496,7 @@ contact with a growing codebase.
 | A thread is reached only through `ownedThread` and its allowlisted callers | script C13                                    | `pnpm check:threads`   |
 | Every session atom is sorted: `householdAtom`, or listed as not household | script C14                                     | `pnpm check:households` |
 | Every recipe query reads live rows only (ADR 0017)                     | script C15                                        | `pnpm check:recipes`   |
+| Every costly operation a cook can call is rate limited (ADR 0018)      | script C16                                        | `pnpm check:ratelimits`  |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |

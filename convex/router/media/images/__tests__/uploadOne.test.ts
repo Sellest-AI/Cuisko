@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiterTest";
 import schema from "../../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -17,7 +18,7 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/media/images/uploadOne."))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 /**
@@ -44,6 +45,18 @@ describe("router/media/images/uploadOne", () => {
         .withIdentity({ subject: "k1000000000000000000000000000000|test-session" })
         .action(api.router.media.images.uploadOne.authed, { url: "https://cdn.test/a.webp" }),
     ).rejects.toThrow();
+  });
+
+  test("refuses a cook who has hit their rate limit, before any work, leaving no rows behind", async () => {
+    const t = convexTest(schema, modules);
+    registerRateLimiter(t);
+    const { cook } = await rateLimitedCook(t, "imageUpload");
+
+    await expect(cook.action(api.router.media.images.uploadOne.authed, { base64: "AAAA" })).rejects.toMatchObject({
+      data: { code: "RATE_LIMITED" },
+    });
+
+    expect(await t.run((ctx) => ctx.db.query("images").collect())).toEqual([]);
   });
 
   test("rejects before doing any work, leaving no rows behind", async () => {

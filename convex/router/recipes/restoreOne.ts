@@ -16,6 +16,8 @@ import { vPortableRecipe, vRecipeLink, vRestoredPhotos } from "@convex/schema/re
  * recipe's are, which may reach the datasets, the live APIs and a model, the photos are uploaded
  * (`media/images/uploadMany._internal`), and the row is then written by `_internal_persist`.
  * Internal because it writes an ownerless recipe, which no cook may do.
+ *
+ * @costly
  */
 export const _internal = internalAction({
   args: { recipe: vPortableRecipe, photos: vRestoredPhotos },

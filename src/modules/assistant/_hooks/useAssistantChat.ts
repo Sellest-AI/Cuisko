@@ -6,8 +6,8 @@ import { isConversationStale } from "@shared/assistant";
 
 import { api } from "~/lib/convex/api";
 
-import { type ChatMessage, isShowingSomething, pendingQuestionMessage, toChatMessages } from "../_model/chatMessage";
-import { conversationAtom, isAnsweringAtom, pendingQuestionAtom } from "./atoms";
+import { type ChatMessage, isShowingSomething, pendingQuestionMessage, toChatMessages, withRefusal } from "../_model/chatMessage";
+import { conversationAtom, isAnsweringAtom, pendingQuestionAtom, refusalAtom } from "./atoms";
 import { useAskCuisko } from "./useAskCuisko";
 
 /** Enough to fill the sheet on the first frame; the rest paginates in as the reader scrolls up. */
@@ -33,6 +33,7 @@ const INITIAL_MESSAGES = 20;
 export const useAssistantChat = () => {
   const [conversation, setConversation] = useAtom(conversationAtom);
   const [pendingQuestion, setPending] = useAtom(pendingQuestionAtom);
+  const [refusal, setRefusal] = useAtom(refusalAtom);
   const { ask } = useAskCuisko();
 
   /**
@@ -56,6 +57,14 @@ export const useAssistantChat = () => {
       setConversation(undefined);
     }
   }, [conversation, setConversation]);
+
+  /**
+   * A refusal goes cold on the same clock as the conversation it was said in: reopening the modal
+   * after an hour must not greet a cook with a limit notice left over from the last visit.
+   */
+  useLayoutEffect(() => {
+    if (refusal && isConversationStale(refusal.at, Date.now())) setRefusal(undefined);
+  }, [refusal, setRefusal]);
 
   const stored = useThreadMessages(
     api.router.assistant.listMessages.authed,
@@ -166,11 +175,14 @@ export const useAssistantChat = () => {
    * landed. A failed one stays: it draws its apology.
    */
   const drawn = useMemo(() => {
-    const rows = messages.filter((message) => message.from === "user" || isShowingSomething(message) || message.hasFailed);
+    const rows = withRefusal(
+      messages.filter((message) => message.from === "user" || isShowingSomething(message) || message.hasFailed),
+      refusal,
+    );
 
     // The question just sent, drawn from the moment of the press and until the stored one replaces it.
     return pendingQuestion && !hasLanded ? [...rows, pendingQuestionMessage(pendingQuestion.text, pendingQuestion.image)] : rows;
-  }, [messages, pendingQuestion, hasLanded]);
+  }, [messages, pendingQuestion, hasLanded, refusal]);
 
   return {
     messages: drawn,
@@ -183,6 +195,8 @@ export const useAssistantChat = () => {
      * would flash a welcome at somebody who is mid-conversation.
      */
     hasConversation: conversation !== undefined,
+    /** A refused question is drawn, so the screen is not empty even with no conversation behind it. */
+    hasRefusal: refusal !== undefined,
     /**
      * The question is in and nothing has come back yet — the screen draws Cuisko thinking.
      *

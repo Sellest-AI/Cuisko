@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { isShowingSomething, pendingQuestionMessage, type SourceMessage, toChatMessages, withoutIds } from "../chatMessage";
+import { isShowingSomething, pendingQuestionMessage, type SourceMessage, toChatMessages, withoutIds, withRefusal } from "../chatMessage";
 
 const message = (overrides: Partial<SourceMessage> = {}): SourceMessage => ({
   key: "m1",
@@ -811,6 +811,46 @@ describe("the photo sent with a question", () => {
     const [drawn] = toChatMessages([message({ role: "assistant", text: "Une omelette.", parts: [photo] })]);
 
     expect(drawn?.image).toBeUndefined();
+  });
+});
+
+describe("the refusal drawn among the messages", () => {
+  const rows = (...times: number[]) =>
+    toChatMessages(times.map((time, index) => message({ key: `m${index}`, role: index % 2 === 0 ? "user" : "assistant", _creationTime: time })));
+
+  const keys = (drawn: { key: string }[]) => drawn.map((row) => row.key);
+
+  test("lands after the last message stored before it", () => {
+    const drawn = withRefusal(rows(100, 200, 300), { at: 250 });
+
+    expect(keys(drawn)).toEqual(["m0", "m1", "refusal", "m2"]);
+  });
+
+  /** The usual case: the question was refused, and nothing has been said since. */
+  test("lands last when it is the newest thing", () => {
+    expect(keys(withRefusal(rows(100, 200), { at: 900 }))).toEqual(["m0", "m1", "refusal"]);
+  });
+
+  /** Why it carries a timestamp: later questions land beneath it, and it stays where it was said. */
+  test("keeps its place once later messages arrive", () => {
+    const refusal = { at: 250 };
+
+    expect(keys(withRefusal(rows(100, 200), refusal)).at(-1)).toBe("refusal");
+    expect(keys(withRefusal(rows(100, 200, 300, 400), refusal))).toEqual(["m0", "m1", "refusal", "m2", "m3"]);
+  });
+
+  test("is the only row when nothing was ever stored", () => {
+    expect(keys(withRefusal([], { at: 5 }))).toEqual(["refusal"]);
+  });
+
+  test("is from Cuisko, marked as a refusal, with nothing else to draw", () => {
+    const [notice] = withRefusal([], { at: 5 });
+
+    expect(notice).toMatchObject({ from: "assistant", isRefusal: true, blocks: [], steps: [], hasFailed: false });
+  });
+
+  test("draws nothing extra when there is no refusal", () => {
+    expect(keys(withRefusal(rows(100, 200), undefined))).toEqual(["m0", "m1"]);
   });
 });
 

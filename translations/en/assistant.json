@@ -2,6 +2,7 @@
   "title": "Cuisko",
   "thinking": "Cuisko is thinking",
   "failed": "I could not answer that one. Try asking me again?",
+  "limited": "You have reached the limit for now. Try asking me again in a bit.",
   "empty_title": "Ask me anything",
   "empty_body": "What to cook tonight, what to do with what is left in the fridge, how to swap an ingredient. Type your question below.",
   "empty_action": "Plan my week",

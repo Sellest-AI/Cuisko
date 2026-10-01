@@ -86,7 +86,9 @@
     "unreadable_title": "Nous n'avons pas pu lire de recette sur cette page",
     "unreadable_body": "Votre lien fonctionne, mais la page n'est pas lisible pour nous. Vous pouvez saisir la recette à la main.",
     "unreachable_title": "Ce site n'a pas répondu",
-    "unreachable_body": "Il est peut-être indisponible, ou il refuse notre visite. Réessayez, ou saisissez la recette à la main."
+    "unreachable_body": "Il est peut-être indisponible, ou il refuse notre visite. Réessayez, ou saisissez la recette à la main.",
+    "limited_title": "Tu as atteint la limite d'imports pour le moment",
+    "limited_body": "Réessaie dans un instant, ou écris la recette à la main."
   },
   "Creating": {
     "step_glasses": "On chausse nos lunettes de lecture",
@@ -99,7 +101,9 @@
     "step_plating": "On dresse l'assiette joliment",
     "reassurance": "Cela peut prendre jusqu'à une minute. On peaufine ta recette et on met ses étapes au propre.",
     "error_title": "Ta recette n'a pas été enregistrée",
-    "error_body": "Un problème est survenu pendant la lecture. Tout ce que tu as écrit est encore là — réessaie d'enregistrer."
+    "error_body": "Un problème est survenu pendant la lecture. Tout ce que tu as écrit est encore là — réessaie d'enregistrer.",
+    "limited_title": "Tu as atteint la limite pour le moment",
+    "limited_body": "Tout ce que tu as écrit est encore là. Réessaie d'enregistrer dans un instant."
   },
   "Cooking": {
     "last_step": "Dernière étape",

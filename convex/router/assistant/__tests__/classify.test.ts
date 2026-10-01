@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -37,11 +38,12 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/assistant/classify"))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 beforeEach(() => {
   t = convexTest(schema, modules);
+  registerRateLimiter(t);
 });
 
 /** What TypeSafe answers, as the transport expects to read it. */
@@ -76,6 +78,17 @@ describe("router/assistant/classify", () => {
     await expect(
       t.withIdentity(asUser(ghost)).action(api.router.assistant.classify.authed, { text: "yuzu", locale: "fr" }),
     ).rejects.toThrow();
+  });
+
+  test("refuses a caller who has hit their rate limit, before any request goes out", async () => {
+    const fetched = vi.fn();
+    vi.stubGlobal("fetch", fetched);
+    const { cook } = await rateLimitedCook(t, "assistantClassify");
+
+    await expect(cook.action(api.router.assistant.classify.authed, { text: "yuzu", locale: "fr" })).rejects.toMatchObject({
+      data: { code: "RATE_LIMITED" },
+    });
+    expect(fetched).not.toHaveBeenCalled();
   });
 
   /**

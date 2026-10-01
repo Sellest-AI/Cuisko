@@ -91,6 +91,17 @@ describe("usePendingIngredients", () => {
     expect(stock.calls).toHaveLength(0);
   });
 
+  /** The server declining to look: worded apart from an outage, because retyping later works. */
+  it("keeps the ghost as a limit when the cook has used their lookups", async () => {
+    resolveAction.mockRejectedValue({ data: { code: "RATE_LIMITED" } });
+    const { result } = ghosts();
+
+    await act(() => result.current.add("carotte", "relist", null, null));
+
+    expect(result.current.pending).toMatchObject([{ state: "failed", reason: "limited" }]);
+    expect(stock.calls).toHaveLength(0);
+  });
+
   /** The server's own judgement, which is worth wording differently from our failure. */
   it("carries a refusal's reason onto the card", async () => {
     resolveAction.mockResolvedValue({ status: "refused", reason: "not-food" });

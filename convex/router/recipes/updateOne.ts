@@ -3,12 +3,12 @@ import type { Id } from "@convex/_generated/dataModel";
 import { assertFilledIn, assertTimingsInRange, type RecipeEdit } from "@convex/functions/recipes/recipeChangesOf";
 import { regenerateRecipe } from "@convex/functions/recipes/regenerateRecipe";
 import { updateRecipe } from "@convex/functions/recipes/updateRecipe";
-import { type ActionCtx, authActionI18n, internalMutation } from "@convex/procedures";
+import { type ActionCtx, type AppUser, authActionI18n, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
 import { vRecipeEdit, vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { ConvexError, v } from "convex/values";
 
-type Context = ActionCtx & { userId: Id<"users">; i18n: { locale: Locale } };
+type Context = ActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role">; i18n: { locale: Locale } };
 
 type Args = RecipeEdit & { recipeId: Id<"recipes"> };
 

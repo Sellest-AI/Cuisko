@@ -1,6 +1,7 @@
 import { useAtom } from "jotai";
 import { useCallback } from "react";
 
+import { isRateLimited } from "@shared/errors";
 import { pickQuantity, type Unit } from "@shared/ingredients";
 
 import { useLocale } from "~/hooks/useLocale";
@@ -81,10 +82,11 @@ export const usePendingIngredients = () => {
       let resolved;
       try {
         resolved = await resolve({ text: name, locale });
-      } catch {
+      } catch (error) {
         // The resolve never returned a judgement, so the card must not claim one was made. The
-        // ghost stays on screen as a failure the shopper can dismiss and retype.
-        _fail(id, "error");
+        // ghost stays on screen as a failure the shopper can dismiss and retype. A refusal for
+        // having asked too often is worded apart: it is not our outage, and retyping later works.
+        _fail(id, isRateLimited(error) ? "limited" : "error");
         return;
       }
 

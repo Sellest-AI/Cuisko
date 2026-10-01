@@ -11,6 +11,8 @@ import { ConvexError, v } from "convex/values";
  * `hint` exists for a manual re-run from the dashboard when the first image came out wrong: a
  * sentence like "a cut of meat, not the pasta" that the prompt-writing agent reads as authoritative.
  * The automatic call from `resolveIngredient` never sets it.
+ *
+ * @costly
  */
 export const _internal = internalAction({
   args: {
