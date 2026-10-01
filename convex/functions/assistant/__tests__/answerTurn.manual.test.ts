@@ -1066,7 +1066,67 @@ const CASES: Case[] = [
     ],
   },
   {
-    // "To plan several days or their week, do not call planMeal."
+    // Seen on device: "je ne peux pas écrire dans ta liste", and an offer. "An order to put what a
+    // dish needs on their shopping list is an order to plan it", and "moi et ma copine" is 2.
+    name: "fr · a dish for the shopping list is planned, the count said in words",
+    locale: "fr",
+    stock: [],
+    question: "Rajoute moi dans ma liste de courses de quoi faire des lasagnes pour moi et ma copine pour demain soir",
+    expect: (turn) => [
+      _planned(turn, "lasagne", 1, "dinner", 2),
+      _mustNot(turn, ASSISTANT_TOOLS.display),
+    ],
+  },
+  {
+    // Seen on device: the count said a turn earlier was asked again, and the card shown again.
+    // "How many they will be counts however they said it, in this message or earlier."
+    name: "fr · a count said earlier in the conversation plans on the yes",
+    locale: "fr",
+    stock: [],
+    history: [
+      { role: "user", content: "Je vois ma copine ce weekend, elle est fan de pâtes, tu as une recette ?" },
+      {
+        role: "assistant",
+        content: "Des spaghetti à la carbonara, ça devrait lui plaire. Touche la recette pour la voir, ou " +
+          "dis-moi quel jour et quel repas, je la planifie et je mets à jour ta liste de courses.",
+      },
+    ],
+    question: "Vas-y, on la mange demain soir",
+    expect: (turn) => [
+      _planned(turn, "carbonara", 1, "dinner", 2),
+      _mustNot(turn, ASSISTANT_TOOLS.display),
+    ],
+  },
+  {
+    // "You can plan up to two days in one answer: one planMeal call per meal." Saturday and Sunday
+    // are four and five days after the bench's Tuesday.
+    name: "fr · a weekend with its dishes plans each meal",
+    locale: "fr",
+    stock: [],
+    question: "Planifie des lasagnes samedi soir et un dal dimanche midi pour 2",
+    expect: (turn) => [
+      _planned(turn, "lasagne", 4, "dinner", 2),
+      _planned(turn, "dal", 5, "lunch", 2),
+      _mustNot(turn, ASSISTANT_TOOLS.showButton),
+    ],
+  },
+  {
+    // "Three days or more, or their week, is the planner's job."
+    name: "fr · three days go to the planner",
+    locale: "fr",
+    stock: [],
+    question: "Planifie mes dîners de jeudi à samedi pour 2",
+    expect: (turn) => {
+      const button = _calls(turn, ASSISTANT_TOOLS.showButton)[0]?.input;
+      return [
+        _mustNot(turn, ASSISTANT_TOOLS.planMeal),
+        _must(turn, ASSISTANT_TOOLS.showButton),
+        !button || button.destination === "planning" || `showButton went to "${String(button.destination)}", not planning`,
+      ];
+    },
+  },
+  {
+    // "Three days or more, or their week, is the planner's job: do not call planMeal."
     name: "fr · a whole week goes to the planner",
     locale: "fr",
     stock: [],
