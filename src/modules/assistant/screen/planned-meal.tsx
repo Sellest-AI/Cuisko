@@ -1,4 +1,5 @@
 import type { MealPlanned } from "@shared/assistant";
+import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { resolveLocale, useTranslations } from "translations";
 
@@ -23,8 +24,9 @@ type Props = {
  * label ("vendredi 2 · Dîner"), and the pill that takes it back off. Once that plate is off the
  * week, undone or changed since, the day gives way to "Dîner · Annulé": the day would say it is planned.
  *
- * The card does nothing when tapped, like the cellar change's: it is a record of what happened, and
- * the plate itself is edited from the planning screen.
+ * A tap opens the recipe, and a long press opens the plate's sheet, as on the planning screen. Once
+ * the plate is off the week the long press does nothing: there is no plate left to open. The recipe
+ * still exists, so the tap stays.
  */
 export const PlannedMeal = ({ meal, changeKey }: Props) => {
   const t = useTranslations("Assistant");
@@ -46,6 +48,9 @@ export const PlannedMeal = ({ meal, changeKey }: Props) => {
         slot={slot}
         slotLabel={isCanceled ? `${mealName} · ${t("meal.canceled")}` : `${day} · ${mealName}`}
         imageSrc={card.imageUrl ? { uri: card.imageUrl } : EMPTY_PLATE}
+        onPress={() => router.push(`/recipe/${meal.recipeId}`)}
+        onLongPress={isCanceled ? undefined
+          : () => router.push({ pathname: "/meal", params: { mealId: meal.plannedMealId } })}
       />
       {canUndo && <Button
         variant="neutral"
