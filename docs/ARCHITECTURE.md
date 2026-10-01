@@ -53,6 +53,7 @@ cuisko/
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
 │   │   └── recipes/     `seed:catalog` / `catalog:export` / `catalog:restore` (README inside).
 │   └── images/          Hand-run asset preparation (compress, sanitize).
+├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
 ├── .githooks/            pre-commit (verify + branch name), pre-merge-commit (the same, on a merge), commit-msg (commitlint).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
