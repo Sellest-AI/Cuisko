@@ -1,15 +1,25 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View, StyleSheet, ViewStyle, TextInput } from "react-native";
 import { theme } from "theme";
 import { ButtonIcon } from "./button-icon";
 import { Icon } from "./icons";
 import { BlurScope, BlurView } from "./blur-view";
 
+/** A rectangle in window coordinates. */
+export type Frame = { x: number, y: number, width: number, height: number };
+
+const NO_FRAME: Frame = { x: 0, y: 0, width: 0, height: 0 };
+
 type Props = {
   style?: ViewStyle,
   placeholder?: string,
   leftIcon?: Icon,
-  onLeftPress?: () => void,
+  /**
+   * Receives where the button is on screen, for a caller that grows something out of it, and a way
+   * to ask again later: the bar moves with the keyboard, so the frame it was handed is only true
+   * until the next thing moves it.
+   */
+  onLeftPress?: (frame: Frame, measure?: () => Promise<Frame>) => void,
   rightIcon?: Icon,
   onRightPress?: () => void,
   rightContent?: React.ReactNode,
@@ -56,6 +66,11 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
    * stay lit on a phone long after the field had let the keyboard go.
    */
   const [isFocused, setIsFocused] = useState(false);
+  const leftRef = useRef<View>(null);
+  const measureLeft = () => new Promise<Frame>((resolve) => {
+    if (!leftRef.current) return resolve(NO_FRAME);
+    leftRef.current.measureInWindow((x, y, width, height) => resolve({ x, y, width, height }));
+  });
   const placeholderColor = theme.colors.neutral.muted;
 
   const padding = elevated ? theme.spacing[8] : theme.spacing[4];
@@ -89,15 +104,20 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
         * see `BlurScope`. The surface above is a sibling, not their parent, hence the explicit scope.
         */}
       <BlurScope target={null}>
-        {leftIcon && <ButtonIcon
-          variant={"neutral-subtle"}
-          elevated={true}
-          composite={!onLeftPress}
-          size="sm"
-          onPress={onLeftPress}
-        >
-          {leftIcon}
-        </ButtonIcon>}
+        {leftIcon && <View ref={leftRef} collapsable={false}>
+          <ButtonIcon
+            variant={"neutral-subtle"}
+            elevated={true}
+            composite={!onLeftPress}
+            size="sm"
+            onPress={() => {
+              // Measured at the press, not on layout: the bar moves with the keyboard and the page.
+              void measureLeft().then((frame) => onLeftPress?.(frame, measureLeft));
+            }}
+          >
+            {leftIcon}
+          </ButtonIcon>
+        </View>}
         {centerContent ?? <TextInput
           ref={ref}
           inputMode={type === "numeric" ? "numeric" :

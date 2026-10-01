@@ -33,8 +33,15 @@ export type Conversation = {
  */
 export const conversationAtom = atom<Conversation | undefined>(undefined);
 
+/** A question on its way: the words, and the photo that goes with them as a LOCAL file, if there is one. */
+export type PendingQuestion = { text: string, image?: string };
+
 /**
  * The question that has been sent but has not yet appeared in the transcript.
+ *
+ * **It is also what the screen draws in that gap**, as the cook's own bubble, so a question never
+ * sits unseen while the photo compresses and uploads. The photo is the local file, which is already
+ * on the phone; the stored message swaps in the uploaded one when it lands.
  *
  * Shared state rather than `useState` inside the hook, because the two halves of that moment
  * happen in different components: the navigation bar sends the question, and the assistant screen
@@ -50,7 +57,7 @@ export const conversationAtom = atom<Conversation | undefined>(undefined);
  *
  * `undefined` means nothing is in flight.
  */
-export const pendingQuestionAtom = atom<string | undefined>(undefined);
+export const pendingQuestionAtom = atom<PendingQuestion | undefined>(undefined);
 
 /**
  * Cuisko is on a turn: thinking, or still writing its answer.

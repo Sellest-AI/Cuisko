@@ -6,7 +6,7 @@ import { isConversationStale } from "@shared/assistant";
 
 import { api } from "~/lib/convex/api";
 
-import { type ChatMessage, isShowingSomething, toChatMessages } from "../_model/chatMessage";
+import { type ChatMessage, isShowingSomething, pendingQuestionMessage, toChatMessages } from "../_model/chatMessage";
 import { conversationAtom, isAnsweringAtom, pendingQuestionAtom } from "./atoms";
 import { useAskCuisko } from "./useAskCuisko";
 
@@ -78,11 +78,15 @@ export const useAssistantChat = () => {
    *
    * Searching from the end because the match is almost always the last message or nearly so, and
    * because someone who asks the same question twice means the most recent one.
+   *
+   * @limitation Design choice: a question identical to an earlier one in the thread counts as
+   * landed at once, so it is not drawn until the server's copy arrives. Telling them apart would
+   * take an id back from the send, which is not worth it for the gap of a moment.
    */
   const hasLanded = useMemo(
     () =>
       pendingQuestion !== undefined &&
-      messages.some((message) => message.from === "user" && message.text === pendingQuestion),
+      messages.some((message) => message.from === "user" && message.text === pendingQuestion.text),
     [messages, pendingQuestion],
   );
 
@@ -154,16 +158,19 @@ export const useAssistantChat = () => {
   }, [threadId, lastMessageAt, heldActivityAt, setConversation]);
 
   /**
-   * The rows the screen draws: the transcript without an answer that has nothing on screen yet.
+   * The rows the screen draws: the transcript without an answer that has nothing on screen yet,
+   * and the question just sent if the transcript does not hold it yet.
    *
    * That answer stays in `messages`, where the checks above need it, but drawn it is an empty row
    * plus the gap above it, which pushed "Cuisko is thinking" down and back up as the first token
    * landed. A failed one stays: it draws its apology.
    */
-  const drawn = useMemo(
-    () => messages.filter((message) => message.from === "user" || isShowingSomething(message) || message.hasFailed),
-    [messages],
-  );
+  const drawn = useMemo(() => {
+    const rows = messages.filter((message) => message.from === "user" || isShowingSomething(message) || message.hasFailed);
+
+    // The question just sent, drawn from the moment of the press and until the stored one replaces it.
+    return pendingQuestion && !hasLanded ? [...rows, pendingQuestionMessage(pendingQuestion.text, pendingQuestion.image)] : rows;
+  }, [messages, pendingQuestion, hasLanded]);
 
   return {
     messages: drawn,

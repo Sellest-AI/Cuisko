@@ -23,6 +23,10 @@ export const NOT_HOUSEHOLD = {
     "a way of looking at the list, not a fact about the kitchen",
   "src/modules/navigation/_hooks/useNavigationBar.ts:modeAtom": "the bar's own mode: UI chrome",
   "src/modules/navigation/_hooks/useNavigationBar.ts:refsAtom": "the bar's input refs: UI chrome",
+  "src/modules/navigation/_hooks/useStagedPhoto.ts:uploadBase64Atom":
+    "the staged photo shrunk for sending: the same one-question photo, not a fact about a kitchen",
+  "src/modules/navigation/_hooks/useStagedPhoto.ts:stagedPhotoAtom":
+    "the photo taken for the next question, a local file the cook is about to ask about: it belongs to that one question, not to a kitchen",
   "src/modules/navigation/modal-action.tsx:modalActionAtom": "the open sheet's header action: UI chrome",
   "src/modules/navigation/modal-sheet/state.ts:sheetSizeAtom": "the open sheet's measured size: UI chrome",
   "src/modules/onboarding/_hooks/atoms.ts:doneStepsAtom":

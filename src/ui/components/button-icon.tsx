@@ -15,6 +15,8 @@ type Props = {
   size?: "xs" | "sm" | "md" | "lg";
   /** The glyph alone, when the disc's own size is not the right scale for it. */
   iconSize?: number;
+  /** The glyph's colour, when the variant's own does not suit the surface the button sits on. */
+  iconColor?: string;
   style?: ViewStyle;
   disabled?: boolean;
   onPress?: () => void;
@@ -49,6 +51,7 @@ export const ButtonIcon = ({
   size = "md",
   isLoading = false,
   iconSize: iconSizeOverride,
+  iconColor,
   style,
 }: Props) => {
   const spin = useSpin(isLoading);
@@ -135,7 +138,7 @@ export const ButtonIcon = ({
         <Animated.View style={spin}>
           <MorphIcon
             size={iconSize}
-            color={color.color}
+            color={iconColor ?? color.color}
             icon={isLoading ? LoaderCircle : children}
           />
         </Animated.View>

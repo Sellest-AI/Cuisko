@@ -1,7 +1,7 @@
 import { View, StyleSheet, ViewStyle, Platform } from "react-native";
 import Animated from "react-native-reanimated";
-import { Input, type TextInput } from "@ui/input";
-import { Camera, LoaderCircle, Mic, MorphIcon, SendHorizontal, X } from "@ui/icons";
+import { Input, type Frame, type TextInput } from "@ui/input";
+import { Camera, LoaderCircle, Mic, MorphIcon, SendHorizontal, Trash2, X } from "@ui/icons";
 import { Pressable } from "@ui/pressable";
 import { useSpin } from "@ui/hooks/useSpin";
 import { theme } from "theme";
@@ -11,9 +11,11 @@ import { NAVIGATION_BAR_HEIGHT } from "../constants";
 import { AnimatePresence, m } from "@ui/motion";
 import { BlurView } from "~/ui/components/blur-view";
 import { Suggestions } from "../_components/suggestions";
+import { StagedPhoto } from "./staged-photo";
 import { pickQuantity, type Unit } from "@shared/ingredients";
 import { useBarSuggestions } from "../_hooks/useBarSuggestions";
 import { useNavigationBar } from "../_hooks/useNavigationBar";
+import { useStagedPhoto } from "../_hooks/useStagedPhoto";
 import { useAskCuisko } from "~/modules/assistant/hooks";
 import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
@@ -48,6 +50,8 @@ type Props = {
   onBlur?: () => void,
   /** The mic was pressed: the parent swaps this bar for the voice bar. */
   onVoice: () => void,
+  /** The camera button was pressed, with the frame it is drawn in — the camera grows out of it. */
+  onCamera: (from: Frame, measure: () => Promise<Frame>) => void,
   /**
    * What the voice bar heard, when this bar comes back from it — empty if nothing was. Present only
    * on that return, and the field takes the keyboard back when it is: the shopper reads what was
@@ -56,7 +60,7 @@ type Props = {
   initialValue?: string,
 }
 
-export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, initialValue }: Props) => {
+export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, onCamera, initialValue }: Props) => {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
 
@@ -106,6 +110,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
   const spin = useSpin(isCheckingAnimation && !isSendIcon);
 
   const { mode, registerInputRef } = useNavigationBar();
+  const { photo, discard: discardPhoto } = useStagedPhoto();
   const ref = useRef<TextInput>(null);
   /**
    * Announces this field as the one `focus()` and `blur()` should reach, for as long as it is up.
@@ -329,14 +334,16 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
       <m.View
         onLayout={(e) => setInputHeight(e.nativeEvent.layout.height)}
         style={styles.container}>
+        <StagedPhoto barHeight={inputHeight} />
         <Input
           ref={ref}
           elevated
           placeholder={t("ask_anything").slice(0, 15).trim().concat("…")}
-          leftIcon={isLongEnough ? X : Camera}
-          onLeftPress={() => {
-            if (isLongEnough) setValue("");
-            else console.log("camera pressed")
+          leftIcon={photo ? Trash2 : (isLongEnough ? X : Camera)}
+          onLeftPress={(frame, measure) => {
+            if (photo) discardPhoto();
+            else if (isLongEnough) setValue("");
+            else onCamera(frame, measure ?? (async () => frame));
           }}
           /**
            * The microphone, which becomes the wait while the bar is confirming what was typed.

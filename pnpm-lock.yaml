@@ -42,6 +42,9 @@ importers:
       '@openrouter/ai-sdk-provider':
         specifier: ^3.0.0
         version: 3.0.0(ai@7.0.77(zod@4.6.0))(zod@4.6.0)
+      '@react-native-masked-view/masked-view':
+        specifier: 0.3.2
+        version: 0.3.2(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       '@shopify/flash-list':
         specifier: 2.0.2
         version: 2.0.2(@babel/runtime@7.29.7)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -87,6 +90,9 @@ importers:
       expo-image:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.11)(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      expo-image-manipulator:
+        specifier: ~57.0.20
+        version: 57.0.20(expo@57.0.11)
       expo-image-picker:
         specifier: ~57.0.11
         version: 57.0.11(expo@57.0.11)
@@ -4031,6 +4037,11 @@ packages:
 
   expo-image-loader@57.0.1:
     resolution: {integrity: sha512-uhrZKLT/cTl2mXyR28kPpVkS5O+PK9N1QA/07IFM4f5T4g0lTW1JHT3NEWwEEsGFldPmVX4j7LwUVVZxE+woug==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-manipulator@57.0.20:
+    resolution: {integrity: sha512-LyuoLOJVNWNVEOABqcNCHrAiTtaRQm3usJMK4veG1hnglmt85eSuQTgUaug2TdUyAwGDJbdee4Iif+toTQwNgA==}
     peerDependencies:
       expo: '*'
 
@@ -11603,6 +11614,11 @@ snapshots:
   expo-image-loader@57.0.1(expo@57.0.11):
     dependencies:
       expo: 57.0.11(2e7ef0c64263ef442c5ef424a7285f5d)
+
+  expo-image-manipulator@57.0.20(expo@57.0.11):
+    dependencies:
+      expo: 57.0.11(2e7ef0c64263ef442c5ef424a7285f5d)
+      expo-image-loader: 57.0.1(expo@57.0.11)
 
   expo-image-picker@57.0.11(expo@57.0.11):
     dependencies:

@@ -6,8 +6,9 @@ import { localClock, localStamp } from "@shared/clock";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
-import { useMutation } from "~/lib/convex/client";
+import { useAction, useMutation } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
+import { useStagedPhoto } from "~/modules/navigation/hooks";
 
 import { conversationAtom, pendingQuestionAtom } from "./atoms";
 
@@ -36,6 +37,12 @@ let _inFlight = false;
  *
  * The state it does touch is shared (`atoms.ts`), which is what lets the bar send a question and
  * the assistant screen show the answer arriving, with no component tree joining the two.
+ *
+ * @limitation A send that fails puts its photo back in the bar even if the cook has staged
+ * another meanwhile, and the newer one is lost. **Accepted because** it needs a failed upload
+ * during the seconds the cook spends taking a second photo. **Until fixed**, they take it again.
+ * **The fix** is a token from `unstage` that `restore` checks, so it does nothing once anything
+ * has been staged or discarded since.
  */
 export const useAskCuisko = () => {
   const locale = useLocale();
@@ -43,6 +50,8 @@ export const useAskCuisko = () => {
   const [conversation, setConversation] = useAtom(conversationAtom);
   const setPending = useSetAtom(pendingQuestionAtom);
   const { mutate: send } = useMutation(api.router.assistant.sendMessage.authed);
+  const { action: upload } = useAction(api.router.media.images.uploadOne.authed);
+  const { unstage: unstagePhoto, restore: restorePhoto } = useStagedPhoto();
 
   const ask = useCallback(
     async (text: string) => {
@@ -54,7 +63,13 @@ export const useAskCuisko = () => {
       if (!question || !householdId || _inFlight) return;
 
       _inFlight = true;
-      setPending(question);
+      /**
+       * The photo leaves the bar now, and the pending bubble shows it in its place: it would
+       * otherwise sit in the bar until the question lands. Unstaged rather than discarded, so its
+       * compression keeps running for the upload below, and put back if the send fails.
+       */
+      const photo = unstagePhoto();
+      setPending({ text: question, image: photo?.uri });
 
       /**
        * The thread is offered only while it is still warm. The server makes the same judgement in
@@ -66,7 +81,16 @@ export const useAskCuisko = () => {
           ? conversation.threadId
           : undefined;
 
+      let base64: string | undefined;
       try {
+        /**
+         * The photo goes with this question. It was compressed when it was taken, so this waits for
+         * nothing unless the cook was quicker than the compression. Uploaded before anything is
+         * sent: a failed upload throws first, and the catch below puts the photo back.
+         */
+        base64 = await photo?.base64;
+        const imageId = base64 ? (await upload({ base64, tags: ["IMAGE"] })).imageId : undefined;
+
         /**
          * The id that comes back is the one actually written to, which is not always the one sent:
          * `openThread` overrules a cold thread, a thread that is not the caller's, and one that no
@@ -80,6 +104,7 @@ export const useAskCuisko = () => {
         const sentAt = new Date();
         const { threadId } = await send({
           text: question,
+          imageId,
           threadId: warm,
           locale,
           householdId,
@@ -94,11 +119,12 @@ export const useAskCuisko = () => {
         // error, it goes here.
         console.error("Cuisko could not take the question", error);
         setPending(undefined);
+        if (photo && base64) restorePhoto(photo.uri, base64);
       } finally {
         _inFlight = false;
       }
     },
-    [conversation, householdId, locale, send, setConversation, setPending],
+    [conversation, householdId, locale, restorePhoto, send, setConversation, setPending, unstagePhoto, upload],
   );
 
   return { ask };

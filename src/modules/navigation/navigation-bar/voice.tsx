@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Input } from "@ui/input";
 import { SendHorizontalIcon, Trash2 } from "@ui/icons";
@@ -5,6 +6,7 @@ import { Pressable } from "@ui/pressable";
 import { VoiceWave } from "@ui/voice-wave";
 import { theme } from "theme";
 import { useVoiceInput } from "../_hooks/useVoiceInput";
+import { StagedPhoto } from "./staged-photo";
 
 type Props = {
   /**
@@ -30,24 +32,32 @@ type Props = {
  */
 export const NavigationBarVoice = ({ onDone, onDiscard }: Props) => {
   const { level, finish } = useVoiceInput(onDone);
+  const [barHeight, setBarHeight] = useState(0);
 
   return (
     <View style={styles.container}>
-      <Input
-        elevated
-        style={styles.fill}
-        leftIcon={Trash2}
-        onLeftPress={onDiscard}
-        rightContent={<Pressable hitSlop={24} onPress={finish} haptic>
-          <SendHorizontalIcon size={20} />
-        </Pressable>}
-        centerContent={
-          <VoiceWave
-            level={level}
-            style={styles.content}
-          />
-        }
-      />
+      {/*
+        * The photo stays while the bar listens: it goes with the spoken question the way it goes with
+        * a typed one. Measured on its own wrapper, inside the padding the photo is positioned from.
+        */}
+      <View onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}>
+        <StagedPhoto barHeight={barHeight} />
+        <Input
+          elevated
+          style={styles.fill}
+          leftIcon={Trash2}
+          onLeftPress={onDiscard}
+          rightContent={<Pressable hitSlop={24} onPress={finish} haptic>
+            <SendHorizontalIcon size={20} />
+          </Pressable>}
+          centerContent={
+            <VoiceWave
+              level={level}
+              style={styles.content}
+            />
+          }
+        />
+      </View>
     </View>
   );
 }
