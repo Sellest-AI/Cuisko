@@ -100,7 +100,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
         * servings atom, so the count set here is the count the sheet opens on.
         */}
         <ActionRow
-          variant="secondary"
+          variant="flat"
           style={styles.action}
           onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId: recipe.id } })}
           content={t("Ingredients.add_to_list")}
