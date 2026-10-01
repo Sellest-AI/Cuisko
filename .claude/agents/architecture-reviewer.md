@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Read-only conformance reviewer for Cuisko. Checks a diff against the project's naming, architecture, schema and hygiene rules — it does NOT hunt for defects, /code-review does that. Spawn it before every commit with the diff inlined in the prompt.
+description: Read-only conformance reviewer for Cuisko. Checks a diff against the project's naming, architecture, schema and hygiene rules — it does NOT hunt for defects, /code-review does that. Spawn it before every commit with the intent only; it derives the changed set itself.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -49,7 +49,7 @@ and **where the prompt disagrees with what you derive, the repo wins.**
 
    Match each `applies_to` glob against your changed paths, then read every ADR that matches and is
    `status: accepted`. Skip `README.md`, and skip `superseded` / `deprecated` records — a rule the
-   project stopped following is not a finding. There are seven of them and they are short: when a
+   project stopped following is not a finding. Each one is short: when a
    glob is ambiguous, read it rather than guessing it away.
 
 4. **Read the two long docs only when the diff raises the question they answer:**
@@ -74,6 +74,31 @@ These checks are wrong more often than not when guessed, so spend the call:
 - **An import whose layer is not obvious from its path** → `Read` enough of the target to know what
   layer it belongs to before calling it a boundary violation.
 
+## Docs left behind — look these up
+
+A code change can make a `docs/*` page, or `AGENTS.md` / `src/modules/AGENTS.md`, wrong without
+touching it. That is invisible in a diff, so `Grep` for it. For every changed code file, pull out
+what a doc could name: a **file path or folder** that was moved, renamed or deleted; an **exported
+function, hook, component or table** that was renamed, removed or newly added; a **rule, count or
+range** that moved (check-script or lint-rule ranges, the number of ADRs, the router line cap); a **convention** the diff
+now follows differently. Then `Grep` `docs/` (and the two `AGENTS.md` files) for the old name or
+number, and for the new one when something was added that a layer or placement page should list.
+
+- A hit on something the diff removed or renamed, in a page the diff did not touch, is a finding:
+  the page now describes code that is gone.
+- A new module, layer rule, check script or ADR-worthy decision that no page mentions is a finding
+  when `docs/ARCHITECTURE.md` or `docs/CONVENTIONS.md` enumerates its siblings.
+- If `docs/plans/` holds a plan whose every box this diff completes, say it should be deleted.
+- A doc the diff already edits is not exempt: check it still agrees with the code beside it.
+
+Batch the greps: one alternation pattern per call covers every changed name, so this check costs a
+few calls however many files changed. If the budget runs out, the docs check is the first thing to
+drop; report it under NOT CHECKED.
+
+Cite the doc `file:line`, the stale text, and the code change that made it stale. Classify it
+BLOCKING when the page states a rule or contract the code now breaks, NON-BLOCKING when it is merely
+out of date. Never edit it; the author decides.
+
 ## Do not explore
 
 You have a shell to establish ground truth, not to investigate. **The only commands you may run are
@@ -82,7 +107,8 @@ no recursive `find` or `ls` sweeps, no searching to work out what the change was
 is unclear, say so in the report and review the text as written.
 
 Beyond the lookups above: do not survey the module, do not read sibling files "for context", do not
-open `docs/` pages this file did not name. You are not rebuilding the author's understanding — you
+open `docs/` pages this file did not name. The docs check is a `Grep` for specific names, never a
+read-through; open a page only to confirm a hit. You are not rebuilding the author's understanding — you
 are checking text against a list, and the list is written down precisely so nobody has to infer it
 from the code.
 
@@ -114,6 +140,10 @@ BLOCKING
 NON-BLOCKING
 2. src/modules/recipes/_hooks/use-recipes.ts — hook file should be camelCase  (naming)
    Fix: rename to useRecipes.ts.
+
+3. docs/ARCHITECTURE.md:212 — still lists `convex/functions/pantry/loadItem.ts`, deleted in this diff  (docs)
+   A reader following the data-flow section lands on a file that no longer exists.
+   Fix: point it at `getItem.ts`.
 
 NOT CHECKED
 - convex/schema/pantry.ts — budget ran out before the Schema table; unchecked.
