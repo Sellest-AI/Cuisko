@@ -16,3 +16,7 @@ patchedDependencies:
   # Pressability drops a press whose measured region is stale (a pinned sticky header on
   # Fabric Android). Drop once React Native ships the fix: react/react-native#57502.
   react-native@0.86.2: patches/react-native@0.86.2.patch
+  # A form sheet resized twice within one resize animation (fitToContents on Android) cancelled
+  # the first mid-flight and settled at its transient translationY: the sheet stuck low or
+  # off-screen. The patch ends the interrupted animation instead, so it lands first.
+  react-native-screens@4.26.2: patches/react-native-screens@4.26.2.patch

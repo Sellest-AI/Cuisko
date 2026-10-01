@@ -1,0 +1,46 @@
+diff --git a/android/src/main/java/com/swmansion/rnscreens/bottomsheet/SheetAnimationCoordinator.kt b/android/src/main/java/com/swmansion/rnscreens/bottomsheet/SheetAnimationCoordinator.kt
+--- a/android/src/main/java/com/swmansion/rnscreens/bottomsheet/SheetAnimationCoordinator.kt
++++ b/android/src/main/java/com/swmansion/rnscreens/bottomsheet/SheetAnimationCoordinator.kt
+@@ -86,6 +86,9 @@ internal class SheetAnimationCoordinator(
+         oldHeight: Int,
+         newHeight: Int,
+     ) {
++        // Land a resize still in flight before reading translationY: mid-animation it holds a
++        // transient offset, and the next animation would settle the sheet there for good.
++        finishCurrentContentAnimation()
+         val currentTranslationY = screen.translationY
+ 
+         /*
+@@ -145,7 +148,7 @@ internal class SheetAnimationCoordinator(
+         visibleDelta: Float,
+     ) {
+         screen.translationY += visibleDelta
+-        cancelCurrentContentAnimation()
++        finishCurrentContentAnimation()
+         currentContentAnimator =
+             ValueAnimator.ofFloat(screen.translationY, currentTranslationY).apply {
+                 addListener(
+@@ -193,7 +196,7 @@ internal class SheetAnimationCoordinator(
+         visibleDelta: Float,
+     ) {
+         val targetTranslationY = currentTranslationY - visibleDelta
+-        cancelCurrentContentAnimation()
++        finishCurrentContentAnimation()
+         currentContentAnimator =
+             ValueAnimator.ofFloat(currentTranslationY, targetTranslationY).apply {
+                 addListener(
+@@ -338,10 +341,10 @@ internal class SheetAnimationCoordinator(
+             }
+         }
+ 
+-    private fun cancelCurrentContentAnimation() {
+-        currentContentAnimator?.removeAllListeners()
+-        currentContentAnimator?.removeAllUpdateListeners()
+-        currentContentAnimator?.cancel()
++    // end(), not cancel(): it jumps to the final value and runs onAnimationEnd, so the sheet's
++    // layout and translationY reach the interrupted resize's target instead of freezing mid-way.
++    private fun finishCurrentContentAnimation() {
++        currentContentAnimator?.end()
+         currentContentAnimator = null
+     }
+ 
