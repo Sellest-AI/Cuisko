@@ -1,8 +1,9 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { sanitizeRecipe, type SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx } from "@convex/procedures";
+import type { ActionCtx, AppUser } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
+import { enforceRateLimit } from "../rateLimits/enforceRateLimit";
 import type { RecipeDetail } from "./loadRecipe";
 import { recipeChangesOf, type RecipeEdit, reviseRecipe, sanitizeArgsOf } from "./recipeChangesOf";
 import { resolveRecipeIngredients, type RecipeLink } from "./resolveRecipeIngredients";
@@ -59,9 +60,13 @@ type Regenerated = {
  * linked, which no reuse could have covered either.
  */
 export const regenerateRecipe = async (
-  ctx: ActionCtx & { userId: Id<"users"> },
+  ctx: ActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role"> },
   { edit, stored, locale }: Args,
 ): Promise<Regenerated> => {
+  // Every save, not only the ones that reach the agent: each one re-resolves every ingredient line,
+  // and a line that never linked is walked again (two live APIs, then the model) on a title-only edit.
+  await enforceRateLimit(ctx, "recipeWrite");
+
   const outdated = toModelRecipe(stored);
   const { requiresNewAnalysis, requiresTranslation } = recipeChangesOf(edit, outdated);
 

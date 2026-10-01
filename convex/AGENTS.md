@@ -7,6 +7,9 @@ Builders and ctx types come from `../procedures.ts` — never `_generated/server
   Loops, domain branching or domain-library imports mean the logic belongs in `functions/`.
 - `functions/` — reusable logic that touches `ctx.db`. Plain `(ctx, args)` functions, not procedures.
 - `lib/` — vendor clients and pure helpers. Never touches `ctx.db`.
+- `functions/rateLimits/enforceRateLimit.ts` — the rate limit an `authed` operation that costs money (a model, storage) applies first
+  (ADR 0018). Limits are numbers in `lib/rateLimits.ts` and nowhere else; C16 fails the commit if an
+  operation reaches `agent/` or a vendor client without it.
 - `agent/` — the sealed AI boundary. `ai` and `@convex-dev/agent` are imported here and nowhere
   else. AI endpoints stay ordinary `router/` files that call in; never a parallel API tree.
 - `http/` — webhooks, only via `verifiedWebhook`. Bare `httpAction` is forbidden.

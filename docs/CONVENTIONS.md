@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C15)              |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C16)              |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept
@@ -699,7 +699,7 @@ exact property the optional-FK design had. Nested unions buy write-validity and 
 | A4  | `isAuthorized` is never imported by `router/` — only by `functions/`                         | 🔒 R7           |
 | A5  | Webhooks are defined with `verifiedWebhook`; `verify` has no default                         | 🔒 R5 + 🔬       |
 | A6  | Every `authed` / `admin` / `server` export has a test asserting the wrong caller is rejected | 📐 C5           |
-| A7  | Endpoints that cost money or write on demand are rate-limited                                | 👁              |
+| A7  | Endpoints that cost money are rate-limited (ADR 0018); writes on demand stay review          | 📐 C16 + 👁     |
 | A8  | Never return credentials, tokens or secrets from any procedure                               | 👁              |
 | A9  | Constant-time comparison for secret equality                                                 | 👁              |
 | A10 | Errors are `ConvexError({ code })`, never bare `Error` with a message the UI parses          | 👁              |
@@ -983,7 +983,7 @@ would rot into a wish list, and a rule nobody intends to mechanise should say so
 | S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                         |
 | S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.         |
 | A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                             |
-| A7 — rate limiting                               | "Costs money" is not a static property.                                                                                                                          |
+| A7 — rate limiting of writes on demand           | C16 follows what a paid call imports and what a `@costly` action is called by; a write that costs nothing outside the database has no such mark to follow.        |
 | A8 — never return credentials                    | Would require taint tracking.                                                                                                                                    |
 | A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                |
 | ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                     |

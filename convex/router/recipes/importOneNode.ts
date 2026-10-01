@@ -18,6 +18,8 @@ import { ConvexError, v } from "convex/values";
  * mapping, and all three are tested where they live (`toRecipeDraft` against fixtures; `fetchPage`
  * and `scrapePage` are the network and the Node dependency this file exists to isolate). What is
  * left here is the wiring, which a test could only assert by mocking every part of it.
+ *
+ * @costly
  */
 export const _internal = internalAction({
   args: { url: v.string() },

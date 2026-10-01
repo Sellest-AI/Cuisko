@@ -520,8 +520,12 @@ export type Sections = Record<Section, StockRow[]>;
  * of them: it means the resolve never finished, which is our failure and not the shopper's word,
  * and telling them their word was unreadable because a provider was down would be a lie the card
  * has no way to take back.
+ *
+ * `limited` is the server declining to look at all: the cook has used their allowance of lookups,
+ * so no judgement was made about the word either. It is told apart from `error` because the cook
+ * can read it as "wait a little", where an outage gives them nothing to act on.
  */
-export type PendingFailure = "not-food" | "not-an-ingredient" | "unreadable" | "error";
+export type PendingFailure = "not-food" | "not-an-ingredient" | "unreadable" | "error" | "limited";
 
 /**
  * The two intents that can mint a ghost, and `remove` is deliberately not one of them.

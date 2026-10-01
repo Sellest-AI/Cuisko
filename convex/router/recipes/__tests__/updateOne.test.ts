@@ -4,6 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
 import { parseInstructions, serializeInstructions } from "../../../../shared/recipes";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -140,7 +141,7 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne.") || path.startsWith("/convex/router/recipes/getOne."))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 /**
@@ -151,6 +152,7 @@ beforeAll(() =>
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  registerRateLimiter(t);
   sanitizeRun.mockReset();
   sanitizeRun.mockResolvedValue(RECIPE);
   resolveRun.mockReset();
@@ -177,6 +179,31 @@ describe("router/recipes/updateOne", () => {
     ).rejects.toThrow();
 
     expect(sanitizeRun).not.toHaveBeenCalled();
+  });
+
+  test("refuses an edit that needs the agent once the rate limit is hit, and leaves the row alone", async () => {
+    const { userId, cook } = await rateLimitedCook(t, "recipeWrite");
+    const recipeId = await seedRecipe(userId);
+
+    await expect(
+      cook.action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, ingredients: "2 oignons, 5 g thym" }),
+    ).rejects.toMatchObject({ data: { code: "RATE_LIMITED" } });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.title.values.fr).toBe("Soupe à l'oignon");
+  });
+
+  /** A retitle re-walks every ingredient line too, so it is rationed like the edit that reaches the agent. */
+  test("refuses an edit that never reaches the agent too, before any ingredient is resolved", async () => {
+    const { userId, cook } = await rateLimitedCook(t, "recipeWrite");
+    const recipeId = await seedRecipe(userId);
+
+    await expect(
+      cook.action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, title: "Soupe du soir" }),
+    ).rejects.toMatchObject({ data: { code: "RATE_LIMITED" } });
+
+    expect(resolveRun).not.toHaveBeenCalled();
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.title.values.fr).toBe("Soupe à l'oignon");
   });
 
   /**

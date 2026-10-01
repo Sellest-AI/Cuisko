@@ -42,7 +42,8 @@
     "check:threads": "node scripts/checks/c13-thread-access.mjs",
     "check:households": "node scripts/checks/c14-household-atoms.mjs",
     "check:recipes": "node scripts/checks/c15-live-recipe-reads.mjs",
-    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads && pnpm check:households && pnpm check:recipes",
+    "check:ratelimits": "node scripts/checks/c16-rate-limits.mjs",
+    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads && pnpm check:households && pnpm check:recipes && pnpm check:ratelimits",
     "verify": "pnpm typecheck && pnpm lint && pnpm check && pnpm test",
     "prepare": "git config core.hooksPath .githooks"
   },
@@ -54,6 +55,7 @@
     "@convex-dev/agent": "^0.7.1",
     "@convex-dev/auth": "^0.0.94",
     "@convex-dev/migrations": "^0.3.6",
+    "@convex-dev/rate-limiter": "^0.4.0",
     "@expo/ui": "~57.0.9",
     "@lottiefiles/dotlottie-react": "^0.19.16",
     "@openrouter/ai-sdk-provider": "^3.0.0",

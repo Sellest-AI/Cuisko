@@ -5,6 +5,7 @@ import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import { createIngredient } from "../../../functions/ingredients/createIngredient";
 import schema from "../../../schema";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -108,11 +109,12 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/ingredients/resolve"))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 beforeEach(() => {
   t = convexTest(schema, modules);
+  registerRateLimiter(t);
   // Every test in this file must answer from the catalog or the shipped datasets. A test that
   // reaches the network is a test that fails when somebody else's server is down, and this suite
   // runs on every commit.
@@ -140,6 +142,17 @@ describe("router/ingredients/resolve", () => {
     await expect(
       t.withIdentity(asUser(ghost)).action(api.router.ingredients.resolve.authed, { text: "carotte", locale: "fr" }),
     ).rejects.toThrow();
+  });
+
+  test("refuses a caller who has hit their rate limit, before the catalog, the network or the agent", async () => {
+    await seedCarrot();
+    const { cook } = await rateLimitedCook(t, "ingredientResolve");
+
+    await expect(cook.action(api.router.ingredients.resolve.authed, { text: "carotte", locale: "fr" })).rejects.toMatchObject({
+      data: { code: "RATE_LIMITED" },
+    });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(sanitizeRun).not.toHaveBeenCalled();
   });
 
   test("a name the catalog already holds is matched, and nothing is written", async () => {

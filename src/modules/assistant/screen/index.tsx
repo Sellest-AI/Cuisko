@@ -33,7 +33,7 @@ type Props = {
 
 export const AssistantScreen = ({ style, question }: Props) => {
   const t = useTranslations("Assistant");
-  const { messages, ask, isThinking, isReplying, hasConversation } = useAssistantChat();
+  const { messages, ask, isThinking, isReplying, hasConversation, hasRefusal } = useAssistantChat();
 
   /**
    * The question the bar arrived with, sent exactly once.
@@ -58,7 +58,7 @@ export const AssistantScreen = ({ style, question }: Props) => {
    * Reachable since Quick Access started linking straight here: the navigation bar used to be the
    * only door in, and it always arrived carrying a question.
    */
-  const isEmpty = !question && !hasConversation && !isThinking;
+  const isEmpty = !question && !hasConversation && !isThinking && !hasRefusal;
 
   const scroller = useRef<FlashListRef<ChatMessageModel>>(null);
   const spin = useSpin(isThinking || isReplying);
@@ -112,10 +112,11 @@ export const AssistantScreen = ({ style, question }: Props) => {
           {/*
             * The greeting, drawn only when the screen is certainly empty and will stay that way.
             *
-            * All three conditions are the same question asked of the three things that can put a
+            * All four conditions are the same question asked of the four things that can put a
             * message here: a `question` is about to be sent on mount, a held conversation is a
-            * transcript still loading, and a pending one is a turn already in flight. Testing
-            * `messages.length` alone would greet a reader for the frame before any of them lands.
+            * transcript still loading, a pending one is a turn already in flight, and a refusal is
+            * a notice with no conversation behind it. Testing `messages.length` alone would greet
+            * a reader for the frame before any of them lands.
             */}
           {isEmpty && <AssistantEmpty />}
         </>

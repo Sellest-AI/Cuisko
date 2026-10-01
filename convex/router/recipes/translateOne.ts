@@ -16,6 +16,8 @@ import { v } from "convex/values";
  *
  * The whole run is a no-op when nothing is missing — `translateRecipe` refuses an empty locale
  * list, and asking it for zero languages would be asking for an answer it cannot give.
+ *
+ * @costly
  */
 export const _internal = internalAction({
   args: { recipeId: v.id("recipes"), sourceLocale: vLocale },

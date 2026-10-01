@@ -38,6 +38,7 @@
     "not_food": "Pas un aliment",
     "not_an_ingredient": "Pas un ingrédient",
     "unreadable": "Mot non reconnu",
-    "error": "Échec de l’ajout"
+    "error": "Échec de l’ajout",
+    "limited": "Limite atteinte, réessaie dans un instant"
   }
 }

@@ -84,7 +84,9 @@
     "unreadable_title": "We could not read a recipe on that page",
     "unreadable_body": "Your link is fine, the page is just not one we can read. You can write the recipe out instead.",
     "unreachable_title": "That site did not answer",
-    "unreachable_body": "It may be down, or it may not let us in. Try again, or write the recipe out instead."
+    "unreachable_body": "It may be down, or it may not let us in. Try again, or write the recipe out instead.",
+    "limited_title": "You have reached the import limit for now",
+    "limited_body": "Try again in a bit, or write the recipe out instead."
   },
   "Creating": {
     "step_glasses": "Putting on our reading glasses",
@@ -97,7 +99,9 @@
     "step_plating": "Plating it nicely",
     "reassurance": "This can take up to a minute. We are polishing your recipe and tidying its steps.",
     "error_title": "Your recipe was not saved",
-    "error_body": "Something went wrong while reading it. Everything you typed is still here — try saving again."
+    "error_body": "Something went wrong while reading it. Everything you typed is still here — try saving again.",
+    "limited_title": "You have reached the limit for now",
+    "limited_body": "Everything you typed is still here. Try saving again in a bit."
   },
   "Cooking": {
     "last_step": "Last step",

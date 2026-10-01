@@ -9,6 +9,7 @@ import {
 import { loadIngredients } from "@convex/functions/ingredients/loadIngredients";
 import { rememberAlias } from "@convex/functions/ingredients/rememberAlias";
 import { searchWidened } from "@convex/functions/ingredients/searchWidened";
+import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { authActionI18n, internalMutation, internalQuery } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { vIngredientFacts } from "@convex/schema/ingredientPayloads";
@@ -31,7 +32,7 @@ import { v } from "convex/values";
 export const authed = authActionI18n({
   args: { text: v.string() },
   handler: (ctx, { text }): Promise<ResolvedIngredient> =>
-    resolveIngredient(ctx, { text, locale: ctx.i18n.locale }),
+    withRateLimit(ctx, "ingredientResolve", () => resolveIngredient(ctx, { text, locale: ctx.i18n.locale })),
 });
 
 /**

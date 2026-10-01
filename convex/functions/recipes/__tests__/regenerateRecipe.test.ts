@@ -18,6 +18,9 @@ import { regenerateRecipe } from "../regenerateRecipe";
  */
 const sanitizeRun = vi.hoisted(() => vi.fn());
 const resolveRun = vi.hoisted(() => vi.fn());
+const rateLimitRun = vi.hoisted(() => vi.fn());
+
+vi.mock("@convex/functions/rateLimits/enforceRateLimit", () => ({ enforceRateLimit: rateLimitRun }));
 
 vi.mock("@convex/agent/tools/sanitizeRecipe", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../agent/tools/sanitizeRecipe")>();
@@ -118,6 +121,8 @@ beforeEach(() => {
   sanitizeRun.mockResolvedValue(ANALYZED);
   resolveRun.mockReset();
   resolveRun.mockResolvedValue({ links: [], complete: true });
+  rateLimitRun.mockReset();
+  rateLimitRun.mockResolvedValue(undefined);
 });
 
 describe("functions/recipes/regenerateRecipe", () => {
@@ -169,6 +174,33 @@ describe("functions/recipes/regenerateRecipe", () => {
     expect(recipe.title).toBe(ANALYZED.title);
     expect(recipe.difficulty).toBe(UNCHANGED.difficulty);
     expect(recipe.servings).toBe(UNCHANGED.servings);
+  });
+
+  /** The rate limit is for the model: the same decision that skips the agent skips the limit. */
+  test("rate limits recipeWrite once, before the agent, when the ingredients changed", async () => {
+    await regenerate({ ingredients: "2 Oignons\n5 g thym" });
+
+    expect(rateLimitRun).toHaveBeenCalledTimes(1);
+    expect(rateLimitRun).toHaveBeenCalledWith(ctx, "recipeWrite");
+    expect(rateLimitRun.mock.invocationCallOrder[0]).toBeLessThan(sanitizeRun.mock.invocationCallOrder[0]!);
+  });
+
+  /** The resolve walks every line on every save, so a title-only edit is not free to run. */
+  test("rate limits a save that never reaches the agent too, before the ingredient lines are walked", async () => {
+    await regenerate({ title: "Nouveau titre" });
+
+    expect(rateLimitRun).toHaveBeenCalledTimes(1);
+    expect(rateLimitRun).toHaveBeenCalledWith(ctx, "recipeWrite");
+    expect(rateLimitRun.mock.invocationCallOrder[0]).toBeLessThan(resolveRun.mock.invocationCallOrder[0]!);
+  });
+
+  test("never reaches the agent when the rate limit refuses", async () => {
+    rateLimitRun.mockRejectedValue(new Error("RATE_LIMITED"));
+
+    await expect(regenerate({ ingredients: "2 Oignons\n5 g thym" })).rejects.toThrow("RATE_LIMITED");
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+    expect(resolveRun).not.toHaveBeenCalled();
   });
 
   /** A stale other-locale is the caller's problem to schedule, but this is what tells it. */

@@ -10,6 +10,8 @@ import { v } from "convex/values";
  * Internal because only that script calls it, and it spends a model call per call. Nothing is
  * written: the script keeps the list of what it searched in its ledger, and hands the dishes of
  * this cuisine back as `avoid`.
+ *
+ * @costly
  */
 export const _internal = internalAction({
   args: { cuisine: vCuisine, count: v.number(), avoid: v.array(v.string()) },

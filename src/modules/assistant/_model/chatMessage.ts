@@ -166,6 +166,11 @@ export type ChatMessage = {
    */
   hasFailed: boolean;
   /**
+   * True only on the notice drawn for a refused question (`withRefusal`). It is not a message
+   * anyone sent, so everything else here is empty.
+   */
+  isRefusal?: boolean;
+  /**
    * When the message was stored, by the server's clock.
    *
    * Carried so the client can measure the idle window from the same instant the server measures
@@ -201,6 +206,46 @@ export const pendingQuestionMessage = (text: string, image?: string): ChatMessag
   hasFailed: false,
   createdAt: 0,
 });
+
+/** A question the server declined for asking too much, and when, by the phone's clock. */
+export type Refusal = { at: number };
+
+/**
+ * `rows` with the refusal slotted in where it happened: after the last row stored at or before it.
+ *
+ * Found by time because the refused question was never stored, so there is no message to anchor to,
+ * and it has to keep its place once later questions land below it. `at` is the phone's clock and
+ * the rows' `createdAt` the server's, so a skewed phone can slot it a row early or late.
+ *
+ * @limitation Design choice: that skew is accepted. The stale check already compares the same two
+ * clocks, and a notice one row off is still next to the question it answers.
+ */
+export const withRefusal = (rows: readonly ChatMessage[], refusal: Refusal | undefined): ChatMessage[] => {
+  if (!refusal) return [...rows];
+
+  let after = 0;
+  rows.forEach((row, index) => {
+    if (row.createdAt <= refusal.at) after = index + 1;
+  });
+
+  const notice: ChatMessage = {
+    key: "refusal",
+    from: "assistant",
+    text: "",
+    steps: [],
+    cards: [],
+    cellarChanges: [],
+    plannedMeals: [],
+    blocks: [],
+    isStreaming: false,
+    isReplying: false,
+    hasFailed: false,
+    isRefusal: true,
+    createdAt: refusal.at,
+  };
+
+  return [...rows.slice(0, after), notice, ...rows.slice(after)];
+};
 
 const _partType = (tool: string) => `tool-${tool}`;
 

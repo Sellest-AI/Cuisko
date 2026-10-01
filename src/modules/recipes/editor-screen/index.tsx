@@ -13,6 +13,7 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
+import { isRateLimited } from "@shared/errors";
 import { DEFAULT_SERVINGS, serializeInstructions } from "@shared/recipes";
 
 import type { Id } from "~/lib/convex/api";
@@ -239,10 +240,10 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
           <InfoBanner
             variant="warning"
             icon={CircleAlert}
-            title={t("Creating.error_title")}
+            title={t(isRateLimited(error) ? "Creating.limited_title" : "Creating.error_title")}
             style={styles.error}
           >
-            {t("Creating.error_body")}
+            {t(isRateLimited(error) ? "Creating.limited_body" : "Creating.error_body")}
           </InfoBanner>
         )}
         <View>

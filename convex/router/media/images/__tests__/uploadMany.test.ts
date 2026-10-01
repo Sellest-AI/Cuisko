@@ -2,6 +2,8 @@ import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiterTest";
+import { RATE_LIMITS } from "../../../../lib/rateLimits";
 import schema from "../../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -17,7 +19,7 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/media/images/uploadMany."))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 /**
@@ -48,6 +50,32 @@ describe("router/media/images/uploadMany", () => {
           images: [{ url: "https://cdn.test/a.webp" }],
         }),
     ).rejects.toThrow();
+  });
+
+  test("refuses a cook who has hit their rate limit, before any work", async () => {
+    const t = convexTest(schema, modules);
+    registerRateLimiter(t);
+    const { cook } = await rateLimitedCook(t, "imageUpload");
+
+    await expect(
+      cook.action(api.router.media.images.uploadMany.authed, { images: [{ url: "https://cdn.test/a.webp" }] }),
+    ).rejects.toMatchObject({ data: { code: "RATE_LIMITED" } });
+
+    expect(await t.run((ctx) => ctx.db.query("images").collect())).toEqual([]);
+  });
+
+  /** The batch is the way round a limit meant for one image at a time, so it pays a token per image. */
+  test("refuses a batch bigger than the whole allowance, even from a cook who has used none of it", async () => {
+    const t = convexTest(schema, modules);
+    registerRateLimiter(t);
+    const { cook } = await rateLimitedCook(t, "imageUpload", 0);
+    const images = Array.from({ length: RATE_LIMITS.imageUpload.capacity + 1 }, (_, index) => ({
+      url: `https://cdn.test/${index}.webp`,
+    }));
+
+    await expect(cook.action(api.router.media.images.uploadMany.authed, { images })).rejects.toMatchObject({
+      data: { code: "RATE_LIMITED" },
+    });
   });
 
   test("rejects an empty batch from an unauthenticated caller too", async () => {

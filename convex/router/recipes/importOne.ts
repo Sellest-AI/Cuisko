@@ -1,5 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { findCatalogBySource } from "@convex/functions/recipes/findCatalogBySource";
 import type { RecipeDraft } from "@convex/lib/scraping/toRecipeDraft";
 import { type ActionCtx, authAction, internalAction, internalQuery } from "@convex/procedures";
@@ -50,7 +51,7 @@ const _extract = async (ctx: ActionCtx, url: string): Promise<RecipeDraft> => {
 export const authed = authAction({
   args: { url: v.string() },
   returns: vRecipeDraft,
-  handler: (ctx, { url }): Promise<RecipeDraft> => _extract(ctx, url),
+  handler: (ctx, { url }): Promise<RecipeDraft> => withRateLimit(ctx, "recipeImport", () => _extract(ctx, url)),
 });
 
 /**

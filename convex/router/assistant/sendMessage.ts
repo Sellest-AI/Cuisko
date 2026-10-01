@@ -3,6 +3,7 @@ import { answerTurn } from "@convex/functions/assistant/answerTurn";
 import { openThread } from "@convex/functions/assistant/openThread";
 import { saveQuestion } from "@convex/functions/assistant/saveQuestion";
 import { turnBrief } from "@convex/functions/assistant/turnBrief";
+import { enforceRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { householdMutationI18n, internalAction } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { v } from "convex/values";
@@ -40,6 +41,9 @@ export const authed = householdMutationI18n({
   },
   returns: v.object({ threadId: v.string() }),
   handler: async (ctx, { text, threadId, imageId, today, now }) => {
+    // First, so a refused question saves nothing and schedules no answer.
+    await enforceRateLimit(ctx, "assistant");
+
     const { locale } = ctx.i18n;
     const brief = await turnBrief(ctx, { householdId: ctx.householdId, locale, today, now });
     const thread = await openThread(ctx, { threadId, userId: ctx.userId, now: Date.now() });
@@ -64,6 +68,8 @@ export const authed = householdMutationI18n({
 /**
  * The turn `authed` scheduled. Internal because it is one step of that operation and carries no
  * identity of its own — every argument it trusts was established by the mutation that scheduled it.
+ *
+ * @costly
  */
 export const _internal_answer = internalAction({
   args: {

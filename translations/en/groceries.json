@@ -38,6 +38,7 @@
     "not_food": "Not a food",
     "not_an_ingredient": "Not an ingredient",
     "unreadable": "Couldn't read that",
-    "error": "Didn’t go through"
+    "error": "Didn’t go through",
+    "limited": "Limit reached, try again in a bit"
   }
 }

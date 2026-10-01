@@ -95,6 +95,7 @@ const REASON_KEY: Record<PendingFailure, TranslationKeys<"Groceries">> = {
   "not-an-ingredient": "Pending.not_an_ingredient",
   unreadable: "Pending.unreadable",
   error: "Pending.error",
+  limited: "Pending.limited",
 };
 
 type Row =

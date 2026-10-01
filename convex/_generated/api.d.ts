@@ -135,6 +135,7 @@ import type * as functions_planning_weekIdeas from "../functions/planning/weekId
 import type * as functions_preferences_getForUser from "../functions/preferences/getForUser.js";
 import type * as functions_preferences_getPlanningSeed from "../functions/preferences/getPlanningSeed.js";
 import type * as functions_preferences_save from "../functions/preferences/save.js";
+import type * as functions_rateLimits_enforceRateLimit from "../functions/rateLimits/enforceRateLimit.js";
 import type * as functions_recipes_archiveRecipe from "../functions/recipes/archiveRecipe.js";
 import type * as functions_recipes_computeNutrition from "../functions/recipes/computeNutrition.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
@@ -174,6 +175,7 @@ import type * as functions_users_loadUser from "../functions/users/loadUser.js";
 import type * as functions_users_onUserCreated from "../functions/users/onUserCreated.js";
 import type * as http from "../http.js";
 import type * as http_verified from "../http/verified.js";
+import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_authRedirect from "../lib/authRedirect.js";
 import type * as lib_i18n_index from "../lib/i18n/index.js";
 import type * as lib_media_node from "../lib/media/node.js";
@@ -412,6 +414,7 @@ declare const fullApi: ApiFromModules<{
   "functions/preferences/getForUser": typeof functions_preferences_getForUser;
   "functions/preferences/getPlanningSeed": typeof functions_preferences_getPlanningSeed;
   "functions/preferences/save": typeof functions_preferences_save;
+  "functions/rateLimits/enforceRateLimit": typeof functions_rateLimits_enforceRateLimit;
   "functions/recipes/archiveRecipe": typeof functions_recipes_archiveRecipe;
   "functions/recipes/computeNutrition": typeof functions_recipes_computeNutrition;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
@@ -451,6 +454,7 @@ declare const fullApi: ApiFromModules<{
   "functions/users/onUserCreated": typeof functions_users_onUserCreated;
   http: typeof http;
   "http/verified": typeof http_verified;
+  "lib/rateLimits": typeof lib_rateLimits;
   "lib/authRedirect": typeof lib_authRedirect;
   "lib/i18n/index": typeof lib_i18n_index;
   "lib/media/node": typeof lib_media_node;
@@ -585,4 +589,5 @@ export declare const internal: FilterApi<
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

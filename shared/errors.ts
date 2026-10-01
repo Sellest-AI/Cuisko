@@ -37,3 +37,9 @@ export const isAppError = (error: unknown): error is { data: AppErrorData } => {
   if (typeof data !== "object" || data === null || !("code" in data)) return false;
   return ERROR_CODES.includes((data as { code: ErrorCode }).code);
 };
+
+/**
+ * The caller used up their allowance for an AI call (`enforceRateLimit`). The error carries
+ * nothing else, on purpose: which limit it was and when it resets are for no one to read off the wire.
+ */
+export const isRateLimited = (error: unknown): boolean => isAppError(error) && error.data.code === "RATE_LIMITED";

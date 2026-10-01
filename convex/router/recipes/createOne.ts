@@ -1,5 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { generateRecipe } from "@convex/functions/recipes/generateRecipe";
 import { replaceRecipeImages } from "@convex/functions/recipes/recipeImages";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
@@ -40,10 +41,7 @@ const handler = async (ctx: Context, { sourceUrl, ...text }: Args): Promise<Id<"
     sourceLocale: locale,
   });
 
-  await ctx.scheduler.runAfter(0, internal.router.recipes.generateImages._internal, {
-    recipeId,
-    userId: ctx.userId
-  })
+  await ctx.scheduler.runAfter(0, internal.router.recipes.generateImages._internal, { recipeId, userId: ctx.userId });
 
   return recipeId;
 };
@@ -59,9 +57,10 @@ const sharedArgs = {
 
 export const authed = authActionI18n({
   args: sharedArgs,
-  handler: (ctx, args): Promise<Id<"recipes">> => handler(ctx, args),
+  handler: (ctx, args): Promise<Id<"recipes">> => withRateLimit(ctx, "recipeWrite", () => handler(ctx, args)),
 });
 
+/** @costly */
 export const _internal = internalAction({
   args: { ...sharedArgs, locale: vLocale },
   handler: (ctx, args): Promise<Id<"recipes">> =>

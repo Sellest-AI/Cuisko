@@ -1,4 +1,5 @@
 import { classifyIntent } from "@convex/functions/assistant/classifyIntent";
+import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { authActionI18n } from "@convex/procedures";
 import { vIntent } from "@convex/schema/assistantPayloads";
 import { type Infer, v } from "convex/values";
@@ -24,5 +25,5 @@ export const authed = authActionI18n({
   args: { text: v.string() },
   returns: vIntent,
   handler: (ctx, { text }): Promise<Infer<typeof vIntent>> =>
-    classifyIntent({ text, locale: ctx.i18n.locale }),
+    withRateLimit(ctx, "assistantClassify", () => classifyIntent({ text, locale: ctx.i18n.locale })),
 });

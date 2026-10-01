@@ -5,6 +5,7 @@ import { facetsOf } from "@shared/tags";
 
 import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -36,11 +37,12 @@ beforeAll(() =>
     Object.entries(modules)
       .filter(([path]) => path.startsWith("/convex/router/recipes/importOne."))
       .map(([, load]) => load()),
-  ),
+  ).then(warmRateLimiter),
 );
 
 beforeEach(() => {
   t = convexTest(schema, modules);
+  registerRateLimiter(t);
   /**
    * The whole point of this endpoint is that it makes our servers fetch a URL a caller chose, so a
    * test suite that runs on every commit must not be able to make one. Every fetch here is a
@@ -81,6 +83,16 @@ describe("router/recipes/importOne", () => {
         .withIdentity(asUser(ghost))
         .action(api.router.recipes.importOne.authed, { url: "https://example.com/tarte" }),
     ).rejects.toThrow();
+  });
+
+  test("refuses a caller who has hit their rate limit, before any fetch", async () => {
+    const { cook } = await rateLimitedCook(t, "recipeImport");
+
+    await expect(cook.action(api.router.recipes.importOne.authed, { url: "https://example.com/tarte" })).rejects.toMatchObject({
+      data: { code: "RATE_LIMITED" },
+    });
+
+    expect(fetchPage).not.toHaveBeenCalled();
   });
 
   /**

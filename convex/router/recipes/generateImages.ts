@@ -6,6 +6,7 @@ import { internalAction } from "@convex/procedures";
 import { serializeInstructions } from "@shared/recipes";
 import { ConvexError, v } from "convex/values";
 
+/** @costly */
 export const _internal = internalAction({
   args: {
     recipeId: v.id("recipes"),
