@@ -5,16 +5,26 @@ import { scheduleOnRN } from "react-native-worklets";
 import { CameraView } from "expo-camera";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BlurView } from "@ui/blur-view";
 import { ButtonIcon } from "@ui/button-icon";
 import { X } from "@ui/icons";
 import type { Frame } from "@ui/input";
 import { Pressable } from "@ui/pressable";
 import { theme } from "theme";
 
+/**
+ * The shutter's ring: frosted over the live picture on iOS and web, a plain translucent disc on
+ * Android. There the preview is a `SurfaceView` (`expo-camera` leaves CameraX's default), which a
+ * blur cannot copy, so a `BlurView` over it would show nothing but its faint fill.
+ */
+const Shutter = Platform.OS === "android" ? View : BlurView;
+
 const OPEN_MS = 420;
 const CLOSE_MS = 320;
 const SIDE_MARGIN = theme.spacing[16];
-const VIEWFINDER_RADIUS = 48;
+/** How much of its layer's height the viewfinder takes: its top sits at (1 − share) of the layer. */
+const VIEWFINDER_SHARE = 0.62;
+const VIEWFINDER_RADIUS = Platform.select({ default: 36, ios: 48 });
 const SHUTTER_SIZE = 72;
 
 type Props = {
@@ -67,11 +77,19 @@ export const NavigationBarCamera = ({ origin, measureOrigin, onCapture, onClosed
   const cameraRef = useRef<CameraView>(null);
   const isClosing = useRef(false);
 
+  /**
+   * The viewfinder ends `bottomGap` above the layer's bottom, wherever the bar is: its bottom edge is
+   * set from the bottom, and the top follows from the share. The gap is per platform. On Android it
+   * is a margin above the safe area. On iOS it is `insets.bottom - 16`, tuned on a device, so the
+   * viewfinder sits level with the sheet's own inset and not above it.
+   */
+  const bottomGap = insets.bottom + Platform.select({ default: SIDE_MARGIN, ios: -theme.spacing[16] });
+  const viewfinderHeight = height * VIEWFINDER_SHARE - bottomGap;
   const target = {
     x: SIDE_MARGIN,
-    y: height * Platform.select({ ios: 0.42, default: 0.38 }),
+    y: height * (1 - VIEWFINDER_SHARE),
     width: width - SIDE_MARGIN * 2,
-    height: height * 0.62 - insets.bottom - theme.spacing[16],
+    height: viewfinderHeight,
   };
 
   /** Opens once the layer is measured, so the box never starts from a frame in the wrong space. */
@@ -132,14 +150,18 @@ export const NavigationBarCamera = ({ origin, measureOrigin, onCapture, onClosed
               variant="neutral"
               size="md"
               onPress={close}
-              iconColor="white"
+              // White on the frosted iOS button. On Android its blur cannot sample the preview, so the
+              // disc is only a faint light fill, and the glyph keeps the variant's own dark colour.
+              iconColor={Platform.select({ ios: "white", default: undefined })}
               iconSize={24}
             >
               {X}
             </ButtonIcon>
           </View>
-          <Pressable haptic onPress={takePhoto} style={styles.shutter}>
-            <View style={styles.shutterInner} />
+          <Pressable haptic onPress={takePhoto} style={styles.shutterContainer}>
+            <Shutter style={styles.shutter}>
+              <View style={styles.shutterInner} />
+            </Shutter>
           </Pressable>
         </Animated.View>
       </Animated.View>}
@@ -164,16 +186,20 @@ const styles = StyleSheet.create({
     top: theme.spacing[20],
     left: theme.spacing[20],
   },
-  shutter: {
+  shutterContainer: {
     position: "absolute",
     bottom: theme.spacing[20],
     alignSelf: "center",
     width: SHUTTER_SIZE + 10,
     height: SHUTTER_SIZE + 10,
+  },
+  shutter: {
+    width: "100%",
+    height: "100%",
     borderRadius: theme.radius.full,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
   },
   shutterInner: {
     width: SHUTTER_SIZE - 10,
