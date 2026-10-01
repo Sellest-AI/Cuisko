@@ -3,6 +3,7 @@ import { theme } from "theme";
 import { Markdown } from "./markdown";
 import { Text } from "./text";
 import { ReactNode } from "react";
+import { TiltedPhoto } from "./tilted-photo";
 
 type Props = {
   from: "user" | "assistant",
@@ -14,9 +15,11 @@ type Props = {
    * person's own message is shown as they typed it, asterisks and all.
    */
   markdown?: boolean,
+  /** A photo sent with the message, laid at an angle above the bubble. */
+  image?: string,
 }
 
-export const Message = ({ from = "user", style, content, children, markdown }: Props) => {
+export const Message = ({ from = "user", style, content, children, markdown, image }: Props) => {
   const isUser = from === "user";
 
   const maxUserWidth = content.length > 80 ? 300 : content.length > 50 ? 260 : 220;
@@ -35,6 +38,17 @@ export const Message = ({ from = "user", style, content, children, markdown }: P
         gap: theme.spacing[12],
         width: "100%"
       }}>
+        {image && <TiltedPhoto
+          tilt={from === "user" ? -4 : 4}
+          style={[styles.image, {
+            marginTop: from === "user" ? 0 : theme.spacing[8],
+            marginRight: from === "user" ? theme.spacing[4] : 0,
+            marginLeft: from === "user" ? 0 : theme.spacing[4],
+            alignSelf
+          }]}
+          uri={image}
+          width={160}
+        />}
         <View style={[
           styles.message,
           isUser ? styles.userMessage : styles.assistantMessage,
@@ -58,7 +72,7 @@ const styles = StyleSheet.create({
   },
   message: {
     maxWidth: "100%",
-    width: "auto"
+    width: "auto",
   },
   userMessage: {
     padding: theme.spacing[16],
@@ -75,5 +89,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: theme.radius.xs,
     backgroundColor: "transparent",
     flexShrink: 1,
+  },
+  image: {
+    marginBottom: theme.spacing[8],
   }
 })

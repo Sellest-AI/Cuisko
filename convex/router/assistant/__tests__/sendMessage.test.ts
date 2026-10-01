@@ -48,10 +48,10 @@ const seedUser = (name: string): Promise<Cook> =>
 /** The cook's clock, fixed: a Thursday evening. */
 const CLOCK = { today: 1_000_000, now: "2026-09-24T19:05" };
 
-const ask = ({ userId, householdId }: Cook, text: string, threadId?: string) =>
+const ask = ({ userId, householdId }: Cook, text: string, threadId?: string, imageId?: Id<"images">) =>
   t
     .withIdentity(asUser(userId))
-    .mutation(api.router.assistant.sendMessage.authed, { text, threadId, householdId, ...CLOCK, locale: "fr" });
+    .mutation(api.router.assistant.sendMessage.authed, { text, threadId, imageId, householdId, ...CLOCK, locale: "fr" });
 
 const messagesOf = (threadId: string) =>
   t.run(async (ctx) => {
@@ -61,6 +61,36 @@ const messagesOf = (threadId: string) =>
     });
 
     return page.map((message) => message.text);
+  });
+
+/** An uploaded photo, claimed by `userId` the way `saveImage` records an upload. */
+const seedImage = (userId: Id<"users">): Promise<Id<"images">> =>
+  t.run(async (ctx) => {
+    const imageId = await ctx.db.insert("images", {
+      hasAlpha: false,
+      key: `users/${userId}/shelf.webp`,
+      url: "https://bucket.example/shelf.webp",
+      width: 1024,
+      height: 768,
+      size: 90_000,
+      mimeType: "image/webp",
+      tags: ["IMAGE"],
+      updatedAt: Date.now(),
+    });
+    await ctx.db.insert("userImages", { imageId, userId });
+
+    return imageId;
+  });
+
+/** What the thread stored for its newest message, parts and all. */
+const lastContentOf = (threadId: string) =>
+  t.run(async (ctx) => {
+    const { page } = await assistantAgent.listMessages(ctx, {
+      threadId,
+      paginationOpts: { numItems: 1, cursor: null },
+    });
+
+    return page[0]?.message?.content;
   });
 
 beforeEach(() => {
@@ -191,5 +221,34 @@ describe("router/assistant/sendMessage", () => {
     const { threadId } = await ask(cook, "Je fais quoi ce soir ?", "not-an-id");
 
     expect(await messagesOf(threadId)).toEqual(["Je fais quoi ce soir ?"]);
+  });
+
+  test("saves the photo ahead of the words, as a file part", async () => {
+    const cook = await seedUser("Franck");
+    const imageId = await seedImage(cook.userId);
+
+    const { threadId } = await ask(cook, "Je fais quoi avec ça ?", undefined, imageId);
+
+    expect(await lastContentOf(threadId)).toEqual([
+      { type: "file", data: "https://bucket.example/shelf.webp", mediaType: "image/webp" },
+      { type: "text", text: "Je fais quoi avec ça ?" },
+    ]);
+  });
+
+  /** An image id names a row anyone could guess or be given: only the one who uploaded it may attach it. */
+  test("rejects a photo another cook uploaded", async () => {
+    const stranger = await seedUser("Stranger");
+    const theirs = await seedImage(stranger.userId);
+    const cook = await seedUser("Franck");
+
+    await expect(ask(cook, "Et ça ?", undefined, theirs)).rejects.toThrow(/FORBIDDEN/);
+  });
+
+  test("rejects a photo that no longer exists", async () => {
+    const cook = await seedUser("Franck");
+    const imageId = await seedImage(cook.userId);
+    await t.run((ctx) => ctx.db.delete(imageId));
+
+    await expect(ask(cook, "Et ça ?", undefined, imageId)).rejects.toThrow(/FORBIDDEN/);
   });
 });

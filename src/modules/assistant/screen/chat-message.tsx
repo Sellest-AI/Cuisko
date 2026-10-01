@@ -67,7 +67,12 @@ export const ChatMessage = ({ message }: Props) => {
   const t = useTranslations("Assistant");
 
   if (message.from === "user")
-    return <Message from="user" content={message.text} style={styles.fromUser} />;
+    return <Message
+      from="user"
+      content={message.text}
+      image={message.image}
+      style={styles.fromUser}
+    />;
 
   const hasText = message.blocks.some((block) => block.type === "text");
 

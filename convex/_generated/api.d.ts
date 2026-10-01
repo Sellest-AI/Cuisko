@@ -52,6 +52,7 @@ import type * as functions_assistant_appendBrief from "../functions/assistant/ap
 import type * as functions_assistant_classifyIntent from "../functions/assistant/classifyIntent.js";
 import type * as functions_assistant_openThread from "../functions/assistant/openThread.js";
 import type * as functions_assistant_ownedThread from "../functions/assistant/ownedThread.js";
+import type * as functions_assistant_saveQuestion from "../functions/assistant/saveQuestion.js";
 import type * as functions_assistant_threadMessages from "../functions/assistant/threadMessages.js";
 import type * as functions_assistant_turnBrief from "../functions/assistant/turnBrief.js";
 import type * as functions_cascade from "../functions/cascade.js";
@@ -328,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "functions/assistant/classifyIntent": typeof functions_assistant_classifyIntent;
   "functions/assistant/openThread": typeof functions_assistant_openThread;
   "functions/assistant/ownedThread": typeof functions_assistant_ownedThread;
+  "functions/assistant/saveQuestion": typeof functions_assistant_saveQuestion;
   "functions/assistant/threadMessages": typeof functions_assistant_threadMessages;
   "functions/assistant/turnBrief": typeof functions_assistant_turnBrief;
   "functions/cascade": typeof functions_cascade;

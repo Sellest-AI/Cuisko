@@ -5,6 +5,12 @@ const openrouter = createOpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
 
+/**
+ * The assistant's model, because it reads images: a photo sent with a question reaches it as an
+ * image part, which `DEEPSEEK_V4_FLASH_0731` cannot take. Uses the same options, which name no model.
+ */
+const DEEPSEEK_V4_1_FLASH = openrouter.chat("deepseek/deepseek-v4.1-flash");
+
 const DEEPSEEK_V4_FLASH_0731 = openrouter.chat("deepseek/deepseek-v4-flash-0731");
 const DEEPSEEK_V4_FLASH_0731_OPTIONS = {
   providerOptions: ({ effort }: { effort?: false | "low" | "max" }) => ({
@@ -99,7 +105,7 @@ export const models = {
    * happens to share its model today.
    */
   assistant: {
-    model: DEEPSEEK_V4_FLASH_0731,
+    model: DEEPSEEK_V4_1_FLASH,
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS
   },
   translator: {

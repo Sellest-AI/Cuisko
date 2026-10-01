@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { isShowingSomething, type SourceMessage, toChatMessages, withoutIds } from "../chatMessage";
+import { isShowingSomething, pendingQuestionMessage, type SourceMessage, toChatMessages, withoutIds } from "../chatMessage";
 
 const message = (overrides: Partial<SourceMessage> = {}): SourceMessage => ({
   key: "m1",
@@ -787,5 +787,49 @@ describe("the meals planned under an answer", () => {
 
     expect(drawn?.hasFailed).toBe(false);
     expect(drawn && isShowingSomething(drawn)).toBe(true);
+  });
+});
+
+describe("the photo sent with a question", () => {
+  const photo = { type: "file", mediaType: "image/webp", url: "https://bucket.example/shelf.webp" };
+
+  test("a question carrying an image file part draws it", () => {
+    const [drawn] = toChatMessages([message({ role: "user", text: "Je fais quoi avec ça ?", parts: [photo] })]);
+
+    expect(drawn?.image).toBe("https://bucket.example/shelf.webp");
+  });
+
+  test("a file that is not an image is not drawn as one", () => {
+    const [drawn] = toChatMessages([
+      message({ role: "user", text: "Voici ma liste", parts: [{ type: "file", mediaType: "application/pdf", url: "https://bucket.example/l.pdf" }] }),
+    ]);
+
+    expect(drawn?.image).toBeUndefined();
+  });
+
+  test("an answer never carries an image, whatever its parts hold", () => {
+    const [drawn] = toChatMessages([message({ role: "assistant", text: "Une omelette.", parts: [photo] })]);
+
+    expect(drawn?.image).toBeUndefined();
+  });
+});
+
+describe("the question drawn before the server has it", () => {
+  test("is the cook's own message, with the local photo they just took", () => {
+    const drawn = pendingQuestionMessage("Je fais quoi avec ça ?", "file:///shelf.jpg");
+
+    expect(drawn).toMatchObject({ from: "user", text: "Je fais quoi avec ça ?", image: "file:///shelf.jpg" });
+    expect(isShowingSomething(drawn)).toBe(true);
+  });
+
+  test("carries no image key when there is no photo", () => {
+    expect(pendingQuestionMessage("Et sans crème ?")).not.toHaveProperty("image");
+  });
+
+  /** It is replaced by the stored question, never edited into it: the two must not share a key. */
+  test("never shares a key with a stored message", () => {
+    const [stored] = toChatMessages([message({ key: "m1", role: "user", text: "Et sans crème ?" })]);
+
+    expect(pendingQuestionMessage("Et sans crème ?").key).not.toBe(stored?.key);
   });
 });

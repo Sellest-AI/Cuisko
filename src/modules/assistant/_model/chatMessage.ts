@@ -46,6 +46,9 @@ export type MessagePart = {
   output?: unknown;
   /** Present on text parts: what the model wrote in one step, in the order it wrote it. */
   text?: string;
+  /** Present on file parts, such as a photo sent with a question: where the file is, and what it is. */
+  url?: string;
+  mediaType?: string;
 };
 
 /** A message as the agent component stores it, narrowed to what this file actually reads. */
@@ -110,6 +113,8 @@ export type ChatMessage = {
   from: "user" | "assistant";
   /** The answer's text, with anything shaped like a document id taken out (ADR 0010). */
   text: string;
+  /** The photo the cook sent with their question: its URL. Only ever on a question. */
+  image?: string;
   /** Status lines for the tools this turn called, in call order. */
   steps: ToolStep[];
   /** What Cuisko chose to show, in call order. Only finished, well-formed `display` calls. */
@@ -171,6 +176,31 @@ export type ChatMessage = {
    */
   createdAt: number;
 };
+
+/** The first image among a message's parts — the photo that went with a question. */
+const _imageOf = (parts: readonly MessagePart[]): string | undefined =>
+  parts.find((part) => part.type === "file" && part.mediaType?.startsWith("image/"))?.url;
+
+/**
+ * The cook's question as the screen draws it before the server has stored it — shown at once, so
+ * a send never leaves the screen empty while a photo compresses and uploads. Keyed apart from any
+ * stored message: it is replaced by the real one, not edited into it.
+ */
+export const pendingQuestionMessage = (text: string, image?: string): ChatMessage => ({
+  key: "pending-question",
+  from: "user",
+  text,
+  ...(image && { image }),
+  steps: [],
+  cards: [],
+  cellarChanges: [],
+  plannedMeals: [],
+  blocks: [],
+  isStreaming: false,
+  isReplying: false,
+  hasFailed: false,
+  createdAt: 0,
+});
 
 const _partType = (tool: string) => `tool-${tool}`;
 
@@ -558,6 +588,7 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
       const isTurnOver = message.status === "success" || message.status === "failed";
 
       const text = isUser ? message.text : withoutIds(message.text);
+      const image = isUser ? _imageOf(message.parts) : undefined;
       const steps = isUser ? [] : _stepsOf(message.parts, isTurnOver);
       const cards = isUser ? [] : _cardsOf(message.parts);
       const button = isUser ? undefined : _buttonOfParts(message.parts);
@@ -573,6 +604,7 @@ export const toChatMessages = (messages: readonly SourceMessage[]): ChatMessage[
         key: message.key,
         from: isUser ? "user" : "assistant",
         text,
+        ...(image && { image }),
         steps,
         cards,
         ...(button && { button }),

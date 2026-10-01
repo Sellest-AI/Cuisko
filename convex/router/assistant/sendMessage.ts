@@ -1,7 +1,7 @@
 import { internal } from "@convex/_generated/api";
-import { assistantAgent } from "@convex/agent/agents";
 import { answerTurn } from "@convex/functions/assistant/answerTurn";
 import { openThread } from "@convex/functions/assistant/openThread";
+import { saveQuestion } from "@convex/functions/assistant/saveQuestion";
 import { turnBrief } from "@convex/functions/assistant/turnBrief";
 import { householdMutationI18n, internalAction } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
@@ -30,24 +30,21 @@ import { v } from "convex/values";
  * displaying, not the one the question happens to be written in (PRODUCT.md § Bilingual by nature).
  */
 export const authed = householdMutationI18n({
-  args: { text: v.string(), threadId: v.optional(v.string()), today: v.number(), now: v.string() },
+  args: {
+    text: v.string(),
+    threadId: v.optional(v.string()),
+    /** A photo already uploaded by the caller (`media/images/uploadOne`), sent with the question. */
+    imageId: v.optional(v.id("images")),
+    today: v.number(),
+    now: v.string(),
+  },
   returns: v.object({ threadId: v.string() }),
-  handler: async (ctx, { text, threadId, today, now }) => {
+  handler: async (ctx, { text, threadId, imageId, today, now }) => {
     const { locale } = ctx.i18n;
     const brief = await turnBrief(ctx, { householdId: ctx.householdId, locale, today, now });
     const thread = await openThread(ctx, { threadId, userId: ctx.userId, now: Date.now() });
 
-    /**
-     * `skipEmbeddings` because a mutation cannot `fetch`, and this agent searches no message
-     * history anyway — `contextOptions.searchOptions` is off, so an embedding would be computed
-     * for nothing and the warning it prints would be noise.
-     */
-    const { messageId } = await assistantAgent.saveMessage(ctx, {
-      threadId: thread,
-      userId: ctx.userId,
-      prompt: text,
-      skipEmbeddings: true,
-    });
+    const { messageId } = await saveQuestion(ctx, { threadId: thread, userId: ctx.userId, text, imageId });
 
     await ctx.scheduler.runAfter(0, internal.router.assistant.sendMessage._internal_answer, {
       threadId: thread,
