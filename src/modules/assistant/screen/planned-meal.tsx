@@ -42,7 +42,7 @@ export const PlannedMeal = ({ meal, changeKey }: Props) => {
     <View style={styles.container}>
       <CardMeal
         style={styles.card}
-        title={card.title}
+        title={card.title.slice(0, 24) + (card.title.length > 24 ? "…" : "")}
         duration={card.minutes === undefined ? undefined : tPlanning("Meal.x_minutes", { count: card.minutes })}
         servings={servings}
         slot={slot}
