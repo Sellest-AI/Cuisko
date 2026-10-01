@@ -1038,6 +1038,19 @@ const CASES: Case[] = [
     expect: (turn) => [_planned(turn, "dal", 2, "lunch", 2)],
   },
   {
+    // Seen on device: the recipe was shown as a card, and the card's "whenever you showed recipes"
+    // invitation won over "plan it at once". An order draws the planned meal, never a recipe card.
+    name: "fr · an order for tomorrow night plans without a card or an offer",
+    locale: "fr",
+    stock: [],
+    question: "Planifie des lasagnes pour demain soir pour 2 personnes",
+    expect: (turn) => [
+      _planned(turn, "lasagne", 1, "dinner", 2),
+      _mustNot(turn, ASSISTANT_TOOLS.display),
+      !/touche|dis-moi/i.test(turn.text) || "the answer still invites them to open or plan the recipe",
+    ],
+  },
+  {
     // "When planMeal answers occupied ... say which dish is already there and ask."
     name: "fr · a taken slot is named and asked about, not replaced",
     locale: "fr",

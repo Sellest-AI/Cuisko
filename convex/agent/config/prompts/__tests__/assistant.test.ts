@@ -125,6 +125,21 @@ describe("recipes", () => {
   });
 
   /**
+   * "Planifie des lasagnes pour demain soir pour 2 personnes" got a recipe card and the invitation
+   * to plan it: the order rule was an exception tucked after the invitation, and the card had
+   * already triggered it. The order now skips the card, and says so before the invitation does.
+   */
+  test("an order with everything in it plans without a card or an invitation", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/is not answered with\s+cards and gets no invitation: plan it/);
+      expect(prompt).toMatch(/Do not call display: the planned meal's card\s+already shows the recipe/);
+      expect(prompt.indexOf("gets no invitation")).toBeLessThan(prompt.indexOf("Whenever you showed recipes"));
+    }
+  });
+
+  /**
    * Two different questions: "je veux des lasagnes ce soir" asks about a dish, and is answered by
    * the card and the invitation to plan it; "aide-moi à planifier ma semaine" asks about planning,
    * and is answered by the planning button. The week never gets the invitation.
