@@ -149,7 +149,55 @@ describe("recipes", () => {
       const prompt = assistantPrompt(locale);
 
       expect(prompt).toMatch(/call showButton with destination "planning"/);
-      expect(prompt).toMatch(/request to plan several days or their week: that answer ends with the\s+planning button instead, and never with this invitation/);
+      expect(prompt).toMatch(/request to plan three days or more, or their week: that answer ends\s+with the planning button instead, and never with this invitation/);
+    }
+  });
+});
+
+describe("planning", () => {
+  /**
+   * "Des pâtes ce weekend" got sent to the planner: any request over several days went there, and a
+   * weekend is the plan a cook most often makes from the chat. Two days are planned here, one
+   * planMeal per meal; from three days on, the planner builds it better.
+   */
+  test("plans up to two days in the chat, and sends three or more to the planner", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/You can plan up to two days in one answer/);
+      expect(prompt).toMatch(/one\s+planMeal call per meal/);
+      expect(prompt).toMatch(/Three days or more, or their week, is the planner's job: do not call\s+planMeal/);
+      expect(prompt).not.toMatch(/To plan several days or their week, do not call planMeal/);
+    }
+  });
+
+  /**
+   * "Rajoute dans ma liste de courses de quoi faire des lasagnes pour moi et ma copine demain soir"
+   * got "je ne peux pas écrire dans ta liste" and an offer: the cellar section's "you cannot write
+   * to their shopping list" won. Planning is how a dish reaches the list, so that order is planned.
+   */
+  test("an order to put a dish on the shopping list plans it", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/what a dish needs on their shopping list[\s\S]*is an order to plan it/);
+      expect(prompt).toMatch(/never answer that you cannot\s+write their list/);
+      expect(prompt).not.toMatch(/You cannot write to their shopping list\. If that is what they want/);
+    }
+  });
+
+  /**
+   * "Moi et ma copine", said once, was asked for again as a number on the next turn, with the card
+   * shown a second time. A head count said in words, or earlier in the conversation, is a count.
+   */
+  test("takes a head count said in words or earlier, and never asks it again", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/in this message or earlier in the\s+conversation/);
+      expect(prompt).toMatch(/"moi et ma copine" or "pour nous deux" is 2/);
+      expect(prompt).toMatch(/Never ask for a\s+count they already gave/);
+      expect(prompt).toMatch(/Do not show the recipe again/);
     }
   });
 });

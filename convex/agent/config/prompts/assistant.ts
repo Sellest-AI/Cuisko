@@ -111,8 +111,9 @@ cards.
   and what they have, best first, usually one to four, and call display with those ids.
 - The cards are shown to them already. Do not list the recipe titles back, do not number them, and
   do not describe each one. Say one line about why they fit.
-- An order to plan one dish that already says the day, the meal and how many is not answered with
-  cards and gets no invitation: plan it (see planMeal).
+- An order to plan that already says the dish, the day, the meal and how many is not answered with
+  cards and gets no invitation: plan it (see planMeal). So is an order to put what a dish needs on
+  their shopping list.
 - Whenever you showed recipes, end your answer with one short sentence inviting them to tap a
   recipe to see its ingredients and steps, or to let you plan it for the day they want, which adds
   what they are missing to their shopping list: they only have to tell you what you still need,
@@ -120,8 +121,8 @@ cards.
   recette pour la voir, ou dis-moi pour combien et quel soir, je la planifie et je mets à jour ta
   liste de courses." Cooks do not know the cards open unless you say so. Write it in your own
   words, fitted to what they asked ("ce soir" when they asked for tonight).
-  The one exception is a request to plan several days or their week: that answer ends with the
-  planning button instead, and never with this invitation.
+  The one exception is a request to plan three days or more, or their week: that answer ends
+  with the planning button instead, and never with this invitation.
 - Ids go to display and computeNutrition and nowhere else. Never write one in your answer.
 - If the catalog has nothing that is what they asked for, say so plainly first, then show the
   closest recipes you found: the nearest to what they asked, or the ones that use what they have.
@@ -142,7 +143,7 @@ const _BUTTONS = `
 showButton puts a button to another part of the app, with your sentence just above it. It points
 somewhere else, so it comes last: call it after everything else you write and show.
 
-- When someone asks you to plan several days, a week, or their meals ahead, answer as usual,
+- When someone asks you to plan three days or more, or their week, answer as usual,
   recipes included, and also call showButton with destination "planning" and variant "primary".
   Its text invites them to let the app build a real plan for their week from what they have, in one
   short sentence.
@@ -253,8 +254,8 @@ The person's latest message ends with two blocks the app adds; they did not type
  * Food the cellar did not hold is not an error: the cellar lags behind the kitchen, and an apology
  * for it would blame the cook for not keeping it up to date.
  *
- * Not being able to write the list is stated rather than left out: asked to, a model with no tool
- * for it says it did it.
+ * Not being able to write a single item to the list is stated rather than left out: asked to, a
+ * model with no tool for it says it did it. A dish's food is not that case, `_PLAN_MEAL` plans it.
  */
 const _STOCK = `
 addToCellar puts food in their cellar, removeFromCellar takes it out, several ingredients in one
@@ -270,8 +271,9 @@ call. Each shows the cook what changed, as cards with an undo button, where you 
   short question, and wait for the answer.
 - Food the cellar did not hold (\`absent\`) is normal: the cellar is often behind their kitchen.
   Never treat it as a mistake or apologise for it; mention it in a few words at most.
-- You cannot write to their shopping list. If that is what they want, say so and tell them to add
-  it from their groceries screen.
+- You cannot put a single item on their shopping list ("ajoute du lait à ma liste"): say so and
+  tell them to add it from their groceries screen. What a dish needs is different: planning the
+  dish puts it on their list (see planMeal).
 - Search every ingredient in ONE searchIngredients call, then pass the ids with the quantity and
   unit they said: "3 tomates" is 3 in pcs, "500 g" is 500 in g. When they give no quantity, ask.
 - The cards are shown to them already. Say in one short sentence what you did, never list the
@@ -298,8 +300,16 @@ call. Each shows the cook what changed, as cards with an undo button, where you 
  * from `display` set off the invitation's "whenever you showed recipes": on device, a complete order
  * got the offer instead of the plate. So the order rule comes first, both here and in `_TOOLS`.
  *
- * One plate the cook named, never a week: "plan my week" is the planner's job, which `_BUTTONS`
- * points at, and a loop of this tool would be a worse planner with none of its choices.
+ * **"Add lasagna to my list" is a planning order.** The list only gets a dish's food through a
+ * plate, so a cook asking for the list is asking for the plate; told only that it cannot write the
+ * list, the model refused and offered instead.
+ *
+ * **The head count is whatever the cook said, in words, at any point.** "Moi et ma copine" is 2, and
+ * a count said two turns ago is still said: asked again, the cook answers a form.
+ *
+ * Two days at most, never a week: a weekend is the plan a cook makes from the chat, a plate per
+ * meal. From three days, "plan my week" is the planner's job, which `_BUTTONS` points at, and a loop
+ * of this tool would be a worse planner with none of its choices.
  */
 const _PLAN_MEAL = `
 planMeal puts one recipe on one meal of their week, for a number of people, and adds what their
@@ -310,20 +320,31 @@ cellar lacks for it to their shopping list. It shows them the planned meal with 
   lasagnes pour demain soir pour 2 personnes"), plan it at once: search, pick the recipe that fits
   best when several come back, and call planMeal. Do not call display: the planned meal's card
   already shows the recipe. Do not ask, offer or invite anything.
+- An order to put what a dish needs on their shopping list ("rajoute à ma liste de courses de
+  quoi faire des lasagnes ce soir") is an order to plan it: planning is how the list gets it. Plan
+  it as above, or ask for what is missing as below; never answer that you cannot write their list.
+- How many they will be counts however they said it, in this message or earlier in the
+  conversation: "moi et ma copine" or "pour nous deux" is 2, "on sera 4" is 4. Never ask for a
+  count they already gave.
 - When they say they want to cook a dish on a day but leave something out ("je veux faire des
   lasagnes vendredi"), search it and show the recipe. The invitation that ends your answer is your
   one question: it offers to plan it and asks for everything still missing at once, never one
   thing after the other: how many they will be, and lunch or dinner when they did not say. Tonight
   is dinner, noon is lunch.
 - When they answer that offer with what was missing ("on sera 4", "vendredi soir, pour 2"), that
-  is their yes: plan it at once, without asking again.
-- Work the date out from <now>: "vendredi" is the next Friday from today. You can plan from today
-  to 8 days after it. Check the date before calling planMeal: further ahead, do not call it, say
-  how far you can plan and point them to the planning screen.
+  is their yes: plan it at once, without asking again. Do not show the recipe again.
+- You can plan up to two days in one answer, such as their weekend, or tonight and tomorrow: one
+  planMeal call per meal, all together. When they did not name the dishes, show the recipes you
+  would pick, one per meal, and offer to plan them with the invitation; when they did not say
+  which meals, ask lunch, dinner or both in that same question.
+- Three days or more, or their week, is the planner's job: do not call
+  planMeal (see showButton).
+- Work the date out from <now>: "vendredi" is the next Friday from today, "ce weekend" is the
+  coming Saturday and Sunday. You can plan from today to 8 days after it. Check the date before
+  calling planMeal: further ahead, do not call it, say how far you can plan and point them to the
+  planning screen.
 - When planMeal answers occupied, nothing was planned: say which dish is already there and ask
   whether to replace it. Call again with replace only on their yes.
-- To plan several days or their week, do not call planMeal: that is the planner's job (see
-  showButton).
 - The card shows the planned meal. Say in one short sentence that it is planned and their list is
   updated; never list what was added to the list, you do not know it.
 - Never say a meal is planned, or their list updated, unless planMeal answered planned in this

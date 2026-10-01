@@ -53,6 +53,12 @@ type Props = {
 export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }: Props) => {
   const t = useTranslations("Navigation");
   const [typing, setTyping] = useState<{ index: number; length: number } | null>(null);
+  /**
+   * No paw while the bar rises into place. The paw's measure does not see the rise's UI-thread
+   * transform until it ends, so a paw put on the first chip meanwhile sits where the bar started,
+   * `LEAVE_TRAVEL` low, then jumps up when it lands.
+   */
+  const [hasLanded, setHasLanded] = useState(false);
 
   const text = typing ? hints[typing.index]!.slice(0, typing.length) : "";
   const isTyped = typing !== null && typing.length >= hints[typing.index]!.length;
@@ -94,6 +100,9 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
           animate={{ opacity: 1, translateY: 0 }}
           exit={{ opacity: 0, translateY: LEAVE_TRAVEL }}
           transition={{ type: "timing", duration: 300 }}
+          onDidAnimate={(key, finished, _, { attemptedValue }) => {
+            if (key === "translateY" && finished && attemptedValue === 0) setHasLanded(true);
+          }}
         >
           <View
             style={{
@@ -123,7 +132,7 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
               const isUsed = used.includes(index);
 
               return (
-                <Hint key={hint} active={!typing && index === nextHint} layout={CHIP_MOVE}>
+                <Hint key={hint} active={hasLanded && !typing && index === nextHint} layout={CHIP_MOVE}>
                   <ButtonPill
                     size="lg"
                     variant="neutral"
