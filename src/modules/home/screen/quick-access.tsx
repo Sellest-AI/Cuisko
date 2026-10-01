@@ -1,9 +1,9 @@
 import { StyleSheet, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
+import { ActionCard } from "@ui/cards/action-card";
 import { ButtonPill } from "@ui/button-pill";
-import { ActionRow } from "@ui/action-row";
-import { CalendarPlus, ForkKnife, type Icon, Plus, ShoppingCart, Sparkles, Store } from "@ui/icons";
+import { Book, CalendarPlus, ForkKnife, type Icon, ShoppingCart, Sparkles, Store } from "@ui/icons";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -26,7 +26,7 @@ import { AskCuiskoPill } from "~/modules/assistant/ask-cuisko-pill";
  */
 const STARTS: { key: "ask_cuisko" | "import_recipe" | "plan_week" | "my_recipes"; icon: Icon; href: Href }[] = [
   { key: "ask_cuisko", icon: Sparkles, href: "/assistant" },
-  { key: "import_recipe", icon: Plus, href: "/import-recipe" },
+  { key: "import_recipe", icon: Book, href: "/import-recipe" },
   { key: "plan_week", icon: CalendarPlus, href: "/planning/new" },
   { key: "my_recipes", icon: ForkKnife, href: "/recipes" },
 ];
@@ -70,26 +70,26 @@ export const QuickAccess = () => {
         }}
       />
       <View style={[styles.gutter, styles.rows]}>
-        <ActionRow
-          variant="secondary"
-          onPress={() => router.push("/groceries")}
-          content={t("QuickAccess.grocery_list")}
-          contentIcon={ShoppingCart}
-          subtitle={isLoading ? undefined : t("QuickAccess.to_buy_x_items", { count: toBuy })}
-          leftIcon={Plus}
-          onLeftIconPress={() => { focus("shopping-list") }}
-          style={{ alignSelf: "stretch" }}
-        />
-        <ActionRow
-          variant="flat"
-          onPress={() => router.push({ pathname: "/groceries", params: { section: "cellar" } })}
-          content={t("QuickAccess.cellar")}
-          contentIcon={Store}
-          subtitle={isLoading ? undefined : t("QuickAccess.in_stock_x_items", { count: inStock })}
-          leftIcon={Plus}
-          onLeftIconPress={() => { focus("cellar") }}
-          style={{ alignSelf: "stretch" }}
-        />
+        <View style={styles.tiles}>
+          <ActionCard
+            variant="secondary"
+            onPress={() => router.push("/groceries")}
+            onIconPress={() => { focus("shopping-list") }}
+            content={t("QuickAccess.grocery_list")}
+            subtitle={isLoading ? undefined : t("QuickAccess.to_buy_x_items", { count: toBuy })}
+            icon={ShoppingCart}
+            style={{ alignSelf: "stretch", flex: 1 }}
+          />
+          <ActionCard
+            variant="neutral"
+            onPress={() => router.push({ pathname: "/groceries", params: { section: "cellar" } })}
+            onIconPress={() => { focus("cellar") }}
+            content={t("QuickAccess.cellar")}
+            icon={Store}
+            subtitle={isLoading ? undefined : t("QuickAccess.in_stock_x_items", { count: inStock })}
+            style={{ alignSelf: "stretch", flex: 1 }}
+          />
+        </View>
       </View>
     </View>
   );
@@ -113,4 +113,8 @@ const styles = StyleSheet.create({
   },
   /** A margin rather than the container's `gap`, which a horizontal FlashList does not apply. */
   start: { marginRight: theme.spacing[6] },
+  tiles: {
+    gap: theme.spacing[12],
+    flexDirection: "row",
+  },
 });

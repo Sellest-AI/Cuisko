@@ -26,7 +26,7 @@ export {
   BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck, CircleMinus,
   ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
   FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock,
-  LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat, ShoppingBasket, Undo2
+  LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat, ShoppingBasket, Undo2, Book
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
