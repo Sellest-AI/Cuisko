@@ -255,8 +255,9 @@ export const modelIngredientSchema = z.object({
   ),
   // `.nullable()` AND `.optional()`, which say two different things and both are needed here (see
   // `providerSchema`): nullable is the model's permission to have no row, optional is this side's
-  // permission to read a missing key — and `parseModelOutput` OMITS a key it dropped rather than
-  // setting it to undefined, so nullable alone fails the parse on every refusal.
+  // permission to read a missing key — so `parseModelOutput` drops a refused or invalid row as an
+  // absent key, the way every other absentable field here goes absent. Nullable alone would keep
+  // it as `null` instead.
   facts: _modelFactsSchema.nullable().optional()
     .describe("The catalog row. null unless the verdict is \"ingredient\"."),
 });
