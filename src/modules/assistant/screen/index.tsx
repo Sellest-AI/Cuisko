@@ -1,5 +1,5 @@
 import { FlashList, type FlashListRef, type ListRenderItemInfo } from "@shopify/flash-list";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
 import { useTranslations } from "translations";
 
@@ -16,6 +16,7 @@ import type { ChatMessage as ChatMessageModel } from "../_model/chatMessage";
 import { ChatMessage } from "./chat-message";
 import { AssistantEmpty } from "./empty";
 import { useSpin } from "~/ui/hooks/useSpin";
+import { useFollowToBottom } from "~/hooks/useFollowToBottom";
 import Animated from "react-native-reanimated";
 import { CUISKO_HEAD } from "~/lib/mascots";
 
@@ -63,15 +64,19 @@ export const AssistantScreen = ({ style, question }: Props) => {
   const spin = useSpin(isThinking || isReplying);
 
   /**
-   * Follows the conversation down as it grows.
+   * Follows the conversation down as it grows, until the reader scrolls up.
    *
    * On content size rather than on a message arriving, because an answer streaming in changes the
    * height many times per message — watching the list length would pin the view at the top of a
    * long answer and leave the reader to chase it.
    */
-  const followToBottom = useCallback(() => {
-    scroller.current?.scrollToEnd({ animated: true });
-  }, []);
+  const { followIfPinned, onScroll, onScrollBeginDrag, resume } = useFollowToBottom(scroller);
+
+  /** A new question takes the reader back to the end, wherever they had scrolled to. */
+  const lastIsQuestion = messages.at(-1)?.from === "user";
+  useEffect(() => {
+    if (lastIsQuestion) resume();
+  }, [lastIsQuestion, messages.length, resume]);
 
   return (
     <FlashList
@@ -89,7 +94,9 @@ export const AssistantScreen = ({ style, question }: Props) => {
       renderScrollComponent={ModalScrollView}
       style={{ ...styles.sheet, ...style }}
       contentContainerStyle={styles.page}
-      onContentSizeChange={followToBottom}
+      onContentSizeChange={followIfPinned}
+      onScroll={onScroll}
+      onScrollBeginDrag={onScrollBeginDrag}
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
         <>

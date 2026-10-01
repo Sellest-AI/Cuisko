@@ -23,6 +23,10 @@ type Props = ComponentProps<typeof ScrollView> & {
  * one, beginning at the top, is the sheet's to close with. iOS ignores the prop and behaves this
  * way already.
  *
+ * `alwaysBounceVertical` is on because iOS dismisses a sheet by the list bouncing past its top, and
+ * a list whose content fits the sheet does not bounce by default — the greeting of an empty
+ * conversation could not be dragged down to close. Android ignores it.
+ *
  * `overScrollMode` is off because the bottom-edge glow reads as the list still moving when it has
  * stopped. Both can be overridden by the caller, as can everything else `ScrollView` takes.
  */
@@ -76,6 +80,7 @@ export const ModalScrollView = ({ onScroll, onLayout, ref, ...props }: Props) =>
       ref={ref}
       showsVerticalScrollIndicator={false}
       overScrollMode="never"
+      alwaysBounceVertical
       nestedScrollEnabled={isAtTop}
       scrollEventThrottle={16}
       {...props}
