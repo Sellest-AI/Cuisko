@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   EMPTY_ENTRY,
-  hear,
+  hearWords,
   readEvent,
   isSilenceOver,
   joinTranscript,
@@ -10,7 +10,6 @@ import {
   speechLanguage,
   OPEN_RANGE,
   toLevel,
-  VOICE_FLOOR,
   type VolumeRange,
   widen,
 } from "../voice";
@@ -19,35 +18,39 @@ import {
 const SPOKE_AT = 1_000;
 
 describe("when a spoken entry ends itself", () => {
-  test("a loud sample marks the shopper as talking", () => {
-    expect(hear(null, VOICE_FLOOR, SPOKE_AT)).toBe(SPOKE_AT);
-  });
-
-  test("a quiet sample keeps the last time they were heard", () => {
-    expect(hear(SPOKE_AT, VOICE_FLOOR - 0.1, SPOKE_AT + 500)).toBe(SPOKE_AT);
+  test("a new word marks the shopper as talking", () => {
+    expect(hearWords(null, "", "trois", SPOKE_AT)).toBe(SPOKE_AT);
   });
 
   test("the kitchen humming before anyone speaks never ends the entry", () => {
-    const lastVoiceAt = hear(null, 0.5, SPOKE_AT);
-
-    expect(lastVoiceAt).toBeNull();
-    expect(isSilenceOver(lastVoiceAt, SPOKE_AT + 60_000)).toBe(false);
+    // No word yet, however loud the room: the window is not armed.
+    expect(isSilenceOver(null, SPOKE_AT + 60_000)).toBe(false);
   });
 
   test("a pause shorter than the silence window is still the same sentence", () => {
     expect(isSilenceOver(SPOKE_AT, SPOKE_AT + SILENCE_MS - 1)).toBe(false);
   });
 
-  test("the entry ends once the silence window has passed since they last spoke", () => {
+  test("the entry ends once the silence window has passed since their last word", () => {
     expect(isSilenceOver(SPOKE_AT, SPOKE_AT + SILENCE_MS)).toBe(true);
   });
 
-  test("speaking again restarts the window", () => {
-    const resumedAt = SPOKE_AT + 1_500;
-    const lastVoiceAt = hear(SPOKE_AT, VOICE_FLOOR + 3, resumedAt);
+  test("a new word restarts the window, however softly it was said", () => {
+    const resumedAt = SPOKE_AT + 3_000;
+    const lastWordAt = hearWords(SPOKE_AT, "trois", "trois œufs", resumedAt);
 
-    expect(isSilenceOver(lastVoiceAt, SPOKE_AT + SILENCE_MS)).toBe(false);
-    expect(isSilenceOver(lastVoiceAt, resumedAt + SILENCE_MS)).toBe(true);
+    expect(isSilenceOver(lastWordAt, SPOKE_AT + SILENCE_MS)).toBe(false);
+    expect(isSilenceOver(lastWordAt, resumedAt + SILENCE_MS)).toBe(true);
+  });
+
+  test("the recognizer repeating the phrase it already holds is not the shopper speaking", () => {
+    const lastWordAt = hearWords(SPOKE_AT, "trois œufs", "trois œufs", SPOKE_AT + 4_000);
+
+    expect(lastWordAt).toBe(SPOKE_AT);
+  });
+
+  test("a blank transcript is not a word", () => {
+    expect(hearWords(null, "", "  ", SPOKE_AT)).toBeNull();
   });
 });
 
@@ -186,6 +189,23 @@ describe("what the recognizer's events do to one spoken entry", () => {
     const { entry } = readEvent(started, { type: "stop" });
 
     expect(readEvent(entry, { type: "stop" }).stop).toBe(false);
+  });
+
+  test("an entry the shopper ended, by send or by going quiet, hands over its words as done", () => {
+    let entry = readEvent(started, { type: "result", transcript: "trois œufs", isFinal: false }).entry;
+    entry = readEvent(entry, { type: "stop" }).entry;
+    const ended = readEvent(entry, { type: "end" });
+
+    expect(ended.done).toBe("trois œufs");
+    expect(ended.entry.isStopAsked).toBe(true);
+  });
+
+  test("an entry the recognizer ended on its own is not one the shopper finished", () => {
+    // A network failure mid-sentence: what was heard is kept, but only to be read back.
+    let entry = readEvent(started, { type: "result", transcript: "trois œufs", isFinal: true }).entry;
+    entry = readEvent(entry, { type: "error", error: "network" }).entry;
+
+    expect(readEvent(entry, { type: "end" }).entry.isStopAsked).toBe(false);
   });
 
   test("an entry hands over its words only once", () => {

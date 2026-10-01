@@ -7,8 +7,11 @@ import { theme } from "theme";
 import { useVoiceInput } from "../_hooks/useVoiceInput";
 
 type Props = {
-  /** What was said, once the entry is over — empty when nothing was heard. */
-  onDone: (text: string) => void,
+  /**
+   * What was said, once the entry is over — empty when nothing was heard. `isSent` when the
+   * shopper ended it, by send or by going quiet, rather than the recognizer giving up.
+   */
+  onDone: (text: string, isSent: boolean) => void,
   /** The trash: the entry is thrown away and nothing is typed in. */
   onDiscard: () => void,
 }

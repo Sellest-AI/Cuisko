@@ -14,6 +14,8 @@ export const NOT_HOUSEHOLD = {
     "the cook's own conversation with Cuisko; every cellar change inside it names its household",
   "src/modules/assistant/_hooks/atoms.ts:pendingQuestionAtom":
     "a question in flight in that conversation",
+  "src/modules/assistant/_hooks/atoms.ts:isAnsweringAtom":
+    "whether Cuisko is mid-turn in that conversation, mirrored from the assistant screen and put down when it unmounts",
   "src/modules/assistant/_hooks/atoms.ts:undoneChangesAtom":
     "which of Cuisko's cellar changes and planned plates were undone; it must outlive a switch as the conversation does, " +
     "or the undo is offered again, and each change names its own household",

@@ -1,5 +1,5 @@
 import { toUIMessages, useThreadMessages } from "@convex-dev/agent/react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { useEffect, useLayoutEffect, useMemo } from "react";
 
 import { isConversationStale } from "@shared/assistant";
@@ -7,7 +7,7 @@ import { isConversationStale } from "@shared/assistant";
 import { api } from "~/lib/convex/api";
 
 import { type ChatMessage, isShowingSomething, toChatMessages } from "../_model/chatMessage";
-import { conversationAtom, pendingQuestionAtom } from "./atoms";
+import { conversationAtom, isAnsweringAtom, pendingQuestionAtom } from "./atoms";
 import { useAskCuisko } from "./useAskCuisko";
 
 /** Enough to fill the sheet on the first frame; the rest paginates in as the reader scrolls up. */
@@ -108,6 +108,26 @@ export const useAssistantChat = () => {
     if (isAnswered) setPending(undefined);
   }, [isAnswered, setPending]);
 
+  const isThinking = pendingQuestion !== undefined && !isAnswered;
+  const isReplying = last?.from === "assistant" && last.isReplying && isShowingSomething(last);
+
+  /**
+   * The turn, published for the navigation bar (`isAnsweringAtom`). Both halves come from the same
+   * render, so the hand-over from thinking to replying never reads as a turn that ended.
+   *
+   * Put down when the screen goes: a screen closed mid-answer must not leave the bar believing
+   * Cuisko is still talking, and a separate effect so that every turn change is not also a cleanup
+   * writing `false` between two `true`s.
+   */
+  const setAnswering = useSetAtom(isAnsweringAtom);
+  const isAnswering = isThinking || isReplying;
+
+  useEffect(() => {
+    setAnswering(isAnswering);
+  }, [isAnswering, setAnswering]);
+
+  useEffect(() => () => setAnswering(false), [setAnswering]);
+
   /**
    * The client's idle window is measured from the same instant the server measures it from.
    *
@@ -162,14 +182,14 @@ export const useAssistantChat = () => {
      * True from the moment it is sent, through the gap before it appears in the transcript, until
      * an answer starts or the turn fails.
      */
-    isThinking: pendingQuestion !== undefined && !isAnswered,
+    isThinking,
     /**
      * The answer has started and its turn is not over yet: Cuisko may still write or show more.
      *
      * Takes over from `isThinking` once the answer shows something, so exactly one of the two is
      * true while a turn runs and the cook can always tell whether it has finished.
      */
-    isReplying: last?.from === "assistant" && last.isReplying && isShowingSomething(last),
+    isReplying,
     loadMore: stored.loadMore,
     canLoadMore: stored.status === "CanLoadMore",
   };

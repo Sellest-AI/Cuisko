@@ -4,35 +4,34 @@ import type { Locale } from "@shared/translations";
  * The rules a spoken entry into the bar follows, apart from the recognizer that hears it.
  *
  * The recognizer reports volume on its own scale — a float from -2 to 10, where anything below 0 is
- * inaudible — and a transcript in pieces. Everything the bar decides from those two streams is here,
- * so it can be pinned without a microphone.
+ * inaudible — and a transcript in pieces. The transcript decides when the entry ends; the volume
+ * only draws the wave. Everything the bar decides from those two streams is here, so it can be
+ * pinned without a microphone.
  */
 
 /**
- * How loud a sample must be to count as the shopper talking rather than the kitchen humming.
+ * How long the shopper must go without a new word, after their first, for the entry to end itself.
  *
- * Low on purpose: at 2, and still at 1, a quietly spoken sentence read as silence and the entry
- * stopped mid-way. Not 0 either — at 0 a room's hum counts as talking, which can keep the entry
- * from ever ending itself, or arm the silence timer before anyone has said a word.
+ * Counted on words and not on volume: at any floor low enough for a soft voice, a fridge or a hood
+ * counted as talking and the entry never ended. A hesitation the recognizer does not write down
+ * ("euh…") counts as quiet, which is what the length of the window is for.
  */
-export const VOICE_FLOOR = 0.6;
-
-/** How long the shopper must stay quiet, after having said something, for the entry to end itself. */
-export const SILENCE_MS = 8000;
-
+export const SILENCE_MS = 4000;
 
 /**
- * When the shopper was last heard talking, after one more volume sample.
+ * When the recognizer last turned something into words, after one more transcript.
  *
- * `null` until the first loud sample: silence before anyone has spoken is someone gathering their
- * thoughts, not an entry that is over.
+ * `null` until the first word: quiet, or a noisy room, before anyone has spoken is someone
+ * gathering their thoughts, not an entry that is over. Only a transcript that changed counts: iOS
+ * re-sends the phrase it already holds while nothing is said, and counting those would keep a
+ * finished entry open.
  */
-export const hear = (lastVoiceAt: number | null, volume: number, now: number): number | null =>
-  volume >= VOICE_FLOOR ? now : lastVoiceAt;
+export const hearWords = (lastWordAt: number | null, before: string, after: string, now: number): number | null =>
+  after.trim() !== "" && after !== before ? now : lastWordAt;
 
-/** Whether the entry has gone quiet for long enough to end itself. Never before anything was said. */
-export const isSilenceOver = (lastVoiceAt: number | null, now: number): boolean =>
-  lastVoiceAt !== null && now - lastVoiceAt >= SILENCE_MS;
+/** Whether the entry has gone quiet for long enough to end itself. Never before the first word. */
+export const isSilenceOver = (lastWordAt: number | null, now: number): boolean =>
+  lastWordAt !== null && now - lastWordAt >= SILENCE_MS;
 
 /**
  * The quietest and loudest this entry has heard lately, on the recognizer's scale — what the wave
@@ -101,7 +100,11 @@ export type Entry = {
   pending: string;
   /** This entry's own `start` has arrived. Nothing that ends an entry counts before it. */
   hasStarted: boolean;
-  /** Send was pressed, or the silence window closed. Kept until `start` if it came before it. */
+  /**
+   * Send was pressed, or the silence window closed — the shopper is done, and what was heard goes
+   * out. Kept until `start` if it came before it. An entry the recognizer ended on its own never
+   * has it, and its words are only typed in to be read back.
+   */
   isStopAsked: boolean;
   /** Its words were handed over, or it ended with none. Nothing after this counts. */
   isOver: boolean;

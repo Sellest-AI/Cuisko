@@ -8,11 +8,12 @@ import { theme } from "theme";
 import { router, usePathname } from "expo-router";
 import { m, AnimatePresence } from "@ui/motion";
 import { NAVIGATION_BAR_OFFSET } from "../constants";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavigationBarInput } from "./input";
 import { NavigationBarVoice } from "./voice";
 import { useNavigationBar } from "../hooks";
 import { useBackLeadsHome } from "../_hooks/useBackLeadsHome";
+import { useAskCuisko, useIsCuiskoAnswering } from "~/modules/assistant/hooks";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
 import { SafeAreaView } from "~/ui/components/safe-area-view";
@@ -76,8 +77,20 @@ export const NavigationBar = () => {
    */
   const [heard, setHeard] = useState<string>();
 
+  const { ask } = useAskCuisko();
+  const isAnswering = useIsCuiskoAnswering();
+
+  /**
+   * The last question went out by voice, so the microphone opens again once Cuisko has answered —
+   * a spoken conversation, without a tap between turns. Anything that is not a spoken send puts it
+   * down: a tap on the field to type, or the mic pressed by hand.
+   */
+  const listensAfterAnswer = useRef(false);
+  const wasAnswering = useRef(false);
+
   const cancelResetRef = useRef(() => { });
   const onFocus = () => {
+    listensAfterAnswer.current = false;
     setInputFocused(true);
     cancelResetRef.current();
   }
@@ -105,10 +118,37 @@ export const NavigationBar = () => {
     setInputMode("voice");
   }
 
-  const onHeard = (text: string) => {
+  /**
+   * The entry is over. Ended by the shopper — send, or going quiet — on the assistant, the words
+   * are sent, as Enter would there. Anywhere else, or when the recognizer gave up, they land in the
+   * text bar: off the assistant, Enter first works out whether the words are a grocery, a recipe or
+   * a question, and a misheard word sent straight to the list is worse than one more tap.
+   */
+  const onHeard = (text: string, isSent: boolean) => {
+    if (isSent && isAssistant && text.trim()) {
+      void ask(text);
+      onBlur();
+      listensAfterAnswer.current = true;
+      return;
+    }
+
     setHeard(text);
     setInputMode("text");
   }
+
+  /**
+   * Cuisko has just finished the turn a spoken question started: listen for the next one.
+   *
+   * On the falling edge only, so a send that never started a turn does not open the mic at once.
+   * And only onto a bar at rest — a shopper who opened the field meanwhile is typing.
+   */
+  useEffect(() => {
+    const isTurnOver = wasAnswering.current && !isAnswering;
+    wasAnswering.current = isAnswering;
+
+    if (!isTurnOver || !listensAfterAnswer.current || !isAssistant || inputFocused) return;
+    onVoice();
+  });
 
   return (
     <>

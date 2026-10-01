@@ -367,6 +367,9 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, i
             </Animated.View>
           </Pressable>}
           style={{ width: "100%" }}
+          // A spoken question comes back as a sentence or two; on one line it scrolled out of
+          // sight before the shopper could read back what was heard.
+          multiline
           onSubmit={submit}
           value={value}
           onChangeText={(text) => setValue(text)}

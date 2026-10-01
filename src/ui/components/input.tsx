@@ -34,11 +34,20 @@ type Props = {
   ref?: React.RefObject<TextInput | null>,
   type?: "text" | "numeric" | "decimal" | "email",
   isLoading?: boolean,
+  /**
+   * Wraps instead of scrolling sideways, growing up to `MAX_LINES` lines and scrolling past them —
+   * for a field that takes sentences, like the navigation bar's question to Cuisko. Return still
+   * submits rather than starting a new line.
+   */
+  multiline?: boolean,
 }
+
+/** How tall a multiline field grows before it scrolls instead. */
+const MAX_LINES = 3;
 
 export { TextInput } from "react-native";
 
-export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, isLoading, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent, centerContent }: Props) => {
+export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, placeholder, isLoading, leftIcon, onLeftPress, onFocus, onSubmit, onBlur, value, onChangeText, rightIcon, onRightPress, rightContent, centerContent, multiline = false }: Props) => {
   const color = elevated ? styles.neutralElevated : styles.neutral;
 
   /**
@@ -109,9 +118,12 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
           /**
            * One line, placeholder included. Android lays the hint out as multi-line even on a
            * single-line field, so a placeholder wider than the field wrapped onto a second line the
-           * cook could scroll to inside a box one line tall.
+           * cook could scroll to inside a box one line tall. A multiline field keeps its
+           * placeholder short instead.
            */
-          numberOfLines={1}
+          numberOfLines={multiline ? undefined : 1}
+          multiline={multiline}
+          submitBehavior={multiline ? "submit" : undefined}
           autoCorrect={false}
           autoCapitalize="sentences"
           returnKeyType="search"
@@ -120,6 +132,7 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
             theme.font.base,
             { fontWeight: 400 },
             { color: color.color },
+            multiline && styles.multiline,
           ]}
         />}
         {rightIcon && <ButtonIcon
@@ -171,6 +184,9 @@ const styles = StyleSheet.create({
      * taller than the line and so scrollable. The container already centres and pads the field.
      */
     paddingVertical: 0,
+  },
+  multiline: {
+    maxHeight: theme.font.base.lineHeight * MAX_LINES,
   },
   borders: {
     borderWidth: 2,

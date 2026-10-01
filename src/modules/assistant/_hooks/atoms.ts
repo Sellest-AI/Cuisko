@@ -53,6 +53,16 @@ export const conversationAtom = atom<Conversation | undefined>(undefined);
 export const pendingQuestionAtom = atom<string | undefined>(undefined);
 
 /**
+ * Cuisko is on a turn: thinking, or still writing its answer.
+ *
+ * **Written by `useAssistantChat`, read by the navigation bar** — the screen is the one that reads
+ * the transcript and so the only one that can tell, and the bar is what listens again once the turn
+ * is over. Published rather than recomputed in the bar, which would need the paginated message
+ * subscription `useAskCuisko` exists to keep out of it.
+ */
+export const isAnsweringAtom = atom(false);
+
+/**
  * What has been undone of each change Cuisko made, by the change's key (its message and tool call):
  * for a cellar change, indexes into its `lines`; for a planned plate, `[0]`, the one line it has.
  *

@@ -7,8 +7,9 @@ import { useLocale } from "~/hooks/useLocale";
 import {
   EMPTY_ENTRY,
   type Entry,
-  hear,
+  hearWords,
   isSilenceOver,
+  joinTranscript,
   OPEN_RANGE,
   readEvent,
   type RecognizerEvent,
@@ -24,7 +25,8 @@ const VOLUME_INTERVAL_MS = 50;
 /** One mount of the voice bar: the entry it is listening for, and what only the hook tracks. */
 type Session = {
   entry: Entry;
-  lastVoiceAt: number | null;
+  /** When the recognizer last returned a new word — what the silence window counts from. */
+  lastWordAt: number | null;
   /** The quietest and loudest heard in this entry — the wave is drawn against it. */
   range: VolumeRange;
   /** Thrown away — by the trash, or by the bar unmounting. Nothing is delivered after this. */
@@ -33,7 +35,7 @@ type Session = {
 
 const _freshSession = (): Session => ({
   entry: EMPTY_ENTRY,
-  lastVoiceAt: null,
+  lastWordAt: null,
   range: OPEN_RANGE,
   isCancelled: false,
 });
@@ -50,9 +52,11 @@ const _freshSession = (): Session => ({
  * nothing past it knows how the string was made — moving to a hosted model changes this file and no
  * other.
  *
- * **It ends itself.** After the shopper has said something, `SILENCE_MS` of quiet stops the entry,
- * the same as pressing send. What each recognizer event does to the entry — including ignoring the
- * previous entry's late `end` — is `readEvent`'s, in `_model/voice.ts`; this only feeds it.
+ * **It ends itself.** After the shopper's first word, `SILENCE_MS` without a new word stops the
+ * entry, the same as pressing send; `onDone` says either with `isSent`. Before the first word it
+ * listens for as long as it takes. What each recognizer event does to the entry —
+ * including ignoring the previous entry's late `end` — is `readEvent`'s, in `_model/voice.ts`;
+ * this only feeds it.
  *
  * `onDone` is called exactly once per session that is not cancelled — with an empty string when
  * nothing was heard, the permission was refused or could not be asked, or the recognizer failed —
@@ -61,7 +65,7 @@ const _freshSession = (): Session => ({
  * `level` is a shared value rather than state: it changes twenty times a second, and the wave reads
  * it on the UI thread. Holding it in state would re-render the bar on every sample.
  */
-export const useVoiceInput = (onDone: (text: string) => void) => {
+export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void) => {
   const locale = useLocale();
   const level = useSharedValue(0);
   const session = useRef<Session>(_freshSession());
@@ -75,12 +79,15 @@ export const useVoiceInput = (onDone: (text: string) => void) => {
   /** Applies one event to the current entry, and hands its words over if that ended it. */
   const apply = (event: RecognizerEvent) => {
     const current = session.current;
+    const before = joinTranscript(current.entry.settled, current.entry.pending);
     const { entry, done, stop } = readEvent(current.entry, event);
     current.entry = entry;
+    const after = joinTranscript(entry.settled, entry.pending);
+    current.lastWordAt = hearWords(current.lastWordAt, before, after, Date.now());
 
     if (stop) ExpoSpeechRecognitionModule.stop();
 
-    if (done !== null && !current.isCancelled) deliver.current(done);
+    if (done !== null && !current.isCancelled) deliver.current(done, entry.isStopAsked);
   };
 
   useEffect(() => {
@@ -94,7 +101,7 @@ export const useVoiceInput = (onDone: (text: string) => void) => {
         if (own.isCancelled) return;
         if (!permission.granted) {
           console.warn("The bar cannot listen: microphone or speech permission was refused");
-          deliver.current("");
+          deliver.current("", false);
           return;
         }
 
@@ -111,7 +118,7 @@ export const useVoiceInput = (onDone: (text: string) => void) => {
       // come, so the entry ends here with nothing and the text bar comes back.
       .catch((error: unknown) => {
         console.warn("The bar could not ask to listen", error);
-        if (!own.isCancelled) deliver.current("");
+        if (!own.isCancelled) deliver.current("", false);
       });
 
     return () => {
@@ -137,9 +144,8 @@ export const useVoiceInput = (onDone: (text: string) => void) => {
     session.current.range = widen(session.current.range, value);
     level.set(withTiming(toLevel(session.current.range, value), { duration: VOLUME_INTERVAL_MS }));
 
-    const now = Date.now();
-    session.current.lastVoiceAt = hear(session.current.lastVoiceAt, value, now);
-    if (isSilenceOver(session.current.lastVoiceAt, now)) finish();
+    // Checked here because this is the event that keeps coming while nothing is said.
+    if (isSilenceOver(session.current.lastWordAt, Date.now())) finish();
   });
 
   useSpeechRecognitionEvent("end", () => apply({ type: "end" }));
