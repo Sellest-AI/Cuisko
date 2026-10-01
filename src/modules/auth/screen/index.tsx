@@ -2,6 +2,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AppleLogo, CircleAlert, GoogleLogo } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
+import { Pressable } from "@ui/pressable";
 import { useSafeAreaInsets } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -11,6 +12,9 @@ import { useAuth } from "../_hooks/useAuth";
 import { DevSignIn } from "./dev-sign-in";
 import { Hero } from "./hero";
 import { ProviderButton } from "./provider-button";
+
+/** Long enough that no one reaches it by accident; the review notes tell the reviewer to hold it. */
+const REVIEW_PRESS_MS = 3000;
 
 /**
  * The welcome screen: what Cuisko is, and one tap to continue.
@@ -24,7 +28,16 @@ import { ProviderButton } from "./provider-button";
 export const AuthScreen = () => {
   const t = useTranslations("Auth");
   const insets = useSafeAreaInsets();
-  const { isLoading, isSubmitting, pendingProvider, error, signIn, signInWithProvider } = useAuth();
+  const {
+    isLoading,
+    isSubmitting,
+    pendingProvider,
+    error,
+    signIn,
+    signInWithProvider,
+    isReviewAvailable,
+    signInAsReviewer,
+  } = useAuth();
 
   if (isLoading) {
     return (
@@ -39,7 +52,20 @@ export const AuthScreen = () => {
       <Hero />
       <View style={[styles.sheet, { paddingBottom: insets.bottom + theme.spacing[32] }]}>
         <View style={styles.copy}>
-          <Text.H4 color={theme.colors.foreground}>{t("welcome")}</Text.H4>
+          {/* The way in for a store reviewer: inert unless the backend says this build is in review. */}
+          <Pressable
+            // Not `disabled`, which a screen reader announces as a dimmed button on the welcome
+            // heading for every user. The check lives in the handler instead, and `accessible`
+            // keeps the heading plain text unless there is something to press.
+            accessible={isReviewAvailable}
+            animated={false}
+            delayLongPress={REVIEW_PRESS_MS}
+            onLongPress={() => {
+              if (isReviewAvailable && !isSubmitting) void signInAsReviewer();
+            }}
+          >
+            <Text.H4 color={theme.colors.foreground}>{t("welcome")}</Text.H4>
+          </Pressable>
           <Text.Base color={theme.colors.muted} style={{ ...styles.tagline, textBalance: true }}>
             {t("tagline")}
           </Text.Base>

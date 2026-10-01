@@ -1,6 +1,7 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema } from "convex/server";
 
+import { appConfig } from "./schema/appConfig";
 import { usersExtended } from "./schema/users";
 import { userPreferences } from "./schema/preferences";
 import { households, householdFormerMembers, householdUsers } from "./schema/households";
@@ -17,6 +18,7 @@ import { imageSizes, imageObjects, images, userImages } from "./schema/media";
  */
 export default defineSchema({
   ...authTables,
+  appConfig,
   usersExtended,
   userPreferences,
   households,

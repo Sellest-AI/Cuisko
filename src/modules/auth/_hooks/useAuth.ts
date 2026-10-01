@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 
+import { APP_VERSION } from "~/lib/appVersion";
 import { api } from "~/lib/convex/api";
 import {
   useAuthActions,
@@ -77,9 +78,33 @@ export const useAuth = () => {
     [runSignIn],
   );
 
+  /**
+   * The shared account a store reviewer signs in with. The backend answers `null` unless this
+   * build is the one in review (`reviewWindow`), so availability is the server's call and never
+   * compared here. Skipped once signed in: nobody needs the credentials then, and they should not
+   * linger in the query cache.
+   */
+  const { data: reviewAccount } = useQueryCached(
+    api.router.auth.getReviewAccount.anon,
+    isAuthenticated ? "skip" : { appVersion: APP_VERSION },
+  );
+
+  const signInAsReviewer = useCallback(async () => {
+    if (!reviewAccount) return;
+    setError(null);
+    try {
+      await runSignIn(reviewAccount);
+    } catch (cause) {
+      setError(t("error_review_account"));
+      if (__DEV__) console.warn("[useAuth] review sign-in failed", cause);
+    }
+  }, [reviewAccount, runSignIn, t]);
+
   return {
     user,
     isAuthenticated,
+    isReviewAvailable: !!reviewAccount,
+    signInAsReviewer,
     // A signed-in user is still "loading" until their row arrives, or the screen flashes an
     // empty id between authenticating and having data. A sign-in the user just started is not:
     // its button carries the spinner, and swapping the whole screen for a loader would hide it.

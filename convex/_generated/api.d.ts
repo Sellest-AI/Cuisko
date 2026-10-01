@@ -55,6 +55,9 @@ import type * as functions_assistant_ownedThread from "../functions/assistant/ow
 import type * as functions_assistant_saveQuestion from "../functions/assistant/saveQuestion.js";
 import type * as functions_assistant_threadMessages from "../functions/assistant/threadMessages.js";
 import type * as functions_assistant_turnBrief from "../functions/assistant/turnBrief.js";
+import type * as functions_auth_getReviewAccount from "../functions/auth/getReviewAccount.js";
+import type * as functions_auth_reviewAccount from "../functions/auth/reviewAccount.js";
+import type * as functions_auth_reviewWindow from "../functions/auth/reviewWindow.js";
 import type * as functions_cascade from "../functions/cascade.js";
 import type * as functions_cellars_addToCellar from "../functions/cellars/addToCellar.js";
 import type * as functions_cellars_addToGroceryList from "../functions/cellars/addToGroceryList.js";
@@ -63,6 +66,7 @@ import type * as functions_cellars_platesOnList from "../functions/cellars/plate
 import type * as functions_cellars_removeFromCellar from "../functions/cellars/removeFromCellar.js";
 import type * as functions_cellars_removeFromGroceryList from "../functions/cellars/removeFromGroceryList.js";
 import type * as functions_cellars_removeFromRecentlyUsed from "../functions/cellars/removeFromRecentlyUsed.js";
+import type * as functions_config_setVersions from "../functions/config/setVersions.js";
 import type * as functions_households_createHousehold from "../functions/households/createHousehold.js";
 import type * as functions_households_getForUser from "../functions/households/getForUser.js";
 import type * as functions_households_inviteCode from "../functions/households/inviteCode.js";
@@ -175,6 +179,7 @@ import type * as functions_users_onUserCreated from "../functions/users/onUserCr
 import type * as http from "../http.js";
 import type * as http_verified from "../http/verified.js";
 import type * as lib_authRedirect from "../lib/authRedirect.js";
+import type * as lib_compareVersions from "../lib/compareVersions.js";
 import type * as lib_i18n_index from "../lib/i18n/index.js";
 import type * as lib_media_node from "../lib/media/node.js";
 import type * as lib_nanoid from "../lib/nanoid.js";
@@ -193,6 +198,7 @@ import type * as procedures from "../procedures.js";
 import type * as router_assistant_classify from "../router/assistant/classify.js";
 import type * as router_assistant_listMessages from "../router/assistant/listMessages.js";
 import type * as router_assistant_sendMessage from "../router/assistant/sendMessage.js";
+import type * as router_auth_getReviewAccount from "../router/auth/getReviewAccount.js";
 import type * as router_cellars_addToCellar from "../router/cellars/addToCellar.js";
 import type * as router_cellars_addToGroceryList from "../router/cellars/addToGroceryList.js";
 import type * as router_cellars_getCellar from "../router/cellars/getCellar.js";
@@ -201,6 +207,7 @@ import type * as router_cellars_getPlatesOnList from "../router/cellars/getPlate
 import type * as router_cellars_getRecentlyUsed from "../router/cellars/getRecentlyUsed.js";
 import type * as router_cellars_removeFromCellar from "../router/cellars/removeFromCellar.js";
 import type * as router_cellars_removeFromGroceryList from "../router/cellars/removeFromGroceryList.js";
+import type * as router_config_setVersions from "../router/config/setVersions.js";
 import type * as router_households_create from "../router/households/create.js";
 import type * as router_households_getMine from "../router/households/getMine.js";
 import type * as router_households_join from "../router/households/join.js";
@@ -264,6 +271,7 @@ import type * as router_recipes_translateOne from "../router/recipes/translateOn
 import type * as router_recipes_updateOne from "../router/recipes/updateOne.js";
 import type * as router_users_getAccount from "../router/users/getAccount.js";
 import type * as router_users_getMe from "../router/users/getMe.js";
+import type * as schema_appConfig from "../schema/appConfig.js";
 import type * as schema_assistantPayloads from "../schema/assistantPayloads.js";
 import type * as schema_cellars from "../schema/cellars.js";
 import type * as schema_households from "../schema/households.js";
@@ -332,6 +340,9 @@ declare const fullApi: ApiFromModules<{
   "functions/assistant/saveQuestion": typeof functions_assistant_saveQuestion;
   "functions/assistant/threadMessages": typeof functions_assistant_threadMessages;
   "functions/assistant/turnBrief": typeof functions_assistant_turnBrief;
+  "functions/auth/getReviewAccount": typeof functions_auth_getReviewAccount;
+  "functions/auth/reviewAccount": typeof functions_auth_reviewAccount;
+  "functions/auth/reviewWindow": typeof functions_auth_reviewWindow;
   "functions/cascade": typeof functions_cascade;
   "functions/cellars/addToCellar": typeof functions_cellars_addToCellar;
   "functions/cellars/addToGroceryList": typeof functions_cellars_addToGroceryList;
@@ -340,6 +351,7 @@ declare const fullApi: ApiFromModules<{
   "functions/cellars/removeFromCellar": typeof functions_cellars_removeFromCellar;
   "functions/cellars/removeFromGroceryList": typeof functions_cellars_removeFromGroceryList;
   "functions/cellars/removeFromRecentlyUsed": typeof functions_cellars_removeFromRecentlyUsed;
+  "functions/config/setVersions": typeof functions_config_setVersions;
   "functions/households/createHousehold": typeof functions_households_createHousehold;
   "functions/households/getForUser": typeof functions_households_getForUser;
   "functions/households/inviteCode": typeof functions_households_inviteCode;
@@ -452,6 +464,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "http/verified": typeof http_verified;
   "lib/authRedirect": typeof lib_authRedirect;
+  "lib/compareVersions": typeof lib_compareVersions;
   "lib/i18n/index": typeof lib_i18n_index;
   "lib/media/node": typeof lib_media_node;
   "lib/nanoid": typeof lib_nanoid;
@@ -470,6 +483,7 @@ declare const fullApi: ApiFromModules<{
   "router/assistant/classify": typeof router_assistant_classify;
   "router/assistant/listMessages": typeof router_assistant_listMessages;
   "router/assistant/sendMessage": typeof router_assistant_sendMessage;
+  "router/auth/getReviewAccount": typeof router_auth_getReviewAccount;
   "router/cellars/addToCellar": typeof router_cellars_addToCellar;
   "router/cellars/addToGroceryList": typeof router_cellars_addToGroceryList;
   "router/cellars/getCellar": typeof router_cellars_getCellar;
@@ -478,6 +492,7 @@ declare const fullApi: ApiFromModules<{
   "router/cellars/getRecentlyUsed": typeof router_cellars_getRecentlyUsed;
   "router/cellars/removeFromCellar": typeof router_cellars_removeFromCellar;
   "router/cellars/removeFromGroceryList": typeof router_cellars_removeFromGroceryList;
+  "router/config/setVersions": typeof router_config_setVersions;
   "router/households/create": typeof router_households_create;
   "router/households/getMine": typeof router_households_getMine;
   "router/households/join": typeof router_households_join;
@@ -541,6 +556,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/updateOne": typeof router_recipes_updateOne;
   "router/users/getAccount": typeof router_users_getAccount;
   "router/users/getMe": typeof router_users_getMe;
+  "schema/appConfig": typeof schema_appConfig;
   "schema/assistantPayloads": typeof schema_assistantPayloads;
   "schema/cellars": typeof schema_cellars;
   "schema/households": typeof schema_households;

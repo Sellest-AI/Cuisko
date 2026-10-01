@@ -14,26 +14,40 @@ const state = vi.hoisted(() => ({
   os: "ios" as "ios" | "android" | "web",
   signIn: vi.fn(),
   openAuthSession: vi.fn(),
+  signedIn: false,
+  /** What the backend answers for the review account: `undefined` is still loading, `null` is closed. */
+  reviewAccount: undefined as { email: string; password: string } | null | undefined,
+  reviewQueryArgs: [] as unknown[],
 }));
 
 vi.mock("@convex-dev/auth/react", () => ({
   useAuthActions: () => ({ signIn: state.signIn, signOut: vi.fn() }),
-  useAuthToken: () => null,
+  useAuthToken: () => (state.signedIn ? "token" : null),
 }));
 
 vi.mock("convex/react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("convex/react")>()),
-  useConvexAuth: () => ({ isAuthenticated: false, isLoading: false }),
+  useConvexAuth: () => ({ isAuthenticated: state.signedIn, isLoading: false }),
 }));
+
+vi.mock("~/lib/appVersion", () => ({ APP_VERSION: "0.2.0" }));
 
 vi.mock("expo-web-browser", () => ({ openAuthSessionAsync: state.openAuthSession }));
 vi.mock("expo-linking", () => ({ createURL: () => "cuisko://" }));
 vi.mock("react-native", () => ({ Platform: { get OS() { return state.os; } } }));
 
 vi.mock("~/lib/convex/storage", () => ({ convexAuthStorage: { clear: vi.fn() } }));
-vi.mock("~/lib/convex/client", () => ({
-  useQueryCached: () => ({ data: undefined, isPending: true }),
-}));
+vi.mock("~/lib/convex/client", async () => {
+  const { getFunctionName } = await import("convex/server");
+  return {
+    useQueryCached: (query: Parameters<typeof getFunctionName>[0], ...args: unknown[]) => {
+      if (getFunctionName(query) !== "router/auth/getReviewAccount:anon")
+        return { data: undefined, isPending: true };
+      state.reviewQueryArgs = args;
+      return { data: state.reviewAccount, isPending: state.reviewAccount === undefined };
+    },
+  };
+});
 
 vi.mock("translations", () => ({
   useTranslations: () => (key: string, vars?: { name: string }) =>
@@ -47,6 +61,9 @@ beforeEach(() => {
   state.os = "ios";
   state.signIn.mockReset().mockResolvedValue({ signingIn: false, redirect: PROVIDER_URL });
   state.openAuthSession.mockReset();
+  state.signedIn = false;
+  state.reviewAccount = undefined;
+  state.reviewQueryArgs = [];
   // A failed attempt logs under __DEV__; the assertions are on `error`, not on the console.
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
@@ -190,5 +207,63 @@ describe("useAuth.signIn — password", () => {
     expect(state.signIn).toHaveBeenCalledTimes(2);
     expect(result.current.error).not.toBeNull();
     expect(result.current.isSubmitting).toBe(false);
+  });
+});
+
+describe("useAuth review account", () => {
+  const REVIEW_ACCOUNT = { email: "review@cuisko.app", password: "long-enough-password" };
+
+  it("is unavailable while the backend is still answering, and when it answers null", () => {
+    expect(renderHook(() => useAuth()).result.current.isReviewAvailable).toBe(false);
+
+    state.reviewAccount = null;
+    expect(renderHook(() => useAuth()).result.current.isReviewAvailable).toBe(false);
+  });
+
+  it("asks the backend with this build's version and leaves the decision to it", () => {
+    state.reviewAccount = REVIEW_ACCOUNT;
+
+    renderHook(() => useAuth());
+
+    expect(state.reviewQueryArgs).toEqual([{ appVersion: "0.2.0" }]);
+  });
+
+  it("stops asking once signed in, so the credentials do not linger", () => {
+    state.signedIn = true;
+
+    renderHook(() => useAuth());
+
+    expect(state.reviewQueryArgs).toEqual(["skip"]);
+  });
+
+  it("signs in with the credentials the backend handed over", async () => {
+    state.reviewAccount = REVIEW_ACCOUNT;
+    state.signIn.mockResolvedValue({ signingIn: true });
+
+    const { result } = renderHook(() => useAuth());
+    expect(result.current.isReviewAvailable).toBe(true);
+    await act(() => result.current.signInAsReviewer());
+
+    expect(state.signIn).toHaveBeenCalledWith("password", { ...REVIEW_ACCOUNT, flow: "signIn" });
+    expect(result.current.error).toBeNull();
+  });
+
+  it("does nothing when the window is closed, even if called", async () => {
+    state.reviewAccount = null;
+
+    const { result } = renderHook(() => useAuth());
+    await act(() => result.current.signInAsReviewer());
+
+    expect(state.signIn).not.toHaveBeenCalled();
+  });
+
+  it("says so when the account cannot be opened, without leaking the server's reason", async () => {
+    state.reviewAccount = REVIEW_ACCOUNT;
+    state.signIn.mockRejectedValue(new Error("InvalidSecret"));
+
+    const { result } = renderHook(() => useAuth());
+    await act(() => result.current.signInAsReviewer());
+
+    expect(result.current.error).toBe("error_review_account");
   });
 });
