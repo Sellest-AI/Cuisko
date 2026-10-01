@@ -48,9 +48,13 @@ export const modelNumber = (value: unknown): number | undefined => {
 /**
  * `null` gone from a type, at every depth — what `parseModelOutput` leaves behind.
  *
- * A schema says `.nullable()` because the *model* has to be allowed to write null; the app never
- * has to read one. Optional keys keep their `?`, so a field that may be absent stays absent
- * rather than becoming `T | null`, which is what a `Doc` written from this has to be.
+ * A schema says `.nullable().optional()` because the *model* has to be allowed to write null; the
+ * app never has to read one. Optional keys keep their `?`, so a field that may be absent stays
+ * absent rather than becoming `T | null`, which is what a `Doc` written from this has to be.
+ *
+ * @limitation A field that is `.nullable()` alone keeps its null at runtime (`_unwrap`), and this
+ * type still says it cannot. No answer schema has one; `sanitizeRecipe`'s input does, and reads it
+ * through its own `z.infer`, not this.
  */
 export type WithoutNulls<T> = T extends (infer Item)[]
   ? WithoutNulls<Item>[]
@@ -72,17 +76,26 @@ type _Def = {
 
 const _def = (schema: z.ZodType) => schema.def as _Def;
 
-/** `.nullable()` and `.optional()` off, and the answer to "is this field allowed to be absent?". */
+/**
+ * `.nullable()` and `.optional()` off, the answer to "is this field allowed to be absent?", and
+ * what absent is written as there.
+ *
+ * ⚠️ `.nullable()` alone is not `.optional()`. Its absent is `null`, kept as a key: turned into a
+ *    missing key, it fails the very schema that allowed it — `sanitizeRecipe`'s `outdated: null`
+ *    did, and no recipe could be created.
+ */
 const _unwrap = (schema: z.ZodType) => {
   let inner = schema;
-  let absentable = false;
+  let optional = false;
+  let nullable = false;
 
   while (_def(inner).type === "optional" || _def(inner).type === "nullable") {
-    absentable = true;
+    if (_def(inner).type === "optional") optional = true;
+    else nullable = true;
     inner = _def(inner).innerType!;
   }
 
-  return { inner, absentable };
+  return { inner, absentable: optional || nullable, nothing: optional ? undefined : null };
 };
 
 /**
@@ -126,8 +139,8 @@ type _Mode = { forTool: boolean };
  * down to those leaves.
  */
 const _clean = (schema: z.ZodType, value: unknown, mode: _Mode): unknown => {
-  const { inner, absentable } = _unwrap(schema);
-  const absent = absentable ? undefined : value;
+  const { inner, absentable, nothing } = _unwrap(schema);
+  const absent = absentable ? nothing : value;
 
   const cleaned = ((): unknown => {
     switch (_def(inner).type) {
@@ -165,7 +178,7 @@ const _clean = (schema: z.ZodType, value: unknown, mode: _Mode): unknown => {
         // For a tool that includes `[]`; an answer keeps a `[]` it wrote, which says "none".
         const emptied = items.length === 0 && (mode.forTool || value.length > 0);
 
-        return absentable && emptied ? undefined : items;
+        return absentable && emptied ? nothing : items;
       }
 
       case "number": {
@@ -189,7 +202,7 @@ const _clean = (schema: z.ZodType, value: unknown, mode: _Mode): unknown => {
   // it goes absent.** So `z.number().positive().nullable().optional()` is how a tool says "drop a
   // 0" — the 0 survives `modelNumber`, fails `.positive()`, and disappears here. No tool needs a
   // hand-written normalizer to express that, and a required field still fails loudly in `.parse`.
-  if (!mode.forTool && absentable && cleaned !== undefined && !inner.safeParse(cleaned).success) return undefined;
+  if (!mode.forTool && absentable && cleaned != null && !inner.safeParse(cleaned).success) return nothing;
 
   return cleaned;
 };
