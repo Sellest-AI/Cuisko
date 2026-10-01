@@ -16,7 +16,7 @@ import type { Locale } from "@shared/translations";
  * counted as talking and the entry never ended. A hesitation the recognizer does not write down
  * ("euh…") counts as quiet, which is what the length of the window is for.
  */
-export const SILENCE_MS = 4000;
+export const SILENCE_MS = 3000;
 
 /**
  * When the recognizer last turned something into words, after one more transcript.
