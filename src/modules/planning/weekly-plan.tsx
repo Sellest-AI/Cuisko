@@ -76,7 +76,6 @@ export const WeeklyPlan = () => {
             {mealType === "lunch" ? t("Meal.lunch") : t("Meal.dinner")}
           </ButtonPill>
         </View>
-        <Text.Base color={theme.colors.muted}>{t("WeeklyPlan.call_to_cook")}</Text.Base>
       </View>
       <PlateCarousel
         style={styles.carousel}
@@ -113,14 +112,13 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    gap: theme.spacing[8],
+    marginTop: theme.spacing[24],
   },
   headingRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: theme.spacing[12],
-    marginTop: theme.spacing[24],
   },
   mealToggle: {
     minHeight: 0,
@@ -129,6 +127,7 @@ const styles = StyleSheet.create({
   },
   carousel: {
     minHeight: 188,
+    marginTop: -theme.spacing[8],
   },
   week: {
     marginTop: theme.spacing[6],
