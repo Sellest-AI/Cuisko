@@ -45,7 +45,7 @@ export const NutritionRow = ({ protein, fat, carbs, calories, scope, scopePositi
         style={{
           ...styles.scope,
           paddingRight: scopePosition === "left" ? 0 : (paddingHorizontal ?? 0) + theme.spacing[2],
-          paddingLeft: scopePosition === "right" ? 0 : (paddingHorizontal ?? 0) + theme.spacing[2],
+          paddingLeft: scopePosition === "right" ? 0 : (paddingHorizontal ?? 0),
           alignSelf: scopePosition === "right" ? "flex-end" : "flex-start",
         }}>
         {scope}
