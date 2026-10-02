@@ -64,9 +64,11 @@ const _portableRecipeOf = async (ctx: ExportCtx, recipe: Doc<"recipes">): Promis
  * One page of the catalog — the recipes nobody owns — in the portable shape `catalog:restore`
  * reads, oldest first so a page order is stable across runs.
  *
- * Catalog only, which is what `userId` absent selects on `by_user`: a cook's own recipes are
- * theirs, and moving them between deployments would move them out from under their owner. The
- * predicate is in the index and not in a `.filter()`, so a page of `numItems` holds `numItems`
+ * Catalog only, which is what `userId` absent selects: a cook's own recipes are theirs, and moving
+ * them between deployments would move them out from under their owner. Live only: an archived recipe
+ * was deleted (ADR 0017), and an account erased with `force` leaves its recipes archived and
+ * authorless, so "no owner" alone would carry them across as if Cuisko had written them. Both
+ * predicates are in the index and not in a `.filter()`, so a page of `numItems` holds `numItems`
  * recipes (ADR 0007, C3).
  *
  * The cursor and `isDone` pass through untouched, as in `listForUser`: the mapping is one to one,
@@ -78,7 +80,7 @@ export const exportCatalog = async (
 ): Promise<PaginationResult<PortableRecipe>> => {
   const page = await ctx.db
     .query("recipes")
-    .withIndex("by_user", (q) => q.eq("userId", undefined))
+    .withIndex("by_user_and_is_archived", (q) => q.eq("userId", undefined).eq("isArchived", false))
     .paginate(paginationOpts);
 
   const portable: PortableRecipe[] = [];

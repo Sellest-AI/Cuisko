@@ -120,8 +120,8 @@ describe("what it lets through", () => {
 
   it("accepts an allowlisted reader, which needs every row", () => {
     const result = runCheck(SCRIPT, {
-      "convex/functions/recipes/exportCatalog.ts": `
-        export const exportCatalog = (ctx, paginationOpts) =>
+      "convex/functions/recipes/findCatalogBySource.ts": `
+        export const findCatalogBySource = (ctx, paginationOpts) =>
           ctx.db
             .query("recipes")
             .withIndex("by_user", (q) => q.eq("userId", undefined))

@@ -41,7 +41,12 @@ const insertIngredient = (slug: string, fr: string, en: string) =>
     }),
   );
 
-type RecipeExtras = { userId?: Id<"users">; coverImageId?: Id<"images">; plateImageId?: Id<"images"> };
+type RecipeExtras = {
+  userId?: Id<"users">;
+  coverImageId?: Id<"images">;
+  plateImageId?: Id<"images">;
+  isArchived?: boolean;
+};
 
 const insertRecipe = (title: string, extras: RecipeExtras = {}) =>
   t.run((ctx) =>
@@ -97,6 +102,20 @@ describe("exportCatalog", () => {
   test("leaves out the recipes a cook owns", async () => {
     const userId = await t.run((ctx) => ctx.db.insert("users", { name: "Cook" }));
     await insertRecipe("Mine", { userId });
+    await insertRecipe("Catalog");
+
+    const { page: exported } = await page();
+
+    expect(exported.map((recipe) => recipe.row.title.values.fr)).toEqual(["Catalog"]);
+  });
+
+  /**
+   * An archived recipe was deleted (ADR 0017), and a recipe with no owner is not always one Cuisko
+   * wrote: an account erased with `force` leaves its recipes archived and authorless. Copying either
+   * into another deployment would publish there what was taken down here.
+   */
+  test("leaves out archived recipes", async () => {
+    await insertRecipe("Deleted", { isArchived: true });
     await insertRecipe("Catalog");
 
     const { page: exported } = await page();

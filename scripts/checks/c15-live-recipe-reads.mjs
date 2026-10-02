@@ -25,7 +25,6 @@ import { lineOf, listFiles, parse, relative, report, ROOT, stringLiteral, ts } f
  * says the reader needs every row, and why no screen will show what it returns.
  */
 const ALLOWLIST = new Map([
-  ["convex/functions/recipes/exportCatalog.ts", "copies the whole catalog to another deployment"],
   ["convex/functions/recipes/findCatalogBySource.ts", "dedupes an import against every row holding the page"],
 ]);
 
