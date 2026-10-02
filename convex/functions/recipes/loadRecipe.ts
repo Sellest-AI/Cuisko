@@ -5,7 +5,7 @@ import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { getImage } from "@convex/functions/media/getImage";
-import { avatarSeed } from "@shared/avatars";
+import { ANONYMOUS_AVATAR_SEED, avatarSeed } from "@shared/avatars";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
 import type { GramWeights, RecipeUnit, Unit } from "@shared/ingredients";
 import type { RecipeNutrition } from "@shared/nutrition";
@@ -57,11 +57,17 @@ type RecipeIngredient = {
   conversion: GramWeights & { defaultUnit: Unit };
 };
 
-/** Who wrote the recipe, for the line that credits them. Absent on a recipe with no owner. */
-type RecipeChef = {
-  name: string;
+/**
+ * Who wrote the recipe, for the line that credits them: a named cook, or one who deleted their
+ * account (`isAnonymous`, and no name). Absent on a recipe with no owner.
+ */
+type RecipeChef = (
+  | { name: string; isAnonymous?: undefined }
+  | { isAnonymous: true; name?: undefined }
+) & {
   /**
    * What their avatar is drawn from, derived from `userId` — which itself still never ships.
+   * Present for an anonymous author too: one deleted cook keeps one face across their recipes.
    *
    * Computed here rather than on the client, although the client could: the home header draws the
    * same face for the signed-in cook, and a second caller on a second release schedule is how the
@@ -182,13 +188,31 @@ const _linesOf = async (
  * `userId` — a seeded one — and a user row carrying no name. The screen decides what an uncredited
  * recipe looks like; inventing "Anonymous" here would put one language into the payload and take
  * that decision away from it.
+ *
+ * A deleted author is the third case, and says so with `isAnonymous` rather than a name, for the same
+ * reason. It cannot be read off the missing name, which a living password account lacks too: only
+ * `usersExtended.deletedAt` says the account was anonymized. That row is read only when there is no
+ * name, so a named author still costs one read.
+ *
+ * An erased account (`purgeUser` with `force`) leaves no user at all: its recipes are archived and
+ * detached. Archived is what tells them from the catalog, which is never archived (archiving is the
+ * owner's), so an archived recipe with no author is anonymous too, drawn with the anonymous face.
  */
-const _chefOf = async (ctx: LoadCtx, userId?: Id<"users">): Promise<RecipeChef | undefined> => {
-  if (!userId) return undefined;
+const _chefOf = async (
+  ctx: LoadCtx,
+  { userId, isArchived }: Pick<Doc<"recipes">, "userId" | "isArchived">,
+): Promise<RecipeChef | undefined> => {
+  if (!userId) return isArchived ? { isAnonymous: true, seed: ANONYMOUS_AVATAR_SEED } : undefined;
 
   const user = await ctx.db.get(userId);
+  if (user?.name) return { name: user.name, seed: avatarSeed(userId) };
 
-  return user?.name ? { name: user.name, seed: avatarSeed(userId) } : undefined;
+  const extended = await ctx.db
+    .query("usersExtended")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+
+  return extended?.deletedAt !== undefined ? { isAnonymous: true, seed: avatarSeed(userId) } : undefined;
 };
 
 /**
@@ -254,7 +278,7 @@ export const loadRecipe = async (
 
   const [{ lines, weighable, lineCount }, chef, cover, plate, flags] = await Promise.all([
     _linesOf(ctx, recipe._id, locale),
-    _chefOf(ctx, recipe.userId),
+    _chefOf(ctx, recipe),
     coverOf(ctx, recipe),
     plateOf(ctx, recipe),
     _flagsOf(ctx, recipe, viewerId),

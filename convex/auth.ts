@@ -3,6 +3,7 @@ import Google from "@auth/core/providers/google";
 import { convexAuth } from "@convex-dev/auth/server";
 
 import type { Id } from "./_generated/dataModel";
+import { clearDeletion } from "./functions/users/clearDeletion";
 import { onUserCreated } from "./functions/users/onUserCreated";
 import type { MutationCtx } from "./procedures";
 import { env } from "./env";
@@ -46,6 +47,16 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const ctx = genericCtx as unknown as MutationCtx;
 
       await onUserCreated(ctx, userId as Id<"users">);
+    },
+    /**
+     * Signing in cancels a pending account deletion. Runs on every sign-in that creates a session,
+     * whatever the provider, and never on a token refresh. See `clearDeletion`.
+     */
+    async beforeSessionCreation(genericCtx, { userId }) {
+      // Same narrowing as `afterUserCreatedOrUpdated` above.
+      const ctx = genericCtx as unknown as MutationCtx;
+
+      await clearDeletion(ctx, userId as Id<"users">);
     },
   },
 });

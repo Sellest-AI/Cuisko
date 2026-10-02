@@ -32,6 +32,10 @@ export const loadUser = async (
   // A user with no extended row is a half-created account, not a valid identity.
   if (!base || !extended) return null;
 
+  // An anonymized account keeps its rows so its content stays attributable, and must never act: a
+  // session that somehow outlived the purge reads as signed out, like any other unknown identity.
+  if (extended.deletedAt !== undefined) return null;
+
   // `base` last: its `_id` / `_creationTime` are the ones callers expect.
   return { ...extended, ...base, _idExtended: extended._id };
 };

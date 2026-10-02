@@ -14,5 +14,18 @@
     "join_error_failed_title": "Impossible de rejoindre le foyer",
     "join_error_failed_body": "Un souci de notre côté. Réessaie dans un instant."
   },
+  "Delete": {
+    "entry": "Supprimer mon compte",
+    "title": "Supprimer ton compte ?",
+    "erased_title": "Ce qui part",
+    "erased": "Tes identifiants, tes conversations avec l’assistant et tes photos.",
+    "kept_title": "Ce qui reste, anonymement",
+    "kept": "Les recettes que tu as écrites, signées Anonyme, et le contenu de tes foyers. Un foyer que tu partages reste aux autres.",
+    "grace_x_date": "Ton compte sera supprimé le {{date}}. Reconnecte-toi avant pour le garder.",
+    "confirm": "Supprimer mon compte",
+    "confirm_armed": "Touche encore pour supprimer",
+    "keep": "Garder mon compte",
+    "error": "Je n’ai pas pu lancer la suppression. Réessaie dans un instant."
+  },
   "sign_out": "Se déconnecter"
 }

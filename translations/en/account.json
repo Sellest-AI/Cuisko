@@ -14,5 +14,18 @@
     "join_error_failed_title": "Could not join the household",
     "join_error_failed_body": "Something went wrong on our side. Try again in a moment."
   },
+  "Delete": {
+    "entry": "Delete my account",
+    "title": "Delete your account?",
+    "erased_title": "What goes",
+    "erased": "Your sign-in details, your conversations with the assistant and your photos.",
+    "kept_title": "What stays, anonymously",
+    "kept": "The recipes you wrote, shown as written by Anonymous, and what your kitchens hold. A kitchen you share stays with the others.",
+    "grace_x_date": "Your account will be deleted on {{date}}. Sign back in before then to keep it.",
+    "confirm": "Delete my account",
+    "confirm_armed": "Tap again to delete",
+    "keep": "Keep my account",
+    "error": "I couldn't start the deletion. Try again in a moment."
+  },
   "sign_out": "Sign out"
 }

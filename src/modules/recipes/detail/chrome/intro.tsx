@@ -13,9 +13,10 @@ import { SCREEN_PADDING } from "../../constants";
 import { CUISKO_HEAD } from "~/lib/mascots";
 
 type Props = {
+  /** Absent: a catalog recipe, credited to Cuisko. Without a name: an author who deleted their account. */
   chef?: {
     avatarSeed: string;
-    name: string;
+    name?: string;
   },
   title: string;
   description: string;
@@ -75,7 +76,7 @@ export const RecipeIntro = ({ chef, title, description, expanded }: Props) => {
             />
           </View>}
           <Text.Base color={theme.colors.neutral.muted}>
-            {t("Chrome.created_by")} <Text.Base color={theme.colors.primary.base}>{chef?.name ?? "Cuisko"}</Text.Base>
+            {t("Chrome.created_by")} <Text.Base color={theme.colors.primary.base}>{chef ? chef.name ?? t("Chrome.anonymous_chef") : "Cuisko"}</Text.Base>
           </Text.Base>
         </View>
         <Text.H4 style={TITLE_STYLE}>

@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 
-import { avatarSeed } from "@shared/avatars";
+import { ANONYMOUS_AVATAR_SEED, avatarSeed } from "@shared/avatars";
 
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -455,6 +455,64 @@ describe("functions/recipes/loadRecipe", () => {
     expect(withChef.chef).toEqual({ name: "Franck", seed: avatarSeed(ownerId) });
     expect(withoutName.chef).toBeUndefined();
     expect(withoutOwner.chef).toBeUndefined();
+  });
+
+  /**
+   * A deleted author's account is a tombstone with no name, like a living password account. Only
+   * `deletedAt` tells them apart, and only the tombstone is credited as anonymous; the payload still
+   * names nobody and ships no `userId`.
+   */
+  test("credits a deleted author as anonymous, with the same face on every recipe", async () => {
+    const tombstoned = await seedRecipe({ chef: undefined });
+    const ownerId = await t.run(async (ctx) => (await ctx.db.get(tombstoned))!.userId!);
+    const another = await t.run(async (ctx) => {
+      const recipe = (await ctx.db.get(tombstoned))!;
+      const { _id, _creationTime, ...fields } = recipe;
+      return ctx.db.insert("recipes", fields);
+    });
+    await t.run((ctx) =>
+      ctx.db.insert("usersExtended", { userId: ownerId, role: "USER", deletedAt: Date.now(), updatedAt: Date.now() }),
+    );
+
+    const [first, second] = await t.run(async (ctx) => [
+      await loadRecipe(ctx, { recipe: tombstoned, locale: "en" }),
+      await loadRecipe(ctx, { recipe: another, locale: "en" }),
+    ]);
+
+    expect(first.chef).toEqual({ isAnonymous: true, seed: avatarSeed(ownerId) });
+    expect(second.chef).toEqual(first.chef);
+    expect(JSON.stringify(first)).not.toContain(ownerId);
+  });
+
+  /**
+   * An erased account's recipes are archived and detached, so they reach here with no author at all.
+   * Archived is what tells them from the catalog: a catalog recipe is never archived (archiving is the
+   * owner's, and the catalog export leaves archived rows out), so only a live ownerless one is Cuisko's.
+   */
+  test("credits an archived recipe with no author as anonymous, and a live one to nobody", async () => {
+    const erased = await seedRecipe({ chef: null });
+    const catalog = await seedRecipe({ chef: null });
+    await t.run((ctx) => ctx.db.patch(erased, { isArchived: true }));
+
+    const [fromErased, fromCatalog] = await t.run(async (ctx) => [
+      await loadRecipe(ctx, { recipe: erased, locale: "en" }),
+      await loadRecipe(ctx, { recipe: catalog, locale: "en" }),
+    ]);
+
+    expect(fromErased.chef).toEqual({ isAnonymous: true, seed: ANONYMOUS_AVATAR_SEED });
+    expect(fromCatalog.chef).toBeUndefined();
+  });
+
+  test("a living account with no name is still uncredited, not anonymous", async () => {
+    const nameless = await seedRecipe({ chef: undefined });
+    const ownerId = await t.run(async (ctx) => (await ctx.db.get(nameless))!.userId!);
+    await t.run((ctx) =>
+      ctx.db.insert("usersExtended", { userId: ownerId, role: "USER", updatedAt: Date.now() }),
+    );
+
+    const recipe = await t.run((ctx) => loadRecipe(ctx, { recipe: nameless, locale: "en" }));
+
+    expect(recipe.chef).toBeUndefined();
   });
 
   /**

@@ -10,7 +10,8 @@
  * answers anyone who names a thread — the component has no idea who our users are — and a
  * `threadId` is a client-supplied string. The first reader written somewhere else, by someone who
  * did not know the chokepoint existed, is a live IDOR on a private conversation, and since threads
- * are never deleted, an id that leaks reads for good. That is the predecessor's "7 of 22" all over
+ * are never deleted while the account lives, an id that leaks reads until its owner deletes their
+ * account. That is the predecessor's "7 of 22" all over
  * again, with a resource the type system cannot see.
  *
  * So the check is structural, not semantic: it cannot tell whether `ownedThread` compares the right
@@ -31,6 +32,8 @@ const ALLOWLIST = new Set([
   "convex/functions/assistant/ownedThread.ts",
   "convex/functions/assistant/threadMessages.ts",
   "convex/functions/assistant/openThread.ts",
+  // Deletes every thread of a user id the server supplies; reads nothing, takes no threadId.
+  "convex/functions/assistant/deleteConversationsOf.ts",
 ]);
 
 /**

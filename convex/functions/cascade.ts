@@ -51,8 +51,10 @@ type CascadeRule = ReferencingRule | OwnedImageRule;
  * dependent table is one line here — and check C4 fails the build if a `v.id()` field exists
  * with no entry, or with no index able to answer the lookup.
  *
- * ⚠️ `users` is owned by @convex-dev/auth, so we never delete it ourselves — but our sibling
- *    rows still have to go when an account is removed, which is why it appears here.
+ * ⚠️ `users` is owned by @convex-dev/auth. An ordinary account deletion does not come through here:
+ *    it anonymizes and keeps the row (`purgeUser`). Only a forced erase of a bot or a spammer deletes
+ *    it, after removing the sign-ins the component hangs off it, and these rules are what take our
+ *    sibling rows with it.
  */
 export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
   users: [

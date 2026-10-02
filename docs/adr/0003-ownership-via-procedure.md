@@ -117,7 +117,8 @@ the union self-checking for our tables is exactly what puts a component's tables
 
 The first such resource is a conversation thread. A `threadId` is a client-supplied string that
 names somebody's private conversation, the component answers whoever names it, and threads are
-never deleted — so a leaked id reads that conversation for good. The comparison has to be written
+never deleted while the account lives — so a leaked id reads that conversation until its owner
+deletes their account. The comparison has to be written
 by hand, and this ADR opens by explaining what happens to hand-written comparisons.
 
 The mitigation that *is* available is to make the hand-written check a chokepoint rather than a

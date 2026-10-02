@@ -7,13 +7,14 @@ import { ButtonPill } from "@ui/button-pill";
 import { LogOut, X } from "@ui/icons";
 import { AnimatePresence, m } from "@ui/motion";
 import { useSafeAreaInsets } from "@ui/safe-area-view";
-import { theme } from "theme";
+import { Text } from "@ui/text";
+import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 import { useAuth } from "~/modules/auth/hooks";
 import { HouseholdList } from "~/modules/households/household-list";
 
-import { AccountIdentity } from "./screen.identity";
-import { AccountQuickAccess } from "./screen.quick-access";
+import { AccountIdentity } from "./identity";
+import { AccountQuickAccess } from "./quick-access";
 import { LinearGradient } from "expo-linear-gradient";
 
 /** Room left on the right, so the page behind stays visible and there is somewhere to tap out. */
@@ -113,6 +114,9 @@ export const AccountScreen = () => {
                 >
                   {t("sign_out")}
                 </ButtonPill>
+                <Pressable onPress={() => go("/delete-account")} hitSlop={theme.spacing[8]} style={styles.delete}>
+                  <Text.Sm style={styles.deleteLabel}>{t("Delete.entry")}</Text.Sm>
+                </Pressable>
               </ScrollView>
               <ButtonIcon
                 elevated
@@ -153,5 +157,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing[20],
     gap: theme.spacing[32],
   },
-  logOut: { marginTop: theme.spacing[12] }
+  logOut: { marginTop: theme.spacing[12] },
+  delete: { alignSelf: "center" },
+  deleteLabel: { color: colors.danger.base },
 });

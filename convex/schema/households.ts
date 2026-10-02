@@ -32,7 +32,9 @@ export const households = defineTable({
   defaultDays: v.optional(v.number()),
   /**
    * What another cook types to join. Unset once the last member leaves: an empty household is kept
-   * as an archive, and nobody holding an old code may walk into its cellar.
+   * as an archive, and nobody holding an old code may walk into its cellar. Unset too, with the name
+   * blanked, when its only member's account is deleted: that archive keeps one membership, to the
+   * anonymized account, so its contents stay attributable to an id (`purgeUser`).
    */
   inviteCode: v.optional(v.string()),
   updatedAt: v.number(), // S5

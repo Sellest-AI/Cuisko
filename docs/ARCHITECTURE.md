@@ -196,9 +196,13 @@ IDORs. The difference is that `admin` is bound to `adminQuery`, and C1 proves th
 ### Identity
 
 ```
-users            ← owned by @convex-dev/auth. We never write it.
+users            ← owned by @convex-dev/auth. We write it in one place: the account-deletion purge.
 usersExtended    ← our profile row, 1:1 via by_user
 ```
+
+A user may be a tombstone: an account deleted by `functions/users/purgeUser.ts` keeps its rows, with
+`usersExtended.deletedAt` set. `loadUser` returns null for it, so no procedure can act as it, and a
+statistic about active cooks filters on `deletedAt` being unset.
 
 `procedures.ts` merges the two into one `AppUser` and injects it as `ctx.user`, which lets us extend
 the user without forking the auth component. Actions have no `ctx.db`, so the action branch hops

@@ -13,7 +13,8 @@ import { imageSizes, imageObjects, images, userImages } from "./schema/media";
 
 /**
  * `authTables` (users, authAccounts, authSessions, …) are owned by @convex-dev/auth.
- * They carry no `updatedAt` (S5) because we never write them — the component does.
+ * They carry no `updatedAt` (S5) because the component writes them, and we write them in one place
+ * only: the account-deletion purge (docs/ARCHITECTURE.md § Identity).
  * Everything of ours goes in a sibling table instead.
  */
 export default defineSchema({

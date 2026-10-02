@@ -347,6 +347,12 @@ and back into the cellar. Grouped by the beat it serves.
   reinstall, since nothing records that it was seen.
 - Create, join (by invite code), leave and switch households, from an account drawer. Each cook has
   a generated avatar and their own preferences.
+- Delete the account, from the same drawer. The sheet says it all before the second tap: what goes
+  (the sign-in, the conversations with Cuisko, the photos), what stays anonymously (the recipes the
+  cook wrote, now "Created by Anonymous", and what their kitchens hold; a kitchen shared with others
+  stays with them), and the date, 30 days out. Confirming signs the cook out, and signing back in
+  before that date keeps the account. Anonymized rather than erased, so the database still knows
+  what was cooked and stocked, without knowing by whom.
 
 ---
 
