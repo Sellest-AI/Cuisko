@@ -5,6 +5,9 @@ import type { convexTest } from "convex-test";
 import { enforceRateLimit } from "../../functions/rateLimits/enforceRateLimit";
 import { type RateLimitKind, RATE_LIMITS } from "../rateLimits";
 
+// The second dot in this file's name is load-bearing: the Convex CLI pushes every `convex/` file whose
+// name has a single dot, and `@convex-dev/rate-limiter/test` uses `import.meta`, which fails the deploy.
+
 type ConvexTest = ReturnType<typeof convexTest>;
 
 /**

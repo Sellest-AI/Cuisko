@@ -5,7 +5,7 @@ import { facetsOf } from "@shared/tags";
 
 import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
-import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiterTest";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");

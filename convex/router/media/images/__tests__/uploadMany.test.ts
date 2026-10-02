@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
-import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiterTest";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiter.fixtures";
 import { RATE_LIMITS } from "../../../../lib/rateLimits";
 import schema from "../../../../schema";
 

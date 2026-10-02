@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
-import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiterTest";
+import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiter.fixtures";
 import schema from "../../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
