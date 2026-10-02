@@ -144,6 +144,13 @@ guilt mechanics, no streaks that punish. A recipe's nutrition card is there beca
 interesting — the moment it starts scoring the user, Cuisko has become an app people delete in
 January.
 
+**The one exception is the week summary** at the top of Home. Looking back over several days, a
+colour scale from danger to success, a figure past 100% of a reference, and a comparison with the
+period before are allowed there, because an overall view of progress is useful and a trend
+does not judge one meal. They stay on that summary. Outside the summary, a single plate is never
+coloured, warned about or measured against a daily need, and a nutrient where more does no harm
+(protein, fiber) stops just past 100% even in the summary.
+
 ### 2. Not a data-entry chore
 
 **If keeping the cellar accurate feels like inventory work, the product has failed.** Every manual

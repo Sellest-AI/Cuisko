@@ -1,15 +1,12 @@
 import { View, StyleSheet, ViewProps } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 import { theme } from "theme";
 import { Text, TextNative } from "../text";
 import { HeartIcon } from "../icons";
+import { ScoreRing } from "../score-ring";
 import { BentoCard } from "./bento";
 
 const RING_SIZE = 64;
 const RING_WIDTH = 6;
-/** Inset by half the stroke, so the ring's outer edge meets the canvas edge instead of being cut. */
-const RING_RADIUS = (RING_SIZE - RING_WIDTH) / 2;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 type Props = {
   /**
@@ -22,8 +19,6 @@ type Props = {
 }
 
 export const ScoreHorizontal = ({ score, label, style }: Props) => {
-  const filled = Math.min(Math.max(score, 0), 100) / 100;
-
   const hasScore = score >= 0;
 
   return (
@@ -34,38 +29,19 @@ export const ScoreHorizontal = ({ score, label, style }: Props) => {
           {hasScore ? score : "??"}
         </TextNative>
       </View>
-      <View style={styles.ring}>
-        <Svg width={RING_SIZE} height={RING_SIZE} style={StyleSheet.absoluteFill}>
-          <Circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
-            fill="none"
-            stroke={hasScore ? theme.colors.neutral.subtle : theme.colors.neutral.elevated}
-            strokeWidth={RING_WIDTH}
-          />
-          {/* Rotated a quarter turn back, so the fill starts at twelve o'clock and runs clockwise. */}
-          {filled > 0 && (
-            <Circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RING_RADIUS}
-              fill="none"
-              stroke={theme.colors.success.subtle}
-              strokeWidth={RING_WIDTH}
-              strokeLinecap="round"
-              strokeDasharray={RING_CIRCUMFERENCE}
-              strokeDashoffset={RING_CIRCUMFERENCE * (1 - filled)}
-              transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-            />
-          )}
-        </Svg>
+      <ScoreRing
+        score={score}
+        size={RING_SIZE}
+        strokeWidth={RING_WIDTH}
+        trackColor={hasScore ? theme.colors.neutral.subtle : theme.colors.neutral.elevated}
+        fillColor={theme.colors.success.subtle}
+      >
         <HeartIcon
           color={hasScore ? theme.colors.success.base : theme.colors.neutral.elevated}
           fill={hasScore ? theme.colors.success.base : theme.colors.neutral.elevated}
           size={20}
         />
-      </View>
+      </ScoreRing>
     </BentoCard>
   )
 }
@@ -89,10 +65,4 @@ const styles = StyleSheet.create({
     color: theme.colors.neutral.base,
     fontFamily: theme.font.h4.fontFamily,
   },
-  ring: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    justifyContent: "center",
-    alignItems: "center",
-  }
 })

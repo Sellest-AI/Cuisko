@@ -48,6 +48,8 @@ export const plannedMeals = defineTable({
 })
   .index("by_meal_plan", ["mealPlanId"])
   .index("by_household_and_date", ["householdId", "date"])
+  // The household's cooked plates, newest first: the week summary reads its history from here.
+  .index("by_household_and_status_and_date", ["householdId", "status", "date"])
   .index("by_recipe", ["recipeId"]);
 
 /**

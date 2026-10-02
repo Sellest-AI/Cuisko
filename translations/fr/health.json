@@ -1,0 +1,16 @@
+{
+  "WeekSummary": {
+    "title": "Ta semaine passée",
+    "progress": "Progrès",
+    "fasting": "Jeûne",
+    "health": "Santé",
+    "hours": "{{count}} h",
+    "Nutrients": {
+      "iron": "Fer",
+      "fat": "Lipides",
+      "protein": "Protéines",
+      "fiber": "Fibres",
+      "carbohydrates": "Glucides"
+    }
+  }
+}

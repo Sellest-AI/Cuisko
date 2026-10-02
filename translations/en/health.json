@@ -1,0 +1,16 @@
+{
+  "WeekSummary": {
+    "title": "Your past week",
+    "progress": "Progress",
+    "fasting": "Fasting",
+    "health": "Health",
+    "hours": "{{count}}h",
+    "Nutrients": {
+      "iron": "Iron",
+      "fat": "Fat",
+      "protein": "Protein",
+      "fiber": "Fibers",
+      "carbohydrates": "Carbs"
+    }
+  }
+}

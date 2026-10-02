@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: theme.spacing[24],
   },
   headingRow: {
     flexDirection: "row",

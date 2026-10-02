@@ -3,6 +3,7 @@ import assistant from "./en/assistant.json";
 import auth from "./en/auth.json";
 import common from "./en/common.json";
 import groceries from "./en/groceries.json";
+import health from "./en/health.json";
 import home from "./en/home.json";
 import navigation from "./en/navigation.json";
 import onboarding from "./en/onboarding.json";
@@ -18,6 +19,7 @@ type TranslationResources = {
   Auth: typeof auth;
   Common: typeof common;
   Groceries: typeof groceries;
+  Health: typeof health;
   Home: typeof home;
   Navigation: typeof navigation;
   Onboarding: typeof onboarding;

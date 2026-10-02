@@ -10,6 +10,7 @@ import enAssistant from "./en/assistant.json";
 import enAuth from "./en/auth.json";
 import enCommon from "./en/common.json";
 import enGroceries from "./en/groceries.json";
+import enHealth from "./en/health.json";
 import enHome from "./en/home.json";
 import enNavigation from "./en/navigation.json";
 import enOnboarding from "./en/onboarding.json";
@@ -22,6 +23,7 @@ import frAssistant from "./fr/assistant.json";
 import frAuth from "./fr/auth.json";
 import frCommon from "./fr/common.json";
 import frGroceries from "./fr/groceries.json";
+import frHealth from "./fr/health.json";
 import frHome from "./fr/home.json";
 import frNavigation from "./fr/navigation.json";
 import frOnboarding from "./fr/onboarding.json";
@@ -58,6 +60,7 @@ i18n.use(initReactI18next).init({
         Auth: enAuth,
         Common: enCommon,
         Groceries: enGroceries,
+        Health: enHealth,
         Home: enHome,
         Navigation: enNavigation,
         Onboarding: enOnboarding,
@@ -74,6 +77,7 @@ i18n.use(initReactI18next).init({
         Auth: frAuth,
         Common: frCommon,
         Groceries: frGroceries,
+        Health: frHealth,
         Home: frHome,
         Navigation: frNavigation,
         Onboarding: frOnboarding,

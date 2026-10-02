@@ -68,6 +68,7 @@ import type * as functions_cellars_removeFromCellar from "../functions/cellars/r
 import type * as functions_cellars_removeFromGroceryList from "../functions/cellars/removeFromGroceryList.js";
 import type * as functions_cellars_removeFromRecentlyUsed from "../functions/cellars/removeFromRecentlyUsed.js";
 import type * as functions_config_setVersions from "../functions/config/setVersions.js";
+import type * as functions_health_weekSummary from "../functions/health/weekSummary.js";
 import type * as functions_households_createHousehold from "../functions/households/createHousehold.js";
 import type * as functions_households_getForUser from "../functions/households/getForUser.js";
 import type * as functions_households_inviteCode from "../functions/households/inviteCode.js";
@@ -215,6 +216,7 @@ import type * as router_cellars_getRecentlyUsed from "../router/cellars/getRecen
 import type * as router_cellars_removeFromCellar from "../router/cellars/removeFromCellar.js";
 import type * as router_cellars_removeFromGroceryList from "../router/cellars/removeFromGroceryList.js";
 import type * as router_config_setVersions from "../router/config/setVersions.js";
+import type * as router_health_getWeekSummary from "../router/health/getWeekSummary.js";
 import type * as router_households_create from "../router/households/create.js";
 import type * as router_households_getMine from "../router/households/getMine.js";
 import type * as router_households_join from "../router/households/join.js";
@@ -362,6 +364,7 @@ declare const fullApi: ApiFromModules<{
   "functions/cellars/removeFromGroceryList": typeof functions_cellars_removeFromGroceryList;
   "functions/cellars/removeFromRecentlyUsed": typeof functions_cellars_removeFromRecentlyUsed;
   "functions/config/setVersions": typeof functions_config_setVersions;
+  "functions/health/weekSummary": typeof functions_health_weekSummary;
   "functions/households/createHousehold": typeof functions_households_createHousehold;
   "functions/households/getForUser": typeof functions_households_getForUser;
   "functions/households/inviteCode": typeof functions_households_inviteCode;
@@ -509,6 +512,7 @@ declare const fullApi: ApiFromModules<{
   "router/cellars/removeFromCellar": typeof router_cellars_removeFromCellar;
   "router/cellars/removeFromGroceryList": typeof router_cellars_removeFromGroceryList;
   "router/config/setVersions": typeof router_config_setVersions;
+  "router/health/getWeekSummary": typeof router_health_getWeekSummary;
   "router/households/create": typeof router_households_create;
   "router/households/getMine": typeof router_households_getMine;
   "router/households/join": typeof router_households_join;

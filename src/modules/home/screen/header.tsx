@@ -1,22 +1,21 @@
-import { StyleSheet, View } from "react-native";
+import type { ReactNode } from "react";
+import { StyleSheet, View, ViewStyle } from "react-native";
 
 import { ANONYMOUS_AVATAR_SEED } from "@shared/avatars";
 import { Avatar } from "@ui/avatar";
-import { ButtonIcon } from "@ui/button-icon";
-import { Bell } from "@ui/icons";
 import { theme } from "theme";
 import { router } from "expo-router";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { useAuth } from "~/modules/auth/hooks";
 import { HouseholdSelect } from "~/modules/households/household-select";
 
-/** Who you are, whose kitchen you are in, and what is waiting for you. */
-export const HomeHeader = () => {
+/** Who you are, whose kitchen you are in, and the action the page puts on the right. */
+export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: ViewStyle }) => {
   const { user, isAuthenticated } = useAuth();
 
   return (
     <SafeAreaView
-      style={styles.container}
+      style={[styles.container, style]}
       edges={{ top: "additive", bottom: "off" }}
     >
       <View style={styles.identity}>
@@ -33,13 +32,7 @@ export const HomeHeader = () => {
         />
         <HouseholdSelect />
       </View>
-      <ButtonIcon
-        onPress={() => console.log("bell pressed")}
-        variant="neutral-subtle"
-        size="md"
-      >
-        {Bell}
-      </ButtonIcon>
+      {action}
     </SafeAreaView>
   );
 };
