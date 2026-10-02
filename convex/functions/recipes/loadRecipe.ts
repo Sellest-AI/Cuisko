@@ -12,7 +12,7 @@ import type { RecipeNutrition } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
 import { coverOf, plateOf, type RecipeCard, toRecipeCard } from "./recipeCard";
-import { loadRecipeLines, nutritionOfLines, type WeighableLine } from "./recipeNutrition";
+import { loadRecipeLines, nutritionOfLines, withCuiScore, type WeighableLine } from "./recipeNutrition";
 
 type LoadCtx = Pick<QueryCtx, "db">;
 
@@ -297,7 +297,7 @@ export const loadRecipe = async (
     tags: recipe.tags,
     timings: recipe.timings,
     ingredients: lines,
-    nutrition: nutritionOfLines(weighable, lineCount, recipe.servings),
+    nutrition: withCuiScore(nutritionOfLines(weighable, lineCount, recipe.servings), recipe._id),
     chef,
     isArchived: recipe.isArchived,
   };

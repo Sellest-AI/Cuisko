@@ -9,7 +9,6 @@ import { NutritionRow } from "../../_components/nutrition-row";
 import { RecipeScreen } from "../../_components/recipe-screen";
 import { columnWidth, SCREEN_PADDING } from "../../constants";
 import { useRecipe } from "../../_hooks/useRecipe";
-import { mealScore } from "../../_model/detail";
 import { EQUIPMENT_EMOJI, EQUIPMENT_IMAGE } from "~/lib/vocabulary";
 import { Difficulty } from "./difficulty";
 import { GroceryRow } from "./grocery-row";
@@ -76,8 +75,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
         />
         <ScoreHorizontal
           label={t("Overview.meal_score")}
-          score={recipe.nutrition?.nutriScore?.grade ?
-            mealScore(recipe.nutrition?.nutriScore?.grade, recipe.id) : -1}
+          score={recipe.nutrition?.cuiScore ?? -1}
           style={styles.score}
         />
       </View>

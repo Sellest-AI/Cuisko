@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 
 import {
   computeNutriScore,
+  cuiScoreOf,
+  NUTRI_SCORE_GRADES,
   roundFacts,
   scaleNutrition,
   totalsOf,
@@ -214,5 +216,16 @@ describe("roundFacts", () => {
   /** An unmeasured fact is not a zero, and rounding must not invent one. */
   test("leaves an absent fact absent", () => {
     expect(roundFacts({ calories: 1, protein: 1, fat: 1, carbohydrates: 1 })).not.toHaveProperty("fiber");
+  });
+});
+
+describe("cuiScoreOf", () => {
+  test("maps each Nutri-Score grade to its step out of 100 when no seed is given", () => {
+    expect(NUTRI_SCORE_GRADES.map((grade) => cuiScoreOf(grade))).toEqual([92, 80, 60, 40, 20]);
+  });
+
+  test("adds the same 0-3 offset to every grade for a given seed", () => {
+    // "carbonara" hashes to an offset of 1.
+    expect(NUTRI_SCORE_GRADES.map((grade) => cuiScoreOf(grade, "carbonara"))).toEqual([93, 81, 61, 41, 21]);
   });
 });

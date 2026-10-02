@@ -2,7 +2,7 @@ import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Category } from "@shared/categories";
 import { edibleGrams, type RecipeUnit } from "@shared/ingredients";
-import { type RecipeNutrition, totalsOf } from "@shared/nutrition";
+import { cuiScoreOf, type RecipeNutrition, totalsOf } from "@shared/nutrition";
 
 type NutritionCtx = Pick<QueryCtx, "db">;
 
@@ -97,3 +97,14 @@ export const nutritionOfLines = (
     servings,
   );
 };
+
+/**
+ * The recipe's nutrition with its Cui-Score beside the grade. Separate from `nutritionOfLines`
+ * because the score is seeded with the recipe id, which a list of lines does not carry; every read
+ * that ships a recipe's nutrition to a screen goes through here, so the figure is computed once.
+ */
+export const withCuiScore = (
+  nutrition: RecipeNutrition | undefined,
+  recipeId: Id<"recipes">,
+): RecipeNutrition | undefined =>
+  nutrition?.nutriScore ? { ...nutrition, cuiScore: cuiScoreOf(nutrition.nutriScore.grade, recipeId) } : nutrition;

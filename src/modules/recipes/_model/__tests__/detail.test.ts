@@ -1,8 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { NUTRI_SCORE_GRADES } from "@shared/nutrition";
-
-import { flattenSteps, groupByCategory, mealScore, scaleTo, type RecipeLine } from "../detail";
+import { flattenSteps, groupByCategory, scaleTo, type RecipeLine } from "../detail";
 
 const line = (name: string, category: RecipeLine["category"], quantity: number): RecipeLine => ({
   name,
@@ -151,16 +149,5 @@ describe("flattenSteps", () => {
 
   test("flattens a method with no groups to nothing", () => {
     expect(flattenSteps([])).toEqual([]);
-  });
-});
-
-describe("mealScore", () => {
-  test("maps each Nutri-Score grade to its step out of 100 when no seed is given", () => {
-    expect(NUTRI_SCORE_GRADES.map((grade) => mealScore(grade))).toEqual([92, 80, 60, 40, 20]);
-  });
-
-  test("adds the same 0-3 offset to every grade for a given seed", () => {
-    // "carbonara" hashes to an offset of 1.
-    expect(NUTRI_SCORE_GRADES.map((grade) => mealScore(grade, "carbonara"))).toEqual([93, 81, 61, 41, 21]);
   });
 });

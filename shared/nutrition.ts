@@ -194,6 +194,11 @@ export type RecipeNutrition = {
   perServing: IngredientFacts;
   /** Absent unless every line carried all four of the optional facts. */
   nutriScore?: NutriScore;
+  /**
+   * The grade as the 0-100 the app shows, from `cuiScoreOf`. Set by the caller that knows the
+   * recipe, since its seed is the recipe id and `totalsOf` only sees lines. Absent with `nutriScore`.
+   */
+  cuiScore?: number;
 };
 
 type WeighedLine = RecipeLine & { grams: number };
@@ -348,6 +353,31 @@ export const scaleNutrition = (
     total: scaleFacts(nutrition.total, factor),
   };
 };
+
+const CUI_SCORE_BY_GRADE: Record<NutriScoreGrade, number> = { A: 92, B: 80, C: 60, D: 40, E: 20 };
+
+/**
+ * A Nutri-Score grade as the 0-100 Cui-Score: the figure the recipe screen's ring fills with, and the
+ * one the week summary averages.
+ *
+ * By grade, not by points, so the score never disagrees with the letter. `seed` (the recipe id)
+ * nudges it up by 0 to 3, so two dishes of the same grade do not show the identical number. The
+ * nudge is a hash, not a random draw: a recipe always shows the same score, and it never reaches
+ * the next grade's step.
+ *
+ * Here rather than on the client because the server ships it beside the grade (ADR 0015): the week
+ * summary averages it, and an average computed from a different copy of this table would disagree
+ * with the scores drawn under it.
+ */
+export const cuiScoreOf = (grade: NutriScoreGrade, seed?: number | string): number => {
+  if (seed === undefined) return CUI_SCORE_BY_GRADE[grade];
+
+  return Math.min(CUI_SCORE_BY_GRADE[grade] + _seedOffset(`${seed}`), 100);
+};
+
+/** A stable 0-3 from a string: a 32-bit string hash (`h * 31 + c`), folded onto the offset's range. */
+const _seedOffset = (seed: string) =>
+  Math.abs([...seed].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) | 0, 0)) % 4;
 
 const _toTenth = (value: number) => Math.round(value * 10) / 10;
 
