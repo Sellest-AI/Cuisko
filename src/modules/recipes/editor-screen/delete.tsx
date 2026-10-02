@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
 
 import { Button } from "@ui/button";
+import { useArmedPress } from "@ui/hooks/useArmedPress";
 import { Trash2 } from "@ui/icons";
 import { Text } from "@ui/text";
 import { colors, theme } from "theme";
@@ -16,39 +16,17 @@ type Props = {
   style?: ViewStyle;
 };
 
-/** How long the second tap is waited for before the button forgets the first. */
-const RESET_WINDOW_MS = 5000;
-
-/** How long after the arming tap a second one is ignored, so a double tap cannot delete. */
-const ARMING_DELAY_MS = 800;
-
 /**
  * Deleting the recipe, at the very end of the editor.
  *
- * Two taps rather than a dialog: `@ui` has no confirm sheet, and React Native's `Alert` does
- * nothing on web. The first tap arms the button and changes its words, the second deletes. Left
- * alone, it disarms, so a stray tap weeks of scrolling later cannot be the second one. A second
- * tap within `ARMING_DELAY_MS` of the first is dropped by the button, so a double tap only arms.
+ * Two taps rather than a dialog, which is what `useArmedPress` is: the first tap arms the button
+ * and changes its words, the second deletes, and left alone it disarms.
  *
  * At the end of the page and not in the floating actions, so it is never one tap from "save".
  */
 export const EditorDelete = ({ onDelete, isDeleting = false, failed = false, style }: Props) => {
   const t = useTranslations("Recipe");
-  const [isArmed, setIsArmed] = useState(false);
-
-  useEffect(() => {
-    if (!isArmed) return;
-
-    const timer = setTimeout(() => setIsArmed(false), RESET_WINDOW_MS);
-    return () => clearTimeout(timer);
-  }, [isArmed]);
-
-  const onPress = () => {
-    if (!isArmed) return setIsArmed(true);
-
-    setIsArmed(false);
-    onDelete();
-  };
+  const { isArmed, onPress, doubleTapDelay } = useArmedPress(onDelete);
 
   return (
     <View style={[styles.container, style]}>
@@ -58,7 +36,7 @@ export const EditorDelete = ({ onDelete, isDeleting = false, failed = false, sty
         onPress={onPress}
         isLoading={isDeleting}
         disabled={isDeleting}
-        doubleTapDelay={ARMING_DELAY_MS}
+        doubleTapDelay={doubleTapDelay}
         style={styles.button}
       >
         {t(isArmed ? "Editor.delete_confirm" : "Editor.delete")}
