@@ -1,6 +1,7 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 
+import { keepCookingFatUses } from "./keepCookingFatUses";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 type Args = {
@@ -28,7 +29,7 @@ const _PASSES: ((row: Row, link: RecipeLink) => boolean)[] = [
  * link to stand for.
  *
  * Each link is handed an unused row on the same ingredient, patched only where its position,
- * quantity or unit moved; a link with no such row is inserted, and a row no link took is deleted.
+ * quantity, unit or fat use moved; a link with no such row is inserted, and a row no link took is deleted.
  * So a merge that folds two cumin lines into one deletes one row and patches the other, and the
  * lentils below them keep their id with only their position changed.
  *
@@ -42,7 +43,8 @@ const _PASSES: ((row: Row, link: RecipeLink) => boolean)[] = [
  * ingredient alone let an edit that reordered them hand the `4 pcs` row to the teaspoon, and an
  * admin repointing that row by id would move the seasoning instead of the peppers.
  */
-export const syncRecipeLinks = async (ctx: MutationCtx, { recipeId, rows, links }: Args) => {
+export const syncRecipeLinks = async (ctx: MutationCtx, { recipeId, rows, links: tagged }: Args) => {
+  const links = await keepCookingFatUses(ctx, tagged);
   const unused = new Set(rows);
   const taken = new Map<RecipeLink, Row>();
 
@@ -62,10 +64,20 @@ export const syncRecipeLinks = async (ctx: MutationCtx, { recipeId, rows, links 
     const row = taken.get(link);
     if (!row) return ctx.db.insert("recipeIngredients", { recipeId, ...link, updatedAt: Date.now() });
 
-    const moved = row.position !== link.position || row.quantity !== link.quantity || row.unit !== link.unit;
+    const moved = row.position !== link.position
+      || row.quantity !== link.quantity
+      || row.unit !== link.unit
+      || row.fatUse !== link.fatUse;
 
+    // `fatUse: undefined` in a patch removes the field, which is what an untagged link means.
     return moved
-      ? ctx.db.patch(row._id, { position: link.position, quantity: link.quantity, unit: link.unit, updatedAt: Date.now() })
+      ? ctx.db.patch(row._id, {
+        position: link.position,
+        quantity: link.quantity,
+        unit: link.unit,
+        fatUse: link.fatUse,
+        updatedAt: Date.now(),
+      })
       : Promise.resolve();
   });
 

@@ -47,7 +47,13 @@ const _mergeStored = async (
   recipeId: Id<"recipes">,
   stored: Doc<"recipeIngredients">[],
 ): Promise<{ links: RecipeLink[]; merged: boolean }> => {
-  const links = stored.map(({ ingredientId, position, quantity, unit }) => ({ ingredientId, position, quantity, unit }));
+  const links = stored.map(({ ingredientId, position, quantity, unit, fatUse }) => ({
+    ingredientId,
+    position,
+    quantity,
+    unit,
+    ...(fatUse && { fatUse }),
+  }));
   const merged = await mergeDuplicateLinks(ctx, { links });
 
   if (merged.links.length === stored.length) return { links, merged: false };

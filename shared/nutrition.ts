@@ -165,7 +165,7 @@ export type IngredientFacts = {
   iron?: number;
 };
 
-/** One line of a recipe, already weighed by `edibleGrams` and already looked up in the catalog. */
+/** One line of a recipe, already weighed by `eatenGrams` and already looked up in the catalog. */
 export type RecipeLine = {
   facts: IngredientFacts;
   /**

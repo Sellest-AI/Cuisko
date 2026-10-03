@@ -2,7 +2,7 @@ import { CUISINES } from "@shared/cuisines";
 import { DIFFICULTIES } from "@shared/recipes";
 import { EQUIPMENTS } from "@shared/equipments";
 import { AUTHORED_TAGS } from "@shared/tags";
-import { RECIPE_UNITS } from "@shared/ingredients";
+import { FAT_USES, RECIPE_UNITS } from "@shared/ingredients";
 import { LANGUAGE_NAMES, type Locale } from "@shared/translations";
 
 /**
@@ -192,7 +192,8 @@ not inventing them.
   the sign that tells them it is done, a shortcut that is safe. Most steps need none, and an empty
   list is the normal answer. A hint on every step is noise that teaches the cook to stop reading
   them. A hint never restates its step.
-- ingredients: one entry per ingredient, each with name, quantity and unit.
+- ingredients: one entry per ingredient, each with name, quantity and unit, and fatUse on a fat
+  some of which is left in the pan.
   - name: the ingredient alone, singular, lowercase, with no quantity, no brand and no preparation
     ("onion", not "3 onions, thinly sliced"; "japanese mayonnaise", not "Kewpie"). Singular even
     when the recipe uses twelve of them: "corn tortilla", never "tortillas"; "spring onion", never
@@ -213,6 +214,15 @@ not inventing them.
     harder to read. When the cook wrote a measure this list has no word for — a cup, a bunch, a
     tin — convert it to the nearest one a cook WOULD write (a cup of vinegar is 25 cl, a bunch of
     coriander is 30 g), and never to "pcs", which means a countable thing and nothing else.
+  - fatUse: one of ${_list(FAT_USES)}, and only on an oil, butter or other fat that food is cooked
+    IN when part of it never reaches the plate. Nutrition counts every gram of a line as eaten, and
+    7 tablespoons of oil for a stir-fry whose pan is wiped between batches are not 7 tablespoons
+    eaten. "fried": food is fried in it and lifted out, or the pan is wiped or drained after.
+    "deepFried": food is submerged in it. Leave it out whenever the fat ends up on the plate — a
+    dressing, a sauce, a marinade, a dough, a drizzle — and on a sear whose pan goes on into the
+    dish: pork browned in oil and then tipped, juices and all, into the slow cooker is eaten whole.
+    An oil used both ways is one line (see below), so tag it by where most of it went. Never on
+    anything that is not a fat: the food fried is the onion, the fat it fried in is the oil.
   - Never list the same ingredient twice — one entry, quantities added together. Two of the cook's
     words for one thing are one ingredient: "brown sugar" in the marinade and "sugar" in the
     pickles is one line, under the more specific name. When the two amounts are in different
@@ -248,4 +258,6 @@ each is fixed in the answer, not noted.
 - Work the cook did "while it cooks" comes after the step that starts the cooking.
 - No appliance the cook said they can do without is in equipments.
 - Every word left in an ingredient name changes what the cook buys.
+- A fatUse sits only on a fat, and only where some of it is left behind — never on a sear whose
+  pan goes into the dish.
 `.trim();

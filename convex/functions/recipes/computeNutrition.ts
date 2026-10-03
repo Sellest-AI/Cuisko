@@ -1,7 +1,7 @@
 import { resolvei18n } from "@convex/lib/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
-import { edibleGrams, type RecipeUnit, roundQuantity, toGrams, weighableUnits } from "@shared/ingredients";
+import { eatenGrams, type RecipeUnit, roundQuantity, toGrams, weighableUnits } from "@shared/ingredients";
 import {
   type IngredientFacts,
   type NutriScoreGrade,
@@ -86,7 +86,7 @@ const UNAVAILABLE =
  *
  * The total is `nutritionOfLines`' and nothing else's, so a recipe's figure here is the recipe
  * screen's figure at the same servings. The per-line shares are the only arithmetic of this file's
- * own, and they are the same `edibleGrams` × per-100 g that total is the sum of.
+ * own, and they are the same `eatenGrams` × per-100 g that total is the sum of.
  *
  * Every `grams` here is the weight EATEN, the dish's and each line's, so every figure in one answer
  * obeys grams × per-100 g = total and nothing the model copies contradicts another field. What the
@@ -110,9 +110,10 @@ const _figuresOf = (
     perServing: roundFacts(scaled.perServing),
     per100g: roundFacts(scaleFacts(totals.total, 100 / totals.grams)),
     ...(totals.nutriScore && { nutriScore: totals.nutriScore.grade }),
-    lines: lines.map(({ ingredient, quantity, unit }) => {
-      // Defined: `totalsOf` has just refused any line `edibleGrams` could not weigh.
-      const grams = (edibleGrams(quantity, unit, ingredient) ?? 0) * factor;
+    lines: lines.map(({ ingredient, quantity, unit, fatUse }) => {
+      // Defined: `totalsOf` has just refused any line `eatenGrams` could not weigh. The same grams
+      // the total counted, so the lines Cuisko quotes add up to the total it quotes.
+      const grams = (eatenGrams(quantity, unit, ingredient, fatUse) ?? 0) * factor;
       const share = roundFacts(scaleFacts(ingredient.nutrition, grams / 100));
 
       return {

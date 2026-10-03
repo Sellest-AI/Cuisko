@@ -87,6 +87,32 @@ describe("toSanitizedRecipe", () => {
     ]);
   });
 
+  describe("an ingredient's fatUse", () => {
+    const fatUseOf = (fatUse: unknown) =>
+      toSanitizedRecipe(_answer({ ingredients: [{ name: "vegetable oil", quantity: 7, unit: "tbsp", fatUse }] }))
+        .ingredients[0]!;
+
+    it("keeps a preset", () => {
+      expect(fatUseOf("fried").fatUse).toBe("fried");
+      expect(fatUseOf("deepFried").fatUse).toBe("deepFried");
+    });
+
+    it.each([undefined, null, "none"])("reads %s as no fat use", (fatUse) => {
+      expect(fatUseOf(fatUse)).not.toHaveProperty("fatUse");
+    });
+
+    /**
+     * Dropped rather than thrown: an untagged oil counts as all eaten, which is today's figure, and
+     * refusing the whole recipe over one tag would cost the cook the import.
+     */
+    it("drops a value outside the presets, and keeps the line", () => {
+      const line = fatUseOf("sauteed");
+
+      expect(line).not.toHaveProperty("fatUse");
+      expect(line).toMatchObject({ name: "vegetable oil", quantity: 7, unit: "tbsp" });
+    });
+  });
+
   it("still rejects a wrong answer, as opposed to a badly worded one", () => {
     expect(() => toSanitizedRecipe(_answer({ cuisine: "martian" }))).toThrow();
     expect(() => toSanitizedRecipe(_answer({ ingredients: [{ name: "salt", unit: "g" }] }))).toThrow();

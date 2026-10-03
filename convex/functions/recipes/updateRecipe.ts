@@ -65,6 +65,7 @@ export const updateRecipe = async (
     position: row.position,
     quantity: row.quantity,
     unit: row.unit,
+    ...(row.fatUse && { fatUse: row.fatUse }),
   }));
 
   /**

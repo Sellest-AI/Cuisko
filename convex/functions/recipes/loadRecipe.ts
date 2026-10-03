@@ -7,7 +7,7 @@ import type { Locale } from "@convex/schema/i18n";
 import { getImage } from "@convex/functions/media/getImage";
 import { ANONYMOUS_AVATAR_SEED, avatarSeed } from "@shared/avatars";
 import { type InstructionGroup, parseInstructions } from "@shared/recipes";
-import type { GramWeights, RecipeUnit, Unit } from "@shared/ingredients";
+import type { FatUse, GramWeights, RecipeUnit, Unit } from "@shared/ingredients";
 import type { RecipeNutrition } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
@@ -21,6 +21,12 @@ type RecipeIngredient = {
   name: string;
   quantity: number;
   unit: RecipeUnit;
+  /**
+   * Shipped so that an edit which never reaches the model (`regenerateRecipe`) hands the line back
+   * still tagged: the edit path rebuilds its lines from this payload, and a missing tag there would
+   * be saved as "all of the oil is eaten". The screen does not read it.
+   */
+  fatUse?: FatUse;
   /** Stands in for the produce photo when `imageUrl` is absent, which is most of the catalog today. */
   emoji: string;
   /**
@@ -157,7 +163,7 @@ const _linesOf = async (
   const { lines: weighable, lineCount } = await loadRecipeLines(ctx, recipeId);
 
   const lines = await Promise.all(
-    weighable.map(async ({ ingredient, quantity, unit }) => {
+    weighable.map(async ({ ingredient, quantity, unit, fatUse }) => {
       /** Skipped entirely for a row with no photo, which is most of the catalog today. */
       const image = ingredient.imageId ? await getImage(ctx, ingredient.imageId) : null;
 
@@ -165,6 +171,7 @@ const _linesOf = async (
         name: resolvei18n(ingredient.name, locale),
         quantity,
         unit,
+        ...(fatUse && { fatUse }),
         emoji: ingredient.emoji,
         imageUrl: image?.sizes.thumbnail.url,
         category: ingredient.category,

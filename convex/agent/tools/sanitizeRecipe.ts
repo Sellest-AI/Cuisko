@@ -13,7 +13,7 @@ import {
 import { EQUIPMENTS, type Equipment } from "@shared/equipments";
 import { SUPPORTED_LOCALES } from "@shared/translations";
 import { AUTHORED_TAGS, type AuthoredTag } from "@shared/tags";
-import { RECIPE_UNITS, type RecipeUnit } from "@shared/ingredients";
+import { FAT_USES, type FatUse, RECIPE_UNITS, type RecipeUnit } from "@shared/ingredients";
 import { retryPromise } from "@shared/helpers";
 
 import {
@@ -50,7 +50,8 @@ export type SanitizedRecipe = {
   equipments: Equipment[];
   timings: { preparation?: number; cooking?: number; resting?: number };
   instructions: InstructionGroup[];
-  ingredients: { name: string; quantity: number; unit: RecipeUnit }[];
+  /** `fatUse` only on a cooking fat partly left in the pan or the fryer: see `FAT_USE_SHARE`. */
+  ingredients: { name: string; quantity: number; unit: RecipeUnit; fatUse?: FatUse }[];
 };
 
 /**
@@ -177,6 +178,15 @@ export const modelRecipeSchema = z.object({
         "and one millilitre of each ingredient weigh, so a spoonful reaches grams as exactly as " +
         "a gram does. Reaching for a weight to be safe makes the line harder to read and no " +
         "more exact.",
+      ),
+      // A preset, never a number: the share each one stands for is `FAT_USE_SHARE`, tuned in code.
+      // Absentable, because "not a frying fat" is the answer for nearly every line.
+      fatUse: z.enum(FAT_USES).nullable().optional().describe(
+        `Only on a fat food is cooked IN, and only when part of it is left behind. "fried": food ` +
+        `is fried in it and lifted out, or the pan is wiped or drained after. "deepFried": food is ` +
+        "submerged in it. Left out whenever the fat ends up on the plate — a dressing, a sauce, a " +
+        "marinade, a dough, a drizzle, and a sear whose pan goes into the dish. Left out on " +
+        "anything that is not a fat.",
       ),
     }),
   ).describe(

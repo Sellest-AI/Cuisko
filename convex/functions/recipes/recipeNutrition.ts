@@ -1,7 +1,7 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { QueryCtx } from "@convex/procedures";
 import type { Category } from "@shared/categories";
-import { edibleGrams, type RecipeUnit } from "@shared/ingredients";
+import { eatenGrams, type FatUse, type RecipeUnit } from "@shared/ingredients";
 import { cuiScoreOf, type RecipeNutrition, totalsOf } from "@shared/nutrition";
 
 type NutritionCtx = Pick<QueryCtx, "db">;
@@ -13,11 +13,13 @@ type NutritionCtx = Pick<QueryCtx, "db">;
  * computes it on its own.
  */
 
-/** A quantity of a catalog row: what `edibleGrams` weighs and `totalsOf` counts. */
+/** A quantity of a catalog row: what `eatenGrams` weighs and `totalsOf` counts. */
 export type WeighableLine = {
   ingredient: Doc<"ingredients">;
   quantity: number;
   unit: RecipeUnit;
+  /** How the line's fat is cooked with, when some of it is left behind. See `eatenGrams`. */
+  fatUse?: FatUse;
 };
 
 /**
@@ -49,10 +51,10 @@ export const loadRecipeLines = async (
   const resolved = await Promise.all(
     [...rows]
       .sort((a, b) => a.position - b.position)
-      .map(async ({ ingredientId, quantity, unit }) => {
+      .map(async ({ ingredientId, quantity, unit, fatUse }) => {
         const ingredient = await ctx.db.get(ingredientId);
 
-        return ingredient ? { ingredient, quantity, unit } : null;
+        return ingredient ? { ingredient, quantity, unit, ...(fatUse && { fatUse }) } : null;
       }),
   );
 
@@ -77,9 +79,10 @@ const PRODUCE_CATEGORIES: readonly Category[] = ["VEGETABLE", "FRUIT", "LEGUME",
  * inside `totalsOf` — a line that cannot reach grams. A dish quietly missing its olive oil reads
  * as a health food, and nothing downstream could tell a partial total from a real one.
  *
- * Each line is counted on the share of it that is eaten (`edibleGrams`), never on what it weighs as
- * bought: a litre of mussels is 750 g at the fishmonger and 300 g on the fork. So the `grams` this
- * returns, and every per-100 g figure read against it, are the weight of what is eaten.
+ * Each line is counted on the share of it that is eaten (`eatenGrams`), never on what it weighs as
+ * bought: a litre of mussels is 750 g at the fishmonger and 300 g on the fork, and a litre of
+ * frying oil is mostly left in the fryer. So the `grams` this returns, and every per-100 g figure
+ * read against it, are the weight of what is eaten.
  */
 export const nutritionOfLines = (
   lines: WeighableLine[],
@@ -89,9 +92,9 @@ export const nutritionOfLines = (
   if (lineCount === 0 || lines.length !== lineCount) return undefined;
 
   return totalsOf(
-    lines.map(({ ingredient, quantity, unit }) => ({
+    lines.map(({ ingredient, quantity, unit, fatUse }) => ({
       facts: ingredient.nutrition,
-      grams: edibleGrams(quantity, unit, ingredient),
+      grams: eatenGrams(quantity, unit, ingredient, fatUse),
       produce: PRODUCE_CATEGORIES.includes(ingredient.category),
     })),
     servings,

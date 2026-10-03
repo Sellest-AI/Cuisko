@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { Unit } from "@shared/ingredients";
+import type { FatUse, Unit } from "@shared/ingredients";
 
 import schema from "../../../schema";
 import type { RecipeLink } from "../resolveRecipeIngredients";
@@ -15,8 +15,9 @@ const modules = import.meta.glob("/convex/**/*.*s");
 let t: ReturnType<typeof convexTest>;
 let userId: string;
 let onionId: string;
+let oilId: string;
 
-/** One catalog row, which every fixture recipe below links a line to. */
+/** Two catalog rows: the onion every fixture recipe links a line to, and a frying oil. */
 const seed = async () => {
   const ids = await t.run(async (ctx) => {
     const user = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
@@ -32,12 +33,25 @@ const seed = async () => {
       nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
       updatedAt: Date.now(),
     });
+    const oil = await ctx.db.insert("ingredients", {
+      name: { values: { fr: "huile", en: "oil" }, meta: {} },
+      search: { fr: "huile", en: "oil" },
+      category: "OIL",
+      emoji: "🫒",
+      diet: "vegan",
+      allergens: [],
+      defaultUnit: "ml",
+      defaultQuantity: 500,
+      nutrition: { calories: 884, protein: 0, fat: 100, carbohydrates: 0 },
+      updatedAt: Date.now(),
+    });
 
-    return { user, onion };
+    return { user, onion, oil };
   });
 
   userId = ids.user;
   onionId = ids.onion;
+  oilId = ids.oil;
   return ids;
 };
 
@@ -76,7 +90,7 @@ const seedRecipe = (servings = 4) =>
 const seedLink = (
   recipeId: Id<"recipes">,
   ingredientId: Id<"ingredients">,
-  overrides: Partial<{ position: number; quantity: number; unit: Unit }> = {},
+  overrides: Partial<{ position: number; quantity: number; unit: Unit; fatUse: FatUse }> = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("recipeIngredients", {
@@ -85,6 +99,7 @@ const seedLink = (
       position: overrides.position ?? 0,
       quantity: overrides.quantity ?? 1,
       unit: overrides.unit ?? "pcs",
+      ...(overrides.fatUse && { fatUse: overrides.fatUse }),
       updatedAt: Date.now(),
     }),
   );
@@ -99,20 +114,22 @@ const links = (recipeId: Id<"recipes">) =>
  * The links the ACTION would have resolved, stated outright.
  *
  * `updateRecipe` no longer decides which lines link — `resolveRecipeIngredients` does that in
- * `updateOne`, which resolves every line and hands the answer down. A line naming the one fixture
- * row links; anything else stands for a name that reached this writer unlinked.
+ * `updateOne`, which resolves every line and hands the answer down. A line naming one of the two
+ * fixture rows links; anything else stands for a name that reached this writer unlinked.
  */
 const linksOf = (ingredients: SanitizedRecipe["ingredients"]): RecipeLink[] =>
-  ingredients.flatMap((line, position) =>
-    line.name === "oignon"
-      ? [{
-        ingredientId: onionId as Id<"ingredients">,
-        position,
-        quantity: line.quantity,
-        unit: line.unit,
-      }]
-      : [],
-  );
+  ingredients.flatMap((line, position) => {
+    const ingredientId = { oignon: onionId, huile: oilId }[line.name];
+    if (!ingredientId) return [];
+
+    return [{
+      ingredientId: ingredientId as Id<"ingredients">,
+      position,
+      quantity: line.quantity,
+      unit: line.unit,
+      ...(line.fatUse && { fatUse: line.fatUse }),
+    }];
+  });
 
 const recipe = (ingredients: SanitizedRecipe["ingredients"], servings: number): SanitizedRecipe => ({
   title: "Soupe à l'oignon, revisitée",
@@ -265,6 +282,53 @@ describe("functions/recipes/updateRecipe", () => {
       { position: 0, quantity: 3, unit: "pcs" },
     ]);
     expect(row!.tags).toContain("vegan");
+  });
+
+  describe("fat use", () => {
+    test("an edit that only tags the oil patches its row in place", async () => {
+      const recipeId = await seedRecipe();
+      const oilLine = await seedLink(recipeId, oilId as Id<"ingredients">, { quantity: 7, unit: "tbsp" });
+
+      await update(recipeId, [{ name: "huile", quantity: 7, unit: "tbsp", fatUse: "fried" }]);
+
+      const rows = await links(recipeId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!._id).toBe(oilLine);
+      expect(rows[0]!.fatUse).toBe("fried");
+    });
+
+    test("an edit that leaves the oil untagged clears the tag it had", async () => {
+      const recipeId = await seedRecipe();
+      await seedLink(recipeId, oilId as Id<"ingredients">, { quantity: 7, unit: "tbsp", fatUse: "fried" });
+
+      await update(recipeId, [{ name: "huile", quantity: 7, unit: "tbsp" }]);
+
+      const rows = await links(recipeId);
+      expect(rows[0]!.fatUse).toBeUndefined();
+    });
+
+    test("drops a tag on a line that is not a cooking fat, and keeps the line", async () => {
+      const recipeId = await seedRecipe();
+      const onionLine = await seedLink(recipeId, onionId as Id<"ingredients">, { quantity: 3 });
+
+      await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs", fatUse: "fried" }]);
+
+      const rows = await links(recipeId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!._id).toBe(onionLine);
+      expect(rows[0]!.fatUse).toBeUndefined();
+    });
+
+    test("keeps the stored tag when the resolve came back incomplete", async () => {
+      const recipeId = await seedRecipe();
+      await seedLink(recipeId, oilId as Id<"ingredients">, { quantity: 7, unit: "tbsp", fatUse: "fried" });
+
+      await update(recipeId, [{ name: "thym", quantity: 5, unit: "g" }], { complete: false });
+
+      const rows = await links(recipeId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.fatUse).toBe("fried");
+    });
   });
 
   test("throws for a recipe that does not exist", async () => {

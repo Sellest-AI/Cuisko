@@ -1,9 +1,9 @@
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
-import { edibleGrams } from "@shared/ingredients";
-import type { RecipeUnit } from "@shared/ingredients";
-import { totalsOf } from "@shared/nutrition";
+import type { FatUse, RecipeUnit } from "@shared/ingredients";
 import { allergenTagsOf, type ComputedTag, dietTagsOf, nutritionTagsOf } from "@shared/tags";
+
+import { nutritionOfLines } from "./recipeNutrition";
 
 /**
  * One recipe line, already matched to a catalog row.
@@ -16,6 +16,8 @@ export type TaggableLine = {
   ingredientId: Id<"ingredients">;
   quantity: number;
   unit: RecipeUnit;
+  /** How the line's fat is cooked with, when some of it is left behind. See `eatenGrams`. */
+  fatUse?: FatUse;
 };
 
 /**
@@ -37,7 +39,7 @@ export type TaggableLine = {
  * - **free-from** needs `ingredients.allergens` on every row. `undefined` there is "nobody has
  *   classified this ingredient", which is NOT the same as the `[]` of one classified and carrying
  *   none — and reading the first as the second is a confident `nut-free` on an unchecked recipe.
- * - **nutrition** needs every line to be weighable, which `totalsOf` decides.
+ * - **nutrition** needs every line to be weighable, which `nutritionOfLines` decides.
  *
  * A recipe can therefore earn one group and not another, and that is correct: knowing a dish is
  * low-calorie says nothing about whether anyone has checked it for peanuts.
@@ -74,13 +76,14 @@ export const computeTags = async (
     ? allergenTagsOf(allergens.flat())
     : [];
 
-  const totals = totalsOf(
-    rows.map((ingredient, index) => ({
-      facts: ingredient.nutrition,
-      grams: edibleGrams(lines[index]!.quantity, lines[index]!.unit, ingredient),
-      // Irrelevant to the tags — it only feeds the Nutri-Score, which this file does not read.
-      produce: false,
-    })),
+  // The figures the recipe screen shows (ADR 0015), so a tag never contradicts them: weighing the
+  // lines here too is how the tags once counted a whole bottle of frying oil the screen did not.
+  const totals = nutritionOfLines(
+    rows.map((ingredient, index) => {
+      const { quantity, unit, fatUse } = lines[index]!;
+      return { ingredient, quantity, unit, ...(fatUse && { fatUse }) };
+    }),
+    lineCount,
     servings,
   );
 

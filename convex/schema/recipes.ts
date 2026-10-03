@@ -1,7 +1,7 @@
 import { defineTable } from "convex/server";
 import { vLocalized, vLocalizedText } from "./i18n";
 import { v } from "convex/values";
-import { vRecipeUnit } from "./ingredients";
+import { vFatUse, vRecipeUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
 import { CUISINES } from "@shared/cuisines";
@@ -178,6 +178,12 @@ export const recipeIngredients = defineTable({
   position: v.number(),
   quantity: v.number(),
   unit: vRecipeUnit,
+  /**
+   * Set only on a cooking fat that is partly left in the pan or the fryer; absent means all of it
+   * is eaten. Read by nutrition alone, through `nutritionOfLines`, which the figures and the tags
+   * both count with — the cook still buys and pours the whole quantity.
+   */
+  fatUse: v.optional(vFatUse),
   updatedAt: v.number(), // S5
 })
   .index("by_recipe", ["recipeId"])

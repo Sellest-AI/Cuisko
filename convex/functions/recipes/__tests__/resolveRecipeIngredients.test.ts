@@ -90,6 +90,23 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
     expect(agent).not.toHaveBeenCalled();
   });
 
+  test("carries a line's fat use onto its link, and adds none to a line without one", async () => {
+    gather.mockImplementation(async (_ctx, { text }: { text: string }) => ({
+      resolved: { status: "matched", ingredientId: id(text), name: text, defaultUnit: "pcs", defaultQuantity: 1 },
+      evidence: NO_EVIDENCE,
+    }));
+
+    const links = await resolve([
+      { name: "huile", quantity: 7, unit: "tbsp", fatUse: "fried" },
+      { name: "oignon", quantity: 2, unit: "pcs" },
+    ]);
+
+    expect(links).toEqual([
+      { ingredientId: id("huile"), position: 0, quantity: 7, unit: "tbsp", fatUse: "fried" },
+      { ingredientId: id("oignon"), position: 1, quantity: 2, unit: "pcs" },
+    ]);
+  });
+
   test("resolves a repeated name once, and still links both lines at their own positions", async () => {
     gather.mockResolvedValue({
       resolved: { status: "matched", ingredientId: id("onion"), name: "Oignon", defaultUnit: "pcs", defaultQuantity: 1 },

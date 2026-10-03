@@ -124,6 +124,12 @@ export type RecipeChanges = {
    * ingredient text into structured lines. Re-deriving them from text nobody touched would be
    * answering a question that was not asked. (The computed tags follow the lines on every write
    * regardless — `deriveRecipeFields` recomputes them without the agent.)
+   *
+   * @limitation A line's `fatUse` is read from the steps, yet an edit to the steps alone never
+   * reaches the agent: "fry the tofu and drain the pan" rewritten as "fry the tofu, then add the
+   * sauce to the pan" keeps the oil's `fried`, and the recipe goes on counting 60% of an oil now
+   * eaten whole. Closing it means re-analyzing a steps-only edit on a recipe with a tagged line,
+   * which costs a model call on an edit that today costs none.
    */
   requiresNewAnalysis: boolean;
   /** Whether any translated field changed, and the recipe's other locale is therefore stale. */

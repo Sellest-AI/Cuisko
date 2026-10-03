@@ -175,6 +175,10 @@ const CRITERIA = [
   "step's text and not moved to another step. A hint the model adds itself is fine only where a " +
   "home cook would genuinely go wrong without it; a hint on most steps, one that restates its " +
   "step, or one that brings in an ingredient or a technique the cook never mentioned is a fault.",
+  "fatUse marks a fat partly left behind in the pan or the fryer, and nothing in this recipe is: " +
+  "the sesame oil goes into the marinade, and the neutral oil sears the pork in a cocotte whose " +
+  `contents — "vous jetez tout dans la mijoteuse" — go into the slow cooker, so every drop is ` +
+  `eaten. A "fried" or "deepFried" on either is a fault, and so is one on anything that is not a fat.`,
 ];
 
 
@@ -227,6 +231,13 @@ const CHECKS = (recipe: SanitizedRecipe) => {
     ...COOK_HINTS.filter(({ mark }) => !hints.some((hint) => mark.test(hint))).map(
       ({ name }) => `the cook's hint about ${name} is not a hint any more`,
     ),
+
+    // "Left out whenever the fat ends up on the plate." Both fats here do — the sesame oil in the
+    // marinade, the neutral oil's sear pan tipped into the slow cooker — so any tag is a fault, and
+    // that holds whatever name the model gave the line.
+    ...recipe.ingredients
+      .filter(({ fatUse }) => fatUse)
+      .map(({ name, fatUse }) => `ingredient "${name}" carries fatUse "${fatUse}", but no fat here is left behind`),
 
     // "Most steps have none." More than half is the exact point where that stops being true.
     ...(hinted > steps.length / 2

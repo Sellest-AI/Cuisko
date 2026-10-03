@@ -3,7 +3,7 @@ import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { ActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { gradesIn, preservationIn, searchTerms } from "@shared/ingredientMatch";
-import type { RecipeUnit } from "@shared/ingredients";
+import type { FatUse, RecipeUnit } from "@shared/ingredients";
 
 import {
   gatherEvidence,
@@ -17,6 +17,8 @@ export type RecipeLink = {
   position: number;
   quantity: number;
   unit: RecipeUnit;
+  /** Carried from the line as the model tagged it; `keepCookingFatUses` drops it off a non-fat. */
+  fatUse?: FatUse;
 };
 
 /**
@@ -282,7 +284,13 @@ export const resolveRecipeIngredients = async (
     const ingredientId = linked.get(folded[index]!);
     if (!ingredientId) return [];
 
-    return [{ ingredientId, position: index, quantity: line.quantity, unit: line.unit }];
+    return [{
+      ingredientId,
+      position: index,
+      quantity: line.quantity,
+      unit: line.unit,
+      ...(line.fatUse && { fatUse: line.fatUse }),
+    }];
   });
 
   return { links, complete: !undecidedRemains };

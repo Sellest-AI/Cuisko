@@ -1,15 +1,22 @@
 import type * as z from "zod/v4";
 
 import type { Id } from "@convex/_generated/dataModel";
-import { modelRecipeSchema } from "@convex/agent/tools/sanitizeRecipe";
+import { modelRecipeSchema, type SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import { AUTHORED_TAGS, Tag, type AuthoredTag } from "@shared/tags";
-import { RecipeUnit } from "@shared/ingredients";
+import { type FatUse, RecipeUnit } from "@shared/ingredients";
 import { Equipment } from "@shared/equipments";
 import { Cuisine } from "@shared/cuisines";
 import { DifficultyLevel, type InstructionGroup } from "@shared/recipes";
 
-/** What `sanitizeRecipe`'s `outdated` argument expects — the model's own schema, not this file's. */
-export type ModelRecipe = z.infer<typeof modelRecipeSchema> & {
+/**
+ * What `sanitizeRecipe`'s `outdated` argument expects — the model's own schema, not this file's.
+ *
+ * The ingredients are the app's own shape rather than the schema's, which also allows a `null`
+ * `fatUse`: a stored line is never null, and `reviseRecipe` hands these lines on to
+ * `vSanitizedRecipe` untouched when the model does not run.
+ */
+export type ModelRecipe = Omit<z.infer<typeof modelRecipeSchema>, "ingredients"> & {
+  ingredients: SanitizedRecipe["ingredients"];
   /** Absent only for a seeded row with no owner — `recipes.userId` is itself optional. */
   userId?: Id<"users">;
 };
@@ -32,7 +39,7 @@ type RecipeInput = {
     resting?: number;
   };
   instructions: InstructionGroup[];
-  ingredients: { name: string; quantity: number; unit: RecipeUnit; }[];
+  ingredients: { name: string; quantity: number; unit: RecipeUnit; fatUse?: FatUse }[];
 }
 
 export const toModelRecipe = (recipe: RecipeInput): ModelRecipe => ({
@@ -46,5 +53,10 @@ export const toModelRecipe = (recipe: RecipeInput): ModelRecipe => ({
   equipments: recipe.equipments,
   timings: recipe.timings,
   instructions: recipe.instructions,
-  ingredients: recipe.ingredients.map(({ name, quantity, unit }) => ({ name, quantity, unit })),
+  ingredients: recipe.ingredients.map(({ name, quantity, unit, fatUse }) => ({
+    name,
+    quantity,
+    unit,
+    ...(fatUse && { fatUse }),
+  })),
 })

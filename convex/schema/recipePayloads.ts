@@ -13,7 +13,7 @@
 
 import { type Infer, v } from "convex/values";
 import { vLocale, vLocalized, vLocalizedList } from "./i18n";
-import { vRecipeUnit } from "./ingredients";
+import { vFatUse, vRecipeUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
 import { recipes, vRecipeStatus } from "./recipes";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
@@ -90,6 +90,7 @@ export const vRecipeLink = v.object({
   position: v.number(),
   quantity: v.number(),
   unit: vRecipeUnit,
+  fatUse: v.optional(vFatUse),
 });
 
 /**
@@ -137,7 +138,9 @@ export const vSanitizedRecipe = v.object({
   equipments: vEquipments,
   timings: vTimings,
   instructions: vInstructionGroups,
-  ingredients: v.array(v.object({ name: v.string(), quantity: v.number(), unit: vRecipeUnit })),
+  ingredients: v.array(
+    v.object({ name: v.string(), quantity: v.number(), unit: vRecipeUnit, fatUse: v.optional(vFatUse) }),
+  ),
 });
 
 /**
@@ -213,6 +216,7 @@ export const vPortableRecipe = v.object({
       position: v.number(),
       quantity: v.number(),
       unit: vRecipeUnit,
+      fatUse: v.optional(vFatUse),
       ingredient: v.object({
         slug: v.optional(v.string()),
         name: vLocalized,

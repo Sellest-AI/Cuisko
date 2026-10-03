@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import type { RecipeUnit } from "@shared/ingredients";
+import { FAT_USE_SHARE, type FatUse, type RecipeUnit } from "@shared/ingredients";
 import { roundFacts } from "@shared/nutrition";
 
 import type { Id } from "../../../_generated/dataModel";
@@ -25,7 +25,7 @@ const seedIngredient = (
     gramsPerPiece,
     edibleShare,
     category = "VEGETABLE",
-  }: { gramsPerPiece?: number; edibleShare?: number; category?: "VEGETABLE" | "DAIRY" } = {},
+  }: { gramsPerPiece?: number; edibleShare?: number; category?: "VEGETABLE" | "DAIRY" | "OIL" } = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("ingredients", {
@@ -44,7 +44,7 @@ const seedIngredient = (
 const seedRecipe = (
   title: string,
   servings: number,
-  lines: { ingredientId: Id<"ingredients">; quantity: number; unit: RecipeUnit }[],
+  lines: { ingredientId: Id<"ingredients">; quantity: number; unit: RecipeUnit; fatUse?: FatUse }[],
 ) =>
   t.run(async (ctx) => {
     const recipeId = await ctx.db.insert("recipes", {
@@ -145,6 +145,21 @@ describe("functions/recipes/computeNutrition", () => {
     expect(figures.perServing).toEqual(roundFacts(page.nutrition!.perServing));
     expect(figures.total).toEqual(roundFacts(page.nutrition!.total));
     expect(figures.lines.map(({ name, grams }) => [name, grams])).toEqual([["Egg", 150], ["Butter", 15]]);
+  });
+
+  /** The lines Cuisko quotes add up to the total it quotes, a frying oil's eaten share included. */
+  test("weighs a frying oil's line on the share eaten, as the total does", async () => {
+    const oil = await seedIngredient("Oil", { gramsPerPiece: 100, category: "OIL" });
+    const recipeId = await seedRecipe("Japchae", 2, [{ ingredientId: oil, quantity: 1, unit: "pcs", fatUse: "fried" }]);
+
+    const answer = await compute({ recipeIds: [recipeId] });
+
+    if (answer.kind !== "recipes") throw new Error("expected recipes");
+    const figures = answer.recipes[0] as NutritionFigures;
+
+    expect(figures.grams).toBe(100 * FAT_USE_SHARE.fried);
+    expect(figures.lines[0]!.grams).toBe(100 * FAT_USE_SHARE.fried);
+    expect(figures.lines[0]!.calories).toBe(figures.total.calories);
   });
 
   test("scales the batch to the servings asked, and leaves the portion alone", async () => {

@@ -49,7 +49,12 @@ export const deriveRecipeFields = async (
   // `lineCount` is what the recipe HAS and `links` is what resolved — `computeTags` needs both,
   // because every tag it answers is a claim of absence and absence cannot be argued from a subset.
   const computed = await computeTags(ctx, {
-    lines: links.map(({ ingredientId, quantity, unit }) => ({ ingredientId, quantity, unit })),
+    lines: links.map(({ ingredientId, quantity, unit, fatUse }) => ({
+      ingredientId,
+      quantity,
+      unit,
+      ...(fatUse && { fatUse }),
+    })),
     lineCount,
     servings,
   });

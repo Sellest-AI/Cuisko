@@ -227,6 +227,39 @@ describe("functions/recipes/regenerateRecipe", () => {
     expect(resolveArgs()).not.toHaveProperty("known");
   });
 
+  /**
+   * An edit the agent never sees rebuilds its lines from the stored recipe, and those lines are what
+   * `updateRecipe` syncs the rows to: an untagged oil here would be saved as all of it eaten.
+   */
+  test("hands the resolver a stored line's fat use when the agent does not run", async () => {
+    const withOil: typeof stored = {
+      ...stored,
+      ingredients: [
+        ...stored.ingredients,
+        {
+          name: "Huile",
+          quantity: 7,
+          unit: "tbsp",
+          fatUse: "fried",
+          emoji: "🫒",
+          category: "OIL",
+          conversion: { defaultUnit: "ml", gramsPerMl: 0.92 },
+        },
+      ],
+    };
+
+    await regenerateRecipe(ctx, {
+      edit: { ...UNCHANGED, ingredients: serializeIngredients(withOil.ingredients), title: "Nouveau titre" },
+      stored: withOil,
+      locale: "fr",
+    });
+
+    expect(sanitizeRun).not.toHaveBeenCalled();
+    expect(resolveArgs()).toMatchObject({
+      recipe: { ingredients: [{ name: "Oignons" }, { name: "Huile", fatUse: "fried" }] },
+    });
+  });
+
   /** The links are the resolver's answer, passed back untouched for the mutation to persist. */
   test("returns the links the resolver answered with", async () => {
     const links = [{ ingredientId: onionId, position: 0, quantity: 2, unit: "pcs" as const }];

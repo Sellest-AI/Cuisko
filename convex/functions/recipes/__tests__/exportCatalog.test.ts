@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import type { Id } from "@convex/_generated/dataModel";
+import type { FatUse } from "@shared/ingredients";
 import { facetsOf } from "@shared/tags";
 
 import schema from "../../../schema";
@@ -71,9 +72,22 @@ const insertRecipe = (title: string, extras: RecipeExtras = {}) =>
     }),
   );
 
-const link = (recipeId: Id<"recipes">, ingredientId: Id<"ingredients">, position: number) =>
+const link = (
+  recipeId: Id<"recipes">,
+  ingredientId: Id<"ingredients">,
+  position: number,
+  fatUse?: FatUse,
+) =>
   t.run((ctx) =>
-    ctx.db.insert("recipeIngredients", { recipeId, ingredientId, position, quantity: 2, unit: "pcs", updatedAt: 1 }),
+    ctx.db.insert("recipeIngredients", {
+      recipeId,
+      ingredientId,
+      position,
+      quantity: 2,
+      unit: "pcs",
+      ...(fatUse && { fatUse }),
+      updatedAt: 1,
+    }),
   );
 
 const page = (numItems = 10, cursor: string | null = null) =>
@@ -152,6 +166,18 @@ describe("exportCatalog", () => {
         },
       },
     ]);
+  });
+
+  /** A restore that lost the tag would count the frying oil as eaten whole on the other deployment. */
+  test("carries a line's fat use, and nothing for a line without one", async () => {
+    const recipeId = await insertRecipe("Japchae");
+    await link(recipeId, await insertIngredient("vegetable-oil", "huile végétale", "vegetable oil"), 0, "fried");
+    await link(recipeId, await insertIngredient("onion", "oignon", "onion"), 1);
+
+    const [exported] = (await page()).page;
+
+    expect(exported?.ingredients[0]).toMatchObject({ position: 0, fatUse: "fried" });
+    expect(exported?.ingredients[1]).not.toHaveProperty("fatUse");
   });
 
   test("exports the cover url, and the plate with its base and offset", async () => {

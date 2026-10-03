@@ -30,11 +30,11 @@ const seed = async () => {
   const ids = await t.run(async (ctx) => {
     const user = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
 
-    const catalog = async (fr: string, en: string) =>
+    const catalog = async (fr: string, en: string, category: "OTHER" | "OIL" = "OTHER") =>
       ctx.db.insert("ingredients", {
         name: { values: { fr, en }, meta: {} },
         search: { fr, en },
-        category: "OTHER",
+        category,
         emoji: "🥕",
         // Classified, and classified as the permissive answer: a plant carrying no allergen.
         // `computeTags` refuses to tag at all when a row carries neither field, so leaving them
@@ -50,7 +50,7 @@ const seed = async () => {
     return {
       user,
       onion: await catalog("oignon", "onion"),
-      oil: await catalog("huile d'olive", "olive oil"),
+      oil: await catalog("huile d'olive", "olive oil", "OIL"),
     };
   });
 
@@ -76,7 +76,7 @@ const linksOf = (ingredients: SanitizedRecipe["ingredients"]): RecipeLink[] =>
     const ingredientId = catalog[line.name];
     if (!ingredientId) return [];
 
-    return [{ ingredientId, position, quantity: line.quantity, unit: line.unit }];
+    return [{ ingredientId, position, quantity: line.quantity, unit: line.unit, ...(line.fatUse && { fatUse: line.fatUse }) }];
   });
 
 const recipe = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe => ({
@@ -257,6 +257,24 @@ describe("functions/recipes/saveRecipe", () => {
     expect(rows[0]!.ingredientId).toBe(onion);
     expect(rows[0]!.quantity).toBe(2);
     expect(rows[0]!.unit).toBe("pcs");
+  });
+
+  /**
+   * The model tags a line by reading the steps, and can tag the onion it fried rather than the oil
+   * it fried in. Only a cooking fat keeps the tag; the onion's line is still written, untagged.
+   */
+  test("keeps a line's fat use on a cooking fat, and drops it from anything else", async () => {
+    const recipeId = await save([
+      { name: "oignon", quantity: 3, unit: "pcs", fatUse: "fried" },
+      { name: "huile d'olive", quantity: 7, unit: "tbsp", fatUse: "fried" },
+    ]);
+
+    const rows = await links(recipeId);
+    const byIngredient = new Map(rows.map((row) => [row.ingredientId, row]));
+
+    expect(rows).toHaveLength(2);
+    expect(byIngredient.get(catalog["oignon"]!)!.fatUse).toBeUndefined();
+    expect(byIngredient.get(catalog["huile d'olive"]!)!.fatUse).toBe("fried");
   });
 
   test("writes no join row for a line the resolver returned no link for", async () => {

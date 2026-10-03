@@ -267,6 +267,20 @@ describe("functions/recipes/computeTags", () => {
     });
 
     /**
+     * The fryer keeps most of its oil. A tag counting the whole bottle would call a dish
+     * `high-calorie` beside figures that count only what was eaten (`nutritionOfLines`).
+     */
+    test("decides the tags on the share of a frying oil that is eaten", async () => {
+      const oil = await catalog("OIL", { calories: 884, protein: 0, fat: 100, carbohydrates: 0 });
+
+      expect(await compute([line(oil)])).toContain("high-calorie");
+
+      const tags = await compute([{ ...line(oil), fatUse: "deepFried" }]);
+      expect(tags).not.toContain("high-calorie");
+      expect(tags).toContain("low-calorie");
+    });
+
+    /**
      * A line that cannot reach grams has no nutrition, and `totalsOf` refuses a partial total. The
      * diet answer does not depend on weight, so it survives — the two degrade separately.
      */

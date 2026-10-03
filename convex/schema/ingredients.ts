@@ -1,7 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { vLocalized, vLocalizedList, vLocalizedText } from "./i18n";
-import { INGREDIENT_SOURCES, RECIPE_UNITS, UNITS } from "@shared/ingredients";
+import { FAT_USES, INGREDIENT_SOURCES, RECIPE_UNITS, UNITS } from "@shared/ingredients";
 import { NUTRI_SCORE_GRADES } from "@shared/nutrition";
 import { DIETS } from "@shared/diets";
 import { ALLERGENS } from "@shared/allergens";
@@ -28,6 +28,8 @@ export const vUnit = v.union(...UNITS.map(v.literal));
  * hold what a shop sells, and never for `defaultUnit` below.
  */
 export const vRecipeUnit = v.union(...RECIPE_UNITS.map(v.literal));
+/** How a recipe line's cooking fat is used when some of it is left behind (`FAT_USE_SHARE`). */
+export const vFatUse = v.union(...FAT_USES.map(v.literal));
 const vNutriScoreGrade = v.union(...NUTRI_SCORE_GRADES.map(v.literal));
 
 /**

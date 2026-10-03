@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 
 import { ANONYMOUS_AVATAR_SEED, avatarSeed } from "@shared/avatars";
+import { FAT_USE_SHARE, type FatUse } from "@shared/ingredients";
 
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -53,7 +54,7 @@ const seedLine = (
   recipeId: Id<"recipes">,
   ingredient: {
     name: string;
-    category: "VEGETABLE" | "DAIRY";
+    category: "VEGETABLE" | "DAIRY" | "OIL";
     /** Defaulted, because only the emoji test cares which glyph a line carries. */
     emoji?: string;
     gramsPerPiece?: number;
@@ -63,7 +64,7 @@ const seedLine = (
      */
     image?: { url: string; renditions?: { url: string; px: number }[]; deleted?: boolean };
   },
-  { position, quantity }: { position: number; quantity: number },
+  { position, quantity, fatUse }: { position: number; quantity: number; fatUse?: FatUse },
 ) =>
   t.run(async (ctx) => {
     let imageId: Id<"images"> | undefined;
@@ -114,6 +115,7 @@ const seedLine = (
       position,
       quantity,
       unit: "pcs",
+      ...(fatUse && { fatUse }),
       updatedAt: Date.now(),
     });
   });
@@ -414,6 +416,26 @@ describe("functions/recipes/loadRecipe", () => {
     const unweighable = await t.run((ctx) => loadRecipe(ctx, { recipe: partial, locale: "en" }));
 
     expect(unweighable.nutrition).toBeUndefined();
+  });
+
+  /**
+   * The recipe screen reads the oil a cook fries in as only partly eaten: the same 200 g line that
+   * totals 50 kcal a serving above counts `FAT_USE_SHARE.fried` of itself once it is tagged. The tag
+   * also travels on the line, because an edit rebuilds its lines from this payload.
+   */
+  test("counts the eaten share of a frying oil, and ships the line's tag", async () => {
+    const recipe = await seedRecipe();
+    await seedLine(
+      recipe,
+      { name: "Oil", category: "OIL", gramsPerPiece: 100 },
+      { position: 0, quantity: 2, fatUse: "fried" },
+    );
+
+    const loaded = await t.run((ctx) => loadRecipe(ctx, { recipe, locale: "en" }));
+
+    expect(loaded.nutrition?.grams).toBe(200 * FAT_USE_SHARE.fried);
+    expect(loaded.nutrition?.perServing.calories).toBe((200 * FAT_USE_SHARE.fried) / 4);
+    expect(loaded.ingredients[0]!.fatUse).toBe("fried");
   });
 
   /** A recipe with no lines has no nutrition to report, and zero is not the answer. */

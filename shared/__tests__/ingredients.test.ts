@@ -2,10 +2,13 @@ import { describe, expect, test } from "vitest";
 
 import {
   convertQuantity,
+  eatenGrams,
   edibleGrams,
+  FAT_USE_SHARE,
   formatQuantity,
   formatGroceryQuantity,
   fromStockUnit,
+  isCookingFat,
   mergeGroupOf,
   mergeRecipeLines,
   normalizeUnit,
@@ -199,6 +202,64 @@ describe("edibleGrams", () => {
     const row = { ...mussels, defaultUnit: "g" } as const;
 
     expect(toStockUnit(1, "l", row)).toBe(750);
+  });
+});
+
+/** The catalog's own figures, per 100 g: what each row is filed under and the fat it carries. */
+const VEGETABLE_OIL = { category: "OIL", nutrition: { fat: 100 }, gramsPerMl: 0.92 } as const;
+const GHEE = { category: "OIL", nutrition: { fat: 99.5 }, gramsPerMl: 0.91 } as const;
+const BUTTER = { category: "DAIRY", nutrition: { fat: 81 }, gramsPerMl: 0.91 } as const;
+const CHEDDAR = { category: "DAIRY", nutrition: { fat: 33 } } as const;
+const WALNUTS = { category: "NUT", nutrition: { fat: 65 } } as const;
+const CARROT = { category: "VEGETABLE", nutrition: { fat: 0.2 }, gramsPerPiece: 60 } as const;
+
+describe("isCookingFat", () => {
+  test("is every oil, ghee included", () => {
+    expect(isCookingFat(VEGETABLE_OIL)).toBe(true);
+    expect(isCookingFat(GHEE)).toBe(true);
+  });
+
+  /** Butter is filed under dairy for the diet flags, and it is the one cooking fat there. */
+  test("is butter, which is dairy, and not a cheese, which is dairy too", () => {
+    expect(isCookingFat(BUTTER)).toBe(true);
+    expect(isCookingFat(CHEDDAR)).toBe(false);
+  });
+
+  test("is nothing else, however fatty", () => {
+    expect(isCookingFat(WALNUTS)).toBe(false);
+    expect(isCookingFat(CARROT)).toBe(false);
+  });
+});
+
+/**
+ * Japchae's 7 tbsp of vegetable oil, fried in batch after batch with the pan wiped between them,
+ * is the case this exists for: counted whole, it put 48 g of oil on each of two plates.
+ */
+describe("eatenGrams", () => {
+  test("counts the share of a cooking fat that stays on the plate", () => {
+    const grams = edibleGrams(7, "tbsp", VEGETABLE_OIL)!;
+
+    expect(eatenGrams(7, "tbsp", VEGETABLE_OIL, "fried")).toBeCloseTo(grams * FAT_USE_SHARE.fried);
+    expect(eatenGrams(1, "l", VEGETABLE_OIL, "deepFried")).toBeCloseTo(920 * FAT_USE_SHARE.deepFried);
+    expect(eatenGrams(50, "g", BUTTER, "fried")).toBeCloseTo(50 * FAT_USE_SHARE.fried);
+  });
+
+  test("counts all of a fat with no use: a dressing is eaten whole", () => {
+    expect(eatenGrams(3, "tbsp", VEGETABLE_OIL)).toBe(edibleGrams(3, "tbsp", VEGETABLE_OIL));
+  });
+
+  /** A tag on a carrot is the model's mistake, and it must not take 40% of the carrot with it. */
+  test("ignores a use on anything that is not a cooking fat", () => {
+    expect(eatenGrams(2, "pcs", CARROT, "fried")).toBe(120);
+    expect(eatenGrams(100, "g", WALNUTS, "deepFried")).toBe(100);
+  });
+
+  test("is undefined exactly where edibleGrams is", () => {
+    expect(eatenGrams(1, "pcs", VEGETABLE_OIL, "fried")).toBeUndefined();
+  });
+
+  test("leaves what is bought alone: the whole 7 tbsp still leave the cellar", () => {
+    expect(toStockUnit(7, "tbsp", { ...VEGETABLE_OIL, defaultUnit: "ml" })).toBe(105);
   });
 });
 

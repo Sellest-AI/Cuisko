@@ -79,7 +79,12 @@ export const restoreRecipe = async (
   const lines = [...ingredients].sort((a, b) => a.position - b.position);
   const { links: byIndex, complete } = await resolveRecipeIngredients(ctx, {
     recipe: {
-      ingredients: lines.map(({ ingredient, quantity, unit }) => ({ name: _spelledName(ingredient), quantity, unit })),
+      ingredients: lines.map(({ ingredient, quantity, unit, fatUse }) => ({
+        name: _spelledName(ingredient),
+        quantity,
+        unit,
+        ...(fatUse && { fatUse }),
+      })),
     },
     locale: RESOLVE_LOCALE,
   });

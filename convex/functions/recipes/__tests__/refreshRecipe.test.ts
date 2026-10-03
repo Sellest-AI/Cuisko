@@ -14,19 +14,32 @@ let t: ReturnType<typeof convexTest>;
 
 const seedIngredient = (
   en: string,
-  { diet, allergens = [] }: { diet?: Doc<"ingredients">["diet"]; allergens?: Doc<"ingredients">["allergens"] } = {},
+  {
+    diet,
+    allergens = [],
+    category = "OTHER",
+    nutrition = { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
+    gramsPerPiece,
+  }: {
+    diet?: Doc<"ingredients">["diet"];
+    allergens?: Doc<"ingredients">["allergens"];
+    category?: Doc<"ingredients">["category"];
+    nutrition?: Doc<"ingredients">["nutrition"];
+    gramsPerPiece?: number;
+  } = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("ingredients", {
       name: { values: { fr: en, en }, meta: {} },
       search: { fr: en, en },
-      category: "OTHER",
+      category,
       emoji: "🥕",
       ...(diet && { diet }),
       allergens,
       defaultUnit: "pcs",
       defaultQuantity: 1,
-      nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
+      ...(gramsPerPiece !== undefined && { gramsPerPiece }),
+      nutrition,
       updatedAt: Date.now(),
     }),
   );
@@ -60,10 +73,22 @@ const seedLine = (
   recipeId: Id<"recipes">,
   ingredientId: Id<"ingredients">,
   position: number,
-  { quantity = 1, unit = "pcs" }: { quantity?: number; unit?: Doc<"recipeIngredients">["unit"] } = {},
+  {
+    quantity = 1,
+    unit = "pcs",
+    fatUse,
+  }: { quantity?: number; unit?: Doc<"recipeIngredients">["unit"]; fatUse?: Doc<"recipeIngredients">["fatUse"] } = {},
 ) =>
   t.run((ctx) =>
-    ctx.db.insert("recipeIngredients", { recipeId, ingredientId, position, quantity, unit, updatedAt: 1 }),
+    ctx.db.insert("recipeIngredients", {
+      recipeId,
+      ingredientId,
+      position,
+      quantity,
+      unit,
+      ...(fatUse && { fatUse }),
+      updatedAt: 1,
+    }),
   );
 
 const lines = (recipeId: Id<"recipes">) =>
@@ -195,6 +220,46 @@ describe("refreshRecipe", () => {
     expect(stored).toHaveLength(2);
     expect(stored.find((line) => line.ingredientId === lentils)!._id).toBe(lentilLine);
     expect(cuminLines).toContain(stored.find((line) => line.ingredientId === cumin)!._id);
+  });
+
+  /** The merge rewrites every line it shifts; the frying oil it moves up must stay tagged. */
+  test("keeps the fat use of a line a merge moves", async () => {
+    const cumin = await seedIngredient("cumin", { diet: "vegan" });
+    const oil = await seedIngredient("oil", { diet: "vegan", category: "OIL" });
+    const recipeId = await seedRecipe(["soup"]);
+    await seedLine(recipeId, cumin, 0, { quantity: 1, unit: "tbsp" });
+    await seedLine(recipeId, cumin, 1, { quantity: 2, unit: "tsp" });
+    await seedLine(recipeId, oil, 2, { quantity: 7, unit: "tbsp", fatUse: "fried" });
+
+    await refresh(recipeId);
+
+    const stored = await t.run(async (ctx) =>
+      (await ctx.db.query("recipeIngredients").collect()).filter((line) => line.recipeId === recipeId),
+    );
+    const oilLine = stored.find((line) => line.ingredientId === oil)!;
+    expect(oilLine.position).toBe(1);
+    expect(oilLine.fatUse).toBe("fried");
+  });
+
+  /**
+   * The tags are counted on what is eaten, as the figures beside them are: 400 g of deep-frying
+   * oil is 884 kcal a serving bought and about 133 eaten.
+   */
+  test("tags a recipe on the share of its frying oil that is eaten", async () => {
+    const oil = await seedIngredient("oil", {
+      diet: "vegan",
+      category: "OIL",
+      nutrition: { calories: 884, protein: 0, fat: 100, carbohydrates: 0 },
+      gramsPerPiece: 400,
+    });
+    const recipeId = await seedRecipe(["main"]);
+    await seedLine(recipeId, oil, 0, { fatUse: "deepFried" });
+
+    await refresh(recipeId);
+
+    const { tags } = (await row(recipeId))!;
+    expect(tags).not.toContain("high-calorie");
+    expect(tags).toContain("low-calorie");
   });
 
   test("folds the duplicate on a recipe missing a line, and still leaves its tags alone", async () => {

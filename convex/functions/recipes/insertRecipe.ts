@@ -5,6 +5,7 @@ import { facetsOf } from "@shared/tags";
 import { canonicalUrlOf } from "@shared/urls";
 
 import { recipeSearchText } from "./recipeSearchText";
+import { keepCookingFatUses } from "./keepCookingFatUses";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 /**
@@ -73,8 +74,10 @@ type Args = {
  */
 export const insertRecipe = async (
   ctx: MutationCtx,
-  { recipe, links, names }: Args,
+  { recipe, links: tagged, names }: Args,
 ): Promise<Id<"recipes">> => {
+  const links = await keepCookingFatUses(ctx, tagged);
+
   // ADR 0011: the serializer is called HERE, where `search` is assigned, so C11 can verify this
   // writer on its own rather than trust a bundle it cannot see into.
   const search = await recipeSearchText(ctx, {

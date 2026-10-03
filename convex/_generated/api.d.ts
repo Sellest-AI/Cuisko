@@ -151,6 +151,7 @@ import type * as functions_recipes_exportCatalog from "../functions/recipes/expo
 import type * as functions_recipes_findCatalogBySource from "../functions/recipes/findCatalogBySource.js";
 import type * as functions_recipes_generateRecipe from "../functions/recipes/generateRecipe.js";
 import type * as functions_recipes_insertRecipe from "../functions/recipes/insertRecipe.js";
+import type * as functions_recipes_keepCookingFatUses from "../functions/recipes/keepCookingFatUses.js";
 import type * as functions_recipes_listFavorites from "../functions/recipes/listFavorites.js";
 import type * as functions_recipes_listForUser from "../functions/recipes/listForUser.js";
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
@@ -447,6 +448,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/findCatalogBySource": typeof functions_recipes_findCatalogBySource;
   "functions/recipes/generateRecipe": typeof functions_recipes_generateRecipe;
   "functions/recipes/insertRecipe": typeof functions_recipes_insertRecipe;
+  "functions/recipes/keepCookingFatUses": typeof functions_recipes_keepCookingFatUses;
   "functions/recipes/listFavorites": typeof functions_recipes_listFavorites;
   "functions/recipes/listForUser": typeof functions_recipes_listForUser;
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;

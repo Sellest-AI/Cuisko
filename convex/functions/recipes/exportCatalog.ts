@@ -38,12 +38,12 @@ const _ingredientsOf = async (ctx: ExportCtx, recipeId: Id<"recipes">): Promise<
     .collect();
 
   const portable: PortableRecipe["ingredients"] = [];
-  for (const { ingredientId, position, quantity, unit } of lines) {
+  for (const { ingredientId, position, quantity, unit, fatUse } of lines) {
     const ingredient = await ctx.db.get(ingredientId);
     if (!ingredient) continue;
 
     const { slug, name, aliases } = ingredient;
-    portable.push({ position, quantity, unit, ingredient: { slug, name, aliases } });
+    portable.push({ position, quantity, unit, ...(fatUse && { fatUse }), ingredient: { slug, name, aliases } });
   }
 
   return portable.sort((a, b) => a.position - b.position);

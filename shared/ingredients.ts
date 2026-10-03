@@ -1,3 +1,5 @@
+import type { Category } from "./categories";
+
 /**
  * Where a row's facts came from, and how much to trust them.
  *
@@ -375,6 +377,51 @@ export const edibleGrams = (quantity: number, unit: RecipeUnit, weights: EdibleW
   const grams = toGrams(quantity, unit, weights);
 
   return grams === undefined ? undefined : grams * (weights.edibleShare ?? 1);
+};
+
+/**
+ * How a recipe line's fat is cooked with, when some of it is left behind: `fried` when food is
+ * fried in it and lifted out, or the pan wiped or drained after; `deepFried` when food is
+ * submerged in it. A fat with no use is eaten whole — a dressing, a sauce, a sear whose pan goes
+ * into the dish.
+ */
+export const FAT_USES = ["fried", "deepFried"] as const;
+
+export type FatUse = (typeof FAT_USES)[number];
+
+/**
+ * The share of a cooking fat that ends up eaten, for each use. Tuned here and nowhere else: the
+ * model that tags a line picks a use, never a number. `deepFried` is close to published absorption
+ * figures; `fried` is a starting point.
+ */
+export const FAT_USE_SHARE: Record<FatUse, number> = { fried: 0.6, deepFried: 0.15 };
+
+/** Butter is the cooking fat filed under dairy; at this fat per 100 g, a cheese is never one. */
+const COOKING_FAT_DAIRY_MIN_FAT = 80;
+
+/**
+ * Whether a fat use means anything on this row: every oil (ghee included), and butter. A use on
+ * anything else is a mistake, and it is ignored rather than taking 40% of a carrot with it.
+ */
+export const isCookingFat = (ingredient: { category: Category; nutrition: { fat: number } }): boolean =>
+  ingredient.category === "OIL"
+  || (ingredient.category === "DAIRY" && ingredient.nutrition.fat >= COOKING_FAT_DAIRY_MIN_FAT);
+
+/**
+ * The grams a recipe line puts on the plate: `edibleGrams`, less the share of a cooking fat left
+ * in the pan or the fryer. Nutrition only — the cellar and the shopping list still spend and buy
+ * the whole quantity, because the cook still pours it.
+ */
+export const eatenGrams = (
+  quantity: number,
+  unit: RecipeUnit,
+  ingredient: EdibleWeights & { category: Category; nutrition: { fat: number } },
+  fatUse?: FatUse,
+): number | undefined => {
+  const grams = edibleGrams(quantity, unit, ingredient);
+  if (grams === undefined || !fatUse || !isCookingFat(ingredient)) return grams;
+
+  return grams * FAT_USE_SHARE[fatUse];
 };
 
 /**
