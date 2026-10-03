@@ -30,7 +30,8 @@ const SEARCH_LIMIT = 3;
 /** How many names one call may search. */
 const MAX_QUERIES = 5;
 
-const _inputSchema = z.object({
+/** Exported for the verifier bake-off, whose fake catalog search takes exactly this input. */
+export const searchIngredientsInputSchema = z.object({
   queries: z
     .array(z.string().min(1))
     .min(1)
@@ -67,7 +68,7 @@ export const searchIngredientsTool = ({ locale }: Caller) =>
       "name the matching ingredients: their id, the units they can be weighed in, and their " +
       "nutrition per 100 g. For any other amount, pass the id to computeNutrition; never work a " +
       "figure out yourself.",
-    inputSchema: _inputSchema,
+    inputSchema: searchIngredientsInputSchema,
     execute: async (ctx, { queries }): Promise<FoundIngredients> => {
       // A name the model repeats, or pads with spaces, would be the same read twice.
       const terms = [...new Set(queries.map((query) => query.trim()))].filter(Boolean);

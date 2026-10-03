@@ -23,7 +23,12 @@
     "no_utensils": "Nothing but a pan and a knife.",
     "resting": "Rest",
     "dial_unit": "Minutes",
-    "meal_score": "Cui-Score"
+    "meal_score": "Cui-Score",
+    "verify": "Verify the recipe",
+    "verify_unchanged": "Nothing to correct: the recipe matches its source.",
+    "verify_failed": "The check did not finish. Try again.",
+    "verify_rate_limited": "Too many checks for now. Try again later.",
+    "verify_no_source": "This recipe was not imported from a page, so there is nothing to check it against."
   },
   "Nutrition": {
     "protein": "Protein",

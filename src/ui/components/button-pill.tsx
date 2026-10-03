@@ -21,7 +21,8 @@ type Props = BaseProps & LeftSide & RightSide;
 type BaseProps = {
   children: ReactNode;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "neutral";
+  /** `ghost` is a bare label: no fill, no border — for an action that should not compete with the page. */
+  variant?: "primary" | "secondary" | "neutral" | "ghost";
   elevated?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
@@ -111,7 +112,8 @@ export const ButtonPill = ({
 
   const defaultColor = variant === "primary" ? styles.primary :
     variant === "secondary" ? styles.secondary :
-      styles.neutral;
+      variant === "ghost" ? styles.ghost :
+        styles.neutral;
 
   const flatStyle = StyleSheet.flatten(style || {}) || {};
 
@@ -125,8 +127,11 @@ export const ButtonPill = ({
     color?: ColorValue;
   };
 
-  const borderColor = variant === "neutral" && !elevated ?
-    colors.border.medium : colors.border.default;
+  const borderColor = variant === "ghost" ? "transparent" :
+    variant === "neutral" && !elevated ? colors.border.medium : colors.border.default;
+
+  /** The side discs have no ghost of their own; a ghost pill wears the neutral ones. */
+  const sideVariant = variant === "ghost" ? "neutral" : variant;
 
   /**
    * The keys that describe the row inside the pill, pulled off the caller's style so they land
@@ -221,7 +226,7 @@ export const ButtonPill = ({
         />}
         {hasLeft && <View style={styles.side} onLayout={measure("left")}>
           {leftIcon ? <ButtonIcon
-            variant={elevated ? `${variant}-subtle` : variant}
+            variant={elevated ? `${sideVariant}-subtle` : sideVariant}
             elevated={true}
             composite={!onLeftPress}
             size={size === "sm" ? "xs" : "sm"}
@@ -252,7 +257,7 @@ export const ButtonPill = ({
         </View>
         {hasRight && <View style={styles.side} onLayout={measure("right")}>
           {rightIcon ? <ButtonIcon
-            variant={elevated ? `${variant}-subtle` : variant}
+            variant={elevated ? `${sideVariant}-subtle` : sideVariant}
             elevated={true}
             composite={!onRightPress}
             size={size === "sm" ? "xs" : "sm"}
@@ -317,6 +322,10 @@ const styles = StyleSheet.create({
   },
   neutral: {
     backgroundColor: colors.neutral.subtle,
+    color: colors.neutral.muted,
+  },
+  ghost: {
+    backgroundColor: "transparent",
     color: colors.neutral.muted,
   }
 }

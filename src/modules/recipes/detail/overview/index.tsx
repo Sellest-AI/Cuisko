@@ -13,6 +13,7 @@ import { EQUIPMENT_EMOJI, EQUIPMENT_IMAGE } from "~/lib/vocabulary";
 import { Difficulty } from "./difficulty";
 import { GroceryRow } from "./grocery-row";
 import { Timings, type Timing } from "./timings";
+import { Verify } from "./verify";
 import { IngredientGroup } from "../../_components/ingredient-group";
 
 const COLUMNS = 3;
@@ -120,6 +121,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           />
         </View>
       )}
+      <Verify id={id} />
     </RecipeScreen>
   );
 };

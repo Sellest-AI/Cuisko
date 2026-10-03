@@ -24,7 +24,12 @@
     "no_utensils": "Rien de plus qu'une poêle et un couteau.",
     "resting": "Repos",
     "dial_unit": "Minutes",
-    "meal_score": "Cui-Score"
+    "meal_score": "Cui-Score",
+    "verify": "Vérifier la recette",
+    "verify_unchanged": "Rien à corriger : la recette correspond à sa source.",
+    "verify_failed": "La vérification n'a pas abouti. Réessayez.",
+    "verify_rate_limited": "Trop de vérifications pour le moment. Réessayez plus tard.",
+    "verify_no_source": "Cette recette n'a pas été importée depuis une page, il n'y a rien à comparer."
   },
   "Nutrition": {
     "protein": "Protéines",

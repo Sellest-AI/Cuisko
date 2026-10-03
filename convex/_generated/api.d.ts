@@ -25,6 +25,7 @@ import type * as agent_config_prompts_sanitizeIngredient from "../agent/config/p
 import type * as agent_config_prompts_sanitizeRecipe from "../agent/config/prompts/sanitizeRecipe.js";
 import type * as agent_config_prompts_suggestDishes from "../agent/config/prompts/suggestDishes.js";
 import type * as agent_config_prompts_translateRecipe from "../agent/config/prompts/translateRecipe.js";
+import type * as agent_config_prompts_verifyRecipe from "../agent/config/prompts/verifyRecipe.js";
 import type * as agent_tools_cellar from "../agent/tools/cellar.js";
 import type * as agent_tools_computeNutrition from "../agent/tools/computeNutrition.js";
 import type * as agent_tools_display from "../agent/tools/display.js";
@@ -39,6 +40,7 @@ import type * as agent_tools_showButton from "../agent/tools/showButton.js";
 import type * as agent_tools_showSubstitutions from "../agent/tools/showSubstitutions.js";
 import type * as agent_tools_suggestDishes from "../agent/tools/suggestDishes.js";
 import type * as agent_tools_translateRecipe from "../agent/tools/translateRecipe.js";
+import type * as agent_tools_verifyRecipe from "../agent/tools/verifyRecipe.js";
 import type * as agent_utils_createTool from "../agent/utils/createTool.js";
 import type * as agent_utils_exact from "../agent/utils/exact.js";
 import type * as agent_utils_index from "../agent/utils/index.js";
@@ -177,6 +179,7 @@ import type * as functions_recipes_syncRecipeLinks from "../functions/recipes/sy
 import type * as functions_recipes_toModelRecipe from "../functions/recipes/toModelRecipe.js";
 import type * as functions_recipes_updateRecipe from "../functions/recipes/updateRecipe.js";
 import type * as functions_recipes_uploadRestoredImages from "../functions/recipes/uploadRestoredImages.js";
+import type * as functions_recipes_verifyAgainstSource from "../functions/recipes/verifyAgainstSource.js";
 import type * as functions_users_clearDeletion from "../functions/users/clearDeletion.js";
 import type * as functions_users_deleteSignIns from "../functions/users/deleteSignIns.js";
 import type * as functions_users_isAuthorized from "../functions/users/isAuthorized.js";
@@ -279,6 +282,7 @@ import type * as router_recipes_setFavorite from "../router/recipes/setFavorite.
 import type * as router_recipes_suggestDishes from "../router/recipes/suggestDishes.js";
 import type * as router_recipes_translateOne from "../router/recipes/translateOne.js";
 import type * as router_recipes_updateOne from "../router/recipes/updateOne.js";
+import type * as router_recipes_verifyOne from "../router/recipes/verifyOne.js";
 import type * as router_users_getAccount from "../router/users/getAccount.js";
 import type * as router_users_getMe from "../router/users/getMe.js";
 import type * as router_users_purge from "../router/users/purge.js";
@@ -322,6 +326,7 @@ declare const fullApi: ApiFromModules<{
   "agent/config/prompts/sanitizeRecipe": typeof agent_config_prompts_sanitizeRecipe;
   "agent/config/prompts/suggestDishes": typeof agent_config_prompts_suggestDishes;
   "agent/config/prompts/translateRecipe": typeof agent_config_prompts_translateRecipe;
+  "agent/config/prompts/verifyRecipe": typeof agent_config_prompts_verifyRecipe;
   "agent/tools/cellar": typeof agent_tools_cellar;
   "agent/tools/computeNutrition": typeof agent_tools_computeNutrition;
   "agent/tools/display": typeof agent_tools_display;
@@ -336,6 +341,7 @@ declare const fullApi: ApiFromModules<{
   "agent/tools/showSubstitutions": typeof agent_tools_showSubstitutions;
   "agent/tools/suggestDishes": typeof agent_tools_suggestDishes;
   "agent/tools/translateRecipe": typeof agent_tools_translateRecipe;
+  "agent/tools/verifyRecipe": typeof agent_tools_verifyRecipe;
   "agent/utils/createTool": typeof agent_utils_createTool;
   "agent/utils/exact": typeof agent_utils_exact;
   "agent/utils/index": typeof agent_utils_index;
@@ -474,6 +480,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/toModelRecipe": typeof functions_recipes_toModelRecipe;
   "functions/recipes/updateRecipe": typeof functions_recipes_updateRecipe;
   "functions/recipes/uploadRestoredImages": typeof functions_recipes_uploadRestoredImages;
+  "functions/recipes/verifyAgainstSource": typeof functions_recipes_verifyAgainstSource;
   "functions/users/clearDeletion": typeof functions_users_clearDeletion;
   "functions/users/deleteSignIns": typeof functions_users_deleteSignIns;
   "functions/users/isAuthorized": typeof functions_users_isAuthorized;
@@ -576,6 +583,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/suggestDishes": typeof router_recipes_suggestDishes;
   "router/recipes/translateOne": typeof router_recipes_translateOne;
   "router/recipes/updateOne": typeof router_recipes_updateOne;
+  "router/recipes/verifyOne": typeof router_recipes_verifyOne;
   "router/users/getAccount": typeof router_users_getAccount;
   "router/users/getMe": typeof router_users_getMe;
   "router/users/purge": typeof router_users_purge;

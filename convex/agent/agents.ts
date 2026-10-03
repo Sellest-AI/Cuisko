@@ -87,6 +87,22 @@ export const ingredientsAgent = new Agent(components.agent, {
   // usageHandler,
 });
 
+/**
+ * The recipe verifier behind an admin's "Verify the recipe". `low`, because the model is already
+ * the strong one (`models.verifier`): in the bake-off (`verifyRecipe.manual.test.ts`, 2026-10-03)
+ * it was clean on every run in under a minute, and more effort only buys time the admin waits
+ * through — the higher efforts of the models tried there ran past five minutes.
+ */
+export const verifierAgent = new Agent(components.agent, {
+  name: "Cuisko Verifier Agent",
+  providerOptions: models.verifier.providerOptions({ effort: "low" }),
+  languageModel: models.verifier.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});
+
 export const translatorAgent = new Agent(components.agent, {
   name: "Cuisko Translator Agent",
   providerOptions: models.translator.providerOptions({ effort: false }),

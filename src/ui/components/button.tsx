@@ -9,7 +9,7 @@ type StyleExtended = ViewStyle & { color?: string } | undefined;
 type Props = {
   children: ReactNode;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "neutral";
+  variant?: "primary" | "secondary" | "neutral" | "ghost";
   elevated?: boolean;
   isLoading?: boolean;
   disabled?: boolean;

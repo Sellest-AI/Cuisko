@@ -45,9 +45,28 @@ const DEEPSEEK_V4_FLASH_0731_OPTIONS = {
 
 const OPENAI_GPT_6_LUNA = openrouter.chat("openai/gpt-6-luna");
 const OPENAI_GPT_6_LUNA_OPTIONS = {
-  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
+  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" | "xhigh" | "max" }) => ({
     openrouter: {
       reasoning: effort ? { enabled: true, effort } : { enabled: false },
+      provider: {
+        sort: "price",
+        allow_fallbacks: true,
+        require_parameters: true
+      }
+    }
+  })
+}
+
+/**
+ * The verifier's model. Twenty times Luna's price per token, but at `low` effort it barely
+ * reasons: about 2 cents and under a minute per verify in the bake-off, where Luna at `high`
+ * spent three minutes and still missed what the page's method added.
+ */
+const OPENAI_GPT_6_1_SOL = openrouter.chat("openai/gpt-6.1-sol");
+const OPENAI_GPT_6_1_SOL_OPTIONS = {
+  providerOptions: ({ effort }: { effort?: "low" }) => ({
+    openrouter: {
+      reasoning: { enabled: true, effort: effort ?? "low" },
       provider: {
         sort: "price",
         allow_fallbacks: true,
@@ -107,6 +126,16 @@ export const models = {
   assistant: {
     model: DEEPSEEK_V4_1_FLASH,
     ...DEEPSEEK_V4_FLASH_0731_OPTIONS
+  },
+  /**
+   * The admin's second opinion on an imported recipe (`tools/verifyRecipe.ts`). A stronger model
+   * than the one that wrote the recipe, because what it is paid for is catching that one's misses.
+   * Named on its own so a bake-off in `verifyRecipe.manual.test.ts` can move it without moving
+   * the import.
+   */
+  verifier: {
+    model: OPENAI_GPT_6_1_SOL,
+    ...OPENAI_GPT_6_1_SOL_OPTIONS
   },
   translator: {
     model: OPENAI_GPT_6_LUNA,
