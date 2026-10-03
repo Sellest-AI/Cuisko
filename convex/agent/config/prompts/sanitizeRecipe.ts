@@ -108,7 +108,8 @@ not inventing them.
   is TRUE of this recipe, then write it. Leaving out a true tag is the same error as inventing a
   false one, and it is the one you will actually make: the tags dropped first are the ones that
   sound like a warning or like work. Chilli, harissa or gochujang is "spicy". A marinade or a dough
-  resting overnight is "make-ahead". A tag is a fact, not a compliment, so an unflattering one is as
+  resting overnight is "make-ahead"; one that only waits while the rest is prepared is not, because
+  nothing is done ahead. A tag is a fact, not a compliment, so an unflattering one is as
   required as a flattering one — and a fact is not a wish either: do not tag "quick" a recipe that
   takes an hour.
   "sauce" is a course of its own: something served with a dish rather than eaten as one — a sauce,
@@ -202,6 +203,10 @@ not inventing them.
     buy: "smoked paprika" yes, because plain paprika is another jar; "fresh ginger" yes, because
     ground ginger is another jar; "ripe tomato" no. Test every word you keep by asking whether
     dropping it would send the cook home with the wrong product; if it would not, drop it.
+    A word naming the CUT or the PART always passes that test, because it is a different product
+    from the food it comes from — another shelf, another price, another nutrition: "lamb
+    shoulder", "duck leg", "pork loin", "beef shin", "cod fillet", "egg white". Write the animal
+    alone — "duck" — only when the recipe really cooks it whole.
     It is matched against a catalog by name.
   - unit: exactly one of: ${_list(RECIPE_UNITS)}. "tbsp" is a tablespoon and "tsp" a teaspoon, both the
     metric spoon — 15 ml and 5 ml. "pcs" is the piece a RECIPE counts — a clove of garlic, not the
@@ -229,6 +234,15 @@ not inventing them.
     units, convert both to the SMALLER unit before adding — 2 teaspoons and 1 tablespoon are
     5 tsp, never "1 tbsp" and never two lines — and every step then speaks that unit: "2
     teaspoons" in the marinade, "the remaining 3 teaspoons" in the pickles.
+  - One ingredient used for two jobs is still one line, and its quantity covers BOTH jobs. "2
+    tablespoons of stock" to loosen the onions and "stock to cover" the lentils is one stock line
+    holding the spoons PLUS what covering needs, estimated under rule 1 from the pot and the food.
+    Fat for frying is estimated the same way: around 10 cl to shallow-fry in a pan, around 1 l to
+    deep-fry in a pot. Never the measured job alone: the unmeasured one is usually the larger, and
+    dropping it sends the cook to the stove without it. A spoon added to an amount estimated in
+    bulk is the one sum not made in the smaller unit: 2 tablespoons and 75 cl are 78 cl, never 52
+    tablespoons. The steps then split it: "2 tablespoons of stock" with the onions, "the remaining
+    stock" over the lentils.
   - An ingredient the cook listed but no step uses is dropped. It is on the shopping list for
     nothing, and the cook cannot tell from the recipe why they bought it.
   - An ingredient a step uses but the cook never listed IS listed, with an estimated quantity. The
@@ -257,7 +271,9 @@ each is fixed in the answer, not noted.
 - No group title contains "and" in the language you write.
 - Work the cook did "while it cooks" comes after the step that starts the cooking.
 - No appliance the cook said they can do without is in equipments.
-- Every word left in an ingredient name changes what the cook buys.
+- Every word left in an ingredient name changes what the cook buys, and no cut or part was
+  dropped from one: "lamb shoulder" is still "lamb shoulder".
+- An ingredient used for two jobs carries the quantity of both, the unmeasured job estimated.
 - A fatUse sits only on a fat, and only where some of it is left behind — never on a sear whose
   pan goes into the dish.
 `.trim();

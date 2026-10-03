@@ -165,7 +165,8 @@ export const modelRecipeSchema = z.object({
         `The ingredient alone, singular, lowercase, with no quantity, brand or preparation — ` +
         `"onion", not "3 onions, thinly sliced"; "japanese mayonnaise", not "Kewpie". Keep an ` +
         `adjective only when it changes what you would buy: "smoked paprika" yes, "fresh ` +
-        `coriander" no. It is matched against a catalog by this name.`,
+        `coriander" no. A cut or a part is never dropped: "duck leg", not "duck". It ` +
+        `is matched against a catalog by this name.`,
       ),
       quantity: z.number()
         .describe(`Always a number. Estimate it when the cook wrote "to taste" or "a drizzle".`),
@@ -190,7 +191,8 @@ export const modelRecipeSchema = z.object({
       ),
     }),
   ).describe(
-    "One entry per ingredient, never the same ingredient twice — quantities added together.",
+    "One entry per ingredient, never the same ingredient twice — quantities added together, " +
+    "including a use the cook left unmeasured: a spoon of stock plus stock to cover is both.",
   ),
 });
 
