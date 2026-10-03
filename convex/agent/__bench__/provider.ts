@@ -5,13 +5,13 @@
  * of the question a bake-off asks, and routing a benchmark through the agent layer would measure
  * the agent layer too.
  */
-import { generateText, Output } from "ai";
+import { generateText, Output, type StepResult, stepCountIs, type ToolSet } from "ai";
 import type { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 // Straight from the file, not through `../utils` — the barrel pulls in `wrapAgent` and with it the
 // whole Convex agent layer, which is exactly what this folder does not want to load.
 import { providerSchema } from "../utils/providerSchema";
-import type { Answer, Attempt, Effort, ProviderRouting } from "./types";
+import type { Answer, Attempt, Effort, ProviderRouting, ToolUse } from "./types";
 
 /**
  * How long one generation may take before it is abandoned.
@@ -123,6 +123,7 @@ const _measure = (
   output: unknown,
   flags: readonly string[] | undefined,
   started: number,
+  toolUses: ToolUse[] | undefined,
 ): Attempt => ({
   ok: true,
   ms: Date.now() - started,
@@ -131,7 +132,36 @@ const _measure = (
   cost: reportedCost(result.finalStep.providerMetadata),
   flags: [...(flags ?? [])],
   output,
+  ...(toolUses && { toolUses }),
 });
+
+/**
+ * A recorder for the tools an entrant calls, fed one step at a time.
+ *
+ * Fed by `onStepEnd` rather than read off the result at the end, because the run worth reading is
+ * often the one that failed — a model still searching at the step cap leaves no answer, and the
+ * result that would have carried its calls is never returned. Every step that finished is here.
+ *
+ * A call with no result is kept, with `output` absent: a tool that threw, or an input the schema
+ * refused, is something the model did and the reader should see.
+ */
+const _toolLog = () => {
+  const uses: ToolUse[] = [];
+  let step = 0;
+
+  const onStepEnd = (finished: Pick<StepResult<ToolSet>, "toolCalls" | "toolResults">) => {
+    step += 1;
+    for (const call of finished.toolCalls) {
+      const result = finished.toolResults.find(({ toolCallId }) => toolCallId === call.toolCallId);
+      uses.push({ step, tool: call.toolName, input: call.input, ...(result && { output: result.output }) });
+    }
+  };
+
+  return { uses, onStepEnd };
+};
+
+/** The step cap on a bake-off that hands out tools — the same 7 every agent in `agents.ts` runs with. */
+const BENCH_MAX_STEPS = 7;
 
 /**
  * One generation, measured, never thrown.
@@ -148,6 +178,7 @@ export const attempt = async <Raw, Parsed>(
     system: string;
     prompt: string;
     answer?: Answer<Raw, Parsed>;
+    tools?: ToolSet;
     provider?: ProviderRouting;
     timeoutMs?: number;
   },
@@ -158,6 +189,7 @@ export const attempt = async <Raw, Parsed>(
   // HTTP request, so two retries cannot quietly triple it. An aborted call is not retried: the
   // signal is already spent by the time the SDK considers a second try.
   const signal = AbortSignal.timeout(timeoutMs);
+  const log = task.tools ? _toolLog() : undefined;
   const call = {
     model,
     system: task.system,
@@ -165,6 +197,8 @@ export const attempt = async <Raw, Parsed>(
     providerOptions: routing(effort, task.provider),
     maxRetries: 2,
     abortSignal: signal,
+    // Only with tools: a step budget on a tool-less call is noise in every other bake-off.
+    ...(task.tools && log && { tools: task.tools, stopWhen: stepCountIs(BENCH_MAX_STEPS), onStepEnd: log.onStepEnd }),
   };
 
   try {
@@ -173,7 +207,7 @@ export const attempt = async <Raw, Parsed>(
     if (!answer) {
       const result = await generateText(call);
 
-      return _measure(result, result.text, undefined, started);
+      return _measure(result, result.text, undefined, started, log?.uses);
     }
 
     // `providerSchema`, not the caller's schema: an `.optional()` field is a key missing from
@@ -192,7 +226,7 @@ export const attempt = async <Raw, Parsed>(
       ? answer.parse(result.output)
       : (result.output as unknown as Parsed);
 
-    return _measure(result, parsed, answer.check?.(parsed), started);
+    return _measure(result, parsed, answer.check?.(parsed), started, log?.uses);
   } catch (error) {
     return {
       ok: false,
@@ -205,6 +239,7 @@ export const attempt = async <Raw, Parsed>(
         : error instanceof Error
           ? error.message
           : String(error),
+      ...(log && { toolUses: log.uses }),
     };
   }
 };

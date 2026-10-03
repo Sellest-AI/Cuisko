@@ -5,7 +5,7 @@
  * same number the same way — a latency that reads as `1.4s` in the progress lines and as `1400ms`
  * in the table is two facts to the eye and one to the machine.
  */
-import type { Attempt, Effort, Success } from "./types";
+import type { Attempt, Effort, Success, ToolUse } from "./types";
 
 /**
  * Straight to stdout, bypassing `console` entirely.
@@ -166,4 +166,24 @@ export const tally = (items: string[]) => {
     .sort(([, a], [, b]) => b - a)
     .map(([item, count]) => (count > 1 ? `${item} (×${count})` : item))
     .join(", ");
+};
+
+/**
+ * What an entrant did with its tools, one call per line: the step, the tool, its input, and what
+ * came back. Shared by the transcript and the judge, so the file a reader hands on and the prompt
+ * the judge ranked from show the same calls in the same words.
+ *
+ * `undefined` when the bake-off offered no tools, so a tool-less transcript reads as it always has.
+ */
+export const toolUseLines = (uses: ToolUse[] | undefined): string[] | undefined => {
+  if (!uses) return undefined;
+  if (!uses.length) return ["Tool calls: none — it answered without calling a tool."];
+
+  return [
+    `Tool calls (${uses.length}):`,
+    ...uses.map(({ step, tool, input, output }) =>
+      `- step ${step} · ${tool}(${JSON.stringify(input)}) → ` +
+      (output === undefined ? "no result (the call failed)" : JSON.stringify(output)),
+    ),
+  ];
 };

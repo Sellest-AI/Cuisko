@@ -20,7 +20,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { meanCost, median, mode, num, succeeded, usd } from "./format";
+import { meanCost, median, mode, num, succeeded, toolUseLines, usd } from "./format";
 import type { Verdict } from "./judge";
 import type { Attempt, Entrant } from "./types";
 
@@ -51,8 +51,11 @@ const _fence = (body: string, language = "") => `\`\`\`${language}\n${body}\n\`\
 
 /** One run, un-blinded, with the deterministic findings attached to it. */
 const _run = (attempt: Attempt, index: number) => {
+  const tools = toolUseLines(attempt.toolUses);
+  const toolBlock = tools ? [...tools, ""] : [];
+
   if (!attempt.ok)
-    return [`#### Run ${index + 1} — FAILED after ${attempt.ms} ms`, "", _fence(attempt.error)];
+    return [`#### Run ${index + 1} — FAILED after ${attempt.ms} ms`, "", ...toolBlock, _fence(attempt.error)];
 
   return [
     `#### Run ${index + 1} — ${num(attempt.ms)} ms · ${num(attempt.tokens)} tokens ` +
@@ -66,6 +69,7 @@ const _run = (attempt: Attempt, index: number) => {
         "",
       ]
       : ["Automated checks: clean.", ""]),
+    ...toolBlock,
     _fence(_render(attempt.output), typeof attempt.output === "string" ? "" : "json"),
   ];
 };
@@ -123,6 +127,10 @@ export const transcript = (options: {
     "",
     "The judge's notes are one model's opinion and may be wrong. The lines marked as flagged by " +
     "automated checks are not — those were verified in code before the judge saw them.",
+    "",
+    "Where the candidates had tools, each run lists its tool calls before its answer: what it " +
+    "looked up, and what came back. Read them as the run's reasoning made visible — a wrong answer " +
+    "built on a search that returned the right row is a different fault from one that never searched.",
     "",
     "## The instructions the candidates were given",
     "",

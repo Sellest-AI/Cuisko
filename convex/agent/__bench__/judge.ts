@@ -11,6 +11,7 @@ import { generateText, Output } from "ai";
 import * as z from "zod/v4";
 
 import { DEFAULT_JUDGE_TIMEOUT_MS, reportedCost, routing, type Chat } from "./provider";
+import { toolUseLines } from "./format";
 import type { Attempt, ProviderRouting } from "./types";
 
 export const verdictSchema = z.object({
@@ -56,11 +57,15 @@ const _render = (output: unknown) =>
 
 /** One run, as the judge sees it: what came back, and what code already proved wrong with it. */
 const _run = (label: string, index: number, attempt: Attempt) => {
+  const tools = toolUseLines(attempt.toolUses) ?? [];
+
   if (!attempt.ok)
-    return `### ${label}, run ${index + 1} — FAILED after ${attempt.ms} ms\n${attempt.error}`;
+    return [`### ${label}, run ${index + 1} — FAILED after ${attempt.ms} ms`, ...tools, attempt.error].join("\n");
 
   return [
     `### ${label}, run ${index + 1} (${attempt.ms} ms)`,
+    // Before the answer: the judge reads what the run looked up, then what it concluded from it.
+    ...tools,
     _render(attempt.output),
     ...(attempt.flags.length
       ? ["Automated checks flagged this run:", ...attempt.flags.map((flag) => `- ${flag}`)]

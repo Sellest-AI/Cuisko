@@ -5,13 +5,15 @@
  * point of the folder. A bake-off is: some models, at some reasoning efforts, given one system
  * prompt and one input, judged against criteria the caller supplies.
  */
+import type { ToolSet } from "ai";
 import type * as z from "zod/v4";
 
 /**
  * How hard an entrant is asked to think.
  *
  * `false` is reasoning off — the setting the tools ship with. `"low"`, `"medium"` and `"high"` are
- * OpenRouter's own three levels, and each provider maps them to a budget of its own choosing.
+ * OpenRouter's own levels, and each provider maps them to a budget of its own choosing; `"xhigh"`
+ * and `"max"` exist only on the models that list them (GPT-6 Luna does).
  *
  * A NUMBER is that budget said directly: it becomes `reasoning.max_tokens` rather than
  * `reasoning.effort`. It is the only way to ask two different models to think for the same number
@@ -20,7 +22,7 @@ import type * as z from "zod/v4";
  * along. Mixing both in one `modes` list is legal and often what you want: `[false, "high", 2000]`
  * asks whether the budget or the label is what actually bought the quality.
  */
-export type Effort = false | "low" | "medium" | "high" | "auto" | "max" | number;
+export type Effort = false | "low" | "medium" | "high" | "xhigh" | "auto" | "max" | number;
 
 /**
  * A model and the reasoning efforts to try it at.
@@ -83,6 +85,10 @@ export type ProviderRouting = {
  *
  * `output` is `unknown` on purpose. The harness only ever prints it for the judge, so pinning the
  * caller's type through here would buy nothing and cost every reader a type parameter.
+ *
+ * `toolUses` is what the entrant DID, beside what it answered: every call, in order, with what the
+ * tool gave back. Absent when the bake-off offered no tools; an empty list when it offered them
+ * and the entrant never called one — which is itself the finding. A failed run carries it too.
  */
 export type Attempt =
   | {
@@ -93,8 +99,16 @@ export type Attempt =
     cost: number | undefined;
     flags: string[];
     output: unknown;
+    toolUses?: ToolUse[];
   }
-  | { ok: false; ms: number; error: string };
+  | { ok: false; ms: number; error: string; toolUses?: ToolUse[] };
+
+/**
+ * One tool call an entrant made. `step` is the generation step it was made in, from 1, so calls
+ * made side by side read as one decision and calls on later steps as a model reacting to what the
+ * earlier ones returned. `output` is absent when the call produced no result — a tool that threw.
+ */
+export type ToolUse = { step: number; tool: string; input: unknown; output?: unknown };
 
 /** The runs that produced something, narrowed. */
 export type Success = Extract<Attempt, { ok: true }>;
@@ -154,6 +168,16 @@ export type BakeOff<Raw, Parsed = Raw> = {
 
   /** The output contract, the app's parser, and the deterministic checks. Omitted means text. */
   answer?: Answer<Raw, Parsed>;
+
+  /**
+   * Tools the candidates may call before they answer, for a task that ships with them.
+   *
+   * Plain AI SDK tools (`tool()` from `ai`), not the app's `createTool` ones: a bake-off has no
+   * Convex ctx to run them against. So a bake-off fakes what the real tool reads — a fixture
+   * catalog in place of the database — and keeps the tool's real name and input schema, which are
+   * what the model actually sees. The steps are capped at `BENCH_MAX_STEPS`, the agents' own cap.
+   */
+  tools?: ToolSet;
 
   /**
    * How to weigh the candidates, heaviest first, in the caller's own words. One string per
