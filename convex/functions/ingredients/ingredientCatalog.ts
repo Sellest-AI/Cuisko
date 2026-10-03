@@ -397,6 +397,8 @@ const ROWS: Row[] = [
   ["powdered-sugar", "Powdered sugar", "Sucre glace", "SWEETENER", "g", 500, 389, 0, 0, 0, 100, 100, 0, 2],
   ["vanilla-sugar", "Vanilla sugar", "Sucre vanillé", "SWEETENER", "g", 100, 394, 0, 0, 0, 98, 98, 0, 1],
   ["agave-syrup", "Agave syrup", "Sirop d'agave", "SWEETENER", "ml", 250, 310, 0, 0, 0, 76, 68, 0.2, 4],
+  // Neither USDA nor CIQUAL lists it: the figures are a palm-flower sugar's label (Ethiquable).
+  ["palm-sugar", "Palm sugar", "Sucre de palme", "SWEETENER", "g", 250, 382, 1.5, 0, 0, 94, 86.5, 0, 40],
 
   // ── Other ───────────────────────────────────────────────────────────────────────────────
   ["water", "Water", "Eau", "OTHER", "l", 1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -491,7 +493,7 @@ const EMOJI: Record<string, string> = {
   peanuts: "🥜",
   // Sweeteners
   honey: "🍯", "agave-syrup": "🍯", "maple-syrup": "🍁", "white-sugar": "🍬",
-  "brown-sugar": "🍬", "powdered-sugar": "🍬", "vanilla-sugar": "🍬",
+  "brown-sugar": "🍬", "powdered-sugar": "🍬", "vanilla-sugar": "🍬", "palm-sugar": "🍬",
   // Condiments
   salt: "🧂", ketchup: "🍅", "tomato-paste": "🍅", mayonnaise: "🥚", "hot-sauce": "🌶️",
   harissa: "🌶️", pesto: "🌿", hummus: "🫘", "vinegar-red-wine": "🍷",
@@ -580,7 +582,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "pasta-dry": { fr: ["pâtes"] },
   "white-rice": { fr: ["riz"] },
   "flour-all-purpose": { fr: ["farine"] },
-  "white-sugar": { fr: ["sucre", "sucre semoule"] },
+  "white-sugar": { fr: ["sucre", "sucre semoule"], en: ["caster sugar", "superfine sugar"] },
   "brown-sugar": { fr: ["cassonade"] },
   cornstarch: { fr: ["fécule de maïs"] },
   honey: { fr: ["miel liquide"] },
@@ -594,7 +596,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   // Without it "noix de muscade" tied with the walnuts on the shared word.
   nutmeg: { fr: ["noix de muscade"] },
   paprika: { fr: ["paprika doux"] },
-  salt: { fr: ["fleur de sel", "gros sel", "sel fin"] },
+  salt: { fr: ["fleur de sel", "gros sel", "sel fin", "sel marin"], en: ["sea salt"] },
   "mustard-yellow": { fr: ["moutarde de dijon"] },
   // A British recipe says "stock" where this row says "broth". Without these, "chicken stock"
   // scored 0.45 here and was linked to a stock CUBE the import had invented.
@@ -611,7 +613,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   baguette: { fr: ["pain"] },
   "bread-white": { fr: ["pain de mie"] },
   "tuna-canned-water": { fr: ["thon"] },
-  shrimp: { fr: ["crevettes", "gambas"] },
+  shrimp: { fr: ["crevettes", "gambas"], en: ["prawn", "king prawn"] },
   chickpeas: { fr: ["pois chiches"] },
   lardons: { fr: ["lardon"] },
   // A recipe writing "de la salade" means leaves, and the catalog's only leaves are these.
@@ -761,7 +763,7 @@ const GRAMS_PER_ML: Record<string, number> = {
   "ginger-fresh": 0.5, parmesan: 0.35,
   // Sweeteners
   "white-sugar": 0.85, "brown-sugar": 0.8, "powdered-sugar": 0.56, "vanilla-sugar": 0.85, honey: 1.42,
-  "maple-syrup": 1.32, "agave-syrup": 1.37,
+  "maple-syrup": 1.32, "agave-syrup": 1.37, "palm-sugar": 0.8,
   // Dry pantry, spooned
   "flour-all-purpose": 0.53, "whole-wheat-flour": 0.55, cornstarch: 0.6, cornmeal: 0.65,
   polenta: 0.65, breadcrumbs: 0.4, oats: 0.4, "cocoa-powder": 0.5, "baking-powder": 0.92,
@@ -1038,6 +1040,7 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   "white-sugar": { sealed: 3650, opened: 3650 }, "powdered-sugar": { sealed: 730, opened: 730 },
   "brown-sugar": { sealed: 730, opened: 365 }, "vanilla-sugar": { sealed: 730, opened: 365 },
   honey: { sealed: 730, opened: 730 }, "agave-syrup": { sealed: 730, opened: 365 },
+  "palm-sugar": { sealed: 730, opened: 365 },
   "maple-syrup": { sealed: 365, opened: 180 },
   // -- Everything else -----------------------------------------------------------------------
   water: { sealed: 365, opened: 3 },
@@ -1144,7 +1147,8 @@ const DIET: Record<string, Diet> = {
 
   // -- Sweeteners: honey is the whole reason this category has no default --------------------
   "white-sugar": "vegan", "brown-sugar": "vegan", "powdered-sugar": "vegan",
-  "maple-syrup": "vegan", "agave-syrup": "vegan", "vanilla-sugar": "vegan", honey: "vegetarian",
+  "maple-syrup": "vegan", "agave-syrup": "vegan", "vanilla-sugar": "vegan", "palm-sugar": "vegan",
+  honey: "vegetarian",
 
   // -- Other: a bucket by definition, so every row states its own case -----------------------
   water: "vegan", "vegetable-broth": "vegan", "tofu-firm": "vegan", tempeh: "vegan",

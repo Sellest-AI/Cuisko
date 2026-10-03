@@ -37,7 +37,7 @@ const _inputSchema = z.object({
     .max(MAX_QUERIES)
     .describe(
       "The names of the INGREDIENTS to look up, one per entry, as a shop would call them " +
-      "([\"oeuf\", \"lentilles\"]).",
+      "([\"oeuf\", \"egg\", \"lentilles\"]).",
     ),
 });
 
