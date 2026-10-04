@@ -25,6 +25,7 @@
     "resting": "Repos",
     "dial_unit": "Minutes",
     "meal_score": "Cui-Score",
+    "source": "Voir la recette originale",
     "verify": "Vérifier la recette",
     "verify_unchanged": "Rien à corriger : la recette correspond à sa source.",
     "verify_failed": "La vérification n'a pas abouti. Réessayez.",

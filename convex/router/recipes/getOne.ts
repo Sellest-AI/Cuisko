@@ -10,12 +10,17 @@ import { ConvexError, v } from "convex/values";
  * (ADR 0014): a recipe is readable by id by anyone signed in, which is what sharing a link and
  * favoriting a catalog recipe both mean. What stays gated is gated where it happens — `updateOne`
  * checks ownership before a write, `getAll` and `search` list only the caller's own. The payload
- * carries `isOwned` for the screen to hide the pencil, and never the owner's `userId`.
+ * carries `isOwned` for the screen to hide the pencil, and never the owner's `userId`. The source
+ * page ships only to the owner and to an admin, which is why the viewer's role is passed down.
  */
 export const authed = authQueryI18n({
   args: { id: v.id("recipes") },
   handler: (ctx, { id }) =>
-    loadRecipe(ctx, { recipe: id, locale: ctx.i18n.locale, viewerId: ctx.userId }),
+    loadRecipe(ctx, {
+      recipe: id,
+      locale: ctx.i18n.locale,
+      viewer: { id: ctx.userId, isAdmin: ctx.user.role === "ADMIN" },
+    }),
 });
 
 /**

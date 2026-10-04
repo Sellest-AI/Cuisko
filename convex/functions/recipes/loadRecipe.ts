@@ -131,7 +131,7 @@ export type RecipeDetail = RecipeCard & {
    */
   nutrition?: RecipeNutrition;
   /**
-   * Whether the reader wrote it, and whether they kept it — present only when a `viewerId` was
+   * Whether the reader wrote it, and whether they kept it — present only when a `viewer` was
    * given, which the client-facing `getOne.authed` does and internal callers do not.
    *
    * Reads are open to any signed-in cook (ADR 0014), so the screen can no longer take ownership
@@ -141,6 +141,14 @@ export type RecipeDetail = RecipeCard & {
    */
   isOwned?: boolean;
   isFavorited?: boolean;
+  /**
+   * The page the recipe was imported from, for the link under it — only for a viewer who owns the
+   * recipe or is an admin, and only when one was stored.
+   *
+   * Left out of the payload for everyone else rather than shipped beside a flag saying not to draw
+   * it: a field the client receives is a field any cook can read off the wire.
+   */
+  sourceUrl?: string;
   /**
    * Whether its cook deleted it. Shipped because an archived recipe is still opened — from a meal
    * cooked with it — and the editor must not offer to delete it a second time.
@@ -246,25 +254,35 @@ const _resolve = async (ctx: LoadCtx, target: RecipeOrId): Promise<Doc<"recipes"
   return recipe;
 };
 
+/** Who is reading, as far as the payload depends on it. `isAdmin` is the caller's to establish. */
+type Viewer = { id: Id<"users">; isAdmin?: boolean };
+
 /**
  * The reader's relation to the recipe, or nothing when nobody in particular is reading.
  *
  * One point read on `by_user_and_recipe`. `isOwned` compares against the stored `userId` here so
- * that the id itself never has to leave the server.
+ * that the id itself never has to leave the server, and the same comparison decides `sourceUrl`.
  */
 const _flagsOf = async (
   ctx: LoadCtx,
   recipe: Doc<"recipes">,
-  viewerId?: Id<"users">,
-): Promise<Pick<RecipeDetail, "isOwned" | "isFavorited">> => {
-  if (!viewerId) return {};
+  viewer?: Viewer,
+): Promise<Pick<RecipeDetail, "isOwned" | "isFavorited" | "sourceUrl">> => {
+  if (!viewer) return {};
 
   const favorite = await ctx.db
     .query("recipeFavorites")
-    .withIndex("by_user_and_recipe", (q) => q.eq("userId", viewerId).eq("recipeId", recipe._id))
+    .withIndex("by_user_and_recipe", (q) => q.eq("userId", viewer.id).eq("recipeId", recipe._id))
     .first();
 
-  return { isOwned: recipe.userId === viewerId, isFavorited: favorite !== null };
+  const isOwned = recipe.userId === viewer.id;
+  const canSeeSource = isOwned || viewer.isAdmin;
+
+  return {
+    isOwned,
+    isFavorited: favorite !== null,
+    ...(canSeeSource && recipe.sourceUrl !== undefined && { sourceUrl: recipe.sourceUrl }),
+  };
 };
 
 /**
@@ -274,12 +292,13 @@ const _flagsOf = async (
  * either side could run it — doing it here means it runs once per fetch instead of once per render,
  * and the two screens that consume this both need the groups rather than the text.
  *
- * `viewerId` is who is reading, when that matters: with it the payload carries `isOwned` and
- * `isFavorited`; without it, neither. It is not an authorization argument — see `_resolve`.
+ * `viewer` is who is reading, when that matters: with it the payload carries `isOwned` and
+ * `isFavorited`, and `sourceUrl` for the owner or an admin; without it, none of the three. It
+ * gates what the payload shows, not whether the recipe can be read — see `_resolve`.
  */
 export const loadRecipe = async (
   ctx: LoadCtx,
-  { recipe: target, locale, viewerId }: { recipe: RecipeOrId; locale: Locale; viewerId?: Id<"users"> },
+  { recipe: target, locale, viewer }: { recipe: RecipeOrId; locale: Locale; viewer?: Viewer },
 ): Promise<RecipeDetail> => {
   const recipe = await _resolve(ctx, target);
 
@@ -288,7 +307,7 @@ export const loadRecipe = async (
     _chefOf(ctx, recipe),
     coverOf(ctx, recipe),
     plateOf(ctx, recipe),
-    _flagsOf(ctx, recipe, viewerId),
+    _flagsOf(ctx, recipe, viewer),
   ]);
 
   return {

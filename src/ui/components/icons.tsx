@@ -41,7 +41,7 @@ export {
   Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,
   Play as PlayIcon, Pause as PauseIcon, SkipBack as SkipBackIcon, SkipForward as SkipForwardIcon,
   DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon, PencilIcon, GlobeIcon,
-  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon
+  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, Link as LinkIcon
 } from "lucide-react-native";
 
 export { GoogleLogo, AppleLogo } from "./icons.logos";

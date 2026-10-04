@@ -15,6 +15,7 @@ import { GroceryRow } from "./grocery-row";
 import { Timings, type Timing } from "./timings";
 import { Verify } from "./verify";
 import { IngredientGroup } from "../../_components/ingredient-group";
+import { Source } from "./source";
 
 const COLUMNS = 3;
 
@@ -69,7 +70,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           saturatedFat={recipe.nutrition.perServing.saturatedFat}
         />
       )}
-      <View style={[styles.horizontalRow, styles.paddingHorizontal]}>
+      <View style={[styles.horizontalRow, styles.paddingHorizontal, !recipe.nutrition && { marginTop: theme.spacing[8] }]}>
         <Difficulty
           label={t(`Difficulties.${difficultyKey(recipe.difficulty)}`)}
           level={recipe.difficulty}
@@ -121,7 +122,8 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           />
         </View>
       )}
-      <Verify id={id} />
+      {recipe.sourceUrl && <Source url={recipe.sourceUrl} style={styles.source} />}
+      <Verify id={id} style={styles.verify} />
     </RecipeScreen>
   );
 };
@@ -145,5 +147,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[8],
   },
   section: { marginTop: theme.spacing[24] },
-  utensils: { marginTop: theme.spacing[8] }
+  utensils: { marginTop: theme.spacing[8] },
+  source: { marginTop: theme.spacing[24] },
+  verify: { marginTop: theme.spacing[24], marginBottom: theme.spacing[24] },
 });

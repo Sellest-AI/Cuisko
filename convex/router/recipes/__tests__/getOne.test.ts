@@ -26,10 +26,10 @@ const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
 
 let t: ReturnType<typeof convexTest>;
 
-const seedUser = (name: string) =>
+const seedUser = (name: string, role: "USER" | "ADMIN" = "USER") =>
   t.run(async (ctx) => {
     const userId = await ctx.db.insert("users", { name });
-    await ctx.db.insert("usersExtended", { userId, role: "USER", updatedAt: Date.now() });
+    await ctx.db.insert("usersExtended", { userId, role, updatedAt: Date.now() });
 
     return userId;
   });
@@ -316,6 +316,43 @@ describe("router/recipes/getOne", () => {
 
     expect(recipe).not.toHaveProperty("search");
     expect(recipe).not.toHaveProperty("userId");
+  });
+
+  /**
+   * The source page rides `authed` for its owner and for an admin only. The rule is
+   * `loadRecipe`'s and is tested there; this pins that the role actually reaches it.
+   */
+  describe("the source page", () => {
+    const SOURCE = "https://example.com/onion-soup";
+
+    const seedSourced = async (ownerId: Id<"users">) => {
+      const recipeId = await seedRecipe(ownerId);
+      await t.run((ctx) => ctx.db.patch(recipeId, { sourceUrl: SOURCE }));
+
+      return recipeId;
+    };
+
+    const readAs = (userId: Id<"users">, recipeId: Id<"recipes">) =>
+      t.withIdentity(asUser(userId)).query(api.router.recipes.getOne.authed, { id: recipeId, locale: "en" });
+
+    test("gives the source to the recipe's owner", async () => {
+      const ownerId = await seedUser("Franck");
+
+      expect((await readAs(ownerId, await seedSourced(ownerId))).sourceUrl).toBe(SOURCE);
+    });
+
+    test("gives the source to an admin on another cook's recipe", async () => {
+      const recipeId = await seedSourced(await seedUser("Franck"));
+      const adminId = await seedUser("Admin", "ADMIN");
+
+      expect((await readAs(adminId, recipeId)).sourceUrl).toBe(SOURCE);
+    });
+
+    test("withholds the source from another cook", async () => {
+      const recipeId = await seedSourced(await seedUser("Franck"));
+
+      expect(await readAs(await seedUser("Stranger"), recipeId)).not.toHaveProperty("sourceUrl");
+    });
   });
 
   /**

@@ -553,4 +553,58 @@ describe("functions/recipes/loadRecipe", () => {
     expect(first.chef?.name).toBe(second.chef?.name);
     expect(first.chef?.seed).not.toBe(second.chef?.seed);
   });
+
+  /**
+   * The page a recipe was imported from goes to its owner and to an admin, and to nobody else: the
+   * field is left out of the payload, not drawn hidden, so a cook cannot read it off the wire.
+   */
+  describe("the source page", () => {
+    const SOURCE = "https://example.com/onion-soup";
+
+    /** A recipe imported from `SOURCE`, its owner, and a cook who did not write it. */
+    const seedSourced = async () => {
+      const recipeId = await seedRecipe();
+      const { ownerId, strangerId } = await t.run(async (ctx) => {
+        await ctx.db.patch(recipeId, { sourceUrl: SOURCE });
+        return { ownerId: (await ctx.db.get(recipeId))!.userId!, strangerId: await ctx.db.insert("users", { name: "Léa" }) };
+      });
+
+      return { recipeId, ownerId, strangerId };
+    };
+
+    const load = (recipeId: Id<"recipes">, viewer?: { id: Id<"users">; isAdmin: boolean }) =>
+      t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "en", viewer }));
+
+    test("gives the source to the cook who owns the recipe", async () => {
+      const { recipeId, ownerId } = await seedSourced();
+
+      expect((await load(recipeId, { id: ownerId, isAdmin: false })).sourceUrl).toBe(SOURCE);
+    });
+
+    test("gives the source to an admin reading a recipe they do not own", async () => {
+      const { recipeId, strangerId } = await seedSourced();
+
+      expect((await load(recipeId, { id: strangerId, isAdmin: true })).sourceUrl).toBe(SOURCE);
+    });
+
+    test("leaves the source out for any other cook", async () => {
+      const { recipeId, strangerId } = await seedSourced();
+
+      expect(await load(recipeId, { id: strangerId, isAdmin: false })).not.toHaveProperty("sourceUrl");
+    });
+
+    /** Nobody in particular is reading, so there is nobody it could be for. `getOne._internal` adds its own. */
+    test("leaves the source out when no viewer is given", async () => {
+      const { recipeId } = await seedSourced();
+
+      expect(await load(recipeId)).not.toHaveProperty("sourceUrl");
+    });
+
+    test("ships no source for a recipe that has none, even to its owner", async () => {
+      const recipeId = await seedRecipe();
+      const ownerId = await t.run(async (ctx) => (await ctx.db.get(recipeId))!.userId!);
+
+      expect(await load(recipeId, { id: ownerId, isAdmin: true })).not.toHaveProperty("sourceUrl");
+    });
+  });
 });

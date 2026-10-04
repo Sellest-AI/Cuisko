@@ -24,6 +24,7 @@
     "resting": "Rest",
     "dial_unit": "Minutes",
     "meal_score": "Cui-Score",
+    "source": "See the original recipe",
     "verify": "Verify the recipe",
     "verify_unchanged": "Nothing to correct: the recipe matches its source.",
     "verify_failed": "The check did not finish. Try again.",
