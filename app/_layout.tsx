@@ -7,6 +7,7 @@ import { theme } from "~/global/theme";
 import { AuthGate } from "~/modules/auth/auth-gate";
 import { HouseholdAtomsReset } from "~/modules/households/household-atoms-reset";
 import { NavigationBar } from "~/modules/navigation/navigation-bar";
+import { ShareIntentListener } from "~/modules/recipes/share-intent-listener";
 import { Providers } from "~/providers";
 
 /**
@@ -117,6 +118,8 @@ export default function RootLayout() {
       </BlurScope>
       {/* Beside the navigator rather than in a screen: a switch can happen from any of them. */}
       <HouseholdAtomsReset />
+      {/* Beside the navigator too: a link shared from another app can arrive on any screen. */}
+      <ShareIntentListener />
       {/* Last, so its cover draws over the bar as well as the page. */}
       <AuthGate />
     </Providers>

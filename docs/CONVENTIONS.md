@@ -747,6 +747,9 @@ Is it domain logic with no React, Jotai or Convex import — types, invariants, 
 │  (unit-tested directly, no provider tree — see src/modules/groceries/_model/model.ts)
 └─ A trivial helper, one `_hooks/` file uses it?      → stays inline in that hook, for now
 
+Is it a pure function about one vendor SDK's data,    → src/lib/{vendor}/   even with no SDK import
+no domain in it (the link a share carries)?             one export per file (src/lib/share-intent/)
+
 Is it a screen?                                       → app/  (routing only — no useQuery)
 
 Is it backend code?
