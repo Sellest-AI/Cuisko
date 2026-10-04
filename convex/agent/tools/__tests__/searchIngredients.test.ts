@@ -5,9 +5,14 @@ import { searchIngredientsTool } from "../searchIngredients";
 type Ctx = Parameters<ReturnType<typeof searchIngredientsTool>["run"]>[0];
 
 /** A catalog row as `searchCatalog` hands it back, trimmed to what the tool reads. */
-const _row = (name: string, weights: { gramsPerPiece?: number; gramsPerMl?: number } = {}) => ({
+const _row = (
+  name: string,
+  weights: { gramsPerPiece?: number; gramsPerMl?: number } = {},
+  aliases?: string[],
+) => ({
   _id: `id-${name}`,
   name,
+  ...(aliases && { aliases }),
   nutrition: { calories: 142.6, protein: 12.56, fat: 9.9, carbohydrates: 0.72, sodium: 140.4 },
   nutriScore: { grade: "A", points: -1 },
   ...weights,
@@ -42,6 +47,24 @@ describe("searchIngredientsTool", () => {
       per100g: { calories: 143, protein: 13, fat: 10, carbohydrates: 1, sodium: 140 },
       nutriScore: "A",
     });
+  });
+
+  /**
+   * The other names the row answers to, so a model reading "jeune pousse d'épinard" → "épinard"
+   * can see the catalog filed that word under that row, rather than guess it is only the nearest.
+   */
+  it("hands out the row's aliases in the search language, and none when it has none", async () => {
+    const { ctx } = _ctx({
+      "jeune pousse d'épinard": [_row("épinard", {}, ["jeune pousse d'épinard", "pousse d'épinard"])],
+      oeuf: [_row("oeuf", { gramsPerPiece: 50 }, [])],
+    });
+
+    const [spinach, egg] = (await _search(ctx, ["jeune pousse d'épinard", "oeuf"])).map(
+      ({ ingredients }) => ingredients[0]!,
+    );
+
+    expect(spinach!.aliases).toEqual(["jeune pousse d'épinard", "pousse d'épinard"]);
+    expect(egg).not.toHaveProperty("aliases");
   });
 
   /** What lets "an egg" reach the calculator as one piece, and never as millilitres. */

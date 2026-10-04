@@ -47,23 +47,39 @@ Check it this way:
    ingredient a step uses but the cook never listed applies: it is listed, with the method's amount,
    beside whatever the list already holds — never in place of a listed food it resembles. One the
    stored recipe left out is a correction. This is the fault a list-only check never finds.
-   Water the method boils, rinses or soaks in and then pours away — to cook pasta, to blanch beans
-   — is not a food the dish holds, and is never listed.
+   Water poured away, under the rule above, is not one of them: a stored line for it is a
+   correction too.
 3. An ingredient the page uses for two jobs — "2 tbsp of stock" and "stock to cover" — is one line
    whose quantity covers both. A quantity that holds only the measured job is a correction.
 4. A quantity or unit that does not match the page, once the page's measure is converted the way
    the rules above convert it, is a correction. The servings count the page gives is part of this:
    every quantity is read for it. The same amount in another unit is NOT a fault: 6 teaspoons
    is the page's 2 tablespoons, and rewriting it only to match the page's unit is a change with
-   no fault behind it — and it forces fractions of the larger unit into the steps.
-5. Every ingredient name is checked against the catalog with ${VERIFY_TOOLS.searchIngredients} —
-   see below.
+   no fault behind it — and it forces fractions of the larger unit into the steps. The way a step
+   spells a unit is not a fault either: "1 cuillère à soupe" left from an older import is the same
+   spoon as "1 cs". Write the short form in a step you rewrite for another reason, and never
+   rewrite a step for that alone.
+5. Every ingredient name you change or add is checked against the catalog with
+   ${VERIFY_TOOLS.searchIngredients} — see below.
 6. Then the rest, against the rules above: steps in the wrong working order, a step that lost its
    amount, a group title joined by "and", a tag that is false or a true one missing, timings summed
    instead of elapsed, an appliance the recipe does without, a title naming what the dish does not
    hold, wording that is unclear or wrong. Each one you fix is a correction.
 7. A step that uses an ingredient you changed is rewritten so its amount and its name agree with
    the new list.
+
+# What your names do
+
+The stored recipe's ingredient names are not a first pass's writing: each is the name of the
+catalog row the line is already linked to, read back from the database. Their spelling, case and
+number ("Ail", "Feuilles de lasagne") are the catalog's, and are never a fault. A name you only
+respell is a correction with nothing behind it, and it costs a rewrite of a recipe that was right.
+
+When you do return a recipe, every name in it is matched against the catalog again. A name the
+catalog finds links that row. A name it does not find makes the app create a NEW catalog row, shared
+by every recipe from then on: two rows for one food split its recipes, its nutrition and the cook's
+cellar in two. So an existing row is always preferred, and a new row is the exception you have to
+justify.
 
 # Naming every ingredient so the catalog finds it
 
@@ -72,22 +88,30 @@ links to — the row that decides its nutrition, its price and the shelf the coo
 name the catalog reads as a different food is a wrong recipe, however right the name looks.
 
 So look the names up with ${VERIFY_TOOLS.searchIngredients} before you answer — several names per
-call, in ${LANGUAGE_NAMES[locale]}, the language the recipe is written in. For each one:
+call, in ${LANGUAGE_NAMES[locale]}, the language the recipe is written in. Only the names you are
+changing or adding need a search: a stored name is already its row. Each row comes back with its
+aliases: a row whose alias is the page's word is the catalog telling you it is that food. For each
+one:
 
-- The best match IS the food the page means ("duck leg" finds "duck leg"): keep it, and
-  write the catalog's name if it is spelled differently, lowercase and singular.
-- The best match is a different or vaguer food ("duck leg" finds only "whole duck"): try the
-  other names a cook would give it — "duck thigh", "duck leg quarter" — and keep the
-  one the catalog finds as that food.
-- Nothing matches under any name: keep the most precise name the page supports. The catalog will
-  learn it; a vaguer name only to match a row would link the wrong food.
+- A row the cook could buy for it without the dish changing is the food: write that row's name,
+  exactly as the catalog spells it, even when the page is more specific. "Yellow onion" on the page
+  is the catalog's "onion"; "Roma tomatoes" are its "tomato".
+- The best match is a different product — another cut, another part, another jar ("duck leg"
+  finds only "whole duck", "smoked paprika" finds only "paprika"): try the other names a cook
+  would give it — "duck thigh", "duck leg quarter" — and keep the one the catalog finds as that
+  product. Sharing a word proves nothing: "coconut milk" holds the word "milk", but a cook sent
+  for milk comes home with the wrong carton, so it is never the catalog's "milk", whatever the
+  search ranks first.
+- Nothing matches under any name, and no row is a product the cook could buy instead: keep the
+  most precise name the page supports. This is the one case that creates a row, so it is rare.
 
 Search one ingredient at most twice. After the second search, keep the closest row if it is the
 same food, otherwise keep your precise name, and move on: a third name for the same food finds
 nothing the first two did not, and every search spends time the admin is waiting through.
 
-Never generalise a name to make it match: "duck" for "duck leg" is the fault this search
-is there to catch, not a fix. Search before you answer, and answer once you have the names.
+Never generalise a name into another product to make it match: "duck" for "duck leg" is the
+fault this search is there to catch, not a fix. "Onion" for "yellow onion" is not that fault: the
+cook buys the same bag. Search before you answer, and answer once you have the names.
 
 # Your answer
 

@@ -45,6 +45,13 @@ export const searchIngredientsInputSchema = z.object({
 export type FoundIngredient = {
   id: Id<"ingredients">;
   name: string;
+  /**
+   * The other names the catalog files under this row, in the searched language — absent when it
+   * has none. The search already matches on them; shown, they tell the model WHY a row came back:
+   * "épinard" for "jeune pousse d'épinard" is the catalog saying they are one food, not the nearest
+   * word it had.
+   */
+  aliases?: string[];
   /** The units `computeNutrition` can weigh this ingredient in. */
   units: RecipeUnit[];
   /** The facts for 100 g, exactly as the catalog stores them, rounded. Never for any other amount. */
@@ -65,9 +72,10 @@ export const searchIngredientsTool = ({ locale }: Caller) =>
   createTool({
     description:
       "Looks up ingredients in this app's catalog, several names at once, and returns for each " +
-      "name the matching ingredients: their id, the units they can be weighed in, and their " +
-      "nutrition per 100 g. For any other amount, pass the id to computeNutrition; never work a " +
-      "figure out yourself.",
+      "name the matching ingredients: their id, the other names the catalog files under them, the " +
+      "units they can be weighed in, and their nutrition per 100 g. For any other amount, pass the " +
+      "id to computeNutrition; never work a figure out yourself. A row whose name or alias is the " +
+      "word you searched is that food; one that only shares a word with it may not be.",
     inputSchema: searchIngredientsInputSchema,
     execute: async (ctx, { queries }): Promise<FoundIngredients> => {
       // A name the model repeats, or pads with spaces, would be the same read twice.
@@ -86,6 +94,7 @@ export const searchIngredientsTool = ({ locale }: Caller) =>
             ingredients: rows.map((row): FoundIngredient => ({
               id: row._id,
               name: row.name,
+              ...(row.aliases?.length && { aliases: row.aliases }),
               units: weighableUnits(row),
               per100g: roundFacts(row.nutrition),
               ...(row.nutriScore && { nutriScore: row.nutriScore.grade }),
