@@ -541,6 +541,10 @@ const CATEGORY_EMOJI: Record<Category, string> = {
  */
 const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   potato: { fr: ["patates"], en: ["spuds"] },
+  // The onion France sells by default is the yellow one; naming its colour buys the same net.
+  onion: { fr: ["oignon jaune"], en: ["yellow onion", "brown onion"] },
+  // Young leaves are sold in a bag beside the mature ones, cooked and eaten the same way.
+  spinach: { fr: ["jeune pousse d'épinard", "pousse d'épinard"], en: ["baby spinach"] },
   // "clove" measures garlic and names a spice, so it is no stopword (see `STOPWORDS_EN`): the
   // garlic phrasings are spelled out here, where the word garlic is what tells the two apart.
   // "clove of garlic" also covers "1 clove garlic" — both reduce to `clove garlic`.
@@ -569,7 +573,8 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "cocoa-powder": { fr: ["cacao"], en: ["cocoa"] },
   "coffee-ground": { fr: ["café"], en: ["coffee"] },
   "heavy-cream": { fr: ["crème liquide", "crème entière", "crème liquide entière"] },
-  "ground-beef-80-20": { fr: ["viande hachée", "steak haché"] },
+  // The beef France sells as plain "bœuf haché" is this one; a recipe naming no fat means it.
+  "ground-beef-80-20": { fr: ["viande hachée", "steak haché", "bœuf haché"], en: ["ground beef", "minced beef"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },
   "chicken-breast": { fr: ["blanc de poulet", "escalope de poulet"] },
   // The whole leg, as France sells a cuisse; English recipes buy the same piece as a thigh.
