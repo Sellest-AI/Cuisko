@@ -1,5 +1,6 @@
-import { ConvexError } from "convex/values";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { rejectionCodeOf } from "../../__tests__/convexError.fixtures";
 
 import { fetchPage } from "../fetchPage";
 
@@ -15,15 +16,6 @@ afterEach(() => {
 const page = (body: BodyInit, headers: Record<string, string> = {}) =>
   new Response(body, { status: 200, headers: { "content-type": "text/html", ...headers } });
 
-const codeOf = async (promise: Promise<unknown>) => {
-  const caught = await promise.then(
-    () => undefined,
-    (error: unknown) => error,
-  );
-  expect(caught).toBeInstanceOf(ConvexError);
-  return (caught as ConvexError<{ code: string }>).data.code;
-};
-
 describe("fetchPage", () => {
   describe("a hostname written with its trailing dot", () => {
     it.each(["http://localhost./", "http://metadata.google.internal./computeMetadata/v1/"])(
@@ -32,7 +24,7 @@ describe("fetchPage", () => {
         const fetchMock = vi.fn();
         vi.stubGlobal("fetch", fetchMock);
 
-        expect(await codeOf(fetchPage(url))).toBe("INVALID_INPUT");
+        expect(await rejectionCodeOf(fetchPage(url))).toBe("INVALID_INPUT");
         expect(fetchMock).not.toHaveBeenCalled();
       },
     );
@@ -43,7 +35,7 @@ describe("fetchPage", () => {
       );
       vi.stubGlobal("fetch", fetchMock);
 
-      expect(await codeOf(fetchPage("https://example.com/recipe"))).toBe("INVALID_INPUT");
+      expect(await rejectionCodeOf(fetchPage("https://example.com/recipe"))).toBe("INVALID_INPUT");
       expect(fetchMock).toHaveBeenCalledOnce();
     });
   });
@@ -59,7 +51,7 @@ describe("fetchPage", () => {
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
 
-      expect(await codeOf(fetchPage(url))).toBe("INVALID_INPUT");
+      expect(await rejectionCodeOf(fetchPage(url))).toBe("INVALID_INPUT");
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
@@ -95,7 +87,7 @@ describe("fetchPage", () => {
       }),
     );
 
-    const pending = codeOf(fetchPage("https://example.com/recipe"));
+    const pending = rejectionCodeOf(fetchPage("https://example.com/recipe"));
     await vi.advanceTimersByTimeAsync(10_000);
 
     expect(await pending).toBe("EXTERNAL_SERVICE_ERROR");

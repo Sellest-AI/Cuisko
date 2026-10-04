@@ -93,7 +93,22 @@
     "unreachable_title": "That site did not answer",
     "unreachable_body": "It may be down, or it may not let us in. Try again, or write the recipe out instead.",
     "limited_title": "You have reached the import limit for now",
-    "limited_body": "Try again in a bit, or write the recipe out instead."
+    "limited_body": "Try again in a bit, or write the recipe out instead.",
+    "sharing_title": "Importing recipe",
+    "sharing_body": "This can take up to 3 minutes. You can safely close the app and come back later.",
+    "close": "Close",
+    "unsupported_title": "We cannot import from this app yet",
+    "unsupported_body": "Instagram reels and TikTok videos work today, more apps are on the way.",
+    "not_video_title": "This post has no video",
+    "not_video_body": "We read recipes from videos. Share a reel instead.",
+    "not_recipe_title": "This video has no recipe in it",
+    "not_recipe_body": "We watched it and found no dish being cooked. Share a video that shows one.",
+    "not_found_title": "We could not open this post",
+    "not_found_body": "It may be private, restricted or deleted.",
+    "unavailable_title": "Importing from this app is down for now",
+    "unavailable_body": "Something changed on its side. Try again later, or write the recipe out instead.",
+    "too_large_title": "This video is too long to import",
+    "too_large_body": "Try a shorter one, or write the recipe out instead."
   },
   "Creating": {
     "step_glasses": "Putting on our reading glasses",

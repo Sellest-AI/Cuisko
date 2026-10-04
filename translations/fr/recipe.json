@@ -95,7 +95,22 @@
     "unreachable_title": "Ce site n'a pas répondu",
     "unreachable_body": "Il est peut-être indisponible, ou il refuse notre visite. Réessayez, ou saisissez la recette à la main.",
     "limited_title": "Tu as atteint la limite d'imports pour le moment",
-    "limited_body": "Réessaie dans un instant, ou écris la recette à la main."
+    "limited_body": "Réessaie dans un instant, ou écris la recette à la main.",
+    "sharing_title": "Import de la recette",
+    "sharing_body": "Cela peut prendre jusqu'à 3 minutes. Vous pouvez fermer l'application et revenir plus tard.",
+    "close": "Fermer",
+    "unsupported_title": "Nous ne savons pas encore importer depuis cette application",
+    "unsupported_body": "Les reels Instagram et les vidéos TikTok fonctionnent déjà, d'autres applications arrivent.",
+    "not_video_title": "Cette publication n'a pas de vidéo",
+    "not_video_body": "Nous lisons les recettes dans les vidéos. Partagez plutôt un reel.",
+    "not_recipe_title": "Cette vidéo ne contient pas de recette",
+    "not_recipe_body": "Nous l'avons regardée sans y trouver de plat cuisiné. Partagez une vidéo qui en montre un.",
+    "not_found_title": "Nous n'avons pas pu ouvrir cette publication",
+    "not_found_body": "Elle est peut-être privée, restreinte ou supprimée.",
+    "unavailable_title": "L'import depuis cette application est indisponible pour le moment",
+    "unavailable_body": "Quelque chose a changé de son côté. Réessayez plus tard, ou saisissez la recette à la main.",
+    "too_large_title": "Cette vidéo est trop longue pour être importée",
+    "too_large_body": "Essayez-en une plus courte, ou saisissez la recette à la main."
   },
   "Creating": {
     "step_glasses": "On chausse nos lunettes de lecture",

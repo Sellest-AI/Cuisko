@@ -249,6 +249,26 @@ describe("router/recipes/createOne", () => {
       expect(row!.sourceUrl).toBeUndefined();
     });
 
+    /**
+     * A video's address is the key `importVideo` answers every cook's share with (`findBySource`),
+     * so only the video import may write one. Typed with a recipe of a cook's own, it would be
+     * served to everyone who later shares that video.
+     */
+    test.each([
+      "https://www.instagram.com/p/DcTtz3Ftj9I/",
+      "https://www.tiktok.com/@/video/7690673524758924557",
+      "https://vm.tiktok.com/ZMabc123/",
+    ])("stores nothing for %s, a video address only the video import may claim", async (sourceUrl) => {
+      const userId = await seedUser();
+
+      const recipeId: Id<"recipes"> = await t
+        .withIdentity(asUser(userId))
+        .action(api.router.recipes.createOne.authed, { ...FREE_TEXT, sourceUrl });
+
+      const row = await t.run((ctx) => ctx.db.get(recipeId));
+      expect(row!.sourceUrl).toBeUndefined();
+    });
+
     test("stores nothing for text that is not a web address, without refusing the recipe", async () => {
       const userId = await seedUser();
 

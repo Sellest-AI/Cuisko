@@ -38,6 +38,8 @@ export const NOT_HOUSEHOLD = {
   "src/modules/recipes/_hooks/atoms.ts:importedDraftAtom":
     "a recipe being imported belongs to the cook, and recipes are not household-scoped (ADR 0014)",
   "src/modules/recipes/_hooks/atoms.ts:servingsAtom": "the servings picked on the recipe on screen",
+  "src/modules/recipes/_hooks/atoms.ts:importsInFlightAtom":
+    "video imports this app is waiting on; an imported recipe belongs to the cook, and recipes are not household-scoped (ADR 0014)",
   "src/modules/recipes/_hooks/atoms.ts:verificationsAtom":
     "an admin's checks of recipes against their source pages; recipes are not household-scoped (ADR 0014)",
 };

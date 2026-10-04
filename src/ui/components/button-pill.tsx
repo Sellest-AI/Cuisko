@@ -130,6 +130,9 @@ export const ButtonPill = ({
   const borderColor = variant === "ghost" ? "transparent" :
     variant === "neutral" && !elevated ? colors.border.medium : colors.border.default;
 
+  const minHeight = flatStyle?.minHeight ??
+    size === "lg" ? 48 : size === "md" ? 36 : 32;
+
   /** The side discs have no ghost of their own; a ghost pill wears the neutral ones. */
   const sideVariant = variant === "ghost" ? "neutral" : variant;
 
@@ -140,7 +143,7 @@ export const ButtonPill = ({
    */
   const { paddingHorizontal, paddingVertical, gap: styleGap,
     paddingLeft: overridePaddingLeft, paddingRight: overridePaddingRight,
-    padding: overridePadding, minHeight, justifyContent, ...rest } = flatStyle;
+    padding: overridePadding, justifyContent, ...rest } = flatStyle;
 
   const defaultPadding = size === "lg" ? theme.spacing[8] : theme.spacing[4];
   const padding = overridePadding ?? defaultPadding;

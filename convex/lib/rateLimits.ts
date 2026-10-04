@@ -17,6 +17,12 @@ export const RATE_LIMITS = {
   ingredientResolve: { kind: "token bucket", rate: 90, period: 6 * HOUR, capacity: 30 },
   recipeWrite: { kind: "fixed window", rate: 10, period: DAY },
   recipeImport: { kind: "fixed window", rate: 10, period: DAY },
+  // Half of `recipeImport`: a video import is a video model on top of everything `recipeWrite` pays for.
+  recipeVideoImport: { kind: "fixed window", rate: 5, period: DAY },
+  // A short link followed to its video (`importVideoNode._internal_resolveShortLink`): no model, but a
+  // Node action and a request to the platform each, ahead of `recipeVideoImport`. A burst for a cook
+  // re-sharing, then a minute apart, so a loop can't.
+  videoLinkResolve: { kind: "token bucket", rate: 60, period: HOUR, capacity: 10 },
   // The photos a cook sends with a question: today the only thing uploaded, so it copies `assistant`.
   imageUpload: { kind: "token bucket", rate: 50, period: 6 * HOUR, capacity: 20 },
 } as const satisfies Record<string, RateLimitConfig>;

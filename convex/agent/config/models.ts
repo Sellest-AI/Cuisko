@@ -1,4 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { wrapLanguageModel } from "ai";
 import { env } from "@convex/env";
 
 const openrouter = createOpenRouter({
@@ -97,6 +98,51 @@ const QWEN_3_7_FLASH_OPTIONS = {
   })
 }
 
+/**
+ * The video importer's model (`tools/extractVideoRecipe.ts`). Picked on 2026-10-04 because it is the
+ * one model that both LISTENS and FETCHES the video itself from Instagram's CDN:
+ *
+ *   - it heard "18 minutes at 180" where the reel's caption wrote 20 (audio input);
+ *   - handed the signed `cdninstagram.com` URL, it downloaded the reel on its own side, so Convex
+ *     never holds the video. $0.008 and 35 s for the 13 MB test reel.
+ *
+ * Measured against it the same day: `meta/muse-spark-1.3` hears too, but Meta refuses the CDN URL
+ * (`media_url_not_fetchable`) and needs the video inline, at $0.059; `z-ai/glm-5.3-flash` fetches the
+ * URL but has no audio input, so it missed the spoken 18 minutes; `qwen/qwen3.8-omni-flash` timed out
+ * downloading the URL. If MiMo goes, re-run that comparison before picking a successor, and read
+ * `tools/extractVideoRecipe.ts`'s fallback note if the new one will not take the URL.
+ *
+ * **Xiaomi only.** Four providers serve MiMo and the URL was tested through Xiaomi's own, which also
+ * has `structured_outputs`; another provider is a different fetcher, and an untested one.
+ *
+ * **The `video/*` URL override is load-bearing.** `@openrouter/ai-sdk-provider` 3.0.0 declares URL
+ * support for images, text and application files but not video, and the AI SDK DOWNLOADS any file
+ * URL its provider does not declare, then inlines it. Without this middleware the "URL" import would
+ * quietly fetch 13 MB into the Convex action and base64 it there, which is the 512 MB crash this
+ * model was picked to avoid.
+ */
+const XIAOMI_MIMO_V2_6_PRO = wrapLanguageModel({
+  model: openrouter.chat("xiaomi/mimo-v2.6-pro"),
+  middleware: {
+    overrideSupportedUrls: async ({ model }) => ({
+      ...(await model.supportedUrls),
+      "video/*": [/^https:\/\/.+$/],
+    }),
+  },
+});
+const XIAOMI_MIMO_V2_6_PRO_OPTIONS = {
+  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
+    openrouter: {
+      reasoning: effort ? { enabled: true, effort } : { enabled: false },
+      provider: {
+        only: ["xiaomi"],
+        allow_fallbacks: false,
+        require_parameters: true
+      }
+    }
+  })
+}
+
 export const models = {
   default: {
     model: DEEPSEEK_V4_FLASH_0731,
@@ -158,5 +204,10 @@ export const models = {
   prompterMini: {
     model: QWEN_3_7_FLASH,
     ...QWEN_3_7_FLASH_OPTIONS
+  },
+  /** The video importer. Its own entry, so a bake-off on `recipes` cannot move it. */
+  videoRecipes: {
+    model: XIAOMI_MIMO_V2_6_PRO,
+    ...XIAOMI_MIMO_V2_6_PRO_OPTIONS
   }
 }

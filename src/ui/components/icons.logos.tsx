@@ -1,4 +1,4 @@
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 
 import { theme } from "theme";
 
@@ -9,7 +9,8 @@ import { theme } from "theme";
  * `IconInput` — stroke path data rendered `fill="none"` into a fixed `0 0 24 24` box. A brand mark
  * is a filled silhouette, so passed through that pipeline it would draw as a hairline outline.
  *
- * Monochrome on purpose, tinted by `color`. Paths are Simple Icons (CC0) on a 24-unit grid.
+ * The marks are monochrome on purpose, tinted by `color`; the app tiles further down are not.
+ * Paths are Simple Icons (CC0) on a 24-unit grid.
  */
 export type BrandLogoProps = { size?: number; color?: string };
 
@@ -37,3 +38,71 @@ const Mark = ({ d, size = DEFAULT_SIZE, color = theme.colors.foreground }: Brand
 
 export const GoogleLogo = (props: BrandLogoProps) => <Mark d={GOOGLE_PATH} {...props} />;
 export const AppleLogo = (props: BrandLogoProps) => <Mark d={APPLE_PATH} {...props} />;
+
+/**
+ * App tiles: a brand's own colours on its rounded square, the way a share sheet shows where a link
+ * came from. Unlike the marks above they are NOT tinted, because a tile in the wrong colour is no
+ * longer recognisable as the app it stands for.
+ *
+ * Drawn on a 24-unit grid with the iOS-ish corner (≈22% of the side). The TikTok note is Simple
+ * Icons (CC0), drawn three times (cyan, red, white) for the brand's offset glitch; the Instagram
+ * camera and the globe are primitives.
+ */
+export type BrandTileProps = { size?: number };
+
+const TILE_RADIUS = 5.4;
+
+const TIKTOK_PATH =
+  "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03" +
+  "c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79" +
+  "-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71" +
+  "-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96" +
+  "-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82" +
+  " 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01" +
+  "-8.05.02-12.07z";
+
+export const InstagramTile = ({ size = 48 }: BrandTileProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Defs>
+      <RadialGradient id="instagram" cx="0.25" cy="1.05" r="1.25">
+        <Stop offset="0" stopColor="#FFD45C" />
+        <Stop offset="0.25" stopColor="#FF8A3D" />
+        <Stop offset="0.5" stopColor="#F5426C" />
+        <Stop offset="0.75" stopColor="#C837AB" />
+        <Stop offset="1" stopColor="#6A4BE0" />
+      </RadialGradient>
+    </Defs>
+    <Rect width={24} height={24} rx={TILE_RADIUS} fill="url(#instagram)" />
+    <Rect x={5.5} y={5.5} width={13} height={13} rx={3.8} fill="none" stroke="#FFFFFF" strokeWidth={1.6} />
+    <Circle cx={12} cy={12} r={3.1} fill="none" stroke="#FFFFFF" strokeWidth={1.6} />
+    <Circle cx={15.9} cy={8.1} r={0.95} fill="#FFFFFF" />
+  </Svg>
+);
+
+export const TikTokTile = ({ size = 48 }: BrandTileProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Rect width={24} height={24} rx={TILE_RADIUS} fill="#000000" />
+    <G transform="translate(5.6 5.4) scale(0.54)">
+      <Path d={TIKTOK_PATH} fill="#25F4EE" transform="translate(-0.9 -0.6)" />
+      <Path d={TIKTOK_PATH} fill="#FE2C55" transform="translate(0.9 0.6)" />
+      <Path d={TIKTOK_PATH} fill="#FFFFFF" />
+    </G>
+  </Svg>
+);
+
+export const WebTile = ({ size = 48 }: BrandTileProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Defs>
+      <LinearGradient id="web" x1="0" y1="0" x2="0" y2="1">
+        <Stop offset="0" stopColor="#1EC8F5" />
+        <Stop offset="1" stopColor="#0A7CDB" />
+      </LinearGradient>
+    </Defs>
+    <Rect width={24} height={24} rx={TILE_RADIUS} fill="url(#web)" />
+    <G fill="none" stroke="#FFFFFF" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx={12} cy={12} r={6.5} />
+      <Path d="M12 5.5a9.4 9.4 0 0 0 0 13 9.4 9.4 0 0 0 0-13" />
+      <Path d="M5.5 12h13" />
+    </G>
+  </Svg>
+);

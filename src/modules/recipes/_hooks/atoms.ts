@@ -49,6 +49,28 @@ export const importedDraftAtom = atom<ImportedDraft | undefined>(undefined);
  */
 export const servingsAtom = atom<{ id: string; servings: number } | undefined>(undefined);
 
+/**
+ * The recipe a video import ends in, and whether it is the cook's own: a video another cook already
+ * imported answers with their recipe. Read off the action like `ImportedDraft`.
+ */
+export type ImportedVideoRecipe = FunctionReturnType<typeof api.router.recipes.importVideo.authed>;
+
+/**
+ * The video imports this app has started and not yet heard back from, by `importKeyOf` key.
+ *
+ * What makes a second share of the same reel, while the first is still importing, join that import
+ * instead of paying for another one: `useImportSharedLink` finds the key here and waits on the same
+ * promise, so both sheets end on the same recipe (or the same error). Each entry is removed the
+ * moment its import settles.
+ *
+ * Memory only, on purpose: a cook who closes the app and shares again gets a fresh attempt, which
+ * the server answers with the finished recipe if the first one completed (`findBySource`).
+ *
+ * A `Map` of promises is the value, not a promise itself, so Jotai stores it rather than suspending
+ * on it. Always replaced, never mutated, so a read of the atom is a snapshot.
+ */
+export const importsInFlightAtom = atom<ReadonlyMap<string, Promise<ImportedVideoRecipe>>>(new Map());
+
 /** What a verify said: the fixes it made, or that there were none. Read off the action like `ImportedDraft`. */
 export type VerifyOutcome = FunctionReturnType<typeof api.router.recipes.verifyOne.admin>;
 

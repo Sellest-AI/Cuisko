@@ -113,6 +113,20 @@ export const translatorAgent = new Agent(components.agent, {
   // usageHandler,
 });
 
+/**
+ * The video importer behind `tools/extractVideoRecipe.ts`. `low`: MiMo returned a complete recipe
+ * in our schema at low effort on 2026-10-04, and the cook is waiting on this call.
+ */
+export const videoRecipesAgent = new Agent(components.agent, {
+  name: "Cuisko Video Recipes Agent",
+  providerOptions: models.videoRecipes.providerOptions({ effort: "low" }),
+  languageModel: models.videoRecipes.model,
+  instructions: "",
+  contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  maxSteps: 7,
+  // usageHandler,
+});
+
 export const imagesGeneratorAgent = new Agent(components.agent, {
   name: "Cuisko Images Generator Agent",
   providerOptions: models.prompterMini.providerOptions({ effort: "low" }),

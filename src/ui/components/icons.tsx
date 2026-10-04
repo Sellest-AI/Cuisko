@@ -44,7 +44,7 @@ export {
   ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, Link as LinkIcon, FlameIcon
 } from "lucide-react-native";
 
-export { GoogleLogo, AppleLogo } from "./icons.logos";
+export { GoogleLogo, AppleLogo, InstagramTile, TikTokTile, WebTile } from "./icons.logos";
 
 /** The renderer, re-exported so nothing outside this file has to know about morphicons. */
 export { MorphIcon } from "morphicons/react-native";

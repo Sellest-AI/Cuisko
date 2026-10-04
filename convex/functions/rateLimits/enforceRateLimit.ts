@@ -9,7 +9,7 @@ import type { AppUser } from "../users/loadUser";
 const limiter = new RateLimiter(components.rateLimiter);
 
 /** A mutation ctx or an action ctx: all the limiter needs is `runMutation`. */
-type RateLimitCtx = Parameters<RateLimiter["limit"]>[0] & {
+export type RateLimitCtx = Parameters<RateLimiter["limit"]>[0] & {
   userId: Id<"users">;
   user: Pick<AppUser, "role">;
 };

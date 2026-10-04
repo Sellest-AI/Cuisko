@@ -6,6 +6,7 @@ import { WeekSummaryReveal } from "~/modules/health/week-summary-reveal";
 import { FavoriteRecipes } from "~/modules/recipes/favorite-recipes";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
+import { DevShareButton } from "./dev-share-button";
 import { HomeHeader } from "./header";
 import { QuickAccess } from "./quick-access";
 import { WeeklySpotlight } from "./spotlight";
@@ -48,6 +49,7 @@ export const HomeScreen = () => (
       <QuickAccess />
       <WeeklySpotlight />
       <FavoriteRecipes style={styles.favorites} />
+      {__DEV__ ? <DevShareButton /> : null}
     </ScrollView>
   </>
 );

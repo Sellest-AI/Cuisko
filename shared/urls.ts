@@ -17,6 +17,9 @@ const TRAILING_PASTE_ARTEFACTS = /[.,;:!?)\]}'"»<>]+$/;
 /** An explicit scheme, and its authority. The `//` is what separates it from a `host:port`. */
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 
+/** The first `http(s)://` address inside a sentence: what a share sheet sends when it adds words. */
+const LINK_IN_TEXT = /https?:\/\/\S+/i;
+
 /**
  * The pasted text as an absolute `http(s)` URL, or `undefined` if it is not one.
  *
@@ -29,13 +32,18 @@ const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
  * whose port is not a number, and `URL` throws. The refusal is the same either way, which is the
  * point — there is no arm of this function that returns a non-http URL.
  *
+ * Text with words around an address ("Check out this video! https://vm.tiktok.com/…", as some
+ * share sheets send it) is read as the first `http(s)://` address in it. Only a full address is
+ * picked out of a sentence: a bare host among words is too likely to be prose.
+ *
  * A hostname with no dot is refused, which also takes out `localhost`. That is deliberate but it is
  * NOT the SSRF guard: an address literal like `169.254.169.254` has dots and passes here. The guard
  * is `fetchPage`, next to the fetch it protects, because this function is also called by the UI and
  * the UI has no business owning that policy.
  */
 export const httpUrlOf = (text: string): string | undefined => {
-  const trimmed = text.trim().replace(TRAILING_PASTE_ARTEFACTS, "");
+  const link = /\s/.test(text.trim()) ? (LINK_IN_TEXT.exec(text)?.[0] ?? text) : text;
+  const trimmed = link.trim().replace(TRAILING_PASTE_ARTEFACTS, "");
   if (!trimmed) return undefined;
 
   const candidate = HAS_SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`;

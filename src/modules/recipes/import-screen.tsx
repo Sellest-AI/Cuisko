@@ -2,7 +2,6 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Keyboard, LayoutChangeEvent, Platform, Pressable, StyleSheet, ViewStyle } from "react-native";
 
-import { isAppError, isRateLimited } from "@shared/errors";
 import { ButtonPill } from "@ui/button-pill";
 import { CircleAlert, Globe, Pencil } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
@@ -13,6 +12,7 @@ import { theme } from "~/global/theme";
 import { useTranslations } from "translations";
 
 import { useImportRecipe } from "./_hooks/useImportRecipe";
+import { importFailureOf } from "./_model/importFailure";
 
 type Props = {
   style?: ViewStyle;
@@ -35,7 +35,7 @@ export const ImportScreen = ({ style, onLayout }: Props) => {
   const [url, setUrl] = useState<string>("");
   const { importFrom, isImporting, error } = useImportRecipe();
 
-  const failure = _failureOf(error);
+  const failure = importFailureOf(error);
 
   return (
     <SafeAreaView
@@ -93,36 +93,6 @@ export const ImportScreen = ({ style, onLayout }: Props) => {
       </ButtonPill>
     </SafeAreaView>
   );
-};
-
-/**
- * Which apology this failure is, or none.
- *
- * Four codes and four sentences, because they are four different things to say and only the
- * middle one means "your link is fine". Anything else — an outage, a bug, a code this screen has
- * not heard of — is worded as the site not answering, which is the honest reading from here: we
- * cannot tell the cook what went wrong inside our own backend, and every one of those endings has
- * the same way out.
- *
- * The limit is the exception to "we cannot tell them": the cook can be told exactly what happened,
- * so it has its own sentence. It names no wait, which is not ours to hand to someone probing it.
- */
-const FAILURES = {
-  invalid: { title: "Import.invalid_title", body: "Import.invalid_body" },
-  unreadable: { title: "Import.unreadable_title", body: "Import.unreadable_body" },
-  unreachable: { title: "Import.unreachable_title", body: "Import.unreachable_body" },
-  limited: { title: "Import.limited_title", body: "Import.limited_body" },
-} as const;
-
-const _failureOf = (error: unknown): (typeof FAILURES)[keyof typeof FAILURES] | undefined => {
-  if (error === null || error === undefined) return undefined;
-  if (isRateLimited(error)) return FAILURES.limited;
-  if (!isAppError(error)) return FAILURES.unreachable;
-
-  if (error.data.code === "INVALID_INPUT") return FAILURES.invalid;
-  if (error.data.code === "UNREADABLE_PAGE") return FAILURES.unreadable;
-
-  return FAILURES.unreachable;
 };
 
 const styles = StyleSheet.create({

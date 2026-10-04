@@ -42,6 +42,19 @@ describe("httpUrlOf", () => {
     expect(httpUrlOf("https://example.com/tarte,")).toBe("https://example.com/tarte");
   });
 
+  it("reads the address out of the sentence a share sheet wraps it in", () => {
+    expect(httpUrlOf("Check out this video! https://vm.tiktok.com/ZMabc123/ #tiktok")).toBe(
+      "https://vm.tiktok.com/ZMabc123/",
+    );
+    expect(httpUrlOf("Regarde cette recette : https://www.marmiton.org/recettes/gateau.aspx.")).toBe(
+      "https://www.marmiton.org/recettes/gateau.aspx",
+    );
+  });
+
+  it("refuses a sentence with no address in it", () => {
+    expect(httpUrlOf("poulet au curry rapide")).toBeUndefined();
+  });
+
   it("refuses nothing at all", () => {
     expect(httpUrlOf("")).toBeUndefined();
     expect(httpUrlOf("   ")).toBeUndefined();

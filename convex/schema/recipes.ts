@@ -156,6 +156,10 @@ export const recipes = defineTable({
   // "Which recipe of this cook already came from this page" — the dedupe / re-import question.
   // No query reads it yet; it is declared with the column so the answer is indexed from day one.
   .index("by_user_and_source_url", ["userId", "sourceUrl"])
+  // "Does any cook have a live recipe from this video": a share of a reel someone already imported
+  // returns that recipe instead of paying for it again (`importVideo`, `findBySource`). Live rows
+  // only, so a video whose every import was deleted is imported afresh (ADR 0017).
+  .index("by_is_archived_and_source_url", ["isArchived", "sourceUrl"])
   .index("by_difficulty", ["difficulty"])
   // "Which recipes has nobody checked yet" — the review queue. Nothing reads it yet; declared with
   // the column, like `by_user_and_source_url`, so the answer is indexed from day one.

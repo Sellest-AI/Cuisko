@@ -21,6 +21,20 @@ export const ERROR_CODES = [
    * `EXTERNAL_SERVICE_ERROR` — nothing failed, and there is nothing to retry.
    */
   "UNREADABLE_PAGE",
+  /**
+   * A video platform answered, but not with the post data we read (`lib/socialVideo/`).
+   *
+   * Not `UNREADABLE_PAGE`: that blames the page, this blames us. Every post on the platform fails
+   * the same way until the adapter is fixed, so the screen says the import is down, not that the
+   * link is wrong.
+   */
+  "IMPORT_UNAVAILABLE",
+  /** The post is a photo or a carousel without a video, so there is nothing to watch. */
+  "NOT_A_VIDEO",
+  /** The video was watched, and it teaches no dish (a restaurant visit, a taste test): nothing is saved. */
+  "NOT_A_RECIPE",
+  /** The video is larger than we download (`MAX_VIDEO_BYTES`, for TikTok). */
+  "VIDEO_TOO_LARGE",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

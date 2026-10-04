@@ -1,9 +1,10 @@
-import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
+import { createGeneratedRecipe } from "@convex/functions/recipes/createGeneratedRecipe";
 import { generateRecipe } from "@convex/functions/recipes/generateRecipe";
 import { replaceRecipeImages } from "@convex/functions/recipes/recipeImages";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
+import { isSocialVideoLink } from "@convex/lib/socialVideo/sources";
 import { type ActionCtx, authActionI18n, internalAction, internalMutation } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
 import { vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
@@ -15,7 +16,8 @@ type Args = ObjectType<typeof sharedArgs>;
 
 /**
  * Generating is what the cook waits for; translating is not, so it is scheduled rather than
- * awaited — the recipe id comes back as soon as the row exists, in the language they wrote it.
+ * awaited — the recipe id comes back as soon as the row exists, in the language they wrote it
+ * (`createGeneratedRecipe`).
  *
  * @limitation Design choice: resolving the ingredients is inside that wait, so creating is slower.
  * A recipe briefly and invisibly wrong about what it contains is worse than one that takes longer
@@ -28,22 +30,10 @@ const handler = async (ctx: Context, { sourceUrl, ...text }: Args): Promise<Id<"
 
   const { recipe, links } = await generateRecipe(ctx, { ...text, locale });
 
-  const recipeId = await ctx.runMutation(internal.router.recipes.createOne._internal_persist, {
-    userId: ctx.userId,
-    locale,
-    recipe,
-    links,
-    sourceUrl,
-  });
+  // A video's address is only ever written by `importVideo`, whose dedupe serves it to every cook.
+  const storedSourceUrl = sourceUrl && !isSocialVideoLink(sourceUrl) ? sourceUrl : undefined;
 
-  await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
-    recipeId,
-    sourceLocale: locale,
-  });
-
-  await ctx.scheduler.runAfter(0, internal.router.recipes.generateImages._internal, { recipeId, userId: ctx.userId });
-
-  return recipeId;
+  return await createGeneratedRecipe(ctx, { userId: ctx.userId, locale, recipe, links, sourceUrl: storedSourceUrl });
 };
 
 const sharedArgs = {
