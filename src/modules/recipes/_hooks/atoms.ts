@@ -48,3 +48,25 @@ export const importedDraftAtom = atom<ImportedDraft | undefined>(undefined);
  * cake they open next, and has said nothing durable about the curry either.
  */
 export const servingsAtom = atom<{ id: string; servings: number } | undefined>(undefined);
+
+/** What a verify said: the fixes it made, or that there were none. Read off the action like `ImportedDraft`. */
+export type VerifyOutcome = FunctionReturnType<typeof api.router.recipes.verifyOne.admin>;
+
+/** One recipe's last verify: running since `startedAt`, or what it said, or how it failed. */
+export type Verification =
+  | { status: "verifying"; startedAt: number }
+  | { status: "done"; outcome: VerifyOutcome }
+  | { status: "failed"; error: unknown };
+
+/**
+ * The last verify of each recipe, keyed by its id.
+ *
+ * A check takes most of a minute, and an admin does not wait on the overview for it. Kept in Jotai
+ * rather than in the hook, the action's answer lands here even after the screen unmounted, and
+ * coming back to the recipe shows the bar still running from `startedAt`, or what it found. Keyed
+ * by id, so verifying again replaces only that recipe's entry, and another recipe shows its own.
+ *
+ * **In memory only, deliberately:** a restart forgets every result. It is a check to read where the
+ * button is, not a record. The corrections are already written into the recipe itself.
+ */
+export const verificationsAtom = atom<Record<string, Verification>>({});

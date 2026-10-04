@@ -1,18 +1,23 @@
-import { View, StyleSheet } from "react-native";
+import { useEffect, useState } from "react";
+import { View, StyleSheet, ViewProps } from "react-native";
 
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { isAppError, isRateLimited } from "@shared/errors";
 import { Button } from "@ui/button";
+import { StepProgress } from "@ui/step-progress";
 import { Text } from "@ui/text";
 
 import { useVerifyRecipe } from "../../_hooks/useVerifyRecipe";
 
 /**
- * A second tap within this is dropped. `isLoading` disables the button only once the screen has
- * drawn the check as running, and a double tap lands before that: it would pay for two checks.
+ * A second tap within this is dropped. The bar replaces the button only once the screen has drawn
+ * the check as running, and a double tap lands before that: it would pay for two checks.
  */
 const DOUBLE_TAP_DELAY_MS = 1000;
+
+/** How long the bar takes to fill: about what a check costs. One that runs longer waits on a full bar. */
+const EXPECTED_SECONDS = 60;
 
 /**
  * The admin's "Verify the recipe", last on the overview, and what the check said under it.
@@ -21,9 +26,9 @@ const DOUBLE_TAP_DELAY_MS = 1000;
  * person who needs it and invisible to the eye of everyone else. Draws nothing for a cook who is
  * not an admin.
  */
-export const Verify = ({ id }: { id?: string }) => {
+export const Verify = ({ id, style }: { id?: string; style?: ViewProps["style"] }) => {
   const t = useTranslations("Recipe");
-  const { canVerify, isVerifying, outcome, error, verify } = useVerifyRecipe(id);
+  const { canVerify, startedAt, outcome, error, verify } = useVerifyRecipe(id);
 
   if (!canVerify) return null;
 
@@ -39,10 +44,12 @@ export const Verify = ({ id }: { id?: string }) => {
         outcome?.corrections ?? [];
 
   return (
-    <View style={styles.container}>
-      <Button variant="ghost" onPress={() => void verify()} isLoading={isVerifying} doubleTapDelay={DOUBLE_TAP_DELAY_MS}>
-        {t("Overview.verify")}
-      </Button>
+    <View style={[styles.container, style]}>
+      {startedAt !== undefined ? <VerifyProgress startedAt={startedAt} /> : (
+        <Button variant="ghost" onPress={() => void verify()} doubleTapDelay={DOUBLE_TAP_DELAY_MS}>
+          {t("Overview.verify")}
+        </Button>
+      )}
       {lines.map((line, index) => (
         <Text.Sm key={index} color={theme.colors.neutral.muted} style={styles.line}>
           {line}
@@ -52,12 +59,39 @@ export const Verify = ({ id }: { id?: string }) => {
   );
 };
 
+/**
+ * The running check, as a bar filling over `EXPECTED_SECONDS`.
+ *
+ * Counted from `startedAt` rather than from mount, so leaving mid-check and coming back draws the
+ * bar where it would have been, not empty again.
+ */
+const VerifyProgress = ({ startedAt }: { startedAt: number }) => {
+  const [now, setNow] = useState(Date.now);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const seconds = Math.floor((now - startedAt) / 1000);
+
+  return <StepProgress
+    step={seconds}
+    total={EXPECTED_SECONDS}
+    curve="log"
+    style={styles.progress}
+  />;
+};
+
 const styles = StyleSheet.create({
   container: {
+    alignSelf: "center",
     alignItems: "center",
     gap: theme.spacing[4],
-    marginTop: theme.spacing[24],
     paddingHorizontal: theme.spacing[16],
+    maxWidth: 320,
   },
   line: { textAlign: "center" },
+  progress: { alignSelf: "center", width: 120, marginTop: theme.spacing[12] },
 });

@@ -1,14 +1,12 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useAtom } from "jotai";
 
 import { api, type Id } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 import { useLocale } from "~/hooks/useLocale";
 import { useAuth } from "~/modules/auth/hooks";
 
-/** What the last verify said: the fixes it made, or that there were none. */
-export type VerifyOutcome = { verdict: "unchanged" } | { verdict: "rewritten"; corrections: string[] };
-
-type Status = "idle" | "verifying" | "done" | "failed";
+import { verificationsAtom, type Verification } from "./atoms";
 
 /**
  * An admin's "Verify the recipe": the recipe checked against the page it was imported from, and
@@ -20,37 +18,41 @@ type Status = "idle" | "verifying" | "done" | "failed";
  * The outcome is returned rather than shown in an alert: `Alert.alert` does nothing on web, and the
  * corrections are worth reading where the button is. A rewrite needs no refetch here — `useRecipe`
  * is a live query, and the row it watches is the one the server just patched.
+ *
+ * The check lives in `verificationsAtom` under the recipe's id, not in this hook, so it outlives the
+ * screen: leave mid-check and come back, and `startedAt` still says how long it has been running.
  */
 export const useVerifyRecipe = (id?: string) => {
   const locale = useLocale();
   const { user } = useAuth();
   const { action } = useAction(api.router.recipes.verifyOne.admin);
 
-  const [status, setStatus] = useState<Status>("idle");
-  const [outcome, setOutcome] = useState<VerifyOutcome | null>(null);
-  const [error, setError] = useState<unknown>(null);
+  const [verifications, setVerifications] = useAtom(verificationsAtom);
+  const verification = id ? verifications[id] : undefined;
+  const isVerifying = verification?.status === "verifying";
 
   const verify = useCallback(async () => {
-    if (!id || status === "verifying") return;
+    if (!id || isVerifying) return;
 
-    setError(null);
-    setOutcome(null);
-    setStatus("verifying");
+    /** Functional, because the answer lands a minute later, over whatever other recipes wrote since. */
+    const record = (next: Verification) => setVerifications((all) => ({ ...all, [id]: next }));
+
+    record({ status: "verifying", startedAt: Date.now() });
 
     try {
-      setOutcome(await action({ recipeId: id as Id<"recipes">, locale }));
-      setStatus("done");
+      record({ status: "done", outcome: await action({ recipeId: id as Id<"recipes">, locale }) });
     } catch (caught) {
-      setError(caught);
-      setStatus("failed");
+      record({ status: "failed", error: caught });
     }
-  }, [action, id, locale, status]);
+  }, [action, id, isVerifying, locale, setVerifications]);
 
   return {
     canVerify: user?.role === "ADMIN",
-    isVerifying: status === "verifying",
-    outcome,
-    error,
+    isVerifying,
+    /** When the running check started, for a bar that resumes where it was. */
+    startedAt: verification?.status === "verifying" ? verification.startedAt : undefined,
+    outcome: verification?.status === "done" ? verification.outcome : null,
+    error: verification?.status === "failed" ? verification.error : null,
     verify,
   };
 };
