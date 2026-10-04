@@ -17,7 +17,7 @@ import { WeekSummary } from "./week-summary";
 import { PillFace } from "./week-summary-reveal.pill";
 
 const OPEN_MS = 420;
-const CLOSE_MS = 320;
+const CLOSE_MS = 520;
 const SIDE_MARGIN = theme.spacing[16];
 const SIDE_OFFSET = 1;
 /** Below the safe area: the card covers the header, not the status bar. */
@@ -50,11 +50,15 @@ type Props = {
  * fades in, so the pill reads as becoming the card rather than a card appearing over it. The real
  * pill is hidden while the box is up, and shown again only once the box has folded back into it.
  *
- * The card is laid out at its final size and pinned to a corner of the box, which crops it: the
- * top-right one while it opens, so it unfolds out of the pill, and the bottom-left one while it
+ * The card is laid out at its final size and translated to a corner of the box, which crops it:
+ * the top-right one while it opens, so it unfolds out of the pill, and the bottom-left one while it
  * closes, so it travels with those edges into the pill. The switch happens fully open, where the
  * card fills the box and both corners put it in the same place, so it never jumps. It is mounted
  * closed, which is how its height is known before the box starts to grow.
+ *
+ * Nothing re-renders the box between its mount and the fold's end, the switch included: a render
+ * re-applies the animated views' props as of that render, and the card either flickered or kept a
+ * stale opacity until the next frame that changed it.
  */
 export const WeekSummaryReveal = ({ header }: Props) => {
   const insets = useSafeAreaInsets();
@@ -78,8 +82,8 @@ export const WeekSummaryReveal = ({ header }: Props) => {
   const surface = useSharedValue(0);
   const from = useSharedValue<Frame>({ x: 0, y: 0, width: 0, height: 0 });
   const isClosing = useRef(false);
-  /** State, not the ref above: it moves the card's anchor, which has to render. */
-  const [isFolding, setIsFolding] = useState(false);
+  /** The box has finished growing, so the card is anchored to fold back. A shared value, so it never renders. */
+  const unfolded = useSharedValue(false);
 
   const target = {
     x: SIDE_MARGIN - SIDE_OFFSET,
@@ -105,7 +109,7 @@ export const WeekSummaryReveal = ({ header }: Props) => {
     const frame = await measurePill();
     if (!frame) return;
     isClosing.current = false;
-    setIsFolding(false);
+    unfolded.set(false);
     from.set(frame);
     setOrigin(frame);
   };
@@ -114,7 +118,9 @@ export const WeekSummaryReveal = ({ header }: Props) => {
   const isMeasured = origin !== undefined && cardHeight !== undefined;
   useEffect(() => {
     if (!isMeasured) return;
-    progress.set(withTiming(1, { duration: OPEN_MS, easing: Easing.out(Easing.cubic) }));
+    progress.set(withTiming(1, { duration: OPEN_MS, easing: Easing.out(Easing.cubic) }, (finished) => {
+      if (finished) unfolded.set(true);
+    }));
     surface.set(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per opening, when the card is measured
   }, [isMeasured]);
@@ -129,10 +135,9 @@ export const WeekSummaryReveal = ({ header }: Props) => {
   };
 
   const close = async () => {
-    // Not while still growing: the card's anchor and motion only hand over cleanly fully open.
-    if (isClosing.current || progress.get() < 1) return;
+    // Not while still growing: the card is anchored to fold back only once fully open.
+    if (isClosing.current || !unfolded.get()) return;
     isClosing.current = true;
-    setIsFolding(true);
     // The pill may have moved while the card was up (the household name changed length).
     const now = await measurePill();
     if (now) from.set(now);
@@ -155,21 +160,31 @@ export const WeekSummaryReveal = ({ header }: Props) => {
     height: from.get().height,
     opacity: interpolate(surface.value, [0, 0.2], [1, 0], "clamp"),
   }));
-  const content = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.25, 0.7], [0, 1], "clamp") }));
-  /**
-   * Opening: the card starts up and right, towards the pill, and settles as the box grows. Closing:
-   * it shrinks towards its bottom-left anchor as the box folds. Both are at rest fully open, where
-   * one hands over to the other, so the switch never moves it.
-   */
-  const motion = useAnimatedStyle(() => (isFolding ? {
-    transformOrigin: "left bottom",
-    transform: [{ scale: interpolate(progress.value, [0, 1], [CLOSED_SCALE, 1]) }],
-  } : {
-    transform: [
-      { translateX: interpolate(progress.value, [0, 1], [OPEN_DRIFT, 0]) },
-      { translateY: interpolate(progress.value, [0, 1], [-OPEN_DRIFT, 0]) },
-    ],
+  /** Opening fades it in as the box grows; closing fades it out before the box shrinks much. */
+  const content = useAnimatedStyle(() => ({
+    opacity: unfolded.get()
+      ? interpolate(progress.value, [0.7, 1], [0, 1], "clamp")
+      : interpolate(progress.value, [0.3, 1], [0, 1], "clamp"),
   }));
+  /**
+   * The card sits at the box's top-left; this moves it to its anchor. Opening: the top-right
+   * corner, and it starts up and right, towards the pill, settling as the box grows. Closing: the
+   * bottom-left corner, and it shrinks towards it as the box folds. Both are at rest fully open,
+   * where one hands over to the other, so the switch never moves it.
+   */
+  const motion = useAnimatedStyle(() => {
+    // How much narrower and shorter than the card the box still is.
+    const shortX = interpolate(progress.value, [0, 1], [from.get().width, target.width]) - target.width;
+    const shortY = interpolate(progress.value, [0, 1], [from.get().height, target.height]) - target.height;
+    return unfolded.get() ? {
+      transform: [{ translateY: shortY }, { scale: interpolate(progress.value, [0, 1], [CLOSED_SCALE, 1]) }],
+    } : {
+      transform: [
+        { translateX: shortX + interpolate(progress.value, [0, 1], [OPEN_DRIFT, 0]) },
+        { translateY: interpolate(progress.value, [0, 1], [-OPEN_DRIFT, 0]) },
+      ],
+    };
+  });
   const spacer = useAnimatedStyle(() => ({ height: progress.value * push }));
 
   const scoreButtonDisabled = !summary || summary.days === 0;
@@ -203,7 +218,7 @@ export const WeekSummaryReveal = ({ header }: Props) => {
             <PillFace health={summary?.health} />
           </Animated.View>
           <Animated.View
-            style={[styles.content, isFolding ? styles.foldAnchor : styles.growAnchor, { width: target.width - CARD_BORDER * 2 }, content, motion]}
+            style={[styles.content, { width: target.width - CARD_BORDER * 2 }, content, motion]}
             onLayout={({ nativeEvent }: LayoutChangeEvent) => setCardHeight(nativeEvent.layout.height)}
           >
             <WeekSummary />
@@ -224,11 +239,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: CARD_BORDER,
   },
-  content: { position: "absolute" },
-  /** Opening: the card unfolds out of the pill's corner. */
-  growAnchor: { top: 0, right: 0 },
-  /** Closing: the card travels with the box's left and bottom edges into the pill. */
-  foldAnchor: { bottom: 0, left: 0 },
+  /** Scaled from its bottom-left as it folds, so it travels with those edges into the pill. */
+  content: { position: "absolute", top: 0, left: 0, transformOrigin: "left bottom" },
   /** Where the card's title row puts its right end: its top padding, and its side padding. */
   close: { position: "absolute", top: theme.spacing[16], right: theme.spacing[16] },
   /**

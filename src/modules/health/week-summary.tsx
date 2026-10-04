@@ -4,6 +4,7 @@ import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { ScoredDish } from "@ui/cards/scored-dish";
 import { NutrientGauge } from "@ui/nutrient-gauge";
 import { Text, TextNative } from "@ui/text";
+import { FlameIcon } from "@ui/icons";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
@@ -48,7 +49,12 @@ export const WeekSummary = () => {
         <TextNative style={styles.caloriesFigure}>
           {summary.caloriesPerPortion === undefined ? "–" : Math.round(summary.caloriesPerPortion)}
         </TextNative>
-        <TextNative style={styles.flame}>🔥</TextNative>
+        <FlameIcon
+          style={styles.flame}
+          fill={theme.colors.primary.base}
+          color={theme.colors.primary.base}
+          size={32}
+        />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelf}>
         {summary.nutrients.map((nutrient) => (
@@ -97,7 +103,7 @@ const styles = StyleSheet.create({
   calories: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[4],
+    gap: theme.spacing[6],
     paddingHorizontal: theme.spacing[24],
     marginTop: theme.spacing[4]
   },
@@ -108,9 +114,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.h4.fontFamily,
   },
   flame: {
-    fontSize: 32,
-    lineHeight: 40,
-    marginBottom: Platform.select({ ios: theme.spacing[4], default: -theme.spacing[4] }),
+    marginBottom: Platform.select({ ios: theme.spacing[4], default: -theme.spacing[8] }),
   },
   summary: {
     marginBottom: theme.spacing[16]
