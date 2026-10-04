@@ -1,7 +1,7 @@
 import { useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
-import cooking from "assets/animations/cooking.lottie";
+import cuiskoCooking from "assets/videos/cuisko-cooking";
 import { LoadingScreen } from "@ui/loading-screen";
 import { useTranslations } from "translations";
 
@@ -124,7 +124,7 @@ export const TunnelGenerating = () => {
 
   return (
     <LoadingScreen
-      animation={cooking}
+      animation={cuiskoCooking}
       steps={STEPS.map((key) => t(key))}
       durationMs={PASS_MS}
       footer={t("Tunnel.Generating.footer")}

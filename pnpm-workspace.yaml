@@ -2,6 +2,8 @@ allowBuilds:
   # Convex bundles with esbuild; eslint's resolver needs its native binding.
   dtrace-provider: true
   esbuild: true
+  # Downloads its ffmpeg binary on install; scripts/videos/extract-frames.ts decodes with it.
+  ffmpeg-static: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - expo-dev-client@57.0.13

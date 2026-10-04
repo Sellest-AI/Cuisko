@@ -9,7 +9,7 @@ import { StepHeader } from "@ui/step-header";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import cooking from "assets/animations/cooking.lottie";
+import cuiskoCooking from "assets/videos/cuisko-cooking";
 
 import { PlanningListRow } from "~/modules/planning/planning-row";
 
@@ -80,7 +80,7 @@ export const OnboardingWeek = () => {
   if (phase === "generating" || phase === "finishing") {
     return (
       <LoadingScreen
-        animation={cooking}
+        animation={cuiskoCooking}
         steps={GENERATING_STEPS.map((key) => tPlanning(key))}
         durationMs={GENERATING_MS}
         footer={tPlanning("Tunnel.Generating.footer")}

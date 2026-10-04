@@ -1,7 +1,7 @@
-import LottieView, { type LottieViewProps } from "lottie-react-native";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { FrameSequence, type Sequence } from "@ui/frame-sequence";
 import { m } from "@ui/motion";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { StepProgress } from "@ui/step-progress";
@@ -13,8 +13,8 @@ import { LoadingSteps } from "./loading-screen.steps";
 import { LinearGradient } from "expo-linear-gradient";
 
 type Props = {
-  /** A `.lottie` or `.json` animation, imported by the caller: `import cooking from "assets/animations/cooking.lottie"`. */
-  animation: number | string | LottieViewProps["source"];
+  /** A frame sequence, imported by the caller: `import cuiskoCooking from "assets/videos/cuisko-cooking"`. */
+  animation: Sequence;
   /** Cosmetic steps, shown in order and looped for as long as the screen stays up. Six or more reads
    * best: fewer, and the loop comes round often enough to be noticed as a loop. */
   steps: readonly string[];
@@ -51,13 +51,6 @@ const FADE = {
   exit: { opacity: 0 },
   transition: { type: "timing", duration: 300 },
 } as const;
-
-/** The box the animation is fitted into; a wider or taller animation letterboxes inside it. */
-const ANIMATION_WIDTH = "100%";
-const ANIMATION_HEIGHT = 260;
-
-/** A DOM style, not a React Native one: it lands on the dotLottie canvas wrapper. */
-const WEB_FILL = { width: "100%", height: "100%" };
 
 /**
  * A full-screen wait for work whose real progress the app cannot see.
@@ -101,7 +94,7 @@ export const LoadingScreen = ({
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       />}
-      <SafeAreaView style={styles.safe} edges={{ top: "additive", bottom: "additive" }}>
+      <SafeAreaView style={styles.safe} edges={{ top: "additive", bottom: "android" }}>
         {/*
           * `active` is 0-based and `step` is 1-based, so `active + 1` is "steps gone by" — the bar
           * reads as the step list's own tally rather than racing it. `linear` because
@@ -116,23 +109,11 @@ export const LoadingScreen = ({
           />
         )}
         <View style={styles.body}>
-          {/*
-            * The box sets the size, not the player. On web lottie-react-native ignores `style` and
-            * reads only `webStyle`, so a size set on the player alone grows it to its container
-            * there. Filling a sized parent holds on every platform; `contain` keeps the ratio.
-            */}
-          <View style={styles.animation}>
-            <LottieView
-              // A bundled asset is a numeric registry id under Metro, which lottie-react-native
-              // loads but its `source` type does not list.
-              source={animation as LottieViewProps["source"]}
-              autoPlay
-              loop
-              resizeMode="contain"
-              style={styles.fill}
-              webStyle={WEB_FILL}
-            />
-          </View>
+          <FrameSequence
+            sequence={animation}
+            contentFit="contain"
+            style={styles.animation}
+          />
           <LoadingSteps steps={steps} active={active} finished={finished} />
         </View>
         <Text.Base color={colors.muted} style={{ ...styles.footer, textBalance: true }}>
@@ -152,22 +133,24 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing[16],
   },
   progress: {
+    paddingTop: theme.spacing[16],
     marginHorizontal: "auto",
-    marginTop: theme.spacing[16],
     width: 320,
   },
   body: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 64,
+    width: "100%",
+    gap: 16,
   },
-  animation: { width: ANIMATION_WIDTH, height: ANIMATION_HEIGHT, overflow: "hidden" },
-  fill: { width: "100%", height: "100%" },
+  /** Full width; the height follows from the sequence's own aspect ratio. */
+  animation: { width: "100%" },
   footer: {
     textAlign: "center",
     alignSelf: "center",
     marginHorizontal: theme.spacing[16],
+    marginTop: theme.spacing[32],
     paddingBottom: theme.spacing[24],
     maxWidth: 280,
   },

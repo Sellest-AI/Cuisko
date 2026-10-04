@@ -39,14 +39,8 @@ declare module "*.webm" {
   export default asset;
 }
 
-/* A Lottie animation. Metro only bundles it once `lottie` is in `assetExts` (metro.config.js). */
-declare module "*.lottie" {
-  const asset: number | string;
-  export default asset;
-}
-
 /* A font face, loaded by `useFonts` in `src/providers/fonts.tsx`. `ttf` is already one of Metro's
- * default asset extensions, so unlike `.lottie` this needs no `metro.config.js` entry.
+ * default asset extensions, so it needs no `metro.config.js` entry.
  *
  * Imported statically for the same reason as everything above, and it matters more here: the only
  * module allowed to reference these files is `providers/fonts.tsx`. The face's name and metrics

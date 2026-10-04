@@ -44,3 +44,6 @@ npm-debug.log*
 # Bake-off transcripts — minutes of real OpenRouter spend, worth keeping until the prompt they
 # indict is fixed and worth nothing after. `convex/agent/__bench__/transcript.ts` writes them.
 convex/agent/__bench__/runs/
+
+# Extracted video frames (scripts/videos/extract-frames.ts)
+assets/videos/frames/

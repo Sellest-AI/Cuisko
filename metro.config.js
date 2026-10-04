@@ -6,10 +6,6 @@ require("./scripts/limit-open-files.cjs")
 
 const config = getDefaultConfig(__dirname)
 
-// lottie-react-native plays `.lottie` files, but Metro only bundles extensions it knows as assets —
-// without this it reads the zip as a JavaScript module and the bundle fails.
-config.resolver.assetExts.push("lottie")
-
 const path = require("path")
 
 /**

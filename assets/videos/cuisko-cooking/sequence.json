@@ -1,0 +1,6 @@
+{
+  "sourceFps": 30,
+  "fps": 12,
+  "maxSide": 512,
+  "threshold": 0.5
+}

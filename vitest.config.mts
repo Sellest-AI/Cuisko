@@ -241,9 +241,6 @@ export default defineConfig({
         // React Native ships `__DEV__` as a global its own source reads. Without this, importing
         // almost anything from react-native-web is a ReferenceError.
         define: { __DEV__: "true" },
-        // Metro bundles `.lottie` as an asset; without this Vite parses the zip as source code and a
-        // screen importing one takes down every test that reaches it.
-        assetsInclude: ["**/*.lottie"],
         test: {
           name: "app",
           environment: "jsdom",
