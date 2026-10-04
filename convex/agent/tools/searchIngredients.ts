@@ -1,3 +1,4 @@
+import type { ToolCtx } from "@convex-dev/agent";
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { type RecipeUnit, weighableUnits } from "@shared/ingredients";
@@ -67,6 +68,41 @@ type Caller = {
   locale: Locale;
 };
 
+/**
+ * The search itself, outside the tool, for the caller that runs it before the model does: the
+ * verifier searches every line of its page up front, more names than `MAX_QUERIES` lets one tool
+ * call carry, and shows the model the rows rather than spending a step for it to ask.
+ */
+export const searchIngredients = async (
+  ctx: Pick<ToolCtx, "runQuery">,
+  { queries, locale }: Caller & { queries: string[] },
+): Promise<FoundIngredients> => {
+  // A name the model repeats, or pads with spaces, would be the same read twice.
+  const terms = [...new Set(queries.map((query) => query.trim()))].filter(Boolean);
+
+  return Promise.all(
+    terms.map(async (query) => {
+      const rows = await ctx.runQuery(internal.router.ingredients.search._internal, {
+        query,
+        locale,
+        limit: SEARCH_LIMIT,
+      });
+
+      return {
+        query,
+        ingredients: rows.map((row): FoundIngredient => ({
+          id: row._id,
+          name: row.name,
+          ...(row.aliases?.length && { aliases: row.aliases }),
+          units: weighableUnits(row),
+          per100g: roundFacts(row.nutrition),
+          ...(row.nutriScore && { nutriScore: row.nutriScore.grade }),
+        })),
+      };
+    }),
+  );
+};
+
 /** A factory, for the reason `searchRecipesTool` is one: the locale is not the model's to state. */
 export const searchIngredientsTool = ({ locale }: Caller) =>
   createTool({
@@ -77,30 +113,5 @@ export const searchIngredientsTool = ({ locale }: Caller) =>
       "id to computeNutrition; never work a figure out yourself. A row whose name or alias is the " +
       "word you searched is that food; one that only shares a word with it may not be.",
     inputSchema: searchIngredientsInputSchema,
-    execute: async (ctx, { queries }): Promise<FoundIngredients> => {
-      // A name the model repeats, or pads with spaces, would be the same read twice.
-      const terms = [...new Set(queries.map((query) => query.trim()))].filter(Boolean);
-
-      return Promise.all(
-        terms.map(async (query) => {
-          const rows = await ctx.runQuery(internal.router.ingredients.search._internal, {
-            query,
-            locale,
-            limit: SEARCH_LIMIT,
-          });
-
-          return {
-            query,
-            ingredients: rows.map((row): FoundIngredient => ({
-              id: row._id,
-              name: row.name,
-              ...(row.aliases?.length && { aliases: row.aliases }),
-              units: weighableUnits(row),
-              per100g: roundFacts(row.nutrition),
-              ...(row.nutriScore && { nutriScore: row.nutriScore.grade }),
-            })),
-          };
-        }),
-      );
-    },
+    execute: (ctx, { queries }) => searchIngredients(ctx, { queries, locale }),
   });

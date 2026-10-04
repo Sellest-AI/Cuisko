@@ -21,6 +21,7 @@ import { CATALOG as SEED_CATALOG } from "../../../functions/ingredients/ingredie
 import { runBakeOff, type Candidate } from "../../__bench__";
 import { type ScrapedRecipe, toRecipeDraft } from "../../../lib/scraping/toRecipeDraft";
 import {
+  pageIngredientQueries,
   type RecipeVerification,
   toRecipeVerification,
   verificationSchema,
@@ -238,6 +239,9 @@ const _search = (query: string) => {
     .map(({ name }) => ({ name }));
 };
 
+/** The page's lines searched up front, as `verifyRecipe` does before the model runs. */
+const PAGE_CATALOG = pageIngredientQueries(SOURCE.ingredients).map(({ line, query }) => ({ line, rows: _search(query) }));
+
 /** The real tool's name and input schema, over the fixture catalog. */
 const TOOLS = {
   [VERIFY_TOOLS.searchIngredients]: tool({
@@ -350,7 +354,7 @@ describe("verifyRecipe — model bake-off", () => {
       title: "verifyRecipe",
       candidates: CANDIDATES,
       system: verifyRecipePrompt(LOCALE),
-      prompt: verifyRecipeUserPrompt({ stored: STORED, source: SOURCE }),
+      prompt: verifyRecipeUserPrompt({ stored: STORED, source: SOURCE, catalog: PAGE_CATALOG }),
       answer: { schema: verificationSchema, parse: toRecipeVerification, check: CHECKS },
       tools: TOOLS,
       provider: { sort: "price" },

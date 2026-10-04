@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { toRecipeVerification } from "../verifyRecipe";
+import { searchTerms } from "@shared/ingredientMatch";
+
+import { modelRecipeSchema } from "../sanitizeRecipe";
+import { pageIngredientQueries, toRecipeVerification, verifyRecipeUserPrompt } from "../verifyRecipe";
 
 /**
  * The generation is a model call and is not tested here. What is tested is the boundary after it,
@@ -66,5 +69,41 @@ describe("toRecipeVerification", () => {
 
   it("refuses a corrected recipe the database could not store", () => {
     expect(() => toRecipeVerification({ corrections: ["x"], recipe: _recipe({ cuisine: "martian" }) })).toThrow();
+  });
+});
+
+describe("pageIngredientQueries", () => {
+  it("asks the catalog for each line's identifying words, not the line as written", () => {
+    expect(pageIngredientQueries("600 g de blancs de poulet, en lanières\n2 c. à soupe d'huile de tournesol")).toEqual([
+      { line: "600 g de blancs de poulet, en lanières", query: searchTerms("600 g de blancs de poulet, en lanières") },
+      { line: "2 c. à soupe d'huile de tournesol", query: searchTerms("2 c. à soupe d'huile de tournesol") },
+    ]);
+    expect(searchTerms("600 g de blancs de poulet, en lanières")).not.toMatch(/600|lanières/);
+  });
+
+  it("leaves out a blank line", () => {
+    expect(pageIngredientQueries("\n  \n1 poivron rouge\n").map(({ line }) => line)).toEqual(["1 poivron rouge"]);
+  });
+});
+
+describe("verifyRecipeUserPrompt", () => {
+  const source = { title: "Poulet frit", description: "", servings: 4, ingredients: "600 g de blancs de poulet", instructions: "Faites frire le poulet" };
+
+  it("shows the rows each page line found, with their aliases, and says when a line found none", () => {
+    const prompt = verifyRecipeUserPrompt({
+      stored: modelRecipeSchema.parse(_recipe()),
+      source,
+      catalog: [
+        { line: "600 g de blancs de poulet", rows: [{ name: "Blanc de poulet", aliases: ["filet de poulet"] }, { name: "Poulet entier" }] },
+        { line: "1 pincée de sumac", rows: [] },
+      ],
+    });
+
+    expect(prompt).toContain(`- "600 g de blancs de poulet": Blanc de poulet (also: filet de poulet); Poulet entier`);
+    expect(prompt).toContain(`- "1 pincée de sumac": nothing found`);
+  });
+
+  it("has no catalog section when the page had no line to search", () => {
+    expect(verifyRecipeUserPrompt({ stored: modelRecipeSchema.parse(_recipe()), source, catalog: [] })).not.toContain("The catalog");
   });
 });

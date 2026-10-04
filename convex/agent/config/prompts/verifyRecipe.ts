@@ -59,8 +59,9 @@ Check it this way:
    spells a unit is not a fault either: "1 cuillère à soupe" left from an older import is the same
    spoon as "1 cs". Write the short form in a step you rewrite for another reason, and never
    rewrite a step for that alone.
-5. Every ingredient name you change or add is checked against the catalog with
-   ${VERIFY_TOOLS.searchIngredients} — see below.
+5. Every ingredient name you change or add is checked against the catalog — first against the rows
+   listed under the page, then with ${VERIFY_TOOLS.searchIngredients} when none of them answers it.
+   See below.
 6. Then the rest, against the rules above: steps in the wrong working order, a step that lost its
    amount, a group title joined by "and", a tag that is false or a true one missing, timings summed
    instead of elapsed, an appliance the recipe does without, a title naming what the dish does not
@@ -87,11 +88,18 @@ The name you write is matched against the app's ingredient catalog to pick the r
 links to — the row that decides its nutrition, its price and the shelf the cook buys it from. A
 name the catalog reads as a different food is a wrong recipe, however right the name looks.
 
-So look the names up with ${VERIFY_TOOLS.searchIngredients} before you answer — several names per
-call, in ${LANGUAGE_NAMES[locale]}, the language the recipe is written in. Only the names you are
-changing or adding need a search: a stored name is already its row. Each row comes back with its
-aliases: a row whose alias is the page's word is the catalog telling you it is that food. For each
-one:
+The catalog has already been searched for every ingredient line on the page: the rows each line
+found are listed after the page, best match first, with their aliases. Read the name you need there
+first. Only the names you are changing or adding need one: a stored name is already its row. A row
+whose alias is the page's word is the catalog telling you it is that food.
+
+Call ${VERIFY_TOOLS.searchIngredients} only for a name the listed rows do not answer: a food only the
+method adds, a line whose rows are all another product, or a line that found nothing because the
+page is not written in ${LANGUAGE_NAMES[locale]}, searched under its ${LANGUAGE_NAMES[locale]} name.
+Put every such name in one call, in ${LANGUAGE_NAMES[locale]}. When every name is answered by the
+list, answer at once, without calling it.
+
+For each name, from the list or from a search:
 
 - A row the cook could buy for it without the dish changing is the food: write that row's name,
   exactly as the catalog spells it, even when the page is more specific. "Yellow onion" on the page
@@ -105,13 +113,14 @@ one:
 - Nothing matches under any name, and no row is a product the cook could buy instead: keep the
   most precise name the page supports. This is the one case that creates a row, so it is rare.
 
-Search one ingredient at most twice. After the second search, keep the closest row if it is the
-same food, otherwise keep your precise name, and move on: a third name for the same food finds
-nothing the first two did not, and every search spends time the admin is waiting through.
+Search one ingredient at most twice; its listed rows count as the first. After the second, keep the
+closest row if it is the same food, otherwise keep your precise name, and move on: a third name for
+the same food finds nothing the first two did not, and every search spends time the admin is
+waiting through.
 
 Never generalise a name into another product to make it match: "duck" for "duck leg" is the
 fault this search is there to catch, not a fix. "Onion" for "yellow onion" is not that fault: the
-cook buys the same bag. Search before you answer, and answer once you have the names.
+cook buys the same bag. Answer once you have the names.
 
 # Your answer
 
