@@ -5,45 +5,46 @@ import sharp from "sharp";
 import { type SourceInfo } from "./extract-frames";
 
 /**
- * Turns a folder of cut-out frames into a frame sequence the app can bundle.
+ * Turns a folder of cut-out frames into one looping animated WebP the app can bundle.
  *
  *     npx tsx scripts/videos/bundle-frames.ts cuisko-cooking
- *     npx tsx scripts/videos/bundle-frames.ts cuisko-cooking --fps 24 --max-side 512
+ *     npx tsx scripts/videos/bundle-frames.ts cuisko-cooking --fps 24 --max-side 512 --quality 80
  *
  * Reads assets/videos/frames/<name>-transparent/*.png (written by remove-background.ts), and the
- * source frame rate from assets/videos/frames/<name>.json (written by extract-frames.ts). Writes
- * assets/videos/<name>/:
+ * source frame rate and size from assets/videos/frames/<name>.json (written by extract-frames.ts).
+ * Writes assets/videos/<name>/:
  *
  *   sequence.json  the settings below. A flag overwrites its setting, and the file keeps it, so a
  *                  bare re-run reproduces the last bundle.
- *   frames/        the frames kept, compressed to WebP by the same `compressImage` the app's uploads
- *                  use. Each is named after its source frame, so 0027.webp is the video's 27th.
- *                  A WebP newer than its cutout is reused, so re-cutting a few frames re-compresses
- *                  only those; changing `maxSide` re-compresses them all.
- *   index.ts       generated: one static import per frame kept, the ticks each one covers, and the
- *                  video's aspect ratio, which FrameSequence sizes itself by.
+ *   <name>.webp    the animation, looping forever.
+ *   index.ts       generated: the animation and its aspect ratio, which the caller sizes it by.
  *
- * Two passes shrink the bundle. Resampling to `fps` drops source frames on a fixed rhythm. Then a
- * frame that barely differs from the last one kept is not stored: that frame's range grows instead.
- * It compares against the frame kept, not the one before, so a slow drift adds up and is caught.
+ * One animated file rather than a folder of stills because the platform decoders (SDWebImage on
+ * iOS, Glide on Android, the browser on web) hold one or two frames in memory, where stills played
+ * from JS each sit decoded in the image cache. The cost is control: the file plays and loops, and
+ * cannot be seeked or slowed from JS.
  *
- * Static imports because Metro only bundles an asset it can see named in the source; it cannot
- * list a folder at runtime. Imports, not `require()`, for the reason assets/images.d.ts gives.
+ * Two passes shrink it. Resampling to `fps` drops source frames on a fixed rhythm. Then a frame
+ * that barely differs from the last one kept is not stored: the kept frame is shown longer
+ * instead, so the loop lasts as long as the video. It compares against the frame kept, not the one
+ * before, so a slow drift adds up and is caught.
  */
 
 const VIDEOS_DIR = path.join(__dirname, "..", "..", "assets", "videos");
 
 type Settings = {
-  /** The rate the sequence plays at. Below the video's own, frames are dropped to match. */
+  /** The rate the animation plays at. Below the video's own, frames are dropped to match. */
   fps: number;
-  /** Longest side of a stored frame, in px. `null` keeps the source size. */
+  /** Longest side of the animation, in px. `null` keeps the source size. */
   maxSide: number | null;
   /** A frame is a duplicate when fewer than this % of its pixels changed from the last frame kept. */
   threshold: number;
+  /** WebP quality of the colour, 1–100. The alpha is always encoded at 100: soft edges show every loss. */
+  quality: number;
 };
 
 /** `fps` absent means the video's own rate. */
-const DEFAULTS: Omit<Settings, "fps"> = { maxSide: null, threshold: 0.5 };
+const DEFAULTS: Omit<Settings, "fps"> = { maxSide: null, threshold: 0.5, quality: 80 };
 
 /**
  * How far a channel moves before its pixel counts as changed. Above the noise the video's own
@@ -52,7 +53,12 @@ const DEFAULTS: Omit<Settings, "fps"> = { maxSide: null, threshold: 0.5 };
  */
 const CHANGED_CHANNEL_DELTA = 24;
 
-const FLAGS = { "--fps": "fps", "--max-side": "maxSide", "--threshold": "threshold" } as const;
+const FLAGS = {
+  "--fps": "fps",
+  "--max-side": "maxSide",
+  "--threshold": "threshold",
+  "--quality": "quality",
+} as const;
 
 const _parseFlags = (args: string[]) => {
   const flags: Partial<Settings> = {};
@@ -69,15 +75,24 @@ const _readSettings = (file: string, flags: Partial<Settings>, sourceFps: number
   const saved: Partial<Settings> = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
   const merged = { fps: sourceFps, ...DEFAULTS, ...saved, ...flags };
   // Picked, not spread, so a key this script no longer reads drops out of the file on the next run.
-  const settings: Settings = { fps: merged.fps, maxSide: merged.maxSide, threshold: merged.threshold };
+  const settings: Settings = {
+    fps: merged.fps,
+    maxSide: merged.maxSide,
+    threshold: merged.threshold,
+    quality: merged.quality,
+  };
   if (settings.fps > sourceFps) throw new Error(`fps cannot exceed the video's ${sourceFps}: frames would repeat`);
   fs.writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`);
-  return { settings, sizeChanged: saved.maxSide !== undefined && saved.maxSide !== settings.maxSide };
+  return settings;
 };
 
-const _pixels = (file: string, maxSide: number | null) => {
+/** One frame as raw RGBA at the output size, for comparing, and as PNG, for encoding. */
+const _frame = async (file: string, maxSide: number | null) => {
   const image = sharp(file).ensureAlpha();
-  return (maxSide ? image.resize(maxSide, maxSide, { fit: "inside" }) : image).raw().toBuffer();
+  const resized = maxSide ? image.resize(maxSide, maxSide, { fit: "inside" }) : image;
+  const png = await resized.png().toBuffer();
+  const pixels = await sharp(png).raw().toBuffer();
+  return { png, pixels };
 };
 
 /** The % of pixels where any channel, alpha included, moved more than CHANGED_CHANNEL_DELTA. */
@@ -95,34 +110,28 @@ const _changedPercent = (a: Buffer, b: Buffer) => {
   return (changed / (a.length / 4)) * 100;
 };
 
-type Kept = { source: string; frame: string; from: number; to: number };
+type Kept = { source: string; png: Buffer; from: number; to: number };
 
-const _indexSource = (kept: Kept[], settings: Settings, length: number, aspectRatio: number) => {
-  const identifier = (entry: Kept) => `frame${path.basename(entry.frame, ".webp")}`;
-  return [
-    "// Generated by scripts/videos/bundle-frames.ts from sequence.json and frames/. Do not edit.",
+const _indexSource = (file: string, aspectRatio: number) =>
+  [
+    "// Generated by scripts/videos/bundle-frames.ts. Do not edit.",
     "",
-    ...kept.map((entry) => `import ${identifier(entry)} from "./frames/${entry.frame}";`),
+    `import source from "./${file}";`,
     "",
-    "export default {",
-    `  fps: ${settings.fps},`,
-    `  length: ${length},`,
-    `  aspectRatio: ${aspectRatio},`,
-    "  frames: [",
-    ...kept.map((entry) => `    { source: ${identifier(entry)}, from: ${entry.from}, to: ${entry.to} },`),
-    "  ],",
-    "};",
+    `export default { source, aspectRatio: ${aspectRatio} };`,
     "",
   ].join("\n");
-};
 
 async function main() {
   const [name, ...args] = process.argv.slice(2);
-  if (!name) throw new Error("Usage: npx tsx scripts/videos/bundle-frames.ts <video name> [--fps N] [--max-side PX] [--threshold %]");
+  if (!name) {
+    throw new Error(
+      "Usage: npx tsx scripts/videos/bundle-frames.ts <video name> [--fps N] [--max-side PX] [--threshold %] [--quality Q]",
+    );
+  }
 
   const sourceDir = path.join(VIDEOS_DIR, "frames", `${name}-transparent`);
-  const sequenceDir = path.join(VIDEOS_DIR, name);
-  const framesDir = path.join(sequenceDir, "frames");
+  const outputDir = path.join(VIDEOS_DIR, name);
 
   const sources = fs.readdirSync(sourceDir).filter((file) => file.endsWith(".png")).sort();
   if (sources.length === 0) throw new Error(`No frames in ${sourceDir}`);
@@ -130,11 +139,11 @@ async function main() {
   const infoPath = path.join(VIDEOS_DIR, "frames", `${name}.json`);
   if (!fs.existsSync(infoPath)) throw new Error(`No ${infoPath}: run extract-frames.ts on the video first`);
   const { fps: sourceFps, width, height }: SourceInfo = JSON.parse(fs.readFileSync(infoPath, "utf8"));
-  // Resizing to `maxSide` keeps the ratio, so the video's own is the frames'. Rounded so a 16:9 reads 1.7778.
+  // Resizing to `maxSide` keeps the ratio, so the video's own is the animation's. Rounded so a 16:9 reads 1.7778.
   const aspectRatio = Math.round((width / height) * 10_000) / 10_000;
 
-  fs.mkdirSync(sequenceDir, { recursive: true });
-  const { settings, sizeChanged } = _readSettings(path.join(sequenceDir, "sequence.json"), _parseFlags(args), sourceFps);
+  fs.mkdirSync(outputDir, { recursive: true });
+  const settings = _readSettings(path.join(outputDir, "sequence.json"), _parseFlags(args), sourceFps);
 
   // One tick per frame at the output rate, each showing the source frame due at that instant.
   const length = Math.floor((sources.length * settings.fps) / sourceFps);
@@ -143,51 +152,38 @@ async function main() {
   const kept: Kept[] = [];
   let keptPixels: Buffer | undefined;
   for (const [tick, source] of timeline.entries()) {
-    const pixels = await _pixels(path.join(sourceDir, source), settings.maxSide);
+    const { png, pixels } = await _frame(path.join(sourceDir, source), settings.maxSide);
     const last = kept.at(-1);
     if (last && keptPixels && _changedPercent(pixels, keptPixels) < settings.threshold) {
       last.to = tick;
       continue;
     }
-    kept.push({ source, frame: source.replace(/\.png$/, ".webp"), from: tick, to: tick });
+    kept.push({ source, png, from: tick, to: tick });
     keptPixels = pixels;
   }
 
-  fs.mkdirSync(framesDir, { recursive: true });
-  // A frame this run no longer keeps would sit in the bundle folder unused.
-  const keptFrames = new Set(kept.map((entry) => entry.frame));
-  for (const file of fs.readdirSync(framesDir)) {
-    if (!keptFrames.has(file)) fs.rmSync(path.join(framesDir, file));
-  }
+  // Rounded at each tick boundary rather than per frame, so the loop never drifts from length / fps.
+  const at = (tick: number) => Math.round((tick * 1000) / settings.fps);
+  const delay = kept.map((entry) => at(entry.to + 1) - at(entry.from));
 
-  const { compressImage } = await import("../../convex/lib/media/image.compress");
+  const file = `${name}.webp`;
+  const outputPath = path.join(outputDir, file);
+  const started = performance.now();
+  await sharp(
+    kept.map((entry) => entry.png),
+    { join: { animated: true } },
+  )
+    .webp({ quality: settings.quality, alphaQuality: 100, loop: 0, delay, effort: 6, smartSubsample: true })
+    .toFile(outputPath);
 
-  let outputBytes = 0;
-  let compressedCount = 0;
-  for (const entry of kept) {
-    const sourcePath = path.join(sourceDir, entry.source);
-    const outputPath = path.join(framesDir, entry.frame);
-    const upToDate =
-      !sizeChanged && fs.existsSync(outputPath) && fs.statSync(outputPath).mtimeMs >= fs.statSync(sourcePath).mtimeMs;
-    if (!upToDate) {
-      const compressed = await compressImage(fs.readFileSync(sourcePath), {
-        mimeType: "image/webp",
-        maxSideSize: settings.maxSide ?? undefined,
-      });
-      fs.writeFileSync(outputPath, compressed.buffer);
-      compressedCount++;
-    }
-    outputBytes += fs.statSync(outputPath).size;
-  }
-
-  fs.writeFileSync(path.join(sequenceDir, "index.ts"), _indexSource(kept, settings, length, aspectRatio));
+  fs.writeFileSync(path.join(outputDir, "index.ts"), _indexSource(file, aspectRatio));
 
   const longest = kept.reduce((a, b) => (b.to - b.from > a.to - a.from ? b : a));
   console.log(
-    `${sources.length} frames at ${sourceFps} fps -> ${length} ticks at ${settings.fps} fps -> ${kept.length} kept ` +
-      `(${compressedCount} compressed, ${kept.length - compressedCount} reused), ` +
-      `${(outputBytes / 1024 / 1024).toFixed(1)} MB in ${sequenceDir}\n` +
-      `Longest hold: ${longest.frame}, ticks ${longest.from}-${longest.to}`,
+    `${sources.length} frames at ${sourceFps} fps -> ${length} ticks at ${settings.fps} fps -> ${kept.length} kept, ` +
+      `encoded in ${((performance.now() - started) / 1000).toFixed(1)}s, ` +
+      `${(fs.statSync(outputPath).size / 1024 / 1024).toFixed(2)} MB at ${outputPath}\n` +
+      `Longest hold: ${longest.source}, ticks ${longest.from}-${longest.to}`,
   );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { FrameSequence, type Sequence } from "@ui/frame-sequence";
+import { Image } from "@ui/image";
 import { m } from "@ui/motion";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { StepProgress } from "@ui/step-progress";
@@ -13,8 +13,12 @@ import { LoadingSteps } from "./loading-screen.steps";
 import { LinearGradient } from "expo-linear-gradient";
 
 type Props = {
-  /** A frame sequence, imported by the caller: `import cuiskoCooking from "assets/videos/cuisko-cooking"`. */
-  animation: Sequence;
+  /**
+   * A looping animated WebP and its aspect ratio, as `scripts/videos/bundle-frames.ts` generates
+   * them, imported by the caller: `import cuiskoCooking from "assets/videos/cuisko-cooking"`.
+   * A source is `number | string` for the reason assets/images.d.ts gives.
+   */
+  animation: { source: number | string; aspectRatio: number };
   /** Cosmetic steps, shown in order and looped for as long as the screen stays up. Six or more reads
    * best: fewer, and the loop comes round often enough to be noticed as a loop. */
   steps: readonly string[];
@@ -109,10 +113,11 @@ export const LoadingScreen = ({
           />
         )}
         <View style={styles.body}>
-          <FrameSequence
-            sequence={animation}
+          {/* The platform decoder plays and loops it; expo-image autoplays an animated image. */}
+          <Image
+            source={animation.source}
             contentFit="contain"
-            style={styles.animation}
+            style={[styles.animation, { aspectRatio: animation.aspectRatio }]}
           />
           <LoadingSteps steps={steps} active={active} finished={finished} />
         </View>
@@ -133,9 +138,10 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing[16],
   },
   progress: {
-    paddingTop: theme.spacing[16],
+    paddingTop: theme.spacing[12],
+    paddingBottom: theme.spacing[16],
     marginHorizontal: "auto",
-    width: 320,
+    width: 160,
   },
   body: {
     flex: 1,
@@ -144,7 +150,7 @@ const styles = StyleSheet.create({
     width: "100%",
     gap: 16,
   },
-  /** Full width; the height follows from the sequence's own aspect ratio. */
+  /** Full width; the height follows from the animation's own aspect ratio. */
   animation: { width: "100%" },
   footer: {
     textAlign: "center",
