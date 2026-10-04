@@ -46,21 +46,32 @@ export const IngredientGroup = ({ titleSize, title, items, itemWidth }: Props) =
       {title}
     </Title>
     <View style={styles.grid}>
-      {items.map((item) =>
-        item.amount === undefined ? (
-          <GroceryItem
-            key={item.name}
-            emoji={item.emoji}
-            imageUrl={item.imageUrl}
-            name={item.name}
-            variant="ghost"
+      {items.map((item, i) => {
+        if (item.amount === undefined) {
+          const isDuplicate = items.findIndex((other) => other.name === item.name) !== i;
+          if (isDuplicate) return null;
+
+          return (
+            <GroceryItem
+              key={item.name}
+              emoji={item.emoji}
+              imageUrl={item.imageUrl}
+              name={item.name}
+              variant="ghost"
+              width={itemWidth}
+              style={{ marginBottom: theme.spacing[16] }}
+            />
+          );
+        }
+
+        return (
+          <MeasuredTile
+            key={item.name + item.amount + item.unit}
+            item={item}
             width={itemWidth}
-            style={{ marginBottom: theme.spacing[16] }}
           />
-        ) : (
-          <MeasuredTile key={item.name + item.amount + item.unit} item={item} width={itemWidth} />
-        ),
-      )}
+        );
+      })}
     </View>
   </View>);
 }
