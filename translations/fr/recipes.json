@@ -9,5 +9,15 @@
   "empty_import": "Importer une recette",
   "empty_search": "Chercher dans le catalogue",
   "no_matches_title": "Aucun résultat",
-  "no_matches_body": "Aucune recette ne correspond à « {{query}} », ni par son nom ni par ce qu'elle contient."
+  "no_matches_body": "Aucune recette ne correspond à « {{query}} », ni par son nom ni par ce qu'elle contient.",
+  "Importing": {
+    "title": "Import en cours",
+    "minutes_left_one": "Encore {{count, number}} minute",
+    "minutes_left_many": "Encore {{count, number}} minutes",
+    "minutes_left_other": "Encore {{count, number}} minutes",
+    "seconds_left_one": "Encore {{count, number}} seconde",
+    "seconds_left_many": "Encore {{count, number}} secondes",
+    "seconds_left_other": "Encore {{count, number}} secondes",
+    "due": "Presque prête"
+  }
 }

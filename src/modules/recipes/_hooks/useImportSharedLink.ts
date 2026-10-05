@@ -74,7 +74,7 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
      * same moment would both read an empty map from their last render and both start an import.
      */
     const key = importKeyOf(url);
-    let pending = store.get(importsInFlightAtom).get(key);
+    let pending = store.get(importsInFlightAtom).get(key)?.recipe;
 
     if (!pending) {
       pending = action({ url, locale }).then(async (imported) => {
@@ -82,7 +82,8 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
         if (!imported.isOwned) await favorite(imported.recipeId, true);
         return imported;
       });
-      store.set(importsInFlightAtom, (inFlight) => new Map(inFlight).set(key, pending!));
+      const entry = { url, startedAt: Date.now(), recipe: pending };
+      store.set(importsInFlightAtom, (inFlight) => new Map(inFlight).set(key, entry));
 
       const settle = () =>
         store.set(importsInFlightAtom, (inFlight) => {

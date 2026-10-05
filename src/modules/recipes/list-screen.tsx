@@ -1,4 +1,4 @@
-import { View, StyleSheet, ViewStyle, Keyboard, TextInput } from "react-native";
+import { View, StyleSheet, ViewStyle, Keyboard, Linking, TextInput } from "react-native";
 import { colors, theme } from "theme";
 import { Text } from "@ui/text";
 import { EmptyState } from "@ui/empty-state";
@@ -15,6 +15,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "translations";
 
 import { useFavoriteRecipes } from "./_hooks/useFavoriteRecipes";
+import { type ImportCard, useImportsInFlight } from "./_hooks/useImportsInFlight";
 import { useRecipeList } from "./_hooks/useRecipeList";
 import { FavoritesShelf } from "./_components/favorites-shelf";
 import { COVER_PLACEHOLDER } from "./constants";
@@ -31,6 +32,12 @@ type Props = {
   initialQuery?: string,
 }
 
+type Cell = ReturnType<typeof useRecipeList>["recipes"][number] | (ImportCard & { id?: undefined });
+
+/** The line under an importing card: the time left on its announcement, then that it is due. */
+const _countdownKey = ({ countdown }: ImportCard) =>
+  countdown.unit === "due" ? "Importing.due" as const : `Importing.${countdown.unit}_left` as const;
+
 export const RecipesScreen = ({ style, initialQuery }: Props) => {
   const t = useTranslations("Recipes");
   /** A cuisine is a shared vocabulary, so its words live with the rest of them. */
@@ -40,12 +47,16 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
   const searchRef = useRef<TextInput>(null);
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
   const { favorites } = useFavoriteRecipes();
+  const imports = useImportsInFlight();
 
   /**
    * Hidden while a term narrows the grid: the shelf is not a search surface, and a row of
    * favorites that ignores the box would read as matches that are not.
    */
   const showsShelf = !isSearching && favorites.length > 0;
+
+  /** Imports lead the cook's own grid, where their recipe will land; a search result is not theirs. */
+  const cells: Cell[] = isSearching ? recipes : [...imports, ...recipes];
 
   return (
     <>
@@ -61,7 +72,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
         style={{ position: "absolute", top: 200, left: -100, opacity: 0.1 }}
       />
       <FlashList
-        data={recipes}
+        data={cells}
         onEndReached={hasMore ? loadMore : undefined}
         onEndReachedThreshold={0.5}
         /**
@@ -128,10 +139,11 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               />
             )}
             {/* A mixed result set is not "your recipes": the heading says which of the two the grid is. */}
-            {recipes.length !== 0 && <Text.Lg>{t(isSearching ? "matches" : "yours")}</Text.Lg>}
+            {cells.length !== 0 && <Text.Lg>{t(isSearching ? "matches" : "yours")}</Text.Lg>}
           </SafeAreaView>
         }
-        keyExtractor={({ id }) => id}
+        keyExtractor={(cell) => cell.id ?? cell.key}
+        getItemType={(cell) => (cell.id ? "recipe" : "import")}
         numColumns={2}
         renderItem={({ item, index }) => {
           const COLUMN_GAP = 12;
@@ -141,13 +153,24 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               marginLeft: index % 2 === 0 ? 0 : COLUMN_GAP / 2,
               marginRight: index % 2 === 0 ? COLUMN_GAP / 2 : 0
             }}>
-              <CardRecipe
-                title={item.title}
-                subtitle={tVocabulary(`Cuisines.${item.cuisine}`)}
-                imageSrc={item.coverImageUrl ? { uri: item.coverImageUrl } : COVER_PLACEHOLDER}
-                style={{ width: "100%", marginBottom: COLUMN_GAP }}
-                onPress={() => router.push(`/recipe/${item.id}`)}
-              />
+              {item.id === undefined ? (
+                // Back to the reel it is being read from: there is no recipe to open yet.
+                <CardRecipe
+                  pending
+                  title={t("Importing.title")}
+                  subtitle={t(_countdownKey(item), item.countdown.unit === "due" ? undefined : { count: item.countdown.count })}
+                  style={{ width: "100%", marginBottom: COLUMN_GAP }}
+                  onPress={() => void Linking.openURL(item.url)}
+                />
+              ) : (
+                <CardRecipe
+                  title={item.title}
+                  subtitle={tVocabulary(`Cuisines.${item.cuisine}`)}
+                  imageSrc={item.coverImageUrl ? { uri: item.coverImageUrl } : COVER_PLACEHOLDER}
+                  style={{ width: "100%", marginBottom: COLUMN_GAP }}
+                  onPress={() => router.push(`/recipe/${item.id}`)}
+                />
+              )}
             </View>
           )
         }}

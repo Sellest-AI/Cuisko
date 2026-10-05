@@ -10,6 +10,7 @@ import { theme } from "~/global/theme";
 import { useTranslations } from "translations";
 
 import { useImportSharedLink } from "./_hooks/useImportSharedLink";
+import { VIDEO_IMPORT_MINUTES } from "./_model/importCountdown";
 
 type Props = {
   /** The link the cook shared, as the share sheet handed it over. */
@@ -62,10 +63,10 @@ export const ShareImportScreen = ({ url, onLayout }: Props) => {
           {failure ? t(failure.title) : t("Import.sharing_title")}
         </Text.Lg>
         <Text.Base color={theme.colors.muted} style={styles.centered}>
-          {failure ? t(failure.body) : t("Import.sharing_body")}
+          {failure ? t(failure.body) : t("Import.sharing_body", { minutes: VIDEO_IMPORT_MINUTES })}
         </Text.Base>
       </View>
-      <ButtonPill variant="neutral" size="lg" onPress={() => router.back()} style={styles.close}>
+      <ButtonPill variant="neutral" size="lg" onPress={() => router.replace("/recipes")} style={styles.close}>
         {t("Import.close")}
       </ButtonPill>
     </SafeAreaView>

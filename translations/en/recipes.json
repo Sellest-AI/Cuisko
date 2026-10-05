@@ -9,5 +9,13 @@
   "empty_import": "Import a recipe",
   "empty_search": "Search the catalog",
   "no_matches_title": "Nothing found",
-  "no_matches_body": "No recipe matches “{{query}}”, by name or by what is in it."
+  "no_matches_body": "No recipe matches “{{query}}”, by name or by what is in it.",
+  "Importing": {
+    "title": "Importing recipe",
+    "minutes_left_one": "{{count, number}} minute left",
+    "minutes_left_other": "{{count, number}} minutes left",
+    "seconds_left_one": "{{count, number}} second left",
+    "seconds_left_other": "{{count, number}} seconds left",
+    "due": "Almost there"
+  }
 }
