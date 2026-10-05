@@ -26,11 +26,11 @@ export type SocialVideoSource = { platform: SocialPlatform; id: string; canonica
  *
  * `videoUrl` is a signed CDN address valid for a few days. How it can be fetched is the platform's
  * fact, carried by `videoHeaders`:
- * - **absent**: anyone may fetch it, so the model is handed the URL and downloads it itself, and the
- *   video never enters Convex (Instagram).
+ * - **absent**: anyone may fetch it, so the model is handed the URL and downloads it itself
+ *   (Instagram). The tool still downloads it too, for the transcript.
  * - **present**: the CDN refuses a request without these headers (TikTok wants the page's cookies and
- *   a `Referer`), which the model's fetcher cannot send. The tool then downloads the video with them
- *   and sends it inline. They are the page's session, so they are passed on and never stored.
+ *   a `Referer`), which the model's fetcher cannot send. The tool downloads the video with them and
+ *   sends it inline. They are the page's session, so they are passed on and never stored.
  */
 export type SocialVideo = SocialVideoSource & {
   caption: string;

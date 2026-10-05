@@ -4,6 +4,7 @@ import { ConvexError } from "convex/values";
 import * as z from "zod/v4";
 
 import { SUPPORTED_LOCALES } from "@shared/translations";
+import { transcribe } from "@convex/lib/openrouter/transcribe";
 import { httpsDownloadVideo } from "@convex/lib/socialVideo/httpsGet";
 
 import { createTool, providerSchema, wrapAgent } from "../utils";
@@ -12,9 +13,9 @@ import { extractVideoRecipePrompt } from "../config/prompts/extractVideoRecipe";
 import { modelRecipeSchema, type SanitizedRecipe, toSanitizedRecipe } from "./sanitizeRecipe";
 
 /**
- * The largest video we download, for the platforms whose CDN the model cannot fetch (TikTok). A
- * short is 5 to 15 MB; 50 MB is ~67 MB of base64, which a Node action's 512 MiB holds with room,
- * and past it the cook gets `VIDEO_TOO_LARGE` instead of a crash.
+ * The largest video we download, which is every one: the transcription needs the file. A short is
+ * 5 to 15 MB; 50 MB is ~67 MB of base64, which a Node action's 512 MiB holds with room, and past
+ * it the cook gets `VIDEO_TOO_LARGE` instead of a crash.
  */
 export const MAX_VIDEO_BYTES = 50_000_000;
 
@@ -52,7 +53,7 @@ export const videoRecipeSchema = z.object({
  * on the way back, which `toVideoRecipe` does instead.
  *
  * Validated by the SDK, a "no recipe" answer never reached its verdict: told to fill the other
- * fields minimally, MiMo writes timings of 0, which the recipe schema refuses, so the SDK threw
+ * fields minimally, MiMo wrote timings of 0, which the recipe schema refuses, so the SDK threw
  * `AI_NoObjectGeneratedError` and the cook was told the service was down (2026-10-05, on a real
  * reel). Nothing is lost by skipping it: `toSanitizedRecipe` parses the full schema again anyway.
  */
@@ -77,40 +78,64 @@ export const toVideoRecipe = (raw: unknown): SanitizedRecipe => {
 /** The video as the model receives it: a URL it fetches itself, or the file inline. */
 export type VideoPart = { url: string } | { base64: string; mediaType: string };
 
+/** A downloaded video: the file for the transcription, and the part for the model. */
+export type FetchedVideo = { base64: string; mediaType: string; part: VideoPart };
+
 /**
- * How this video can reach the model, which is the platform's fact (`SocialVideo.videoHeaders`):
+ * The video, downloaded here, with the part the model gets, which is the platform's fact
+ * (`SocialVideo.videoHeaders`):
  *
- * - **No headers** (Instagram): the URL itself. The model downloads the video on its side and it
- *   never enters Convex.
+ * - **No headers** (Instagram): the URL itself. The model downloads the video on its side.
  * - **Headers** (TikTok): its CDN answers 403 to anyone without the page's cookies, the model's
- *   fetcher included, so we download it here, with them, and send it inline. Encoded with `Buffer`
- *   in one pass and handed on as a STRING, never the bytes: the AI SDK encodes bytes by appending
- *   one character per byte, which V8 keeps as rope nodes, and on 2026-10-04 that cost +490 MB for a
- *   13 MB video and crashed the action at Node's 512 MB. As a string it costs about +35 MB.
+ *   fetcher included, so it gets the file we downloaded, inline.
+ *
+ * A failed download fails the import, even for Instagram, whose URL alone would reach the model: a
+ * video we cannot fetch is one we cannot transcribe, and a recipe without what is said gets times
+ * wrong. A failed transcription does not (`transcriptOf`), since a silent or music-only video
+ * cannot be told from it.
+ *
+ * Encoded with `Buffer` in one pass and handed on as a STRING, never the bytes: the AI SDK encodes
+ * bytes by appending one character per byte, which V8 keeps as rope nodes, and on 2026-10-04 that
+ * cost +490 MB for a 13 MB video and crashed the action at Node's 512 MB. As a string it costs
+ * about +35 MB.
  *
  * Exported for `extractVideoRecipe.manual.test.ts`, so the run you pay for sends what the tool sends.
  */
-export const videoPartOf = async ({
+export const fetchVideo = async ({
   videoUrl,
   videoHeaders,
 }: {
   videoUrl: string;
   videoHeaders?: Record<string, string>;
-}): Promise<VideoPart> => {
-  if (!videoHeaders) return { url: videoUrl };
+}): Promise<FetchedVideo> => {
+  const { bytes, mediaType } = await httpsDownloadVideo(videoUrl, videoHeaders ?? {}, { maxBytes: MAX_VIDEO_BYTES });
+  const base64 = bytes.toString("base64");
 
-  const { bytes, mediaType } = await httpsDownloadVideo(videoUrl, videoHeaders, { maxBytes: MAX_VIDEO_BYTES });
-  return { base64: bytes.toString("base64"), mediaType };
+  return { base64, mediaType, part: videoHeaders ? { base64, mediaType } : { url: videoUrl } };
 };
 
 /**
- * What the model is shown: the caption as text, then the video as a file part.
+ * What the creator says, or `null` when the transcription fails. A transcript improves the recipe
+ * (a time said aloud that the caption gets wrong); without it the model still has the frames and
+ * the caption, as before transcripts existed, so a failure here never fails the import.
+ */
+export const transcriptOf = async ({ base64, mediaType }: FetchedVideo): Promise<string | null> => {
+  try {
+    return await transcribe({ base64, mediaType });
+  } catch (error) {
+    console.warn("extractVideoRecipe: transcription failed, importing without it", error);
+    return null;
+  }
+};
+
+/**
+ * What the model is shown: the caption and the transcript as text, then the video as a file part.
  *
  * A URL part reaches OpenRouter as `video_url: { url }` untouched only because `models.videoRecipes`
  * declares `video/*` URLs as supported; without that the AI SDK would download it here and inline
  * it, which is the crash above. A base64 part reaches it as a `data:` URL.
  */
-export const videoRecipeMessages = (caption: string, video: VideoPart) => [
+export const videoRecipeMessages = (caption: string, transcript: string | null, video: VideoPart) => [
   {
     role: "user" as const,
     content: [
@@ -119,6 +144,12 @@ export const videoRecipeMessages = (caption: string, video: VideoPart) => [
         text: caption.trim()
           ? `The creator's caption, as posted:\n${caption}`
           : "The creator posted no caption. Everything is in the video.",
+      },
+      {
+        type: "text" as const,
+        text: transcript
+          ? `What is said in the video, transcribed by machine:\n${transcript}`
+          : "Nothing said in the video could be transcribed.",
       },
       "url" in video
         ? { type: "file" as const, data: new URL(video.url), mediaType: "video/mp4" }
@@ -137,7 +168,7 @@ export const videoRecipeMessages = (caption: string, video: VideoPart) => [
  * A video that teaches no dish never gets that far: `toVideoRecipe` refuses it with `NOT_A_RECIPE`
  * first, so no row is written for it.
  *
- * **When the video is downloaded, it never leaves this function**: never an argument (Node actions
+ * **The downloaded video never leaves this function**: never an argument (Node actions
  * stop at 5 MiB), a return value (16 MiB) or a row (1 MiB). Callers pass a URL and get a recipe.
  *
  * **Node runtime only** (`"use node"`): the download goes through `node:https`, and an inline video
@@ -145,9 +176,9 @@ export const videoRecipeMessages = (caption: string, video: VideoPart) => [
  *
  * `saveMessages: "none"`, as in `sanitizeRecipe`: a transformation, not a conversation.
  *
- * If a future model refuses URLs altogether (as Meta's Muse Spark did with `media_url_not_fetchable`,
- * and Qwen 3.8 Omni with `Download multimodal file timed out`), make `videoPartOf` download every
- * video, not only those with headers, and drop the `video/*` override in `models.videoRecipes`.
+ * If a future model refuses URLs altogether (as Meta's Muse Spark did with `media_url_not_fetchable`),
+ * make `fetchVideo` return the inline part for every video, since it already holds the file, and
+ * drop the `video/*` override in `models.videoRecipes`.
  */
 export const extractVideoRecipe = createTool({
   description:
@@ -155,14 +186,16 @@ export const extractVideoRecipe = createTool({
     "recipe it teaches. Returns ingredient names, not catalog ids.",
   inputSchema: _inputSchema,
   execute: async (ctx, { locale, caption, videoUrl, videoHeaders }): Promise<SanitizedRecipe> => {
-    const video = await videoPartOf({ videoUrl, videoHeaders });
+    const video = await fetchVideo({ videoUrl, videoHeaders });
+    // GLM cannot hear the video. Drop the transcript once `models.videoRecipes` takes audio input.
+    const transcript = await transcriptOf(video);
 
     const result = await wrapAgent(videoRecipesAgent).generateObject(
       ctx,
       {},
       {
         system: extractVideoRecipePrompt(locale),
-        messages: videoRecipeMessages(caption, video),
+        messages: videoRecipeMessages(caption, transcript, video.part),
         schema: videoRecipeOutputSchema,
         output: "object",
         maxRetries: 2,

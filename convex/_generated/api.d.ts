@@ -199,6 +199,7 @@ import type * as lib_compareVersions from "../lib/compareVersions.js";
 import type * as lib_i18n_index from "../lib/i18n/index.js";
 import type * as lib_media_node from "../lib/media/node.js";
 import type * as lib_nanoid from "../lib/nanoid.js";
+import type * as lib_openrouter_transcribe from "../lib/openrouter/transcribe.js";
 import type * as lib_path from "../lib/path.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_replicate_node from "../lib/replicate/node.js";
@@ -515,6 +516,7 @@ declare const fullApi: ApiFromModules<{
   "lib/i18n/index": typeof lib_i18n_index;
   "lib/media/node": typeof lib_media_node;
   "lib/nanoid": typeof lib_nanoid;
+  "lib/openrouter/transcribe": typeof lib_openrouter_transcribe;
   "lib/path": typeof lib_path;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/replicate/node": typeof lib_replicate_node;
