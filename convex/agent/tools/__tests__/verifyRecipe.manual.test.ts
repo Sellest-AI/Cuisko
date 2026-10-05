@@ -35,9 +35,9 @@ import { VERIFY_TOOLS, verifyRecipePrompt } from "../../config/prompts/verifyRec
 /** `models.verifier` ships GPT-6 Luna at `xhigh`; the efforts either side are what it is weighed against. */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6.1-sol", modes: ["low"] }, // ships as models.verifier
+  // { name: "z-ai/glm-5.3-flash", modes: ["high", "max"] }, // works with sort throughput, and is 7x cheaper than sol. But worse.
   // { name: "openai/gpt-6-luna", modes: ["high"] }, // missed the method-only ingredient, 0/3
   // { name: "openai/gpt-6-luna", modes: ["xhigh", "max"] }, // too slow
-  // { name: "z-ai/glm-5.3-flash", modes: ["high", "max"] }, // too slow
   // { name: "deepseek/deepseek-v4.1-flash", modes: ["high", "max"] }, // too slow
 ];
 
