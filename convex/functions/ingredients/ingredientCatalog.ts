@@ -2,6 +2,7 @@ import type { Category } from "@shared/categories";
 import type { Unit } from "@shared/ingredients";
 import { sortAllergens, type Allergen } from "@shared/allergens";
 import type { Diet } from "@shared/diets";
+import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
 /**
  * The starter ingredient catalog `seedIngredients.ts` writes to the database.
@@ -44,7 +45,7 @@ export type CatalogEntry = {
   en: string;
   fr: string;
   emoji: string;
-  aliases: { fr?: string[]; en?: string[] };
+  aliases: Partial<Record<Locale, string[]>>;
   category: Category;
   /**
    * Absent when neither the category nor `DIET` could answer. `seedIngredients` throws on it
@@ -255,7 +256,7 @@ const ROWS: Row[] = [
   ["cream-cheese", "Cream cheese", "Fromage à tartiner", "DAIRY", "g", 200, 342, 6, 34, 19, 4.1, 3.2, 0, 321],
   ["plain-yogurt", "Plain yogurt", "Yaourt nature", "DAIRY", "g", 500, 61, 3.5, 3.3, 2.1, 4.7, 4.7, 0, 46],
   ["greek-yogurt", "Greek yogurt", "Yaourt grec", "DAIRY", "g", 500, 59, 10, 0.4, 0.1, 3.6, 3.6, 0, 36],
-  ["heavy-cream", "Heavy cream", "Crème fraîche épaisse", "DAIRY", "ml", 250, 340, 2.8, 36, 23, 2.8, 2.9, 0, 38],
+  ["heavy-cream", "Heavy cream", "Crème liquide entière", "DAIRY", "ml", 250, 340, 2.8, 36, 23, 2.8, 2.9, 0, 38],
   ["sour-cream", "Sour cream", "Crème aigre", "DAIRY", "g", 250, 198, 2.4, 19.7, 12.6, 4.6, 3.4, 0, 32],
   ["cottage-cheese", "Cottage cheese", "Cottage cheese", "DAIRY", "g", 250, 98, 11, 4.3, 2.7, 3.4, 2.7, 0, 364],
   ["feta", "Feta", "Feta", "DAIRY", "g", 200, 264, 14, 21, 15, 4.1, 4.1, 0, 917],
@@ -323,12 +324,16 @@ const ROWS: Row[] = [
   ["mint", "Mint", "Menthe", "HERB", "g", 20, 70, 3.8, 0.9, 0.2, 15, 0, 6.8, 31],
   ["thyme", "Thyme", "Thym", "HERB", "g", 15, 101, 5.6, 1.7, 0.5, 24, 1.7, 14, 9],
   ["rosemary", "Rosemary", "Romarin", "HERB", "g", 15, 131, 3.3, 5.9, 2.8, 20, 0, 14.1, 26],
-  ["oregano-fresh", "Fresh oregano", "Origan frais", "HERB", "g", 15, 265, 9, 4.3, 1.6, 69, 4.1, 42.5, 25],
+  // No reference measures fresh oregano: CIQUAL's and USDA's only entry is the dried leaf (265 kcal),
+  // which this row carried. These are that entry scaled to a fresh leaf's dry matter (~20% against
+  // ~90% dried, as fresh thyme and marjoram run), so an estimate, but the right order of magnitude.
+  ["oregano-fresh", "Fresh oregano", "Origan frais", "HERB", "g", 15, 59, 2, 1, 0.3, 15.3, 0.9, 9.4, 6],
   ["dill", "Dill", "Aneth", "HERB", "g", 20, 43, 3.5, 1.1, 0, 7, 0, 2.1, 61],
   ["chives", "Chives", "Ciboulette", "HERB", "g", 20, 30, 3.3, 0.7, 0.1, 4.4, 1.9, 2.5, 3],
   ["tarragon", "Tarragon", "Estragon", "HERB", "g", 20, 49, 3.4, 1.1, 0, 6.3, 0, 3.4, 62],
   ["lemongrass", "Lemongrass", "Citronnelle", "HERB", "pcs", 2, 99, 1.8, 0.5, 0.1, 25, 0, 0, 6],
-  ["sage", "Sage", "Sauge", "HERB", "g", 15, 315, 10.6, 12.8, 7, 61, 1.7, 40.3, 11],
+  // CIQUAL 11069, fresh sage. The row carried USDA's ground sage, now `dried-sage`.
+  ["sage", "Sage", "Sauge", "HERB", "g", 15, 37, 4, 0, 0, 8, 0.3, 7, 11],
 
   // ── Spices ──────────────────────────────────────────────────────────────────────────────
   ["black-pepper", "Black pepper", "Poivre noir", "SPICE", "g", 50, 251, 10.4, 3.3, 1.4, 64, 0.6, 25.3, 20],
@@ -353,6 +358,18 @@ const ROWS: Row[] = [
   ["cardamom", "Cardamom", "Cardamome", "SPICE", "g", 20, 311, 10.8, 6.7, 0.5, 68, 0, 28, 18],
   ["dried-oregano", "Dried oregano", "Origan séché", "SPICE", "g", 30, 265, 9, 4.3, 1.6, 69, 4.1, 42.5, 25],
   ["dried-basil", "Dried basil", "Basilic séché", "SPICE", "g", 30, 233, 23, 4, 2, 50, 0, 37.7, 26],
+  // A recipe naming a bare herb means it fresh; the dried jar is another product, written as one.
+  ["dried-thyme", "Dried thyme", "Thym séché", "SPICE", "g", 30, 276, 9.1, 7.4, 2.7, 64, 1.7, 37, 55],
+  ["dried-rosemary", "Dried rosemary", "Romarin séché", "SPICE", "g", 30, 331, 4.9, 15.2, 7.4, 64, 0, 42.6, 50],
+  ["dried-parsley", "Dried parsley", "Persil séché", "SPICE", "g", 30, 292, 26.6, 5.5, 1.4, 51, 7.3, 26.7, 452],
+  ["dried-sage", "Dried sage", "Sauge séchée", "SPICE", "g", 30, 315, 10.6, 12.8, 7, 61, 1.7, 40.3, 11],
+  ["dried-dill", "Dried dill", "Aneth séché", "SPICE", "g", 30, 253, 20, 4.4, 0.2, 56, 0, 13.6, 208],
+  ["dried-mint", "Dried mint", "Menthe séchée", "SPICE", "g", 30, 285, 19.9, 6, 1.6, 52, 0, 29.8, 344],
+  ["dried-chives", "Dried chives", "Ciboulette séchée", "SPICE", "g", 10, 311, 21.2, 3.5, 0.6, 64, 0, 26.2, 70],
+  ["dried-tarragon", "Dried tarragon", "Estragon séché", "SPICE", "g", 30, 295, 22.8, 7.2, 1.9, 50, 0, 7.4, 62],
+  // The powder of a food the catalog also sells fresh: garlic and onion are bulbs, these are jars.
+  ["garlic-powder", "Garlic powder", "Ail en poudre", "SPICE", "g", 50, 331, 16.6, 0.7, 0.2, 73, 2.4, 9, 60],
+  ["onion-powder", "Onion powder", "Oignon en poudre", "SPICE", "g", 50, 341, 10.4, 1, 0.2, 79, 6.6, 15.2, 73],
   ["bay-leaf", "Bay leaf", "Feuille de laurier", "SPICE", "g", 15, 313, 7.6, 8.4, 2.3, 75, 0, 26.3, 23],
 
   // ── Oils ────────────────────────────────────────────────────────────────────────────────
@@ -507,6 +524,9 @@ const EMOJI: Record<string, string> = {
   "ras-el-hanout": "🧂", "espelette-pepper": "🌶️", tarragon: "🌿",
   "paprika-smoked": "🌶️", "mustard-seeds": "🟡", lemongrass: "🌿",
   "ginger-ground": "🫚", "bay-leaf": "🌿", "dried-basil": "🌿", "dried-oregano": "🌿",
+  "dried-thyme": "🌿", "dried-rosemary": "🌿", "dried-parsley": "🌿", "dried-sage": "🌿",
+  "dried-dill": "🌿", "dried-mint": "🌿", "dried-chives": "🌿", "dried-tarragon": "🌿",
+  "garlic-powder": "🧄", "onion-powder": "🧅",
   // Oils
   "olive-oil": "🫒", "coconut-oil": "🥥", ghee: "🧈",
   // Everything else
@@ -544,11 +564,19 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   // The onion France sells by default is the yellow one; naming its colour buys the same net.
   onion: { fr: ["oignon jaune"], en: ["yellow onion", "brown onion"] },
   // Young leaves are sold in a bag beside the mature ones, cooked and eaten the same way.
-  spinach: { fr: ["jeune pousse d'épinard", "pousse d'épinard"], en: ["baby spinach"] },
+  // `feuille` names a part of a plant, so it is no stopword (see `STOPWORDS_FR`): the leafy rows
+  // carry it here, and the herbs have theirs generated by `_formsSoldAs`.
+  spinach: {
+    fr: ["jeune pousse d'épinard", "pousse d'épinard", "feuilles d'épinards"],
+    en: ["baby spinach", "spinach leaves"],
+  },
   // "clove" measures garlic and names a spice, so it is no stopword (see `STOPWORDS_EN`): the
   // garlic phrasings are spelled out here, where the word garlic is what tells the two apart.
-  // "clove of garlic" also covers "1 clove garlic" — both reduce to `clove garlic`.
-  garlic: { en: ["garlic clove", "clove of garlic"] },
+  // "clove of garlic" also covers "1 clove garlic" — both reduce to `clove garlic`. `gousse` is the
+  // French `clove`, out of `STOPWORDS_FR` for the same reason.
+  garlic: { fr: ["gousse d'ail"], en: ["garlic clove", "clove of garlic"] },
+  // Sold in sheets in France, and counted in them by every recipe that sets a cream.
+  gelatin: { fr: ["feuilles de gélatine"], en: ["gelatin sheets", "gelatine leaves"] },
   cloves: { en: ["ground cloves"] },
   "sweet-potato": { fr: ["patate douce"] },
   // "passata" alone scored 0.70 as one word of the English name, below the bar, and the ranker
@@ -564,7 +592,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "bell-pepper-red": { fr: ["poivron"] },
   mushroom: { fr: ["champignons", "champignon de paris"] },
   cilantro: { fr: ["coriandre"] },
-  "creme-fraiche": { fr: ["crème"] },
+  "creme-fraiche": { fr: ["crème", "crème fraîche épaisse"] },
   // The plain word for milk, in both languages, on the carton France buys most. Unaliased, "milk"
   // tied every two-word milk at 0.70 and the index put oat, almond and coconut milk first.
   "milk-semi-skimmed": { fr: ["lait", "lait UHT"], en: ["milk"] },
@@ -572,7 +600,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   // row's own "en poudre" or "moulu" counts as a word nobody typed, and the bare word fell to 0.70.
   "cocoa-powder": { fr: ["cacao"], en: ["cocoa"] },
   "coffee-ground": { fr: ["café"], en: ["coffee"] },
-  "heavy-cream": { fr: ["crème liquide", "crème entière", "crème liquide entière"] },
+  "heavy-cream": { fr: ["crème liquide", "crème entière"] },
   // The beef France sells as plain "bœuf haché" is this one; a recipe naming no fat means it.
   "ground-beef-80-20": { fr: ["viande hachée", "steak haché", "bœuf haché"], en: ["ground beef", "minced beef"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },
@@ -587,7 +615,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "pasta-dry": { fr: ["pâtes"] },
   "white-rice": { fr: ["riz"] },
   "flour-all-purpose": { fr: ["farine"] },
-  "white-sugar": { fr: ["sucre", "sucre semoule"], en: ["caster sugar", "superfine sugar"] },
+  "white-sugar": { fr: ["sucre", "sucre semoule", "sucre en poudre"], en: ["caster sugar", "superfine sugar"] },
   "brown-sugar": { fr: ["cassonade"] },
   cornstarch: { fr: ["fécule de maïs"] },
   honey: { fr: ["miel liquide"] },
@@ -597,10 +625,32 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
     fr: ["huile d'olive", "huile", "huile d'olive vierge extra", "huile d'olive extra-vierge", "huile d'olive vierge"],
     en: ["extra virgin olive oil", "extra-virgin olive oil", "virgin olive oil"],
   },
-  "black-pepper": { fr: ["poivre", "poivre du moulin"] },
+  // The spellings `_formsSoldAs` cannot generate: other words for the spice, not its form.
+  "black-pepper": { fr: ["poivre", "poivre du moulin", "poivre moulu"] },
   // Without it "noix de muscade" tied with the walnuts on the shared word.
-  nutmeg: { fr: ["noix de muscade"] },
+  nutmeg: { fr: ["noix de muscade", "noix de muscade moulue", "noix de muscade en poudre"] },
   paprika: { fr: ["paprika doux"] },
+  "cayenne-pepper": { fr: ["piment de cayenne", "piment de cayenne en poudre"], en: ["cayenne"] },
+  "ginger-ground": { fr: ["gingembre moulu"] },
+  "coriander-ground": { fr: ["coriandre moulue"] },
+  "garlic-powder": {
+    fr: ["poudre d'ail", "granulés d'ail", "ail granulé", "ail en granulés"],
+    en: ["garlic granules", "granulated garlic"],
+  },
+  "onion-powder": {
+    fr: ["poudre d'oignon", "oignon semoule", "oignon granulé", "granulés d'oignon"],
+    en: ["onion granules", "granulated onion"],
+  },
+  "dried-thyme": { fr: ["thym sec"] },
+  "dried-rosemary": { fr: ["romarin sec"] },
+  "dried-parsley": { fr: ["persil sec"], en: ["parsley flakes"] },
+  "dried-sage": { fr: ["sauge sèche"], en: ["ground sage", "rubbed sage"] },
+  "dried-dill": { en: ["dill weed", "dried dill weed"] },
+  "dried-mint": { fr: ["menthe sèche"] },
+  "dried-chives": { en: ["freeze-dried chives"] },
+  "dried-tarragon": { fr: ["estragon sec"] },
+  // Sold dried; a fresh leaf is rare enough that a recipe naming it would say so.
+  "bay-leaf": { fr: ["laurier", "feuille de laurier séchée"], en: ["dried bay leaf", "bay leaves"] },
   salt: { fr: ["fleur de sel", "gros sel", "sel fin", "sel marin"], en: ["sea salt"] },
   "mustard-yellow": { fr: ["moutarde de dijon"] },
   // A British recipe says "stock" where this row says "broth". Without these, "chicken stock"
@@ -621,8 +671,12 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   shrimp: { fr: ["crevettes", "gambas"], en: ["prawn", "king prawn"] },
   chickpeas: { fr: ["pois chiches"] },
   lardons: { fr: ["lardon"] },
+  bacon: { fr: ["poitrine fumée", "poitrine de porc fumée"], en: ["smoked pork belly"] },
   // A recipe writing "de la salade" means leaves, and the catalog's only leaves are these.
-  "lettuce-romaine": { fr: ["salade", "salade verte"] },
+  "lettuce-romaine": {
+    fr: ["salade", "salade verte", "feuilles de salade", "feuilles de laitue"],
+    en: ["lettuce leaves"],
+  },
   "spring-onion": { fr: ["oignon nouveau", "cébette", "ciboule"] },
   "bouillon-cube": {
     fr: ["bouillon cube", "tablette de bouillon", "cube de bouillon de volaille"],
@@ -630,8 +684,9 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   },
   "curry-powder": { fr: ["curry"] },
   hummus: { en: ["houmous"] },
-  "raisins-dried": { fr: ["raisin sec"] },
-  "prunes-dried": { fr: ["pruneau"] },
+  // Dried by nature, so a recipe that says so anyway still means this row.
+  "raisins-dried": { fr: ["raisin sec", "raisins séchés"], en: ["dried raisins"] },
+  "prunes-dried": { fr: ["pruneau", "pruneaux séchés", "pruneau sec"], en: ["dried prunes", "dried plums"] },
   "fish-sauce": { fr: ["sauce poisson", "nuoc mam"] },
   tahini: { fr: ["tahini", "tahiné"] },
   "soy-milk": { fr: ["lait de soja"] },
@@ -781,6 +836,9 @@ const GRAMS_PER_ML: Record<string, number> = {
   "black-pepper": 0.45, cinnamon: 0.45, cumin: 0.45, paprika: 0.46, turmeric: 0.5,
   "ginger-ground": 0.5, nutmeg: 0.5, "chili-powder": 0.5, "cayenne-pepper": 0.5,
   "coriander-ground": 0.45, cloves: 0.5, cardamom: 0.45, "dried-oregano": 0.2, "dried-basil": 0.2,
+  "dried-thyme": 0.2, "dried-rosemary": 0.24, "dried-parsley": 0.1, "dried-sage": 0.14,
+  "dried-dill": 0.2, "dried-mint": 0.1, "dried-chives": 0.02, "dried-tarragon": 0.12,
+  "garlic-powder": 0.62, "onion-powder": 0.48,
   "garam-masala": 0.45, "curry-powder": 0.45, saffron: 0.35, "ras-el-hanout": 0.45,
   "espelette-pepper": 0.45, "herbes-de-provence": 0.2, "paprika-smoked": 0.46,
   "mustard-seeds": 0.65,
@@ -1019,6 +1077,11 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   cardamom: { sealed: 730, opened: 365 }, "herbes-de-provence": { sealed: 730, opened: 365 },
   "dried-oregano": { sealed: 730, opened: 365 }, "dried-basil": { sealed: 730, opened: 365 },
   "bay-leaf": { sealed: 730, opened: 365 },
+  "dried-thyme": { sealed: 730, opened: 365 }, "dried-rosemary": { sealed: 730, opened: 365 },
+  "dried-parsley": { sealed: 730, opened: 365 }, "dried-sage": { sealed: 730, opened: 365 },
+  "dried-dill": { sealed: 730, opened: 365 }, "dried-mint": { sealed: 730, opened: 365 },
+  "dried-chives": { sealed: 730, opened: 365 }, "dried-tarragon": { sealed: 730, opened: 365 },
+  "garlic-powder": { sealed: 730, opened: 365 }, "onion-powder": { sealed: 730, opened: 365 },
   // -- Oils ----------------------------------------------------------------------------------
   "olive-oil": { sealed: 540, opened: 90 }, "coconut-oil": { sealed: 540, opened: 365 },
   "vegetable-oil": { sealed: 365, opened: 180 }, "canola-oil": { sealed: 365, opened: 180 },
@@ -1273,6 +1336,93 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   beer: ["gluten", "sulphites"],
 };
 
+/**
+ * A name that already says its form, or is a whole part rather than the spice itself.
+ *
+ * Keyed by `Locale`, like `FORM_SPELLINGS`, so a new language cannot be forgotten here either.
+ */
+const _NAMES_A_FORM: Record<Locale, RegExp> = {
+  fr: /poudre|moulu|s[ée]ch|graine|feuille/i,
+  en: /powder|ground|dried|seed|leaf/i,
+};
+
+/**
+ * How each language writes the form a row is sold in, or the part of it a recipe counts, around
+ * its name. A herb's leaves are not a form: they are the herb, and "feuilles de basilic" names the
+ * row. But `feuille` is a word of the name since it also names a curry leaf, so the row needs the
+ * spelling.
+ *
+ * One spelling per form is enough: the matcher maps "moulue", "powder" and "ground" to one form, and
+ * "séchées", "sèches" and "dried" to another. "Secs" is the exception, since `sec` is no form word
+ * ("vin sec" is a dry wine), so the plural a recipe writes for pulses is spelled out.
+ *
+ * Keyed by `Locale`: a language added to `SUPPORTED_LOCALES` fails typecheck here until it says how
+ * it writes these, rather than seeding its spices without the spelling every recipe uses.
+ */
+const FORM_SPELLINGS: Record<Locale, Record<"ground" | "dried" | "leaves", (name: string) => string[]>> = {
+  fr: {
+    ground: (name) => [`${name} en poudre`],
+    dried: (name) => [`${name} séchés`, `${name} secs`],
+    leaves: (name) => [`feuilles ${/^[aeiouyhâéèêîôû]/.test(name) ? "d'" : "de "}${name}`],
+  },
+  en: {
+    ground: (name) => [`ground ${name}`],
+    dried: (name) => [`dried ${name}`],
+    leaves: (name) => [`${name} leaves`],
+  },
+};
+
+/**
+ * Staples whose row IS the dry product: their figures are the dry ones (330 to 390 kcal), as a shop
+ * sells them. Chickpeas and the beans are NOT here, and that is the rule rather than an oversight:
+ * their rows carry the cooked, tinned figures (127 to 164 kcal), so "pois chiches secs" is another
+ * product, two to three times as dense, and must not land on them.
+ */
+const SOLD_DRY = new Set([
+  "white-rice", "brown-rice", "basmati-rice", "arborio-rice", "pasta-dry", "whole-wheat-pasta",
+  "spaghetti", "penne", "macaroni", "rice-noodles", "egg-noodles", "quinoa", "couscous", "barley",
+  "bulgur", "lentils-red", "lentils-green", "split-peas", "soybeans",
+]);
+
+/**
+ * The spellings of the form a row is already sold in, generated rather than written per row.
+ *
+ * A spice named bare is the ground spice, and a staple named bare is the dry one: that is how a
+ * recipe writes them and how a shop sells them, so the row IS that form. But a form word is identity
+ * to the matcher (a powder of a fresh food is another product), so "safran en poudre" no longer folds
+ * onto `Safran` by itself. Every such row needs the spelling, and a list written by hand covered ten
+ * spices and silently dropped the rest to a model call, which is why the rule lives here.
+ *
+ * ⚠️ **Seed only, and that is the rule rather than an oversight.** It is safe here because every row
+ * it reads was written and checked by hand. Moved into `ingredientRow` or `createIngredient`, it
+ * would run on a category the model guessed and a name it cannot read: "Poivre en grains" would
+ * answer to ground pepper, a fresh ginger filed as SPICE would take "gingembre en poudre", and
+ * `SOLD_DRY`, guessed from the figures instead of listed, would make a fresh pasta over 300 kcal
+ * tie with the dry one. Each is a wrong link with no error. A row a
+ * shopper grows gets its form spellings from `sanitizeIngredient`'s aliases instead, where a miss
+ * only costs a model call.
+ */
+const _formsSoldAs = (slug: string, category: Category, names: Record<Locale, string>): CatalogEntry["aliases"] => {
+  const namesAForm = SUPPORTED_LOCALES.some((locale) => _NAMES_A_FORM[locale].test(names[locale]));
+  const form =
+    category === "SPICE" && !namesAForm ? "ground"
+    : category === "HERB" && !namesAForm ? "leaves"
+    : SOLD_DRY.has(slug) ? "dried"
+    : undefined;
+  if (!form) return {};
+
+  return Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [locale, FORM_SPELLINGS[locale][form](names[locale].toLowerCase())]),
+  );
+};
+
+const _mergeAliases = (...lists: CatalogEntry["aliases"][]): CatalogEntry["aliases"] =>
+  Object.fromEntries(
+    SUPPORTED_LOCALES
+      .map((locale) => [locale, [...new Set(lists.flatMap((list) => list[locale] ?? []))]] as const)
+      .filter(([, words]) => words.length > 0),
+  );
+
 export const CATALOG: readonly CatalogEntry[] = ROWS.map(
   ([
     slug, en, fr, category, defaultUnit, defaultQuantity,
@@ -1282,7 +1432,7 @@ export const CATALOG: readonly CatalogEntry[] = ROWS.map(
     en,
     fr,
     emoji: EMOJI[slug] ?? CATEGORY_EMOJI[category],
-    aliases: ALIASES[slug] ?? {},
+    aliases: _mergeAliases(ALIASES[slug] ?? {}, _formsSoldAs(slug, category, { fr, en })),
     category,
     diet: DIET[slug] ?? DIET_BY_CATEGORY[category],
     // Sorted and de-duplicated through the shared helper, so the stored column is canonical

@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
-import { DEFAULT_LOCALE } from "@convex/schema/i18n";
+import { DEFAULT_LOCALE, type Locale } from "@convex/schema/i18n";
 import { ALIAS_EXACT } from "@shared/ingredientMatch";
 import type { IngredientSource } from "@shared/ingredients";
 
@@ -50,8 +50,8 @@ export const createIngredient = async (
   source: IngredientSource,
 ): Promise<CreatedIngredient> => {
   // Only the name in the shopper's language, never the renderings beside it. English folds what
-  // French keeps apart: a new `Poitrine fumée` rendered "Bacon" would otherwise land on the seeded
-  // `Lard fumé`, whose English name is also "Bacon". The source name is also the one a parallel
+  // French keeps apart: a new `Potiron` rendered "Pumpkin" would otherwise land on a `Citrouille`
+  // row, whose English name is also "Pumpkin". The source name is also the one a parallel
   // walk for the same word produced, so it is all the race needs. `searchWidened` still reads both
   // indexes, and names the row in `locale`.
   const locale = facts.sourceLocale ?? DEFAULT_LOCALE;
@@ -59,9 +59,38 @@ export const createIngredient = async (
   if (best && best.score >= SAME_NAME) return { created: false, existing: best };
 
   const ingredientId = await ctx.db.insert("ingredients", {
-    ...ingredientRow(facts, source),
+    ...ingredientRow({ ...facts, aliases: await _unclaimedAliases(ctx, facts.aliases) }, source),
     updatedAt: Date.now(),
   });
 
   return { created: true, ingredientId };
+};
+
+/**
+ * The aliases no other row already answers to, by the same exact bar as the name above.
+ *
+ * **A claimed alias is a tie written into the catalog.** Both rows then score the same on that
+ * spelling, `MARGIN` refuses to link either, and every shopper who types it afterwards pays a model
+ * call. The row writer cannot see the catalog, so this is the one place that can drop it: a new
+ * `garlic powder` row once took `granulated garlic` from the `garlic granules` row beside it.
+ *
+ * Dropped rather than refused: the row is still the food, and an alias is only a shortcut to it.
+ */
+const _unclaimedAliases = async (
+  ctx: MutationCtx,
+  aliases: IngredientFacts["aliases"],
+): Promise<IngredientFacts["aliases"]> => {
+  const isFree = async (alias: string, locale: Locale) => {
+    const [claimed] = await searchWidened(ctx, { text: alias, locale });
+    return !claimed || claimed.score < SAME_NAME;
+  };
+
+  const kept = await Promise.all(
+    (Object.entries(aliases) as [Locale, string[] | undefined][]).map(async ([locale, list = []]) => {
+      const free = await Promise.all(list.map((alias) => isFree(alias, locale)));
+      return [locale, list.filter((_, index) => free[index])] as const;
+    }),
+  );
+
+  return Object.fromEntries(kept);
 };

@@ -140,21 +140,21 @@ describe("functions/ingredients/createIngredient", () => {
   });
 
   /**
-   * Only the shopper's own word is compared. English folds what French keeps apart: `Poitrine
-   * fumée` renders as "Bacon", and so does the seeded `Lard fumé`. Matching on the rendering would
-   * link the recipe line to the wrong cut with nobody asked.
+   * Only the shopper's own word is compared. English folds what French keeps apart: `Potiron`
+   * renders as "Pumpkin", and so does `Citrouille`, another squash with another flesh. Matching on
+   * the rendering would link the recipe line to the wrong vegetable with nobody asked.
    */
   test("does not reuse a row that only shares a translated name", async () => {
     await created(
-      { ...PARSNIP, names: { fr: { value: "Lard fumé", status: "edited" }, en: { value: "Bacon", status: "edited" } } },
+      { ...PARSNIP, names: { fr: { value: "Citrouille", status: "edited" }, en: { value: "Pumpkin", status: "edited" } } },
       "seed",
     );
     const second = await t.run((ctx) =>
       createIngredient(ctx, {
         ...PARSNIP,
         names: {
-          fr: { value: "Poitrine fumée", status: "edited" },
-          en: { value: "Bacon", status: "machine" },
+          fr: { value: "Potiron", status: "edited" },
+          en: { value: "Pumpkin", status: "machine" },
         },
         sourceLocale: "fr",
       }, "agent"),
@@ -178,5 +178,27 @@ describe("functions/ingredients/createIngredient", () => {
     );
 
     expect(second.created).toBe(true);
+  });
+
+  /**
+   * An alias another row already answers to is a tie written into the catalog: both rows then score
+   * the same on that spelling, `MARGIN` refuses to link either, and every later shopper typing it
+   * pays a model call. The row writer cannot see the catalog, so the writer of the table drops it.
+   * Seen in dev: a new `garlic powder` row took `granulated garlic` from `garlic granules`.
+   */
+  test("drops an alias that already names or aliases another row", async () => {
+    await created(RUTABAGA, "foodComposition");
+    const turnip = await created({
+      ...PARSNIP,
+      names: {
+        fr: { value: "Navet", status: "edited" },
+        en: { value: "Turnip", status: "machine" },
+      },
+      aliases: { fr: ["chou-navet", "navet blanc"], en: ["swede", "white turnip"] },
+      sourceLocale: "fr",
+    }, "agent");
+    const row = await t.run((ctx) => ctx.db.get(turnip));
+
+    expect(row?.aliases).toEqual({ fr: ["navet blanc"], en: ["white turnip"] });
   });
 });

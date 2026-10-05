@@ -12,10 +12,17 @@
  * for the caller that turns these numbers into a decision.
  */
 
-import { foldAccents } from "./translations";
+import type { Category } from "./categories";
+import { foldAccents, type Locale } from "./translations";
 
-/** A catalog row reduced to what scoring can see — id, name and synonyms, in ONE locale. */
-export type Candidate = { id: string; name: string; aliases?: string[] };
+/**
+ * A catalog row reduced to what scoring can see — id, name and synonyms, in ONE locale.
+ *
+ * `category` decides what a mincing word means (see `MINCING`). Absent, the word keeps the meaning
+ * each language's list gave it before categories were read, so a caller scoring two free-text names
+ * against each other (`lookupHit`, a recipe's own lines) is unchanged.
+ */
+export type Candidate = { id: string; name: string; aliases?: string[]; category?: Category };
 
 /**
  * At or above this, the name is linked to the row without asking anyone.
@@ -125,6 +132,10 @@ const _singularize = (token: string) => {
  */
 const _vocabulary = (words: string[]) => new Set(words.map(_singularize));
 
+/** `_vocabulary` for a word list that maps each word to a form. */
+const _forms = (pairs: [word: string, form: string][]) =>
+  new Map(pairs.map(([word, form]) => [_singularize(word), form]));
+
 /**
  * Words that carry no identity: articles, prepositions, and the packaging words a cook writes
  * around an ingredient. Both sides are stripped, so removing them cannot break a pair that agreed.
@@ -144,9 +155,15 @@ const _vocabulary = (words: string[]) => new Set(words.map(_singularize));
 const STOPWORDS_FR = _vocabulary([
   // articles and prepositions — `a` is "à" folded, which the English list, tested as typed, misses
   "de", "du", "des", "d", "la", "le", "les", "l", "un", "une", "au", "aux", "et", "en", "a",
-  // how much of it, rather than what it is — "2 gousses d'ail" is garlic
-  "gousse", "brin", "pincee", "tranche", "boite", "sachet", "botte", "poignee", "cuillere",
-  "feuille", "branche", "morceau", "tasse", "bocal", "barquette", "paquet", "piece",
+  // how much of it, rather than what it is — "2 tranches de jambon" is ham
+  "brin", "pincee", "tranche", "boite", "sachet", "botte", "poignee", "cuillere",
+  "branche", "morceau", "tasse", "bocal", "barquette", "paquet", "piece",
+  /**
+   * ⚠️ `gousse` and `feuille` are NOT here, for the reason `clove` is not in English: each measures
+   * one food and names a part of another. Stripped, "feuille de curry" scored 0.9 against curry
+   * powder through its `curry` alias, and "gousse de cardamome" 1.0 against the ground spice. The
+   * phrasings where they measure ("gousse d'ail", "feuilles de basilic") are aliases on those rows.
+   */
 ]);
 
 const STOPWORDS_EN = _vocabulary([
@@ -167,7 +184,7 @@ const STOPWORDS_EN = _vocabulary([
  */
 const QUALIFIERS = _vocabulary([
   // en
-  "fresh", "freshly", "frozen", "dried", "chopped", "sliced", "diced", "minced", "grated",
+  "fresh", "freshly", "frozen", "chopped", "sliced", "diced", "minced", "grated",
   "shredded", "crushed", "peeled", "seeded", "softened", "melted", "sifted", "cooked", "raw",
   "thinly", "finely", "roughly", "large", "small", "medium", "ripe", "optional", "extra",
   /**
@@ -180,18 +197,105 @@ const QUALIFIERS = _vocabulary([
    * so the catalog scored them 1.0 and linked them without ever asking the ranker the question.
    */
   // fr
-  "frais", "fraiche", "fraiches", "surgele", "surgelee", "seche", "sechee", "emince", "emincee",
+  "frais", "fraiche", "fraiches", "surgele", "surgelee", "emince", "emincee",
   "rape", "rapee", "coupe", "coupee", "pele", "pelee", "fondu", "fondue",
   "ramolli", "ramollie", "tamise", "tamisee", "cuit", "cuite", "cru", "crue", "finement",
   "grossierement", "gros", "grosse", "petit", "petite", "moyen", "moyenne", "bio",
   /**
-   * A form, not an identity — and the two English words next to it are deliberately absent.
-   * "sucre en poudre" is the sugar every French recipe means; stripping "poudre" is what lets it
-   * reach `white-sugar` instead of losing to `Piment en poudre` on the shared word. English
-   * "ground" and "powdered" stay: "ground beef" is not beef and "powdered sugar" is not sugar.
+   * ⚠️ `poudre`, `moulu`, `powder`, `ground`, `séché` and `dried` are NOT here, for the reason
+   * `hache` is not: grinding and drying are the shop's work, so each makes another product.
+   *
+   * Garlic powder and garlic are two jars on two shelves; dried and fresh tomatoes are roughly ten
+   * times apart on every nutrition figure. Stripped, "ail en poudre" scored 1.0 against `Ail` and
+   * "coriandre séchée" 1.0 against fresh coriander, both linked unasked. The one phrase that wanted
+   * the strip, "sucre en poudre" for plain sugar, is an alias on `white-sugar` instead.
+   *
+   * `frozen` and `fresh` stay: frozen peas are peas, and fresh is the state a food is sold in.
+   * How a form is then scored is `FORMS`'s business.
    */
-  "poudre", "moulu", "moulue", "powder",
 ]);
+
+/**
+ * The form the shop made a food into, each spelling mapped to one canonical form.
+ *
+ * Form words are identity (garlic powder is not garlic), so `QUALIFIERS` keeps them. But they are
+ * identity of a narrow kind, and scoring them as ordinary words broke two ways: a shared "dried"
+ * carried half the coverage, so "dried barley" cleared `CONFIDENT` against `Dried parsley`; and
+ * "dried" is two edits from "red", so it read as `Red onion`'s colour. So a form is compared the way
+ * a grade is, equal or different, and to compare it the spellings of one form become one token:
+ * "séchées", "séché" and "dried" are one form, "en poudre", "moulue" and "ground" another.
+ *
+ * **Tested in the spelling each language is typed in, for the reason `STOPWORDS` has two lists.**
+ * Tested after the fold, one language's word can be the other's: `thé` folded to `the` and was
+ * dropped as an English article. So French is tested folded (it is typed with or without accents)
+ * and English as typed. `sec` is not here: "vin sec" is a dry wine, not a dried one.
+ *
+ * Keyed by `Locale`, so a language added to `SUPPORTED_LOCALES` fails typecheck here until its form
+ * words exist, rather than matching its powders onto the fresh food in silence.
+ *
+ * Read only by scoring (`_shape`). Retrieval keeps the words as written, since that is what the
+ * search index stored.
+ */
+const FORMS: Record<Locale, { spelling: "folded" | "typed"; words: Map<string, string> }> = {
+  fr: {
+    spelling: "folded",
+    words: _forms([
+      ["poudre", "~ground"], ["moulu", "~ground"], ["moulue", "~ground"],
+      ["seche", "~dried"], ["sechee", "~dried"],
+    ]),
+  },
+  en: {
+    spelling: "typed",
+    words: _forms([["powder", "~ground"], ["ground", "~ground"], ["dried", "~dried"]]),
+  },
+};
+
+/** The canonical form a word names in any language, if it names one. */
+const _formOf = ({ typed, token }: { typed: string; token: string }) =>
+  Object.values(FORMS)
+    .map(({ spelling, words }) => words.get(spelling === "folded" ? token : typed))
+    .find(Boolean);
+
+/** A token `FORMS` wrote. The tilde survives no fold, so nothing typed reaches it. */
+const _isFormToken = (token: string) => token.startsWith("~");
+
+/**
+ * What a candidate's word score is multiplied by when the two names do not carry the same forms.
+ *
+ * Low enough that no pair can reach `CONFIDENT` with a form on one side only (1 × 0.7 = 0.7), and
+ * high enough that the fresh food stays above `PLAUSIBLE`: "ail en poudre" is not `Ail`, but `Ail`
+ * is a candidate worth showing the ranker.
+ */
+const FORM_MISMATCH = 0.7;
+
+/**
+ * The words for mincing, which name a product or a preparation depending on the food.
+ *
+ * Mincing a cow makes another product: `steak haché` and `steak` are two counters and two nutrition
+ * tables, which is why `haché` left `QUALIFIERS`. Mincing a clove of garlic does not: "ail haché" is
+ * the garlic bulb, cut. No word list can hold both, and the two languages had split the difference
+ * each its own way: `minced` stayed a qualifier, so "minced lamb" scored 1.0 against `Lamb`, while
+ * `haché` stayed identity, so "ail haché" fell under the bar against `Ail`. The row's category is
+ * what tells them apart (`_qualifiersFor`), and it holds for a row a shopper grew as for a seeded
+ * one, since every row has one.
+ *
+ * Written folded, as `QUALIFIERS` is tested, and keyed by `Locale` like `FORMS`.
+ */
+const MINCING: Record<Locale, string[]> = { fr: ["hache", "hachee"], en: ["minced"] };
+
+/** The categories whose rows are a different product once minced. */
+const MINCED_IS_A_PRODUCT: ReadonlySet<Category> = new Set(["MEAT", "SEAFOOD"]);
+
+const _MINCING_WORDS = _vocabulary(Object.values(MINCING).flat());
+const _QUALIFIERS_FOR_MEAT = new Set([...QUALIFIERS].filter((word) => !_MINCING_WORDS.has(word)));
+const _QUALIFIERS_FOR_THE_REST = new Set([...QUALIFIERS, ..._MINCING_WORDS]);
+
+/** The qualifiers a name is read with against a row of this category. */
+const _qualifiersFor = (category: Category | undefined): ReadonlySet<string> => {
+  if (category === undefined) return QUALIFIERS;
+
+  return MINCED_IS_A_PRODUCT.has(category) ? _QUALIFIERS_FOR_MEAT : _QUALIFIERS_FOR_THE_REST;
+};
 
 /** A quantity glued to the name — "200g", "2", "1/2". Never part of what the ingredient is. */
 const _isQuantity = (token: string) => /^\d/.test(token);
@@ -274,16 +378,22 @@ const _fold = (value: string) =>
  * SAME split — what a name reduces to, and how much reducing it threw away. Written twice, the two
  * copies disagree about what a qualifier is the first time one of the lists above grows.
  */
-const _layers = (value: string) => {
+const _layers = (value: string, qualifiers: ReadonlySet<string> = QUALIFIERS) => {
   const raw = _words(value)
     .filter(({ folded }) => !_isQuantity(folded))
     .map(({ typed, folded }) => ({ typed: _singularize(typed), token: _singularize(folded) }));
   const meaningful = raw
     .filter(({ typed, token }) => !STOPWORDS_FR.has(token) && !STOPWORDS_EN.has(typed))
     .map(({ token }) => token);
-  const identifying = meaningful.filter((token) => !QUALIFIERS.has(token));
+  const identifying = meaningful.filter((token) => !qualifiers.has(token));
+  const forms = new Map(
+    raw.flatMap((word) => {
+      const form = _formOf(word);
+      return form ? [[word.token, form] as const] : [];
+    }),
+  );
 
-  return { raw: raw.map(({ token }) => token), meaningful, identifying };
+  return { raw: raw.map(({ token }) => token), meaningful, identifying, forms };
 };
 
 /**
@@ -308,7 +418,9 @@ const _words = (value: string): { typed: string; folded: string }[] =>
  */
 const _tokenize = (value: string): string[] => _pick(_layers(value));
 
-const _pick = ({ raw, meaningful, identifying }: ReturnType<typeof _layers>): string[] =>
+type _Layers = Pick<ReturnType<typeof _layers>, "raw" | "meaningful" | "identifying">;
+
+const _pick = ({ raw, meaningful, identifying }: _Layers): string[] =>
   identifying.length > 0 ? identifying : meaningful.length > 0 ? meaningful : raw;
 
 /**
@@ -378,6 +490,8 @@ const _similarity = (left: string, right: string): number => {
   // `pct5` and `pct20` score 0.6 — over `TOKEN_MATCHED`, so the candidate would count the wrong
   // grade as an accounted-for word and the pair would clear `CONFIDENT` on its other two.
   if (_isGradeToken(left) || _isGradeToken(right)) return 0;
+  // A form likewise: "dried" is two edits from "red", and was read as a red onion's colour.
+  if (_isFormToken(left) || _isFormToken(right)) return 0;
   if (left.length < 3 || right.length < 3) return 0;
 
   return 1 - _editDistance(left, right) / Math.max(left.length, right.length);
@@ -418,55 +532,23 @@ export const gradesIn = (query: string): string[] =>
   _tokenize(query).filter(_isGradeToken);
 
 /**
- * Preparations the SHOP did, as opposed to the ones the cook does.
+ * What to ask the search index for when every row it returns will be SCORED: `searchTerms` without
+ * the form words, for the reason it drops grades.
  *
- * A deliberately tiny subset of `QUALIFIERS`, and the line between them is who performed the verb.
- * Cooking beef is something the cook does after buying it, so `raw beef` and `cooked beef` are one
- * shopping decision and must fold together — which is why `cuit` and `cru` stay qualifiers. Drying
- * a tomato is something the shop did before selling it: `tomates` and `tomates séchées` are two
- * products, two shelves, two prices, and roughly ten times apart on every nutrition figure.
+ * A form is identity to `scoreCandidate` and noise to retrieval. Every staple sold dry carries
+ * "dried" in its search text, so "dried thyme" asked for that word too and the index answered with
+ * rice and lentils, up to the page limit, before it reached the thyme. Retrieved on `thyme` alone,
+ * both `Thyme` and `Dried thyme` come back and the score tells them apart.
  *
- * **`frozen` is NOT here, and that is a decision, not an omission.** Frozen peas are peas: you cook
- * them the same and they count the same. Only drying concentrates a food enough to make it a
- * different ingredient. `frozen` and `surgelé` are already `QUALIFIERS`, so leaving them off this
- * list is all it takes — they fold away like any other preparation.
- *
- * **`fresh` is not here either, because it is the default state.** Dropping it from both sides
- * leaves `coriander` against `dried coriander`, which is already the distinction we want; listing
- * it would instead split `fresh tomatoes` from `tomatoes`, which are the same thing.
- *
- * Both gendered forms, like `QUALIFIERS` — `_singularize` runs once, so `séchées` arrives as
- * `sechee` and `séchés` as `seche`.
- *
- * @limitation **`en conserve` is a known gap, not a decision.** Tinned tomatoes are tomatoes by the
- * same argument as frozen peas, but `conserve` was never a `QUALIFIER`, so it survives as an
- * identifying word and `tomates en conserve` gets its own walk today. Fixing it means adding the
- * word to `QUALIFIERS`, which changes `searchTerms` — and that builds the taxonomy index keys,
- * the widened catalog query and the client's suggestions, so it is a retrieval change and not a
- * fold change. It does not belong here, and it costs one redundant walk rather than wrong data.
- * Pinned in `resolveRecipeIngredients.test.ts`.
+ * Not `searchTerms` itself: that one also keys the taxonomy and a recipe's lines, where "tomates"
+ * and "tomates séchées" must stay two keys. A name made only of a form keeps it.
  */
-const PRESERVATION = _vocabulary(["dried", "seche", "sechee"]);
+export const retrievalTerms = (query: string): string => {
+  const { forms } = _layers(query);
+  const words = searchTerms(query).split(" ").filter((token) => !forms.has(token));
 
-/**
- * The preservation words in a name — read BEFORE `QUALIFIERS` strips them.
- *
- * Not built on `_tokenize`, and it cannot be: `_tokenize` returns the identifying tokens, which is
- * exactly the list these words have already been removed from. So this re-walks the raw fold, and
- * takes the same quantity filter and the same singularizer so it cannot disagree with the tokens
- * it will be appended to.
- *
- * Exported for `foldedIngredientName`, which is the only caller and the only place the distinction
- * matters: retrieval may ignore how a food was preserved, because the catalog is searched widened
- * and the ranker weighs the rest of the name. Identity may not — folding `tomates` and `tomates
- * séchées` to one key resolves one of them and silently links the other to it.
- */
-export const preservationIn = (query: string): string[] =>
-  _fold(query)
-    .split(" ")
-    .filter((token) => token && !_isQuantity(token))
-    .map(_singularize)
-    .filter((token) => PRESERVATION.has(token));
+  return words.length > 0 ? words.join(" ") : searchTerms(query);
+};
 
 const _bestSimilarity = (token: string, against: string[]): number =>
   against.reduce((best, other) => Math.max(best, _similarity(token, other)), 0);
@@ -487,7 +569,7 @@ const _bestSimilarity = (token: string, against: string[]): number =>
  * the "ready-to-serve" on USDA's basil pesto kept the `red` of a red pesto.
  */
 export const keepsEveryWord = (name: string, spelling: string): boolean => {
-  const kept = _shape(spelling).words;
+  const kept = _shape(spelling, QUALIFIERS).words;
 
   return _tokenize(name).every((token) => _bestSimilarity(token, kept) > TOKEN_MATCHED);
 };
@@ -501,7 +583,7 @@ export const keepsEveryWord = (name: string, spelling: string): boolean => {
  * proportion to how many, so a two-word row that matched on one of them loses to the row that
  * matched on all of them. That penalty is the entire reason the potato wins.
  */
-const _fuzzyScore = (queryTokens: string[], candidateTokens: string[]): number => {
+const _wordScore = (queryTokens: string[], candidateTokens: string[]): number => {
   if (queryTokens.length === 0 || candidateTokens.length === 0) return 0;
 
   const coverage =
@@ -517,6 +599,26 @@ const _fuzzyScore = (queryTokens: string[], candidateTokens: string[]): number =
   return coverage * (1 - EXTRA_WEIGHT * extraRatio);
 };
 
+const _withoutForms = (tokens: string[]) => {
+  const words = tokens.filter((token) => !_isFormToken(token));
+  return words.length > 0 ? words : tokens;
+};
+
+const _formsOf = (tokens: string[]) => [...new Set(tokens.filter(_isFormToken))].sort().join(" ");
+
+/**
+ * `_wordScore` on the words that name the food, with the forms judged apart: equal, or the score
+ * is cut by `FORM_MISMATCH`. Counted among the words, a shared form vouched for two different foods
+ * ("dried barley", `Dried parsley`); a form the other side lacks only cost coverage, which left
+ * room for a strong word match to carry the pair anyway. A name that is nothing but a form keeps
+ * its form as its words, as `_tokenize` keeps a name made only of qualifiers.
+ */
+const _fuzzyScore = (queryTokens: string[], candidateTokens: string[]): number => {
+  const words = _wordScore(_withoutForms(queryTokens), _withoutForms(candidateTokens));
+
+  return _formsOf(queryTokens) === _formsOf(candidateTokens) ? words : words * FORM_MISMATCH;
+};
+
 /**
  * One catalog row against one free-text name, 0..1.
  *
@@ -524,7 +626,8 @@ const _fuzzyScore = (queryTokens: string[], candidateTokens: string[]): number =
  * normalized alias, then the fuzzy comparison — which can never reach either, by `FUZZY_CEILING`.
  */
 export const scoreCandidate = (query: string, candidate: Candidate): number => {
-  const asked = _shape(query);
+  const qualifiers = _qualifiersFor(candidate.category);
+  const asked = _shape(query, qualifiers);
   if (asked.tokens.length === 0) return 0;
 
   const key = asked.tokens.join(" ");
@@ -534,10 +637,10 @@ export const scoreCandidate = (query: string, candidate: Candidate): number => {
   const isExact = (spelling: Shape) =>
     spelling.tokens.join(" ") === key && unasked(spelling).length === 0;
 
-  const name = _shape(candidate.name);
+  const name = _shape(candidate.name, qualifiers);
   if (isExact(name)) return 1;
 
-  const aliases = (candidate.aliases ?? []).map(_shape);
+  const aliases = (candidate.aliases ?? []).map((alias) => _shape(alias, qualifiers));
   if (aliases.some(isExact)) return ALIAS_EXACT;
 
   const fuzzy = [name, ...aliases].reduce(
@@ -560,27 +663,27 @@ type Shape = { tokens: string[]; words: string[]; qualifiers: string[] };
  * In a catalog name they are the shop's, written there on purpose, and they make the row a
  * different product: "Sliced cooked chicken" is not what "chicken" asks for, and "Piment en poudre"
  * is not every chili. So a row's qualifiers must appear in the query for an exact match, and count
- * as extra words in the fuzzy one when they do not. The same line `PRESERVATION` draws, drawn at
- * the one place that can see both sides.
+ * as extra words in the fuzzy one when they do not.
  *
  * Empty for a name made only of qualifiers, which is `_tokenize`'s fallback: "Frais" is its own name.
  */
-const _shape = (value: string): Shape => {
-  const { raw, meaningful, identifying } = _layers(value);
+const _shape = (value: string, qualifiers: ReadonlySet<string>): Shape => {
+  const { raw, meaningful, identifying, forms } = _layers(value, qualifiers);
 
   return {
-    tokens: _pick({ raw, meaningful, identifying }),
+    // Each form word as its canonical form, so "séchées" and "dried" are one token here.
+    tokens: _pick({ raw, meaningful, identifying }).map((token) => forms.get(token) ?? token),
     words: meaningful.length > 0 ? meaningful : raw,
     qualifiers:
       identifying.length > 0
-        ? meaningful.filter((token) => QUALIFIERS.has(token) && !DEFAULT_STATE.has(token))
+        ? meaningful.filter((token) => qualifiers.has(token) && !DEFAULT_STATE.has(token))
         : [],
   };
 };
 
 /**
  * The qualifiers a catalog name may carry without naming a different product: fresh is the state a
- * food is sold in unless something says otherwise — the reason `PRESERVATION` leaves it out too.
+ * food is sold in unless something says otherwise.
  * Without this, "ginger" tied `Fresh ginger` with ground ginger, and "tagliatelle" cost a model call
  * to reach the only tagliatelle the catalog holds.
  *

@@ -2,7 +2,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { ActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
-import { gradesIn, preservationIn, searchTerms } from "@shared/ingredientMatch";
+import { gradesIn, searchTerms } from "@shared/ingredientMatch";
 import type { FatUse, RecipeUnit } from "@shared/ingredients";
 
 import {
@@ -97,16 +97,9 @@ export const MAX_JUDGEMENTS = 20;
  * wrong in a way it is not there: `steak haché 5%` and `steak haché 20%` are two foods to
  * `resolveIngredient` (ADR 0011), and folding them together would resolve one and link the other
  * to it. Retrieval may ignore a grade; identity may not.
- *
- * The preservation words come back for exactly the same reason, one step further out: `searchTerms`
- * treats `séchées` as a preparation and strips it, so `tomates` and `tomates séchées` would be one
- * key, walked once, with both lines linked to whichever row that walk returned — the second line
- * then carrying the first's nutrition, which for a dried food is out by an order of magnitude, and
- * one grocery line where the cook needs two. `preservationIn` names the short list and says why
- * `frozen`, `en conserve` and `fresh` are not on it.
  */
 export const foldedIngredientName = (name: string): string =>
-  [searchTerms(name), ...gradesIn(name), ...preservationIn(name)].join(" ").trim();
+  [searchTerms(name), ...gradesIn(name)].join(" ").trim();
 
 /**
  * The key a line is walked under: the fold when it says anything, the raw name when it does not.

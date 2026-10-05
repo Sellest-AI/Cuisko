@@ -2,7 +2,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { LOCALES, type Locale } from "@convex/schema/i18n";
 import type { QueryCtx } from "@convex/procedures";
 import type { Unit } from "@shared/ingredients";
-import { rankCandidates, RESOLVABLE, searchTerms } from "@shared/ingredientMatch";
+import { rankCandidates, RESOLVABLE, retrievalTerms } from "@shared/ingredientMatch";
 
 import { loadIngredients } from "./loadIngredients";
 import { searchCatalog } from "./searchCatalog";
@@ -57,7 +57,7 @@ export const searchWidened = async (
   ctx: SearchCtx,
   { text, locale }: { text: string; locale: Locale },
 ): Promise<WidenedCandidate[]> => {
-  const query = searchTerms(text);
+  const query = retrievalTerms(text);
   if (!query) return [];
 
   // Both indexes in parallel: they are independent reads and a shopper is waiting on a placeholder
@@ -82,7 +82,7 @@ export const searchWidened = async (
   for (const { rows } of pages) {
     const ranked = rankCandidates(
       text,
-      rows.map((row) => ({ id: row._id, name: row.name, aliases: row.aliases })),
+      rows.map((row) => ({ id: row._id, name: row.name, aliases: row.aliases, category: row.category })),
     );
 
     for (const { id, score } of ranked) {
