@@ -125,7 +125,9 @@
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
             "NSExtensionActivationSupportsText": true
           },
-          "androidIntentFilters": ["text/*"]
+          "androidIntentFilters": [
+            "text/*"
+          ]
         }
       ],
       [
@@ -137,6 +139,15 @@
           "ios": {
             "deploymentTarget": "26.0"
           }
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": true,
+          "enablePushNotifications": true,
+          "frequentUpdates": true
         }
       ]
     ],
