@@ -122,8 +122,10 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           />
         </View>
       )}
-      {recipe.sourceUrl && <Source url={recipe.sourceUrl} style={styles.source} />}
-      <Verify id={id} style={styles.verify} />
+      <View style={recipe.equipments.length > 0 && { marginTop: theme.spacing[24] }}>
+        {recipe.sourceUrl && <Source url={recipe.sourceUrl} style={styles.source} />}
+        <Verify id={id} style={styles.verify} />
+      </View>
     </RecipeScreen>
   );
 };
