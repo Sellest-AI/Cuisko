@@ -141,6 +141,40 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["café", "coffee-ground"],
     ["origan", "oregano-fresh"],
     ["gros sel", "salt"],
+    // A spice is sold ground, so its row is the powder and the form word lands on it by alias.
+    ["cannelle en poudre", "cinnamon"],
+    ["cumin moulu", "cumin"],
+    ["curcuma en poudre", "turmeric"],
+    ["paprika en poudre", "paprika"],
+    ["paprika fumé en poudre", "paprika-smoked"],
+    ["muscade moulue", "nutmeg"],
+    ["poivre noir moulu", "black-pepper"],
+    // Every spice, not only the ones given aliases by hand: the row is the ground form by default.
+    ["safran en poudre", "saffron"],
+    // Dried by nature, so the redundant form word still lands on it.
+    ["pruneaux séchés", "prunes-dried"],
+    // A staple sold dry: the row is the dry product, so the form lands on it.
+    ["lentilles corail sèches", "lentils-red"],
+    // A powder of a food sold fresh is its own jar, never the bulb.
+    ["ail en poudre", "garlic-powder"],
+    ["granulés d'ail", "garlic-powder"],
+    ["oignon en poudre", "onion-powder"],
+    ["ail", "garlic"],
+    // A bare herb is fresh; the dried one says so.
+    ["thym séché", "dried-thyme"],
+    ["persil séché", "dried-parsley"],
+    ["thym", "thyme"],
+    // Thick cream is the fermented one; whole cream is the liquid one at 30% fat or more.
+    ["crème fraîche épaisse", "creme-fraiche"],
+    ["crème entière", "heavy-cream"],
+    // Smoked belly is the cut lard fumé is cut from: one product under two names.
+    ["poitrine fumée", "bacon"],
+    // A leaf or a clove is a word of the name, so the rows it measures carry it as an alias.
+    ["feuilles de basilic", "basil"],
+    ["feuilles de menthe", "mint"],
+    ["feuilles de gélatine", "gelatin"],
+    // Mincing is a preparation for a vegetable, a product only for meat.
+    ["ail haché", "garlic"],
   ])("%s links to %s", async (name, slug) => {
     expect(await linked(name)).toBe(slug);
   });
@@ -165,6 +199,15 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["cocoa", "cocoa-powder"],
     ["coffee", "coffee-ground"],
     ["curry", "curry-powder"],
+    ["smoked paprika powder", "paprika-smoked"],
+    ["cardamom powder", "cardamom"],
+    ["ground cinnamon", "cinnamon"],
+    ["garlic powder", "garlic-powder"],
+    ["onion powder", "onion-powder"],
+    ["dried thyme", "dried-thyme"],
+    ["dried rosemary", "dried-rosemary"],
+    ["basil leaves", "basil"],
+    ["minced garlic", "garlic"],
   ])("%s links to %s in English", async (name, slug) => {
     expect(await linked(name, "en")).toBe(slug);
   });
@@ -178,7 +221,9 @@ describe("functions/ingredients: the bar a name is linked at", () => {
    * point of the resolve slice — but they must still not be LINKED here, at step 1, with nobody
    * asked.
    */
-  test.each(["sumac", "kombu", "quatre-quarts breton"])(
+  // The chickpea row is the tinned one, so dry chickpeas, three times as dense, are not it.
+  // A curry leaf is not curry powder, nor a cardamom pod the ground spice.
+  test.each(["sumac", "kombu", "quatre-quarts breton", "pois chiches secs", "feuille de curry", "gousse de cardamome"])(
     "%s is not linked to its nearest row",
     async (name) => {
       expect(await linked(name)).toBe("unmatched");

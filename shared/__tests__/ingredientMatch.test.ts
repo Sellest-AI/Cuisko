@@ -6,8 +6,8 @@ import {
   gradesIn,
   keepsEveryWord,
   PLAUSIBLE,
-  preservationIn,
   RESOLVABLE,
+  retrievalTerms,
   type Candidate,
   rankCandidates,
   scoreCandidate,
@@ -67,6 +67,58 @@ describe("scoreCandidate", () => {
   });
 
   /**
+   * Grinding is something the shop did, like mincing a cow: garlic powder is another jar on another
+   * shelf. Stripped as a qualifier, "garlic powder" scored 1.0 against `Garlic` and was linked with
+   * no question asked — a shopper's list got fresh garlic, and a recipe merged its half-teaspoon of
+   * powder into the cloves, while `granulés d'ail` sat in the catalog at 0.7.
+   */
+  test("a powder or a ground spice is not the fresh food", () => {
+    expect(scoreCandidate("garlic powder", candidate("garlic", "Garlic"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("ail en poudre", candidate("garlic", "Ail"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("onion powder", candidate("onion", "Onion"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("cumin moulu", candidate("cumin", "Cumin"))).toBeLessThan(CONFIDENT);
+  });
+
+  /**
+   * Drying is the shop's work too. The dried word used to be stripped for scoring and only put back
+   * for the recipe's grouping key, so "coriandre séchée" still scored 1.0 against fresh coriander
+   * and was linked unasked whenever no dried row tied with it.
+   */
+  test("a dried food is not the fresh one", () => {
+    expect(scoreCandidate("coriandre séchée", candidate("x", "Coriandre"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("dried tomatoes", TOMATO)).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("tomates séchées", candidate("x", "Tomates séchées"))).toBe(1);
+  });
+
+  /**
+   * The other side of keeping the form word: it identifies, it does not vouch. Counted like any word,
+   * a shared "dried" carried half the coverage, so "dried barley" cleared CONFIDENT against `Dried
+   * parsley` on the form alone; and "dried" sits two edits from "red", so it read as `Red onion`'s
+   * colour. A form is equal or different, as a grade is.
+   */
+  test("a shared form word is not evidence of the same food", () => {
+    expect(scoreCandidate("dried barley", candidate("x", "Dried parsley"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("dried onion", candidate("x", "Red onion"))).toBeLessThan(CONFIDENT);
+  });
+
+  /**
+   * Retrieval drops the form, as it drops a grade: every staple sold dry says "dried", and asked for
+   * that word the index filled its page with rice before it reached the thyme. The keys keep it.
+   */
+  test("retrieval drops the form word, the keys keep it", () => {
+    expect(retrievalTerms("dried thyme")).toBe("thyme");
+    expect(retrievalTerms("tomates séchées")).toBe(searchTerms("tomates"));
+    expect(searchTerms("tomates séchées")).not.toBe(searchTerms("tomates"));
+    expect(retrievalTerms("poudre")).toBe("poudre");
+  });
+
+  /** Compared as equal-or-different, a form must still be one form however it is spelled. */
+  test("a form is the same form in any gender, plural or synonym", () => {
+    expect(scoreCandidate("tomates séchées", candidate("x", "Tomates séchés"))).toBe(1);
+    expect(scoreCandidate("cannelle moulue", candidate("x", "Cannelle en poudre"))).toBe(1);
+  });
+
+  /**
    * The other side of the line above. A qualifier the cook writes is something they will do; one a
    * catalog name carries is something the shop did, written there on purpose, and it is what makes
    * the row a different product. Stripped from both sides, the deli slices were `chicken` exactly
@@ -84,7 +136,7 @@ describe("scoreCandidate", () => {
   });
 
   /**
-   * The exception, and `preservationIn` draws the same one: fresh is the state a food is sold in
+   * The exception: fresh is the state a food is sold in
    * unless something says otherwise, so a row calling itself fresh has named no different product.
    * Without it "ginger" tied fresh with ground, and "tagliatelle" cost a model call to reach the
    * only tagliatelle the catalog holds.
@@ -161,6 +213,34 @@ describe("scoreCandidate", () => {
     expect(scoreCandidate("steak haché", candidate("x", "Steak"))).toBeLessThan(CONFIDENT);
     expect(scoreCandidate("viande hachée", candidate("x", "Viande hachée"))).toBe(1);
     expect(scoreCandidate("3 oignons, émincés", candidate("onion", "Oignon"))).toBe(1);
+  });
+
+  /**
+   * Which side of that line the word falls on is the row's category, not the word. `minced` was
+   * stripped as a qualifier and `haché` kept as identity, so the two languages disagreed both ways:
+   * "minced lamb" scored 1.0 against `Lamb`, while "ail haché" fell under the bar against `Ail`.
+   */
+  test("mincing is identity against meat and fish, and preparation against anything else", () => {
+    const row = (name: string, category: Candidate["category"]): Candidate => ({ id: "x", name, category });
+
+    expect(scoreCandidate("minced lamb", row("Lamb", "MEAT"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("minced salmon", row("Salmon", "SEAFOOD"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("agneau haché", row("Agneau", "MEAT"))).toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("ail haché", row("Ail", "VEGETABLE"))).toBe(1);
+    expect(scoreCandidate("minced garlic", row("Garlic", "VEGETABLE"))).toBe(1);
+    expect(scoreCandidate("viande hachée", row("Viande hachée", "MEAT"))).toBe(1);
+  });
+
+  /**
+   * `feuille` and `gousse` count garlic and basil, so they were stripped as packaging, and with them
+   * the only word saying a curry leaf is not curry powder, or a cardamom pod not the ground spice.
+   * The rule `clove` already follows in English: a measure that is also a part of a plant is a word
+   * of the name, and the rows it measures carry the phrasing as an alias.
+   */
+  test("a leaf or a pod is part of the name, not a count of it", () => {
+    expect(scoreCandidate("feuille de curry", candidate("x", "Curry en poudre", ["curry"])))
+      .toBeLessThan(CONFIDENT);
+    expect(scoreCandidate("gousse de cardamome", candidate("x", "Cardamome"))).toBeLessThan(CONFIDENT);
   });
 
   test("a word beside thé is not the tea's whole name", () => {
@@ -363,14 +443,15 @@ describe("foldCost", () => {
    */
   test("counts a dropped number, so a code is not a free claim on the word beside it", () => {
     expect(foldCost("Vert 1724")).toBe(1);
-    expect(foldCost("2 gousses d'ail")).toBe(3);
+    // `2` and `d`: `gousse` is a word of the name, since it also names a cardamom pod.
+    expect(foldCost("2 gousses d'ail")).toBe(2);
     expect(foldCost("200g de pâtes")).toBe(2);
   });
 
   test("counts qualifiers, and counts both kinds together", () => {
     expect(foldCost("beurre fondu")).toBe(1);
-    expect(foldCost("oignon en poudre")).toBe(2);
-    expect(foldCost("pomme de terre en poudre")).toBe(3);
+    expect(foldCost("oignon émincé")).toBe(1);
+    expect(foldCost("pomme de terre râpée")).toBe(2);
   });
 
   /**
@@ -380,10 +461,10 @@ describe("foldCost", () => {
    */
   test("ranks a food's own name above the spellings that fold onto it", () => {
     expect(foldCost("jambon")).toBeLessThan(foldCost("Dés de jambon"));
-    expect(foldCost("pomme de terre")).toBeLessThan(foldCost("pomme de terre en poudre"));
+    expect(foldCost("beurre")).toBeLessThan(foldCost("beurre fondu"));
     // Each pair folds to one key, which is the collision the ordering exists to break.
     expect(searchTerms("Dés de jambon")).toBe(searchTerms("jambon"));
-    expect(searchTerms("pomme de terre en poudre")).toBe(searchTerms("pomme de terre"));
+    expect(searchTerms("beurre fondu")).toBe(searchTerms("beurre"));
   });
 
   /**
@@ -394,42 +475,5 @@ describe("foldCost", () => {
     expect(foldCost("poudre")).toBe(0);
     expect(foldCost("fondu")).toBe(0);
     expect(foldCost("")).toBe(0);
-  });
-});
-
-describe("preservationIn", () => {
-  /**
-   * The line is who performed the verb. Drying is the shop's doing and makes a different product;
-   * cooking and mincing are the cook's and do not.
-   */
-  test("returns the preservation words QUALIFIERS strips, in both languages", () => {
-    expect(preservationIn("tomates séchées")).toEqual(["sechee"]);
-    expect(preservationIn("tomates séchés")).toEqual(["seche"]);
-    expect(preservationIn("dried tomatoes")).toEqual(["dried"]);
-    // Stripped by `searchTerms`, which is exactly why they have to be read back here.
-    expect(searchTerms("tomates séchées")).toBe("tomate");
-    expect(searchTerms("dried tomatoes")).toBe("tomato");
-  });
-
-  /**
-   * Frozen peas are peas and tinned tomatoes are tomatoes — same shelf-life question, same cooking,
-   * same numbers. Only drying concentrates a food into a different ingredient.
-   */
-  test("is empty for a preparation that does not change what is bought", () => {
-    expect(preservationIn("petits pois surgelés")).toEqual([]);
-    expect(preservationIn("tomates en conserve")).toEqual([]);
-    expect(preservationIn("cooked beef")).toEqual([]);
-    expect(preservationIn("oignon émincé")).toEqual([]);
-  });
-
-  /** `fresh` is the default state: listing it would split `fresh tomatoes` from `tomatoes`. */
-  test("is empty for fresh, so the default state never splits a name", () => {
-    expect(preservationIn("fresh tomatoes")).toEqual([]);
-    expect(preservationIn("coriandre fraîche")).toEqual([]);
-  });
-
-  test("is empty for a name carrying no preservation word", () => {
-    expect(preservationIn("carotte")).toEqual([]);
-    expect(preservationIn("200g de pâtes")).toEqual([]);
   });
 });

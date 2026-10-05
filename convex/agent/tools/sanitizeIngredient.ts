@@ -133,9 +133,10 @@ const _modelFactsSchema = z
       "only is invisible to the other language's shopper, who then creates a second copy of it.",
     ),
     aliases: _perLocale(z.array(z.string())).describe(
-      "Per language, the other spellings someone would plausibly type looking for this — the " +
-      "regional word, the common misspelling, an irregular plural. NOT translations; those are " +
-      "the names. An empty list is a normal answer.",
+      "Per language, every other spelling of THIS product someone would plausibly write — the " +
+      "form in each word order (\"en poudre\", \"moulu\", \"dried\"), the shop's word, the " +
+      "regional word, the plural, the common misspelling. A missing spelling becomes a duplicate " +
+      "row later. Never a neighbouring product, and NOT translations; those are the names.",
     ),
     emoji: z.string().describe("One emoji character, the closest to this food. Never a letter."),
     category: z.enum(CATEGORIES).describe("Exactly one — what it IS, i.e. the aisle it is in."),

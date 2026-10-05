@@ -165,9 +165,8 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
   });
 
   /**
-   * Same argument as the grade above, one step further out. `searchTerms` reads `séchées` as a
-   * preparation and strips it, so without `preservationIn` these two lines are one key: walked
-   * once, both linked to whichever row that walk returned, the second line carrying the first's
+   * Same argument as the grade above, one step further out. Were `séchées` stripped as a
+   * preparation, these two lines would be one key: walked once, both linked to whichever row that walk returned, the second line carrying the first's
    * nutrition — and dried tomatoes are roughly ten times as concentrated as fresh ones.
    */
   test("does not fold a dried food into the fresh one it is named after", async () => {
@@ -208,7 +207,7 @@ describe("functions/recipes/resolveRecipeIngredients", () => {
    * builds the taxonomy keys and the catalog query — a retrieval change, not a fold change. The
    * cost is one redundant walk, not a wrong link, which is why it is recorded and not rushed.
    */
-  test("limitation: still splits `en conserve`, the gap preservationIn does not close", async () => {
+  test("limitation: still splits `en conserve`, which is not a qualifier", async () => {
     gather.mockResolvedValue(undecided());
     agent.mockResolvedValue({ status: "refused", reason: "not-food" });
 

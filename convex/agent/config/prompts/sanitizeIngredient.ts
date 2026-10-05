@@ -73,6 +73,13 @@ Write the name a shop or a recipe would use, singular, lowercase, with no quanti
 preparation — "onion", never "3 onions, chopped"; "japanese mayonnaise", never "Kewpie". Keep an
 adjective only when it changes what you would buy: "smoked paprika" yes, "fresh coriander" no.
 
+Write the name the way recipes do, because recipes are what will be matched against it. A herb named
+bare is the FRESH herb, and a spice named bare is the GROUND spice: "thym" is the sprigs, "cannelle"
+is the powder. Any other form the shop made is a different product and carries its form in the
+name: "thym séché", "bâton de cannelle", "ail en poudre", "tomates séchées". So a row for a dried
+herb or a powder is never named as the fresh food, and its figures are that form's: drying makes a
+herb several times denser in everything per 100 g.
+
 "No quantity" means how much of it the shopper wants, never a number the SHOP prints on the packet.
 A grade stays in the name and is not negotiable: "steak haché 5% de matière grasse" is named
 "steak haché 5%", not "steak haché" — dropping the 5 files it under a food with four times the
@@ -98,9 +105,20 @@ prevent.
 
 # aliases: the other words for it
 
-Per language, the spellings someone would plausibly type looking for this: the regional word, the
-common misspelling, the plural if it is irregular, the word the other half of the country uses.
-Not translations — those are the names above. Three or four is plenty; an empty list is fine.
+The aliases are how this row is found again. A spelling missing here is one that, written by the
+next recipe or typed by the next shopper, matches nothing and makes a second copy of this food. So
+be generous. Per language, every way someone would plausibly write THIS product:
+
+- the form written out, in each order people use it: "cumin moulu" and "cumin en poudre" for
+  ground cumin, "dried dill" and "dill weed" for the dried herb;
+- the shop's word beside the cook's, the regional word, the word the other country uses;
+- the plural when people write it, and the common misspelling.
+
+Five to eight per language when the food goes by that many; a food with one name has one or none.
+
+Only spellings of this exact product, never a neighbour: "cumin seeds" is not ground cumin, and
+"garlic" is not garlic powder. A wrong alias links someone else's food to this row with nobody
+asked. Not translations either — those are the names above.
 
 # The four judgements
 

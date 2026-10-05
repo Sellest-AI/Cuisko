@@ -68,7 +68,7 @@ const _ranked = (
       term,
       rows.map((row, index) => {
         const { name, aliases } = toCatalogIngredient(row, locale);
-        return { id: String(index), name, aliases };
+        return { id: String(index), name, aliases, category: row.category };
       }),
     ).map(({ id, score }) => [Number(id), score]),
   );

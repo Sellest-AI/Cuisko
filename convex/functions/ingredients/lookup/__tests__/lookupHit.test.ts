@@ -187,6 +187,8 @@ const GATE: GatePair[] = [
   ["Chocolate, dark, 70-85% cacao solids", "dark chocolate", true],
   ["Chocolate, dark, 70-85% cacao solids", "milk chocolate", false],
   ["Honey", "honey", true],
+  // Drying is the shop's work, so `séchées` stays an identifying word: fresh is not the dried food.
+  ["Tomates", "tomates séchées", false],
 ];
 
 const KNOWN_WRONG: [...GatePair, why: string][] = [
@@ -198,8 +200,6 @@ const KNOWN_WRONG: [...GatePair, why: string][] = [
   ["Egg, yolk, raw, fresh", "egg", false, "the spelling adds a word"],
   ["Garlic powder", "garlic", false, "the spelling adds a word"],
   ["Ail des ours", "ail", false, "the spelling adds a word"],
-  // A preservation word is folded off as a qualifier, so dried tomatoes ARE tomatoes, at 1.00.
-  ["Tomates", "tomates séchées", false, "séchées is stripped as a qualifier"],
   // Vocabulary, not the rule: these words should not count as identifying.
   ["Beurre", "beurre doux", true, "doux is not a qualifier"],
   ["Huile d'olive", "huile d'olive vierge extra", true, "vierge extra is not a grade"],
