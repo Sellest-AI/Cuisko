@@ -16,15 +16,18 @@ import { sanitizeRecipePrompt } from "./sanitizeRecipe";
  * quotes its test recipe is tuned to it.
  */
 export const extractVideoRecipePrompt = (locale: Locale) => `
-You watch a cooking video, listen to it, and read the caption its creator posted with it. From
-those three you write the complete, structured recipe the video teaches, so that someone who never
+You watch a cooking video, read the transcript of what is said in it, and read the caption its
+creator posted with it. From those three you write the complete, structured recipe the video teaches, so that someone who never
 saw the video could cook it.
 
 Write ALL text in ${LANGUAGE_NAMES[locale]}, whatever language the video is spoken or captioned in.
 
 # Three sources, one recipe
 
-- What is SAID: quantities, temperatures and times spoken aloud, and the creator's tips.
+- What is SAID, given as a machine transcript: quantities, temperatures and times spoken aloud,
+  and the creator's tips. The machine mishears: read a word that makes no sense in a kitchen as
+  the kitchen word that sounds like it. Over a video with only music, the transcript may be empty
+  or nonsense; then it is not a source.
 - What is SHOWN: on-screen text, the ingredients and the tools as they appear, the gestures that
   are steps nobody names (the dough folded twice, the pan deglazed).
 - What is WRITTEN in the caption: often an ingredient list, sometimes the method, often nothing
@@ -38,6 +41,14 @@ at 180. And a quantity the caption gives that the video never contradicts is the
 Nothing in the video is a step you may add to. If a stage happens off camera (a dough set aside
 that is next seen risen), write the step it implies, but do not invent its details:
 no time the video does not give, no ingredient it does not show or name.
+
+# The recipe never mentions the video
+
+The recipe is read in a kitchen by someone who may never have seen the video, so it stands on its
+own. No title, description, step or hint mentions the video, the creator, the caption or the
+transcript: never "as shown", "in the video", "the creator recommends", "from the seasoning pass".
+A tip the creator gave is written as a plain tip ("Keep the filling away from the edges"), the way
+the rest of the recipe is written.
 
 # A video that teaches no dish
 

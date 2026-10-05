@@ -15,9 +15,9 @@ import { ConvexError, v } from "convex/values";
  *
  * It returns the generated recipe and stops: the insert and the scheduling stay in `importVideo`,
  * through `createGeneratedRecipe`, the one way a generated recipe comes into existence. What
- * crosses back is the recipe, a few kilobytes. Whether the video enters Convex at all is the
- * platform's: an Instagram reel is fetched by the model from its URL, a TikTok is downloaded inside
- * the tool with the page's cookies (`tools/extractVideoRecipe.ts`), and neither crosses a boundary.
+ * crosses back is the recipe, a few kilobytes. Every video is downloaded inside the tool for its
+ * transcript (`tools/extractVideoRecipe.ts`), a TikTok with the page's cookies, and none crosses a
+ * boundary.
  *
  * `url` is re-read rather than trusted: this action is internal, but the adapter is the one that
  * knows the platform's page, and the canonical spelling is all it needs.

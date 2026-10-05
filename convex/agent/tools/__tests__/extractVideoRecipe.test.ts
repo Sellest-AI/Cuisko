@@ -1,10 +1,25 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { codeOf } from "../../../lib/__tests__/convexError.fixtures";
-import { toVideoRecipe, videoRecipeOutputSchema } from "../extractVideoRecipe";
+import { transcribe } from "@convex/lib/openrouter/transcribe";
+import { httpsDownloadVideo } from "@convex/lib/socialVideo/httpsGet";
 
-/** The download half leaves the process (`node:https`); only the verdict on the answer is tested here. */
+import {
+  fetchVideo,
+  toVideoRecipe,
+  transcriptOf,
+  videoRecipeMessages,
+  videoRecipeOutputSchema,
+} from "../extractVideoRecipe";
+
+/** The download and the transcription leave the process; what is tested is what the tool does with them. */
 vi.mock("@convex/lib/socialVideo/httpsGet", () => ({ httpsDownloadVideo: vi.fn() }));
+vi.mock("@convex/lib/openrouter/transcribe", () => ({ transcribe: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(httpsDownloadVideo).mockReset();
+  vi.mocked(transcribe).mockReset();
+});
 
 /**
  * The boundary right after the model call, as in `sanitizeRecipe.test.ts`: the schema forces every
@@ -71,5 +86,70 @@ describe("toVideoRecipe", () => {
     expect(await videoRecipeOutputSchema.jsonSchema).toMatchObject({
       properties: { teachesRecipe: { type: "boolean" }, timings: expect.any(Object) },
     });
+  });
+});
+
+const INSTAGRAM = { videoUrl: "https://scontent.cdninstagram.com/v/reel.mp4?oh=signed" };
+const TIKTOK = { videoUrl: "https://v16-webapp.tiktok.com/video.mp4", videoHeaders: { Cookie: "tt_chain_token=abc" } };
+
+describe("fetchVideo", () => {
+  beforeEach(() => {
+    vi.mocked(httpsDownloadVideo).mockResolvedValue({ bytes: Buffer.from("mp4 bytes"), mediaType: "video/mp4" });
+  });
+
+  it("downloads an Instagram reel for its transcript, and still hands the model its URL", async () => {
+    const video = await fetchVideo(INSTAGRAM);
+
+    expect(httpsDownloadVideo).toHaveBeenCalledWith(INSTAGRAM.videoUrl, {}, expect.any(Object));
+    expect(video).toEqual({
+      base64: Buffer.from("mp4 bytes").toString("base64"),
+      mediaType: "video/mp4",
+      part: { url: INSTAGRAM.videoUrl },
+    });
+  });
+
+  it("downloads a TikTok with its cookies and hands the model the file, which its CDN keeps from anyone else", async () => {
+    const video = await fetchVideo(TIKTOK);
+
+    expect(httpsDownloadVideo).toHaveBeenCalledWith(TIKTOK.videoUrl, TIKTOK.videoHeaders, expect.any(Object));
+    expect(video.part).toEqual({ base64: video.base64, mediaType: "video/mp4" });
+  });
+});
+
+describe("transcriptOf", () => {
+  const VIDEO = { base64: "bXA0", mediaType: "video/mp4", part: { url: INSTAGRAM.videoUrl } };
+
+  it("is what the creator says", async () => {
+    vi.mocked(transcribe).mockResolvedValue("Into the pan for twelve minutes.");
+
+    expect(await transcriptOf(VIDEO)).toBe("Into the pan for twelve minutes.");
+  });
+
+  it("is null when the transcription fails, so the import goes on from the frames and the caption", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.mocked(transcribe).mockRejectedValue(new Error("Transcription answered 503"));
+
+    expect(await transcriptOf(VIDEO)).toBeNull();
+  });
+});
+
+describe("videoRecipeMessages", () => {
+  const textsOf = (messages: ReturnType<typeof videoRecipeMessages>) =>
+    messages[0]!.content.flatMap((part) => (part.type === "text" ? [part.text] : []));
+
+  it("hands the model the transcript, marked as machine-made so a misheard word is read in context", () => {
+    const transcript = "Into the pan for twelve minutes.";
+    const texts = textsOf(videoRecipeMessages("Lentil dal #vegan", transcript, { url: INSTAGRAM.videoUrl }));
+
+    expect(texts).toEqual([
+      "The creator's caption, as posted:\nLentil dal #vegan",
+      "What is said in the video, transcribed by machine:\nInto the pan for twelve minutes.",
+    ]);
+  });
+
+  it("says so when nothing was transcribed, rather than leaving the model to guess why", () => {
+    const texts = textsOf(videoRecipeMessages("Lentil dal", null, { url: INSTAGRAM.videoUrl }));
+
+    expect(texts[1]).toBe("Nothing said in the video could be transcribed.");
   });
 });
