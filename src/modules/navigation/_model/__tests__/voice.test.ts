@@ -5,6 +5,7 @@ import {
   hearWords,
   readEvent,
   isSilenceOver,
+  isSpokenSentence,
   joinTranscript,
   SILENCE_MS,
   speechLanguage,
@@ -220,5 +221,39 @@ describe("the recognizer's language", () => {
   test("each app language maps to a full tag", () => {
     expect(speechLanguage("fr")).toBe("fr-FR");
     expect(speechLanguage("en")).toBe("en-US");
+  });
+});
+
+describe("when a spoken entry is a sentence to send rather than a word to confirm", () => {
+  test("seven words is a sentence, however it is punctuated", () => {
+    expect(isSpokenSentence("qu'est-ce que je peux cuisiner avec mes restes")).toBe(true);
+    expect(isSpokenSentence("what can I cook with the leftovers")).toBe(true);
+  });
+
+  test("six words is still a grocery or a dish name", () => {
+    expect(isSpokenSentence("farine de blé complète bio italienne")).toBe(false);
+  });
+
+  test("a question mark makes a sentence of any length", () => {
+    expect(isSpokenSentence("des idées ?")).toBe(true);
+  });
+
+  test("a full stop or a comma with text after it is a second clause", () => {
+    expect(isSpokenSentence("Salut. Ajoute des œufs")).toBe(true);
+    expect(isSpokenSentence("Bonjour, des idées")).toBe(true);
+  });
+
+  test("a full stop or a comma with nothing after it is not", () => {
+    expect(isSpokenSentence("Deux œufs.")).toBe(false);
+    expect(isSpokenSentence("Deux œufs,")).toBe(false);
+    expect(isSpokenSentence("Ajoute des œufs au menu.")).toBe(false);
+  });
+
+  test("a decimal point inside is not punctuation", () => {
+    expect(isSpokenSentence("1.5 kg de farine")).toBe(false);
+  });
+
+  test("nothing heard is not a sentence", () => {
+    expect(isSpokenSentence("  ")).toBe(false);
   });
 });

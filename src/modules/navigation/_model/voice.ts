@@ -34,6 +34,39 @@ export const isSilenceOver = (lastWordAt: number | null, now: number): boolean =
   lastWordAt !== null && now - lastWordAt >= SILENCE_MS;
 
 /**
+ * At least this many spoken words and the shopper is making a sentence, not naming a grocery. Counted
+ * on every word, stopwords included, unlike `readIntent`'s written rule: nobody says seven words
+ * to add an item, and a recognizer never hands over the quantity and unit as separate tokens to
+ * discount.
+ */
+const SENTENCE_MIN_SPOKEN_WORDS = 7;
+
+/**
+ * A `.` or `,` with a word after it: the recognizer closed one clause and began another. Needs the
+ * space, so "1.5 kg" is a number; and needs the word, so the full stop a recognizer puts on the end
+ * of "Deux œufs." is not a sentence.
+ */
+const CLAUSE_BREAK_RE = /[.,]\s+\S/;
+
+/**
+ * Whether what was heard is a sentence to send, rather than a word to confirm in the text bar.
+ *
+ * Off the assistant, a spoken entry lands in the text bar so a misheard grocery is read before it
+ * reaches the list. A sentence is the exception: it can only be a question or a request, there is
+ * no list item to misplace, and making the shopper tap send on what they just said out loud is
+ * the friction the microphone is there to remove.
+ *
+ * Three signs, any one enough: more than six words; a question mark, which means only one thing;
+ * or a `.` / `,` followed by more text.
+ */
+export const isSpokenSentence = (text: string): boolean => {
+  const trimmed = text.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean).length;
+
+  return words >= SENTENCE_MIN_SPOKEN_WORDS || trimmed.includes("?") || CLAUSE_BREAK_RE.test(trimmed);
+};
+
+/**
  * The quietest and loudest this entry has heard lately, on the recognizer's scale — what the wave
  * is drawn against.
  *

@@ -17,6 +17,7 @@ import type { Frame } from "@ui/input";
 import { useStagedPhoto } from "../_hooks/useStagedPhoto";
 import { useNavigationBar } from "../hooks";
 import { useBackLeadsHome } from "../_hooks/useBackLeadsHome";
+import { isSpokenSentence } from "../_model/voice";
 import { useAskCuisko, useIsCuiskoAnswering } from "~/modules/assistant/hooks";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
@@ -165,12 +166,21 @@ export const NavigationBar = () => {
    * are sent, as Enter would there. Anywhere else, or when the recognizer gave up, they land in the
    * text bar: off the assistant, Enter first works out whether the words are a grocery, a recipe or
    * a question, and a misheard word sent straight to the list is worse than one more tap.
+   *
+   * **Off the assistant, a spoken sentence is the exception**: it opens the assistant with the
+   * words, the route a typed question takes, since there is no grocery in it to misplace.
    */
   const onHeard = (text: string, isSent: boolean) => {
     if (isSent && isAssistant && text.trim()) {
       void ask(text);
       onBlur();
       listensAfterAnswer.current = true;
+      return;
+    }
+
+    if (isSent && isSpokenSentence(text)) {
+      onBlur();
+      router.push({ pathname: "/assistant", params: { q: text.trim() } });
       return;
     }
 
