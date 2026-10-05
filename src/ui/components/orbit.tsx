@@ -32,6 +32,9 @@ import { theme } from "theme";
  * from share to X) morphs in place while the satellites go.
  *
  * Satellites keep their own tilt as the ring turns: each counter-rotates by the ring's angle.
+ *
+ * `delay` holds the whole entrance back, for a caller whose container is still arriving: a sheet
+ * sliding up would otherwise carry the pops in before the eye is on them.
  */
 
 /** A thing on the ring: where it starts (degrees, 0 = right, clockwise) and how it leans. */
@@ -45,6 +48,8 @@ type Props = {
   /** The satellites' own box, so they can be centred on the edge. */
   satelliteSize: number;
   state: "orbiting" | "dismissed";
+  /** Ms before the entrance starts. Nothing shows until then. */
+  delay?: number;
   style?: ViewStyle;
 };
 
@@ -73,6 +78,7 @@ const Satellite = ({
   radius,
   satelliteSize,
   dismissed,
+  delay,
 }: {
   satellite: OrbitSatellite;
   index: number;
@@ -80,26 +86,27 @@ const Satellite = ({
   radius: number;
   satelliteSize: number;
   dismissed: boolean;
+  delay: number;
 }) => {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(1);
 
   useEffect(() => {
     if (!dismissed) {
-      scale.value = withDelay(_delayOf(index), withSpring(1, POP));
+      scale.value = withDelay(delay + _delayOf(index), withSpring(1, POP));
       return;
     }
 
-    const delay = index * DISMISS_STAGGER_MS;
+    const stagger = index * DISMISS_STAGGER_MS;
     scale.value = withDelay(
-      delay,
+      stagger,
       withSequence(
         withTiming(1.15, { duration: ANTICIPATE_MS, easing: Easing.out(Easing.quad) }),
         withTiming(0, { duration: COLLAPSE_MS, easing: Easing.in(Easing.cubic) }),
       ),
     );
-    opacity.value = withDelay(delay + ANTICIPATE_MS, withTiming(0, { duration: COLLAPSE_MS }));
-  }, [dismissed, index, opacity, scale]);
+    opacity.value = withDelay(stagger + ANTICIPATE_MS, withTiming(0, { duration: COLLAPSE_MS }));
+  }, [delay, dismissed, index, opacity, scale]);
 
   const radians = (satellite.angle * Math.PI) / 180;
   const left = radius + radius * Math.cos(radians) - satelliteSize / 2;
@@ -121,7 +128,7 @@ const Satellite = ({
   );
 };
 
-export const Orbit = ({ center, satellites, size, satelliteSize, state, style }: Props) => {
+export const Orbit = ({ center, satellites, size, satelliteSize, state, delay = 0, style }: Props) => {
   const ring = useSharedValue(0);
   const outer = useSharedValue(0);
   const inner = useSharedValue(0);
@@ -131,10 +138,10 @@ export const Orbit = ({ center, satellites, size, satelliteSize, state, style }:
 
   useEffect(() => {
     // The outer disc settles half-seen: the inner one, at full strength, is what reads as a step darker.
-    outer.value = withTiming(OUTER_OPACITY, { duration: 130 });
-    inner.value = withDelay(130, withTiming(1, { duration: 100 }));
-    centerScale.value = withDelay(CENTER_DELAY, withSpring(1, POP));
-  }, [centerScale, inner, outer]);
+    outer.value = withDelay(delay, withTiming(OUTER_OPACITY, { duration: 130 }));
+    inner.value = withDelay(delay + 130, withTiming(1, { duration: 100 }));
+    centerScale.value = withDelay(delay + CENTER_DELAY, withSpring(1, POP));
+  }, [centerScale, delay, inner, outer]);
 
   useEffect(() => {
     if (dismissed) {
@@ -178,6 +185,7 @@ export const Orbit = ({ center, satellites, size, satelliteSize, state, style }:
             radius={size / 2}
             satelliteSize={satelliteSize}
             dismissed={dismissed}
+            delay={delay}
           />
         ))}
       </Animated.View>

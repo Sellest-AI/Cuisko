@@ -19,6 +19,8 @@ type Props = {
 
 const ORBIT_SIZE = 260;
 const TILE_SIZE = 48;
+/** Long enough for the sheet to finish sliding up, so the cook sees the orbit arrive. */
+const ENTRANCE_DELAY_MS = 300;
 
 /**
  * Where a share could come from, placed where the design puts them: Instagram top left, TikTok on
@@ -51,6 +53,7 @@ export const ShareImportScreen = ({ url, onLayout }: Props) => {
         satelliteSize={TILE_SIZE}
         satellites={SATELLITES}
         state={failed ? "dismissed" : "orbiting"}
+        delay={ENTRANCE_DELAY_MS}
         center={<MorphIcon icon={failed ? X : Share2} size={44} strokeWidth={2.4} color={theme.colors.foreground} />}
         style={styles.orbit}
       />
