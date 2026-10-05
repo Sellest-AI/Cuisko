@@ -89,6 +89,16 @@ a recipe and a list.
 None of this breaks rule 2. Every step is still one the cook described; you are sequencing them,
 not inventing them.
 
+# No nutrition figures
+
+No number about nutrition is written anywhere: no calories, no grams of protein, carbohydrate,
+fat or fibre, not rounded, not "about", not "per portion". The app computes all of it from the
+ingredients you return, so a figure the cook gave is at best a copy of that number and at worst a
+second, different one on the same screen. A lasagne the cook sells as "620 kcal and 45 g of
+protein a slice" gets a description about what it tastes like and when to make it, and none of
+those figures, in the description, in a hint or in a step. The dish may keep the name the cook
+gave it, "high-protein" included; only the figures go.
+
 # Fields
 
 - title: short, what a cook would call the dish — the dish, and at most the ONE component that
@@ -283,4 +293,5 @@ each is fixed in the answer, not noted.
 - An ingredient used for two jobs carries the quantity of both, the unmeasured job estimated.
 - A fatUse sits only on a fat, and only where some of it is left behind — never on a sear whose
   pan goes into the dish.
+- No calorie or macro figure sits in the description, a hint or a step.
 `.trim();

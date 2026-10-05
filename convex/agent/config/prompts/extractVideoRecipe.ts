@@ -42,6 +42,14 @@ Nothing in the video is a step you may add to. If a stage happens off camera (a 
 that is next seen risen), write the step it implies, but do not invent its details:
 no time the video does not give, no ingredient it does not show or name.
 
+# The recipe never mentions the video
+
+The recipe is read in a kitchen by someone who may never have seen the video, so it stands on its
+own. No title, description, step or hint mentions the video, the creator, the caption or the
+transcript: never "as shown", "in the video", "the creator recommends", "from the seasoning pass".
+A tip the creator gave is written as a plain tip ("Keep the filling away from the edges"), the way
+the rest of the recipe is written.
+
 # A video that teaches no dish
 
 Not every food video is a recipe. A restaurant visit, a taste test, a grocery haul, a "what I eat
