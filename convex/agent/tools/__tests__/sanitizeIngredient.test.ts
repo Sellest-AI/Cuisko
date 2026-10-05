@@ -4,7 +4,6 @@ import type { LookupHit } from "@convex/functions/ingredients/lookup/lookupHit";
 import { ALLERGENS } from "@shared/allergens";
 
 import {
-  dictionaryOf,
   sanitizeIngredientUserPrompt,
   toSanitizedIngredient,
 } from "../sanitizeIngredient";
@@ -144,7 +143,7 @@ describe("toSanitizedIngredient", () => {
     // so resemblance is the wrong question to ask of a curated list. Scored, these are the real
     // numbers from the shipped taxonomy: `zucchini` 0.044 against `courgette`, `eggplant` 0.044
     // against `aubergine` — every one of them below SAME_FOOD, and every one of them the alias
-    // that earns the row its keep. What keeps junk out is `_vocabularyIn`, not a score.
+    // that earns the row its keep. What keeps junk out is `curatedSpellingsIn`, not a score.
     const hits: LookupHit[] = [
       { source: "foodComposition", names: { en: ["zucchini", "courgette"] } },
     ];
@@ -609,42 +608,6 @@ describe("sanitizeIngredientUserPrompt", () => {
     const prompt = sanitizeIngredientUserPrompt({ locale: "fr", text: "garam masala" });
 
     expect(prompt).not.toContain("A recipe line writes this in");
-  });
-});
-
-describe("dictionaryOf", () => {
-  const _curated: LookupHit = {
-    source: "foodComposition",
-    names: { en: ["lemon juice"], fr: ["jus de citron"] },
-  };
-
-  /**
-   * The ranker sees the taxonomy's answer, which is the whole of the wrong-link fix: `jus de citron`
-   * was judged against a `Jus d'orange` row on the words alone, and linked.
-   */
-  it("states what a curated source filed the term under, per language", () => {
-    expect(dictionaryOf([_curated])).toEqual({ en: ["lemon juice"], fr: ["jus de citron"] });
-  });
-
-  /**
-   * A searched source answers a keyword query with whatever ranked highest — USDA replies to
-   * `pâte de pistache` with a guava pastry. Repeated to the ranker as what the term IS, that
-   * argues for the wrong answer rather than merely adding noise.
-   */
-  it("says nothing about a source that reached its answer by searching", () => {
-    const searched: LookupHit = {
-      source: "foodComposition",
-      names: { en: ["Pastry, Pastelitos de Guava"] },
-      searched: true,
-    };
-
-    expect(dictionaryOf([searched])).toEqual({});
-  });
-
-  it("keeps three spellings a language, not a wall of synonyms", () => {
-    const wordy: LookupHit = { source: "foodComposition", names: { en: ["a", "b", "c", "d"] } };
-
-    expect(dictionaryOf([wordy])).toEqual({ en: ["a", "b", "c"] });
   });
 });
 

@@ -14,7 +14,7 @@ import {
 } from "../matchIngredient";
 
 /**
- * What Jev does with the near-misses `sanitizeIngredient` hands it, and the measurement `MATCHED`
+ * What Jev does with the near-misses `resolveWithAgent` hands it, and the measurement `MATCHED`
  * and `ALIAS_WORTH_SAVING` are set from.
  *
  * ⚠️ THIS COSTS MONEY — a fraction of a cent: one TypeSafe call per fixture, plus one per fixture
@@ -161,6 +161,37 @@ const FIXTURES: Fixture[] = [
     dictionary: { en: ["cider vinegar"], fr: ["vinaigre de cidre"] },
     want: "cider vinegar",
     keeps: true,
+  },
+  // A lasagnes froides recipe: red pesto saved linked to the seeded green Pesto. Not a kind of
+  // pesto but another product, made from tomato rather than basil. The candidates are the five the
+  // dev catalog search returned for it, Pesto first at 0.50.
+  {
+    title: "another product",
+    text: "pesto rouge",
+    locale: "fr",
+    candidates: ["Pesto", "piment rouge", "Poivron rouge", "Pâte de curry rouge", "Oignon rouge"],
+  },
+  // The positive control for the one above: the other product exists, beside pesto.
+  {
+    title: "another product present",
+    text: "pesto rouge",
+    locale: "fr",
+    candidates: ["Pesto", "Pesto rouge", "piment rouge", "Poivron rouge", "Pâte de curry rouge"],
+    want: "Pesto rouge",
+  },
+  // Held out: the same rule on foods the question never names, so a pass is the rule and not the
+  // word. Keep both OUT of `_MATCH_INSTRUCTIONS`, as `moutarde amora` is kept out of the alias one.
+  {
+    title: "another product, held out",
+    text: "lait de coco",
+    locale: "fr",
+    candidates: ["Lait", "Noix de coco", "Crème de coco", "Lait d'amande"],
+  },
+  {
+    title: "another product, held out 2",
+    text: "beurre de cacahuète",
+    locale: "fr",
+    candidates: ["Beurre", "Cacahuète", "Beurre doux", "Pâte à tartiner"],
   },
 ];
 

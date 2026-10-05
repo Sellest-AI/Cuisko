@@ -4,6 +4,7 @@ import { sanitizeIngredient } from "@convex/agent/tools/sanitizeIngredient";
 import type { ActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { CONFIDENT, gradesIn, MARGIN } from "@shared/ingredientMatch";
+import { retryPromise } from "@shared/helpers";
 import type { IngredientSource, RecipeUnit, Unit } from "@shared/ingredients";
 
 import { compositionOf } from "./lookup/composition";
@@ -11,6 +12,7 @@ import { searchFoodDataCentral } from "./lookup/foodDataCentral";
 import { aboutTheSameFood, spellingsOfHit, type LookupHit } from "./lookup/lookupHit";
 import { searchOpenFoodFacts } from "./lookup/openFoodFacts";
 import { findInTaxonomy, namesOf, spellingsOf } from "./lookup/taxonomy";
+import { aliasWorthSaving, dictionaryOf, matchIngredient, pickMeasuredFood } from "./matchIngredient";
 import type { WidenedCandidate } from "./searchWidened";
 
 /**
@@ -98,12 +100,6 @@ const _search = (
   args: { text: string; locale: Locale },
 ): Promise<WidenedCandidate[]> =>
   ctx.runQuery(internal.router.ingredients.resolve._internal_search, args);
-
-/** One row by id, for the one arm that can link a row the widened search never returned. */
-const _load = async (
-  ctx: ActionCtx,
-  args: { ingredientId: Id<"ingredients">; locale: Locale },
-) => (await ctx.runQuery(internal.router.ingredients.resolve._internal_load, args))[0];
 
 /**
  * Step 1 — the catalog, searched wider than anywhere else in the app.
@@ -255,17 +251,25 @@ const _fromApis = async (
  * every spelling four sources know, so what remains is genuinely either a food we do not hold or
  * not a food at all — and only a judgement can tell those apart.
  *
- * **It is handed the evidence, and it may still return an existing row.** The near-miss candidates
- * step 1 declined on its score alone are exactly the cases a score cannot settle ("courgette" vs
- * "courge"), and a reader is better at them than a threshold. That arm returns `matched`, not
- * `created`: no row is created, and the id was one the caller already held (ADR 0010).
+ * **Two judgments before the model, cheapest and most decisive first.** Both are Jev's
+ * (`matchIngredient.ts`), and the second is only paid for when the first linked nothing:
  *
- * **It does write, though, and it is the only branch here that writes without creating.** When the
- * ranker judges the shopper's word a real word for the food it matched, that word is remembered as
- * an alias on the row — which is what stops the same judgement being bought again every time
- * somebody types it. See `rememberAlias`.
+ * 1. **Is a near-miss row already the food?** The candidates step 1 declined on its score alone are
+ *    exactly the cases a score cannot settle ("courgette" vs "courge"), and a reader is better at
+ *    them than a threshold. A pick returns `matched`, not `created`: no row is created, and the id
+ *    was one the caller already held (ADR 0010).
+ * 2. **Which result on each source's search page was this food measured on?** `pickMeasuredFood`
+ *    keeps that result's figures, or none, so the row writer sees one set per source and never the
+ *    basil pesto's for a red one.
  *
- * **It throws when the model cannot answer**, unlike steps 2 and 3, which swallow their failures.
+ * **It does write, though, and the match is the only branch here that writes without creating.**
+ * When Jev judges the shopper's word a real word for the food it matched (`aliasWorthSaving`),
+ * that word is remembered as an alias on the row — which is what stops the same judgement being
+ * bought again every time somebody types it. See `rememberAlias`.
+ *
+ * **It throws when the match or the row writer cannot answer**, unlike steps 2 and 3, which
+ * swallow their failures. `pickMeasuredFood` swallows too: losing a source's figures costs only
+ * figures, which the model then fills as it does any field nobody measured.
  * The difference is what a refusal MEANS: `unreadable` is "we read that and could make nothing of
  * it", and reporting it because a provider was down would tell the shopper their word was the
  * problem. The client awaits this action and catches the throw — see the router — so a model outage
@@ -292,32 +296,24 @@ export const resolveWithAgent = async (
     units?: RecipeUnit[];
   },
 ): Promise<ResolvedIngredient> => {
-  const sanitized = await sanitizeIngredient.run(ctx, {
-    locale,
-    text,
-    // Positions and names, never the ids themselves: the tool hands the model a list and reads its
-    // choice back out of it (ADR 0010).
-    candidates: evidence.candidates.map(({ ingredientId, name }) => ({ id: ingredientId, name })),
-    hits: evidence.hits,
-    units,
-  });
+  const asked = { text, locale, dictionary: dictionaryOf(evidence.hits) };
 
-  if (sanitized.verdict === "refused") return { status: "refused", reason: sanitized.reason };
+  // **Cheapest first, and the first may end it.** A near-miss the catalog search declined on its
+  // score alone is exactly what a threshold cannot settle ("courgette" vs "courge"), and Jev is
+  // better at it. The candidate comes back out of the list handed over, so the id and the row's
+  // purchase fields were already ours and nothing is read twice (ADR 0010).
+  const linked = evidence.candidates.length
+    ? await retryPromise(
+      () =>
+        matchIngredient({
+          ...asked,
+          candidates: evidence.candidates.map((row) => ({ ...row, id: row.ingredientId })),
+        }),
+      2,
+    )
+    : undefined;
 
-  if (sanitized.verdict === "existing") {
-    // The ranker answers with a POSITION in the list it was handed, so the row's own purchase
-    // fields come back out of that same list rather than from a second read (ADR 0010). The read
-    // below is the fallback and not the path: a default invented here would be indistinguishable
-    // from one the catalog stated, which is the whole failure the nullable unit exists to end.
-    const linked = evidence.candidates.find(
-      ({ ingredientId }) => ingredientId === sanitized.ingredientId,
-    ) ?? (await _load(ctx, { ingredientId: sanitized.ingredientId, locale }));
-
-    if (!linked)
-      throw new Error(
-        `resolveIngredient: the agent linked ${sanitized.ingredientId}, which no longer resolves`,
-      );
-
+  if (linked) {
     // **The only step that makes this branch cheaper the second time.** Every term reaching step 4
     // costs a ranker call, and nothing recorded what that call decided — so `zucchini` typed at a
     // `courgette` row was judged, linked, forgotten, and judged again the next time somebody typed
@@ -331,23 +327,30 @@ export const resolveWithAgent = async (
     // dropped cache write costs one model call the next time somebody types the word; a thrown one
     // costs this shopper their result.
     //
-    // The ranker gates WHETHER: `saveAlias` is false for a mangling nobody will repeat, which
-    // would otherwise index the row under a keyboard slip.
-    if (sanitized.saveAlias)
+    // Jev gates WHETHER, asked only now because it is a question about the word AND the food it
+    // matched: a mangling nobody will repeat would otherwise index the row under a keyboard slip.
+    if (await aliasWorthSaving(asked, linked.name))
       await ctx.scheduler.runAfter(0, internal.router.ingredients.resolve._internal_rememberAlias, {
-        ingredientId: sanitized.ingredientId,
+        ingredientId: linked.ingredientId,
         alias: text,
         locale,
       });
 
     return {
       status: "matched",
-      ingredientId: sanitized.ingredientId,
-      name: sanitized.name,
+      ingredientId: linked.ingredientId,
+      name: linked.name,
       defaultUnit: linked.defaultUnit,
       defaultQuantity: linked.defaultQuantity,
     };
   }
+
+  // Asked only once no row matched, so a term that links pays for no judgment of figures.
+  const hits = await Promise.all(evidence.hits.map((hit) => pickMeasuredFood(asked, hit)));
+
+  const sanitized = await sanitizeIngredient.run(ctx, { locale, text, hits, units });
+
+  if (sanitized.verdict === "refused") return { status: "refused", reason: sanitized.reason };
 
   // Not `agent` by default: `measuredOver` has already laid every measured figure back over the
   // model's, so a row the taxonomy and CIQUAL answered for records the composition table that
@@ -404,7 +407,8 @@ export const resolveWithAgent = async (
  * 1. the catalog, widened   both locales · both indexes · below PLAUSIBLE   → no network
  * 2. the shipped datasets   OFF taxonomy (names) · CIQUAL (fr nutrition)    → no network
  * 3. the live APIs          OFF products + USDA FoodData Central, parallel  → network
- * 4. the agent              handed 1's candidates and 2–3's figures         → model
+ * 4. the agent              Jev on 1's candidates, then on 2–3's pages;     → model
+ *                           the row writer on the figures Jev kept
  * 5. the write              createIngredient, through an internal mutation  → a row
  * ```
  *

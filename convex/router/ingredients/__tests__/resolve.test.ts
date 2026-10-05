@@ -11,17 +11,26 @@ import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../
 const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
- * The one model call this action can make, mocked so a test can assert on WHETHER it ran and on
- * what the resolver does with each of its three verdicts — without waiting on, or paying for, a
- * real model. The tool's own behaviour is `sanitizeIngredient`'s test's job; this file is about the
- * wiring around it: that the cheap steps get there first, and that a `new` verdict becomes exactly
- * one row.
+ * The model calls this action can make, mocked so a test can assert on WHETHER each ran and on
+ * what the resolver does with its answer — without waiting on, or paying for, a real model: Jev's
+ * two judgments about a catalog near-miss (is it the food, is the word worth storing), then the
+ * row writer and its two verdicts. Their own behaviour is `matchIngredient`'s and
+ * `sanitizeIngredient`'s tests' job; this file is about the wiring around them: that the cheap
+ * steps get there first, and that a `new` verdict becomes exactly one row.
+ *
+ * `pickMeasuredFood` stays real: it only judges a searched hit, and no test here reaches a source.
  */
 const sanitizeRun = vi.hoisted(() => vi.fn());
+const jev = vi.hoisted(() => ({ matchIngredient: vi.fn(), aliasWorthSaving: vi.fn() }));
 
 vi.mock("@convex/agent/tools/sanitizeIngredient", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../agent/tools/sanitizeIngredient")>();
   return { ...actual, sanitizeIngredient: { run: sanitizeRun } };
+});
+
+vi.mock("@convex/functions/ingredients/matchIngredient", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../functions/ingredients/matchIngredient")>();
+  return { ...actual, ...jev };
 });
 
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
@@ -123,6 +132,11 @@ beforeEach(() => {
   // test that forgot to cannot pass on a leftover answer from the one before it.
   sanitizeRun.mockReset();
   sanitizeRun.mockResolvedValue({ verdict: "refused", reason: "not-food" });
+  // Jev's default is no link and no alias, for the same reason.
+  jev.matchIngredient.mockReset();
+  jev.matchIngredient.mockResolvedValue(undefined);
+  jev.aliasWorthSaving.mockReset();
+  jev.aliasWorthSaving.mockResolvedValue(false);
 });
 
 describe("router/ingredients/resolve", () => {
@@ -486,17 +500,15 @@ describe("router/ingredients/resolve", () => {
    */
   test("the agent picking a candidate is a match, and inserts nothing", async () => {
     const carrotId = await seedCarrot();
-    sanitizeRun.mockResolvedValue({
-      verdict: "existing",
-      ingredientId: carrotId,
-      name: "Carotte",
-      // The ranker's other answer: `carottte rapee` is a slip and a preparation, not a word anyone
-      // will type again, so the row must not be indexed under it.
-      saveAlias: false,
-    });
+    jev.matchIngredient.mockImplementation(async ({ candidates }) =>
+      candidates.find(({ ingredientId }: { ingredientId: string }) => ingredientId === carrotId));
+    // Jev's other answer: `carottes en rondelles` is a cut, not another word for the food, so the
+    // row must not be indexed under it.
+    jev.aliasWorthSaving.mockResolvedValue(false);
 
     const resolved = await (await signIn()).action(api.router.ingredients.resolve.authed, {
-      text: "carottte rapee",
+      // 0.563 against the row: a near-miss step 1 hands on, so the link is Jev's to make.
+      text: "carottes en rondelles",
       locale: "fr",
     });
 
@@ -526,21 +538,20 @@ describe("router/ingredients/resolve", () => {
    */
   test("a word the ranker vouches for is remembered, and answered for free next time", async () => {
     const carrotId = await seedCarrot();
-    sanitizeRun.mockResolvedValue({
-      verdict: "existing",
-      ingredientId: carrotId,
-      name: "Carotte",
-      saveAlias: true,
-    });
+    jev.matchIngredient.mockImplementation(async ({ candidates }) =>
+      candidates.find(({ ingredientId }: { ingredientId: string }) => ingredientId === carrotId));
+    jev.aliasWorthSaving.mockResolvedValue(true);
 
     const user = await signIn();
     const first = await user.action(api.router.ingredients.resolve.authed, {
-      text: "gulerod",
+      // A regional name for the food, not a slip: it scores 0.643 against the row, a near-miss
+      // step 1 hands on rather than links, so only Jev's judgment can tie it to the carrot.
+      text: "carottes des sables",
       locale: "fr",
     });
 
     expect(first).toMatchObject({ status: "matched", ingredientId: carrotId });
-    expect(sanitizeRun).toHaveBeenCalledTimes(1);
+    expect(jev.matchIngredient).toHaveBeenCalledTimes(1);
 
     // The write is SCHEDULED rather than awaited, so that a conflict on a hot catalog row cannot
     // fail a resolve that already succeeded. Draining it here is what makes the caching observable
@@ -554,17 +565,17 @@ describe("router/ingredients/resolve", () => {
     // Both fields, because only one of them is reachable: an alias stored without its `search`
     // entry is an alias no shopper can ever find, and nothing would report it (ADR 0011).
     const row = await t.run((ctx) => ctx.db.get(carrotId));
-    expect(row?.aliases?.fr).toEqual(["carottes", "gulerod"]);
-    expect(row?.search?.fr).toContain("gulerod");
+    expect(row?.aliases?.fr).toEqual(["carottes", "carottes des sables"]);
+    expect(row?.search?.fr).toContain("carottes des sables");
 
     const second = await user.action(api.router.ingredients.resolve.authed, {
-      text: "gulerod",
+      text: "carottes des sables",
       locale: "fr",
     });
 
     expect(second).toMatchObject({ status: "matched", ingredientId: carrotId });
     // The whole point: step 1 answered it, so the model was never asked a second time.
-    expect(sanitizeRun).toHaveBeenCalledTimes(1);
+    expect(jev.matchIngredient).toHaveBeenCalledTimes(1);
   });
 
   /**

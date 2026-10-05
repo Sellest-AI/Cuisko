@@ -14,7 +14,7 @@ import { withAlias } from "./ingredientRow";
  * `zucchini` at a `courgette` row bought the same judgement today, tomorrow and every time after
  * that. Stored here, the second attempt is answered by step 1 — no network, no model, no bill.
  *
- * **The ranker decides WHETHER, not this function.** `saveAlias` on the tool's `existing` verdict
+ * **Jev decides WHETHER, not this function.** `aliasWorthSaving`, asked by `resolveWithAgent`,
  * is the judgement about the word — a regional spelling is worth keeping and `pxtates` is not —
  * and it is a judgement about language that no rule here could make from the string alone.
  *

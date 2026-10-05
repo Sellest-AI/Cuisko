@@ -2,13 +2,16 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { ChoiceAnswer } from "@convex/lib/typesafe/ask";
 
+import type { LookupHit } from "../lookup/lookupHit";
 import {
   aliasWorthSaving,
+  dictionaryOf,
   judgeMatch,
   matchIngredient,
   matchState,
   NONE,
   optionsFor,
+  pickMeasuredFood,
   readMatchAnswer,
 } from "../matchIngredient";
 
@@ -45,6 +48,42 @@ const sentBody = (fetched: ReturnType<typeof answering>) => {
 };
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("dictionaryOf", () => {
+  const _curated: LookupHit = {
+    source: "foodComposition",
+    names: { en: ["lemon juice"], fr: ["jus de citron"] },
+  };
+
+  /**
+   * The ranker sees the taxonomy's answer, which is the whole of the wrong-link fix: `jus de citron`
+   * was judged against a `Jus d'orange` row on the words alone, and linked.
+   */
+  test("states what a curated source filed the term under, per language", () => {
+    expect(dictionaryOf([_curated])).toEqual({ en: ["lemon juice"], fr: ["jus de citron"] });
+  });
+
+  /**
+   * A searched source answers a keyword query with whatever ranked highest — USDA replies to
+   * `pâte de pistache` with a guava pastry. Repeated to the ranker as what the term IS, that
+   * argues for the wrong answer rather than merely adding noise.
+   */
+  test("says nothing about a source that reached its answer by searching", () => {
+    const searched: LookupHit = {
+      source: "foodComposition",
+      names: { en: ["Pastry, Pastelitos de Guava"] },
+      searched: true,
+    };
+
+    expect(dictionaryOf([searched])).toEqual({});
+  });
+
+  test("keeps three spellings a language, not a wall of synonyms", () => {
+    const wordy: LookupHit = { source: "foodComposition", names: { en: ["a", "b", "c", "d"] } };
+
+    expect(dictionaryOf([wordy])).toEqual({ en: ["a", "b", "c"] });
+  });
+});
 
 describe("optionsFor", () => {
   test("names each option after its candidate, in list order", () => {
@@ -123,6 +162,98 @@ describe("matchIngredient", () => {
 
     await expect(matchIngredient({ text: "cider vinegar", locale: "en", candidates: CANDIDATES }))
       .rejects.toThrow();
+  });
+});
+
+describe("pickMeasuredFood", () => {
+  const ASKED = { text: "pesto rouge", locale: "fr" as const };
+
+  const BASIL = {
+    measuredAs: [{ name: "Pesto alla genovese", locale: "fr" as const }],
+    nutrition: { calories: 520 },
+  };
+  const RED = {
+    measuredAs: [
+      { name: "Red pesto", locale: "en" as const },
+      { name: "Pesto rouge", locale: "fr" as const },
+    ],
+    nutrition: { calories: 310 },
+  };
+
+  /** The keyword search ranked the basil jar first; its figures are what the hit carries. */
+  const SEARCHED: LookupHit = {
+    source: "openFoodFacts",
+    names: { fr: ["Pesto alla genovese", "Pesto rouge"] },
+    searched: true,
+    nutrition: BASIL.nutrition,
+    measuredAs: BASIL.measuredAs,
+    candidates: [BASIL, RED],
+  };
+
+  test("keeps the figures of the result Jev picked, whatever the search ranked first", async () => {
+    answering({ match: picked("Pesto rouge", 0.95) });
+
+    const judged = await pickMeasuredFood(ASKED, SEARCHED);
+
+    expect(judged).toMatchObject({ nutrition: RED.nutrition, measuredAs: RED.measuredAs, judged: true });
+    expect(judged).not.toHaveProperty("candidates");
+  });
+
+  /** The row writer reads the source's spellings as what it calls the food, so Jev's pick leads. */
+  test("puts the picked result's titles first among the source's spellings", async () => {
+    answering({ match: picked("Pesto rouge", 0.95) });
+
+    const judged = await pickMeasuredFood(ASKED, { ...SEARCHED, untagged: ["Pesto", "Pesto rouge"] });
+
+    expect(judged.names.fr).toEqual(["Pesto rouge", "Pesto alla genovese"]);
+    // A title the source labelled with a language leads that language only.
+    expect(judged.untagged).toEqual(["Pesto", "Pesto rouge"]);
+  });
+
+  /** Jev reads each result by its title in the shopper's language, the way they typed it. */
+  test("offers each result to Jev under its title in the shopper's language", async () => {
+    const fetched = answering({ match: picked(NONE, 1) });
+
+    await pickMeasuredFood(ASKED, SEARCHED);
+
+    expect(Object.keys(sentBody(fetched).questions.match.criteria)).toEqual([
+      NONE,
+      "Pesto alla genovese",
+      "Pesto rouge",
+    ]);
+  });
+
+  test("drops every figure when Jev says none of the results is the food", async () => {
+    answering({ match: picked(NONE, 1) });
+
+    const judged = await pickMeasuredFood(ASKED, SEARCHED);
+
+    expect(judged.nutrition).toBeUndefined();
+    expect(judged.measuredAs).toEqual([]);
+    expect(judged.names).toEqual(SEARCHED.names);
+  });
+
+  /** Unjudged figures are the bug this exists to end; the model fills the gap instead. */
+  test("drops the figures, and does not throw, when TypeSafe cannot be reached", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    answering({}, 503);
+
+    const judged = await pickMeasuredFood(ASKED, SEARCHED);
+
+    expect(judged.nutrition).toBeUndefined();
+    expect(judged.judged).toBe(true);
+  });
+
+  test("leaves a curated hit alone and asks Jev nothing about it", async () => {
+    const fetched = answering({ match: picked(NONE, 1) });
+    const curated: LookupHit = {
+      source: "foodComposition",
+      names: { en: ["Carrot"] },
+      nutrition: { calories: 41 },
+    };
+
+    expect(await pickMeasuredFood(ASKED, curated)).toBe(curated);
+    expect(fetched).not.toHaveBeenCalled();
   });
 });
 

@@ -2,8 +2,8 @@ import { env } from "@convex/env";
 
 import type { IngredientNutrition } from "@shared/nutrition";
 import {
-  measuredCount,
   measuredNutrition,
+  mostLikelyFirst,
   type LookupHit,
   type MeasuredNutrition,
 } from "./lookupHit";
@@ -114,21 +114,21 @@ export const searchFoodDataCentral = async (text: string): Promise<LookupHit | u
 
   if (!named.length) return undefined;
 
-  // The food that measured the MOST of the nine wins, and its own name leads the list — the
-  // caller re-searches the catalog in order, so the name the nutrition belongs to has to be the
-  // one it tries first. Most rather than first-complete because a partial table is now kept, and
-  // a food measured on seven fields is a better answer than one measured on two.
-  const best = foods.reduce<{ name?: string; nutrition?: MeasuredNutrition } | undefined>(
-    (winner, food) => {
+  // Every named food that measured something, most likely first — and the first one's name leads
+  // the list, because the caller re-searches the catalog in order and the name the nutrition
+  // belongs to has to be the one it tries first. English, for the reason `names` is below.
+  const candidates = mostLikelyFirst(
+    text,
+    foods.flatMap((food) => {
+      const name = food.description?.trim();
       const nutrition = _nutrition(food);
-      if (winner && measuredCount(nutrition) <= measuredCount(winner.nutrition)) return winner;
 
-      return { name: food.description?.trim(), nutrition };
-    },
-    undefined,
+      return name && nutrition ? [{ measuredAs: [{ name, locale: "en" as const }], nutrition }] : [];
+    }),
   );
+  const [best] = candidates;
 
-  const leading = best?.name ? [best.name, ...named] : named;
+  const leading = best ? [best.measuredAs[0]!.name, ...named] : named;
 
   // English, stated rather than inferred: USDA publishes in one language and the header on this
   // file says so. That is what lets a row built from this fill `names.en` without a model.
@@ -139,8 +139,8 @@ export const searchFoodDataCentral = async (text: string): Promise<LookupHit | u
     searched: true,
     nutrition: best?.nutrition,
     // Which of the five the figures belong to, stated rather than implied by being first in the
-    // list — USDA ran a keyword search, so this is the claim that has to be checkable. English for
-    // the same reason `names` is: this source publishes in one language.
-    measuredAs: best?.name ? [{ name: best.name, locale: "en" as const }] : [],
+    // list — USDA ran a keyword search, so this is the claim that has to be checkable.
+    measuredAs: best?.measuredAs ?? [],
+    candidates,
   };
 };

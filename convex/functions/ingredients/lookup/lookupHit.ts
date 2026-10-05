@@ -1,5 +1,5 @@
 import { LOCALES, type Locale, type LocalizedList } from "@convex/schema/i18n";
-import { RESOLVABLE, scoreCandidate } from "@shared/ingredientMatch";
+import { keepsEveryWord, RESOLVABLE, scoreCandidate } from "@shared/ingredientMatch";
 import type { IngredientSource } from "@shared/ingredients";
 
 import type { IngredientNutrition } from "@shared/nutrition";
@@ -98,6 +98,57 @@ export type LookupHit = {
    * carries no language — OFF's bare `product_name` — and only that one is checked against them all.
    */
   measuredAs?: { name: string; locale?: Locale }[];
+  /**
+   * Every result the search returned with figures, most likely first (`mostLikelyFirst`). The
+   * first is the one `nutrition` and `measuredAs` already carry.
+   *
+   * Only a searched hit has them: a keyword search answers a page, and which result on it is the
+   * food is a judgement the lookup cannot make from spelling alone. "onion" ranks `Onions, raw`
+   * first and is right; "tomates séchées" ranks `Tomates` first and is not. So `pickMeasuredFood`
+   * hands the page to Jev, which picks the food or none, before any figure reaches a row.
+   */
+  candidates?: MeasuredResult[];
+  /**
+   * Set by `pickMeasuredFood` once Jev picked these figures from `candidates` (or picked none),
+   * and never by a lookup. `sanitizeIngredient`'s `_hitSchema` declares it only so that zod does
+   * not drop it on the way in; the tool has no caller but `resolveWithAgent`, which judged first.
+   *
+   * `measuredAboutIt` trusts a judged hit as it stands. Its spelling check is the weaker of the
+   * two, and run after the judgement it would undo exactly the cases Jev gets right and spelling
+   * does not: `Huile d'olive` measured for "huile d'olive vierge extra".
+   */
+  judged?: boolean;
+};
+
+/** One result of a keyword search: what the source called it, and what it measured on it. */
+export type MeasuredResult = {
+  measuredAs: { name: string; locale?: Locale }[];
+  nutrition: MeasuredNutrition;
+};
+
+/**
+ * A source's results ordered by how likely each is to be the food searched for: by name first, by
+ * how many of the nine it measured second, and in the source's own order after that.
+ *
+ * **Completeness alone used to decide, and it picked the wrong food.** USDA measures onion rings on
+ * more fields than raw onions, and the Open Food Facts basil pesto declared more than the red
+ * one, so "onion" took the rings and "pesto rouge" the basil. The name is scored against the
+ * searched text in every language the result carries, since a search knows no locale; this only
+ * orders, and Jev decides (`candidates`).
+ */
+export const mostLikelyFirst = (text: string, results: readonly MeasuredResult[]): MeasuredResult[] => {
+  const likeness = ({ measuredAs }: MeasuredResult) =>
+    Math.max(0, ...measuredAs.map(({ name }) => scoreCandidate(text, { id: "", name })));
+
+  return results
+    .map((result, position) => ({ result, position, likeness: likeness(result) }))
+    .sort(
+      (left, right) =>
+        right.likeness - left.likeness ||
+        measuredCount(right.result.nutrition) - measuredCount(left.result.nutrition) ||
+        left.position - right.position,
+    )
+    .map(({ result }) => result);
 };
 
 /**
@@ -156,6 +207,8 @@ export type MeasuredNutrition = Partial<IngredientNutrition>;
  *
  * Measured on the failure that prompted it — against `chestnut spread`, the five wrong rows top out
  * at 0.117 and USDA's own `Nuts, chestnuts, european, raw` scores 0.412. 0.3 sits in open space.
+ * (The raw chestnuts are no longer accepted either: they drop the "spread", and with it the sugar,
+ * which is the word rule `aboutTheSameFood` adds on top of this bar.)
  */
 export const SAME_FOOD = RESOLVABLE;
 
@@ -168,9 +221,14 @@ export const SAME_FOOD = RESOLVABLE;
  * merely too strict, it is too LAX in the other direction: `Alcoholic beverage, creme de menthe,
  * 72 proof` scores 0.347 against the French `crème de marrons` on the shared word "creme", which
  * is over the bar. Checked against the English name it belongs to, it is 0.117.
+ *
+ * **And it must keep every word of the name (`keepsEveryWord`).** The score alone lets a spelling
+ * pass on one shared word: `Sauce, pesto, CLASSICO, basil pesto, ready-to-serve` cleared the bar
+ * against `red pesto`, and its 372 kcal and 36.4 g fat were stamped `foodComposition` on a red
+ * pesto. A word of the name the spelling drops is the word that made it this food.
  */
 export const aboutTheSameFood = (spelling: string, name: string): boolean =>
-  scoreCandidate(name, { id: "", name: spelling }) >= SAME_FOOD;
+  scoreCandidate(name, { id: "", name: spelling }) >= SAME_FOOD && keepsEveryWord(name, spelling);
 
 /**
  * The hits with any nutrition that was measured on a DIFFERENT food dropped.
@@ -202,6 +260,9 @@ export const measuredAboutIt = (
   names: Record<Locale, string>,
 ): LookupHit[] =>
   hits.map((hit) => {
+    // Jev already picked these figures against the shopper's words; see `judged`.
+    if (hit.judged) return hit;
+
     const measuredAs = hit.measuredAs ?? [];
 
     // Nothing to check. A curated hit is vouched for by the join that produced it; a searched one
@@ -311,3 +372,29 @@ export const measuredOver = (
 
   return merged;
 };
+
+/**
+ * The spellings worth STORING as another word for the food — the curated hits' only.
+ *
+ * **A rule about how a source found its answer, not about how good the source is.** A hit marked
+ * `searched` was handed the shopper's words and returned what ranked highest, and neither API is
+ * ranking by "is this the same food": Open Food Facts answered `crème de marrons` with `Yaourt
+ * brassé crème de marrons 2 x 160 g` — a yogurt — and `Clement Faugier - Vanilla Chestnut Spread,
+ * 17.5oz (500g)`, a brand and a package size. USDA answered `pâte de pistache` with `Pastry,
+ * Pastelitos de Guava (guava pastries)`. Stored as aliases these reach the search blob through
+ * `ingredientRow`, and the catalog starts answering "yaourt" with a jar of chestnut spread.
+ *
+ * **A score cannot separate them, which is why this is not another threshold.** The yogurt is a
+ * different food that CONTAINS this one, so it carries the name in full; the guava pastry rides in
+ * on `paste` resembling `pastry` at 0.667. Measured: the pastry scores 0.356 against `pistachio
+ * paste` and USDA's own correct `Nuts, pistachio nuts, raw` scores 0.400 — 0.044 apart, so any bar
+ * that excludes one excludes both.
+ *
+ * **The searching sources lose nothing they were doing well.** Their spellings are already spent
+ * where they pay: `_fromApis` re-searches the catalog with every one of them before a row is ever
+ * written, which is the job those files claim for them. This governs what `sanitizeIngredient`
+ * stores, and what `dictionaryOf` tells Jev: the one other place a source's words are repeated
+ * to a model as fact.
+ */
+export const curatedSpellingsIn = (hits: readonly LookupHit[], locale: Locale): string[] =>
+  hits.flatMap((hit) => (hit.searched ? [] : (hit.names[locale] ?? [])));

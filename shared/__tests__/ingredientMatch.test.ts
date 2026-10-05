@@ -4,6 +4,7 @@ import {
   CONFIDENT,
   foldCost,
   gradesIn,
+  keepsEveryWord,
   PLAUSIBLE,
   preservationIn,
   RESOLVABLE,
@@ -195,6 +196,22 @@ describe("scoreCandidate", () => {
         expect(score).toBeLessThanOrEqual(1);
       }
     }
+  });
+});
+
+describe("keepsEveryWord", () => {
+  test("a spelling that drops a word of the name does not keep it", () => {
+    expect(keepsEveryWord("pesto rouge", "Pesto")).toBe(false);
+  });
+
+  test("extra words in the spelling, and qualifiers on either side, do not count against it", () => {
+    expect(keepsEveryWord("pesto rouge", "Pesto rouge bio")).toBe(true);
+    expect(keepsEveryWord("oignon frais", "Oignon")).toBe(true);
+  });
+
+  /** Exactly `TOKEN_MATCHED` is two edits in five letters, which is another word. */
+  test("a word at exactly the token bar is not kept: red is not ready", () => {
+    expect(keepsEveryWord("red pesto", "Pesto, ready-to-serve")).toBe(false);
   });
 });
 

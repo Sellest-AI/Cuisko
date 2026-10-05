@@ -1,9 +1,10 @@
 import type { LocalizedList } from "@convex/schema/i18n";
 import {
-  measuredCount,
   measuredNutrition,
+  mostLikelyFirst,
   type LookupHit,
   type MeasuredNutrition,
+  type MeasuredResult,
 } from "./lookupHit";
 
 /**
@@ -148,41 +149,44 @@ export const searchOpenFoodFacts = async (text: string): Promise<LookupHit | und
     return undefined;
   }
 
-  // The product that declared the MOST of the nine wins, and its own names lead the list — the
-  // caller re-searches the catalog in order, so the names the nutrition belongs to have to be the
-  // ones it tries first. Most rather than first-complete because a partial table is now kept: a
-  // product declaring seven fields is a better answer than one declaring two, and under the old
-  // all-or-nothing rule both were discarded alike. Ties keep the earlier product, which is the
-  // order Open Food Facts ranked them in.
-  const best = products.reduce<{ product: Product; nutrition?: MeasuredNutrition } | undefined>(
-    (winner, product) => {
-      const nutrition = _nutrition(product.nutriments);
-      if (winner && measuredCount(nutrition) <= measuredCount(winner.nutrition)) return winner;
-
-      return { product, nutrition };
-    },
-    undefined,
-  );
-
-  const spellings = _spellingsOf(best ? [best.product, ...products] : products);
-  if (!_named(spellings)) return undefined;
-
-  // Which product the figures belong to, stated rather than implied by leading the list — and
-  // carrying the language Open Food Facts labelled it with, since a spelling checked against the
-  // wrong language passes on coincidence (see `measuredAs`).
+  // Which product each set of figures belongs to, stated rather than implied by leading the list —
+  // and carrying the language Open Food Facts labelled it with, since a spelling checked against
+  // the wrong language passes on coincidence (see `measuredAs`).
   //
   // EVERY title the jar carries, not the first one found. A product labelled in both languages was
   // being judged on its French name alone, so an English label naming the food exactly could not
   // save the figures — `measuredAboutIt` accepts the hit if any of these names the row's food. The
   // bare `product_name` goes in without a locale, which is the honest answer for a field any
-  // contributor fills in whatever language they had.
-  const _measuredAs = (product: Product) => [
-    ...(product.product_name_fr ? [{ name: product.product_name_fr, locale: "fr" as const }] : []),
-    ...(product.product_name_en ? [{ name: product.product_name_en, locale: "en" as const }] : []),
-    ...(product.product_name ? [{ name: product.product_name }] : []),
-  ];
+  // contributor fills in whatever language they had. Trimmed and never blank, as `_spellingsOf`
+  // reads the same fields: Jev's pick is found again in `names` by its title.
+  const _measuredAs = (product: Product) =>
+    [
+      { name: product.product_name_fr, locale: "fr" as const },
+      { name: product.product_name_en, locale: "en" as const },
+      { name: product.product_name },
+    ].flatMap(({ name, ...tag }) => (name?.trim() ? [{ name: name.trim(), ...tag }] : []));
 
-  const measuredAs = best ? _measuredAs(best.product) : [];
+  // Every titled product that declared something, most likely first; ties keep the order Open Food
+  // Facts ranked them in. The first one's names lead the list, because the caller re-searches the
+  // catalog in order and the names the nutrition belongs to have to be the ones it tries first.
+  const productOf = new Map<MeasuredResult, Product>();
+  const candidates = mostLikelyFirst(
+    text,
+    products.flatMap((product) => {
+      const measuredAs = _measuredAs(product);
+      const nutrition = _nutrition(product.nutriments);
+      if (!measuredAs.length || !nutrition) return [];
+
+      const result = { measuredAs, nutrition };
+      productOf.set(result, product);
+      return [result];
+    }),
+  );
+  const [best] = candidates;
+
+  const leading = best && productOf.get(best);
+  const spellings = _spellingsOf(leading ? [leading, ...products] : products);
+  if (!_named(spellings)) return undefined;
 
   // `searched`: a product search, so a jar's title never becomes another word for the food.
   return {
@@ -190,6 +194,7 @@ export const searchOpenFoodFacts = async (text: string): Promise<LookupHit | und
     ...spellings,
     searched: true,
     nutrition: best?.nutrition,
-    measuredAs,
+    measuredAs: best?.measuredAs ?? [],
+    candidates,
   };
 };

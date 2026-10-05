@@ -5,13 +5,17 @@ import {
   type NoulAnswer,
   type NoulQuestion,
 } from "@convex/lib/typesafe/ask";
+import { retryPromise } from "@shared/helpers";
 import { LANGUAGE_NAMES, SUPPORTED_LOCALES, type Locale } from "@shared/translations";
+
+import { curatedSpellingsIn, type LookupHit, type MeasuredResult } from "./lookup/lookupHit";
 
 /**
  * Is one of the near-misses the catalog search found the SAME FOOD the shopper typed, and if so, is
  * what they typed worth storing on that row?
  *
- * Step 4 of `resolveIngredient`, first half: `sanitizeIngredient` asks this before paying for a row.
+ * Step 4 of `resolveIngredient`, first half: `resolveWithAgent` asks this before paying for a row,
+ * and asks it again of each source's search page (`pickMeasuredFood`) before any figure is kept.
  * A judgment and not a generation, so it runs on TypeSafe's Jev rather than on a chat model: the
  * candidates are the options, "none" is one more, and the reply is a probability per option. There
  * is no index to hallucinate, no JSON to parse, and no confidence a model states about itself — the
@@ -141,6 +145,7 @@ const _MATCH_INSTRUCTIONS = {
     "A food sharing a word is a different food: cider and balsamic vinegar, lemon and orange juice.",
     "A different form is a different product: tomato and tomato paste, almond and flaked almonds.",
     "A broader kind or shelf is not the item: pain de mie is not pain blanc.",
+    "A word added to a product's name can make another product: pesto rouge (tomato) is not pesto (basil).",
     "A number in a name is a grade: steak haché 5% is neither steak haché 20% nor steak haché.",
     "A brand never picks a kind: \"chocolat lindt\" against milk, dark and white chocolate is none.",
     "A foodDictionary, when given, says what the shopper's words mean.",
@@ -161,6 +166,90 @@ export const readMatchAnswer = <C extends Candidate>(
   if ((answer.probabilities[answer.choice] ?? 0) < MATCHED) return undefined;
 
   return candidates[optionsFor(candidates).indexOf(answer.choice)];
+};
+
+/** Enough for the ranker to recognise the food; more is a wall of synonyms it has to read past. */
+const _DICTIONARY_SPELLINGS = 3;
+
+/**
+ * What a curated source states the typed term IS — the evidence the ranker was deciding without.
+ *
+ * By the time this call happens, `resolveIngredient` has already looked the shopper's words up in
+ * the Open Food Facts taxonomy, for nothing and with no network. So something frequently knows
+ * already that `jus de citron` is lemon juice — and that answer was handed to the row-writing call
+ * and once withheld from Jev, which decides whether an existing row is the same food. Judging on
+ * the words alone, it linked `jus de citron` to a `Jus d'orange` row, and `oignon vert` to
+ * `Oignon`: same form, different fruit, different vegetable.
+ *
+ * ⚠️ Curated hits only, by `curatedSpellingsIn`, and the reason is sharper here than for storage.
+ *    A searched source answers a keyword query with whatever ranked highest — USDA replies to
+ *    `pâte de pistache` with a guava pastry — and a wrong name presented to a model as what the
+ *    term IS does not merely add noise, it argues for the wrong answer.
+ *
+ * Empty when nothing curated answered, which is the common case: the ranker then judges on the
+ * words alone, and `matchState` leaves the dictionary out rather than sending it empty.
+ */
+export const dictionaryOf = (hits: readonly LookupHit[]): Dictionary =>
+  Object.fromEntries(
+    SUPPORTED_LOCALES.flatMap((locale) => {
+      const spellings = curatedSpellingsIn(hits, locale).slice(0, _DICTIONARY_SPELLINGS);
+
+      return spellings.length ? [[locale, spellings]] : [];
+    }),
+  );
+
+/** A result's title in the shopper's language, then the untagged one, then whatever it has. */
+const _titleOf = ({ measuredAs }: MeasuredResult, locale: Locale) =>
+  (measuredAs.find((title) => title.locale === locale) ??
+    measuredAs.find((title) => !title.locale) ??
+    measuredAs[0])!.name;
+
+/**
+ * A searched hit carrying only the figures of the result that IS the shopper's food, or none.
+ *
+ * **A keyword search returns a page, and spelling cannot tell which result is the food.** "onion"
+ * finds onion rings beside raw onions, "tomates séchées" finds plain tomatoes, and "pesto rouge"
+ * found USDA's basil pesto, stamped `foodComposition` on a red one. It is the question
+ * `matchIngredient` asks of catalog rows, asked unchanged of the page, with `MATCHED` as its floor.
+ *
+ * Marked `judged` either way, so `measuredAboutIt` does not re-judge it on spelling, and stripped
+ * of the page, so the row-writing model is shown one set of figures rather than five.
+ *
+ * **It does not throw.** When Jev cannot be reached the figures go and the row is still written:
+ * the model fills them, as it does any field no source measured. Unlike a missed catalog match,
+ * nothing is duplicated by that. A curated hit is returned as it is; its figures were joined to
+ * the food by identity, not found by a search.
+ */
+export const pickMeasuredFood = async (
+  asked: Omit<Input<Candidate>, "candidates">,
+  searched: LookupHit,
+): Promise<LookupHit> => {
+  if (!searched.searched || !searched.candidates?.length) return searched;
+
+  const { candidates, ...hit } = searched;
+
+  let picked: MeasuredResult | undefined;
+  try {
+    const options = candidates.map((result, index) => ({
+      id: String(index),
+      name: _titleOf(result, asked.locale),
+    }));
+    const choice = await retryPromise(() => matchIngredient({ ...asked, candidates: options }), 2);
+    picked = choice && candidates[Number(choice.id)];
+  } catch (error) {
+    console.error("pickMeasuredFood could not reach a judgment; the figures are dropped", error);
+  }
+
+  // Jev's pick leads each language's spellings, so the row writer reads it as the source's name.
+  const isTitle = (spelling: string, locale?: string) =>
+    !!picked?.measuredAs.some((title) => title.name === spelling && title.locale === locale);
+  const lead = (list: string[] | undefined, locale?: string) =>
+    list && [...list].sort((a, b) => Number(isTitle(b, locale)) - Number(isTitle(a, locale)));
+  const names = Object.entries(hit.names).map(([locale, list]) => [locale, lead(list, locale)]);
+  const untagged = hit.untagged && { untagged: lead(hit.untagged) };
+
+  return { ...hit, ...untagged, names: Object.fromEntries(names), judged: true,
+    nutrition: picked?.nutrition, measuredAs: picked?.measuredAs ?? [] };
 };
 
 /** The raw judgment, floor not applied — what the manual test measures the floor from. */

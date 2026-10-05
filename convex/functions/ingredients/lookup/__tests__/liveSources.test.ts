@@ -134,6 +134,46 @@ describe("functions/ingredients/lookup/openFoodFacts", () => {
     expect(hit?.nutrition).toBeDefined();
   });
 
+  /**
+   * Completeness used to pick alone, so a jar of basil pesto declaring all eight beat the red pesto
+   * jar declaring five. The name decides first; completeness breaks a tie.
+   */
+  test("the product named like the search beats a more complete one, and every product is a candidate", async () => {
+    respondWith({
+      products: [
+        { product_name_fr: "Pesto alla genovese", nutriments: OFF_NUTRIMENTS },
+        { product_name_fr: "Pesto rouge", nutriments: { "energy-kcal_100g": 310, fat_100g: 29 } },
+      ],
+    });
+
+    const hit = await searchOpenFoodFacts("pesto rouge");
+
+    expect(hit?.measuredAs).toEqual([{ name: "Pesto rouge", locale: "fr" }]);
+    expect(hit?.nutrition?.calories).toBe(310);
+    expect(hit?.candidates?.map(({ measuredAs }) => measuredAs[0]?.name)).toEqual([
+      "Pesto rouge",
+      "Pesto alla genovese",
+    ]);
+  });
+
+  /**
+   * Titles are read as `names` are, trimmed and never blank: Jev's pick is found in `names` by its
+   * title, and a blank one would be offered to Jev as an option that says nothing.
+   */
+  test("a product's titles are trimmed, and a blank one is no title", async () => {
+    respondWith({
+      products: [
+        { product_name_fr: "Pesto rouge ", product_name: "  ", nutriments: OFF_NUTRIMENTS },
+        { product_name_fr: "  ", nutriments: OFF_NUTRIMENTS },
+      ],
+    });
+
+    const hit = await searchOpenFoodFacts("pesto rouge");
+
+    expect(hit?.measuredAs).toEqual([{ name: "Pesto rouge", locale: "fr" }]);
+    expect(hit?.candidates).toHaveLength(1);
+  });
+
   test.each([
     ["a network failure", () => vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("down"))))],
     ["an error status", () => respondWith({}, false)],
@@ -193,6 +233,25 @@ describe("functions/ingredients/lookup/foodDataCentral", () => {
 
     expect(hit?.names).toEqual({ en: ["Carrots, raw"] });
     expect(hit?.nutrition).toEqual({ calories: 41, protein: 0.93, fat: 0.24, saturatedFat: 0.03 });
+  });
+
+  /** Onion rings measured on eight fields used to beat raw onions measured on four. */
+  test("the food named like the search beats a more complete one, and every food is a candidate", async () => {
+    respondWith({
+      foods: [
+        fdcFood("Onion rings, breaded, par fried, frozen", FDC_CARROT),
+        fdcFood("Onions, raw", FDC_CARROT.slice(0, 4)),
+      ],
+    });
+
+    const hit = await searchFoodDataCentral("onion");
+
+    expect(hit?.measuredAs).toEqual([{ name: "Onions, raw", locale: "en" }]);
+    expect(hit?.names.en?.[0]).toBe("Onions, raw");
+    expect(hit?.candidates?.map(({ measuredAs }) => measuredAs[0]?.name)).toEqual([
+      "Onions, raw",
+      "Onion rings, breaded, par fried, frozen",
+    ]);
   });
 
   test.each([

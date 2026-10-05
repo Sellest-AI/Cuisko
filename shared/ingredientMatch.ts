@@ -472,6 +472,27 @@ const _bestSimilarity = (token: string, against: string[]): number =>
   against.reduce((best, other) => Math.max(best, _similarity(token, other)), 0);
 
 /**
+ * Whether `spelling` keeps every word that identifies `name`: each of the name's tokens finds one
+ * in the spelling scoring OVER `TOKEN_MATCHED`.
+ *
+ * A hard rule where `_fuzzyScore` is a soft one. There, a missing word only lowers `coverage`, so
+ * "Pesto" still scores 0.5 against "pesto rouge" and clears `RESOLVABLE` on the shared word alone.
+ * That is right for ranking a search page and wrong for deciding a source measured THIS food: the
+ * colour was the identity, and USDA's basil pesto became the figures of a red one.
+ *
+ * The spelling is read with its qualifiers kept, since a word it carries can only help the name.
+ *
+ * **Strictly over, where `_fuzzyScore` counts from the bar up.** Exactly 0.6 is two edits in five
+ * letters: `red` against `ready`, `pesto` against `pasta`. Those are different words, and at `>=`
+ * the "ready-to-serve" on USDA's basil pesto kept the `red` of a red pesto.
+ */
+export const keepsEveryWord = (name: string, spelling: string): boolean => {
+  const kept = _shape(spelling).words;
+
+  return _tokenize(name).every((token) => _bestSimilarity(token, kept) > TOKEN_MATCHED);
+};
+
+/**
  * Token sets compared both ways, which is the whole trick.
  *
  * *Coverage* asks how much of what the cook typed the candidate accounts for. On its own it ranks

@@ -1,12 +1,12 @@
 import * as z from "zod/v4";
 
-import type { Id } from "@convex/_generated/dataModel";
 import type { IngredientFacts } from "@convex/functions/ingredients/ingredientRow";
 import {
   measuredAboutIt,
   measuredOver,
   NUTRITION_FIELDS,
   provenanceOf,
+  curatedSpellingsIn,
   type LookupHit,
 } from "@convex/functions/ingredients/lookup/lookupHit";
 import type { LocalizedList, TranslationStatus } from "@convex/schema/i18n";
@@ -25,51 +25,17 @@ import {
 } from "@shared/ingredients";
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
-import {
-  aliasWorthSaving,
-  matchIngredient,
-  type Dictionary,
-} from "@convex/functions/ingredients/matchIngredient";
-
 import { ingredientsAgent } from "../agents";
 import { sanitizeIngredientPrompt } from "../config/prompts/sanitizeIngredient";
 import { createTool, modelText, parseModelOutput, providerSchema, wrapAgent } from "../utils";
 
 /**
- * What the agent made of a term the catalog could not resolve.
+ * What the agent made of a term nothing could resolve: a new row's facts, or an honest refusal.
  *
- * Three arms rather than "facts or nothing", for the reason `ResolvedIngredient` has three: the
- * caller does something different in each, and "we could not read that" and "that is a row you
- * already have" are not the same answer with a field missing.
- *
- * `existing` is the ONE place an id crosses this boundary, and it is not an id a model produced —
- * the model picks a POSITION in the candidate list it was handed, and the id is read out of that
- * list here (ADR 0010). Every other arm returns names and vocabulary.
+ * Whether the term is a row the catalog already holds is decided before this runs, by
+ * `resolveWithAgent`, so no id crosses this boundary in either direction (ADR 0010).
  */
 export type SanitizedIngredient =
-  | {
-    verdict: "existing";
-    ingredientId: Id<"ingredients">;
-    name: string;
-    /**
-     * Whether the word the shopper typed is worth STORING on that row as another word for it.
-     *
-     * The whole reason the ranker's answer is worth keeping: this call fires on every term the
-     * catalog cannot resolve, so a shopper who types `zucchini` at a `courgette` row pays for a
-     * model call today and pays again tomorrow, forever, for an answer that never changes. Stored
-     * as an alias, the second attempt is answered by step 1 for nothing.
-     *
-     * It is the model's judgement and not this side's, because the question is about language: a
-     * REGIONAL word and a COMMON misspelling are both worth storing, and a one-off mangling
-     * ("pxtates") is not — the row would be indexed under a string nobody will ever type twice,
-     * and the catalog slowly fills with a keyboard's noise. Nothing here can tell those apart
-     * from the string alone, which is why the ranker is asked rather than a filter written.
-     *
-     * Absent reads as false: not storing costs one model call the next time, and storing junk
-     * cannot be undone from here.
-     */
-    saveAlias: boolean;
-  }
   | {
     verdict: "new";
     facts: IngredientFacts;
@@ -263,21 +229,20 @@ export const modelIngredientSchema = z.object({
 });
 
 /**
- * What the model may be told about a candidate. A name and a position, never the id — the id stays
- * on this side of the boundary and is read back out of the list by the position it returns.
- */
-const _candidateSchema = z.object({
-  id: z.string().describe("Supplied by the caller. Never something to generate."),
-  name: z.string(),
-});
-
-/**
  * The evidence the three cheap steps of `resolveIngredient` already gathered, mirrored in zod.
  *
  * A mirror rather than the type itself because `createTool` needs a runtime schema, and
  * `_evidenceCheck` below is what stops the mirror drifting: `LookupHit` gaining a field the tool
  * never sees would otherwise be silent.
  */
+const _titleSchema = z.object({ name: z.string(), locale: z.enum(SUPPORTED_LOCALES).optional() });
+
+const _measuredSchema = z.object(
+  Object.fromEntries(
+    NUTRITION_FIELDS.map((field) => [field, z.number().optional()]),
+  ) as { [K in (typeof NUTRITION_FIELDS)[number]]: z.ZodOptional<z.ZodNumber> },
+);
+
 const _hitSchema = z.object({
   source: z.enum(INGREDIENT_SOURCES),
   names: _perLocale(z.array(z.string()).optional()),
@@ -286,25 +251,17 @@ const _hitSchema = z.object({
   // Not decoration: `_inputSchema` PARSES what the tool is handed, and zod drops what it does not
   // declare. Omitted here, `measuredAs` would arrive as undefined however carefully the lookups
   // filled it, and `measuredAboutIt` would read every hit as one its source vouched for.
-  measuredAs: z
-    .array(z.object({ name: z.string(), locale: z.enum(SUPPORTED_LOCALES).optional() }))
-    .optional(),
-  nutrition: z
-    .object(
-      Object.fromEntries(
-        NUTRITION_FIELDS.map((field) => [field, z.number().optional()]),
-      ) as { [K in (typeof NUTRITION_FIELDS)[number]]: z.ZodOptional<z.ZodNumber> },
-    )
-    .optional(),
+  measuredAs: z.array(_titleSchema).optional(),
+  nutrition: _measuredSchema.optional(),
+  // Declared for the reason `measuredAs` is: dropped, `measuredAboutIt` would re-judge on spelling
+  // the figures Jev already picked. Set by `pickMeasuredFood`, whose caller is `resolveWithAgent`.
+  // A source's `candidates` are not declared: the page is judged before the tool, never in it.
+  judged: z.boolean().optional(),
 });
 
 const _inputSchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES).describe("The language the shopper typed in."),
   text: z.string().describe("What the shopper typed, verbatim."),
-  candidates: z
-    .array(_candidateSchema)
-    .optional()
-    .describe("Catalog rows the widened search found and declined to link on its score alone."),
   hits: z
     .array(_hitSchema)
     .optional()
@@ -324,63 +281,6 @@ export type SanitizeIngredientInput = z.infer<typeof _inputSchema>;
 /** Every spelling a hit stated for one language, lowercased for comparison. */
 const _statedIn = (hits: readonly LookupHit[], locale: Locale) =>
   hits.flatMap((hit) => hit.names[locale] ?? []);
-
-/**
- * The spellings worth STORING as another word for the food — the curated hits' only.
- *
- * **A rule about how a source found its answer, not about how good the source is.** A hit marked
- * `searched` was handed the shopper's words and returned what ranked highest, and neither API is
- * ranking by "is this the same food": Open Food Facts answered `crème de marrons` with `Yaourt
- * brassé crème de marrons 2 x 160 g` — a yogurt — and `Clement Faugier - Vanilla Chestnut Spread,
- * 17.5oz (500g)`, a brand and a package size. USDA answered `pâte de pistache` with `Pastry,
- * Pastelitos de Guava (guava pastries)`. Stored as aliases these reach the search blob through
- * `ingredientRow`, and the catalog starts answering "yaourt" with a jar of chestnut spread.
- *
- * **A score cannot separate them, which is why this is not another threshold.** The yogurt is a
- * different food that CONTAINS this one, so it carries the name in full; the guava pastry rides in
- * on `paste` resembling `pastry` at 0.667. Measured: the pastry scores 0.356 against `pistachio
- * paste` and USDA's own correct `Nuts, pistachio nuts, raw` scores 0.400 — 0.044 apart, so any bar
- * that excludes one excludes both.
- *
- * **The searching sources lose nothing they were doing well.** Their spellings are already spent
- * where they pay: `_fromApis` re-searches the catalog with every one of them before a row is ever
- * written, which is the job those files claim for them. This governs storage — and, below, the one
- * other place a source's words are repeated to a model as fact.
- */
-const _vocabularyIn = (hits: readonly LookupHit[], locale: Locale) =>
-  _statedIn(hits.filter((hit) => !hit.searched), locale);
-
-/** Enough for the ranker to recognise the food; more is a wall of synonyms it has to read past. */
-const _DICTIONARY_SPELLINGS = 3;
-
-/**
- * What a curated source states the typed term IS — the evidence the ranker was deciding without.
- *
- * By the time this call happens, `resolveIngredient` has already looked the shopper's words up in
- * the Open Food Facts taxonomy, for nothing and with no network. So something frequently knows
- * already that `jus de citron` is lemon juice — and that answer was handed to the row-writing call
- * and withheld from THIS one, which is the call that decides whether an existing row is the same
- * food. Judging on the words alone, it linked `jus de citron` to a `Jus d'orange` row, and
- * `oignon vert` to `Oignon`: same form, different fruit, different vegetable.
- *
- * ⚠️ Curated hits only, by `_vocabularyIn`, and the reason is sharper here than it is for storage.
- *    A searched source answers a keyword query with whatever ranked highest — USDA replies to
- *    `pâte de pistache` with a guava pastry — and a wrong name presented to a model as what the
- *    term IS does not merely add noise, it argues for the wrong answer.
- *
- * Empty when nothing curated answered, which is the common case: the ranker then judges on the
- * words alone, and `matchState` leaves the dictionary out rather than sending it empty.
- *
- * Exported so the curated-only rule is pinned by a unit test without a call to TypeSafe.
- */
-export const dictionaryOf = (hits: readonly LookupHit[]): Dictionary =>
-  Object.fromEntries(
-    SUPPORTED_LOCALES.flatMap((locale) => {
-      const spellings = _vocabularyIn(hits, locale).slice(0, _DICTIONARY_SPELLINGS);
-
-      return spellings.length ? [[locale, spellings]] : [];
-    }),
-  );
 
 // The two compile-time assertions ADR 0010 asks for: the schema and the hand-written types drift
 // apart in silence otherwise — a vocabulary gains a value, a lookup gains a field, and the first
@@ -614,7 +514,7 @@ export const toSanitizedIngredient = (
     SUPPORTED_LOCALES.map((locale) => {
       const name = byLocale[locale];
 
-      // Every hit, Open Food Facts included — deliberately wider than `_vocabularyIn` below,
+      // Every hit, Open Food Facts included — deliberately wider than `curatedSpellingsIn` below,
       // because this asks a different question. Storing a product title as vocabulary is what
       // that list refuses; a product title that matches the name EXACTLY is a person having
       // written this food's name in this language, which is all `edited` claims.
@@ -637,13 +537,13 @@ export const toSanitizedIngredient = (
       // list through `SAME_FOOD` deletes precisely the aliases that earn their keep — the whole
       // point of storing a synonym is that somebody who types it does not type the name.
       //
-      // What keeps junk out here is `_vocabularyIn`, which is a rule about how a source found its
-      // answer rather than about how the answer reads. A keyword search never contributes a word,
-      // so `Dulce de Leche` cannot arrive; what does arrive was filed under this food by hand, and
-      // a curated synonym that looks nothing like the name is the normal case, not the suspect one.
+      // What keeps junk out here is `curatedSpellingsIn`, which is a rule about how a source found
+      // its answer rather than about how the answer reads. A keyword search never contributes a
+      // word, so `Dulce de Leche` cannot arrive; what does arrive was filed under this food by hand,
+      // and a curated synonym that looks nothing like the name is the normal case, not the suspect.
       const offered = [
         ...(facts.aliases[locale] ?? []),
-        ..._vocabularyIn(hits, locale),
+        ...curatedSpellingsIn(hits, locale),
       ];
 
       for (const alias of offered) {
@@ -704,13 +604,14 @@ export const sanitizeIngredientUserPrompt = ({ text, hits = [], units = [] }: Sa
     .join("\n\n");
 
 /**
- * A term the catalog could not resolve, turned into an existing row, a new one, or an honest
- * refusal — step 4 of `resolveIngredient`.
+ * A term nothing could resolve, turned into a new row's facts or an honest refusal — the last half
+ * of step 4 of `resolveIngredient`.
  *
- * **Cheapest first, and the first may end it.** `matchIngredient` asks TypeSafe's Jev whether one of
- * the near-misses the catalog search already found is the same food; only if it is not does the
- * expensive call invent a row. Splitting them is not just about cost: a model that has begun
- * writing facts for a new ingredient will talk itself past a match that was sitting in the list.
+ * **Only a row, and only once nothing else answered.** By the time this runs `resolveWithAgent`
+ * has asked Jev whether a near-miss in the catalog is already the food, and which of each source's
+ * search results its figures were measured on (`matchIngredient`, `pickMeasuredFood`). Keeping the
+ * match out is not just about cost: a model that has begun writing facts for a new ingredient will
+ * talk itself past a match that was sitting in the list.
  *
  * Nothing is written down — `saveMessages: "none"` on the row call, for the reason `sanitizeRecipe` gives:
  * this is a transformation, not a conversation, and nothing later needs to recall the word a
@@ -721,34 +622,10 @@ export const sanitizeIngredientUserPrompt = ({ text, hits = [], units = [] }: Sa
  */
 export const sanitizeIngredient = createTool({
   description:
-    "Decide what a shopper's unrecognised food term is: a catalog row that already exists under " +
-    "another spelling or another language, a new ingredient worth adding — with its names, " +
-    "vocabulary and per-100g nutrition — or something that is not an ingredient at all.",
+    "Decide what a shopper's unrecognised food term is: a new ingredient worth adding — with its " +
+    "names, vocabulary and per-100g nutrition — or something that is not an ingredient at all.",
   inputSchema: _inputSchema,
-  execute: async (ctx, args): Promise<SanitizedIngredient> => {
-    const candidates = args.candidates ?? [];
-
-    if (candidates.length) {
-      const asked = {
-        text: args.text,
-        locale: args.locale,
-        dictionary: dictionaryOf((args.hits ?? []) as LookupHit[]),
-      };
-
-      const candidate = await retryPromise(() => matchIngredient({ ...asked, candidates }), 2);
-
-      if (candidate)
-        // The one cast in this file, and it is not a model's id: `candidate` came out of the list
-        // the caller passed in, so the string is an id the caller already held (ADR 0010).
-        return {
-          verdict: "existing",
-          ingredientId: candidate.id as Id<"ingredients">,
-          name: candidate.name,
-          // Asked only now, because it is a question about the word AND the food it matched.
-          saveAlias: await aliasWorthSaving(asked, candidate.name),
-        };
-    }
-
+  execute: async (ctx, args): Promise<SanitizedIngredient> =>
     // **The parse is INSIDE the retry, and that is the point of the closure.** `facts` is nullable
     // outbound, so `{ verdict: "ingredient", facts: null }` satisfies the schema the model
     // generated against — `maxRetries` never sees a failure, because by the provider's reckoning
@@ -756,7 +633,7 @@ export const sanitizeIngredient = createTool({
     // leaving it outside spent one model call and gave the shopper an error card for a slip the
     // next call would very likely not repeat. Nothing here is stateful: the pure half re-runs on
     // a fresh answer, which is what an attempt is supposed to mean.
-    return await retryPromise(async () => {
+    await retryPromise(async () => {
       const result = await wrapAgent(ingredientsAgent).generateObject(
         ctx,
         {},
@@ -775,6 +652,5 @@ export const sanitizeIngredient = createTool({
       // `toSanitizedIngredient` pins — the model already generated against this schema, so it is a
       // cast that cannot silently be wrong.
       return toSanitizedIngredient(result.object, args.hits as LookupHit[] | undefined, args.units);
-    }, 2);
-  },
+    }, 2),
 });

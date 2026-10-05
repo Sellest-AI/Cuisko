@@ -5,9 +5,9 @@ import { UNITS } from "@shared/ingredients";
 import { LANGUAGE_NAMES, SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
 /**
- * The system prompt behind `tools/sanitizeIngredient.ts`. Its other call, whether a near-miss is
- * already the food, is a TypeSafe judgment in `functions/ingredients/matchIngredient.ts` and has no
- * prompt.
+ * The system prompt behind `tools/sanitizeIngredient.ts`. Whether a near-miss is already the food,
+ * and which search result a source's figures belong to, are TypeSafe judgments asked before the
+ * tool runs (`functions/ingredients/matchIngredient.ts`), and have no prompt.
  *
  * Their own file for the reason `sanitizeRecipe`'s prompt has one: a prompt is tuned by hand
  * against real terms a shopper typed, and a diff of that tuning should not be a diff of the tool's
