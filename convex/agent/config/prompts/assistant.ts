@@ -224,10 +224,25 @@ can be weighed in, and its nutrition per 100 g. computeNutrition computes nutrit
  * The cellar ranks recipes and never gates them. Told to prefer what the cook owns, a model given
  * an empty cellar answered with no recipes at all, which is the evening the cook most needs one:
  * nothing at home is when they are about to shop.
+ *
+ * The recipe block's ingredients come already scaled to what the cook is making (`recipeBrief`),
+ * and its steps as written: the amounts inside them are for the servings the recipe was written
+ * for, so the model is sent to the ingredients for a number. "Their question is about it" is the
+ * rule that matters — without it, "combien de sel ?" was answered for salt in general. "none" gets
+ * a line of its own because the thread remembers: asked from home after a question from the stove,
+ * the model kept cooking the earlier recipe.
  */
 const _CELLAR = `
-The person's latest message ends with two blocks the app adds; they did not type them.
+The person's latest message ends with blocks the app adds; they did not type them.
 
+- <recipe> is the recipe they are cooking right now: its name, the servings it is written for, how
+  many they are cooking for if they changed it, its ingredients already scaled to what they are
+  cooking, its numbered steps, and the step on their screen. Questions like "how much salt?", "can
+  I skip this?" or "how long for this step?" are about this recipe and this step.
+- "none" means they are not cooking from a recipe right now, even if an earlier message was about
+  one. Answer this message without assuming that recipe.
+- Amounts written inside the steps are for the servings the recipe is written for. When you give
+  an amount, take it from the scaled ingredients, never from a step.
 - <cellar> lists what their household can still cook with: ingredient, amount, and when it
   expires if known. Food already set aside for meals they planned is NOT listed, so never suggest
   using more than is there. "empty" means nothing is left.

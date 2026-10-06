@@ -1,4 +1,5 @@
 import { useAtom, useSetAtom } from "jotai";
+import { useAtomCallback } from "jotai/utils";
 import { useCallback } from "react";
 
 import { isConversationStale } from "@shared/assistant";
@@ -11,7 +12,7 @@ import { useAction, useMutation } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 import { useStagedPhoto } from "~/modules/navigation/hooks";
 
-import { conversationAtom, pendingQuestionAtom, refusalAtom } from "./atoms";
+import { conversationAtom, cuiskoContextAtom, pendingQuestionAtom, refusalAtom } from "./atoms";
 
 /**
  * Whether a send is currently in flight, shared by every caller in the app.
@@ -55,6 +56,13 @@ export const useAskCuisko = () => {
   const { action: upload } = useAction(api.router.media.images.uploadOne.authed);
   const { unstage: unstagePhoto, restore: restorePhoto } = useStagedPhoto();
 
+  /**
+   * What the open assistant was given beside the question (`useCuiskoContext`), read when the
+   * question goes rather than when this rendered: the screen's first question leaves from a mount
+   * effect, before a render could have picked the context up.
+   */
+  const readContext = useAtomCallback(useCallback((get) => get(cuiskoContextAtom), []));
+
   const ask = useCallback(
     async (text: string) => {
       const question = text.trim();
@@ -65,6 +73,8 @@ export const useAskCuisko = () => {
       if (!question || !householdId || _inFlight) return;
 
       _inFlight = true;
+      /** Taken as the question is asked, before the upload: what was open is what it was asked in. */
+      const { recipe } = readContext();
       /**
        * The photo leaves the bar now, and the pending bubble shows it in its place: it would
        * otherwise sit in the bar until the question lands. Unstaged rather than discarded, so its
@@ -107,6 +117,7 @@ export const useAskCuisko = () => {
         const { threadId } = await send({
           text: question,
           imageId,
+          recipe,
           threadId: warm,
           locale,
           householdId,
@@ -127,7 +138,7 @@ export const useAskCuisko = () => {
         _inFlight = false;
       }
     },
-    [conversation, householdId, locale, restorePhoto, send, setConversation, setPending, setRefusal, unstagePhoto, upload],
+    [conversation, householdId, locale, readContext, restorePhoto, send, setConversation, setPending, setRefusal, unstagePhoto, upload],
   );
 
   return { ask };

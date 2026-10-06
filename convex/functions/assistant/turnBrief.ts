@@ -7,6 +7,7 @@ import { ConvexError } from "convex/values";
 
 import { availableStock } from "../planning/availableStock";
 import { soonestExpiries } from "../planning/soonestExpiries";
+import { type CookingRecipe, recipeBrief } from "./recipeBrief";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -34,6 +35,8 @@ type Args = {
   today: number;
   /** The cook's wall clock, `YYYY-MM-DDTHH:mm` (`localStamp`). */
   now: string;
+  /** The recipe the question was asked from, when the cook asked while cooking (`recipeBrief`). */
+  recipe?: CookingRecipe;
 };
 
 type Line = { id: Id<"ingredients">; name: string; amount: number; unit: StockUnit; expiresIn?: number };
@@ -57,8 +60,13 @@ const _expiry = (date: string, days: number) => {
 };
 
 /**
- * The text appended to the cook's question before Cuisko reads it: what the household can still
- * cook with, then the cook's date and hour, last.
+ * The text appended to the cook's question before Cuisko reads it: the recipe they are cooking,
+ * then what the household can still cook with, then the cook's date and hour, last.
+ *
+ * **`<recipe>none</recipe>` rather than no block**, as the cellar says `empty`. The thread keeps
+ * Cuisko's earlier answers, and a cook who asked from the curry, went home and asked again was
+ * answered as if still at the stove: an absent block said nothing, and the history said curry.
+ * An id that names nothing reads as `none` too.
  *
  * **Available stock, not the raw cellar.** A lot already reserved by a planned meal is not on
  * offer: an assistant suggesting tonight's bolognaise with Thursday's beef would undo the plan the
@@ -73,11 +81,12 @@ const _expiry = (date: string, days: number) => {
  * Ids are carried so a later tool can be handed an ingredient without resolving a name. They are
  * context, never something the model is asked to produce (ADR 0010).
  */
-export const turnBrief = async (ctx: QueryCtx, { householdId, locale, today, now }: Args): Promise<string> => {
+export const turnBrief = async (ctx: QueryCtx, { householdId, locale, today, now, recipe }: Args): Promise<string> => {
   const [, date, time] = STAMP.exec(now) ?? [];
   if (!date || !time || !_isRealStamp(date, time)) throw new ConvexError({ code: "INVALID_INPUT", message: "Invalid local time." });
 
-  const [stock, lots] = await Promise.all([
+  const [cooking, stock, lots] = await Promise.all([
+    recipe && recipeBrief(ctx, { recipe, locale }),
     availableStock(ctx, householdId, today),
     ctx.db
       .query("cellarItems")
@@ -117,5 +126,5 @@ export const turnBrief = async (ctx: QueryCtx, { householdId, locale, today, now
 
   const weekday = WEEKDAYS[new Date(`${date}T00:00:00Z`).getUTCDay()];
 
-  return `<cellar>\n${cellar}\n</cellar>\n<now>${weekday} ${date} ${time}</now>`;
+  return `${cooking ?? "<recipe>none</recipe>"}\n<cellar>\n${cellar}\n</cellar>\n<now>${weekday} ${date} ${time}</now>`;
 };

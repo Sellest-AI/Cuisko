@@ -173,6 +173,52 @@ describe("router/assistant/sendMessage", () => {
     expect(brief).toMatch(/<now>Thursday 2026-09-24 19:05<\/now>$/);
   });
 
+  /** Any cook's recipe, because a recipe is readable by id by anyone signed in (ADR 0014). */
+  test("hands the recipe a question was asked from to the answer, whoever wrote it", async () => {
+    const cook = await seedUser("Franck");
+    const author = await seedUser("Léa");
+    const recipeId = await t.run((ctx) =>
+      ctx.db.insert("recipes", {
+        userId: author.userId,
+        status: "generated",
+        isArchived: false,
+        title: { values: { fr: "Gratin dauphinois" }, meta: {} },
+        description: { values: { fr: "x" }, meta: {} },
+        instructions: { values: { fr: "- Éplucher\n- Enfourner" }, meta: {} },
+        servings: 4,
+        equipments: [],
+        difficulty: 1,
+        tags: [],
+        cuisine: "french",
+        timings: {},
+        search: { en: "", fr: "" },
+        isVegan: false,
+        isVegetarian: true,
+        isPescatarian: true,
+        isGlutenFree: true,
+        isDairyFree: false,
+        isNutFree: true,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    await t
+      .withIdentity(asUser(cook.userId))
+      .mutation(api.router.assistant.sendMessage.authed, {
+        text: "Combien de temps au four ?",
+        recipe: { id: recipeId, step: 2, servings: 2 },
+        householdId: cook.householdId,
+        ...CLOCK,
+        locale: "fr",
+      });
+
+    const [scheduled] = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    const { brief } = scheduled?.args[0] as { brief: string };
+    expect(brief).toMatch(/^<recipe>\nname: Gratin dauphinois\n/);
+    expect(brief).toContain("cooking for: 2");
+    expect(brief).toContain("current step: 2");
+  });
+
   test("opens a thread when the caller has none, and saves the question in it", async () => {
     const cook = await seedUser("Franck");
 

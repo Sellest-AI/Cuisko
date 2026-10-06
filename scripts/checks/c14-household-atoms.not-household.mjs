@@ -21,6 +21,8 @@ export const NOT_HOUSEHOLD = {
   "src/modules/assistant/_hooks/atoms.ts:undoneChangesAtom":
     "which of Cuisko's cellar changes and planned plates were undone; it must outlive a switch as the conversation does, " +
     "or the undo is offered again, and each change names its own household",
+  "src/modules/assistant/_hooks/atoms.ts:cuiskoContextAtom":
+    "the recipe the open assistant was asked from, set by its route and put down when it closes",
   "src/modules/groceries/_hooks/atoms.ts:sortAtom":
     "a way of looking at the list, not a fact about the kitchen",
   "src/modules/navigation/_hooks/useNavigationBar.ts:modeAtom": "the bar's own mode: UI chrome",

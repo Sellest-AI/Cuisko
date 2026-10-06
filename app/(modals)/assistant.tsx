@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams } from "expo-router";
 import { Platform, StyleSheet } from "react-native";
 import { theme } from "~/global/theme";
+import { useCuiskoContext } from "~/modules/assistant/hooks";
 import { AssistantScreen } from "~/modules/assistant/screen";
 import { MODAL_MAX_DETENT } from "~/modules/navigation/constants";
 import { useDeclaredModalSheet } from "~/modules/navigation/modal-sheet";
@@ -21,8 +22,19 @@ export default function Assistant() {
    * nothing else — an atom would still be holding yesterday's question the next time the assistant
    * is opened from anywhere. Expo gives a repeated param as an array; only one is ever sent.
    */
-  const { q } = useLocalSearchParams<{ q?: string | string[] }>();
+  const { q, recipeId, step, servings } = useLocalSearchParams<{
+    q?: string | string[];
+    recipeId?: string | string[];
+    step?: string | string[];
+    servings?: string | string[];
+  }>();
   const question = Array.isArray(q) ? q[0] : q;
+
+  /**
+   * The recipe the question was asked from, when the cooking screen opened this: held for every
+   * question asked here, the bar's follow-ups included, and forgotten when the modal closes.
+   */
+  useCuiskoContext({ recipeId, step, servings });
 
   if (Platform.OS === "ios")
     return <>

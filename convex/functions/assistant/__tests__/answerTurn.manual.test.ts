@@ -514,8 +514,8 @@ const _day = (days: number) => new Date(TODAY_MS + days * 86_400_000).toISOStrin
 
 type Stock = { ingredient: IngredientKey; amount: number; unit: "g" | "ml" | "pcs"; expiresIn?: number };
 
-/** `turnBrief`'s text, line for line, from a hand-written cellar. */
-const _brief = (stock: Stock[], locale: Locale) => {
+/** `turnBrief`'s text, line for line, from a hand-written cellar — and recipe, when cooking one. */
+const _brief = (stock: Stock[], locale: Locale, recipe?: string) => {
   const _when = (days: number) => (days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`);
   const _date = (days: number) => new Date(Date.parse(`${TODAY}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
@@ -527,7 +527,7 @@ const _brief = (stock: Stock[], locale: Locale) => {
       .join("\n")
     : "empty";
 
-  return `<cellar>\n${cellar}\n</cellar>\n<now>${NOW}</now>`;
+  return `${recipe ?? "<recipe>none</recipe>"}\n<cellar>\n${cellar}\n</cellar>\n<now>${NOW}</now>`;
 };
 
 /* ── The trace ─────────────────────────────────────────────────────────────────────────── */
@@ -649,6 +649,8 @@ type Case = {
   history?: ModelMessage[];
   /** Plates already planned, which planMeal finds on the slot it is asked for. */
   week?: FakePlate[];
+  /** The `<recipe>` block `recipeBrief` writes, when the question is asked from the cooking screen. */
+  recipe?: string;
   question: string;
   /** What this question must produce, beyond `_invariants`: `true` for a hit, a message for a miss. */
   expect: (turn: Turn) => (string | true)[];
@@ -671,7 +673,59 @@ const BEEF_NIGHT: Stock[] = [
   { ingredient: "spaghetti", amount: 500, unit: "g" },
 ];
 
+/** A gratin written for 4, cooked for 6: the ingredients are scaled, the steps keep the written 60 cl. */
+const GRATIN_FOR_SIX = [
+  "<recipe>",
+  "name: Gratin dauphinois",
+  "written for: 4",
+  "cooking for: 6",
+  "scaled ingredients:",
+  "- 1500 g pomme de terre",
+  "- 90 cl crème liquide",
+  "- 2 pcs gousse d'ail",
+  "not-scaled steps:",
+  "1. Éplucher les pommes de terre et les couper en rondelles fines.",
+  "2. Frotter le plat avec l'ail.",
+  "3. Verser 60 cl de crème sur les pommes de terre.",
+  "4. Enfourner 1 h à 160 °C.",
+  "current step: 3",
+  "</recipe>",
+].join("\n");
+
 const CASES: Case[] = [
+  /* Cooking: a question from the stove is about the recipe on screen, at the servings cooked. */
+  {
+    // "Questions like 'how much salt?' … are about this recipe and this step."
+    // "When you give an amount, take it from the scaled ingredients, never from a step."
+    name: "fr · cooking, amount for this step",
+    locale: "fr",
+    stock: [],
+    recipe: GRATIN_FOR_SIX,
+    question: "J'en mets combien ?",
+    expect: (turn) => [
+      _says(turn, 90, "the cream scaled to 6"),
+      !/(^|[^\d])60\s*cl/.test(turn.text) || "quoted the step's written 60 cl rather than the scaled amount",
+      _mustNot(turn, ASSISTANT_TOOLS.searchRecipes),
+    ],
+  },
+
+  {
+    // "\"none\" means they are not cooking from a recipe right now, even if an earlier message was about one."
+    // The bug: asked from the gratin, then from home in the same thread, it was still cooking the gratin.
+    name: "fr · left the recipe, history does not cook",
+    locale: "fr",
+    stock: [],
+    history: [
+      { role: "user", content: "J'en mets combien ?" },
+      { role: "assistant", content: "Pour ton gratin à 6, verse 90 cl de crème sur les pommes de terre." },
+    ],
+    question: "Combien de temps ça cuit ?",
+    expect: (turn) => [
+      !/gratin/i.test(turn.text) || "answered for the gratin, which the cook is no longer cooking",
+      _asks(turn, "which dish they mean"),
+    ],
+  },
+
   /* Recipes: search the dish, then choose and display. */
   {
     name: "fr · dinner from the cellar",
@@ -1235,7 +1289,7 @@ const _runTurn = async (entrant: Entrant, testCase: Case, run: number): Promise<
       system: assistantPrompt(testCase.locale),
       messages: [
         ...(testCase.history ?? []),
-        appendBrief({ role: "user", content: testCase.question }, _brief(testCase.stock, testCase.locale)),
+        appendBrief({ role: "user", content: testCase.question }, _brief(testCase.stock, testCase.locale, testCase.recipe)),
       ],
       tools: _tools(testCase.locale, testCase.stock, testCase.week ?? []),
       stopWhen: isStepCount(MAX_STEPS),

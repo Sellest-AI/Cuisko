@@ -5,6 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { Unit } from "@shared/ingredients";
 
 import schema from "../../../schema";
+import type { CookingRecipe } from "../recipeBrief";
 import { turnBrief } from "../turnBrief";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -98,18 +99,58 @@ const reserve = (householdId: Id<"households">, ingredientId: Id<"ingredients">,
     });
   });
 
-const briefOf = (householdId: Id<"households">, { locale = "fr", now = NOW }: { locale?: "fr" | "en"; now?: string } = {}) =>
-  t.run((ctx) => turnBrief(ctx, { householdId, locale, today: TODAY, now }));
+/** A one-step recipe written for 2, for a question asked while cooking it. */
+const omelette = () =>
+  t.run((ctx) =>
+    ctx.db.insert("recipes", {
+      status: "generated",
+      isArchived: false,
+      title: { values: { fr: "Omelette", en: "Omelette" }, meta: {} },
+      description: { values: { fr: "x" }, meta: {} },
+      instructions: { values: { fr: "- Battre les œufs" }, meta: {} },
+      servings: 2,
+      equipments: [],
+      difficulty: 1,
+      tags: [],
+      cuisine: "french",
+      timings: {},
+      search: { en: "", fr: "" },
+      isVegan: false,
+      isVegetarian: true,
+      isPescatarian: true,
+      isGlutenFree: true,
+      isDairyFree: true,
+      isNutFree: true,
+      updatedAt: Date.now(),
+    }),
+  );
+
+const briefOf = (
+  householdId: Id<"households">,
+  { locale = "fr", now = NOW, recipe }: { locale?: "fr" | "en"; now?: string; recipe?: CookingRecipe } = {},
+) => t.run((ctx) => turnBrief(ctx, { householdId, locale, today: TODAY, now, recipe }));
 
 beforeEach(() => {
   t = convexTest(schema, modules);
 });
 
 describe("functions/assistant/turnBrief", () => {
-  test("says the cellar is empty rather than leaving the model to guess", async () => {
+  test("says the cellar is empty, and that no recipe is cooking, rather than leaving the model to guess", async () => {
     const home = await household();
 
-    expect(await briefOf(home)).toBe("<cellar>\nempty\n</cellar>\n<now>Thursday 2026-09-24 19:05</now>");
+    expect(await briefOf(home)).toBe(
+      "<recipe>none</recipe>\n<cellar>\nempty\n</cellar>\n<now>Thursday 2026-09-24 19:05</now>",
+    );
+  });
+
+  /**
+   * The cook asked from a recipe, went home, and asked again in the same thread: with no block at
+   * all, the model read its earlier answer about the curry and answered as if still cooking it.
+   */
+  test("asked away from a recipe, says so on every turn rather than leaving the block out", async () => {
+    const home = await household();
+
+    expect(await briefOf(home)).toMatch(/^<recipe>none<\/recipe>\n/);
   });
 
   test("names each ingredient in the cook's language, with its id, in its stock unit", async () => {
@@ -167,6 +208,25 @@ describe("functions/assistant/turnBrief", () => {
     await cellar(home, flour, 1, "kg");
 
     expect(await briefOf(home, { now: "2026-09-27T08:30" })).toMatch(/\n<now>Sunday 2026-09-27 08:30<\/now>$/);
+  });
+
+  test("asked while cooking, opens on the recipe, and still ends on the cook's day and time", async () => {
+    const home = await household();
+    const id = await omelette();
+
+    const brief = await briefOf(home, { recipe: { id, step: 1, servings: 3 } });
+
+    expect(brief).toMatch(/^<recipe>\nname: Omelette\n[\s\S]*\ncurrent step: 1\n<\/recipe>\n<cellar>\nempty\n<\/cellar>\n<now>[^\n]*<\/now>$/);
+  });
+
+  test("a recipe that no longer exists reads as none, and the question is still answerable", async () => {
+    const home = await household();
+    const id = await omelette();
+    await t.run((ctx) => ctx.db.delete(id));
+
+    expect(await briefOf(home, { recipe: { id } })).toBe(
+      "<recipe>none</recipe>\n<cellar>\nempty\n</cellar>\n<now>Thursday 2026-09-24 19:05</now>",
+    );
   });
 
   /** Client text that lands verbatim in a prompt: anything but `localStamp`'s shape is refused. */

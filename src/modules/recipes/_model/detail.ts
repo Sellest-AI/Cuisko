@@ -9,6 +9,7 @@
 import { CATEGORIES, type Category } from "@shared/categories";
 import type { RecipeUnit } from "@shared/ingredients";
 import type { InstructionGroup } from "@shared/recipes";
+import { scaleQuantity } from "@shared/servings";
 
 import type { Conversion } from "./units";
 
@@ -31,24 +32,17 @@ export type RecipeLine = {
 };
 
 /**
- * The lines rewritten for a different number of people.
+ * The lines rewritten for a different number of people, each by `scaleQuantity` — the rule the
+ * assistant's brief scales by too, so the stove and the screen quote the same amount.
  *
- * Linear, and deliberately naive: a recipe for two does not become a recipe for four by doubling
- * the salt, and no cook believes it does. Modelling that would need a per-ingredient scaling curve
- * the catalog does not carry, and the honest version of this is the one a cook can check in their
- * head. `formatQuantity` already cuts to the unit's precision so a halved recipe does not read
- * `0.5000000001`.
- *
- * Scaling to the servings the recipe was written for returns the quantities untouched, which is
- * what makes the stepper's resting position identical to not having a stepper at all.
+ * Scaling to the servings the recipe was written for returns the lines untouched — the same array,
+ * so the memo in `useRecipe` hands back the query's own objects at rest — which is what makes the
+ * stepper's resting position identical to not having a stepper at all.
  */
 export const scaleTo = (lines: RecipeLine[], written: number, wanted: number): RecipeLine[] => {
-  /** A recipe that serves nobody has no ratio to scale by, and dividing would produce infinities. */
   if (written <= 0 || wanted === written) return lines;
 
-  const factor = wanted / written;
-
-  return lines.map((line) => ({ ...line, quantity: line.quantity * factor }));
+  return lines.map((line) => ({ ...line, quantity: scaleQuantity(line.quantity, written, wanted) }));
 };
 
 /** One aisle of the list — the category, and the lines that belong to it in their written order. */

@@ -34,3 +34,17 @@ export const vIntent = v.union(
   v.object({ kind: v.literal("recipe") }),
   v.object({ kind: v.literal("unknown") }),
 );
+
+/**
+ * The recipe a question was asked from, as the cooking screen sends it with the question.
+ *
+ * The validator is the source of `CookingRecipe` (`functions/assistant/recipeBrief.ts`), the
+ * folder's usual direction. `step` and `servings` are only typed here; what counts as a step the
+ * method has, or a number of people, is `recipeBrief`'s to judge, since it is the one holding the
+ * recipe to judge them against.
+ */
+export const vCookingRecipe = v.object({
+  id: v.id("recipes"),
+  step: v.optional(v.number()),
+  servings: v.optional(v.number()),
+});

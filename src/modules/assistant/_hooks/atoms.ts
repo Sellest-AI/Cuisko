@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import type { Id } from "~/lib/convex/api";
 
 import type { Refusal } from "../_model/chatMessage";
 
@@ -104,3 +105,20 @@ export const isAnsweringAtom = atom(false);
  * (`usePlannedMeal`).
  */
 export const undoneChangesAtom = atom<Readonly<Record<string, readonly number[]>>>({});
+
+/** What the assistant was opened with, beyond the question: the recipe on the stove, today. */
+export type CuiskoContext = {
+  recipe?: { id: Id<"recipes">; step?: number; servings?: number };
+};
+
+/**
+ * The context every question asked in the open assistant goes out with (`useCuiskoContext`).
+ *
+ * Shared state because the reader is not the writer's child: the assistant route builds it from its
+ * params, and the navigation bar — at the root on Android, beside the screen on iOS — sends the
+ * follow-ups. Set while the route is mounted and put down when it unmounts, so closing the
+ * assistant is what forgets the recipe, and the next opening from anywhere else starts empty.
+ *
+ * A plain atom: the route that holds it is open over one household and closes before a switch.
+ */
+export const cuiskoContextAtom = atom<CuiskoContext>({});

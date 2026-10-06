@@ -57,6 +57,7 @@ import type * as functions_assistant_classifyIntent from "../functions/assistant
 import type * as functions_assistant_deleteConversationsOf from "../functions/assistant/deleteConversationsOf.js";
 import type * as functions_assistant_openThread from "../functions/assistant/openThread.js";
 import type * as functions_assistant_ownedThread from "../functions/assistant/ownedThread.js";
+import type * as functions_assistant_recipeBrief from "../functions/assistant/recipeBrief.js";
 import type * as functions_assistant_saveQuestion from "../functions/assistant/saveQuestion.js";
 import type * as functions_assistant_threadMessages from "../functions/assistant/threadMessages.js";
 import type * as functions_assistant_turnBrief from "../functions/assistant/turnBrief.js";
@@ -374,6 +375,7 @@ declare const fullApi: ApiFromModules<{
   "functions/assistant/deleteConversationsOf": typeof functions_assistant_deleteConversationsOf;
   "functions/assistant/openThread": typeof functions_assistant_openThread;
   "functions/assistant/ownedThread": typeof functions_assistant_ownedThread;
+  "functions/assistant/recipeBrief": typeof functions_assistant_recipeBrief;
   "functions/assistant/saveQuestion": typeof functions_assistant_saveQuestion;
   "functions/assistant/threadMessages": typeof functions_assistant_threadMessages;
   "functions/assistant/turnBrief": typeof functions_assistant_turnBrief;

@@ -1,5 +1,5 @@
 /**
- * The assistant hooks other modules may call — both for the navigation bar.
+ * The assistant hooks other modules may call — the first two for the navigation bar.
  *
  * The bar is the only input this feature has — there is no text box inside the assistant screen —
  * so it must be able to put a question to Cuisko from wherever the shopper is standing, and know
@@ -9,3 +9,6 @@
  */
 export { useAskCuisko } from "./_hooks/useAskCuisko";
 export { useIsCuiskoAnswering } from "./_hooks/useIsCuiskoAnswering";
+
+/** For the assistant route, which owns the URL the context is built from. */
+export { useCuiskoContext } from "./_hooks/useCuiskoContext";
