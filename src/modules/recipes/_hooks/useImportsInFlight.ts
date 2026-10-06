@@ -13,7 +13,9 @@ export type ImportCard = { key: string; url: string; countdown: ImportCountdown 
  * Drawn in the grid ahead of the cook's recipes, so a reel they shared and closed the sheet on is
  * visibly on its way. An entry leaves the moment its import settles (`useImportSharedLink`): on
  * success the recipe takes its place through the list query; on failure it simply goes, since the
- * reason is the sheet's to tell, and that sheet may be long closed.
+ * reason is the sheet's to tell, and that sheet may be long closed. Except a `lost` import, whose
+ * connection dropped (the cook left the app): its card stays until the announced minutes are up,
+ * so a recipe the server finished meanwhile can sit beside it until then.
  *
  * The clock ticks once a second, and only while something is importing. Between a share and the
  * next tick it can be older than the import itself, so it is read no earlier than the start.

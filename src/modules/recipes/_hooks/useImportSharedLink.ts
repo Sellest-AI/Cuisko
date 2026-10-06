@@ -1,16 +1,18 @@
 import { router } from "expo-router";
 import { useStore } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
-import { importFailureOf, type ImportFailure } from "../_model/importFailure";
+import { VIDEO_IMPORT_MINUTES } from "../_model/importCountdown";
+import { importFailureOf, isConnectionLost, type ImportFailure } from "../_model/importFailure";
 import { importKeyOf, importPathOf, type ImportPath } from "../_model/importPath";
 import { recipeRoute } from "../routes";
 
-import { importsInFlightAtom } from "./atoms";
+import { type ImportInFlight, importsInFlightAtom } from "./atoms";
 import { useImportRecipe } from "./useImportRecipe";
 import { useSetRecipeFavorite } from "./useSetRecipeFavorite";
 
@@ -32,7 +34,9 @@ type Status = "importing" | "failed";
  * **One import per reel at a time.** A video import in flight is kept in `importsInFlightAtom`; the
  * same reel shared again before it lands (a second tap, a re-share from Instagram) opens a sheet
  * that waits on that same import instead of starting another. Memory only: after a restart a share
- * starts afresh, and the server's dedupe answers it if the first one finished. The web road is left
+ * starts afresh, and the server's dedupe answers it if the first one finished. So does a share after
+ * the connection dropped under the import (leaving the app): that entry is `lost`, its card kept
+ * until the announced minutes are up, since the server is likely still importing. The web road is left
  * out: it creates nothing and costs no model, so a repeated scrape is harmless.
  *
  * Started once per mount, guarded by a ref: a strict-mode double effect runs the effect twice.
@@ -74,7 +78,9 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
      * same moment would both read an empty map from their last render and both start an import.
      */
     const key = importKeyOf(url);
-    let pending = store.get(importsInFlightAtom).get(key)?.recipe;
+    const running = store.get(importsInFlightAtom).get(key);
+    // A lost import will never answer this app, so a new share starts afresh rather than joining it.
+    let pending = running?.status === "importing" ? running.recipe : undefined;
 
     if (!pending) {
       pending = action({ url, locale }).then(async (imported) => {
@@ -82,16 +88,22 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
         if (!imported.isOwned) await favorite(imported.recipeId, true);
         return imported;
       });
-      const entry = { url, startedAt: Date.now(), recipe: pending };
+      const entry: ImportInFlight = { url, startedAt: Date.now(), status: "importing", recipe: pending };
       store.set(importsInFlightAtom, (inFlight) => new Map(inFlight).set(key, entry));
 
+      // Only this entry: a share of the same reel after it was lost has replaced it under the same key.
       const settle = () =>
         store.set(importsInFlightAtom, (inFlight) => {
+          if (inFlight.get(key)?.recipe !== entry.recipe) return inFlight;
           const next = new Map(inFlight);
           next.delete(key);
           return next;
         });
-      pending.then(settle, settle);
+      const lose = () => {
+        store.set(importsInFlightAtom, (inFlight) => new Map(inFlight).set(key, { ...entry, status: "lost" }));
+        setTimeout(settle, entry.startedAt + VIDEO_IMPORT_MINUTES * 60_000 - Date.now());
+      };
+      pending.then(settle, (caught: unknown) => (isConnectionLost(caught) ? lose() : settle()));
     }
 
     pending.then(
@@ -106,6 +118,21 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
 
   const error = path === "video" ? videoError : web.error;
   const failure = importFailureOf(error, path);
+
+  /**
+   * Leaving the app drops the connection, and the sheet would come back to an error for an import
+   * the server is still running. So it closes on the way out, as Close does, and the cook returns
+   * to the import's card. A failed sheet stays: its reason is still worth reading.
+   */
+  const isWaitingOnVideo = path === "video" && !failure;
+  useEffect(() => {
+    if (!isWaitingOnVideo) return;
+
+    const subscription = AppState.addEventListener("change", (next) => {
+      if (next === "background") router.replace("/recipes");
+    });
+    return () => subscription.remove();
+  }, [isWaitingOnVideo]);
 
   return { path, status: failure ? "failed" : "importing", failure };
 };

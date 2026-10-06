@@ -55,8 +55,19 @@ export const servingsAtom = atom<{ id: string; servings: number } | undefined>(u
  */
 export type ImportedVideoRecipe = FunctionReturnType<typeof api.router.recipes.importVideo.authed>;
 
-/** A video import this app started: the link shared, when, and the recipe it will end in. */
-export type ImportInFlight = { url: string; startedAt: number; recipe: Promise<ImportedVideoRecipe> };
+/**
+ * A video import this app started: the link shared, when, and the recipe it will end in.
+ *
+ * `lost` once the connection dropped under it (`isConnectionLost`): the server is still importing
+ * but this app will never hear the answer, so the card stays until its announced time is up and
+ * then goes, and the recipe arrives through the list query on its own.
+ */
+export type ImportInFlight = {
+  url: string;
+  startedAt: number;
+  status: "importing" | "lost";
+  recipe: Promise<ImportedVideoRecipe>;
+};
 
 /**
  * The video imports this app has started and not yet heard back from, by `importKeyOf` key.
@@ -64,8 +75,9 @@ export type ImportInFlight = { url: string; startedAt: number; recipe: Promise<I
  * What makes a second share of the same reel, while the first is still importing, join that import
  * instead of paying for another one: `useImportSharedLink` finds the key here and waits on the same
  * promise, so both sheets end on the same recipe (or the same error). Each entry is removed the
- * moment its import settles. The link and start time are for the grid, which draws each entry as a
- * card counting down until its recipe arrives (`useImportsInFlight`).
+ * moment its import settles, except a `lost` one, which waits out its countdown. The link and start
+ * time are for the grid, which draws each entry as a card counting down until its recipe arrives
+ * (`useImportsInFlight`).
  *
  * Memory only, on purpose: a cook who closes the app and shares again gets a fresh attempt, which
  * the server answers with the finished recipe if the first one completed (`findBySource`).

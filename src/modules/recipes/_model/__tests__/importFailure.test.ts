@@ -1,9 +1,21 @@
 import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
 
-import { IMPORT_FAILURES, importFailureOf } from "../importFailure";
+import { IMPORT_FAILURES, importFailureOf, isConnectionLost } from "../importFailure";
 
 const failed = (code: string) => new ConvexError({ code, message: "server said so" });
+
+describe("isConnectionLost", () => {
+  it("recognises the Convex client dropping an action on reconnect", () => {
+    expect(isConnectionLost(new Error("Connection lost while action was in flight"))).toBe(true);
+  });
+
+  it("is false for a failure the server answered, or any other error", () => {
+    expect(isConnectionLost(failed("NOT_A_RECIPE"))).toBe(false);
+    expect(isConnectionLost(new Error("socket hang up"))).toBe(false);
+    expect(isConnectionLost(null)).toBe(false);
+  });
+});
 
 describe("importFailureOf", () => {
   it("has nothing to say when nothing failed", () => {

@@ -31,6 +31,16 @@ export const IMPORT_FAILURES = {
 
 export type ImportFailure = (typeof IMPORT_FAILURES)[keyof typeof IMPORT_FAILURES];
 
+/**
+ * Whether the Convex client dropped the call on reconnect rather than the server failing it.
+ *
+ * Leaving the app drops the socket, and on the way back the client rejects every action still in
+ * flight, since an action is never sent twice. The server keeps going, so the import may still land.
+ * The client throws a plain `Error` with no code, so its message is the only signal.
+ */
+export const isConnectionLost = (error: unknown): boolean =>
+  error instanceof Error && error.message.includes("Connection lost while action was in flight");
+
 export const importFailureOf = (error: unknown, path: ImportPath = "web"): ImportFailure | undefined => {
   if (error === null || error === undefined) return undefined;
   if (isRateLimited(error)) return IMPORT_FAILURES.limited;

@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // `vi.mock` is hoisted above this by the transform, so the hook still loads against the mocks.
+import { VIDEO_IMPORT_MINUTES } from "../../_model/importCountdown";
+import { importsInFlightAtom } from "../atoms";
 import { useImportSharedLink } from "../useImportSharedLink";
 
 /**
@@ -27,6 +29,20 @@ vi.mock("expo-router", () => ({
 }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
+
+/** The app moving to the background or back, as `AppState` reports it, to the sheets still listening. */
+const appState = vi.hoisted(() => ({ listeners: new Set<(state: string) => void>() }));
+
+vi.mock("react-native", () => ({
+  AppState: {
+    addEventListener: (_: "change", listener: (state: string) => void) => {
+      appState.listeners.add(listener);
+      return { remove: () => appState.listeners.delete(listener) };
+    },
+  },
+}));
+
+const moveAppTo = (next: string) => act(() => appState.listeners.forEach((listener) => listener(next)));
 
 vi.mock("~/lib/convex/client", () => ({
   useAction: () => ({
@@ -68,6 +84,7 @@ beforeEach(() => {
   state.settles = [];
   state.replaced = [];
   state.favorited = [];
+  appState.listeners.clear();
 });
 
 describe("useImportSharedLink", () => {
@@ -112,6 +129,60 @@ describe("useImportSharedLink", () => {
 
     openSheet(REEL);
     expect(state.calls).toHaveLength(2);
+  });
+
+  describe("a connection lost while the import runs (the cook left the app and came back)", () => {
+    const LOST = new Error("Connection lost while action was in flight");
+    const KEY = "instagram.com/reel/DcTtz3Ftj9I";
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      return () => vi.useRealTimers();
+    });
+
+    it("keeps the card, marked lost, until the announced 3 minutes are up", async () => {
+      openSheet(REEL);
+
+      await act(async () => state.settles[0]!.reject(LOST));
+
+      expect(store.get(importsInFlightAtom).get(KEY)?.status).toBe("lost");
+
+      act(() => vi.advanceTimersByTime(VIDEO_IMPORT_MINUTES * 60_000));
+
+      expect(store.get(importsInFlightAtom).has(KEY)).toBe(false);
+    });
+
+    it("starts afresh when the reel is shared again, and the lost card's timer leaves the new one alone", async () => {
+      openSheet(REEL);
+      await act(async () => state.settles[0]!.reject(LOST));
+
+      openSheet(SAME_REEL_RESHARED);
+      expect(state.calls).toHaveLength(2);
+
+      act(() => vi.advanceTimersByTime(VIDEO_IMPORT_MINUTES * 60_000));
+
+      expect(store.get(importsInFlightAtom).get(KEY)?.status).toBe("importing");
+    });
+  });
+
+  describe("leaving the app", () => {
+    it("closes the sheet of a video still importing, so the cook comes back to its card", () => {
+      openSheet(REEL);
+
+      moveAppTo("background");
+
+      expect(state.replaced).toEqual(["/recipes"]);
+    });
+
+    it("leaves a failed sheet open, so the cook still reads why", async () => {
+      const sheet = openSheet(REEL);
+      await act(async () => state.settles[0]!.reject(new Error("socket hang up")));
+      await waitFor(() => expect(sheet.result.current.status).toBe("failed"));
+
+      moveAppTo("background");
+
+      expect(state.replaced).toHaveLength(0);
+    });
   });
 
   it("does not navigate a sheet the cook already closed", async () => {
