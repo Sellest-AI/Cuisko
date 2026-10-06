@@ -15,6 +15,7 @@ import { isSpokenSentence, useVoiceInput } from "~/lib/voice";
 import { CUISKO_HEAD } from "~/lib/mascots";
 
 const HEAD_SIZE = 28;
+const LISTENING_HEAD_SIZE = HEAD_SIZE + 6;
 
 /** How wide the wave opens beside Cuisko while the cook talks. */
 const WAVE_WIDTH = 64;
@@ -103,16 +104,28 @@ export const VoiceListener = ({ onListened, style }: Props) => {
             animate={{
               opacity: 1, scale: 1,
               rotate: isListening ? "-10deg" : "0deg",
-              width: isListening ? HEAD_SIZE + 6 : HEAD_SIZE,
-              height: isListening ? HEAD_SIZE + 6 : HEAD_SIZE
+              width: isListening ? LISTENING_HEAD_SIZE : HEAD_SIZE,
+              height: isListening ? LISTENING_HEAD_SIZE : HEAD_SIZE
             }}
             transition={HEAD_SPRING}
+            style={styles.headSlot}
           >
-            <Image
-              style={styles.head}
-              source={CUISKO_HEAD}
-              contentFit="contain"
-            />
+            {/*
+              * The slot's size moves the pill; the picture only scales. Android's `expo-image` reloads
+              * on every resize and fades each load in, so a sprung size made the head flicker.
+              */}
+            <m.View
+              style={styles.headFrame}
+              animate={{ scale: isListening ? 1 : HEAD_SIZE / LISTENING_HEAD_SIZE }}
+              transition={HEAD_SPRING}
+            >
+              <Image
+                style={styles.head}
+                source={CUISKO_HEAD}
+                contentFit="contain"
+                transition={false}
+              />
+            </m.View>
           </m.View>
           <m.View
             style={styles.slot}
@@ -157,6 +170,15 @@ const styles = StyleSheet.create({
   subContent: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  headSlot: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  /** Always the listening size, so the image never resizes; at rest it is scaled down instead. */
+  headFrame: {
+    width: LISTENING_HEAD_SIZE,
+    height: LISTENING_HEAD_SIZE,
   },
   head: {
     width: "100%",
