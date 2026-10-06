@@ -55,7 +55,7 @@ export const HomeScreen = () => (
 const styles = StyleSheet.create({
   /** Clears the navigation bar, which floats over the page rather than sitting in it. */
   page: { paddingBottom: NAVIGATION_BAR_OFFSET },
-  header: { marginBottom: theme.spacing[24] },
+  header: { marginBottom: theme.spacing[16] },
   favorites: { marginTop: theme.spacing[16] },
   divider: {
     height: 2,

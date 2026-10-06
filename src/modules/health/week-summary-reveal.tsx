@@ -198,9 +198,19 @@ export const WeekSummaryReveal = ({ header }: Props) => {
         style={[
           styles.pill,
           origin && styles.hidden,
+          scoreButtonDisabled && {
+            backgroundColor: theme.colors.neutral.subtle,
+            borderColor: theme.colors.border.medium,
+            borderWidth: 2
+          }
         ]}
       >
-        <PillFace health={summary?.health} />
+        <PillFace
+          health={summary?.health}
+          iconColor={scoreButtonDisabled ? theme.colors.neutral.elevated : undefined}
+          ringColor={scoreButtonDisabled ? theme.colors.neutral.elevated : undefined}
+          ringTrackColor={scoreButtonDisabled ? theme.colors.neutral.elevated : undefined}
+        />
       </Pressable>
     </View>
   );

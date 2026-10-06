@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: theme.spacing[2],
-    marginTop: theme.spacing[24],
   },
   subtitle: { textAlign: "center", paddingHorizontal: theme.spacing[24] },
   carousel: {

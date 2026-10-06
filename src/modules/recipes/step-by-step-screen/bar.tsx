@@ -40,7 +40,7 @@ const FADE_HEIGHT = 40;
  * cook's stock, and the last step is the one place the Next button has been under a moving thumb —
  * so the control that consumes the cellar refuses to be the one that thumb lands on.
  */
-const FINISH_DELAY_SECONDS = 3;
+const FINISH_DELAY_SECONDS = 2;
 
 type UpdateCellarButtonProps = { onPress: () => void; style: ViewStyle; isLoading: boolean };
 

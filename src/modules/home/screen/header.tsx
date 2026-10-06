@@ -7,7 +7,6 @@ import { theme } from "theme";
 import { router } from "expo-router";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { useAuth } from "~/modules/auth/hooks";
-import { HouseholdSelect } from "~/modules/households/household-select";
 
 /** Who you are, whose kitchen you are in, and the action the page puts on the right. */
 export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: ViewStyle }) => {
@@ -30,7 +29,6 @@ export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: View
           animated
           elevated
         />
-        <HouseholdSelect />
       </View>
       {action}
     </SafeAreaView>
