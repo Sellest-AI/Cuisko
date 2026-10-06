@@ -1,3 +1,5 @@
+import { useKeepAwake } from "expo-keep-awake";
+
 import { useCookRecipe } from "../_hooks/useCookRecipe";
 import { useRecipe } from "../_hooks/useRecipe";
 import { flattenSteps } from "../_model/detail";
@@ -23,6 +25,8 @@ type Props = {
  * which is the point — this is a session, not a view.
  */
 export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
+  /** A cook at a hob reads the screen with floury hands: it must not dim between two steps. Released on unmount. */
+  useKeepAwake();
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
   const { cook, isCooking, failed } = useCookRecipe();
 
