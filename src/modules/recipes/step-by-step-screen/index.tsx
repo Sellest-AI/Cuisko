@@ -1,4 +1,5 @@
 import { useKeepAwake } from "expo-keep-awake";
+import { router } from "expo-router";
 
 import { useCookRecipe } from "../_hooks/useCookRecipe";
 import { useRecipe } from "../_hooks/useRecipe";
@@ -50,6 +51,15 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
       ingredients={ingredients}
       servings={{ value: servings, onChange: setServings }}
       onClose={onClose}
+      /**
+       * The question opens the assistant with the recipe beside it: the step on screen and the
+       * servings on the stepper ride in the URL, and every question asked before the assistant is
+       * closed goes out with them (`cookingContextOf`).
+       */
+      onListened={(text, step) => router.push({
+        pathname: "/assistant",
+        params: { q: text, ...(id && { recipeId: id }), ...(step !== undefined && { step }), servings },
+      })}
       /**
        * The screen leaves only once the server has agreed: a modal dismissed over a write that
        * then fails would leave the cook believing their cellar moved when it did not.

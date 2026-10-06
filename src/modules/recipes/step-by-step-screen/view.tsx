@@ -21,6 +21,7 @@ import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING, SERVINGS_RESET_DELAY } from "..
 import { StepBar } from "./bar";
 import { PrepCard, StepCard } from "./card";
 import { StepMedia } from "./media";
+import { VoiceListener } from "./voice-listener";
 
 /** How much of the screen the photo takes at rest, leaving the card the rest of it. */
 const MEDIA_RATIO = 0.4;
@@ -41,6 +42,8 @@ type Props = {
   onClose?: () => void;
   /** The last page's button: what the cooking consumed leaves the cellar. */
   onFinish: () => void;
+  /** What the cook asked Cuisko, and the step on screen when they asked (`FlatStep.position`). */
+  onListened?: (text: string, step?: number) => void;
   /** The finish is in flight: the button waits, so a second tap cannot spend the cellar twice. */
   isFinishing?: boolean;
   /** The finish was refused, and the cook is still here to be told so. */
@@ -65,6 +68,7 @@ export const StepByStepView = ({
   ingredients,
   servings,
   onClose,
+  onListened,
   onFinish,
   isFinishing = false,
   finishFailed = false,
@@ -186,30 +190,44 @@ export const StepByStepView = ({
             {X}
           </ButtonIcon>
         ) : <View />}
-        <AnimatePresence>
-          {index === 0 && servings && <m.View
-            from={{ opacity: 0, translateX: "100%" }}
-            animate={{ opacity: 1, translateX: "0%" }}
-            exit={{ opacity: 0, translateX: "100%" }}
-            transition={{ type: "timing", duration: 220 }}
-          >
-            <ButtonPill
-              elevated
-              variant="primary"
-              leftIcon={Minus}
-              rightIcon={Plus}
-              onLeftPress={() => servings.onChange(servings.value - 1)}
-              onLeftLongPress={() => servings.onChange(MIN_SERVINGS)}
-              leftLongPressDelay={SERVINGS_RESET_DELAY}
-              onRightPress={() => servings.onChange(servings.value + 1)}
-              sideHaptic
-              onPress={() => null}
-              size="sm"
+        <View style={styles.rightButtons}>
+          <AnimatePresence>
+            {/* Past the prep page the servings are settled, and Cuisko takes their place. */}
+            {index > 0 && onListened && <m.View
+              key={"voice"}
+              from={{ opacity: 0, translateX: "-100%" }}
+              animate={{ opacity: 1, translateX: "0%" }}
+              exit={{ opacity: 0, translateX: "-100%" }}
+              transition={{ type: "timing", duration: 220 }}
+              style={{ position: "absolute", right: 0 }}
             >
-              {String(servings.value)}
-            </ButtonPill>
-          </m.View>}
-        </AnimatePresence>
+              <VoiceListener onListened={(text) => onListened(text, step?.position)} />
+            </m.View>}
+            {index === 0 && servings && <m.View
+              key={"servings"}
+              from={{ opacity: 0, translateX: "100%" }}
+              animate={{ opacity: 1, translateX: "0%" }}
+              exit={{ opacity: 0, translateX: "100%" }}
+              transition={{ type: "timing", duration: 220 }}
+            >
+              <ButtonPill
+                elevated
+                variant="primary"
+                leftIcon={Minus}
+                rightIcon={Plus}
+                onLeftPress={() => servings.onChange(servings.value - 1)}
+                onLeftLongPress={() => servings.onChange(MIN_SERVINGS)}
+                leftLongPressDelay={SERVINGS_RESET_DELAY}
+                onRightPress={() => servings.onChange(servings.value + 1)}
+                sideHaptic
+                onPress={() => null}
+                size="sm"
+              >
+                {String(servings.value)}
+              </ButtonPill>
+            </m.View>}
+          </AnimatePresence>
+        </View>
       </SafeAreaView>
       <StepBar
         isFirst={isFirst}
@@ -251,8 +269,16 @@ const styles = StyleSheet.create({
     left: SCREEN_PADDING,
     right: SCREEN_PADDING,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: theme.spacing[8],
     justifyContent: "space-between",
+    minHeight: 52,
+  },
+  rightButtons: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "flex-end",
+    gap: theme.spacing[8],
+    minHeight: 52,
   }
 });

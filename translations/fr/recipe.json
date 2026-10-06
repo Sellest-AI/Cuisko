@@ -140,7 +140,9 @@
     "cellar_title": "On met ton cellier à jour",
     "cellar_body": "Nous retirons de ton cellier les ingrédients utilisés pour cette recette. Ton prochain planning ne demandera que ce qui manque vraiment.",
     "cellar_failed_title": "Ton cellier n’a pas pu être mis à jour",
-    "cellar_failed_body": "Rien n’a bougé. Vérifie ta connexion et réessaie."
+    "cellar_failed_body": "Rien n’a bougé. Vérifie ta connexion et réessaie.",
+    "ask_cuisko": "Demander à Cuisko",
+    "send_to_cuisko": "Envoyer à Cuisko"
   },
   "Difficulties": {
     "simple": "Très facile",

@@ -138,7 +138,9 @@
     "cellar_title": "We update your cellar",
     "cellar_body": "We take the ingredients this recipe used out of your cellar. Your next plan will only ask for what is really missing.",
     "cellar_failed_title": "Your cellar could not be updated",
-    "cellar_failed_body": "Nothing moved. Check your connection and try again."
+    "cellar_failed_body": "Nothing moved. Check your connection and try again.",
+    "ask_cuisko": "Ask Cuisko",
+    "send_to_cuisko": "Send to Cuisko"
   },
   "Difficulties": {
     "simple": "Very easy",
