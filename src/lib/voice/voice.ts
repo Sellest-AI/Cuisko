@@ -1,22 +1,26 @@
 import type { Locale } from "@shared/translations";
 
 /**
- * The rules a spoken entry into the bar follows, apart from the recognizer that hears it.
+ * The rules a spoken entry follows, apart from the recognizer that hears it and the screen that
+ * asked for it. Anywhere the app listens goes through `useVoiceInput`, and `useVoiceInput` goes
+ * through these.
  *
  * The recognizer reports volume on its own scale — a float from -2 to 10, where anything below 0 is
  * inaudible — and a transcript in pieces. The transcript decides when the entry ends; the volume
- * only draws the wave. Everything the bar decides from those two streams is here, so it can be
- * pinned without a microphone.
+ * only draws the wave. Everything decided from those two streams is here, so it can be pinned
+ * without a microphone.
+ *
+ * Nothing here knows where the words go next: a caller decides what a finished entry is for.
  */
 
 /**
- * How long the shopper must go without a new word, after their first, for the entry to end itself.
+ * How long the speaker must go without a new word, after their first, for the entry to end itself.
  *
  * Counted on words and not on volume: at any floor low enough for a soft voice, a fridge or a hood
  * counted as talking and the entry never ended. A hesitation the recognizer does not write down
  * ("euh…") counts as quiet, which is what the length of the window is for.
  */
-export const SILENCE_MS = 3000;
+export const SILENCE_MS = 2500;
 
 /**
  * When the recognizer last turned something into words, after one more transcript.
@@ -34,7 +38,7 @@ export const isSilenceOver = (lastWordAt: number | null, now: number): boolean =
   lastWordAt !== null && now - lastWordAt >= SILENCE_MS;
 
 /**
- * At least this many spoken words and the shopper is making a sentence, not naming a grocery. Counted
+ * At least this many spoken words and the speaker is making a sentence, not naming a thing. Counted
  * on every word, stopwords included, unlike `readIntent`'s written rule: nobody says seven words
  * to add an item, and a recognizer never hands over the quantity and unit as separate tokens to
  * discount.
@@ -49,12 +53,12 @@ const SENTENCE_MIN_SPOKEN_WORDS = 7;
 const CLAUSE_BREAK_RE = /[.,]\s+\S/;
 
 /**
- * Whether what was heard is a sentence to send, rather than a word to confirm in the text bar.
+ * Whether what was heard is a sentence — a question or a request — rather than a word or two naming
+ * something, an ingredient or a recipe.
  *
- * Off the assistant, a spoken entry lands in the text bar so a misheard grocery is read before it
- * reaches the list. A sentence is the exception: it can only be a question or a request, there is
- * no list item to misplace, and making the shopper tap send on what they just said out loud is
- * the friction the microphone is there to remove.
+ * A caller uses it to decide whether the words can go straight out or should be read back first:
+ * a misheard name lands somewhere wrong, while a sentence has nothing to misplace. What each answer
+ * leads to is the caller's.
  *
  * Three signs, any one enough: more than six words; a question mark, which means only one thing;
  * or a `.` / `,` followed by more text.
@@ -72,7 +76,7 @@ export const isSpokenSentence = (text: string): boolean => {
  *
  * **Why a range of its own rather than a fixed scale.** A fixed scale has to pick one voice to
  * suit: a soft voice never climbing past 3 never reached the top of it, and any curve that lifted
- * it squashed a loud voice into a flat band under the cap. Drawn against the range the shopper is
+ * it squashed a loud voice into a flat band under the cap. Drawn against the range the speaker is
  * actually using, a soft voice fills the wave and a loud one keeps its ups and downs.
  */
 export type VolumeRange = { low: number, high: number };
@@ -134,7 +138,7 @@ export type Entry = {
   /** This entry's own `start` has arrived. Nothing that ends an entry counts before it. */
   hasStarted: boolean;
   /**
-   * Send was pressed, or the silence window closed — the shopper is done, and what was heard goes
+   * Send was pressed, or the silence window closed — the speaker is done, and what was heard goes
    * out. Kept until `start` if it came before it. An entry the recognizer ended on its own never
    * has it, and its words are only typed in to be read back.
    */
@@ -177,16 +181,16 @@ const _reading = (entry: Entry, done: string | null = null, stop = false): Readi
 /**
  * One event applied to an entry.
  *
- * **Nothing ends an entry before its own `start`.** There is one recognizer and it outlives the
- * voice bar: aborting an entry — the trash, a tap outside — reports `end` a moment later, and if
- * the mic was pressed again meanwhile, that `end` arrives while the new entry is waiting on its
- * permission prompt. Counted, it would close the new voice bar the instant it opened.
+ * **Nothing ends an entry before its own `start`.** There is one recognizer and it outlives every
+ * screen that listens: aborting an entry — a discard, a tap outside — reports `end` a moment later,
+ * and if the mic was pressed again meanwhile, that `end` arrives while the new entry is waiting on
+ * its permission prompt. Counted, it would close the new entry the instant it opened.
  *
  * **Except a failure to start at all.** An error before `start` is this entry's recognizer
  * refusing to begin, and no `end` is promised after it, so it ends the entry with nothing rather
- * than leaving the bar listening to silence. `aborted` is the one error that is never this entry's:
+ * than leaving the screen listening to silence. `aborted` is the one error that is never this entry's:
  * it is how the previous one reports being thrown away. After `start`, an error waits for the `end`
- * that follows it, so whatever was heard before it still reaches the field.
+ * that follows it, so whatever was heard before it still reaches the caller.
  *
  * **A stop asked before `start` waits for it.** Send can be pressed behind the first permission
  * prompt, before anything is listening; stopping then does nothing, and the recognizer would start

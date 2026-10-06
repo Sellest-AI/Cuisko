@@ -748,7 +748,7 @@ Is it domain logic with no React, Jotai or Convex import — types, invariants, 
 └─ A trivial helper, one `_hooks/` file uses it?      → stays inline in that hook, for now
 
 Is it a pure function about one vendor SDK's data,    → src/lib/{vendor}/   even with no SDK import
-no domain in it (the link a share carries)?             one export per file (src/lib/share-intent/)
+no domain in it (the link a share carries)?             a file per concept, named for what it holds
 
 Is it a screen?                                       → app/  (routing only — no useQuery)
 
@@ -780,12 +780,12 @@ Is it a test?                                           📐 C10 · [ADR 0008](.
 ```
 
 **Domain logic goes to `_model/` for what it holds, not for how many files call it.** A state
-machine with edge cases — `navigation/_model/voice.ts` decides when a spoken entry ends, and every
-one of its rules is a bug somebody hit — earns `_model/` from its first caller: pinned there against
-plain data, each rule is one line of test, where inline it needs the hook mounted over a fake
-recognizer. A `formatLabel` one-liner stays in its hook until a second one needs it. Either way the
-file is named for what it holds — `voice.ts`, not `useVoiceInput.helpers.ts`: a name tied to one
-hook reads as misplaced the day a second hook imports it.
+machine with edge cases, where every rule is a bug somebody hit, earns `_model/` from its first
+caller: pinned there against plain data, each rule is one line of test, where inline it needs the
+hook mounted over a fake of whatever feeds it. A `formatLabel` one-liner stays in its hook until a
+second one needs it. Either way the file is named for the concept it holds, never after the hook
+that first called it (`useThing.helpers.ts`): a name tied to one hook reads as misplaced the day a
+second hook imports it.
 
 A directory is created the first time a file belongs in it — but the destination is decided here,
 not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may and may not do.

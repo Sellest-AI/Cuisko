@@ -5,7 +5,8 @@ import { SendHorizontalIcon, Trash2 } from "@ui/icons";
 import { Pressable } from "@ui/pressable";
 import { VoiceWave } from "@ui/voice-wave";
 import { theme } from "theme";
-import { useVoiceInput } from "../_hooks/useVoiceInput";
+import { useLocale } from "~/hooks/useLocale";
+import { useVoiceInput } from "~/lib/voice";
 import { StagedPhoto } from "./staged-photo";
 
 type Props = {
@@ -31,7 +32,8 @@ type Props = {
  * the swap does not move a pixel of the shell.
  */
 export const NavigationBarVoice = ({ onDone, onDiscard }: Props) => {
-  const { level, finish } = useVoiceInput(onDone);
+  const locale = useLocale();
+  const { level, finish } = useVoiceInput(onDone, locale);
   const [barHeight, setBarHeight] = useState(0);
 
   return (

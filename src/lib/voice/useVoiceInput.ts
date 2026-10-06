@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 
-import { useLocale } from "~/hooks/useLocale";
+import type { Locale } from "@shared/translations";
 
 import {
   EMPTY_ENTRY,
@@ -17,7 +17,7 @@ import {
   toLevel,
   type VolumeRange,
   widen,
-} from "../_model/voice";
+} from "./voice";
 
 /** How often the recognizer reports volume. Fast enough for the wave to breathe with the voice. */
 const VOLUME_INTERVAL_MS = 50;
@@ -29,7 +29,7 @@ type Session = {
   lastWordAt: number | null;
   /** The quietest and loudest heard in this entry — the wave is drawn against it. */
   range: VolumeRange;
-  /** Thrown away — by the trash, or by the bar unmounting. Nothing is delivered after this. */
+  /** Thrown away — by a discard, or by the caller unmounting. Nothing is delivered after this. */
   isCancelled: boolean;
 };
 
@@ -41,32 +41,37 @@ const _freshSession = (): Session => ({
 });
 
 /**
- * The navigation bar's microphone: speech in, one line of text out.
+ * A microphone: speech in, one line of text out, for any screen that listens.
  *
  * **Mounted means listening.** The session starts with the component that calls this and is thrown
- * away with it, so the bar opens a spoken entry by swapping the voice bar in and ends one by
+ * away with it, so a caller opens a spoken entry by swapping its listening view in and ends one by
  * swapping it out — there is no `isListening` to keep in step with what is on screen.
+ *
+ * **One mounted at a time.** The recognizer is the platform's, not this hook's: a second mount's
+ * `start` takes it over, and the first one's cleanup `abort` stops it for both.
  *
  * **On the device, not on our server.** The platform's own recognizer does the listening, so an
  * entry costs nothing and never leaves the phone. The seam is `onDone`: it receives a string, and
  * nothing past it knows how the string was made — moving to a hosted model changes this file and no
  * other.
  *
- * **It ends itself.** After the shopper's first word, `SILENCE_MS` without a new word stops the
+ * **It ends itself.** After the speaker's first word, `SILENCE_MS` without a new word stops the
  * entry, the same as pressing send; `onDone` says either with `isSent`. Before the first word it
  * listens for as long as it takes. What each recognizer event does to the entry —
- * including ignoring the previous entry's late `end` — is `readEvent`'s, in `_model/voice.ts`;
+ * including ignoring the previous entry's late `end` — is `readEvent`'s, in `./voice.ts`;
  * this only feeds it.
  *
  * `onDone` is called exactly once per session that is not cancelled — with an empty string when
  * nothing was heard, the permission was refused or could not be asked, or the recognizer failed —
- * so the caller always learns the entry is over and can put the text bar back.
+ * so the caller always learns the entry is over and can put its screen back the way it was.
  *
  * `level` is a shared value rather than state: it changes twenty times a second, and the wave reads
- * it on the UI thread. Holding it in state would re-render the bar on every sample.
+ * it on the UI thread. Holding it in state would re-render the caller on every sample.
+ *
+ * `locale` is the caller's (`useLocale`): `src/lib/` wraps the recognizer and takes nothing from the
+ * app's own hooks, so the language it listens in is handed in like everything else it does not own.
  */
-export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void) => {
-  const locale = useLocale();
+export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void, locale: Locale) => {
   const level = useSharedValue(0);
   const session = useRef<Session>(_freshSession());
 
@@ -100,7 +105,7 @@ export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void) =
       .then((permission) => {
         if (own.isCancelled) return;
         if (!permission.granted) {
-          console.warn("The bar cannot listen: microphone or speech permission was refused");
+          console.warn("Voice input cannot listen: microphone or speech permission was refused");
           deliver.current("", false);
           return;
         }
@@ -115,9 +120,9 @@ export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void) =
         });
       })
       // The request itself failed — a build without the native module, say. No `end` will ever
-      // come, so the entry ends here with nothing and the text bar comes back.
+      // come, so the entry ends here with nothing and the caller learns it.
       .catch((error: unknown) => {
-        console.warn("The bar could not ask to listen", error);
+        console.warn("Voice input could not ask to listen", error);
         if (!own.isCancelled) deliver.current("", false);
       });
 
@@ -151,8 +156,8 @@ export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void) =
   useSpeechRecognitionEvent("end", () => apply({ type: "end" }));
 
   useSpeechRecognitionEvent("error", (event) => {
-    // A cancel reports itself as an error; it is the shopper's choice, not a failure.
-    if (event.error !== "aborted") console.warn("The bar stopped listening", event.error, event.message);
+    // A cancel reports itself as an error; it is the speaker's choice, not a failure.
+    if (event.error !== "aborted") console.warn("Voice input stopped listening", event.error, event.message);
 
     apply({ type: "error", error: event.error });
   });

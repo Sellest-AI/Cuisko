@@ -17,7 +17,7 @@ import type { Frame } from "@ui/input";
 import { useStagedPhoto } from "../_hooks/useStagedPhoto";
 import { useNavigationBar } from "../hooks";
 import { useBackLeadsHome } from "../_hooks/useBackLeadsHome";
-import { isSpokenSentence } from "../_model/voice";
+import { isSpokenSentence } from "~/lib/voice";
 import { useAskCuisko, useIsCuiskoAnswering } from "~/modules/assistant/hooks";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
