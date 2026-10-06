@@ -119,7 +119,7 @@ export const translatorAgent = new Agent(components.agent, {
  */
 export const videoRecipesAgent = new Agent(components.agent, {
   name: "Cuisko Video Recipes Agent",
-  providerOptions: models.videoRecipes.providerOptions({ effort: "high" }),
+  providerOptions: models.videoRecipes.providerOptions({ effort: "high", sort: "throughput" }),
   languageModel: models.videoRecipes.model,
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },

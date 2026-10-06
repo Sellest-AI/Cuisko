@@ -116,11 +116,11 @@ const Z_AI_GLM_5_3_FLASH = wrapLanguageModel({
   },
 });
 const Z_AI_GLM_5_3_FLASH_OPTIONS = {
-  providerOptions: ({ effort }: { effort?: false | "low" | "medium" | "high" }) => ({
+  providerOptions: ({ sort, effort }: { effort?: false | "low" | "medium" | "high"; sort?: "price" | "throughput" }) => ({
     openrouter: {
       reasoning: effort ? { enabled: true, effort } : { enabled: false },
       provider: {
-        sort: "price",
+        sort: sort ?? "price",
         ignore: ["open-inference", "morph", "siliconflow", "digitalocean"],
         allow_fallbacks: true,
         require_parameters: true
