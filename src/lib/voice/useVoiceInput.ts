@@ -22,6 +22,14 @@ import {
 /** How often the recognizer reports volume. Fast enough for the wave to breathe with the voice. */
 const VOLUME_INTERVAL_MS = 50;
 
+/**
+ * Words the recognizer is nudged towards: ones it mishears without help. Common words do not belong
+ * here — each one added dilutes the boost the others get.
+ *
+ * @limitation Android applies them from 13 (API 33) only; older versions ignore the list.
+ */
+const CONTEXTUAL_STRINGS = ["Cuisko"];
+
 /** One mount of the voice bar: the entry it is listening for, and what only the hook tracks. */
 type Session = {
   entry: Entry;
@@ -112,6 +120,7 @@ export const useVoiceInput = (onDone: (text: string, isSent: boolean) => void, l
 
         ExpoSpeechRecognitionModule.start({
           lang: speechLanguage(locale),
+          contextualStrings: CONTEXTUAL_STRINGS,
           interimResults: true,
           // Continuous, so the platform's own end-of-speech timer does not cut the entry short —
           // the silence window is ours to decide.
