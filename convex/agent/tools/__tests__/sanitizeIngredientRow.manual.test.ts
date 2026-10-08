@@ -70,7 +70,9 @@ const CANDIDATES: Candidate[] = [
   // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },
   // { name: "deepseek/deepseek-v4.1-flash", modes: [false] },
   // { name: "openai/gpt-5.6-luna", modes: [false] },
-  { name: "xiaomi/mimo-v2.6-pro", modes: [false] },
+  // { name: "xiaomi/mimo-v2.6-pro", modes: [false] },
+  // { name: "z-ai/glm-5.3-flash", modes: ["low"] },
+  // { name: "anthropic/claude-haiku-5.5", modes: ["low"] },
   { name: "openai/gpt-6-luna", modes: ["low"] }, // BEST ONE
 ];
 
@@ -306,7 +308,7 @@ describe("sanitizeIngredient row — model bake-off", () => {
         parse: (raw) => toSanitizedIngredient(raw, HITS),
         check: CHECKS,
       },
-      provider: { ignore: ["open-inference", "morph", "digitalocean", "baidu"], sort: "price" },
+      provider: { ignore: ["open-inference", "morph", "digitalocean", "baidu"], sort: "throughput" },
       criteria: CRITERIA,
       runs: 3,
     });

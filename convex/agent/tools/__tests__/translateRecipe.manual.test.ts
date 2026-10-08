@@ -50,6 +50,7 @@ import { translateRecipePrompt } from "../../config/prompts/translateRecipe";
  */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6-luna", modes: [false] }, // BEST ONE,
+  // { name: "anthropic/claude-haiku-5.5", modes: [false] },
   // { name: "z-ai/glm-5.3-flash", modes: ["low", "medium"] },
   // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },
   // { name: "deepseek/deepseek-v4.1-flash", modes: [false] },
