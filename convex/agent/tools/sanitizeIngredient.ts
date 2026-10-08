@@ -68,6 +68,19 @@ const _nutritionSchema = z.object(
 );
 
 /**
+ * `"true"` / `"false"` in any case and padding, from a provider that quotes its booleans, as the
+ * boolean it quotes. Anything else passes through untouched for `z.boolean()` to refuse.
+ */
+const _unquoted = (value: unknown) => {
+  const word = typeof value === "string" ? value.trim().toLowerCase() : undefined;
+
+  return word === "true" ? true : word === "false" ? false : value;
+};
+
+/** One allergen's answer: a boolean, quoted or not, and nothing else. */
+const _yesOrNo = (description: string) => z.preprocess(_unquoted, z.boolean()).describe(description);
+
+/**
  * The fourteen, asked one at a time.
  *
  * **A checklist rather than an array, and that is the whole point.** `z.array(z.enum(ALLERGENS))`
@@ -81,23 +94,30 @@ const _nutritionSchema = z.object(
  * shape omitted `sulphites` in 13 of 21 completed runs and across six unrelated models — the
  * signature of a specification defect rather than a weak field.
  *
- * `.nullable().optional()` per key, the same bargain the file makes everywhere: required OUTBOUND
- * so the walk is forced, absentable INBOUND so a model writing `"yes"` instead of `true` costs one
- * allergen rather than the whole row. Absent reads as false, which is what absent means here.
+ * **Strict per key, NOT the `.nullable().optional()` the rest of the file uses.** Elsewhere a
+ * malformed field costs that field; here it costs the call. A `"yes"`, an `"ok"`, a `null` or a
+ * missing key has no safe reading — a no prints "gluten-free" on barley malt vinegar, a yes prints
+ * a warning nobody claimed — so the SDK's validation refuses it and `retryPromise` asks again.
+ * Only a quoted boolean is read, because it is still a yes or a no.
+ *
+ * The outbound type is a plain `boolean`, never `boolean | null`: nullable, the fourteen keys were
+ * fourteen of the 21 union-typed parameters that made Anthropic refuse the schema outright (its
+ * limit is 16). A preprocess rather than `.catch(false)`, which emits `"default": false` — a
+ * keyword strict structured output is not documented to accept, and a silent "no" on the one
+ * field where a wrong "no" prints "gluten-free".
  */
 const _allergenChecklist = z.object(
   Object.fromEntries(
     ALLERGENS.map((allergen) => [
       allergen,
-      z.boolean().nullable().optional()
-        .describe(`true if this ingredient contains ${allergen}, false if it does not.`),
+      _yesOrNo(`true if this ingredient contains ${allergen}, false if it does not.`),
     ]),
-  ) as { [K in Allergen]: z.ZodOptional<z.ZodNullable<z.ZodBoolean>> },
+  ) as { [K in Allergen]: ReturnType<typeof _yesOrNo> },
 );
 
-/** The checklist as the column stores it. Absent is false: an unanswered key is not a yes. */
+/** The checklist as the column stores it. */
 const _allergensOf = (checklist: z.infer<typeof _allergenChecklist>): Allergen[] =>
-  ALLERGENS.filter((allergen) => checklist[allergen] === true);
+  ALLERGENS.filter((allergen) => checklist[allergen]);
 
 /**
  * The row as the model writes it — every field of `IngredientFacts` that is a judgement, and none

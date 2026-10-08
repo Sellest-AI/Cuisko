@@ -525,13 +525,36 @@ describe("toSanitizedIngredient", () => {
     expect(_new(sauce).allergens).toEqual(["gluten", "fish", "sulphites"]);
   });
 
-  it("reads an allergen the model left unanswered as a no, never as a yes", () => {
-    // Absent is the one reading that is safe: the checklist is required on the way OUT, so a key
-    // only goes missing when a model wrote something that was not a boolean. Treating that as
-    // "contains it" would print an allergen warning nobody claimed.
-    const partial = _answer({ facts: _facts({ allergens: { gluten: true, fish: "yes" } }) });
+  it.each([["ok"], ["yes"], [1], [null], [undefined]])(
+    "refuses an allergen answered %j rather than reading it as a no",
+    (answer) => {
+      // Neither reading is safe: a no prints "gluten-free" on barley malt vinegar, a yes prints a
+      // warning nobody claimed. Refused, the call is asked again, and the next answer is very
+      // likely a boolean.
+      const unanswered = _answer({
+        facts: _facts({ allergens: { ..._allergens("gluten"), fish: answer } }),
+      });
 
-    expect(_new(partial).allergens).toEqual(["gluten"]);
+      expect(() => toSanitizedIngredient(unanswered)).toThrow(/fish/);
+    },
+  );
+
+  it("reads a quoted boolean, in any case and padded, as the boolean it quotes", () => {
+    // A provider that ignores strict mode quotes its booleans, Python-style ones capitalised, some
+    // with a stray space. The answer is still a yes or a no, so it is read rather than sent back.
+    const quoted = _answer({
+      facts: _facts({
+        allergens: {
+          ..._allergens(),
+          gluten: "true",
+          eggs: " FALSE",
+          fish: " true\n",
+          sulphites: "True",
+        },
+      }),
+    });
+
+    expect(_new(quoted).allergens).toEqual(["gluten", "fish", "sulphites"]);
   });
 
   it("stores a name lowercase however the model capitalised it", () => {
