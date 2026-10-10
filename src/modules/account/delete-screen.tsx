@@ -1,5 +1,5 @@
 import type { LayoutChangeEvent } from "react-native";
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Button } from "@ui/button";
 import { ButtonPill } from "@ui/button-pill";
@@ -73,10 +73,10 @@ export const DeleteAccountScreen = ({ onClose, onLayout }: Props) => {
 const styles = StyleSheet.create({
   /** Auto-height: `useMeasuredModalSheet` measures this column, so it must not be `flex: 1`. */
   container: {
-    gap: theme.spacing[16],
+    gap: theme.spacing[28],
     paddingHorizontal: theme.spacing[24],
     paddingTop: MODAL_CHROME_OFFSET,
-    paddingBottom: Platform.select({ android: theme.spacing[24], default: theme.spacing[8] }),
+    paddingBottom: theme.spacing[8],
   },
   centered: { textAlign: "center" },
   section: { gap: theme.spacing[4] },

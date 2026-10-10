@@ -1,12 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Keyboard, LayoutChangeEvent, Platform, Pressable, StyleSheet, ViewStyle } from "react-native";
+import { Keyboard, LayoutChangeEvent, Platform, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 
 import { ButtonPill } from "@ui/button-pill";
 import { CircleAlert, Globe, Pencil } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { Input } from "@ui/input";
-import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { theme } from "~/global/theme";
 import { useTranslations } from "translations";
@@ -38,10 +37,9 @@ export const ImportScreen = ({ style, onLayout }: Props) => {
   const failure = importFailureOf(error);
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, style]}
       onLayout={onLayout}
-      edges={{ bottom: "android", top: "off" }}
     >
       {/*
         * The sheet's background, and the only thing on it that gives the keyboard back.
@@ -91,7 +89,7 @@ export const ImportScreen = ({ style, onLayout }: Props) => {
       >
         {t("Import.write")}
       </ButtonPill>
-    </SafeAreaView>
+    </View>
   );
 };
 

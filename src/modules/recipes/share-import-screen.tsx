@@ -1,10 +1,9 @@
 import { router } from "expo-router";
-import { type LayoutChangeEvent, Platform, StyleSheet, View } from "react-native";
+import { type LayoutChangeEvent, StyleSheet, View } from "react-native";
 
 import { ButtonPill } from "@ui/button-pill";
 import { InstagramTile, MorphIcon, Share2, TikTokTile, WebTile, X } from "@ui/icons";
 import { Orbit, type OrbitSatellite } from "@ui/orbit";
-import { SafeAreaView } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { theme } from "~/global/theme";
 import { useTranslations } from "translations";
@@ -48,7 +47,7 @@ export const ShareImportScreen = ({ url, onLayout }: Props) => {
   const failed = status === "failed";
 
   return (
-    <SafeAreaView style={styles.container} onLayout={onLayout} edges={{ bottom: "android", top: "off" }}>
+    <View style={styles.container} onLayout={onLayout}>
       <Orbit
         size={ORBIT_SIZE}
         satelliteSize={TILE_SIZE}
@@ -69,7 +68,7 @@ export const ShareImportScreen = ({ url, onLayout }: Props) => {
       <ButtonPill variant="neutral" size="lg" onPress={() => router.replace("/recipes")} style={styles.close}>
         {t("Import.close")}
       </ButtonPill>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -78,7 +77,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: theme.spacing[16],
     paddingTop: theme.spacing[32],
-    paddingBottom: Platform.select({ default: theme.spacing[16], android: 48 }),
+    paddingBottom: theme.spacing[16],
   },
   orbit: { marginTop: theme.spacing[16], marginBottom: 56 },
   copy: { gap: theme.spacing[8], maxWidth: 320 },

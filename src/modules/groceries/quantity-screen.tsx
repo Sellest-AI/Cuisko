@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Dimensions, LayoutChangeEvent, Platform, StyleSheet, View } from "react-native";
+import { Dimensions, LayoutChangeEvent, StyleSheet, View } from "react-native";
 
 import { QuantityOption } from "@ui/cards/quantity-option";
 import { Trash2 } from "@ui/icons";
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: GUTTER,
     paddingTop: MODAL_CHROME_OFFSET,
-    paddingBottom: Platform.select({ android: theme.spacing[24], default: theme.spacing[8] }),
+    paddingBottom: theme.spacing[8],
   },
   empty: {
     minHeight: 180,

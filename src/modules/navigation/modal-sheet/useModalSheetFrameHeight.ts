@@ -1,9 +1,9 @@
 import { useAtomValue } from "jotai";
-import { useWindowDimensions } from "react-native";
-import { useSafeAreaInsets } from "@ui/safe-area-view";
+import { Platform, useWindowDimensions } from "react-native";
 
 import {
   MODAL_FALLBACK_DETENT,
+  MODAL_FRAME_CHROME,
   MODAL_MAX_DETENT,
   MODAL_MIN_DETENT,
 } from "../constants";
@@ -24,20 +24,26 @@ import { sheetSizeAtom } from "./state";
  * — an explicit number, which measures the same under the unbounded parent `fitToContents` lays the
  * screen out in, where an intrinsic height resolves to zero.
  *
+ * A measured height is the screen's content alone, so the frame adds the chrome it wraps that
+ * content in. No safe-area inset on either platform: an iOS sheet short of full height floats clear
+ * of the home indicator, and on Android the layout's `SafeAreaView` pads the inset below the frame.
+ * iOS gets a few pixels of room under the content instead, tuned by eye on a device.
+ *
  * Clamped at both ends: past `MODAL_MAX_DETENT` is a screen that should have
  * declared itself, and under `MODAL_MIN_DETENT` is a measurement that has not landed yet.
  */
 export const useModalSheetFrameHeight = (): number => {
   const size = useAtomValue(sheetSizeAtom);
   const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+
+  const iosBottomRoom = Platform.OS === "ios" ? 4 : 0;
 
   const requested =
     size === null
       ? MODAL_FALLBACK_DETENT * windowHeight
       : size.kind === "declared"
         ? size.ratio * windowHeight
-        : size.height + insets.bottom;
+        : size.height + MODAL_FRAME_CHROME + iosBottomRoom;
 
   return Math.min(
     Math.max(requested, MODAL_MIN_DETENT * windowHeight),

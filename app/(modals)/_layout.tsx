@@ -7,6 +7,12 @@ import { X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ModalActionButton } from "~/modules/navigation/modal-action";
+import {
+  MODAL_FRAME_BORDER_WIDTH,
+  MODAL_GRABBER_HEIGHT,
+  MODAL_GRABBER_MARGIN_BOTTOM,
+  MODAL_GRABBER_MARGIN_TOP,
+} from "~/modules/navigation/constants";
 import { useModalSheetFrameHeight } from "~/modules/navigation/modal-sheet";
 
 export default function ModalsLayout() {
@@ -34,25 +40,25 @@ export default function ModalsLayout() {
           height: isFullScreen ? undefined : frameHeight,
           overflow: "hidden",
           backgroundColor: theme.colors.background,
-          borderTopWidth: isFullScreen ? 0 : 2,
+          borderTopWidth: isFullScreen ? 0 : MODAL_FRAME_BORDER_WIDTH,
           borderTopLeftRadius: isFullScreen ? 0 : 28,
           borderTopRightRadius: isFullScreen ? 0 : 28,
           borderBottomLeftRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
           borderBottomRightRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
-          borderLeftWidth: Platform.OS === "ios" ? 2 : 0,
-          borderRightWidth: Platform.OS === "ios" ? 2 : 0,
-          borderBottomWidth: Platform.OS === "ios" ? 2 : 0,
+          borderLeftWidth: Platform.OS === "ios" ? MODAL_FRAME_BORDER_WIDTH : 0,
+          borderRightWidth: Platform.OS === "ios" ? MODAL_FRAME_BORDER_WIDTH : 0,
+          borderBottomWidth: Platform.OS === "ios" ? MODAL_FRAME_BORDER_WIDTH : 0,
           borderColor: theme.colors.border.default,
           flex: isFullScreen ? 1 : undefined,
         }}>
         <View style={{
-          height: 6,
+          height: MODAL_GRABBER_HEIGHT,
           width: 86,
           borderRadius: theme.radius.full,
           backgroundColor: theme.colors.neutral.elevated,
           marginHorizontal: "auto",
-          marginTop: theme.spacing[16],
-          marginBottom: theme.spacing[4],
+          marginTop: MODAL_GRABBER_MARGIN_TOP,
+          marginBottom: MODAL_GRABBER_MARGIN_BOTTOM,
           zIndex: 1,
         }}
         />
