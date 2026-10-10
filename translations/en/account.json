@@ -14,6 +14,12 @@
     "join_error_failed_title": "Could not join the household",
     "join_error_failed_body": "Something went wrong on our side. Try again in a moment."
   },
+  "Help": {
+    "title": "Help & legal",
+    "contact": "Contact support",
+    "terms": "Terms of use",
+    "privacy": "Privacy policy"
+  },
   "Delete": {
     "entry": "Delete my account",
     "title": "Delete your account?",

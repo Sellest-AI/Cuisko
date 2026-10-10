@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 
 import { AppleLogo, CircleAlert, GoogleLogo } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { WEBSITE } from "~/global/website";
+import { openInBrowser } from "~/lib/openInBrowser";
 
 import { useAuth } from "../_hooks/useAuth";
 import { DevSignIn } from "./dev-sign-in";
@@ -50,7 +52,7 @@ export const AuthScreen = () => {
   return (
     <View style={styles.container}>
       <Hero />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + theme.spacing[32] }]}>
+      <View style={[styles.sheet, { paddingBottom: insets.bottom + Platform.select({ android: theme.spacing[28], default: theme.spacing[4] }) }]}>
         <View style={styles.copy}>
           {/* The way in for a store reviewer: inert unless the backend says this build is in review. */}
           <Pressable
@@ -101,6 +103,19 @@ export const AuthScreen = () => {
           ) : null}
 
           {__DEV__ ? <DevSignIn isSubmitting={isSubmitting} onSubmit={(c) => void signIn(c)} /> : null}
+
+          {/* Signing in is what creates the account, so the texts it agrees to sit under the buttons. */}
+          <Text.Sm color={theme.colors.muted} style={styles.legal}>
+            {t("Legal.before_terms")}
+            <Text.Sm color={theme.colors.foreground} style={styles.link} onPress={() => openInBrowser(WEBSITE.TERMS_OF_USE)}>
+              {t("Legal.terms")}
+            </Text.Sm>
+            {t("Legal.between")}
+            <Text.Sm color={theme.colors.foreground} style={styles.link} onPress={() => openInBrowser(WEBSITE.PRIVACY_POLICY)}>
+              {t("Legal.privacy")}
+            </Text.Sm>
+            {t("Legal.after_privacy")}
+          </Text.Sm>
         </View>
       </View>
     </View>
@@ -129,4 +144,11 @@ const styles = StyleSheet.create({
   actions: { alignSelf: "center", gap: theme.spacing[16], maxWidth: 320, width: "100%" },
   divider: { alignItems: "center", flexDirection: "row", gap: theme.spacing[16] },
   rule: { backgroundColor: theme.colors.neutral.subtle, flex: 1, height: StyleSheet.hairlineWidth },
+  legal: {
+    marginTop: theme.spacing[4],
+    textAlign: "center",
+    maxWidth: 232,
+    alignSelf: "center"
+  },
+  link: { textDecorationLine: "underline" },
 });

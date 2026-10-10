@@ -4,15 +4,15 @@ import { type Href, router } from "expo-router";
 
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
-import { LogOut, X } from "@ui/icons";
+import { LogOut, Trash2, X } from "@ui/icons";
 import { AnimatePresence, m } from "@ui/motion";
 import { useSafeAreaInsets } from "@ui/safe-area-view";
-import { Text } from "@ui/text";
-import { colors, theme } from "theme";
+import { theme } from "theme";
 import { useTranslations } from "translations";
 import { useAuth } from "~/modules/auth/hooks";
 import { HouseholdList } from "~/modules/households/household-list";
 
+import { AccountHelp } from "./help";
 import { AccountIdentity } from "./identity";
 import { AccountQuickAccess } from "./quick-access";
 import { LinearGradient } from "expo-linear-gradient";
@@ -105,18 +105,19 @@ export const AccountScreen = () => {
                 <AccountIdentity />
                 <HouseholdList onSelect={() => { setTimeout(close, 300); }} />
                 <AccountQuickAccess onGo={go} />
-                <ButtonPill
-                  variant="neutral"
-                  size="lg"
-                  leftIcon={LogOut}
-                  onPress={onSignOut}
-                  style={styles.logOut}
-                >
-                  {t("sign_out")}
-                </ButtonPill>
-                <Pressable onPress={() => go("/delete-account")} hitSlop={theme.spacing[8]} style={styles.delete}>
-                  <Text.Sm style={styles.deleteLabel}>{t("Delete.entry")}</Text.Sm>
-                </Pressable>
+                <AccountHelp />
+                <View style={styles.exits}>
+                  <ButtonPill variant="neutral" size="lg" leftIcon={LogOut} onPress={onSignOut}>
+                    {t("sign_out")}
+                  </ButtonPill>
+                  <ButtonPill
+                    variant="danger"
+                    leftIcon={Trash2}
+                    onPress={() => go("/delete-account")}
+                  >
+                    {t("Delete.entry")}
+                  </ButtonPill>
+                </View>
               </ScrollView>
               <ButtonIcon
                 elevated
@@ -157,7 +158,5 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing[20],
     gap: theme.spacing[32],
   },
-  logOut: { marginTop: theme.spacing[12] },
-  delete: { alignSelf: "center" },
-  deleteLabel: { color: colors.danger.base },
+  exits: { gap: theme.spacing[12], marginTop: theme.spacing[12] },
 });
