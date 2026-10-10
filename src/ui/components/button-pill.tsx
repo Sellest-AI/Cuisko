@@ -21,8 +21,11 @@ type Props = BaseProps & LeftSide & RightSide;
 type BaseProps = {
   children: ReactNode;
   onPress: () => void;
-  /** `ghost` is a bare label: no fill, no border — for an action that should not compete with the page. */
-  variant?: "primary" | "secondary" | "neutral" | "ghost";
+  /**
+   * `ghost` is a bare label: no fill, no border — for an action that should not compete with the page.
+   * `danger` is for an action that destroys something the cook cannot get back.
+   */
+  variant?: "primary" | "secondary" | "neutral" | "ghost" | "danger";
   elevated?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
@@ -108,12 +111,14 @@ export const ButtonPill = ({
   const gradient: readonly [ColorValue, ColorValue] = variant === "primary" ?
     [colors.primary.base, colors.primary.elevated] :
     variant === "secondary" ? [colors.secondary.base, colors.secondary.elevated] :
-      ["transparent", "transparent"];
+      variant === "danger" ? [colors.danger.subtle, colors.danger.subtle] :
+        ["transparent", "transparent"];
 
   const defaultColor = variant === "primary" ? styles.primary :
     variant === "secondary" ? styles.secondary :
       variant === "ghost" ? styles.ghost :
-        styles.neutral;
+        variant === "danger" ? styles.danger :
+          styles.neutral;
 
   const flatStyle = StyleSheet.flatten(style || {}) || {};
 
@@ -135,6 +140,8 @@ export const ButtonPill = ({
 
   /** The side discs have no ghost of their own; a ghost pill wears the neutral ones. */
   const sideVariant = variant === "ghost" ? "neutral" : variant;
+  /** Nor a subtle danger: an elevated danger pill keeps the plain danger disc. */
+  const sideDisc = sideVariant === "danger" || !elevated ? sideVariant : `${sideVariant}-subtle` as const;
 
   /**
    * The keys that describe the row inside the pill, pulled off the caller's style so they land
@@ -229,7 +236,7 @@ export const ButtonPill = ({
         />}
         {hasLeft && <View style={styles.side} onLayout={measure("left")}>
           {leftIcon ? <ButtonIcon
-            variant={elevated ? `${sideVariant}-subtle` : sideVariant}
+            variant={sideDisc}
             elevated={true}
             composite={!onLeftPress}
             size={size === "sm" ? "xs" : "sm"}
@@ -260,7 +267,7 @@ export const ButtonPill = ({
         </View>
         {hasRight && <View style={styles.side} onLayout={measure("right")}>
           {rightIcon ? <ButtonIcon
-            variant={elevated ? `${sideVariant}-subtle` : sideVariant}
+            variant={sideDisc}
             elevated={true}
             composite={!onRightPress}
             size={size === "sm" ? "xs" : "sm"}
@@ -330,6 +337,10 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: "transparent",
     color: colors.neutral.muted,
-  }
+  },
+  danger: {
+    backgroundColor: colors.danger.subtle,
+    color: colors.danger.base,
+  },
 }
 );
