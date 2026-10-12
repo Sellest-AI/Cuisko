@@ -303,6 +303,11 @@ same commit.
 | `_internal`        | `internalQuery` / `internalMutation` / `internalAction`                                                               | Convex functions only                    |
 | `_internal_<verb>` | same                                                                                                                  | Convex functions only — a **named step** |
 
+A mutation or action builder whose operation spends money takes `trace: "<operation>"`, and its
+handler hands the trace on with `ctx.runTracedAction` / `ctx.scheduleTracedAfter`. Only
+`internalMutation` / `internalAction` accept a `__trace` from their caller; no handler declares it.
+📐 C17 · [ADR 0019](./adr/0019-a-paid-call-is-traced.md)
+
 Most builders above have an `*I18n` sibling (`publicQueryI18n`, `authMutationI18n`,
 `ownedQueryI18n`, `householdQueryI18n`, `householdMutationI18n`). `server*` and `internal*` do
 not. A new sibling goes beside the others in `procedures.ts` and into `ALLOWED_BUILDERS` in

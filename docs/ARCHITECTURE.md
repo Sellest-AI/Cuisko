@@ -167,6 +167,10 @@ The export **name** encodes the access level, which is the only place it is visi
 | `server`                         | `server*`                                         | holders of `SERVER_PRIVATE_KEY` |
 | `_internal` / `_internal_<verb>` | `internal*`                                       | other Convex functions only     |
 
+Every mutation and action builder also carries a trace (`ctx.trace`): a route that spends money
+names its operation with `trace: "<operation>"`, and only `internal*` builders accept the trace a
+caller hands on. Queries carry none. See [ADR 0019](./adr/0019-a-paid-call-is-traced.md).
+
 Script **C1** verifies the name matches the builder on every commit — the highest-value check in the
 repo. The predecessor shipped `export const admin = authQuery({ args: { userId } })` twice; both were
 live IDORs, and nothing was looking.
@@ -501,7 +505,7 @@ contact with a growing codebase.
 | Every session atom is sorted: `householdAtom`, or listed as not household | script C14                                     | `pnpm check:households` |
 | Every recipe query reads live rows only (ADR 0017)                     | script C15                                        | `pnpm check:recipes`   |
 | Every costly operation a cook can call is rate limited (ADR 0018)      | script C16                                        | `pnpm check:ratelimits`  |
-| Every paid call is traced to the route it was made for                 | script C17                                        | `pnpm check:traces`    |
+| Every paid call is traced to the route it was made for (ADR 0019)      | script C17                                        | `pnpm check:traces`    |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |

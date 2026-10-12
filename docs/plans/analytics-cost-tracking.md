@@ -242,8 +242,10 @@ context is shaped for it, but nothing is built for it until a step needs to be s
       route it runs under. The rates in `costRates.ts` were read off the Replicate and RunPod
       dashboards on 2026-10-12: an ingredient icon $0.00066, a recipe render $0.003, a RunPod
       cut-out $0.60 an hour (16 GB first, 24 GB as fallback).
-- [ ] 6. ADR 0019, plus its row in `docs/adr/README.md` and "(ADR 0019)" on C17's row of the
-      enforcement table in `docs/ARCHITECTURE.md`
+- [x] 6. ADR 0019, plus its row in `docs/adr/README.md` and "(ADR 0019)" on C17's row of the
+      enforcement table in `docs/ARCHITECTURE.md`. The ADR holds every decision this plan settled
+      (who joins a trace, tracing never throws, how each provider records, the two limitations), and
+      the builder tables in ARCHITECTURE and CONVENTIONS point at it.
 - [ ] 7. app: screen tracking, identify / reset
 - [ ] 8. privacy labels and the privacy policy page (user, outside the repo)
 
