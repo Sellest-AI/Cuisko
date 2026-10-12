@@ -5,6 +5,7 @@ import { StyleSheet, View } from "react-native";
 import { theme } from "theme";
 
 import { useAuth } from "./_hooks/useAuth";
+import { AUTH } from "./constants";
 
 /**
  * At module scope, not in an effect: the splash hides itself on the first frame unless told
@@ -18,8 +19,6 @@ SplashScreen.preventAutoHideAsync().catch((cause) => {
   if (__DEV__) console.warn("[AuthGate] could not hold the splash screen", cause);
 });
 
-/** Where the gate sends people: the root stack's route name, and the path it is reached by. */
-const AUTH = { name: "auth", href: "/auth" } as const;
 /**
  * Reset to by the group's name, so its layout's `initialRouteName` picks the first step. The href
  * names that step outright, because the group has no index route for `/onboarding` to land on.

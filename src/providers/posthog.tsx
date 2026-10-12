@@ -9,8 +9,8 @@ import { env } from "env";
  *
  * Of the library's autocapture, only app lifecycle events stay on (installed, updated, opened,
  * backgrounded). Its screen capture is off because it reads React Navigation's container, which
- * expo-router does not expose: `ScreenTracking` sends screens instead. Touches stay off, as they are
- * by default. Who the events belong to is `AnalyticsIdentity`'s job.
+ * expo-router does not expose: `AnalyticsTracking` sends screens instead, along with who the cook is.
+ * Touches stay off, as they are by default.
  */
 export const AnalyticsProvider = ({ children }: { children: React.ReactNode }) => (
   <PostHogProvider
