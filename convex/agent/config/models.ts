@@ -2,9 +2,18 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { wrapLanguageModel } from "ai";
 import { env } from "@convex/env";
 
-const openrouter = createOpenRouter({
+const provider = createOpenRouter({
   apiKey: env.OPENROUTER_API_KEY,
 });
+
+/**
+ * Every model asks for usage accounting, so OpenRouter returns what the call cost in
+ * `providerMetadata.openrouter.usage.cost` and `traceUsageHandler` sends OpenRouter's number rather
+ * than one we would estimate. A model setting, not a `providerOptions` one, so it is written once.
+ */
+const openrouter = {
+  chat: (modelId: string) => provider.chat(modelId, { usage: { include: true } }),
+};
 
 /**
  * The assistant's model, because it reads images: a photo sent with a question reaches it as an

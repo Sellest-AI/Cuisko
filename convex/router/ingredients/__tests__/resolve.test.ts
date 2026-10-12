@@ -1,7 +1,9 @@
+import type { Agent, UsageHandler } from "@convex-dev/agent";
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { api, internal } from "../../../_generated/api";
+import { wrapAgent } from "../../../agent/utils";
 import type { Id } from "../../../_generated/dataModel";
 import { createIngredient } from "../../../functions/ingredients/createIngredient";
 import schema from "../../../schema";
@@ -32,6 +34,10 @@ vi.mock("@convex/functions/ingredients/matchIngredient", async (importOriginal) 
   const actual = await importOriginal<typeof import("../../../functions/ingredients/matchIngredient")>();
   return { ...actual, ...jev };
 });
+
+/** Where a recorded call ends up. Mocked so a test can read the events and nothing is scheduled. */
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
@@ -137,6 +143,7 @@ beforeEach(() => {
   jev.matchIngredient.mockResolvedValue(undefined);
   jev.aliasWorthSaving.mockReset();
   jev.aliasWorthSaving.mockResolvedValue(false);
+  capture.mockReset();
 });
 
 describe("router/ingredients/resolve", () => {
@@ -583,6 +590,50 @@ describe("router/ingredients/resolve", () => {
    * is "we read that and could make nothing of it". The client awaits this action and turns a
    * throw into an error card, so the outage is visible without claiming a judgement was made.
    */
+  /**
+   * What PostHog averages per route. Each paid call reports its usage the way the real one does
+   * (Jev through `report`, the row writer through the `usageHandler` `wrapAgent` gives the agent),
+   * and both have to land under this route and under ONE trace, or a resolve's cost is split across
+   * two rows. The writer runs through the real `wrapAgent` with the ctx the tool was handed, so
+   * this also pins that the ctx reaching the tool still carries the trace.
+   */
+  test("every paid call of a miss is recorded under ingredients/resolve, in one trace, for the cook", async () => {
+    await seedCarrot();
+    jev.matchIngredient.mockImplementation(async ({ report }) => {
+      await report?.({ model: "jev-1.13.0", inputTokens: 410, outputTokens: 18, costUsd: 0.0009, latencyMs: 640 });
+      return undefined;
+    });
+    // An agent that bills the way the SDK does: to the handler in its call's options.
+    const ingredientsAgent = {
+      generateObject: async (_ctx: unknown, _thread: unknown, _call: unknown, options: { usageHandler: UsageHandler }) => {
+        await options.usageHandler({} as never, {
+          agentName: "Cuisko Ingredient Agent",
+          model: "openai/gpt-6-luna",
+          provider: "openrouter.chat",
+          usage: { inputTokens: 1800, outputTokens: 350 },
+          providerMetadata: { openrouter: { usage: { cost: 0.0042 } } },
+        } as never);
+        return { object: { verdict: "not-food" } };
+      },
+    } as unknown as Agent;
+    sanitizeRun.mockImplementation(async (ctx) => {
+      await wrapAgent(ingredientsAgent).generateObject(ctx, {}, { prompt: "liquide vaisselle" });
+      return { verdict: "refused", reason: "not-food" };
+    });
+
+    // 0.563 against the carrot row: a near-miss, so Jev is asked before the writer.
+    await (await signIn()).action(api.router.ingredients.resolve.authed, { text: "carottes en rondelles", locale: "fr" });
+
+    const [cook] = await t.run((ctx) => ctx.db.query("users").collect());
+    const events = capture.mock.calls.map(([, event]) => event);
+    expect(events.map((event) => event.properties.$ai_span_name)).toEqual(["jev.nearMiss", "Cuisko Ingredient Agent"]);
+    expect(new Set(events.map((event) => event.properties.$ai_trace_id)).size).toBe(1);
+    for (const event of events) {
+      expect(event).toMatchObject({ event: "$ai_generation", distinctId: cook!._id });
+      expect(event.properties.operation).toBe("ingredients/resolve");
+    }
+  });
+
   test("a model that throws fails the resolve rather than refusing the term", async () => {
     sanitizeRun.mockRejectedValue(new Error("provider is down"));
 

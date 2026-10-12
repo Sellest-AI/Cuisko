@@ -43,6 +43,9 @@ importers:
       '@openrouter/ai-sdk-provider':
         specifier: ^3.0.0
         version: 3.0.0(ai@7.0.77(zod@4.6.0))(zod@4.6.0)
+      '@posthog/convex':
+        specifier: 2.1.5
+        version: 2.1.5(convex@1.43.0(react@19.2.3))
       '@react-native-masked-view/masked-view':
         specifier: 0.3.2
         version: 0.3.2(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -94,6 +97,9 @@ importers:
       expo-device:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.26)
+      expo-file-system:
+        specifier: ~57.0.7
+        version: 57.0.7(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
       expo-font:
         specifier: ~57.0.4
         version: 57.0.4(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -122,8 +128,8 @@ importers:
         specifier: ~57.0.5
         version: 57.0.5(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
       expo-localization:
-        specifier: ~57.0.1
-        version: 57.0.1(expo@57.0.26)(react@19.2.3)
+        specifier: ~57.0.2
+        version: 57.0.2(expo@57.0.26)(react@19.2.3)
       expo-media-library:
         specifier: ~57.0.4
         version: 57.0.4(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
@@ -190,6 +196,9 @@ importers:
       moti:
         specifier: ^0.30.0
         version: 0.30.0(react-dom@19.2.3(react@19.2.3))(react-native-reanimated@4.5.1(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react@19.2.3)
+      posthog-react-native:
+        specifier: ^4.81.0
+        version: 4.81.0(abdc870295cf2033259a5c5e5547ad20)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -2059,6 +2068,17 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@posthog/convex@2.1.5':
+    resolution: {integrity: sha512-QMInlI2/tZm4jExbvXpN3DfZMrlOXOz2OIso1rrd8gv6Bn4r2riUJpAP58Jx72Pe4Hx8sMz5meEfER0/CGK0Hw==}
+    peerDependencies:
+      convex: ^1.39.0
+
+  '@posthog/core@1.58.0':
+    resolution: {integrity: sha512-vluXIlVF6WGeHoQbsQK8Y1ywXZlJDU7YHEKiXAArQU38yFBpgxxfD0kInbYHtura4Fr7Z7H8WiDFvtMpCGehGg==}
+
+  '@posthog/types@1.415.2':
+    resolution: {integrity: sha512-BIIHPyXcPZuNTImrR1qLqLKFw7j9o8co6LG/9OpLtpWJ3RT0y89Lx6VCtd37N9/dkr/qW7y0uPjJxAxjsALHtw==}
 
   '@radix-ui/primitive@1.1.7':
     resolution: {integrity: sha512-rqWnm76nYT8HoNNqEjpgJ7Pw/DrBj5iBTrmEPo6HTX5+VJyBNOqTdv4g89G63HuR5g0AaENoAcH7Is5fF2kZ8Q==}
@@ -4211,8 +4231,8 @@ packages:
       react: '*'
       react-native: '*'
 
-  expo-localization@57.0.1:
-    resolution: {integrity: sha512-8Ffl4UTbOsQeGT0v5fxMbyPHyPMPnhSPDFQJa8p9rjJrthFoAtNi+fL6Ssmrvf1/7dmPq1mVY52MEt0TMEfgjA==}
+  expo-localization@57.0.2:
+    resolution: {integrity: sha512-sIKYH3Ivddoge568WY6j+Kp2MAAZzWWqEnY2bokLkJFwX366tGL1mEnoY2WUi/qHatFFPop2yqDdurzbhnnimQ==}
     peerDependencies:
       expo: '*'
       react: '*'
@@ -5967,6 +5987,63 @@ packages:
   postcss@8.5.25:
     resolution: {integrity: sha512-DTPx3RWSSnWyzLxQnlH0rJP+EW5ekl16ZU4/psbIhA0e53kJfdgaN5vKM+xP7yJtXVu+nfdVFmlgFDEKAe4Pyw==}
     engines: {node: ^10 || ^12 || >=14}
+
+  posthog-node@5.55.1:
+    resolution: {integrity: sha512-YLnILmFn1zxGYBuCaBldqMjTq9OZBNNbHIr2F0am3iLfU+6ZTvuRmUbTmys//+LnCA6DfZNGgqTb4goFa93u+Q==}
+    engines: {node: ^20.20.0 || >=22.22.0}
+    peerDependencies:
+      rxjs: ^7.0.0
+    peerDependenciesMeta:
+      rxjs:
+        optional: true
+
+  posthog-react-native@4.81.0:
+    resolution: {integrity: sha512-EqVOffgv3solvODRuA6OuITgtuXgVlpn82Le6gCASzPWp3zfwP/tAvYF4J3pRCdR7Ft0e2wUPwXfNAz/oZ2wDg==}
+    hasBin: true
+    peerDependencies:
+      '@posthog/react-native-plugin': '>= 2.9.3'
+      '@react-native-async-storage/async-storage': '>=1.0.0'
+      '@react-navigation/native': '>= 5.0.0'
+      expo-application: '>= 4.0.0'
+      expo-device: '>= 4.0.0'
+      expo-file-system: '>= 13.0.0'
+      expo-localization: '>= 11.0.0'
+      expo-updates: '>= 0.25.0'
+      posthog-react-native-session-replay: '>= 1.6.0'
+      react-native-device-info: '>= 10.0.0'
+      react-native-localize: '>= 3.0.0'
+      react-native-navigation: '>= 6.0.0'
+      react-native-safe-area-context: '>= 4.0.0'
+      react-native-svg: '>= 15.0.0'
+    peerDependenciesMeta:
+      '@posthog/react-native-plugin':
+        optional: true
+      '@react-native-async-storage/async-storage':
+        optional: true
+      '@react-navigation/native':
+        optional: true
+      expo-application:
+        optional: true
+      expo-device:
+        optional: true
+      expo-file-system:
+        optional: true
+      expo-localization:
+        optional: true
+      expo-updates:
+        optional: true
+      posthog-react-native-session-replay:
+        optional: true
+      react-native-device-info:
+        optional: true
+      react-native-localize:
+        optional: true
+      react-native-navigation:
+        optional: true
+      react-native-safe-area-context:
+        optional: true
+      react-native-svg:
+        optional: true
 
   powershell-utils@0.1.0:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
@@ -9580,6 +9657,20 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
+  '@posthog/convex@2.1.5(convex@1.43.0(react@19.2.3))':
+    dependencies:
+      '@posthog/core': 1.58.0
+      convex: 1.43.0(react@19.2.3)
+      posthog-node: 5.55.1
+    transitivePeerDependencies:
+      - rxjs
+
+  '@posthog/core@1.58.0':
+    dependencies:
+      '@posthog/types': 1.415.2
+
+  '@posthog/types@1.415.2': {}
+
   '@radix-ui/primitive@1.1.7': {}
 
   '@radix-ui/react-collection@1.1.15(@types/react@19.2.18)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
@@ -12028,7 +12119,7 @@ snapshots:
       - expo
       - supports-color
 
-  expo-localization@57.0.1(expo@57.0.26)(react@19.2.3):
+  expo-localization@57.0.2(expo@57.0.26)(react@19.2.3):
     dependencies:
       expo: 57.0.26(152179dadaacf4b6ee0e3b3a8ee0e622)
       react: 19.2.3
@@ -14037,6 +14128,23 @@ snapshots:
       nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  posthog-node@5.55.1:
+    dependencies:
+      '@posthog/core': 1.58.0
+
+  posthog-react-native@4.81.0(abdc870295cf2033259a5c5e5547ad20):
+    dependencies:
+      '@posthog/core': 1.58.0
+      '@posthog/types': 1.415.2
+    optionalDependencies:
+      expo-application: 57.0.3(expo@57.0.26)
+      expo-device: 57.0.2(expo@57.0.26)
+      expo-file-system: 57.0.7(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
+      expo-localization: 57.0.2(expo@57.0.26)(react@19.2.3)
+      expo-updates: 57.0.15(expo-dev-client@57.0.13(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)))(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
+      react-native-safe-area-context: 5.7.0(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react-native-svg: 15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
 
   powershell-utils@0.1.0: {}
 

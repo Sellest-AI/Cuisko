@@ -132,8 +132,44 @@ type AnswerOf<Q> = Q extends { type: "choice" }
 /** The answers map, each entry typed by the question it answers. */
 type Answers<Q extends Record<string, Question>> = { [Key in keyof Q]: AnswerOf<Q[Key]> };
 
+/**
+ * What one call used, for the caller to record against its trace.
+ *
+ * TypeSafe's own API reports tokens (`input_tokens` / `output_tokens`); whether OpenRouter adds its
+ * `cost` on this endpoint as it does on chat completions is read rather than assumed, so `costUsd`
+ * is `null` when the reply did not say. Jev has no fixed per-token price on OpenRouter to fall
+ * back on.
+ */
+export type TypeSafeUsage = {
+  model: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUsd: number | null;
+  latencyMs: number;
+};
+
+/**
+ * Handed what a call used, once TypeSafe has answered. Optional on every caller, so a judgment
+ * stays callable without one: the `*.manual.test.ts` bake-offs ask Jev with no trace to record on.
+ */
+export type ReportUsage = (usage: TypeSafeUsage) => void | Promise<void>;
+
+/** Loose on purpose: a usage field we fail to read must not fail a judgment that was answered. */
+const usageSchema = z
+  .object({
+    input_tokens: z.number().optional(),
+    output_tokens: z.number().optional(),
+    prompt_tokens: z.number().optional(),
+    completion_tokens: z.number().optional(),
+    cost: z.number().optional(),
+  })
+  .optional()
+  .catch(undefined);
+
 const envelopeSchema = z.object({
+  model: z.string().optional(),
   answers: z.record(z.string(), z.unknown()),
+  usage: usageSchema,
 });
 
 /**
@@ -194,9 +230,11 @@ const unreachable = (message: string) =>
 export const askTypeSafe = async <Q extends Record<string, Question>>(
   state: unknown,
   questions: Q,
+  report?: ReportUsage,
 ): Promise<Answers<Q>> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(ENDPOINT, {
@@ -215,6 +253,16 @@ export const askTypeSafe = async <Q extends Record<string, Question>>(
     const envelope = envelopeSchema.safeParse(await response.json());
     if (!envelope.success)
       throw unreachable(`TypeSafe returned no answers map: ${envelope.error.message}`);
+
+    // Reported before the answers are checked: a reply that answers unusably was still billed.
+    const { usage } = envelope.data;
+    await report?.({
+      model: envelope.data.model ?? MODEL,
+      inputTokens: usage?.input_tokens ?? usage?.prompt_tokens,
+      outputTokens: usage?.output_tokens ?? usage?.completion_tokens,
+      costUsd: usage?.cost ?? null,
+      latencyMs: Date.now() - startedAt,
+    });
 
     // Built by walking the questions rather than the response, so a question that came back
     // unanswered fails here instead of arriving at the caller as `undefined`.

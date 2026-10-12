@@ -9,7 +9,6 @@ export const defaultAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 /**
@@ -50,7 +49,6 @@ export const assistantAgent = new Agent(components.agent, {
    * and the screen can only report it failed.
    */
   maxSteps: 7,
-  // usageHandler,
 });
 
 export const recipesAgent = new Agent(components.agent, {
@@ -60,7 +58,6 @@ export const recipesAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 /**
@@ -74,7 +71,6 @@ export const catalogAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 export const ingredientsAgent = new Agent(components.agent, {
@@ -84,7 +80,6 @@ export const ingredientsAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 /**
@@ -100,7 +95,6 @@ export const verifierAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 export const translatorAgent = new Agent(components.agent, {
@@ -110,7 +104,6 @@ export const translatorAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 /**
@@ -124,7 +117,6 @@ export const videoRecipesAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });
 
 export const imagesGeneratorAgent = new Agent(components.agent, {
@@ -134,5 +126,4 @@ export const imagesGeneratorAgent = new Agent(components.agent, {
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
   maxSteps: 7,
-  // usageHandler,
 });

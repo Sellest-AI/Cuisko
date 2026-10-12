@@ -1,5 +1,7 @@
 import { Agent, ToolCtx } from "@convex-dev/agent";
 
+import { traceUsageHandler, type RecordingCtx } from "@convex/functions/tracing/recordGeneration";
+
 /**
  * The caller the agent component is told about when nothing else identifies one.
  *
@@ -24,11 +26,26 @@ const _threadOpts = (ctx: ToolCtx) => ({
   threadId: ctx.threadId,
 });
 
-type GenerateTextParameters = Parameters<Agent["generateText"]> & { 0: ToolCtx };
-type GenerateObjectParameters = Parameters<Agent["generateObject"]> & { 0: ToolCtx };
+/**
+ * The call's options, with its usage handler set from the ctx's trace (ADR 0019).
+ *
+ * Every paid call through here is recorded, under the trace of the action that holds the ctx, and
+ * the option is taken out of the signature so no caller can switch that off: a call recorded
+ * nowhere is a cost in no route's average. A ctx with no trace still gets its answer:
+ * `recordGeneration` logs the gap and sends nothing, and C17 is what keeps the gap from shipping.
+ */
+const _recorded = <O extends { usageHandler?: unknown }>(ctx: ToolCtx, options: Omit<O, "usageHandler"> | undefined) => ({
+  ...options,
+  usageHandler: traceUsageHandler(ctx as ToolCtx & RecordingCtx),
+});
+
+type WithoutUsageHandler<P extends unknown[]> = [P[0] & ToolCtx, P[1], P[2], Omit<NonNullable<P[3]>, "usageHandler">?];
+type GenerateTextParameters = WithoutUsageHandler<Parameters<Agent["generateText"]>>;
+type GenerateObjectParameters = WithoutUsageHandler<Parameters<Agent["generateObject"]>>;
 
 /**
- * The two generation calls, each on a thread the caller does not have to own.
+ * The two generation calls, each on a thread the caller does not have to own, and each recorded
+ * against the caller's trace.
  *
  * Deliberately NOT typed as an `Agent`, and it does not spread one: spreading a class instance
  * copies own properties only, so every prototype method would be missing from an object that
@@ -39,10 +56,10 @@ type GenerateObjectParameters = Parameters<Agent["generateObject"]> & { 0: ToolC
 export const wrapAgent = (agent: Agent) => {
   return {
     async generateText(...args: GenerateTextParameters) {
-      return await agent.generateText(args[0], { ..._threadOpts(args[0]), ...args[1] }, args[2], args[3]);
+      return await agent.generateText(args[0], { ..._threadOpts(args[0]), ...args[1] }, args[2], _recorded(args[0], args[3]));
     },
     generateObject: async (...args: GenerateObjectParameters) => {
-      return await agent.generateObject(args[0], { ..._threadOpts(args[0]), ...args[1] }, args[2], args[3]);
+      return await agent.generateObject(args[0], { ..._threadOpts(args[0]), ...args[1] }, args[2], _recorded(args[0], args[3]));
     },
   };
 };

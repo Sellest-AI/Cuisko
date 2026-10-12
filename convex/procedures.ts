@@ -19,11 +19,26 @@ import {
   customMutation,
   customQuery,
 } from "convex-helpers/server/customFunctions";
-import { type Auth, makeFunctionReference } from "convex/server";
+import {
+  type Auth,
+  type FunctionReference,
+  type FunctionReturnType,
+  makeFunctionReference,
+  type OptionalRestArgs,
+} from "convex/server";
 import { ConvexError, type ObjectType, type PropertyValidators, v } from "convex/values";
 
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
-import { action, type ActionCtx, type DatabaseReader, mutation, query } from "./_generated/server";
+import {
+  action,
+  type ActionCtx,
+  type DatabaseReader,
+  internalAction as rawInternalAction,
+  internalMutation as rawInternalMutation,
+  mutation,
+  type MutationCtx,
+  query,
+} from "./_generated/server";
 import { env } from "./env";
 import { isMember } from "./functions/households/isMember";
 import { isAuthorized } from "./functions/users/isAuthorized";
@@ -31,6 +46,7 @@ import { type AppUser, loadUser } from "./functions/users/loadUser";
 import { resolvei18n } from "./lib/i18n";
 import { timingSafeEqual } from "./lib/secrets";
 import { LOCALES, type Locale, type Localized } from "./schema/i18n";
+import { type Operation, type TraceContext, vTraceContext } from "./schema/tracing";
 
 /* ─── 1. The complete re-export surface ──────────────────────────────────────────────────
  * A rule needs an affordance or it will be broken (P1). Every builder and every ctx type a
@@ -38,12 +54,7 @@ import { LOCALES, type Locale, type Localized } from "./schema/i18n";
  * If you find yourself needing something this file does not export, add it here — do not
  * route around it.
  */
-export {
-  httpAction,
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+export { httpAction, internalQuery } from "./_generated/server";
 export type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 export type { AppUser } from "./functions/users/loadUser";
 
@@ -67,17 +78,164 @@ const i18nCustomization = {
   }),
 };
 
+/* ─── 1c. Tracing — which route a paid call was made for ─────────────────────────────────────
+ * A trace rides in a hidden `__trace` argument this layer adds to the function's validator and
+ * strips before the handler runs, so no route declares it and no handler sees it. A function
+ * called without one starts a trace when its builder was given `trace: "<operation>"`; without
+ * that option `ctx.trace` is `null`, and nothing can be recorded against it.
+ *
+ * Every mutation and action builder below carries a trace, but **only the internal ones accept
+ * `__trace`**. Every builder reached from outside (public, auth, admin, owned, household, server)
+ * starts its own trace and its validator refuses a `__trace`: a caller choosing its trace could file
+ * what it spends on another cook's profile, or under another route's average. A traced hop only
+ * ever targets an internal function, so nothing legitimate needs the arg anywhere else. Queries
+ * carry no trace at all: a query never spends, and an argument that differs on every call would
+ * defeat the query cache.
+ *
+ * Propagation is explicit: `ctx.runTracedMutation` / `ctx.scheduleTracedAfter` (and, in an action,
+ * `ctx.runTracedAction`) add `__trace` to the callee's args. Plain `ctx.runAction` is left alone,
+ * because injecting into every call would also inject into component functions, whose validators
+ * refuse an unknown argument. The traced runners only accept a reference whose args declare
+ * `__trace`, so passing a component's function to one is a type error rather than a runtime
+ * rejection.
+ *
+ * Only data lives here. Sending an event needs `components.posthog`, which is `_generated/api`,
+ * so it lives in `functions/tracing/` and receives the ctx this layer shaped.
+ */
+type TraceOption = { trace?: Operation };
+
+/** An internal function reference this layer has wrapped: its args accept a `__trace`. */
+type Traced<Type extends "action" | "mutation"> = FunctionReference<Type, "internal", { __trace?: TraceContext }>;
+
+/** The callee's args as its caller writes them: `__trace` is the runner's to add. */
+type UntracedArgs<Ref extends Traced<"action"> | Traced<"mutation">> = Omit<OptionalRestArgs<Ref>[0], "__trace">;
+
+/**
+ * Safe in a mutation, whose clock is frozen but whose randomness is not: on the dev deployment
+ * (2026-10-12) `crypto.randomUUID()` in a deterministic function gave a new value per call and per
+ * run, so two calls to `sendMessage` get two traces. convex-test cannot show this, so no test does.
+ */
+const startTrace = (operation: Operation | undefined, userId: Id<"users"> | undefined): TraceContext | null =>
+  operation ? { traceId: crypto.randomUUID(), operation, distinctId: userId ?? null } : null;
+
+/** `null` sends nothing rather than `__trace: null`, which the optional validator would refuse. */
+const withTraceArg = <Args,>(trace: TraceContext | null, args: Args) => (trace ? { ...args, __trace: trace } : args);
+
+/** What any traced function can hand its trace on through: a mutation, or the scheduler. */
+const mutationRunners = (ctx: MutationCtx, trace: TraceContext | null) => ({
+  trace,
+  runTracedMutation: <Ref extends Traced<"mutation">>(
+    ref: Ref,
+    args: UntracedArgs<Ref>,
+  ): Promise<FunctionReturnType<Ref>> =>
+    ctx.runMutation(ref, ...([withTraceArg(trace, args)] as OptionalRestArgs<Ref>)),
+  scheduleTracedAfter: <Ref extends Traced<"action"> | Traced<"mutation">>(
+    delayMs: number,
+    ref: Ref,
+    args: UntracedArgs<Ref>,
+  ) => ctx.scheduler.runAfter(delayMs, ref, ...([withTraceArg(trace, args)] as OptionalRestArgs<Ref>)),
+});
+
+/** An action can also run another action. Its other two runners mirror the mutation's. */
+const actionRunners = (ctx: ActionCtx, trace: TraceContext | null) => ({
+  trace,
+  runTracedAction: <Ref extends Traced<"action">>(
+    ref: Ref,
+    args: UntracedArgs<Ref>,
+  ): Promise<FunctionReturnType<Ref>> =>
+    ctx.runAction(ref, ...([withTraceArg(trace, args)] as OptionalRestArgs<Ref>)),
+  runTracedMutation: <Ref extends Traced<"mutation">>(
+    ref: Ref,
+    args: UntracedArgs<Ref>,
+  ): Promise<FunctionReturnType<Ref>> =>
+    ctx.runMutation(ref, ...([withTraceArg(trace, args)] as OptionalRestArgs<Ref>)),
+  scheduleTracedAfter: <Ref extends Traced<"action"> | Traced<"mutation">>(
+    delayMs: number,
+    ref: Ref,
+    args: UntracedArgs<Ref>,
+  ) => ctx.scheduler.runAfter(delayMs, ref, ...([withTraceArg(trace, args)] as OptionalRestArgs<Ref>)),
+});
+
+/** What a traced action's handler receives on top of its builder's own ctx. */
+export type TracedActionCtx = ActionCtx & ReturnType<typeof actionRunners>;
+
+type MaybePromise<T> = T | Promise<T>;
+
+/** The shape `withI18n`, `ownedInput` and the rest already have: what the trace layer wraps. */
+type Mod<Ctx, ArgsValidator extends PropertyValidators, MadeCtx> = {
+  args: ArgsValidator;
+  input: (
+    ctx: Ctx,
+    args: ObjectType<ArgsValidator>,
+    extra: Record<string, never>,
+  ) => MaybePromise<{ ctx: MadeCtx; args: Record<string, never> }>;
+};
+
+/**
+ * Folds the trace into an existing Mod, in the same layer, for the reason `withI18n` gives. It
+ * must be the OUTERMOST wrapper: `withI18n` calls the Mod it wraps with an empty `extra`, so a
+ * `trace` option given to a builder only reaches the layer that convex-helpers calls directly.
+ * `tracing.test.ts` goes red if the order is flipped.
+ *
+ * `starts` is for a builder reached from outside: it only ever starts a trace. `joins` is for an
+ * internal builder: it also takes the `__trace` its caller's runner added.
+ */
+const withTrace = <Ctx, Runners>(runners: (ctx: Ctx, trace: TraceContext | null) => Runners) => {
+  const traced = async <ArgsValidator extends PropertyValidators, MadeCtx extends Record<string, unknown>>(
+    mod: Mod<Ctx, ArgsValidator, MadeCtx>,
+    ctx: Ctx,
+    args: ObjectType<ArgsValidator>,
+    joined: TraceContext | undefined,
+    { trace: operation }: TraceOption,
+  ) => {
+    const inner = await mod.input(ctx, args, {});
+    const trace = joined ?? startTrace(operation, (inner.ctx as { userId?: Id<"users"> }).userId);
+
+    return { ctx: { ...inner.ctx, ...runners(ctx, trace) }, args: {} };
+  };
+
+  return {
+    starts: <ArgsValidator extends PropertyValidators, MadeCtx extends Record<string, unknown>>(
+      mod: Mod<Ctx, ArgsValidator, MadeCtx>,
+    ) => ({
+      args: mod.args,
+      input: (ctx: Ctx, args: ObjectType<ArgsValidator>, extra: TraceOption) =>
+        traced(mod, ctx, args, undefined, extra),
+    }),
+    joins: <ArgsValidator extends PropertyValidators, MadeCtx extends Record<string, unknown>>(
+      mod: Mod<Ctx, ArgsValidator, MadeCtx>,
+    ) => ({
+      args: { ...mod.args, __trace: v.optional(vTraceContext) },
+      input: (
+        ctx: Ctx,
+        { __trace, ...rest }: ObjectType<ArgsValidator> & { __trace?: TraceContext },
+        extra: TraceOption,
+      ) => traced(mod, ctx, rest as unknown as ObjectType<ArgsValidator>, __trace, extra),
+    }),
+  };
+};
+
+const mutationTrace = withTrace(mutationRunners);
+const actionTrace = withTrace(actionRunners);
+
+/** The Mod for a builder that resolves no identity: public, internal. */
+const noIdentity = {
+  args: {},
+  input: async () => ({ ctx: {}, args: {} as Record<string, never> }),
+};
+
 const queryWithI18n = customQuery(query, i18nCustomization);
-const mutationWithI18n = customMutation(mutation, i18nCustomization);
-const actionWithI18n = customAction(action, i18nCustomization);
 
 export const publicQuery = query;
-export const publicMutation = mutation;
-export const publicAction = action;
+export const publicMutation = customMutation(mutation, mutationTrace.starts(noIdentity));
+export const publicAction = customAction(action, actionTrace.starts(noIdentity));
 
 export const publicQueryI18n = queryWithI18n;
-export const publicMutationI18n = mutationWithI18n;
-export const publicActionI18n = actionWithI18n;
+export const publicMutationI18n = customMutation(mutation, mutationTrace.starts(i18nCustomization));
+export const publicActionI18n = customAction(action, actionTrace.starts(i18nCustomization));
+
+export const internalMutation = customMutation(rawInternalMutation, mutationTrace.joins(noIdentity));
+export const internalAction = customAction(rawInternalAction, actionTrace.joins(noIdentity));
 
 /* ─── 2. Identity ──────────────────────────────────────────────────────────────────────── */
 
@@ -130,8 +288,6 @@ const requireAdmin = async (ctx: IdentityCtx) => {
 /* ─── 3. Authenticated ─────────────────────────────────────────────────────────────────── */
 
 export const authQuery = customQuery(query, customCtx(requireUser));
-export const authMutation = customMutation(mutation, customCtx(requireUser));
-export const authAction = customAction(action, customCtx(requireUser));
 
 /**
  * Folds a `locale` arg and `ctx.i18n` into an existing Mod, in the *same* customization layer.
@@ -158,24 +314,31 @@ const withI18n = <
   },
 });
 
+/**
+ * `customCtx(requireUser)` as a plain Mod, which is the shape `withI18n` and `withTrace` wrap.
+ * The queries keep `customCtx`: nothing wraps them.
+ */
 const identityInput = (resolveIdentity: typeof requireUser) => ({
   args: {},
   input: async (ctx: IdentityCtx) => ({ ctx: await resolveIdentity(ctx), args: {} }),
 });
 
+export const authMutation = customMutation(mutation, mutationTrace.starts(identityInput(requireUser)));
+export const authAction = customAction(action, actionTrace.starts(identityInput(requireUser)));
+
 export const authQueryI18n = customQuery(query, withI18n(identityInput(requireUser)));
-export const authMutationI18n = customMutation(mutation, withI18n(identityInput(requireUser)));
-export const authActionI18n = customAction(action, withI18n(identityInput(requireUser)));
+export const authMutationI18n = customMutation(mutation, mutationTrace.starts(withI18n(identityInput(requireUser))));
+export const authActionI18n = customAction(action, actionTrace.starts(withI18n(identityInput(requireUser))));
 
 /* ─── 4. Admin — one customization for all three, so they cannot drift ─────────────────── */
 
 export const adminQuery = customQuery(query, customCtx(requireAdmin));
-export const adminMutation = customMutation(mutation, customCtx(requireAdmin));
-export const adminAction = customAction(action, customCtx(requireAdmin));
+export const adminMutation = customMutation(mutation, mutationTrace.starts(identityInput(requireAdmin)));
+export const adminAction = customAction(action, actionTrace.starts(identityInput(requireAdmin)));
 
 export const adminQueryI18n = customQuery(query, withI18n(identityInput(requireAdmin)));
-export const adminMutationI18n = customMutation(mutation, withI18n(identityInput(requireAdmin)));
-export const adminActionI18n = customAction(action, withI18n(identityInput(requireAdmin)));
+export const adminMutationI18n = customMutation(mutation, mutationTrace.starts(withI18n(identityInput(requireAdmin))));
+export const adminActionI18n = customAction(action, actionTrace.starts(withI18n(identityInput(requireAdmin))));
 
 /* ─── 5. Server-to-server ──────────────────────────────────────────────────────────────── */
 
@@ -200,21 +363,17 @@ export const serverQuery = customQuery(query, {
   },
 });
 
-export const serverMutation = customMutation(mutation, {
+/** The query's check as a plain Mod, for the two traced builders to wrap. */
+const serverInput = {
   args: serverArgs,
-  input: async (_ctx, { _serverKey }) => {
+  input: async (_ctx: unknown, { _serverKey }: { _serverKey: string }) => {
     assertServerKey(_serverKey);
-    return { ctx: {}, args: {} };
+    return { ctx: {}, args: {} as Record<string, never> };
   },
-});
+};
 
-export const serverAction = customAction(action, {
-  args: serverArgs,
-  input: async (_ctx, { _serverKey }) => {
-    assertServerKey(_serverKey);
-    return { ctx: {}, args: {} };
-  },
-});
+export const serverMutation = customMutation(mutation, mutationTrace.starts(serverInput));
+export const serverAction = customAction(action, actionTrace.starts(serverInput));
 
 /* ─── 6. ★ Ownership as a capability, not a convention ─────────────────────────────────────
  * The handler cannot run without `ctx.doc`, and `ctx.doc` cannot exist unless the caller owns
@@ -260,11 +419,12 @@ const ownedInput = <T extends OwnedTable>(table: T) => ({
 });
 
 export const ownedQuery = <T extends OwnedTable>(table: T) => customQuery(query, ownedInput(table));
-export const ownedMutation = <T extends OwnedTable>(table: T) => customMutation(mutation, ownedInput(table));
+export const ownedMutation = <T extends OwnedTable>(table: T) =>
+  customMutation(mutation, mutationTrace.starts(ownedInput(table)));
 
 export const ownedQueryI18n = <T extends OwnedTable>(table: T) => customQuery(query, withI18n(ownedInput(table)));
 export const ownedMutationI18n = <T extends OwnedTable>(table: T) =>
-  customMutation(mutation, withI18n(ownedInput(table)));
+  customMutation(mutation, mutationTrace.starts(withI18n(ownedInput(table))));
 
 /* ─── 7. ★ Household membership as a capability ────────────────────────────────────────────
  * Same guarantee as `ownedQuery`/`ownedMutation`, for a different shape: several tables are
@@ -286,5 +446,5 @@ const householdInput = {
 export const householdQuery = customQuery(query, householdInput);
 export const householdQueryI18n = customQuery(query, withI18n(householdInput));
 
-export const householdMutation = customMutation(mutation, householdInput);
-export const householdMutationI18n = customMutation(mutation, withI18n(householdInput));
+export const householdMutation = customMutation(mutation, mutationTrace.starts(householdInput));
+export const householdMutationI18n = customMutation(mutation, mutationTrace.starts(withI18n(householdInput)));

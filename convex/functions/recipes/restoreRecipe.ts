@@ -1,6 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { ActionCtx } from "@convex/procedures";
+import type { ActionCtx, TracedActionCtx } from "@convex/procedures";
 import type { PortableRecipe, RestoredPhotos } from "@convex/schema/recipePayloads";
 
 import { type RecipeLink, resolveRecipeIngredients } from "./resolveRecipeIngredients";
@@ -64,7 +64,7 @@ const _spelledName = ({ name }: PortableRecipe["ingredients"][number]["ingredien
  * written, which a caller whose connection dropped after the write could not tell.
  */
 export const restoreRecipe = async (
-  ctx: ActionCtx,
+  ctx: TracedActionCtx,
   { recipe, photos }: Args,
 ): Promise<RestoredRecipe> => {
   const { row, ingredients } = recipe;

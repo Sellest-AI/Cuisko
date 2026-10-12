@@ -1,7 +1,8 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { sanitizeIngredient } from "@convex/agent/tools/sanitizeIngredient";
-import type { ActionCtx } from "@convex/procedures";
+import { traceTypeSafe } from "@convex/functions/tracing/recordGeneration";
+import type { ActionCtx, TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { CONFIDENT, gradesIn, MARGIN } from "@shared/ingredientMatch";
 import { retryPromise } from "@shared/helpers";
@@ -83,7 +84,7 @@ export type IngredientEvidence = {
  * bare `ActionCtx` and mean it: a catalog read and a dataset lookup are nobody's in particular,
  * which is what makes them testable without an account.
  */
-type ResolveCtx = ActionCtx & { userId?: Id<"users"> };
+type ResolveCtx = TracedActionCtx & { userId?: Id<"users"> };
 
 /**
  * Good enough to link a shopper's own typing to an existing row without asking them.
@@ -298,6 +299,10 @@ export const resolveWithAgent = async (
 ): Promise<ResolvedIngredient> => {
   const asked = { text, locale, dictionary: dictionaryOf(evidence.hits) };
 
+  // Each paid call below is recorded against the trace ctx carries, under the step that made it.
+  // The judges and the tool only hand their usage back; this action is what holds the trace.
+  const recorded = (span: string) => ({ ...asked, report: traceTypeSafe(ctx, span) });
+
   // **Cheapest first, and the first may end it.** A near-miss the catalog search declined on its
   // score alone is exactly what a threshold cannot settle ("courgette" vs "courge"), and Jev is
   // better at it. The candidate comes back out of the list handed over, so the id and the row's
@@ -306,7 +311,7 @@ export const resolveWithAgent = async (
     ? await retryPromise(
       () =>
         matchIngredient({
-          ...asked,
+          ...recorded("jev.nearMiss"),
           candidates: evidence.candidates.map((row) => ({ ...row, id: row.ingredientId })),
         }),
       2,
@@ -329,7 +334,7 @@ export const resolveWithAgent = async (
     //
     // Jev gates WHETHER, asked only now because it is a question about the word AND the food it
     // matched: a mangling nobody will repeat would otherwise index the row under a keyboard slip.
-    if (await aliasWorthSaving(asked, linked.name))
+    if (await aliasWorthSaving(recorded("jev.alias"), linked.name))
       await ctx.scheduler.runAfter(0, internal.router.ingredients.resolve._internal_rememberAlias, {
         ingredientId: linked.ingredientId,
         alias: text,
@@ -346,7 +351,7 @@ export const resolveWithAgent = async (
   }
 
   // Asked only once no row matched, so a term that links pays for no judgment of figures.
-  const hits = await Promise.all(evidence.hits.map((hit) => pickMeasuredFood(asked, hit)));
+  const hits = await Promise.all(evidence.hits.map((hit) => pickMeasuredFood(recorded("jev.measuredFood"), hit)));
 
   const sanitized = await sanitizeIngredient.run(ctx, { locale, text, hits, units });
 
@@ -379,8 +384,9 @@ export const resolveWithAgent = async (
 
   const { ingredientId } = written;
 
-  // Generate the image for the ingredient (ONLY if the ingredient was created, not if it was matched)
-  await ctx.scheduler.runAfter(0, internal.router.ingredients.generateImageNode._internal, {
+  // Generate the image for the ingredient (ONLY if the ingredient was created, not if it was matched).
+  // Traced, so what the image costs is counted against the route that created the row.
+  await ctx.scheduleTracedAfter(0, internal.router.ingredients.generateImageNode._internal, {
     ingredientId,
     userId: ctx.userId,
   });

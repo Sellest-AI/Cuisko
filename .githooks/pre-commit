@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R8), C1–C16, tests.
+# Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R8), C1–C17, tests.
 #
 # CI runs the same command, but CI runs *after* the bad commit exists and after it has been
 # pushed. Every rule in AGENTS.md is only real because something fails when it is broken, and

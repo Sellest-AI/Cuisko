@@ -31,21 +31,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { lineOf, listFiles, parse, relative, report, ROOT, ts } from "./_lib.mjs";
-
-const CONVEX = path.join(ROOT, "convex");
+import { closureOf, CONVEX, exportsOf, PAID, referencesOf, routerFiles as listRouterFiles, startsWithAny } from "./_costs.mjs";
+import { lineOf, listFiles, parse, relative, report } from "./_lib.mjs";
 
 const GUARD = "convex/functions/rateLimits/enforceRateLimit.ts";
-
-/** What a model, a page fetch or an upload costs. A file under any of these is a call out, or the agent that makes them. */
-const PAID = [
-  "convex/agent/",
-  "convex/lib/typesafe/",
-  "convex/lib/replicate/",
-  "convex/lib/runpod/",
-  // Fetches a page the cook named: our bandwidth, and a small SSRF-shaped surface (`fetchPage`).
-  "convex/lib/scraping/",
-];
 
 /** `PAID`, and the storage a cook can fill. Deleting from it is not a cost, so it is not in `PAID`. */
 const VENDORS = [...PAID, "convex/lib/s3/", "convex/lib/media/"];
@@ -59,139 +48,18 @@ const ALLOWLIST = new Map([
   ["convex/router/assistant/listMessages.ts", "reads a thread; never calls the model"],
 ]);
 
-const _candidates = (base) => [`${base}.ts`, path.join(base, "index.ts"), base];
-
-/** The file a value import resolves to inside `convex/`, or `undefined` for a package or another tree. */
-const _resolve = (from, specifier) => {
-  const base = specifier.startsWith("@convex/")
-    ? path.join(CONVEX, specifier.slice("@convex/".length))
-    : specifier.startsWith(".")
-      ? path.resolve(path.dirname(from), specifier)
-      : undefined;
-
-  return base && _candidates(base).find((file) => file.endsWith(".ts") && existsSync(file));
-};
-
-const _importsCache = new Map();
-
-/** The files this one imports at runtime. `import type` is erased, so it reaches nothing. */
-const _importsOf = (file) => {
-  if (_importsCache.has(file)) return _importsCache.get(file);
-
-  const found = [];
-  for (const statement of parse(file).statements) {
-    const isImport = ts.isImportDeclaration(statement);
-    const isReexport = ts.isExportDeclaration(statement) && !statement.isTypeOnly;
-    if (!isImport && !isReexport) continue;
-    if (isImport && statement.importClause?.isTypeOnly) continue;
-    if (!statement.moduleSpecifier || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
-
-    const target = _resolve(file, statement.moduleSpecifier.text);
-    if (target) found.push(target);
-  }
-
-  _importsCache.set(file, found);
-  return found;
-};
-
-/** Every file reachable from `entry` by imports, `entry` included. */
-const _closureOf = (entry) => {
-  const seen = new Set([entry]);
-  const queue = [entry];
-  while (queue.length > 0) {
-    for (const next of _importsOf(queue.pop())) {
-      if (seen.has(next)) continue;
-      seen.add(next);
-      queue.push(next);
-    }
-  }
-
-  return seen;
-};
-
-/** `a.b.c` → `["a", "b", "c"]`, or `null` when any link is not a plain identifier. */
-const _dottedChain = (node) => {
-  if (ts.isIdentifier(node)) return [node.text];
-  if (!ts.isPropertyAccessExpression(node)) return null;
-
-  const head = _dottedChain(node.expression);
-  return head ? [...head, node.name.text] : null;
-};
-
-const _referencesCache = new Map();
-
-/**
- * The exports this file calls through a Convex reference, as `{ file, exportName, node }`.
- *
- * `internal.router.recipes.importOneNode._internal` is a path in a string-keyed object, not an
- * import. It names a module by its path, then an export, so it is resolved the way the platform does:
- * the longest prefix of the chain that is a file under `convex/`, and the segment after it.
- */
-const _referencesOf = (file) => {
-  if (_referencesCache.has(file)) return _referencesCache.get(file);
-
-  const found = [];
-  const visit = (node) => {
-    const isOutermost = !node.parent || !(ts.isPropertyAccessExpression(node.parent) && node.parent.expression === node);
-    if (ts.isPropertyAccessExpression(node) && isOutermost) {
-      const chain = _dottedChain(node);
-      if (chain && (chain[0] === "internal" || chain[0] === "api")) {
-        const segments = chain.slice(1);
-        for (let length = segments.length - 1; length >= 1; length--) {
-          const target = `${path.join(CONVEX, ...segments.slice(0, length))}.ts`;
-          if (!existsSync(target)) continue;
-
-          found.push({ file: target, exportName: segments[length], node });
-          break;
-        }
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  };
-  visit(parse(file));
-
-  _referencesCache.set(file, found);
-  return found;
-};
-
-const _isExported = (statement) =>
-  statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false;
-
-/** The exported `const` declarations of a file: `{ name, statement, isCostly }`. */
-const _exportsOf = (file) =>
-  parse(file).statements.flatMap((statement) =>
-    ts.isVariableStatement(statement) && _isExported(statement)
-      ? statement.declarationList.declarations
-          .filter((declaration) => ts.isIdentifier(declaration.name))
-          .map((declaration) => ({
-            name: declaration.name.text,
-            statement,
-            isAction:
-              declaration.initializer !== undefined &&
-              ts.isCallExpression(declaration.initializer) &&
-              ts.isIdentifier(declaration.initializer.expression) &&
-              declaration.initializer.expression.text === "internalAction",
-            isCostly: ts.getJSDocTags(statement).some((tag) => tag.tagName.text === "costly"),
-          }))
-      : [],
-  );
-
-const _startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
-
 const findings = [];
 
-const ROUTER = path.join(CONVEX, "router");
-const routerFiles = listFiles(ROUTER).filter((file) => !file.endsWith(".test.ts"));
+const routerFiles = listRouterFiles();
 
 /** Rule 3: a paid `internalAction` says so, so rule 2 can see it. */
 const costly = new Set();
 for (const file of routerFiles) {
   const name = relative(file);
-  const imported = [..._closureOf(file)].map(relative);
-  const reachesPaid = imported.some((reached) => _startsWithAny(reached, PAID));
+  const imported = [...closureOf(file)].map(relative);
+  const reachesPaid = imported.some((reached) => startsWithAny(reached, PAID));
 
-  for (const { name: exportName, statement, isAction, isCostly } of _exportsOf(file)) {
+  for (const { name: exportName, statement, isAction, isCostly } of exportsOf(file)) {
     if (isCostly) costly.add(`${name}#${exportName}`);
     if (!isAction || isCostly || !reachesPaid) continue;
 
@@ -206,22 +74,22 @@ for (const file of routerFiles) {
 
 for (const file of routerFiles) {
   const source = parse(file);
-  const entry = _exportsOf(file).find(({ name }) => name === "authed" || name === "admin");
+  const entry = exportsOf(file).find(({ name }) => name === "authed" || name === "admin");
   if (!entry) continue;
 
   const name = relative(file);
   if (ALLOWLIST.has(name)) continue;
 
-  const closure = [..._closureOf(file)];
+  const closure = [...closureOf(file)];
   const imported = closure.map(relative);
   if (imported.includes(GUARD)) continue;
 
   /* Rule 1: it imports a cost. */
-  const vendor = imported.find((reached) => _startsWithAny(reached, VENDORS));
+  const vendor = imported.find((reached) => startsWithAny(reached, VENDORS));
 
   /* Rule 2: it references a `@costly` action. */
   const reference = closure
-    .flatMap((reached) => _referencesOf(reached))
+    .flatMap((reached) => referencesOf(reached))
     .find(({ file: target, exportName }) => costly.has(`${relative(target)}#${exportName}`));
 
   if (!vendor && !reference) continue;

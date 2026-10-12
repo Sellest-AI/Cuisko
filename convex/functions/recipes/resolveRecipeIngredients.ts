@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { gradesIn, searchTerms } from "@shared/ingredientMatch";
 import type { FatUse, RecipeUnit } from "@shared/ingredients";
@@ -48,7 +48,7 @@ export type ResolvedLinks = {
  * model call, attributed to the cook who paid for it when there is one. The import path has none,
  * so the field is optional and `wrapAgent` supplies the component's fallback.
  */
-type ResolveCtx = ActionCtx & { userId?: Id<"users"> };
+type ResolveCtx = TracedActionCtx & { userId?: Id<"users"> };
 
 /** Walks in flight. The cook is watching a progress ring, and each walk can cost two API fetches. */
 const RESOLVE_CONCURRENCY = 10;

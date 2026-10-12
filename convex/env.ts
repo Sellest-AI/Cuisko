@@ -43,6 +43,16 @@ const schema = z.object({
   S3_APP_KEY_ID: z.string().min(1),
   S3_APP_KEY: z.string().min(1),
   S3_DEFAULT_BUCKET: z.string().min(1),
+  /**
+   * PostHog, read by the `@posthog/convex` component through the binding in `convex.config.ts`,
+   * never by our code. Validated here anyway: the component returns silently when its token is
+   * missing, so a deployment without it would lose every cost event and report nothing.
+   * The project token is public by design (the app ships the same one).
+   * `npx convex env set POSTHOG_PROJECT_TOKEN phc_...`
+   */
+  POSTHOG_PROJECT_TOKEN: z.string().startsWith("phc_"),
+  /** `https://eu.i.posthog.com`: the project lives in the EU region, like the app's client. */
+  POSTHOG_HOST: z.url(),
 });
 
 const parsed = schema.safeParse({
@@ -61,6 +71,9 @@ const parsed = schema.safeParse({
   // Google
   AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
+  // PostHog
+  POSTHOG_PROJECT_TOKEN: process.env.POSTHOG_PROJECT_TOKEN,
+  POSTHOG_HOST: process.env.POSTHOG_HOST,
 });
 
 if (!parsed.success) {

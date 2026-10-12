@@ -2,7 +2,7 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { extractVideoRecipe } from "@convex/agent/tools/extractVideoRecipe";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
 import { resolveRecipeIngredients, type RecipeLink } from "./resolveRecipeIngredients";
@@ -27,7 +27,7 @@ type Args = {
  * Node runtime only, through the tool, which may download the video (`extractVideoRecipe`).
  */
 export const generateRecipeFromVideo = async (
-  ctx: ActionCtx & { userId?: Id<"users"> },
+  ctx: TracedActionCtx & { userId?: Id<"users"> },
   { locale, caption, videoUrl, videoHeaders }: Args,
 ): Promise<{ recipe: SanitizedRecipe; links: RecipeLink[] }> => {
   const recipe = await extractVideoRecipe.run(ctx, { locale, caption, videoUrl, videoHeaders });

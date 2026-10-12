@@ -1,3 +1,4 @@
+import type { ToolCtx } from "@convex-dev/agent";
 import * as z from "zod/v4";
 
 import type { IngredientFacts } from "@convex/functions/ingredients/ingredientRow";
@@ -646,7 +647,7 @@ export const sanitizeIngredient = createTool({
     "Decide what a shopper's unrecognised food term is: a new ingredient worth adding — with its " +
     "names, vocabulary and per-100g nutrition — or something that is not an ingredient at all.",
   inputSchema: _inputSchema,
-  execute: async (ctx, args): Promise<SanitizedIngredient> =>
+  execute: async (ctx: ToolCtx, args): Promise<SanitizedIngredient> =>
     // **The parse is INSIDE the retry, and that is the point of the closure.** `facts` is nullable
     // outbound, so `{ verdict: "ingredient", facts: null }` satisfies the schema the model
     // generated against — `maxRetries` never sees a failure, because by the provider's reckoning

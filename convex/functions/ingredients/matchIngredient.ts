@@ -4,6 +4,7 @@ import {
   type ChoiceQuestion,
   type NoulAnswer,
   type NoulQuestion,
+  type ReportUsage,
 } from "@convex/lib/typesafe/ask";
 import { retryPromise } from "@shared/helpers";
 import { LANGUAGE_NAMES, SUPPORTED_LOCALES, type Locale } from "@shared/translations";
@@ -48,6 +49,11 @@ type Input<C extends Candidate> = {
   locale: Locale;
   candidates: readonly C[];
   dictionary?: Dictionary;
+  /**
+   * Handed each call's usage, for the action that asked to record against its trace. Never part of
+   * what Jev reads: `matchState` picks its fields by name.
+   */
+  report?: ReportUsage;
 };
 
 /**
@@ -265,7 +271,7 @@ export const judgeMatch = async (input: Input<Candidate>): Promise<ChoiceAnswer<
     },
   };
 
-  const { match } = await askTypeSafe(matchState(input), { match: question });
+  const { match } = await askTypeSafe(matchState(input), { match: question }, input.report);
 
   return match;
 };
@@ -302,7 +308,7 @@ export const judgeAlias = async (
   input: Omit<Input<Candidate>, "candidates">,
   matched: string,
 ): Promise<NoulAnswer> => {
-  const { alias } = await askTypeSafe(matchState(input), { alias: _aliasQuestion(matched) });
+  const { alias } = await askTypeSafe(matchState(input), { alias: _aliasQuestion(matched) }, input.report);
 
   return alias;
 };

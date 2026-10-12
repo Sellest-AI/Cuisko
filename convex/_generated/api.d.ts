@@ -186,6 +186,7 @@ import type * as functions_recipes_toModelRecipe from "../functions/recipes/toMo
 import type * as functions_recipes_updateRecipe from "../functions/recipes/updateRecipe.js";
 import type * as functions_recipes_uploadRestoredImages from "../functions/recipes/uploadRestoredImages.js";
 import type * as functions_recipes_verifyAgainstSource from "../functions/recipes/verifyAgainstSource.js";
+import type * as functions_tracing_recordGeneration from "../functions/tracing/recordGeneration.js";
 import type * as functions_users_clearDeletion from "../functions/users/clearDeletion.js";
 import type * as functions_users_deleteSignIns from "../functions/users/deleteSignIns.js";
 import type * as functions_users_isAuthorized from "../functions/users/isAuthorized.js";
@@ -202,6 +203,7 @@ import type * as lib_media_node from "../lib/media/node.js";
 import type * as lib_nanoid from "../lib/nanoid.js";
 import type * as lib_openrouter_transcribe from "../lib/openrouter/transcribe.js";
 import type * as lib_path from "../lib/path.js";
+import type * as lib_posthog_client from "../lib/posthog/client.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_replicate_node from "../lib/replicate/node.js";
 import type * as lib_replicate_utils from "../lib/replicate/utils.js";
@@ -317,6 +319,7 @@ import type * as schema_planningPayloads from "../schema/planningPayloads.js";
 import type * as schema_preferences from "../schema/preferences.js";
 import type * as schema_recipePayloads from "../schema/recipePayloads.js";
 import type * as schema_recipes from "../schema/recipes.js";
+import type * as schema_tracing from "../schema/tracing.js";
 import type * as schema_users from "../schema/users.js";
 
 import type {
@@ -504,6 +507,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/updateRecipe": typeof functions_recipes_updateRecipe;
   "functions/recipes/uploadRestoredImages": typeof functions_recipes_uploadRestoredImages;
   "functions/recipes/verifyAgainstSource": typeof functions_recipes_verifyAgainstSource;
+  "functions/tracing/recordGeneration": typeof functions_tracing_recordGeneration;
   "functions/users/clearDeletion": typeof functions_users_clearDeletion;
   "functions/users/deleteSignIns": typeof functions_users_deleteSignIns;
   "functions/users/isAuthorized": typeof functions_users_isAuthorized;
@@ -520,6 +524,7 @@ declare const fullApi: ApiFromModules<{
   "lib/nanoid": typeof lib_nanoid;
   "lib/openrouter/transcribe": typeof lib_openrouter_transcribe;
   "lib/path": typeof lib_path;
+  "lib/posthog/client": typeof lib_posthog_client;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/replicate/node": typeof lib_replicate_node;
   "lib/replicate/utils": typeof lib_replicate_utils;
@@ -635,6 +640,7 @@ declare const fullApi: ApiFromModules<{
   "schema/preferences": typeof schema_preferences;
   "schema/recipePayloads": typeof schema_recipePayloads;
   "schema/recipes": typeof schema_recipes;
+  "schema/tracing": typeof schema_tracing;
   "schema/users": typeof schema_users;
 }>;
 
@@ -668,4 +674,5 @@ export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;
 };

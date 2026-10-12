@@ -30,6 +30,7 @@ import { v } from "convex/values";
  * folding the write in here would mean inventing both.
  */
 export const authed = authActionI18n({
+  trace: "ingredients/resolve",
   args: { text: v.string() },
   handler: (ctx, { text }): Promise<ResolvedIngredient> =>
     withRateLimit(ctx, "ingredientResolve", () => resolveIngredient(ctx, { text, locale: ctx.i18n.locale })),

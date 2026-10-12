@@ -5,12 +5,12 @@ import { generateRecipe } from "@convex/functions/recipes/generateRecipe";
 import { replaceRecipeImages } from "@convex/functions/recipes/recipeImages";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
 import { isSocialVideoLink } from "@convex/lib/socialVideo/sources";
-import { type ActionCtx, authActionI18n, internalAction, internalMutation } from "@convex/procedures";
+import { authActionI18n, internalAction, internalMutation, type TracedActionCtx } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
 import { vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { type ObjectType, v } from "convex/values";
 
-type Context = ActionCtx & { userId?: Id<"users">; i18n: { locale: Locale } };
+type Context = TracedActionCtx & { userId?: Id<"users">; i18n: { locale: Locale } };
 
 type Args = ObjectType<typeof sharedArgs>;
 

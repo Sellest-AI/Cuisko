@@ -76,6 +76,8 @@ const CONVEX_TEST_ENV = {
   S3_APP_KEY_ID: "test-s3-app-key-id",
   S3_APP_KEY: "test-s3-app-key",
   S3_DEFAULT_BUCKET: "cuisko-test",
+  POSTHOG_PROJECT_TOKEN: "phc_test-posthog-project-token",
+  POSTHOG_HOST: "https://posthog.test.invalid",
 } as const;
 
 /**
@@ -148,7 +150,7 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C16 scripts, which had no runner at all until this project existed, and the
+       * The C1-C17 scripts, which had no runner at all until this project existed, and the
        * scripts under `scripts/database/` that talk to a deployment.
        *
        * Plain node: nothing here needs a DOM or the Convex runtime. The checks' tests spawn the real

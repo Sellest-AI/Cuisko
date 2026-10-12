@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { sanitizeRecipe, type SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
 import { resolveRecipeIngredients, type RecipeLink } from "./resolveRecipeIngredients";
@@ -29,7 +29,7 @@ type Args = {
  * rounded it is overwritten rather than trusted.
  */
 export const generateRecipe = async (
-  ctx: ActionCtx & { userId?: Id<"users"> },
+  ctx: TracedActionCtx & { userId?: Id<"users"> },
   { locale, title, description, servings, ingredients, instructions }: Args,
 ): Promise<{ recipe: SanitizedRecipe; links: RecipeLink[] }> => {
   const sanitized = await sanitizeRecipe.run(ctx, {

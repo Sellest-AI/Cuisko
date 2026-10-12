@@ -1,7 +1,7 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { verifyRecipe } from "@convex/agent/tools/verifyRecipe";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
 import type { RecipeDetail } from "./loadRecipe";
@@ -41,7 +41,7 @@ export type Verification =
  * `regenerateRecipe` writes out: a line that linked before answers from the catalog's first step.
  */
 export const verifyAgainstSource = async (
-  ctx: ActionCtx & { userId?: Id<"users"> },
+  ctx: TracedActionCtx & { userId?: Id<"users"> },
   { stored, url, locale }: Args,
 ): Promise<Verification> => {
   const { corrections, recipe } = await verifyRecipe.run(ctx, {

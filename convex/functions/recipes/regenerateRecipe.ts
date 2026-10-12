@@ -1,6 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { sanitizeRecipe, type SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx, AppUser } from "@convex/procedures";
+import type { AppUser, TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
 import { enforceRateLimit } from "../rateLimits/enforceRateLimit";
@@ -60,7 +60,7 @@ type Regenerated = {
  * linked, which no reuse could have covered either.
  */
 export const regenerateRecipe = async (
-  ctx: ActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role"> },
+  ctx: TracedActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role"> },
   { edit, stored, locale }: Args,
 ): Promise<Regenerated> => {
   // Every save, not only the ones that reach the agent: each one re-resolves every ingredient line,

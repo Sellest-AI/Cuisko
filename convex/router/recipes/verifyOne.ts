@@ -2,11 +2,11 @@ import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { enforceRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { verifyAgainstSource } from "@convex/functions/recipes/verifyAgainstSource";
-import { type ActionCtx, type AppUser, adminActionI18n } from "@convex/procedures";
+import { type AppUser, adminActionI18n, type TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
-type Context = ActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role">; i18n: { locale: Locale } };
+type Context = TracedActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role">; i18n: { locale: Locale } };
 
 const vOutcome = v.union(
   v.object({ verdict: v.literal("unchanged") }),
