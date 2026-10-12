@@ -1,5 +1,6 @@
 "use node"
 import { addBase64Header, addImageBackground, bufferToBase64, compressImageAuto, convertImage } from "@convex/lib/media/node";
+import type { ReportRun } from "@convex/lib/costRates";
 import { getClosestAspectRatio } from "@shared/dimensions";
 import Replicate from "replicate";
 import { env } from "../../env";
@@ -84,7 +85,12 @@ type RunImageParams = {
   promptUpsampling?: boolean;
 })
 
-export const runImage = (params: RunImageParams) => {
+/**
+ * One image from Replicate. `report` is handed the run's billed seconds once it has an output:
+ * `run` only exposes them through its progress callback, which sees each state of the prediction,
+ * the last one carrying `metrics.predict_time`.
+ */
+export const runImage = async (params: RunImageParams, report?: ReportRun) => {
   const { width, height, prompt, model } = params;
 
   const zImageParams = model === "prunaai/z-image-turbo" ? {
@@ -103,13 +109,26 @@ export const runImage = (params: RunImageParams) => {
     thinking: "very low",
   } : {}
 
-  return replicate.run(model, {
-    input: {
-      ...zImageParams,
-      ...pImageParams,
-      prompt,
-      width,
-      height,
-    }
-  })
+  const startedAt = Date.now();
+  let seconds: number | undefined;
+
+  const output = await replicate.run(
+    model,
+    {
+      input: {
+        ...zImageParams,
+        ...pImageParams,
+        prompt,
+        width,
+        height,
+      }
+    },
+    (prediction) => {
+      seconds = prediction.metrics?.predict_time ?? seconds;
+    },
+  );
+
+  await report?.({ model, seconds, latencyMs: Date.now() - startedAt });
+
+  return output;
 }

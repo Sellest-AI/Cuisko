@@ -21,6 +21,7 @@ import { internal } from "@convex/_generated/api";
 
 import { candidatesFor, classifyPages, parseRecipePage, recipeSitemapsOf, recipeUrlsOf } from "./_lib/bbcGoodFood";
 import { connectAdmin } from "../_lib/convexAdmin";
+import { scriptTrace } from "../_lib/scriptTrace";
 import {
   ASKED_CUISINES,
   avoidFor,
@@ -160,6 +161,7 @@ const main = async () => {
       cuisine,
       count: DISHES_PER_ASK,
       avoid: avoidFor(ledger, cuisine),
+      __trace: scriptTrace("seed/catalog"),
     });
     // The agent is told to avoid these, and does not always listen.
     const fresh = dishes.filter(({ name }) => !ledger.dishes[dishKeyOf(name)]);
@@ -208,6 +210,7 @@ const main = async () => {
       const recipeId = await admin.action(internal.router.recipes.importOne._internal, {
         url,
         locale: source === "bbcgoodfood" ? "en" : "fr",
+        __trace: scriptTrace("seed/catalog"),
       });
       recordImport(ledger, url, { deployment: admin.deployment, recipeId, at: now() });
       run.imported++;

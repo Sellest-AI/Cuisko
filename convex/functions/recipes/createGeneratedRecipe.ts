@@ -1,7 +1,7 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
-import type { ActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 
 import type { RecipeLink } from "./resolveRecipeIngredients";
@@ -24,7 +24,7 @@ type Args = {
  * the other languages and the photos arrive on the screen they are already looking at.
  */
 export const createGeneratedRecipe = async (
-  ctx: ActionCtx,
+  ctx: TracedActionCtx,
   { userId, locale, recipe, links, sourceUrl }: Args,
 ): Promise<Id<"recipes">> => {
   const recipeId = await ctx.runMutation(internal.router.recipes.createOne._internal_persist, {
@@ -35,12 +35,12 @@ export const createGeneratedRecipe = async (
     sourceUrl,
   });
 
-  await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
+  await ctx.scheduleTracedAfter(0, internal.router.recipes.translateOne._internal, {
     recipeId,
     sourceLocale: locale,
   });
 
-  await ctx.scheduler.runAfter(0, internal.router.recipes.generateImages._internal, { recipeId, userId });
+  await ctx.scheduleTracedAfter(0, internal.router.recipes.generateImages._internal, { recipeId, userId });
 
   return recipeId;
 };

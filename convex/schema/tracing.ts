@@ -17,8 +17,13 @@ export const OPERATIONS = [
   "recipes/createOne",
   "recipes/importOne",
   "recipes/importVideo",
+  "recipes/updateOne",
   "recipes/verifyOne",
-  "recipes/regenerateRecipe",
+  // Not routes: the scripts under `scripts/database/` reach paid internal actions directly and
+  // pass these themselves (`scriptTrace`), so a seed's cost is never filed under a cook's import.
+  "seed/catalog",
+  "restore/catalog",
+  "restore/ingredients",
 ] as const;
 
 export type Operation = (typeof OPERATIONS)[number];

@@ -1,5 +1,6 @@
 "use node"
 import { env } from "@convex/env";
+import type { ReportRun } from "@convex/lib/costRates";
 import runpodSdk from "runpod-sdk";
 import * as z from "zod/v4";
 
@@ -27,15 +28,27 @@ const outputSchema = z.object({
 
 type Output = z.infer<typeof outputSchema>;
 
-export const removeBackground = async (url: string): Promise<Output> => {
+/**
+ * `report` is handed the run's billed time before the output is checked: a worker that answers
+ * unusably was still paid for. RunPod reports `executionTime` in milliseconds.
+ */
+export const removeBackground = async (url: string, report?: ReportRun): Promise<Output> => {
   if (!endpoint) throw new Error("RunPod endpoint not found");
 
+  const startedAt = Date.now();
   const result = await endpoint.runSync({
     input: {
       image_url: url,
       // image_data_url: base64,
     }
   })
+
+  const executionMs = result && "executionTime" in result ? result.executionTime : undefined;
+  await report?.({
+    model: "runpod/removeBackground",
+    seconds: executionMs === undefined ? undefined : executionMs / 1000,
+    latencyMs: Date.now() - startedAt,
+  });
 
   const parsed = outputSchema.safeParse(result?.output);
   if (!parsed.success)

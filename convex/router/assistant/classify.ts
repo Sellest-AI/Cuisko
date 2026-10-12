@@ -1,5 +1,6 @@
 import { classifyIntent } from "@convex/functions/assistant/classifyIntent";
 import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
+import { traceOpenRouter } from "@convex/functions/tracing/recordGeneration";
 import { authActionI18n } from "@convex/procedures";
 import { vIntent } from "@convex/schema/assistantPayloads";
 import { type Infer, v } from "convex/values";
@@ -22,8 +23,11 @@ import { type Infer, v } from "convex/values";
  * to the union it mirrors — see `schema/assistantPayloads.ts`.
  */
 export const authed = authActionI18n({
+  trace: "assistant/classify",
   args: { text: v.string() },
   returns: vIntent,
   handler: (ctx, { text }): Promise<Infer<typeof vIntent>> =>
-    withRateLimit(ctx, "assistantClassify", () => classifyIntent({ text, locale: ctx.i18n.locale })),
+    withRateLimit(ctx, "assistantClassify", () =>
+      classifyIntent({ text, locale: ctx.i18n.locale, report: traceOpenRouter(ctx, "jev.intent") }),
+    ),
 });

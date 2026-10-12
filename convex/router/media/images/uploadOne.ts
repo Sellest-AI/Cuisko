@@ -5,11 +5,12 @@ import { authAction } from "@convex/procedures";
 import { vUploadImage } from "@convex/schema/media";
 
 export const authed = authAction({
+  trace: "media/images/uploadOne",
   args: vUploadImage.fields,
   handler: async (ctx, args): Promise<SavedImage> => {
     await enforceRateLimit(ctx, "imageUpload");
 
-    const images = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+    const images = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
       userId: ctx.userId,
       images: [args],
     })

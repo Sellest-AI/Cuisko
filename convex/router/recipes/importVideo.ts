@@ -4,11 +4,11 @@ import { type RateLimitCtx, withRateLimit } from "@convex/functions/rateLimits/e
 import { createGeneratedRecipe } from "@convex/functions/recipes/createGeneratedRecipe";
 import { findBySource } from "@convex/functions/recipes/findBySource";
 import { socialShortLinkOf, socialVideoSourceOf } from "@convex/lib/socialVideo/sources";
-import { type ActionCtx, authActionI18n, internalQuery } from "@convex/procedures";
+import { type TracedActionCtx, authActionI18n, internalQuery } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
-type Context = ActionCtx & RateLimitCtx & { i18n: { locale: Locale } };
+type Context = TracedActionCtx & RateLimitCtx & { i18n: { locale: Locale } };
 
 /** The recipe the share ended on, and whether it is the caller's own (never who else owns it, ADR 0014). */
 type Imported = { recipeId: Id<"recipes">; isOwned: boolean };
@@ -27,7 +27,7 @@ const _canonicalUrlOf = async (ctx: Context, url: string): Promise<string> => {
     throw new ConvexError({ code: "INVALID_INPUT" as const, message: "Not a video link we can import" });
   }
   return await withRateLimit(ctx, "videoLinkResolve", () =>
-    ctx.runAction(internal.router.recipes.importVideoNode._internal_resolveShortLink, { url }),
+    ctx.runTracedAction(internal.router.recipes.importVideoNode._internal_resolveShortLink, { url }),
   );
 };
 
@@ -64,7 +64,7 @@ const _import = async (ctx: Context, url: string): Promise<Imported> => {
 
   return await withRateLimit(ctx, "recipeVideoImport", async () => {
     const locale = ctx.i18n.locale;
-    const { recipe, links } = await ctx.runAction(internal.router.recipes.importVideoNode._internal, {
+    const { recipe, links } = await ctx.runTracedAction(internal.router.recipes.importVideoNode._internal, {
       url: sourceUrl,
       locale,
       userId: ctx.userId,
@@ -76,6 +76,7 @@ const _import = async (ctx: Context, url: string): Promise<Imported> => {
 };
 
 export const authed = authActionI18n({
+  trace: "recipes/importVideo",
   args: { url: v.string() },
   returns: v.object({ recipeId: v.id("recipes"), isOwned: v.boolean() }),
   handler: (ctx, { url }): Promise<Imported> => _import(ctx, url),

@@ -8,7 +8,7 @@ import { searchTerms } from "@shared/ingredientMatch";
 import { type Locale, SUPPORTED_LOCALES } from "@shared/translations";
 import { retryPromise } from "@shared/helpers";
 
-import { createTool, parseModelOutput, providerSchema, wrapAgent } from "../utils";
+import { createTool, parseModelOutput, providerSchema, wrapAgent, type TracedToolCtx } from "../utils";
 import { verifierAgent } from "../agents";
 import { VERIFY_TOOLS, verifyRecipePrompt } from "../config/prompts/verifyRecipe";
 import { modelRecipeSchema, type SanitizedRecipe, toSanitizedRecipe } from "./sanitizeRecipe";
@@ -174,8 +174,8 @@ export const verifyRecipe = createTool({
     "Scrape the page a stored recipe was imported from, check the recipe against it, and return " +
     "the corrected recipe with the list of corrections — or no recipe when nothing was wrong.",
   inputSchema: verifyRecipeInputSchema,
-  execute: async (ctx, { locale, stored, url }): Promise<RecipeVerification> => {
-    const source = await ctx.runAction(internal.router.recipes.importOneNode._internal, { url });
+  execute: async (ctx: TracedToolCtx, { locale, stored, url }): Promise<RecipeVerification> => {
+    const source = await ctx.runTracedAction(internal.router.recipes.importOneNode._internal, { url });
     const catalog = await _searchPage(ctx, { locale, ingredients: source.ingredients });
 
     const result = await retryPromise(() =>

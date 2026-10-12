@@ -1,6 +1,7 @@
 import { convexTest, type TestConvex } from "convex-test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 import { searchTextOf } from "@shared/search";
@@ -8,11 +9,19 @@ import { facetsOf } from "@shared/tags";
 
 import schema from "../../../schema";
 import { exportCatalog } from "../exportCatalog";
-import { persistRestoredRecipe } from "../persistRestoredRecipe";
 import { recipeSearchText } from "../recipeSearchText";
 import type { RecipeLink } from "../resolveRecipeIngredients";
 
 const modules = import.meta.glob("/convex/**/*.*s");
+
+/** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
+beforeAll(() =>
+  Promise.all(
+    Object.entries(modules)
+      .filter(([path]) => path.startsWith("/convex/router/recipes/restoreOne."))
+      .map(([, load]) => load()),
+  ),
+);
 
 type Deployment = TestConvex<typeof schema>;
 
@@ -100,8 +109,12 @@ const linksOnto = (recipe: PortableRecipe, ids: Id<"ingredients">[]): RecipeLink
 
 type Persist = { links?: RecipeLink[]; unmatched?: string[]; coverImageId?: Id<"images">; plateImageId?: Id<"images"> };
 
+/**
+ * Through the one mutation that calls it, so the ctx is the traced one the builder makes: the
+ * helper schedules `generateImages` with `scheduleTracedAfter`, which a bare `t.run` ctx lacks.
+ */
 const persist = (recipe: PortableRecipe, { links = [], unmatched = [], ...images }: Persist = {}) =>
-  target.run((ctx) => persistRestoredRecipe(ctx, { recipe, links, unmatched, ...images }));
+  target.mutation(internal.router.recipes.restoreOne._internal_persist, { recipe, links, unmatched, ...images });
 
 const loadRestored = (recipeId: Id<"recipes">) =>
   target.run(async (ctx) => ({

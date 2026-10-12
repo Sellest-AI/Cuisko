@@ -40,27 +40,10 @@ const ENTRY_POINTS = new Set(["anon", "authed", "admin", "server"]);
 const _isTraceable = (builder) => !!builder && /(Mutation|Action)(I18n)?$/.test(builder);
 
 /**
- * Files not traced yet, each with why. A file here is a known gap in the cost data, so the list is
- * meant to shrink to nothing; adding to it is the review.
+ * Files not traced yet, each with why, as `[path, reason]`. Empty, and meant to stay so: a file here
+ * is a known gap in the cost data, and adding one is the review.
  */
-const SLICE_5 = "traced in slice 5 of docs/plans/analytics-cost-tracking.md; until then its paid calls are logged and recorded nowhere";
-const PENDING = new Map([
-  ["convex/router/assistant/classify.ts", SLICE_5],
-  ["convex/router/assistant/sendMessage.ts", SLICE_5],
-  ["convex/router/media/images/uploadOne.ts", SLICE_5],
-  ["convex/router/recipes/createOne.ts", SLICE_5],
-  ["convex/router/recipes/importOne.ts", SLICE_5],
-  ["convex/router/recipes/importVideo.ts", SLICE_5],
-  ["convex/router/recipes/updateOne.ts", SLICE_5],
-  ["convex/router/recipes/verifyOne.ts", SLICE_5],
-  ["convex/router/recipes/generateImages.ts", SLICE_5],
-  ["convex/router/ingredients/generateImageNode.ts", SLICE_5],
-  ["convex/agent/tools/verifyRecipe.ts", SLICE_5],
-  ["convex/functions/ingredients/restoreIngredient.ts", SLICE_5],
-  ["convex/functions/recipes/createGeneratedRecipe.ts", SLICE_5],
-  ["convex/functions/recipes/persistRestoredRecipe.ts", SLICE_5],
-  ["convex/functions/recipes/restoreRecipe.ts", SLICE_5],
-]);
+const PENDING = new Map([]);
 
 const _hasTrace = (definition) =>
   !!definition?.properties.some(

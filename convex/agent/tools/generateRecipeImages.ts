@@ -1,12 +1,14 @@
 "use node"
 import z from "zod/v4";
-import { createTool, parseModelOutput, wrapAgent } from "../utils";
+import { createTool, parseModelOutput, wrapAgent, type TracedToolCtx } from "../utils";
 import { runImage } from "@convex/lib/replicate/node";
 import { parseReplicateRunOutput } from "@convex/lib/replicate/utils";
 import { imagesGeneratorAgent } from "../agents";
 import { removeBackground } from "@convex/lib/runpod/removeBackground";
 import { notEmpty } from "@shared/helpers";
 import { models } from "../config";
+import { traceRun } from "@convex/functions/tracing/recordGeneration";
+import type { ReportRun } from "@convex/lib/costRates";
 
 const _inputSchema = z.object({
   name: z.string(),
@@ -130,14 +132,14 @@ const SHOTS = {
 type Shot = (typeof SHOTS)[keyof typeof SHOTS];
 
 /** One rendered image, as a URL. Throws when the model returns nothing usable. */
-const _render = async (prompt: string, shot: Shot): Promise<string> => {
+const _render = async (prompt: string, shot: Shot, report: ReportRun): Promise<string> => {
   const output = await runImage({
     width: shot.width,
     height: shot.height,
     model: "prunaai/p-image-ideogram",
     prompt: `${prompt} ${shot.promptSuffix}`,
     promptUpsampling: shot.promptUpsampling,
-  });
+  }, report);
 
   const images = await parseReplicateRunOutput(output);
   const url = await images[0]?.toUrl();
@@ -152,9 +154,9 @@ const _render = async (prompt: string, shot: Shot): Promise<string> => {
  * Nothing rather than a throw: the cover is already rendered by the time this runs, and a failed
  * cut-out is no reason to lose it. The recipe keeps whichever plate it had, if any.
  */
-const _cutOutPlate = async (url: string) => {
+const _cutOutPlate = async (url: string, report: ReportRun) => {
   try {
-    const cutout = await removeBackground(url);
+    const cutout = await removeBackground(url, report);
     return { withBackground: url, withoutBackground: cutout.url, position: cutout.position };
   } catch (error) {
     console.warn("generateRecipeImages: plate background removal failed", error);
@@ -168,7 +170,7 @@ export const generateRecipeImages = createTool({
     "generates a landscape cover image and a top-down plate image, " +
     "and returns both generated images with the plate's background removed.",
   inputSchema: _inputSchema,
-  execute: async (ctx, args) => {
+  execute: async (ctx: TracedToolCtx, args) => {
     const rawPrompts = await wrapAgent(imagesGeneratorAgent).generateObject(ctx, {}, {
       model: models.prompterMini.model,
       providerOptions: models.prompterMini.providerOptions({ effort: "low" }),
@@ -188,8 +190,8 @@ export const generateRecipeImages = createTool({
 
     // Settled, not all: the two renders are independent, and one failing should not discard the other.
     const [cover, plate] = await Promise.allSettled([
-      _render(prompts.cover, SHOTS.cover),
-      _render(prompts.plate, SHOTS.plate),
+      _render(prompts.cover, SHOTS.cover, traceRun(ctx, "replicate.recipeCover")),
+      _render(prompts.plate, SHOTS.plate, traceRun(ctx, "replicate.recipePlate")),
     ]);
 
     if (cover.status === "rejected" && plate.status === "rejected") {
@@ -201,7 +203,7 @@ export const generateRecipeImages = createTool({
 
     return {
       coverImage: cover.status === "fulfilled" ? cover.value : undefined,
-      plateImage: plate.status === "fulfilled" ? await _cutOutPlate(plate.value) : undefined,
+      plateImage: plate.status === "fulfilled" ? await _cutOutPlate(plate.value, traceRun(ctx, "runpod.removeBackground")) : undefined,
     };
   }
 });

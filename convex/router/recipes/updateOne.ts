@@ -56,7 +56,7 @@ const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
   });
 
   if (requiresTranslation || analyzed)
-    await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
+    await ctx.scheduleTracedAfter(0, internal.router.recipes.translateOne._internal, {
       recipeId: args.recipeId,
       sourceLocale: locale,
     });
@@ -65,6 +65,7 @@ const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
 };
 
 export const authed = authActionI18n({
+  trace: "recipes/updateOne",
   args: { ...vRecipeEdit, recipeId: v.id("recipes") },
   handler: (ctx, args): Promise<Id<"recipes">> => handler(ctx, args),
 });

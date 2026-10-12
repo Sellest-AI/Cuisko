@@ -12,6 +12,7 @@ const args = {
 };
 
 export const authed = authAction({
+  trace: "media/images/uploadMany",
   args,
   handler: async (ctx, args): Promise<SavedImage[]> => {
     // A token per image, so one request cannot carry a whole batch past a limit meant for one.

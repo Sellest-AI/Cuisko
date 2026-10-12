@@ -3,7 +3,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { findCatalogBySource } from "@convex/functions/recipes/findCatalogBySource";
 import type { RecipeDraft } from "@convex/lib/scraping/toRecipeDraft";
-import { type ActionCtx, authAction, internalAction, internalQuery } from "@convex/procedures";
+import { type TracedActionCtx, authAction, internalAction, internalQuery } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";
 import { vRecipeDraft } from "@convex/schema/recipePayloads";
 import { canonicalUrlOf } from "@shared/urls";
@@ -28,7 +28,7 @@ import { ConvexError, v } from "convex/values";
  * where it already is — so a French cook importing an English page gets a French recipe with
  * nothing built for it.
  */
-const _extract = async (ctx: ActionCtx, url: string): Promise<RecipeDraft> => {
+const _extract = async (ctx: TracedActionCtx, url: string): Promise<RecipeDraft> => {
   /**
    * Validated here as well as on the screen, because a client is not a gate: this export is
    * callable without it. `INVALID_INPUT` before any fetch is also the only refusal that costs
@@ -43,12 +43,13 @@ const _extract = async (ctx: ActionCtx, url: string): Promise<RecipeDraft> => {
     throw new ConvexError({ code: "INVALID_INPUT" as const, message: "Not a web address" });
   }
 
-  const draft = await ctx.runAction(internal.router.recipes.importOneNode._internal, { url: target });
+  const draft = await ctx.runTracedAction(internal.router.recipes.importOneNode._internal, { url: target });
 
   return { ...draft, sourceUrl: target };
 };
 
 export const authed = authAction({
+  trace: "recipes/importOne",
   args: { url: v.string() },
   returns: vRecipeDraft,
   handler: (ctx, { url }): Promise<RecipeDraft> => withRateLimit(ctx, "recipeImport", () => _extract(ctx, url)),
@@ -73,7 +74,7 @@ export const _internal = internalAction({
 
     const draft = await _extract(ctx, url);
 
-    return await ctx.runAction(internal.router.recipes.createOne._internal, {
+    return await ctx.runTracedAction(internal.router.recipes.createOne._internal, {
       ...draft,
       locale,
     });

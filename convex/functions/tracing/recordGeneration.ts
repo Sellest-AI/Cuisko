@@ -1,15 +1,16 @@
 import type { UsageHandler } from "@convex-dev/agent";
 
 import { posthog } from "@convex/lib/posthog/client";
+import { estimateCostUsd, type ReportRun } from "@convex/lib/costRates";
 import type { ReportUsage } from "@convex/lib/typesafe/ask";
 import type { TracedActionCtx } from "@convex/procedures";
 
 /**
- * The ctx `recordGeneration` needs. `trace` is optional in the TYPE only so a helper typed with a
- * plain `ActionCtx` (the recipe pipeline's) can pass the ctx it holds: at run time every mutation
- * and action builder puts a `trace` on ctx, and an absent one is treated like a `null` one.
+ * The ctx `recordGeneration` needs: a scheduler to send with, and the trace to send against.
+ * Required, so a helper still typed with a plain `ActionCtx` cannot record: it has to be handed
+ * the traced ctx its action holds, which is a compile error rather than a cost recorded nowhere.
  */
-export type RecordingCtx = Pick<TracedActionCtx, "scheduler"> & { trace?: TracedActionCtx["trace"] };
+export type RecordingCtx = Pick<TracedActionCtx, "scheduler" | "trace">;
 
 /** One paid call, as the step that made it describes it. */
 export type Generation = {
@@ -82,10 +83,11 @@ export const recordGeneration = async (ctx: RecordingCtx, call: Generation): Pro
 };
 
 /**
- * A `report` for one Jev judgment, named for the step that asks it. The judge stays ctx-free and
- * hands its usage here; this is where the action's trace is attached.
+ * A `report` for one OpenRouter call that reports its own usage (a Jev judgment, a transcription),
+ * named for the step that makes it. The caller stays ctx-free and hands its usage here; this is
+ * where the action's trace is attached.
  */
-export const traceTypeSafe =
+export const traceOpenRouter =
   (ctx: RecordingCtx, span: string): ReportUsage =>
   (usage) =>
     recordGeneration(ctx, {
@@ -97,6 +99,22 @@ export const traceTypeSafe =
       costUsd: usage.costUsd,
       estimated: usage.costUsd === null,
       latencyMs: usage.latencyMs,
+    });
+
+/**
+ * A `report` for one Replicate or RunPod run, named for the step that makes it. Neither provider
+ * returns a price, so the cost is the run's billed time on `COST_RATES`, sent as `estimated`.
+ */
+export const traceRun =
+  (ctx: RecordingCtx, span: string): ReportRun =>
+  ({ model, seconds, latencyMs }) =>
+    recordGeneration(ctx, {
+      span,
+      provider: model.startsWith("runpod/") ? "runpod" : "replicate",
+      model,
+      costUsd: estimateCostUsd({ model, seconds }),
+      estimated: true,
+      latencyMs,
     });
 
 /** What OpenRouter puts in `providerMetadata` when the model asked for usage accounting. */

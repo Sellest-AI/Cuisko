@@ -1,6 +1,6 @@
 "use node"
 import z from "zod/v4";
-import { createTool, wrapAgent } from "../utils";
+import { createTool, wrapAgent, type TracedToolCtx } from "../utils";
 import { Locale, SUPPORTED_LOCALES } from "@shared/translations";
 import { CATEGORIES } from "@shared/categories";
 import { runImage } from "@convex/lib/replicate/node";
@@ -9,6 +9,7 @@ import { imagesGeneratorAgent } from "../agents";
 import { models } from "../config";
 import { removeBackground } from "@convex/lib/runpod/removeBackground";
 import { notEmpty } from "@shared/helpers";
+import { traceRun } from "@convex/functions/tracing/recordGeneration";
 
 const _perLocale = <T extends z.ZodType>(value: T) =>
   z.object(Object.fromEntries(SUPPORTED_LOCALES.map((locale) => [locale, value])) as {
@@ -207,7 +208,7 @@ export const generateIngredientImage = createTool({
     "generates a 512×512 image with appropriate packaging and recognizable details, " +
     "and returns the generated image with its background removed.",
   inputSchema: _inputSchema,
-  execute: async (ctx, args) => {
+  execute: async (ctx: TracedToolCtx, args) => {
     const prompt = await wrapAgent(imagesGeneratorAgent).generateText(ctx, {}, {
       model: models.prompterMini.model,
       providerOptions: models.prompterMini.providerOptions({ effort: false }),
@@ -230,14 +231,14 @@ export const generateIngredientImage = createTool({
         prompt.text,
         "Rendered in 3D volumetric style, photorealistic materials and textures, soft studio lighting with gentle contact shadow beneath the object, subtle glossy or matte finish depending on material, rounded volumetric proportions typical of emoji design, centered composition, isolated on a plain solid white background (#FFFFFF), no text, no watermark, no label, no extra props, no shadows on the background itself, square 1:1 aspect ratio, high-resolution product-photography quality. IMPORTANT : inanimate object only, no face, no eyes, no band wrapped around the object."
       ].join(" ")
-    })
+    }, traceRun(ctx, "replicate.ingredientImage"))
 
     const imagesWithBackground = await parseReplicateRunOutput(output);
     const imageWithBackground = (await imagesWithBackground[0]?.toUrl());
 
     if (!imageWithBackground) throw new Error("Failed to generate image");
 
-    const imageWithoutBackground = await removeBackground(imageWithBackground);
+    const imageWithoutBackground = await removeBackground(imageWithBackground, traceRun(ctx, "runpod.removeBackground"));
 
     return {
       prompt: prompt.text,

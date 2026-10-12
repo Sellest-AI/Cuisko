@@ -230,19 +230,18 @@ context is shaped for it, but nothing is built for it until a step needs to be s
       (2026-10-12, `liquide vaisselle`, refused: Jev near-miss $0.000026, Jev measured-food
       $0.000028, row writer $0.00076, one trace. OpenRouter returns `cost` on `/systemone` too, so
       Jev is billed, not estimated. C17's PENDING lists the 15 files slice 5 empties.)
-- [ ] 5. the rest of the rate-limited and `@costly` routes, Replicate / RunPod at estimated rates.
-      **Also `seed:catalog`, which reaches paid code through no route**: `import-catalog.ts` calls
-      `suggestDishes._internal` and `importOne._internal` directly. It passes its own
-      `__trace: { traceId, operation: "seed/catalog", distinctId: null }`, one `traceId` per dish,
-      rather than those actions taking a `trace:` option, which would file a cook's import under
-      the seed whenever a route forgot `runTracedAction` instead of logging the gap. (The `refreshRecipe`
-      migration is not a gap: it is a mutation and spends nothing.) From slice 4 on,
-      `resolveWithAgent` records, and `recordGeneration` only logs on a null trace: **tracing never
-      throws** (decided 2026-10-12, reversing the throw agreed earlier that day, because a throw
-      after a billed Jev call was retried, paying twice, or swallowed, dropping the judged figures).
-      Until this slice lands, the recipe imports and the seed work but are recorded nowhere. Every agent tool
-      (`sanitizeRecipe`, `translateRecipe`, …) already records through `wrapAgent`, so this slice
-      edits routes and hops, never a tool.
+- [x] 5. the rest of the rate-limited and `@costly` routes, Replicate / RunPod at estimated rates.
+      C17's PENDING is empty. Eight routes start a trace, every hop to a `@costly` action is traced,
+      and the chat's own `streamText` records through `traceUsageHandler`. Replicate, RunPod and
+      the transcription take an optional `report`, like Jev: `traceRun` prices a run on
+      `lib/costRates.ts` (estimated), `traceOpenRouter` sends OpenRouter's own cost. The three
+      scripts under `scripts/database/` that reach paid internals pass `scriptTrace(…)` as
+      `__trace` (`seed/catalog`, `restore/catalog`, `restore/ingredients`), one trace per call.
+      `RecordingCtx.trace` is required and every tool that spends declares `TracedToolCtx`, so an
+      untraced ctx is a compile error. `recipes/regenerateRecipe` became `recipes/updateOne`, the
+      route it runs under. The rates in `costRates.ts` were read off the Replicate and RunPod
+      dashboards on 2026-10-12: an ingredient icon $0.00066, a recipe render $0.003, a RunPod
+      cut-out $0.60 an hour (16 GB first, 24 GB as fallback).
 - [ ] 6. ADR 0019, plus its row in `docs/adr/README.md` and "(ADR 0019)" on C17's row of the
       enforcement table in `docs/ARCHITECTURE.md`
 - [ ] 7. app: screen tracking, identify / reset

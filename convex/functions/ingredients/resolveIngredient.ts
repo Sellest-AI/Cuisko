@@ -1,7 +1,7 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { sanitizeIngredient } from "@convex/agent/tools/sanitizeIngredient";
-import { traceTypeSafe } from "@convex/functions/tracing/recordGeneration";
+import { traceOpenRouter } from "@convex/functions/tracing/recordGeneration";
 import type { ActionCtx, TracedActionCtx } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { CONFIDENT, gradesIn, MARGIN } from "@shared/ingredientMatch";
@@ -301,7 +301,7 @@ export const resolveWithAgent = async (
 
   // Each paid call below is recorded against the trace ctx carries, under the step that made it.
   // The judges and the tool only hand their usage back; this action is what holds the trace.
-  const recorded = (span: string) => ({ ...asked, report: traceTypeSafe(ctx, span) });
+  const recorded = (span: string) => ({ ...asked, report: traceOpenRouter(ctx, span) });
 
   // **Cheapest first, and the first may end it.** A near-miss the catalog search declined on its
   // score alone is exactly what a threshold cannot settle ("courgette" vs "courge"), and Jev is

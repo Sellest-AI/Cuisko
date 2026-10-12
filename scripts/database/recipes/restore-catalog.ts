@@ -21,6 +21,7 @@ import type { RestoredPhotos } from "@convex/schema/recipePayloads";
 
 import { type UnpackedRecipe, unpackArchive } from "./_lib/archive";
 import { connectAdmin } from "../_lib/convexAdmin";
+import { scriptTrace } from "../_lib/scriptTrace";
 import { readLedger, recordImport, writeLedger } from "./_lib/ledger";
 
 const LEDGER_FILE = path.join(__dirname, "catalog.ledger.json");
@@ -78,7 +79,11 @@ const main = async () => {
         : null;
       restored = existingId
         ? { recipeId: existingId, created: false, unmatched: [] }
-        : await admin.action(internal.router.recipes.restoreOne._internal, { recipe, photos: _photosOf(unpacked) });
+        : await admin.action(internal.router.recipes.restoreOne._internal, {
+            recipe,
+            photos: _photosOf(unpacked),
+            __trace: scriptTrace("restore/catalog"),
+          });
     } catch (error) {
       // One recipe that fails does not stop the zip: the rest land, and a re-run retries this one.
       run.failed++;

@@ -4,10 +4,12 @@ import { ConvexError } from "convex/values";
 import * as z from "zod/v4";
 
 import { SUPPORTED_LOCALES } from "@shared/translations";
+import { traceOpenRouter } from "@convex/functions/tracing/recordGeneration";
 import { transcribe } from "@convex/lib/openrouter/transcribe";
+import type { ReportUsage } from "@convex/lib/typesafe/ask";
 import { httpsDownloadVideo } from "@convex/lib/socialVideo/httpsGet";
 
-import { createTool, providerSchema, wrapAgent } from "../utils";
+import { createTool, providerSchema, wrapAgent, type TracedToolCtx } from "../utils";
 import { videoRecipesAgent } from "../agents";
 import { extractVideoRecipePrompt } from "../config/prompts/extractVideoRecipe";
 import { modelRecipeSchema, type SanitizedRecipe, toSanitizedRecipe } from "./sanitizeRecipe";
@@ -119,9 +121,12 @@ export const fetchVideo = async ({
  * (a time said aloud that the caption gets wrong); without it the model still has the frames and
  * the caption, as before transcripts existed, so a failure here never fails the import.
  */
-export const transcriptOf = async ({ base64, mediaType }: FetchedVideo): Promise<string | null> => {
+export const transcriptOf = async (
+  { base64, mediaType }: FetchedVideo,
+  report?: ReportUsage,
+): Promise<string | null> => {
   try {
-    return await transcribe({ base64, mediaType });
+    return await transcribe({ base64, mediaType, report });
   } catch (error) {
     console.warn("extractVideoRecipe: transcription failed, importing without it", error);
     return null;
@@ -185,10 +190,10 @@ export const extractVideoRecipe = createTool({
     "Watch a cooking video, listen to it and read its caption, and return the complete structured " +
     "recipe it teaches. Returns ingredient names, not catalog ids.",
   inputSchema: _inputSchema,
-  execute: async (ctx, { locale, caption, videoUrl, videoHeaders }): Promise<SanitizedRecipe> => {
+  execute: async (ctx: TracedToolCtx, { locale, caption, videoUrl, videoHeaders }): Promise<SanitizedRecipe> => {
     const video = await fetchVideo({ videoUrl, videoHeaders });
     // GLM cannot hear the video. Drop the transcript once `models.videoRecipes` takes audio input.
-    const transcript = await transcriptOf(video);
+    const transcript = await transcriptOf(video, traceOpenRouter(ctx, "transcribe"));
 
     const result = await wrapAgent(videoRecipesAgent).generateObject(
       ctx,

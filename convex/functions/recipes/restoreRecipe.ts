@@ -1,6 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { ActionCtx, TracedActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { PortableRecipe, RestoredPhotos } from "@convex/schema/recipePayloads";
 
 import { type RecipeLink, resolveRecipeIngredients } from "./resolveRecipeIngredients";
@@ -27,8 +27,8 @@ export type RestoredRecipe = {
 const RESOLVE_LOCALE = "fr";
 
 /** One photo through `uploadMany`, which takes a batch and is handed a batch of one. */
-const _uploadOne = async (ctx: ActionCtx, image: ImageUpload): Promise<Id<"images">> => {
-  const [saved] = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+const _uploadOne = async (ctx: TracedActionCtx, image: ImageUpload): Promise<Id<"images">> => {
+  const [saved] = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
     userId: null,
     images: [image],
   });

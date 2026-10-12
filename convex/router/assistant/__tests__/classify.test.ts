@@ -8,6 +8,10 @@ import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
 
+/** Where a recorded call ends up. Mocked so a test can read the events and nothing is scheduled. */
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
 
@@ -44,6 +48,7 @@ beforeAll(() =>
 beforeEach(() => {
   t = convexTest(schema, modules);
   registerRateLimiter(t);
+  capture.mockReset();
 });
 
 /** What TypeSafe answers, as the transport expects to read it. */
@@ -54,9 +59,11 @@ const answering = (choice: "ingredient" | "recipe" | "request", confidence: numb
       async () =>
         new Response(
           JSON.stringify({
+            model: "typesafe/jev-1.13",
             answers: {
               intent: { type: "choice", choice, probabilities: { [choice]: confidence }, confidence },
             },
+            usage: { input_tokens: 380, output_tokens: 9, cost: 0.000027 },
           }),
         ),
     ),
@@ -102,6 +109,22 @@ describe("router/assistant/classify", () => {
     await expect(
       (await signIn()).action(api.router.assistant.classify.authed, { text: "calories pomme golden", locale: "fr" }),
     ).resolves.toEqual({ kind: "chat", reason: "model" });
+  });
+
+  /** What PostHog averages for this route: the one Jev call, billed, filed under it, for the cook. */
+  test("records the judgment it paid for under assistant/classify, for the cook", async () => {
+    answering("request", 0.94);
+    const cook = await signIn();
+
+    await cook.action(api.router.assistant.classify.authed, { text: "calories pomme golden", locale: "fr" });
+
+    const [userId] = await t.run(async (ctx) => (await ctx.db.query("users").collect()).map((user) => user._id));
+    expect(capture).toHaveBeenCalledOnce();
+    expect(capture.mock.calls[0]![1]).toMatchObject({
+      event: "$ai_generation",
+      distinctId: userId,
+      properties: { operation: "assistant/classify", $ai_span_name: "jev.intent", $ai_total_cost_usd: 0.000027 },
+    });
   });
 
   test("has no opinion when the judgment cannot be reached", async () => {

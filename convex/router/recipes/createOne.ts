@@ -46,6 +46,7 @@ const sharedArgs = {
 };
 
 export const authed = authActionI18n({
+  trace: "recipes/createOne",
   args: sharedArgs,
   handler: (ctx, args): Promise<Id<"recipes">> => withRateLimit(ctx, "recipeWrite", () => handler(ctx, args)),
 });

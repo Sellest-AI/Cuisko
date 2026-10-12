@@ -1,7 +1,7 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { scheduleImageTreeDeletion } from "@convex/functions/media/imageTree";
-import type { MutationCtx } from "@convex/procedures";
+import type { MutationCtx, TracedMutationCtx } from "@convex/procedures";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
 import { findCatalogBySource } from "./findCatalogBySource";
@@ -51,7 +51,7 @@ export const discardUploadedImages = async (ctx: MutationCtx, imageIds: (Id<"ima
  * other replaced as well; a spend taken knowingly for the rare case.
  */
 export const persistRestoredRecipe = async (
-  ctx: MutationCtx,
+  ctx: TracedMutationCtx,
   { recipe, links, unmatched, coverImageId, plateImageId }: Args,
 ): Promise<{ recipeId: Id<"recipes">; created: boolean }> => {
   const { row } = recipe;
@@ -73,7 +73,7 @@ export const persistRestoredRecipe = async (
   });
 
   if (!coverImageId || !plateImageId) {
-    await ctx.scheduler.runAfter(0, internal.router.recipes.generateImages._internal, { recipeId });
+    await ctx.scheduleTracedAfter(0, internal.router.recipes.generateImages._internal, { recipeId });
   }
 
   return { recipeId, created: true };

@@ -54,7 +54,7 @@ const handler = async (ctx: Context, { recipeId }: { recipeId: Id<"recipes"> }):
     complete,
   });
 
-  await ctx.scheduler.runAfter(0, internal.router.recipes.translateOne._internal, {
+  await ctx.scheduleTracedAfter(0, internal.router.recipes.translateOne._internal, {
     recipeId,
     sourceLocale: locale,
   });
@@ -63,6 +63,7 @@ const handler = async (ctx: Context, { recipeId }: { recipeId: Id<"recipes"> }):
 };
 
 export const admin = adminActionI18n({
+  trace: "recipes/verifyOne",
   args: { recipeId: v.id("recipes") },
   returns: vOutcome,
   handler: (ctx, args): Promise<Outcome> => handler(ctx, args),

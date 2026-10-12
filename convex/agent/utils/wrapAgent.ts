@@ -1,6 +1,18 @@
 import { Agent, ToolCtx } from "@convex-dev/agent";
 
-import { traceUsageHandler, type RecordingCtx } from "@convex/functions/tracing/recordGeneration";
+import { traceUsageHandler } from "@convex/functions/tracing/recordGeneration";
+import type { TracedActionCtx } from "@convex/procedures";
+
+/**
+ * A tool's ctx with the trace of the action that called it, and the runners to hand it on.
+ *
+ * What every tool that spends declares, because `wrapAgent` will not take less: a tool reached with
+ * an untraced ctx is a compile error, not a call recorded nowhere. At run time it is the action's
+ * own ctx either way, spread by `.run(ctx, …)` or by the agent component when a model picks the
+ * tool, so the trace is there whichever door the call came through.
+ */
+export type TracedToolCtx = ToolCtx &
+  Pick<TracedActionCtx, "trace" | "runTracedAction" | "runTracedMutation" | "scheduleTracedAfter">;
 
 /**
  * The caller the agent component is told about when nothing else identifies one.
@@ -34,12 +46,12 @@ const _threadOpts = (ctx: ToolCtx) => ({
  * nowhere is a cost in no route's average. A ctx with no trace still gets its answer:
  * `recordGeneration` logs the gap and sends nothing, and C17 is what keeps the gap from shipping.
  */
-const _recorded = <O extends { usageHandler?: unknown }>(ctx: ToolCtx, options: Omit<O, "usageHandler"> | undefined) => ({
+const _recorded = <O extends { usageHandler?: unknown }>(ctx: TracedToolCtx, options: Omit<O, "usageHandler"> | undefined) => ({
   ...options,
-  usageHandler: traceUsageHandler(ctx as ToolCtx & RecordingCtx),
+  usageHandler: traceUsageHandler(ctx),
 });
 
-type WithoutUsageHandler<P extends unknown[]> = [P[0] & ToolCtx, P[1], P[2], Omit<NonNullable<P[3]>, "usageHandler">?];
+type WithoutUsageHandler<P extends unknown[]> = [P[0] & TracedToolCtx, P[1], P[2], Omit<NonNullable<P[3]>, "usageHandler">?];
 type GenerateTextParameters = WithoutUsageHandler<Parameters<Agent["generateText"]>>;
 type GenerateObjectParameters = WithoutUsageHandler<Parameters<Agent["generateObject"]>>;
 

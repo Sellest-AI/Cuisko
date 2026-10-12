@@ -159,6 +159,9 @@ const actionRunners = (ctx: ActionCtx, trace: TraceContext | null) => ({
 /** What a traced action's handler receives on top of its builder's own ctx. */
 export type TracedActionCtx = ActionCtx & ReturnType<typeof actionRunners>;
 
+/** The same for a mutation, for a helper that schedules a paid action from one. */
+export type TracedMutationCtx = MutationCtx & ReturnType<typeof mutationRunners>;
+
 type MaybePromise<T> = T | Promise<T>;
 
 /** The shape `withI18n`, `ownedInput` and the rest already have: what the trace layer wraps. */

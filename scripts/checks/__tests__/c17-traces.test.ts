@@ -57,7 +57,7 @@ describe("a route that reaches a paid call", () => {
     expect(passed(result)).toBe(true);
   });
 
-  /** The `sendMessage` shape (renamed: the real file is in PENDING): a reference, no import of the model. */
+  /** The `sendMessage` shape, under another name so it never shadows the real file: a reference, no import of the model. */
   it("rejects a mutation that schedules a @costly action and starts no trace", () => {
     const { code, output } = runCheck(SCRIPT, {
       ...MODEL,

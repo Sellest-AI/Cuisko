@@ -53,6 +53,25 @@ describe("transcribe", () => {
     expect(await transcribe(VIDEO)).toBe("Preheat the oven to 200.  Then the pastry.");
   });
 
+  test("hands OpenRouter's own cost to `report`, for the caller to record against its trace", async () => {
+    answering({ text: "Preheat the oven to 200.", usage: { seconds: 6.4, cost: 0.0002 } });
+    const report = vi.fn();
+
+    await transcribe({ ...VIDEO, report });
+
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "openai/whisper-large-v3-turbo", costUsd: 0.0002 }),
+    );
+  });
+
+  test("a reply with no usage is reported with no cost, and still transcribed", async () => {
+    answering({ text: "Preheat the oven to 200." });
+    const report = vi.fn();
+
+    expect(await transcribe({ ...VIDEO, report })).toBe("Preheat the oven to 200.");
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({ costUsd: null }));
+  });
+
   test("throws EXTERNAL_SERVICE_ERROR on a non-200", async () => {
     answering({ error: { message: "The selected model does not support audio from a URL." } }, 400);
 

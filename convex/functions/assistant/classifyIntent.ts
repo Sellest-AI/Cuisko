@@ -1,4 +1,4 @@
-import { askTypeSafe, type ChoiceAnswer, type ChoiceQuestion } from "@convex/lib/typesafe/ask";
+import { askTypeSafe, type ChoiceAnswer, type ChoiceQuestion, type ReportUsage } from "@convex/lib/typesafe/ask";
 import type { Intent } from "@shared/inputIntent";
 import type { Locale } from "@shared/translations";
 
@@ -108,7 +108,12 @@ export const readIntentAnswer = (answer: ChoiceAnswer<Option>): Intent => {
   }
 };
 
-type Input = { text: string; locale: Locale };
+type Input = {
+  text: string;
+  locale: Locale;
+  /** Handed what the call used, for the caller to record against its trace. The bake-off passes none. */
+  report?: ReportUsage;
+};
 
 /**
  * The raw judgment, confidence and all. **Throws** on anything the transport cannot parse.
@@ -118,7 +123,7 @@ type Input = { text: string; locale: Locale };
  * about it. `__tests__/classifyIntent.manual.test.ts` needs the first — a floor cannot be set from
  * an answer that has already had the floor applied to it.
  */
-export const judgeIntent = async ({ text, locale }: Input): Promise<ChoiceAnswer<Option>> => {
+export const judgeIntent = async ({ text, locale, report }: Input): Promise<ChoiceAnswer<Option>> => {
   /**
    * Structured rather than the bare string, because what we already tried is evidence.
    *
@@ -134,7 +139,7 @@ export const judgeIntent = async ({ text, locale }: Input): Promise<ChoiceAnswer
     recipeTitles: "searched, no match",
   };
 
-  const answers = await askTypeSafe(state, { [KEY]: QUESTION });
+  const answers = await askTypeSafe(state, { [KEY]: QUESTION }, report);
 
   return answers[KEY];
 };

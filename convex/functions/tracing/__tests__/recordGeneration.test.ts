@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+import { COST_RATES } from "../../../lib/costRates";
 import type { TraceContext } from "../../../schema/tracing";
-import { recordGeneration, traceUsageHandler } from "../recordGeneration";
+import { recordGeneration, traceRun, traceUsageHandler } from "../recordGeneration";
 
 const capture = vi.hoisted(() => vi.fn());
 vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
@@ -84,6 +85,32 @@ describe("recordGeneration", () => {
     await expect(recordGeneration(ctxWith(trace), nearMiss)).resolves.toBeUndefined();
     expect(logged).toHaveBeenCalledOnce();
     logged.mockRestore();
+  });
+});
+
+describe("traceRun", () => {
+  test("a RunPod cut-out is sent as RunPod, its seconds priced at our rate and marked estimated", async () => {
+    await traceRun(ctxWith(trace), "runpod.removeBackground")({
+      model: "runpod/removeBackground",
+      seconds: 3,
+      latencyMs: 3400,
+    });
+
+    expect(sentProperties()).toMatchObject({
+      $ai_span_name: "runpod.removeBackground",
+      $ai_provider: "runpod",
+      $ai_model: "runpod/removeBackground",
+      $ai_total_cost_usd: 3 * COST_RATES["runpod/removeBackground"].perSecondUsd,
+      $ai_latency: 3.4,
+      estimated: true,
+      operation: "ingredients/resolve",
+    });
+  });
+
+  test("a Replicate render is sent as Replicate", async () => {
+    await traceRun(ctxWith(trace), "replicate.recipeCover")({ model: "prunaai/p-image-ideogram", latencyMs: 2100 });
+
+    expect(sentProperties()).toMatchObject({ $ai_provider: "replicate", estimated: true });
   });
 });
 

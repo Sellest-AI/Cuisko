@@ -1,9 +1,8 @@
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
-import type { ToolCtx } from "@convex-dev/agent";
 import z from "zod/v4";
 import { modelRecipeSchema } from "./sanitizeRecipe";
 import { type InstructionGroup, toInstructionGroups } from "@shared/recipes";
-import { createTool, parseModelOutput, providerSchema, wrapAgent } from "../utils";
+import { createTool, parseModelOutput, providerSchema, wrapAgent, type TracedToolCtx } from "../utils";
 import { retryPromise } from "@shared/helpers";
 import { translatorAgent } from "../agents";
 import { translateRecipePrompt } from "../config/prompts/translateRecipe";
@@ -209,7 +208,7 @@ type _Input<L extends Locale> = Omit<z.infer<typeof _inputSchema>, "locales"> & 
  * `["fr"]` widens to `Locale[]` at the boundary and the return type learns nothing.
  */
 const _translate = async <const L extends Locale = Locale>(
-  ctx: ToolCtx,
+  ctx: TracedToolCtx,
   args: _Input<L>,
 ): Promise<TranslatedRecipe<L>[]> => {
   // The `.min(1)` on `locales` already refuses an empty list on both doors: `createTool` parses a
@@ -243,7 +242,7 @@ const _translate = async <const L extends Locale = Locale>(
   return toTranslatedRecipes(result.object, args.locales);
 };
 
-const _tool = createTool({
+const _tool = createTool<_Input<Locale>, TranslatedRecipe<Locale>[], TracedToolCtx>({
   description:
     "Translate a structured recipe into one or more supported languages. Its ingredient list " +
     "arrives already named in every language, and the steps are written to agree with it. Returns " +

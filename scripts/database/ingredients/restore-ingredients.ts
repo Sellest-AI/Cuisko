@@ -12,6 +12,7 @@ import { internal } from "@convex/_generated/api";
 import type { RestoredIngredientImage } from "@convex/schema/ingredientPayloads";
 
 import { connectAdmin } from "../_lib/convexAdmin";
+import { scriptTrace } from "../_lib/scriptTrace";
 import { type UnpackedIngredient, unpackArchive } from "./_lib/archive";
 
 /**
@@ -49,6 +50,7 @@ const main = async () => {
       const { outcome } = await admin.action(internal.router.ingredients.restoreOne._internal, {
         ingredient: unpacked.ingredient,
         image: _imageOf(unpacked),
+        __trace: scriptTrace("restore/ingredients"),
       });
       run[outcome]++;
       if (outcome !== "existing") console.log(`  ${outcome === "created" ? "restored" : "image added to"} ${unpacked.folder}/`);

@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import * as z from "zod/v4";
 
 import { env } from "@convex/env";
+import type { ReportUsage } from "@convex/lib/typesafe/ask";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/audio/transcriptions";
 
@@ -14,7 +15,17 @@ const DEFAULT_MODEL = "openai/whisper-large-v3-turbo";
 /** A minute-long reel took 9 s. Past a minute, the import is better off without the transcript. */
 const TIMEOUT_MS = 60_000;
 
-const _responseSchema = z.object({ text: z.string() });
+/**
+ * `usage` is loose on purpose, as `ask.ts`'s is: a usage field we fail to read must not fail a
+ * transcription that came back. OpenRouter adds `cost` when it knows it.
+ */
+const _responseSchema = z.object({
+  text: z.string(),
+  usage: z
+    .object({ cost: z.number().optional(), input_tokens: z.number().optional(), output_tokens: z.number().optional() })
+    .optional()
+    .catch(undefined),
+});
 
 const _unreachable = (message: string) => new ConvexError({ code: "EXTERNAL_SERVICE_ERROR" as const, message });
 
@@ -25,19 +36,23 @@ const _unreachable = (message: string) => new ConvexError({ code: "EXTERNAL_SERV
  * The format is the media type's subtype (`video/mp4` → `mp4`); an MP4 is read as is, so no audio
  * track has to be extracted first.
  *
- * Throws `EXTERNAL_SERVICE_ERROR` on a timeout, a non-200, or a body with no `text`.
+ * Throws `EXTERNAL_SERVICE_ERROR` on a timeout, a non-200, or a body with no `text`. `report` is
+ * handed what the call used once the body parses, for the caller to record against its trace.
  */
 export const transcribe = async ({
   model = DEFAULT_MODEL,
   base64,
   mediaType,
+  report,
 }: {
   model?: string;
   base64: string;
   mediaType: string;
+  report?: ReportUsage;
 }): Promise<string> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(ENDPOINT, {
@@ -54,6 +69,15 @@ export const transcribe = async ({
 
     const parsed = _responseSchema.safeParse(await response.json());
     if (!parsed.success) throw _unreachable(`Transcription returned no text: ${parsed.error.message}`);
+
+    const { usage } = parsed.data;
+    await report?.({
+      model,
+      inputTokens: usage?.input_tokens,
+      outputTokens: usage?.output_tokens,
+      costUsd: usage?.cost ?? null,
+      latencyMs: Date.now() - startedAt,
+    });
 
     return parsed.data.text.trim();
   } catch (error) {

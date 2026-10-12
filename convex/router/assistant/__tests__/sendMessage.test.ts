@@ -173,6 +173,23 @@ describe("router/assistant/sendMessage", () => {
     expect(brief).toMatch(/<now>Thursday 2026-09-24 19:05<\/now>$/);
   });
 
+  /**
+   * The answer is where the money is spent, in another function, so it must carry the question's
+   * trace: what the turn costs is averaged under `assistant/sendMessage`, for this cook.
+   */
+  test("hands the answer the trace the question started, for the cook who asked", async () => {
+    const cook = await seedUser("Franck");
+
+    await ask(cook, "Je fais quoi ce soir ?");
+
+    const [scheduled] = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    expect((scheduled?.args[0] as { __trace?: unknown }).__trace).toEqual({
+      traceId: expect.any(String),
+      operation: "assistant/sendMessage",
+      distinctId: cook.userId,
+    });
+  });
+
   /** Any cook's recipe, because a recipe is readable by id by anyone signed in (ADR 0014). */
   test("hands the recipe a question was asked from to the answer, whoever wrote it", async () => {
     const cook = await seedUser("Franck");

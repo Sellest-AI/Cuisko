@@ -29,6 +29,7 @@ import { v } from "convex/values";
  * `I18n`: Cuisko answers in the app's language, not the question's (PRODUCT.md § Bilingual by nature).
  */
 export const authed = householdMutationI18n({
+  trace: "assistant/sendMessage",
   args: {
     text: v.string(),
     threadId: v.optional(v.string()),
@@ -47,10 +48,9 @@ export const authed = householdMutationI18n({
     const { locale } = ctx.i18n;
     const brief = await turnBrief(ctx, { householdId: ctx.householdId, locale, today, now, recipe });
     const thread = await openThread(ctx, { threadId, userId: ctx.userId, now: Date.now() });
-
     const { messageId } = await saveQuestion(ctx, { threadId: thread, userId: ctx.userId, text, imageId });
 
-    await ctx.scheduler.runAfter(0, internal.router.assistant.sendMessage._internal_answer, {
+    await ctx.scheduleTracedAfter(0, internal.router.assistant.sendMessage._internal_answer, {
       threadId: thread,
       promptMessageId: messageId,
       userId: ctx.userId,

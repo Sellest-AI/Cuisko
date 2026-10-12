@@ -1,9 +1,9 @@
-import type { Agent, ToolCtx, UsageHandler } from "@convex-dev/agent";
+import type { Agent, UsageHandler } from "@convex-dev/agent";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { TraceContext } from "@convex/schema/tracing";
 
-import { wrapAgent } from "../wrapAgent";
+import { type TracedToolCtx, wrapAgent } from "../wrapAgent";
 
 const capture = vi.hoisted(() => vi.fn());
 vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
@@ -30,7 +30,7 @@ const billingAgent = () => {
   return { agent: { generateObject, generateText: generateObject } as unknown as Agent, generateObject };
 };
 
-const ctxWith = (trace: TraceContext | null) => ({ scheduler: {}, trace }) as unknown as ToolCtx;
+const ctxWith = (trace: TraceContext | null) => ({ scheduler: {}, trace }) as unknown as TracedToolCtx;
 
 beforeEach(() => capture.mockReset());
 

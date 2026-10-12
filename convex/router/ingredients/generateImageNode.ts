@@ -33,7 +33,7 @@ export const _internal = internalAction({
       hint: args.hint,
     });
 
-    const baseImage = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+    const baseImage = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
       userId: null,
       images: [{
         url: output.imageUrlWithBackground,
@@ -43,7 +43,7 @@ export const _internal = internalAction({
     const baseImageResult = baseImage[0];
     if (!baseImageResult) throw new ConvexError({ code: "INTERNAL", message: "Failed to upload base image" });
 
-    const finalImage = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+    const finalImage = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
       userId: null,
       images: [{
         base64: output.imageAlphaBase64,

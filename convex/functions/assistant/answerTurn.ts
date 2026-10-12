@@ -1,5 +1,6 @@
 import type { Id } from "@convex/_generated/dataModel";
-import type { ActionCtx } from "@convex/procedures";
+import { traceUsageHandler } from "@convex/functions/tracing/recordGeneration";
+import type { TracedActionCtx } from "@convex/procedures";
 import { ASSISTANT_TOOLS } from "@shared/assistant";
 import type { Locale } from "@shared/translations";
 
@@ -59,7 +60,7 @@ type Args = {
  * which is strictly worse than an error they can retry past.
  */
 export const answerTurn = async (
-  ctx: ActionCtx,
+  ctx: TracedActionCtx,
   { threadId, promptMessageId, userId, householdId, locale, brief, today, now }: Args,
 ): Promise<void> => {
   const result = await assistantAgent.streamText(
@@ -91,6 +92,9 @@ export const answerTurn = async (
     },
     {
       saveStreamDeltas: true,
+      // Every step of the turn is billed, so every step is recorded against the trace `sendMessage`
+      // started. Not through `wrapAgent`, which wraps the two calls a tool makes, not a stream.
+      usageHandler: traceUsageHandler(ctx),
       /**
        * The default order, with the brief once, at the end of the question — see `appendBrief`.
        * Only the LAST prompt message takes it: with `promptMessageId` that is the one saved

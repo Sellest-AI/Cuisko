@@ -1,6 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { ActionCtx } from "@convex/procedures";
+import type { TracedActionCtx } from "@convex/procedures";
 import type { PortableIngredient, RestoredIngredientImage } from "@convex/schema/ingredientPayloads";
 
 type Args = {
@@ -16,8 +16,8 @@ export type RestoredIngredient = { ingredientId: Id<"ingredients">; outcome: Res
 
 type Upload = { base64: string; object?: { baseImageId: Id<"images">; x: number; y: number } };
 
-const _uploadOne = async (ctx: ActionCtx, image: Upload): Promise<Id<"images">> => {
-  const [saved] = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+const _uploadOne = async (ctx: TracedActionCtx, image: Upload): Promise<Id<"images">> => {
+  const [saved] = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
     userId: null,
     images: [image],
   });
@@ -34,7 +34,7 @@ const _uploadOne = async (ctx: ActionCtx, image: Upload): Promise<Id<"images">> 
  * exported without it is. A base whose cut-out then fails points at nothing and is deleted.
  */
 const _uploadPair = async (
-  ctx: ActionCtx,
+  ctx: TracedActionCtx,
   { x, y }: NonNullable<PortableIngredient["image"]>,
   files: NonNullable<RestoredIngredientImage>,
 ): Promise<Id<"images"> | undefined> => {
@@ -70,7 +70,7 @@ const _uploadPair = async (
  * Nothing here calls a model. The facts arrive whole, and a missing image stays missing.
  */
 export const restoreIngredient = async (
-  ctx: ActionCtx,
+  ctx: TracedActionCtx,
   { ingredient, image }: Args,
 ): Promise<RestoredIngredient> => {
   const { ingredientId, created, needsImage } = await ctx.runMutation(

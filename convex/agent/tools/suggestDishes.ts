@@ -1,4 +1,3 @@
-import type { ToolCtx } from "@convex-dev/agent";
 import { CUISINES } from "@shared/cuisines";
 import { VEGETARIAN_DIETS, type VegetarianDiet } from "@shared/diets";
 import { retryPromise } from "@shared/helpers";
@@ -15,6 +14,7 @@ import {
   providerSchema,
   type WithoutNulls,
   wrapAgent,
+  type TracedToolCtx,
 } from "../utils";
 
 /**
@@ -135,7 +135,7 @@ const _inputSchema = z.object({
     .describe("Dish names already searched for this cuisine. None of them is returned again."),
 });
 
-const _suggest = async (ctx: ToolCtx, args: z.infer<typeof _inputSchema>): Promise<SuggestedDish[]> => {
+const _suggest = async (ctx: TracedToolCtx, args: z.infer<typeof _inputSchema>): Promise<SuggestedDish[]> => {
   // The schema's bounds already guard both doors: `createTool` parses a direct `run`, which is how
   // the router calls this, against `_inputSchema` too. Stated again where a bad count would
   // otherwise be paid for.

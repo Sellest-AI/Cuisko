@@ -28,7 +28,7 @@ export const _internal = internalAction({
     let plateImageId: Id<"images"> | null = null;
 
     if (result.plateImage) {
-      const basePlateImages = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+      const basePlateImages = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
         userId: null,
         images: [{ url: result.plateImage.withBackground }]
       });
@@ -36,7 +36,7 @@ export const _internal = internalAction({
       const basePlateImage = basePlateImages[0];
       if (!basePlateImage) throw new ConvexError({ code: "INTERNAL", message: "Failed to upload base image" });
 
-      const finalImage = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+      const finalImage = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
         userId: null,
         images: [{
           base64: result.plateImage.withoutBackground,
@@ -54,7 +54,7 @@ export const _internal = internalAction({
     let coverImageId: Id<"images"> | null = null;
 
     if (result.coverImage) {
-      const coverPlateImages = await ctx.runAction(internal.router.media.images.uploadMany._internal, {
+      const coverPlateImages = await ctx.runTracedAction(internal.router.media.images.uploadMany._internal, {
         userId: null,
         images: [{ url: result.coverImage }]
       });

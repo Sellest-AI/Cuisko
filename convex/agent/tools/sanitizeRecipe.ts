@@ -24,6 +24,7 @@ import {
   providerSchema,
   type WithoutNulls,
   wrapAgent,
+  type TracedToolCtx,
 } from "../utils";
 import { recipesAgent } from "../agents";
 import { sanitizeRecipePrompt } from "../config/prompts/sanitizeRecipe";
@@ -312,7 +313,7 @@ export const sanitizeRecipe = createTool({
     "recipe: every field filled in, steps grouped and ordered, every ingredient carrying a " +
     "quantity and a unit. Returns ingredient names, not catalog ids.",
   inputSchema: _inputSchema,
-  execute: async (ctx, args): Promise<SanitizedRecipe> => {
+  execute: async (ctx: TracedToolCtx, args): Promise<SanitizedRecipe> => {
     const result = await retryPromise(() =>
       wrapAgent(recipesAgent).generateObject(
         ctx,
