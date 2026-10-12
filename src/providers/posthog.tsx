@@ -6,9 +6,18 @@ import { env } from "env";
  * Product analytics for the whole app, sent to the same PostHog project the backend reports what
  * each paid call cost to. Named for what it does rather than `PostHogProvider`, the library's
  * component it wraps, so the two never differ by one capital letter at an import.
+ *
+ * Of the library's autocapture, only app lifecycle events stay on (installed, updated, opened,
+ * backgrounded). Its screen capture is off because it reads React Navigation's container, which
+ * expo-router does not expose: `ScreenTracking` sends screens instead. Touches stay off, as they are
+ * by default. Who the events belong to is `AnalyticsIdentity`'s job.
  */
 export const AnalyticsProvider = ({ children }: { children: React.ReactNode }) => (
-  <PostHogProvider apiKey={env.EXPO_PUBLIC_POSTHOG_KEY} options={{ host: env.EXPO_PUBLIC_POSTHOG_HOST }}>
+  <PostHogProvider
+    apiKey={env.EXPO_PUBLIC_POSTHOG_KEY}
+    options={{ host: env.EXPO_PUBLIC_POSTHOG_HOST }}
+    autocapture={{ captureScreens: false }}
+  >
     {children}
   </PostHogProvider>
 );

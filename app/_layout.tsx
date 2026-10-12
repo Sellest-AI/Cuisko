@@ -4,9 +4,11 @@ import { StyleSheet } from "react-native";
 import { BlurScope, BlurTarget } from "@ui/blur-view";
 import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { theme } from "~/global/theme";
+import { AnalyticsIdentity } from "~/modules/auth/analytics-identity";
 import { AuthGate } from "~/modules/auth/auth-gate";
 import { HouseholdAtomsReset } from "~/modules/households/household-atoms-reset";
 import { NavigationBar } from "~/modules/navigation/navigation-bar";
+import { ScreenTracking } from "~/modules/navigation/screen-tracking";
 import { ShareIntentListener } from "~/modules/recipes/share-intent-listener";
 import { Providers } from "~/providers";
 
@@ -120,6 +122,9 @@ export default function RootLayout() {
       <HouseholdAtomsReset />
       {/* Beside the navigator too: a link shared from another app can arrive on any screen. */}
       <ShareIntentListener />
+      {/* Analytics follows the route and the signed-in cook, whichever screen is up. */}
+      <ScreenTracking />
+      <AnalyticsIdentity />
       {/* Last, so its cover draws over the bar as well as the page. */}
       <AuthGate />
     </Providers>

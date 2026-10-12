@@ -19,9 +19,9 @@ const PROVIDER_NAMES: Record<OAuthProvider, string> = { google: "Google", apple:
 /**
  * Everything a screen needs to sign in and know who it is talking to.
  *
- * This is the only file that references `api.router.users.*` for this domain — a screen calls
+ * This folder holds the only references to `api.router.users.*` for this domain — a screen calls
  * `useAuth()` and never touches `api`, `useQueryCached`, or the auth SDK (ADR 0006). When the
- * backend changes, this file is the one that changes.
+ * backend changes, this folder is the one that changes.
  */
 export const useAuth = () => {
   const t = useTranslations("Auth");
