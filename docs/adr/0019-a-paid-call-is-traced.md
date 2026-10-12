@@ -33,7 +33,7 @@ MUST NOT: throw from tracing. A missing trace is logged and nothing is sent; a f
 MUST NOT: accept a `__trace` from outside. Only `internalMutation` / `internalAction` take one; every
           builder a client or a server reaches starts its own trace, and its validator refuses the
           argument.
-MUST NOT: record from a mutation, and MUST NOT give a query a trace.
+MUST NOT: record an `$ai_generation` from a mutation, and MUST NOT give a query a trace.
 MUST NOT: send a prompt or an answer. An event carries the step, model, provider, tokens, cost and
           latency, and nothing the cook wrote or read.
 MAY: list a router file in C17's `PENDING` with the reason, as a known gap in the cost data.
@@ -61,9 +61,9 @@ on another cook's profile, or under another route's average.
 callers retry a failed judgment (paying twice) or swallow it (dropping what was judged). A gap in
 the data is a log line; C17 is what keeps it from shipping.
 
-**A mutation never records** because its clock is frozen at its start: every latency would read 0
-and every timestamp would be the same instant. A mutation that schedules the paid work hands the
-trace on instead (`sendMessage`).
+**A mutation never records a generation** because its clock is frozen at its start: every latency
+would read 0 and every timestamp would be the same instant. A mutation that schedules the paid work
+hands the trace on instead (`sendMessage`).
 
 **The libraries stay ctx-free** (`report` rather than a ctx) so a `*.manual.test.ts` bake-off can
 call them directly with no trace and no scheduler, and so cannot send an event.

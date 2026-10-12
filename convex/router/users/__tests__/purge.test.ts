@@ -1,10 +1,11 @@
 import agentTest, { register as registerAgent } from "@convex-dev/agent/test";
 import { convexTest } from "convex-test";
-import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { assistantAgent } from "../../../agent/agents";
 import { api, components, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
+import { REVIEW_ACCOUNT } from "../../../functions/auth/reviewAccount";
 import { loadUser } from "../../../functions/users/loadUser";
 import schema from "../../../schema";
 
@@ -24,6 +25,13 @@ beforeAll(() =>
   ]),
 );
 
+/** What each test reports to analytics: the client is mocked, so nothing is sent or scheduled. */
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+/** The account events captured, as `[event, properties]`. */
+const accountEvents = () =>
+  capture.mock.calls.map(([, { event, properties }]) => [event, properties] as [string, Record<string, unknown>]);
+beforeEach(() => capture.mockReset());
 afterEach(() => vi.useRealTimers());
 
 /** The purge deletes conversations, which live in the agent component, so every deployment has it. */
@@ -246,6 +254,46 @@ describe("router/users/purge", () => {
 
     expect(await purge(t, cook.userId)).toBe("skipped");
     expect((await extendedOf(t, cook.userId))?.deletedAt).toBeUndefined();
+  });
+
+  describe("analytics", () => {
+    test("reports a due purge as deleted, anonymized", async () => {
+      const t = newDeployment();
+      const { cook } = await seedFullCook(t, Date.now() - 1);
+
+      await purge(t, cook.userId);
+
+      expect(accountEvents()).toEqual([["account deleted", { outcome: "anonymized", accountAgeDays: 0 }]]);
+      expect(capture.mock.calls[0]![1].distinctId).toBe(cook.userId);
+    });
+
+    /** A bot or spammer removed by hand: counted, and told apart by `outcome`. */
+    test("reports a forced erase as deleted, erased", async () => {
+      const t = newDeployment();
+      const { cook } = await seedFullCook(t);
+
+      await purge(t, cook.userId, true);
+
+      expect(accountEvents()).toEqual([["account deleted", { outcome: "erased", accountAgeDays: 0 }]]);
+    });
+
+    /** The purge clears the email before it reports, so the row it read first is what says who it was. */
+    test("reports nothing when the purged account is the store reviewer's", async () => {
+      const t = newDeployment();
+      const { userId } = await seedCook(t, { email: REVIEW_ACCOUNT.email, deletionDueAt: Date.now() - 1 });
+
+      expect(await purge(t, userId)).toBe("anonymized");
+      expect(capture).not.toHaveBeenCalled();
+    });
+
+    test("reports nothing when the purge skips", async () => {
+      const t = newDeployment();
+      const { cook } = await seedFullCook(t, Date.now() + DAY);
+
+      await purge(t, cook.userId);
+
+      expect(capture).not.toHaveBeenCalled();
+    });
   });
 
   describe("once due", () => {

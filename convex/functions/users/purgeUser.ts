@@ -4,6 +4,7 @@ import type { MutationCtx } from "@convex/procedures";
 import { deleteConversationsOf } from "../assistant/deleteConversationsOf";
 import { cascadeDelete } from "../cascade";
 import { scheduleImageTreeDeletion } from "../media/imageTree";
+import { type AccountHolder, captureAccountEvent } from "./captureAccountEvent";
 import { deleteSignIns } from "./deleteSignIns";
 
 /** What the purge did: nothing (not due, or already done), the tombstone, or nothing left at all. */
@@ -29,6 +30,10 @@ export type PurgeOutcome = "skipped" | "anonymized" | "erased";
  * `force` is for a bot or a spammer, run by hand: no date check, and the person is erased instead.
  * Their solo households are deleted outright, their recipes archived and detached (a recipe is never
  * removed, ADR 0017), and the account itself goes through `CASCADE.users`, so no row names them.
+ *
+ * Either outcome is reported to analytics (`account deleted`, with `outcome`), on the id the cook's
+ * events already carry; "skipped" is not, since nothing was deleted. A forced erase is a bot or a
+ * spammer rather than a cook leaving, which `outcome` lets a funnel filter out.
  *
  * @limitation One transaction. A cook with a very large kitchen or recipe book could exceed a
  * mutation's read and write budget. The fix is to schedule one batch per household, and no caller
@@ -77,6 +82,7 @@ export const purgeUser = async (
     for (const recipe of recipes) await ctx.db.patch(recipe._id, { isArchived: true, updatedAt: now });
 
     await cascadeDelete(ctx, "users", userId);
+    await _reportDeleted(ctx, user ?? { _id: userId }, "erased");
     return "erased";
   }
 
@@ -99,8 +105,13 @@ export const purgeUser = async (
     });
   }
 
+  await _reportDeleted(ctx, user ?? { _id: userId }, "anonymized");
   return "anonymized";
 };
+
+/** `user` is the row as read before the purge cleared it, so its email still says who it was. */
+const _reportDeleted = (ctx: MutationCtx, user: AccountHolder, outcome: Exclude<PurgeOutcome, "skipped">) =>
+  captureAccountEvent(ctx, { user, event: "account deleted", properties: { outcome } });
 
 /**
  * Leaves every household. A shared one keeps its other members and loses only this one; a solo

@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
@@ -17,6 +17,14 @@ beforeAll(() =>
       .map(([, load]) => load()),
   ),
 );
+
+/** What each test reports to analytics: the client is mocked, so nothing is sent or scheduled. */
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+/** The account events captured, as `[event, properties]`. */
+const accountEvents = () =>
+  capture.mock.calls.map(([, { event, properties }]) => [event, properties] as [string, Record<string, unknown>]);
+beforeEach(() => capture.mockReset());
 
 const newDeployment = () => convexTest(schema, modules);
 type TestConvex = ReturnType<typeof newDeployment>;
@@ -70,6 +78,28 @@ describe("functions/users/clearDeletion", () => {
     await t.run((ctx) => clearDeletion(ctx, userId));
 
     expect(await extendedOf(t, userId)).toBeNull();
+  });
+
+  describe("analytics", () => {
+    /** Coming back on day 1 and on day 29 are different stories; `daysLeft` tells them apart. */
+    test("reports a cancellation with the days that were left", async () => {
+      const t = newDeployment();
+      const userId = await seedUser(t, { deletionDueAt: Date.now() + 3 * 24 * 60 * 60 * 1000 - 1000 });
+
+      await t.run((ctx) => clearDeletion(ctx, userId));
+
+      expect(accountEvents()).toEqual([["account deletion cancelled", { accountAgeDays: 0, daysLeft: 3 }]]);
+      expect(capture.mock.calls[0]![1].distinctId).toBe(userId);
+    });
+
+    test("reports nothing for an ordinary sign-in", async () => {
+      const t = newDeployment();
+      const userId = await seedUser(t);
+
+      await t.run((ctx) => clearDeletion(ctx, userId));
+
+      expect(capture).not.toHaveBeenCalled();
+    });
   });
 
   describe("wired into sign-in", () => {

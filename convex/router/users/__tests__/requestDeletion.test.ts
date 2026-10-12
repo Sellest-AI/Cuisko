@@ -24,8 +24,18 @@ beforeAll(() =>
  * `setTimeout`, which cannot wait that long: it fires after 1ms instead, mid-test. Fake timers keep
  * the job scheduled and never run, which is what these tests assert about it.
  */
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => {
+  vi.useFakeTimers();
+  capture.mockReset();
+});
 afterEach(() => vi.useRealTimers());
+
+/** What each test reports to analytics: the client is mocked, so nothing is sent or scheduled. */
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+/** The account events captured, as `[event, properties]`. */
+const accountEvents = () =>
+  capture.mock.calls.map(([, { event, properties }]) => [event, properties] as [string, Record<string, unknown>]);
 
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
@@ -152,5 +162,28 @@ describe("router/users/requestDeletion", () => {
     await t.withIdentity(asUser(caller)).mutation(api.router.users.requestDeletion.authed, {});
 
     expect((await extendedOf(t, other))?.deletionDueAt).toBeUndefined();
+  });
+
+  describe("analytics", () => {
+    test("reports a new request once, with its due date and the account's age", async () => {
+      const t = newDeployment();
+      const userId = await seedUser(t);
+
+      const dueAt = await t.withIdentity(asUser(userId)).mutation(api.router.users.requestDeletion.authed, {});
+
+      expect(accountEvents()).toEqual([["account deletion requested", { accountAgeDays: 0, deletionDueAt: dueAt }]]);
+      expect(capture.mock.calls[0]![1].distinctId).toBe(userId);
+    });
+
+    /** A retry after a lost response is not a second cook leaving. */
+    test("does not report asking again while a request is pending", async () => {
+      const t = newDeployment();
+      const caller = t.withIdentity(asUser(await seedUser(t)));
+
+      await caller.mutation(api.router.users.requestDeletion.authed, {});
+      await caller.mutation(api.router.users.requestDeletion.authed, {});
+
+      expect(accountEvents()).toHaveLength(1);
+    });
   });
 });
