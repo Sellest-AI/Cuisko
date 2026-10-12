@@ -9,6 +9,7 @@ import { FontsProvider } from "./fonts";
 
 import { convexAuthStorage } from "~/lib/convex/storage";
 import { env } from "env";
+import { AnalyticsProvider } from "./posthog";
 
 /**
  * One client for the whole app. Created at module scope, not in a component: a client recreated
@@ -35,17 +36,19 @@ const convex = new ConvexReactClient(env.EXPO_PUBLIC_CONVEX_URL, {
 export const Providers = ({ children }: { children: React.ReactNode }) => (
   <FontsProvider>
     <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
-      <ConvexQueryCacheProvider>
-        <KeyboardProvider>
-          <AnimationProvider>
-            <SafeAreaProvider>
-              <GestureHandlerRootView>
-                {children}
-              </GestureHandlerRootView>
-            </SafeAreaProvider>
-          </AnimationProvider>
-        </KeyboardProvider>
-      </ConvexQueryCacheProvider>
+      <AnalyticsProvider>
+        <ConvexQueryCacheProvider>
+          <KeyboardProvider>
+            <AnimationProvider>
+              <SafeAreaProvider>
+                <GestureHandlerRootView>
+                  {children}
+                </GestureHandlerRootView>
+              </SafeAreaProvider>
+            </AnimationProvider>
+          </KeyboardProvider>
+        </ConvexQueryCacheProvider>
+      </AnalyticsProvider>
     </ConvexAuthProvider>
   </FontsProvider>
 );

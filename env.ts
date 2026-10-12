@@ -10,10 +10,14 @@ import { z } from "zod";
  */
 const schema = z.object({
   EXPO_PUBLIC_CONVEX_URL: z.url(),
+  EXPO_PUBLIC_POSTHOG_KEY: z.string().startsWith("phc_"),
+  EXPO_PUBLIC_POSTHOG_HOST: z.url(),
 });
 
 const parsed = schema.safeParse({
   EXPO_PUBLIC_CONVEX_URL: process.env.EXPO_PUBLIC_CONVEX_URL,
+  EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY,
+  EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
 });
 
 if (!parsed.success) {

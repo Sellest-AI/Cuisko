@@ -35,7 +35,7 @@ Requires Node 22 and pnpm.
 
 ```bash
 pnpm install
-cp .env.example .env.local   # then fill in EXPO_PUBLIC_CONVEX_URL
+cp .env.example .env.local   # then fill in the EXPO_PUBLIC_* keys
 pnpm convex:dev              # keep it running
 pnpm start                   # in a second terminal
 ```
