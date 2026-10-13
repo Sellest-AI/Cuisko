@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 
 import { loadHouseholdMeal } from "./loadHouseholdMeal";
@@ -25,8 +25,10 @@ type Args = {
  * exists to describe a run of the tunnel — and a run whose every meal is gone describes a week
  * nobody has. A plan that keeps any plate is left as the run it was: `days` and `slots` say what
  * was generated, not what survived the edit.
+ *
+ * Returns the plate as it was before it went, for a caller that reports what it dropped.
  */
-export const dropMeal = async (ctx: MutationCtx, { householdId, mealId, today }: Args): Promise<void> => {
+export const dropMeal = async (ctx: MutationCtx, { householdId, mealId, today }: Args): Promise<Doc<"plannedMeals">> => {
   const meal = await loadHouseholdMeal(ctx, { householdId, mealId });
 
   /**
@@ -55,4 +57,6 @@ export const dropMeal = async (ctx: MutationCtx, { householdId, mealId, today }:
     .collect();
 
   if (remaining.length === 0) await ctx.db.delete(meal.mealPlanId);
+
+  return meal;
 };

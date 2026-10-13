@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api, internal } from "../../../_generated/api";
@@ -7,6 +7,9 @@ import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 /**
  * Imports the module under test before any test is timed, so the first one is not billed for the
@@ -446,11 +449,11 @@ const seedListLine = (t: ReturnType<typeof convexTest>, householdId: Id<"househo
 describe("router/cellars/addToCellar._internal", () => {
   test("reports the row it landed on and what it struck off the list", async () => {
     const t = convexTest(schema, modules);
-    const { householdId, ingredientId } = await seedHousehold(t);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
     await seedListLine(t, householdId, ingredientId, 2);
 
     const added = await t.mutation(internal.router.cellars.addToCellar._internal, {
-      householdId, ingredientId, unit: "pcs", quantity: 6,
+      householdId, actor: userId, ingredientId, unit: "pcs", quantity: 6,
     });
 
     const [row] = await t.run((ctx) => ctx.db.query("cellarItems").collect());
@@ -459,10 +462,10 @@ describe("router/cellars/addToCellar._internal", () => {
 
   test("a purchase nobody wrote down struck nothing", async () => {
     const t = convexTest(schema, modules);
-    const { householdId, ingredientId } = await seedHousehold(t);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
 
     const added = await t.mutation(internal.router.cellars.addToCellar._internal, {
-      householdId, ingredientId, unit: "pcs", quantity: 6,
+      householdId, actor: userId, ingredientId, unit: "pcs", quantity: 6,
     });
 
     expect(added.struck).toBe(0);
@@ -470,11 +473,11 @@ describe("router/cellars/addToCellar._internal", () => {
 
   test("a purchase smaller than the line struck all of itself", async () => {
     const t = convexTest(schema, modules);
-    const { householdId, ingredientId } = await seedHousehold(t);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
     await seedListLine(t, householdId, ingredientId, 10);
 
     const added = await t.mutation(internal.router.cellars.addToCellar._internal, {
-      householdId, ingredientId, unit: "pcs", quantity: 4,
+      householdId, actor: userId, ingredientId, unit: "pcs", quantity: 4,
     });
 
     expect(added.struck).toBe(4);
@@ -498,5 +501,53 @@ describe("router/cellars/addToCellar strikeList", () => {
     expect((await t.run((ctx) => ctx.db.get(lineId)))?.quantity).toBe(2);
     const [row] = await t.run((ctx) => ctx.db.query("cellarItems").collect());
     expect(row?.quantity).toBe(3);
+  });
+});
+
+/** Shopping from the list against shopping beside it: the list is only short if it is used. */
+describe("router/cellars/addToCellar reports the purchase", () => {
+  beforeEach(() => capture.mockReset());
+
+  test("6 eggs bought against lines of 2 and 3: both lines ticked off, under the cook", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    await seedListLine(t, householdId, ingredientId, 2);
+    await seedListLine(t, householdId, ingredientId, 3);
+
+    const cellarItemId = await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 6 });
+
+    expect(capture.mock.calls.map(([, args]) => args)).toEqual([
+      {
+        distinctId: userId,
+        event: "food added to cellar",
+        groups: { household: householdId },
+        properties: { cellarItemId, ingredientId, ingredient: "Egg", category: "EGG", struckLines: 2 },
+      },
+    ]);
+  });
+
+  test("a purchase nobody wrote down ticked off no line", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    await t.mutation(internal.router.cellars.addToCellar._internal, {
+      householdId, actor: userId, ingredientId, unit: "pcs", quantity: 6,
+    });
+
+    expect(capture.mock.calls[0]![1]).toMatchObject({ distinctId: userId, properties: { struckLines: 0 } });
+  });
+
+  /** Nobody bought anything: the stock is going back where it was. */
+  test("an undo of a removal reports nothing", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.addToCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 3, strikeList: false });
+
+    expect(capture).not.toHaveBeenCalled();
   });
 });

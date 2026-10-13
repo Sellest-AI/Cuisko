@@ -97,10 +97,10 @@ describe("usePlannedMeal", () => {
     await act(() => result.current.undo());
 
     expect(state.writes).toEqual([
-      { name: "router/planning/removeOne:authed", args: { householdId: "home", mealId: "plate-1", today: today() } },
+      { name: "router/planning/removeOne:authed", args: { householdId: "home", mealId: "plate-1", today: today(), isUndo: true } },
       {
         name: "router/planning/planOne:authed",
-        args: { householdId: "home", recipeId: "curry", date: today(), slot: "dinner", servings: 3, today: today() },
+        args: { householdId: "home", recipeId: "curry", date: today(), slot: "dinner", servings: 3, today: today(), isUndo: true },
       },
     ]);
     expect(result.current.canUndo).toBe(false);

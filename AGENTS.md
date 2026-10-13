@@ -236,6 +236,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
   mismatch is a silent authorization hole that nothing else detects.
 - Router file ≤ 90 lines of code (comments and blank lines not counted), and contains no loop, no domain branching, no domain-library import.
 - Screen ≤ ~120 lines of component code (its `StyleSheet`, comments and blank lines not counted) and calls a module hook rather than fetching.
+- A new or changed entry in `EventProperties` (`convex/schema/events.ts`) declares the id of every row its event is about and of the rows another event joins on (ADR 0019). The type enforces what is declared, never what should be.
 
 ### Schema (if `convex/schema/**` changed)
 

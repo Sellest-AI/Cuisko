@@ -27,9 +27,9 @@ const _everythingTheModelReads = (): string[] => {
     displayTool,
     showButtonTool,
     showSubstitutionsTool,
-    addToCellarTool({ householdId: "home" as Id<"households"> }),
+    addToCellarTool({ householdId: "home" as Id<"households">, userId: "user" as Id<"users"> }),
     removeFromCellarTool({ householdId: "home" as Id<"households"> }),
-    planMealTool({ householdId: "home" as Id<"households">, locale: "fr", today: 0, now: "2026-09-30T19:12" }),
+    planMealTool({ householdId: "home" as Id<"households">, userId: "user" as Id<"users">, locale: "fr", today: 0, now: "2026-09-30T19:12" }),
   ];
 
   return [

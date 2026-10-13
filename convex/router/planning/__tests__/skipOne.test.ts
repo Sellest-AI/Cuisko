@@ -36,7 +36,13 @@ let t: ReturnType<typeof convexTest>;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  capture.mockReset();
 });
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+/** What was sent for `event`, the commit's own event left out. */
+const sent = (event: string) => capture.mock.calls.map(([, args]) => args).filter((args) => args.event === event);
 
 afterEach(() => {
   vi.clearAllTimers();
@@ -160,6 +166,33 @@ describe("router/planning/skipOne", () => {
     expect(row!.groceryQuantity).toBeUndefined();
     expect(row!.groceryListItemId).toBeUndefined();
     expect(row!.cellarItemId).toBeUndefined();
+  });
+
+  /** The clock skipped it, not a cook: the household is the subject, and never becomes a person. */
+  test("reports the skip under the household alone, once", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe();
+    const [mealId] = await commitPlates(userId, householdId, recipeId, [TODAY + DAY]);
+
+    await skipOne(mealId!);
+    await skipOne(mealId!);
+
+    const { mealPlanId } = (await plateOf(mealId!))!;
+    expect(sent("meal skipped")).toEqual([
+      {
+        distinctId: householdId,
+        event: "meal skipped",
+        groups: { household: householdId },
+        properties: {
+          plannedMealId: mealId,
+          mealPlanId,
+          recipeId,
+          recipeOrigin: "catalog",
+          servings: 2,
+          $process_person_profile: false,
+        },
+      },
+    ]);
   });
 
   test("leaves the other plates' claims on a shared row", async () => {

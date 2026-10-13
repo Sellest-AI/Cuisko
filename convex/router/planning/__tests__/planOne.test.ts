@@ -35,7 +35,11 @@ let t: ReturnType<typeof convexTest>;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  capture.mockReset();
 });
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 afterEach(() => {
   vi.clearAllTimers();
@@ -227,16 +231,16 @@ describe("router/planning/planOne", () => {
 
 /** Cuisko's way in: the chat's undo drops the plate by its id, and puts back what it replaced. */
 describe("router/planning/planOne _internal", () => {
-  const planInternal = (householdId: Id<"households">, recipeId: Id<"recipes">, servings = 2) =>
+  const planInternal = (actor: Id<"users">, householdId: Id<"households">, recipeId: Id<"recipes">, servings = 2) =>
     t.mutation(internal.router.planning.planOne._internal, {
-      householdId, recipeId, date: TODAY + DAY, slot: "dinner", servings, today: TODAY,
+      householdId, actor, recipeId, date: TODAY + DAY, slot: "dinner", servings, today: TODAY,
     });
 
   test("returns the plate it wrote, and nothing replaced on an empty slot", async () => {
-    const { householdId } = await seedMember();
+    const { userId, householdId } = await seedMember();
     const { recipeId } = await seedRecipe("Lasagnes");
 
-    const planned = await planInternal(householdId, recipeId, 4);
+    const planned = await planInternal(userId, householdId, recipeId, 4);
 
     const [plate] = await platesOf(householdId);
     expect(planned).toEqual({ mealPlanId: plate!.mealPlanId, plannedMealId: plate!._id });
@@ -244,12 +248,12 @@ describe("router/planning/planOne _internal", () => {
   });
 
   test("returns the planned plate it replaced, with its recipe and servings", async () => {
-    const { householdId } = await seedMember();
+    const { userId, householdId } = await seedMember();
     const curry = await seedRecipe("Curry");
     const lasagne = await seedRecipe("Lasagnes");
 
-    await planInternal(householdId, curry.recipeId, 3);
-    const planned = await planInternal(householdId, lasagne.recipeId, 4);
+    await planInternal(userId, householdId, curry.recipeId, 3);
+    const planned = await planInternal(userId, householdId, lasagne.recipeId, 4);
 
     expect(planned.replaced).toEqual({ recipeId: curry.recipeId, servings: 3 });
     expect(await platesOf(householdId)).toMatchObject([{ _id: planned.plannedMealId, recipeId: lasagne.recipeId }]);
@@ -262,9 +266,40 @@ describe("router/planning/planOne _internal", () => {
 
     // Lunch that day, planned from the screen; Cuisko plans dinner.
     await planOne(userId, householdId, curry.recipeId);
-    const planned = await planInternal(householdId, lasagne.recipeId);
+    const planned = await planInternal(userId, householdId, lasagne.recipeId);
 
     expect(planned.replaced).toBeUndefined();
     expect(await platesOf(householdId)).toHaveLength(2);
+  });
+
+  /** No shuffle drew it, so it is a plate, not a week; and it is the cook's, though Cuisko wrote it. */
+  test("reports a plate planned, under the cook whose turn it was", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Lasagnes");
+
+    await planInternal(userId, householdId, recipeId, 4);
+
+    expect(capture).toHaveBeenCalledOnce();
+    expect(capture.mock.calls[0]![1]).toMatchObject({
+      distinctId: userId,
+      event: "plate planned",
+      groups: { household: householdId },
+      properties: { plates: 1, days: 1, people: 4, lines: 1, replaced: 0, recipeId, recipeOrigin: "catalog", isUndo: false },
+    });
+  });
+});
+
+/** The chat's undo puts back the dish Cuisko replaced: a real plate, reported, but told apart. */
+describe("router/planning/planOne reports an undo", () => {
+  test("a plate put back by an undo is reported with isUndo, an ordinary one without", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Curry");
+
+    await planOne(userId, householdId, recipeId);
+    await t.withIdentity(asUser(userId)).mutation(api.router.planning.planOne.authed, {
+      householdId, recipeId, date: TODAY + 2 * DAY, slot: "lunch", servings: 2, today: TODAY, isUndo: true,
+    });
+
+    expect(capture.mock.calls.map(([, args]) => args.properties.isUndo)).toEqual([false, true]);
   });
 });

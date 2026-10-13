@@ -146,6 +146,7 @@ export const useStockActions = () => {
         unit: ref.unit,
         quantity: taken,
         restoreToList: peeled.restored,
+        isUndo: peeled.undone > 0,
       });
 
       if (isSameHousehold()) setReceipts(peeled.receipts);

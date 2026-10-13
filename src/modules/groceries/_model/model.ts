@@ -705,13 +705,16 @@ export function buildSections(snapshot: Snapshot): Sections {
  * peeling from the newest end makes a partial undo the exact inverse of the purchase that
  * created it. Receipts drained to zero are dropped; expired ones are never touched, so asking
  * for more than was recently bought simply stops at the live edge.
+ *
+ * `undone` is how much came off live receipts: above zero, the removal took back a purchase rather
+ * than only using stock up, which is what the server reports as `purchase undone`.
  */
 export const peelReceipts = (
   receipts: Receipt[],
   ref: StockRef,
   amount: number,
   now: Date,
-): { receipts: Receipt[]; restored: number } => {
+): { receipts: Receipt[]; restored: number; undone: number } => {
   const peelable = receipts
     .map((receipt, at) => ({ receipt, at }))
     .filter(({ receipt }) => matchesRef(ref)(receipt) && isLive(receipt, now))
@@ -762,7 +765,7 @@ export const peelReceipts = (
     })
     .filter((receipt) => receipt.amount > 0);
 
-  return { receipts: left, restored };
+  return { receipts: left, restored, undone: amount - Math.max(remaining, 0) };
 };
 
 /**

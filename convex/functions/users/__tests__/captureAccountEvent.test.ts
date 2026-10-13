@@ -45,7 +45,7 @@ describe("captureAccountEvent", () => {
     await captureAccountEvent(ctx, {
       user: { ...camille, email: REVIEW_ACCOUNT.email },
       event: "account deletion requested",
-      properties: {},
+      properties: { deletionDueAt: 1 },
     });
 
     expect(capture).not.toHaveBeenCalled();
@@ -57,7 +57,7 @@ describe("captureAccountEvent", () => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await expect(
-      captureAccountEvent(ctx, { user: camille, event: "account deletion requested", properties: {} }),
+      captureAccountEvent(ctx, { user: camille, event: "account deletion requested", properties: { deletionDueAt: 1 } }),
     ).resolves.toBeUndefined();
     expect(logged).toHaveBeenCalledOnce();
 

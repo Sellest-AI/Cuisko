@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { UNDO_WINDOW_MS } from "@shared/groceries";
 import type { Unit } from "@shared/ingredients";
@@ -7,6 +7,9 @@ import type { Unit } from "@shared/ingredients";
 import type { Id } from "../../../_generated/dataModel";
 import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -481,6 +484,46 @@ describe("router/cellars/removeFromCellar", () => {
 });
 
 /** The assistant's removeFromCellar tool calls this once per line, and builds its undo from the answer. */
+/** Taking back a purchase cancels the `food added to cellar` it made; using food up is not that. */
+describe("router/cellars/removeFromCellar reports an undone purchase", () => {
+  beforeEach(() => capture.mockReset());
+
+  test("an undo inside the window is reported against the row it took from", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    const cellarItemId = await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 6, updatedAt: Date.now() }),
+    );
+
+    await t.withIdentity(asUser(userId)).mutation(api.router.cellars.removeFromCellar.authed, {
+      householdId, ingredientId, unit: "pcs", quantity: 6, restoreToList: 2, isUndo: true,
+    });
+
+    expect(capture.mock.calls.map(([, args]) => args)).toEqual([
+      {
+        distinctId: userId,
+        event: "purchase undone",
+        groups: { household: householdId },
+        properties: { cellarItemId, ingredientId, ingredient: "Egg", category: "EGG" },
+      },
+    ]);
+  });
+
+  test("eggs taken out to cook with report nothing", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId, unit: "pcs", quantity: 6, updatedAt: Date.now() }),
+    );
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.removeFromCellar.authed, { householdId, ingredientId, unit: "pcs", quantity: 2 });
+
+    expect(capture).not.toHaveBeenCalled();
+  });
+});
+
 describe("router/cellars/removeFromCellar._internal", () => {
   test("names the row it took from and what it took", async () => {
     const t = convexTest(schema, modules);

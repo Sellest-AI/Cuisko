@@ -10,6 +10,9 @@ Builders and ctx types come from `../procedures.ts` — never `_generated/server
 - `functions/rateLimits/enforceRateLimit.ts` — the rate limit an `authed` operation that costs money (a model, storage) applies first
   (ADR 0018). Limits are numbers in `lib/rateLimits.ts` and nowhere else; C16 fails the commit if an
   operation reaches `agent/` or a vendor client without it.
+- Product events (ADR 0019) — declared, with every property they carry, in `schema/events.ts`
+  (`EventProperties`), and sent with `lib/posthog/captureEvent.ts` by the **router** export that
+  called the write. The `functions/` writer returns what happened and never imports `captureEvent`.
 - `agent/` — the sealed AI boundary. `ai` and `@convex-dev/agent` are imported here and nowhere
   else. AI endpoints stay ordinary `router/` files that call in; never a parallel API tree.
 - `http/` — webhooks, only via `verifiedWebhook`. Bare `httpAction` is forbidden.

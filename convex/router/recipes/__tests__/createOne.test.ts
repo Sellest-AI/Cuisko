@@ -23,6 +23,9 @@ const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
  */
 const sanitizeRun = vi.hoisted(() => vi.fn());
 const resolveRun = vi.hoisted(() => vi.fn());
+const capture = vi.hoisted(() => vi.fn());
+
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 vi.mock("@convex/agent/tools/sanitizeRecipe", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../agent/tools/sanitizeRecipe")>();
@@ -156,6 +159,38 @@ describe("router/recipes/createOne", () => {
     expect(sanitizeRun.mock.calls[0]![1]).toMatchObject({
       instructions: "Émincer les oignons, les faire suer, servir.\n> Une mandoline va plus vite",
     });
+  });
+
+  /** The stored `sourceUrl` drops a video's address, so the source is told apart before it is. */
+  test("a typed recipe is created; one from a page or a video is imported, with its source", async () => {
+    const userId = await seedUser();
+    capture.mockReset();
+
+    const typed = await t.withIdentity(asUser(userId)).action(api.router.recipes.createOne.authed, FREE_TEXT);
+    const page = await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.createOne.authed, { ...FREE_TEXT, sourceUrl: "https://www.marmiton.org/soupe-oignon" });
+    const reel = await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.createOne.authed, { ...FREE_TEXT, sourceUrl: "https://www.instagram.com/reel/C8soupe/" });
+
+    const reported = capture.mock.calls
+      .map(([, args]) => args)
+      .filter((args) => args.event === "recipe created" || args.event === "recipe imported");
+    expect(reported).toEqual([
+      { distinctId: userId, event: "recipe created", properties: { recipeId: typed, ingredients: 1 } },
+      { distinctId: userId, event: "recipe imported", properties: { recipeId: page, source: "link", ingredients: 1 } },
+      { distinctId: userId, event: "recipe imported", properties: { recipeId: reel, source: "video", ingredients: 1 } },
+    ]);
+  });
+
+  /** The dashboard and the seeds write the catalog through `_internal`: no cook made anything. */
+  test("_internal reports nothing, having no cook", async () => {
+    capture.mockReset();
+
+    await t.action(internal.router.recipes.createOne._internal, FREE_TEXT);
+
+    expect(capture).not.toHaveBeenCalled();
   });
 
   test("_internal_persist stores the recipe against the owner it was handed", async () => {

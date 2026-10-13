@@ -4,6 +4,7 @@ import { describe, expect, it, test, vi } from "vitest";
 import { midnightOf, planMealTool } from "../planMeal";
 
 const HOME = "home" as Id<"households">;
+const CAMILLE = "camille" as Id<"users">;
 const DAY = 86_400_000;
 const TODAY = 1_000_000;
 /** A Wednesday evening at the end of September, on the cook's wall clock. */
@@ -22,7 +23,7 @@ const _ctx = ({ missing = [], plates = [], replaced }: { missing?: string[]; pla
   return { ctx: { runQuery, runMutation } as unknown as Ctx, runMutation };
 };
 
-const tool = planMealTool({ householdId: HOME, locale: "fr", ...CLOCK });
+const tool = planMealTool({ householdId: HOME, userId: CAMILLE, locale: "fr", ...CLOCK });
 
 /** Friday 2 October, dinner, for four. */
 const LASAGNE = { recipeId: "lasagne", date: "2026-10-02", slot: "dinner" as const, servings: 4 };
@@ -45,7 +46,7 @@ describe("planMealTool", () => {
     const result = await tool.run(ctx, LASAGNE);
 
     expect(runMutation).toHaveBeenCalledWith(expect.anything(), {
-      householdId: HOME, recipeId: "lasagne", date: TODAY + 2 * DAY, slot: "dinner", servings: 4, today: TODAY,
+      householdId: HOME, actor: CAMILLE, recipeId: "lasagne", date: TODAY + 2 * DAY, slot: "dinner", servings: 4, today: TODAY,
     });
     expect(result).toEqual({
       v: 1, status: "planned", householdId: HOME, plannedMealId: "plate", recipeId: "lasagne",

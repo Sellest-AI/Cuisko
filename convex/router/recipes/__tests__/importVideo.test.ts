@@ -24,7 +24,9 @@ const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
 const fetchSocialVideo = vi.hoisted(() => vi.fn());
 const generateRecipeFromVideo = vi.hoisted(() => vi.fn());
 const resolveShortLink = vi.hoisted(() => vi.fn());
+const capture = vi.hoisted(() => vi.fn());
 
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 vi.mock("@convex/lib/socialVideo/fetchSocialVideo", () => ({ fetchSocialVideo }));
 vi.mock("@convex/lib/socialVideo/resolveShortLink", () => ({ resolveShortLink }));
 vi.mock("@convex/functions/recipes/generateRecipeFromVideo", () => ({ generateRecipeFromVideo }));
@@ -77,6 +79,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
   registerRateLimiter(t);
+  capture.mockReset();
   // Nothing in this file may reach a network: a passing refusal then proves it came first.
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("no network in tests"))));
   fetchSocialVideo.mockReset();
@@ -183,6 +186,28 @@ describe("router/recipes/importVideo", () => {
       caption: "Tasty Crousty",
       videoUrl: "https://scontent-test.cdninstagram.com/v.mp4",
     });
+  });
+
+  test("reports the reel imported, as a video", async () => {
+    const userId = await seedCook();
+
+    const { recipeId } = await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.importVideo.authed, { url: REEL, locale: "fr" });
+
+    expect(capture.mock.calls.map(([, args]) => args)).toEqual([
+      { distinctId: userId, event: "recipe imported", properties: { recipeId, source: "video", ingredients: 1 } },
+    ]);
+  });
+
+  /** The same video shared again made nothing new: the cook was handed the recipe the first share made. */
+  test("reports nothing when the video was already imported", async () => {
+    const userId = await seedCook();
+    await seedRecipe(userId, { isArchived: false });
+
+    await t.withIdentity(asUser(userId)).action(api.router.recipes.importVideo.authed, { url: REEL, locale: "fr" });
+
+    expect(capture).not.toHaveBeenCalled();
   });
 
   /** A video that teaches no dish leaves no row behind: a made-up recipe would be served to every later share. */

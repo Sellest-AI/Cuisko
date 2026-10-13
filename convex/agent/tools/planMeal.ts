@@ -24,6 +24,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 type Caller = {
   /** The household whose week this is: the one `sendMessage` checked the cook belongs to. */
   householdId: Id<"households">;
+  /** The cook whose turn this is, so the plate is reported as theirs. */
+  userId: Id<"users">;
   /** For the title of a plate already on the slot, which the model repeats to the cook. */
   locale: Locale;
   /** The cook's local midnight, and wall clock (`localStamp`), as they pressed send. */
@@ -69,7 +71,7 @@ const _inputSchema = z.object({
 
 type Input = z.infer<typeof _inputSchema>;
 
-export const planMealTool = ({ householdId, locale, today, now }: Caller) =>
+export const planMealTool = ({ householdId, userId, locale, today, now }: Caller) =>
   createTool({
     description:
       "Plans one recipe on one meal of the cook's week, for a number of people, and adds what the " +
@@ -108,6 +110,7 @@ export const planMealTool = ({ householdId, locale, today, now }: Caller) =>
 
       const planned = await ctx.runMutation(internal.router.planning.planOne._internal, {
         householdId,
+        actor: userId,
         recipeId: recipeId as Id<"recipes">,
         date: midnight,
         slot,

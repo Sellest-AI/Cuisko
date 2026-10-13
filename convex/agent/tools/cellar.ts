@@ -1,6 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import type { CellarAction, CellarChange, CellarChangeLine } from "@shared/assistant";
+import type { CellarChange, CellarChangeLine } from "@shared/assistant";
 import { isAppError } from "@shared/errors";
 import { type Unit, UNITS } from "@shared/ingredients";
 import { ConvexError } from "convex/values";
@@ -79,8 +79,14 @@ type Caller = {
   householdId: Id<"households">;
 };
 
+/** A purchase is reported as the cook's (ADR 0019), so adding needs to know whose turn this is. */
+type Cook = Caller & { userId: Id<"users"> };
+
+/** Which way the stock moves, with what that way needs: only an add has a cook to report. */
+type Move = ({ action: "add" } & Cook) | ({ action: "remove" } & Caller);
+
 /** Both tools, told apart only by which way the stock moves. */
-const _cellarTool = (action: CellarAction, description: string) => ({ householdId }: Caller) =>
+const _cellarTool = (description: string) => (move: Move) =>
   createTool({
     description,
     inputSchema: _inputSchema,
@@ -94,11 +100,14 @@ const _cellarTool = (action: CellarAction, description: string) => ({ householdI
       const failed: CellarChange["failed"] = [];
 
       for (const item of toCellarItems(items, missing)) {
-        const args = { ...item, householdId, ingredientId: item.ingredientId as Id<"ingredients"> };
+        const args = { ...item, householdId: move.householdId, ingredientId: item.ingredientId as Id<"ingredients"> };
 
         try {
-          if (action === "add") {
-            const { cellarItemId, struck } = await ctx.runMutation(internal.router.cellars.addToCellar._internal, args);
+          if (move.action === "add") {
+            const { cellarItemId, struck } = await ctx.runMutation(internal.router.cellars.addToCellar._internal, {
+              ...args,
+              actor: move.userId,
+            });
             lines.push({ ...item, cellarItemId, restoreToList: struck });
           } else {
             const { cellarItemId, unit, removed } = await ctx.runMutation(internal.router.cellars.removeFromCellar._internal, args);
@@ -111,18 +120,16 @@ const _cellarTool = (action: CellarAction, description: string) => ({ householdI
         } catch (error) {
           // None of it on the shelf is the cellar lagging behind the kitchen, not a failure: there
           // was nothing to take, and nothing for the cook to answer.
-          if (action === "remove" && isAppError(error) && error.data.code === "NOT_FOUND") absent.push(item.ingredientId);
+          if (move.action === "remove" && isAppError(error) && error.data.code === "NOT_FOUND") absent.push(item.ingredientId);
           else failed.push({ ingredientId: item.ingredientId, reason: _reasonOf(error) });
         }
       }
 
-      return { v: 1, action, householdId, lines, absent, failed };
+      return { v: 1, action: move.action, householdId: move.householdId, lines, absent, failed };
     },
   });
 
-/** A factory, like `searchRecipesTool`: whose cellar it writes to is not the model's to state. */
-export const addToCellarTool = _cellarTool(
-  "add",
+const _addTool = _cellarTool(
   "Puts ingredients in the cook's cellar (the food they own at home), several at once, and shows " +
   "the cook what was added with a button to undo it. Call it when the cook asked for it, or said " +
   "yes when you offered. Pass ingredient ids from searchIngredients. Lines in " +
@@ -130,8 +137,7 @@ export const addToCellarTool = _cellarTool(
   "is in `lines`, and never list the lines in your text: the card shows them.",
 );
 
-export const removeFromCellarTool = _cellarTool(
-  "remove",
+const _removeTool = _cellarTool(
   "Takes ingredients out of the cook's cellar (the food they own at home), several at once, and " +
   "shows the cook what was removed with a button to undo it. Call it when the cook asked for it, " +
   "or said yes when you offered. Pass ingredient ids from " +
@@ -141,3 +147,7 @@ export const removeFromCellarTool = _cellarTool(
   "cellar holds, so ask the cook how much that is rather than converting between grams and pieces " +
   "yourself. Never list the lines in your text: the card shows them.",
 );
+
+/** Factories, like `searchRecipesTool`: whose cellar it writes to is not the model's to state. */
+export const addToCellarTool = (cook: Cook) => _addTool({ action: "add", ...cook });
+export const removeFromCellarTool = (caller: Caller) => _removeTool({ action: "remove", ...caller });

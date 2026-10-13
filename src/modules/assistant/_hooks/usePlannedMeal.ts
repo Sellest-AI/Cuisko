@@ -65,7 +65,7 @@ export const usePlannedMeal = (meal: MealPlanned, changeKey: string) => {
     const { today } = localClock(new Date());
 
     try {
-      await drop({ householdId, mealId, today });
+      await drop({ householdId, mealId, today, isUndo: true });
       setUndoneAll((all) => ({ ...all, [changeKey]: [PLATE] }));
 
       if (meal.replaced) {
@@ -76,6 +76,7 @@ export const usePlannedMeal = (meal: MealPlanned, changeKey: string) => {
           slot: meal.slot,
           servings: meal.replaced.servings,
           today,
+          isUndo: true,
         });
       }
     } catch (error) {

@@ -35,7 +35,13 @@ let t: ReturnType<typeof convexTest>;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  capture.mockReset();
 });
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+/** What was sent for `event`, the commit's own event left out. */
+const sent = (event: string) => capture.mock.calls.map(([, args]) => args).filter((args) => args.event === event);
 
 afterEach(() => {
   vi.clearAllTimers();
@@ -221,6 +227,55 @@ describe("router/planning/removeOne", () => {
 
     const untouched = await ledgerOf(mealId);
     expect(untouched).toHaveLength(1);
+  });
+
+  test("reports the plate removed, and how far ahead it was", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Soupe");
+    const [mealId] = await commitPlates(userId, householdId, recipeId, [TODAY + 3 * DAY]);
+    const { mealPlanId } = (await t.run((ctx) => ctx.db.get(mealId!)))!;
+
+    await removeOne(userId, householdId, mealId);
+
+    expect(sent("meal removed")).toEqual([
+      {
+        distinctId: userId,
+        event: "meal removed",
+        groups: { household: householdId },
+        properties: {
+          plannedMealId: mealId,
+          mealPlanId,
+          recipeId,
+          recipeOrigin: "catalog",
+          daysAhead: 3,
+          servings: 2,
+          isUndo: false,
+        },
+      },
+    ]);
+  });
+
+  /** The chat's undo of a plate Cuisko planned: the plate is gone all the same, but the cook rejected nothing. */
+  test("tags the removal an undo makes", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Soupe");
+    const [mealId] = await commitPlates(userId, householdId, recipeId, [TODAY + DAY]);
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.planning.removeOne.authed, { householdId, mealId: mealId!, today: TODAY, isUndo: true });
+
+    expect(sent("meal removed")).toMatchObject([{ properties: { plannedMealId: mealId, isUndo: true } }]);
+  });
+
+  /** A new week taking a plate's slot is not the cook removing it. */
+  test("reports nothing when a new week replaces a plate", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Soupe");
+    await commitPlates(userId, householdId, recipeId, [TODAY + DAY]);
+    await commitPlates(userId, householdId, recipeId, [TODAY + DAY]);
+
+    expect(sent("meal removed")).toEqual([]);
   });
 
   test("takes the meal and its grocery claims with it", async () => {

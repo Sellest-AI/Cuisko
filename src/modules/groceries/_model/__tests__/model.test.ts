@@ -770,6 +770,16 @@ describe("peeling receipts", () => {
     expect(peelReceipts([expired, live], CARROTS, 5, NOW).receipts).toEqual([expired]);
   });
 
+  /** What the server reports as `purchase undone`: only stock that came off a live receipt. */
+  it("counts as undone only what came off a live receipt", () => {
+    const expired = bought(6, ago(UNDO_WINDOW_MS + 1_000));
+    const live = bought(2, ago(1_000));
+
+    expect(peelReceipts([expired, live], CARROTS, 5, NOW).undone).toBe(2);
+    expect(peelReceipts([expired], CARROTS, 5, NOW).undone).toBe(0);
+    expect(peelReceipts([live], CARROTS, 1, NOW).undone).toBe(1);
+  });
+
   it("leaves the rest of a partially undone purchase in place", () => {
     expect(peelReceipts([bought(6, ago(1_000))], CARROTS, 2, NOW).receipts.map((r) => r.amount))
       .toEqual([4]);

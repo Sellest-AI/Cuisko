@@ -35,7 +35,11 @@ let t: ReturnType<typeof convexTest>;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  capture.mockReset();
 });
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 afterEach(() => {
   vi.clearAllTimers();
@@ -379,5 +383,63 @@ describe("router/planning/commit", () => {
         .withIdentity(asUser(userId))
         .mutation(api.router.planning.commit.authed, { ...args(householdId, recipeId), plates: [] }),
     ).rejects.toThrow();
+  });
+});
+
+/** The hero moment, as PostHog sees it: how much of the week the kitchen already had. */
+describe("router/planning/commit reports the week", () => {
+  const seedMember = async () => {
+    const householdId = await seedHousehold();
+    const userId = await seedUser();
+    await join(householdId, userId);
+    return { householdId, userId };
+  };
+
+  test("a soup the cellar covers and a salad it does not: one line covered, one on the list", async () => {
+    const { householdId, userId } = await seedMember();
+    const soupe = await seedRecipe("Soupe");
+    const salade = await seedRecipe("Salade");
+    await t.run((ctx) =>
+      ctx.db.insert("cellarItems", { householdId, ingredientId: soupe.ingredientId, quantity: 500, unit: "g", updatedAt: Date.now() }),
+    );
+
+    const mealPlanId = await t.withIdentity(asUser(userId)).mutation(api.router.planning.commit.authed, {
+      ...args(householdId, soupe.recipeId),
+      plates: [
+        { recipeId: soupe.recipeId, date: TODAY + DAY, slot: "lunch" as const, servings: 2 },
+        { recipeId: salade.recipeId, date: TODAY + DAY, slot: "dinner" as const, servings: 2 },
+      ],
+    });
+
+    expect(capture).toHaveBeenCalledOnce();
+    expect(capture.mock.calls[0]![1]).toEqual({
+      distinctId: userId,
+      event: "week planned",
+      groups: { household: householdId },
+      properties: { mealPlanId, plates: 2, days: 1, people: 2, lines: 2, coveredLines: 1, tickedLines: 0, groceryLines: 1, replaced: 0 },
+    });
+  });
+
+  test("a line the shopper ticked as owned is counted as ticked, and bought nowhere", async () => {
+    const { householdId, userId } = await seedMember();
+    const { recipeId, ingredientId } = await seedRecipe("Soupe");
+
+    await t.withIdentity(asUser(userId)).mutation(api.router.planning.commit.authed, {
+      ...args(householdId, recipeId),
+      owned: [{ ingredientId, unit: "g" as const }],
+    });
+
+    expect(capture.mock.calls[0]![1].properties).toMatchObject({ lines: 1, coveredLines: 0, tickedLines: 1, groceryLines: 0 });
+  });
+
+  test("a refused week reports nothing", async () => {
+    const householdId = await seedHousehold();
+    const outsiderId = await seedUser();
+    const { recipeId } = await seedRecipe("Soupe");
+
+    await expect(
+      t.withIdentity(asUser(outsiderId)).mutation(api.router.planning.commit.authed, args(householdId, recipeId)),
+    ).rejects.toThrow();
+    expect(capture).not.toHaveBeenCalled();
   });
 });

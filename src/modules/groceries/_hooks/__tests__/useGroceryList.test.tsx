@@ -307,6 +307,32 @@ describe("useStockActions", () => {
     expect(lastCall()!.args).toMatchObject({ quantity: 4, restoreToList: 4 });
   });
 
+  /** The server reports a taken-back purchase only when told: it cannot see the receipt. */
+  it("tells the server a removal inside the undo window takes a purchase back", async () => {
+    state.cellar = [];
+    const { result, rerender } = groceries();
+
+    await act(() => result.current.apply("buy", { ingredientId: CARROT, unit: "pcs" }, 6));
+
+    state.cellar = [shelf(6)];
+    rerender();
+
+    await act(() => result.current.apply("remove", { ingredientId: CARROT, unit: "pcs" }, 6));
+
+    expect(lastCall()!.args).toMatchObject({ isUndo: true });
+  });
+
+  /** Carrots that were already on the shelf: using them up takes no purchase back. */
+  it("does not call a removal with no live receipt an undo", async () => {
+    state.cellar = [shelf(6)];
+    const { result } = groceries();
+
+    await act(() => result.current.apply("remove", { ingredientId: CARROT, unit: "pcs" }, 2));
+
+    expect(lastCall()!.name).toContain("removeFromCellar");
+    expect(lastCall()!.args).toMatchObject({ isUndo: false });
+  });
+
   it("restores nothing when the stock was never on anyone's list", async () => {
     state.cellar = [];
     const { result, rerender } = groceries();

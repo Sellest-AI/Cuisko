@@ -480,9 +480,9 @@ const _tools = (locale: Locale, stock: Stock[], week: FakePlate[]) => {
     [ASSISTANT_TOOLS.display]: displayTool,
     [ASSISTANT_TOOLS.showButton]: showButtonTool,
     [ASSISTANT_TOOLS.showSubstitutions]: showSubstitutionsTool,
-    [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId }),
+    [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId, userId }),
     [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
-    [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, locale, today: TODAY_MS, now: `${TODAY}T19:05` }),
+    [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, userId, locale, today: TODAY_MS, now: `${TODAY}T19:05` }),
   };
 
   return Object.fromEntries(

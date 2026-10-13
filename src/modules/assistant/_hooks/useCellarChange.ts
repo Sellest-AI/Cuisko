@@ -116,6 +116,7 @@ export const useCellarChange = (change: DrawnCellarChange, changeKey: string) =>
             unit: line.unit,
             quantity: line.quantity,
             restoreToList: line.restoreToList,
+            isUndo: true,
           });
         } else {
           await addToCellar({ householdId, ingredientId, unit: line.unit, quantity: line.quantity, strikeList: false });

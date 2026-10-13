@@ -19,6 +19,17 @@ type Args = Clock & {
   servings: number;
 };
 
+/**
+ * The plate the dish was cooked on, its week, and whether the plan had promised it (false: recorded
+ * on today). `recipe` is the row it read to scale the lines, handed on for the router's report.
+ */
+export type CookedMeal = {
+  mealId: Id<"plannedMeals">;
+  mealPlanId: Id<"mealPlans">;
+  fromPlate: boolean;
+  recipe: Doc<"recipes">;
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -70,7 +81,12 @@ const _settleLedger = async (
  * takes it without a special case. Its ledger holds what was taken and nothing about the list,
  * because nothing was ever shopped for.
  */
-const _recordUnplanned = async (ctx: MutationCtx, args: Args, needs: Need[], consumed: Consumed[]) => {
+const _recordUnplanned = async (
+  ctx: MutationCtx,
+  args: Args,
+  needs: Need[],
+  consumed: Consumed[],
+): Promise<Pick<CookedMeal, "mealId" | "mealPlanId">> => {
   const slot = currentSlot(args.hour) ?? "lunch";
 
   const mealPlanId = await ctx.db.insert("mealPlans", {
@@ -107,7 +123,7 @@ const _recordUnplanned = async (ctx: MutationCtx, args: Args, needs: Need[], con
     });
   }
 
-  return plannedMealId;
+  return { mealId: plannedMealId, mealPlanId };
 };
 
 /**
@@ -123,7 +139,7 @@ const _recordUnplanned = async (ctx: MutationCtx, args: Args, needs: Need[], con
  * The cellar is spent at the servings actually cooked, from the lots the plate reserved first, and
  * the plate's `servings` follows: what was eaten is what the record says.
  */
-export const cookMeal = async (ctx: MutationCtx, args: Args): Promise<Id<"plannedMeals">> => {
+export const cookMeal = async (ctx: MutationCtx, args: Args): Promise<CookedMeal> => {
   // The stepper is clamped to the same rule, so this refuses only a client that is not ours.
   if (!isServings(args.servings)) throw new ConvexError({ code: "INVALID_INPUT", message: "Invalid servings." });
 
@@ -149,10 +165,10 @@ export const cookMeal = async (ctx: MutationCtx, args: Args): Promise<Id<"planne
 
   const consumed = await consumeFromCellar(ctx, { householdId: args.householdId, lines, lots });
 
-  if (!plate) return _recordUnplanned(ctx, args, needs, consumed);
+  if (!plate) return { ...(await _recordUnplanned(ctx, args, needs, consumed)), fromPlate: false, recipe };
 
   await _settleLedger(ctx, plate, ledger, consumed, args.today);
   await ctx.db.patch(plate._id, { status: "cooked", servings: args.servings, updatedAt: Date.now() });
 
-  return plate._id;
+  return { mealId: plate._id, mealPlanId: plate.mealPlanId, fromPlate: true, recipe };
 };

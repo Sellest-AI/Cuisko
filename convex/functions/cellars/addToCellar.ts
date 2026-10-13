@@ -32,6 +32,10 @@ export type AddedToCellar = {
    * and the only moment it can be known: the lines it struck are deleted.
    */
   struck: number;
+  /** How many list rows it struck or shortened, for the router to report. */
+  struckLines: number;
+  /** The ingredient row it read for the shelf life, handed on so the report does not read it again. */
+  ingredient: Doc<"ingredients"> | null;
 };
 
 /**
@@ -119,9 +123,14 @@ export const addToCellar = async (
   /** Only the rows struck whole are settled; a row only decremented keeps its claims pointing at it. */
   const struckRowIds: Id<"groceryListItems">[] = [];
 
+  /** Every list row the purchase struck or shortened: what the cook ticked off. */
+  let touchedRows = 0;
+
   let remainingQuantity = args.quantity;
   for (const groceryListItem of matchingItems) {
     if (remainingQuantity <= 0) break;
+
+    touchedRows += 1;
 
     if (groceryListItem.quantity <= remainingQuantity) {
       await ctx.db.delete(groceryListItem._id);
@@ -156,7 +165,8 @@ export const addToCellar = async (
 
   // A rough date, from how long this food keeps as a shop sells it. Only ever used to decide what
   // to cook first, and absent for an ingredient nothing has estimated, which reads as not urgent.
-  const shelfLifeDays = (await ctx.db.get(args.ingredientId))?.shelfLifeDays;
+  const ingredient = await ctx.db.get(args.ingredientId);
+  const shelfLifeDays = ingredient?.shelfLifeDays;
   const now = Date.now();
 
   // The row the quantity ended up on, whether it was merged or minted — the caller asked where its
@@ -200,5 +210,5 @@ export const addToCellar = async (
     }
   }
 
-  return { cellarItemId, struck: args.quantity - remainingQuantity };
+  return { cellarItemId, struck: args.quantity - remainingQuantity, struckLines: touchedRows, ingredient };
 };

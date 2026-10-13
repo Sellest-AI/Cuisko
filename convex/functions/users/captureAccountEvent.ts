@@ -1,8 +1,8 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { REVIEW_ACCOUNT } from "@convex/functions/auth/reviewAccount";
-import { posthog } from "@convex/lib/posthog/client";
+import { type CapturedEvent, captureEvent } from "@convex/lib/posthog/captureEvent";
 import type { MutationCtx } from "@convex/procedures";
-import type { AnalyticsEvent } from "@convex/schema/events";
+import type { EventProperties } from "@convex/schema/events";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -15,6 +15,8 @@ export const accountAgeDays = (createdAt: number, now: number): number => Math.f
  */
 export type AccountHolder = Pick<Doc<"users">, "_id"> & Partial<Pick<Doc<"users">, "_creationTime" | "email">>;
 
+type AccountEvent = "account deletion requested" | "account deletion cancelled" | "account deleted";
+
 /**
  * Sends PostHog one event about an account, on the person its screens and costs are already filed
  * under: the `users` id, which the purge turns into an anonymous tombstone. Never a name, an email
@@ -25,19 +27,21 @@ export type AccountHolder = Pick<Doc<"users">, "_id"> & Partial<Pick<Doc<"users"
  * submission would add a cook leaving and one coming back. The email is only compared, never sent.
  *
  * Called from the mutation that makes the change, so the event goes out only if that mutation
- * commits: `capture` schedules the send rather than making it. **Never throws**, as tracing does
- * (ADR 0019): a failure to schedule is logged, and the deletion or cancellation it reports goes on.
+ * commits, and never throws: both are `captureEvent`'s.
  */
-export const captureAccountEvent = async (
+export const captureAccountEvent = async <E extends AccountEvent>(
   ctx: Pick<MutationCtx, "scheduler">,
-  { user, event, properties }: { user: AccountHolder; event: AnalyticsEvent; properties: Record<string, string | number> },
+  { user, event, properties }: { user: AccountHolder; event: E; properties: EventProperties[E] },
 ): Promise<void> => {
   if (user.email === REVIEW_ACCOUNT.email) return;
 
-  const age = user._creationTime === undefined ? {} : { accountAgeDays: accountAgeDays(user._creationTime, Date.now()) };
-  try {
-    await posthog.capture(ctx, { distinctId: user._id, event, properties: { ...age, ...properties } });
-  } catch (error) {
-    console.error(`[analytics] could not schedule "${event}" for ${user._id}`, error);
-  }
+  // The cast only re-pairs `event` with its own properties, which TypeScript cannot follow through
+  // a generic `E`; the signature above is what checks each caller's properties against `EventProperties`.
+  await captureEvent(ctx, {
+    distinctId: user._id,
+    event,
+    properties: user._creationTime === undefined
+      ? properties
+      : { accountAgeDays: accountAgeDays(user._creationTime, Date.now()), ...properties },
+  } as CapturedEvent<AccountEvent>);
 };

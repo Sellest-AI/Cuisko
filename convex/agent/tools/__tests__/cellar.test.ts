@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { addToCellarTool, removeFromCellarTool, toCellarItems } from "../cellar";
 
 const HOME = "home" as Id<"households">;
+const CAMILLE = "camille" as Id<"users">;
 
 type Tool = ReturnType<typeof addToCellarTool>;
 type Ctx = Parameters<Tool["run"]>[0];
@@ -50,7 +51,7 @@ describe("addToCellarTool", () => {
   it("returns each line with the row it landed on and what it struck off the list", async () => {
     const { ctx } = _ctx(({ ingredientId }) => ({ cellarItemId: `row-${ingredientId}`, struck: ingredientId === "potato" ? 200 : 0 }));
 
-    const change = await addToCellarTool({ householdId: HOME }).run(ctx, {
+    const change = await addToCellarTool({ householdId: HOME, userId: CAMILLE }).run(ctx, {
       items: [{ ingredientId: "potato", quantity: 500, unit: "g" }, { ingredientId: "tomato", quantity: 3, unit: "pcs" }],
     });
 
@@ -72,7 +73,7 @@ describe("addToCellarTool", () => {
     const { ctx, runMutation } = _ctx(() => ({ cellarItemId: "row", struck: 0 }), ["licorne"]);
 
     await expect(
-      addToCellarTool({ householdId: HOME }).run(ctx, { items: [{ ingredientId: "licorne", quantity: 1, unit: "pcs" }] }),
+      addToCellarTool({ householdId: HOME, userId: CAMILLE }).run(ctx, { items: [{ ingredientId: "licorne", quantity: 1, unit: "pcs" }] }),
     ).rejects.toThrow(/licorne/);
     expect(runMutation).not.toHaveBeenCalled();
   });

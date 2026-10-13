@@ -102,6 +102,7 @@ import type * as functions_ingredients_missingIngredientIds from "../functions/i
 import type * as functions_ingredients_persistRestoredIngredient from "../functions/ingredients/persistRestoredIngredient.js";
 import type * as functions_ingredients_rememberAlias from "../functions/ingredients/rememberAlias.js";
 import type * as functions_ingredients_replaceInRecipes from "../functions/ingredients/replaceInRecipes.js";
+import type * as functions_ingredients_reportedIngredient from "../functions/ingredients/reportedIngredient.js";
 import type * as functions_ingredients_resolveIngredient from "../functions/ingredients/resolveIngredient.js";
 import type * as functions_ingredients_restoreIngredient from "../functions/ingredients/restoreIngredient.js";
 import type * as functions_ingredients_searchCatalog from "../functions/ingredients/searchCatalog.js";
@@ -135,6 +136,7 @@ import type * as functions_planning_planDraft from "../functions/planning/planDr
 import type * as functions_planning_planMeal from "../functions/planning/planMeal.js";
 import type * as functions_planning_plannedMealCard from "../functions/planning/plannedMealCard.js";
 import type * as functions_planning_recipeLines from "../functions/planning/recipeLines.js";
+import type * as functions_planning_reportedPlate from "../functions/planning/reportedPlate.js";
 import type * as functions_planning_rescaleMeal from "../functions/planning/rescaleMeal.js";
 import type * as functions_planning_scaleLines from "../functions/planning/scaleLines.js";
 import type * as functions_planning_selectMeals from "../functions/planning/selectMeals.js";
@@ -175,6 +177,7 @@ import type * as functions_recipes_recipeNutrition from "../functions/recipes/re
 import type * as functions_recipes_recipeSearchText from "../functions/recipes/recipeSearchText.js";
 import type * as functions_recipes_refreshRecipe from "../functions/recipes/refreshRecipe.js";
 import type * as functions_recipes_regenerateRecipe from "../functions/recipes/regenerateRecipe.js";
+import type * as functions_recipes_reportedRecipe from "../functions/recipes/reportedRecipe.js";
 import type * as functions_recipes_resolveRecipeIngredients from "../functions/recipes/resolveRecipeIngredients.js";
 import type * as functions_recipes_restoreRecipe from "../functions/recipes/restoreRecipe.js";
 import type * as functions_recipes_saveRecipe from "../functions/recipes/saveRecipe.js";
@@ -205,6 +208,7 @@ import type * as lib_media_node from "../lib/media/node.js";
 import type * as lib_nanoid from "../lib/nanoid.js";
 import type * as lib_openrouter_transcribe from "../lib/openrouter/transcribe.js";
 import type * as lib_path from "../lib/path.js";
+import type * as lib_posthog_captureEvent from "../lib/posthog/captureEvent.js";
 import type * as lib_posthog_client from "../lib/posthog/client.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_replicate_node from "../lib/replicate/node.js";
@@ -426,6 +430,7 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/persistRestoredIngredient": typeof functions_ingredients_persistRestoredIngredient;
   "functions/ingredients/rememberAlias": typeof functions_ingredients_rememberAlias;
   "functions/ingredients/replaceInRecipes": typeof functions_ingredients_replaceInRecipes;
+  "functions/ingredients/reportedIngredient": typeof functions_ingredients_reportedIngredient;
   "functions/ingredients/resolveIngredient": typeof functions_ingredients_resolveIngredient;
   "functions/ingredients/restoreIngredient": typeof functions_ingredients_restoreIngredient;
   "functions/ingredients/searchCatalog": typeof functions_ingredients_searchCatalog;
@@ -459,6 +464,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/planMeal": typeof functions_planning_planMeal;
   "functions/planning/plannedMealCard": typeof functions_planning_plannedMealCard;
   "functions/planning/recipeLines": typeof functions_planning_recipeLines;
+  "functions/planning/reportedPlate": typeof functions_planning_reportedPlate;
   "functions/planning/rescaleMeal": typeof functions_planning_rescaleMeal;
   "functions/planning/scaleLines": typeof functions_planning_scaleLines;
   "functions/planning/selectMeals": typeof functions_planning_selectMeals;
@@ -499,6 +505,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/recipeSearchText": typeof functions_recipes_recipeSearchText;
   "functions/recipes/refreshRecipe": typeof functions_recipes_refreshRecipe;
   "functions/recipes/regenerateRecipe": typeof functions_recipes_regenerateRecipe;
+  "functions/recipes/reportedRecipe": typeof functions_recipes_reportedRecipe;
   "functions/recipes/resolveRecipeIngredients": typeof functions_recipes_resolveRecipeIngredients;
   "functions/recipes/restoreRecipe": typeof functions_recipes_restoreRecipe;
   "functions/recipes/saveRecipe": typeof functions_recipes_saveRecipe;
@@ -529,6 +536,7 @@ declare const fullApi: ApiFromModules<{
   "lib/nanoid": typeof lib_nanoid;
   "lib/openrouter/transcribe": typeof lib_openrouter_transcribe;
   "lib/path": typeof lib_path;
+  "lib/posthog/captureEvent": typeof lib_posthog_captureEvent;
   "lib/posthog/client": typeof lib_posthog_client;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/replicate/node": typeof lib_replicate_node;

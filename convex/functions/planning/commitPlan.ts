@@ -13,7 +13,9 @@ import { isDistinct, isServings, MAX_DAYS } from "./limits";
 import { recipeLines, type ResolvedLine } from "./recipeLines";
 import { scaleLines } from "./scaleLines";
 import { skipAt } from "./skipMeal";
-import { ownedTickKey, syncMealLines, type MealLine } from "./syncMealLines";
+import { ownedTickKey, syncMealLines, type LineCounts, type MealLine } from "./syncMealLines";
+
+const LINE_COUNTS = ["lines", "covered", "ticked", "toBuy"] as const satisfies (keyof LineCounts)[];
 
 /** One plate the user is keeping: which dish, which day, which meal of it, and for how many. */
 export type CommittedPlate = {
@@ -22,6 +24,20 @@ export type CommittedPlate = {
   date: number;
   slot: MealSlot;
   servings: number;
+};
+
+/**
+ * What a committed plan came to, counted while it was written: how much of it the kitchen already
+ * had. `coveredLines` is the cellar's answer, `tickedLines` the shopper's. Lines are counted per
+ * plate, so a dish planned twice counts twice. The router reports it; nothing reads it back.
+ */
+export type PlanSummary = {
+  plates: number;
+  days: number;
+  lines: number;
+  coveredLines: number;
+  tickedLines: number;
+  groceryLines: number;
 };
 
 type Args = {
@@ -158,6 +174,7 @@ export const commitPlan = async (
   plannedMealIds: Id<"plannedMeals">[];
   /** The planned plates already on a day and slot the week wrote, dropped to make room — see `_dropReplaced`. */
   replaced: Doc<"plannedMeals">[];
+  summary: PlanSummary;
 }> => {
   if (!_isValidRequest(args)) throw new ConvexError({ code: "INVALID_INPUT" });
 
@@ -189,6 +206,7 @@ export const commitPlan = async (
   });
 
   const plannedMealIds: Id<"plannedMeals">[] = [];
+  const week: LineCounts = { lines: 0, covered: 0, ticked: 0, toBuy: 0 };
 
   for (const plate of plates) {
     const recipe = recipes.get(plate.recipeId)!;
@@ -217,7 +235,8 @@ export const commitPlan = async (
       owned: owned.has(ownedTickKey(need.ingredientId, need.unit)),
     }));
 
-    await syncMealLines(ctx, { householdId: args.householdId, plannedMealId, lines: mealLines, stock, lots, from: args.today });
+    const counts = await syncMealLines(ctx, { householdId: args.householdId, plannedMealId, lines: mealLines, stock, lots, from: args.today });
+    for (const key of LINE_COUNTS) week[key] += counts[key];
 
     /**
      * The plate's other ending, booked with it: a plate nobody cooks by the day after its day is
@@ -227,5 +246,14 @@ export const commitPlan = async (
     await ctx.scheduler.runAt(skipAt(plate.date), internal.router.planning.skipOne._internal, { mealId: plannedMealId });
   }
 
-  return { mealPlanId, plannedMealIds, replaced };
+  const summary: PlanSummary = {
+    plates: plates.length,
+    days: new Set(plates.map((plate) => plate.date)).size,
+    lines: week.lines,
+    coveredLines: week.covered,
+    tickedLines: week.ticked,
+    groceryLines: week.toBuy,
+  };
+
+  return { mealPlanId, plannedMealIds, replaced, summary };
 };

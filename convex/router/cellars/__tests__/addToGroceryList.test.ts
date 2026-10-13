@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vitest";
 
 import type { Unit } from "@shared/ingredients";
 
@@ -9,6 +9,9 @@ import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 /**
  * Imports the module under test before any test is timed, so the first one is not billed for the
@@ -165,6 +168,29 @@ describe("router/cellars/addToGroceryList", () => {
     const items = await t.run((ctx) => ctx.db.query("groceryListItems").collect());
     expect(items).toHaveLength(1);
     expect(items[0]!.quantity).toBe(4);
+  });
+
+  /** A planned week's lines are counted on `week planned` (commit.test.ts); this is the cook's own. */
+  test("reports the item the cook added by hand", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    capture.mockReset();
+
+    const landed = await t.withIdentity(asUser(userId)).mutation(api.router.cellars.addToGroceryList.authed, {
+      householdId,
+      ingredientId,
+      unit: "pcs",
+      quantity: 4,
+    });
+
+    expect(capture.mock.calls.map(([, args]) => args)).toEqual([
+      {
+        distinctId: userId,
+        event: "grocery item added",
+        groups: { household: householdId },
+        properties: { groceryListItemId: landed.id, ingredientId, ingredient: "Egg", category: "EGG" },
+      },
+    ]);
   });
 
   test("merges into an existing item of the same ingredient and unit instead of duplicating", async () => {

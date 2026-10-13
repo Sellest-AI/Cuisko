@@ -3,6 +3,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { type RateLimitCtx, withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { createGeneratedRecipe } from "@convex/functions/recipes/createGeneratedRecipe";
 import { findBySource } from "@convex/functions/recipes/findBySource";
+import { captureEvent } from "@convex/lib/posthog/captureEvent";
 import { socialShortLinkOf, socialVideoSourceOf } from "@convex/lib/socialVideo/sources";
 import { type TracedActionCtx, authActionI18n, internalQuery } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
@@ -53,6 +54,10 @@ const _canonicalUrlOf = async (ctx: Context, url: string): Promise<string> => {
  * video already imported is answered before the rate limit is charged, and only a real import
  * takes one of the day's `recipeVideoImport` tokens.
  *
+ * Reports `recipe imported` (ADR 0019) once the recipe exists, with its id and ingredient count,
+ * and only for a real import: a video already imported is answered with that recipe, and nothing
+ * new was made.
+ *
  * @limitation A video that teaches no dish (`NOT_A_RECIPE`) is not remembered: each share of it
  * pays the model again and spends one of the cook's daily tokens. Remembering it needs a table of
  * refused addresses, not worth it until a popular non-recipe video is shared often.
@@ -71,6 +76,11 @@ const _import = async (ctx: Context, url: string): Promise<Imported> => {
     });
 
     const recipeId = await createGeneratedRecipe(ctx, { userId: ctx.userId, locale, recipe, links, sourceUrl });
+    await captureEvent(ctx, {
+      event: "recipe imported",
+      distinctId: ctx.userId,
+      properties: { recipeId, source: "video", ingredients: recipe.ingredients.length },
+    });
     return { recipeId, isOwned: true };
   });
 };

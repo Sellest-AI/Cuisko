@@ -1,9 +1,12 @@
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vitest";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -215,5 +218,31 @@ describe("router/cellars/removeFromGroceryList", () => {
       expect(claim!.groceryListItemId).toBeUndefined();
       expect(claim!.cellarItemId).toBe(reservedLotId);
     });
+  });
+});
+
+/** A deletion is the only way off the list besides a purchase; how soon after the add tells a mistap. */
+describe("router/cellars/removeFromGroceryList reports the removal", () => {
+  test("reports the ingredient struck off and how many lines went with it", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, householdId, ingredientId } = await seedHousehold(t);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("groceryListItems", { householdId, ingredientId, unit: "pcs", quantity: 4, updatedAt: Date.now() });
+      await ctx.db.insert("groceryListItems", { householdId, ingredientId, unit: "pcs", quantity: 2, updatedAt: Date.now() });
+    });
+    capture.mockReset();
+
+    await t
+      .withIdentity(asUser(userId))
+      .mutation(api.router.cellars.removeFromGroceryList.authed, { householdId, ingredientId, unit: "pcs" });
+
+    expect(capture.mock.calls.map(([, args]) => args)).toEqual([
+      {
+        distinctId: userId,
+        event: "grocery item removed",
+        groups: { household: householdId },
+        properties: { ingredientId, ingredient: "Egg", category: "EGG", lines: 2 },
+      },
+    ]);
   });
 });

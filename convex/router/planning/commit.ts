@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { commitPlan } from "@convex/functions/planning/commitPlan";
+import { captureEvent } from "@convex/lib/posthog/captureEvent";
 import { vMealSlot } from "@convex/schema/households";
 import { vRecipeUnit } from "@convex/schema/ingredients";
 import { householdMutation } from "@convex/procedures";
@@ -16,6 +17,9 @@ import { householdMutation } from "@convex/procedures";
  * Only the *choices* come up: which dish on which day, for how many, and what the shopper says is
  * already in the kitchen. Every quantity is recomputed server-side against the cellar as it stands —
  * see `commitPlan`.
+ *
+ * Reports `week planned` with its plan id and what the week came to (ADR 0019): the tunnel always
+ * sends a seed. Each plate's own events carry the same `mealPlanId`.
  */
 export const authed = householdMutation({
   args: {
@@ -33,6 +37,16 @@ export const authed = householdMutation({
     today: v.number(),
     owned: v.array(v.object({ ingredientId: v.id("ingredients"), unit: vRecipeUnit })),
   },
-  handler: async (ctx, args) =>
-    (await commitPlan(ctx, { ...args, householdId: ctx.householdId })).mealPlanId,
+  handler: async (ctx, args) => {
+    const { mealPlanId, replaced, summary } = await commitPlan(ctx, { ...args, householdId: ctx.householdId });
+
+    await captureEvent(ctx, {
+      event: "week planned",
+      distinctId: ctx.userId,
+      householdId: ctx.householdId,
+      properties: { mealPlanId, ...summary, people: args.people, replaced: replaced.length },
+    });
+
+    return mealPlanId;
+  },
 });

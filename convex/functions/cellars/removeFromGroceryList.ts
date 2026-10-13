@@ -24,8 +24,10 @@ type Args = {
  * overruled the list, and a later meal drop giving the grocery quantity back would put the row
  * straight back up. A reservation the claim held against a cellar lot stands: the line still gets
  * cooked either way.
+ *
+ * Returns how many lines went, for the router to report.
  */
-export const removeFromGroceryList = async (ctx: MutationCtx, args: Args): Promise<void> => {
+export const removeFromGroceryList = async (ctx: MutationCtx, args: Args): Promise<number> => {
   const items = await ctx.db
     .query("groceryListItems")
     .withIndex("by_household_id_and_ingredient_id", (q) =>
@@ -38,4 +40,6 @@ export const removeFromGroceryList = async (ctx: MutationCtx, args: Args): Promi
   for (const item of matching) {
     await cascadeDelete(ctx, "groceryListItems", item._id);
   }
+
+  return matching.length;
 };

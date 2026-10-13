@@ -1,4 +1,4 @@
-import type { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 
 import { laterPlates, releaseClaim } from "./syncMealLines";
@@ -31,10 +31,12 @@ export const skipAt = (date: number): number => date + 2 * DAY_MS;
  * `groceryQuantity` is cleared with the pointers — it recorded what was bought for a dish that was
  * eaten, and nothing was eaten here. `quantity` and `unit` stay as the record of what was planned,
  * and the rows stay with them, so the ledger's shape matches a cooked plate's for every reader.
+ *
+ * Returns the plate it skipped, or `null` when it left the plate alone.
  */
-export const skipMeal = async (ctx: MutationCtx, { mealId }: Args): Promise<void> => {
+export const skipMeal = async (ctx: MutationCtx, { mealId }: Args): Promise<Doc<"plannedMeals"> | null> => {
   const plate = await ctx.db.get(mealId);
-  if (!plate || plate.status !== "planned") return;
+  if (!plate || plate.status !== "planned") return null;
 
   const ledger = await ctx.db
     .query("plannedMealIngredients")
@@ -57,4 +59,6 @@ export const skipMeal = async (ctx: MutationCtx, { mealId }: Args): Promise<void
   }
 
   await ctx.db.patch(plate._id, { status: "skipped", updatedAt: Date.now() });
+
+  return plate;
 };

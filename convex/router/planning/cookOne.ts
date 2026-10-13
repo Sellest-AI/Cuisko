@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 
 import { cookMeal } from "@convex/functions/planning/cookMeal";
+import { reportedPlateOf } from "@convex/functions/planning/reportedPlate";
+import { captureEvent } from "@convex/lib/posthog/captureEvent";
 import { householdMutation } from "@convex/procedures";
 
 /**
@@ -11,6 +13,9 @@ import { householdMutation } from "@convex/procedures";
  * "lunch" only means something where the cook is standing. `householdMutation`, so membership is the
  * authorization and `ctx.householdId` is the only cellar this can spend; the recipe may be anyone's
  * (ADR 0014).
+ *
+ * Reports `meal cooked` (ADR 0019) with the plate, its week and its recipe; `fromPlate: false` is a
+ * dish no plate had promised, on a plan of its own.
  */
 export const authed = householdMutation({
   args: {
@@ -19,5 +24,20 @@ export const authed = householdMutation({
     today: v.number(),
     hour: v.number(),
   },
-  handler: (ctx, args) => cookMeal(ctx, { ...args, householdId: ctx.householdId }),
+  handler: async (ctx, args) => {
+    const { mealId, mealPlanId, fromPlate, recipe } = await cookMeal(ctx, { ...args, householdId: ctx.householdId });
+
+    await captureEvent(ctx, {
+      event: "meal cooked",
+      distinctId: ctx.userId,
+      householdId: ctx.householdId,
+      properties: {
+        ...reportedPlateOf({ _id: mealId, mealPlanId, recipeId: args.recipeId }, recipe),
+        fromPlate,
+        servings: args.servings,
+      },
+    });
+
+    return mealId;
+  },
 });

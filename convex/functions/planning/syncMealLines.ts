@@ -48,6 +48,17 @@ type Args = {
   from: number;
 };
 
+/** How a meal's lines split, one count per line: `covered` and `ticked` may both hold for a line. */
+export type LineCounts = {
+  lines: number;
+  /** Lines the cellar covers whole: a pinch by its presence, anything else by amount. */
+  covered: number;
+  /** Lines the shopper ticked as already in the kitchen. */
+  ticked: number;
+  /** Lines that put something on the grocery list. */
+  toBuy: number;
+};
+
 /** Under this, a remainder is float noise from a conversion rather than something to buy. */
 const NOTHING_LEFT = 1e-9;
 
@@ -244,8 +255,14 @@ export const releaseClaim = async (
  *
  * The lines are walked in order and `stock` is consumed as they go, so a recipe naming an ingredient
  * twice is scored against what its first line left behind.
+ *
+ * Returns how the lines it wrote split, counted where the split is made so no caller re-derives it
+ * (ADR 0015): `commitPlan` reports it as the share of a week the kitchen already had.
  */
-export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMealId, lines, stock, lots, from }: Args) => {
+export const syncMealLines = async (
+  ctx: MutationCtx,
+  { householdId, plannedMealId, lines, stock, lots, from }: Args,
+): Promise<LineCounts> => {
   const existing = await ctx.db
     .query("plannedMealIngredients")
     .withIndex("by_planned_meal", (q) => q.eq("plannedMealId", plannedMealId))
@@ -262,9 +279,15 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
     await ctx.db.delete(row._id);
   }
 
+  const counts: LineCounts = { lines: lines.length, covered: 0, ticked: 0, toBuy: 0 };
+
   for (const line of lines) {
     const split = _split(line.need, line.ingredient, stock);
     const buying = line.owned ? null : _toBuy(line, split);
+
+    if (split.covered) counts.covered += 1;
+    if (line.owned) counts.ticked += 1;
+    if (buying) counts.toBuy += 1;
 
     /**
      * A pinch bought once is a pinch the kitchen has, for every plate after it.
@@ -307,4 +330,6 @@ export const syncMealLines = async (ctx: MutationCtx, { householdId, plannedMeal
       updatedAt: Date.now(),
     });
   }
+
+  return counts;
 };

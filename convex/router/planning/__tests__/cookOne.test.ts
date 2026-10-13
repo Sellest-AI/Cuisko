@@ -35,7 +35,13 @@ let t: ReturnType<typeof convexTest>;
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   t = convexTest(schema, modules);
+  capture.mockReset();
 });
+
+const capture = vi.hoisted(() => vi.fn());
+vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
+/** What was sent for `event`, planning's own events left out. */
+const sent = (event: string) => capture.mock.calls.map(([, args]) => args).filter((args) => args.event === event);
 
 afterEach(() => {
   vi.clearAllTimers();
@@ -169,6 +175,79 @@ describe("router/planning/cookOne", () => {
   });
 
   /** The catalog is shared (ADR 0014): another cook's recipe spends this household's cellar, nobody else's. */
+  /** The plan kept, or not: a dish nobody planned still counts as cooked, flagged as off-plan. */
+  test("reports the meal cooked, from its plate or from none", async () => {
+    const { userId, householdId } = await seedMember();
+    const soupe = await seedRecipe("Soupe");
+    const curry = await seedRecipe("Curry");
+    const planned = await planOne(userId, householdId, soupe.recipeId);
+
+    const fromPlate = await cookOne(userId, householdId, soupe.recipeId);
+    const unplanned = await cookOne(userId, householdId, curry.recipeId, { servings: 3 });
+    const unplannedPlan = (await t.run((ctx) => ctx.db.get(unplanned)))!.mealPlanId;
+
+    expect(sent("meal cooked")).toEqual([
+      {
+        distinctId: userId,
+        event: "meal cooked",
+        groups: { household: householdId },
+        properties: {
+          plannedMealId: fromPlate,
+          mealPlanId: planned,
+          recipeId: soupe.recipeId,
+          recipeOrigin: "catalog",
+          fromPlate: true,
+          servings: 2,
+        },
+      },
+      {
+        distinctId: userId,
+        event: "meal cooked",
+        groups: { household: householdId },
+        properties: {
+          plannedMealId: unplanned,
+          mealPlanId: unplannedPlan,
+          recipeId: curry.recipeId,
+          recipeOrigin: "catalog",
+          fromPlate: false,
+          servings: 3,
+        },
+      },
+    ]);
+  });
+
+  /** The join a dashboard makes: a plate's planned and cooked events name the same plate and week. */
+  test("names the same plate and week as the plate planned it cooked", async () => {
+    const { userId, householdId } = await seedMember();
+    const { recipeId } = await seedRecipe("Soupe");
+
+    await planOne(userId, householdId, recipeId);
+    await cookOne(userId, householdId, recipeId);
+
+    const [plannedEvent] = sent("plate planned");
+    const [cookedEvent] = sent("meal cooked");
+    expect(cookedEvent.properties).toMatchObject({
+      plannedMealId: plannedEvent.properties.plannedMealId,
+      mealPlanId: plannedEvent.properties.mealPlanId,
+      recipeId,
+    });
+  });
+
+  test("reports where the cooked recipe came from: typed, a page or a video", async () => {
+    const { userId, householdId } = await seedMember();
+    const typed = await seedRecipe("Gratin", userId);
+    const page = await seedRecipe("Tajine", userId);
+    const reel = await seedRecipe("Ramen", userId);
+    await t.run(async (ctx) => {
+      await ctx.db.patch(page.recipeId, { sourceUrl: "https://www.marmiton.org/recettes/tajine.aspx" });
+      await ctx.db.patch(reel.recipeId, { sourceUrl: "https://www.instagram.com/reel/C1a2b3c4d5e/" });
+    });
+
+    for (const { recipeId } of [typed, page, reel]) await cookOne(userId, householdId, recipeId);
+
+    expect(sent("meal cooked").map(({ properties }) => properties.recipeOrigin)).toEqual(["typed", "link", "video"]);
+  });
+
   test("cooks another cook's recipe out of this household's cellar only", async () => {
     const { userId, householdId } = await seedMember();
     const elsewhere = await seedMember();

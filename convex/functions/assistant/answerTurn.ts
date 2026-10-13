@@ -80,9 +80,9 @@ export const answerTurn = async (
         [ASSISTANT_TOOLS.display]: displayTool,
         [ASSISTANT_TOOLS.showButton]: showButtonTool,
         [ASSISTANT_TOOLS.showSubstitutions]: showSubstitutionsTool,
-        [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId }),
+        [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId, userId }),
         [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
-        [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, locale, today, now }),
+        [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, userId, locale, today, now }),
       },
       /*
        * No `stopWhen`: the turn ends when the model stops calling tools, capped by the agent's

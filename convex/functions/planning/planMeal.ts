@@ -4,7 +4,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 import type { MealSlot } from "@shared/mealSlots";
 
-import { commitPlan } from "./commitPlan";
+import { commitPlan, type PlanSummary } from "./commitPlan";
 
 type Args = {
   householdId: Id<"households">;
@@ -25,6 +25,8 @@ export type PlannedMeal = {
    * slot. A cooked or skipped plate is never replaced — `commitPlan` refuses it — so it is never here.
    */
   replaced?: { recipeId: Id<"recipes">; servings: number };
+  /** What the plate came to — `commitPlan`'s, for the router to report. */
+  summary: PlanSummary;
 };
 
 /**
@@ -50,7 +52,7 @@ export type PlannedMeal = {
 export const planMeal = async (ctx: MutationCtx, args: Args): Promise<PlannedMeal> => {
   if (args.date < args.today) throw new ConvexError({ code: "INVALID_INPUT", message: "The day has passed." });
 
-  const { mealPlanId, plannedMealIds, replaced } = await commitPlan(ctx, {
+  const { mealPlanId, plannedMealIds, replaced, summary } = await commitPlan(ctx, {
     householdId: args.householdId,
     plates: [{ recipeId: args.recipeId, date: args.date, slot: args.slot, servings: args.servings }],
     people: args.servings,
@@ -66,5 +68,6 @@ export const planMeal = async (ctx: MutationCtx, args: Args): Promise<PlannedMea
     mealPlanId,
     plannedMealId: plannedMealIds[0]!,
     replaced: previous && { recipeId: previous.recipeId, servings: previous.servings },
+    summary,
   };
 };
