@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: {
     flex: 1,
-    paddingBottom: theme.spacing[32],
+    paddingBottom: theme.spacing[16],
     paddingTop: theme.spacing[16],
   },
   progress: {

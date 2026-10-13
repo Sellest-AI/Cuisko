@@ -4,7 +4,7 @@ import { theme } from "theme";
 import { WeeklyPlan } from "~/modules/planning/weekly-plan";
 import { WeekSummaryReveal } from "~/modules/health/week-summary-reveal";
 import { FavoriteRecipes } from "~/modules/recipes/favorite-recipes";
-import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
+import { useNavigationBarClearance } from "~/modules/navigation/hooks";
 
 import { HomeHeader } from "./header";
 import { QuickAccess } from "./quick-access";
@@ -25,36 +25,38 @@ import { LinearGradient } from "expo-linear-gradient";
  * and sits last: the plan is what the cook committed to, the ideas are the week's, and what they
  * kept is the shelf to reach for when neither is what they want tonight.
  */
-export const HomeScreen = () => (
-  <>
-    <LinearGradient
-      style={StyleSheet.absoluteFill}
-      colors={[theme.colors.neutral.subtle, theme.colors.background]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-    />
-    <ScrollView
-      contentContainerStyle={styles.page}
-      showsVerticalScrollIndicator={false}
-    >
-      <RadialGradient
-        size={340}
-        colors={[theme.colors.primary.base, theme.colors.neutral.subtle]}
-        style={{ position: "absolute", top: 220, left: -56, opacity: 0.1 }}
+export const HomeScreen = () => {
+  const clearance = useNavigationBarClearance();
+
+  return (
+    <>
+      <LinearGradient
+        style={StyleSheet.absoluteFill}
+        colors={[theme.colors.neutral.subtle, theme.colors.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
       />
-      <WeekSummaryReveal header={(scoreButton) => <HomeHeader action={scoreButton} style={styles.header} />} />
-      <WeeklyPlan />
-      <View style={styles.divider} />
-      <QuickAccess />
-      <WeeklySpotlight />
-      <FavoriteRecipes style={styles.favorites} />
-    </ScrollView>
-  </>
-);
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: clearance }}
+        showsVerticalScrollIndicator={false}
+      >
+        <RadialGradient
+          size={340}
+          colors={[theme.colors.primary.base, theme.colors.neutral.subtle]}
+          style={{ position: "absolute", top: 220, left: -56, opacity: 0.1 }}
+        />
+        <WeekSummaryReveal header={(scoreButton) => <HomeHeader action={scoreButton} style={styles.header} />} />
+        <WeeklyPlan />
+        <View style={styles.divider} />
+        <QuickAccess />
+        <WeeklySpotlight />
+        <FavoriteRecipes style={styles.favorites} />
+      </ScrollView>
+    </>
+  );
+};
 
 const styles = StyleSheet.create({
-  /** Clears the navigation bar, which floats over the page rather than sitting in it. */
-  page: { paddingBottom: NAVIGATION_BAR_OFFSET },
   header: { marginBottom: theme.spacing[16] },
   favorites: { marginTop: theme.spacing[16] },
   divider: {

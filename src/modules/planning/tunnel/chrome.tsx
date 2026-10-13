@@ -135,7 +135,7 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
   }, [step]);
 
   return (
-    <View style={styles.root}>
+    <SafeAreaView style={styles.root} edges={{ top: "off", bottom: "android" }}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, chrome.tinted && ground]}>
         <LinearGradient
           style={[
@@ -223,7 +223,7 @@ export const TunnelChrome = ({ children }: { children: ReactNode }) => {
           onBack={!isReview ? back : undefined}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

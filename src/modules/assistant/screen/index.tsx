@@ -164,7 +164,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   page: {
-    paddingBottom: NAVIGATION_BAR_OFFSET + Platform.select({ ios: theme.spacing[32], default: 0 }),
+    paddingBottom: NAVIGATION_BAR_OFFSET + Platform.select({
+      ios: theme.spacing[32],
+      android: theme.spacing[16],
+      default: 0
+    }),
   },
   header: {
     padding: theme.spacing[24],
