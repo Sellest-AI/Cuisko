@@ -6,7 +6,7 @@ import { ChefHat, ForkKnifeIcon, Search, X } from "@ui/icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { RadialGradient } from "@ui/radial-gradient";
 import { Input } from "@ui/input";
-import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
+import { useNavigationBarClearance } from "~/modules/navigation/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { CardRecipe } from "@ui/cards/recipe";
@@ -48,6 +48,8 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
   const { favorites } = useFavoriteRecipes();
   const imports = useImportsInFlight();
+
+  const clearance = useNavigationBarClearance();
 
   /**
    * Hidden while a term narrows the grid: the shelf is not a search surface, and a row of
@@ -101,7 +103,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
             />
           )
         }
-        contentContainerStyle={[styles.container, style]}
+        contentContainerStyle={[styles.container, style, { paddingBottom: clearance + theme.spacing[24] }]}
         /** Dimmed while the matches on screen are the previous term's — see `isStale`. */
         style={isStale ? styles.stale : undefined}
         ListHeaderComponent={
@@ -183,7 +185,6 @@ const styles = StyleSheet.create({
   container: {
     marginTop: theme.spacing[24],
     paddingHorizontal: theme.spacing[16],
-    paddingBottom: NAVIGATION_BAR_OFFSET + theme.spacing[24]
   },
   titleRow: {
     flexDirection: "row",

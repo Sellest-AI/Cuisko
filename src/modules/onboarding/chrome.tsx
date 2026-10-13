@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { DefaultTheme, ThemeProvider } from "expo-router";
 import { ReactNode, useEffect } from "react";
-import { BackHandler, StyleSheet, View } from "react-native";
+import { BackHandler, Platform, StyleSheet, View } from "react-native";
 
 import { ArrowRight } from "@ui/icons";
 import { StepBar } from "@ui/step-bar";
@@ -50,8 +50,8 @@ const ONBOARDING_THEME = {
  */
 export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
   const t = useTranslations("Onboarding");
-  const { intro, position, progress, progressTotal, total, isLast, canContinue, hasOwnTransport, next } = useOnboarding();
-  const { top } = useSafeAreaInsets();
+  const { step, intro, position, progress, progressTotal, total, isLast, canContinue, hasOwnTransport, next } = useOnboarding();
+  const { top, bottom } = useSafeAreaInsets();
   const clearance = useProgressClearance();
 
   /** `true` tells Android the press was handled, so it neither pops the step nor leaves the app. */
@@ -62,6 +62,8 @@ export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const label = intro ? t(`Intros.${intro}.cta`) : isLast ? t("meet_cuisko") : t("continue");
+  /** The cooking session is the app's `StepByStepView`, whose own bar already clears the Android buttons. */
+  const isCookingSession = step === "cook";
 
   return (
     <View style={styles.root}>
@@ -74,7 +76,12 @@ export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 0.7 }}
         />
-        <View style={styles.flex}>
+        <View style={[styles.flex, {
+          paddingBottom: Platform.select({
+            android: isCookingSession ? 0 : bottom,
+            default: 0
+          })
+        }]}>
           <ThemeProvider value={ONBOARDING_THEME}>{children}</ThemeProvider>
         </View>
         {/*

@@ -58,7 +58,7 @@ export const PlanningScreen = ({ focusDate }: Props) => {
   const t = useTranslations("Planning");
   const { rows, initialIndex, isLoading, isUnplanned, loadOlder, loadNewer } = usePlanningList(focusDate);
 
-  const { top } = useSafeAreaInsets()
+  const { top, bottom } = useSafeAreaInsets()
 
   const [show, setShow] = useState(false);
 
@@ -108,12 +108,15 @@ export const PlanningScreen = ({ focusDate }: Props) => {
         /** Older pages land above, and FlashList keeps the rows on screen where they were. */
         onStartReached={loadOlder}
         onEndReached={loadNewer}
-        contentContainerStyle={styles.list}
+        /** A margin, not padding: FlashList ignores extra bottom padding here, checked on a device. */
+        contentContainerStyle={[styles.list, {
+          marginBottom: Platform.select({ android: bottom, default: 0 })
+        }]}
         showsVerticalScrollIndicator={false}
         onLoad={() => requestAnimationFrame(() => setShow(true))}
         style={{
           marginTop: -60 - top,
-          opacity: show ? 1 : 0,
+          opacity: show ? 1 : 0
         }}
         renderItem={({ item, index }) => {
           const isNextSameDay = rows[index + 1]?.date.getDate() === item.date.getDate();
@@ -210,7 +213,10 @@ const styles = StyleSheet.create({
   },
   /** Clears the navigation bar, which floats over the page rather than sitting in it. */
   list: {
-    paddingBottom: NAVIGATION_BAR_OFFSET,
+    paddingBottom: NAVIGATION_BAR_OFFSET + Platform.select({
+      android: theme.spacing[16],
+      default: 0
+    }),
     paddingHorizontal: theme.spacing[12],
     paddingTop: Platform.select({
       android: 112,

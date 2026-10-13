@@ -156,7 +156,9 @@ export const RecipeChrome = ({ children, servings }: Props) => {
           */}
         <TabSwipe onPrevious={previous?.onPress} onNext={next?.onPress}>
           <m.View key={active}>
-            {children}
+            <SafeAreaView edges={{ top: "off", bottom: "android" }}>
+              {children}
+            </SafeAreaView>
           </m.View>
         </TabSwipe>
       </ParallaxScrollView>

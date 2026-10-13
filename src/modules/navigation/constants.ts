@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 export const NAVIGATION_BAR_HEIGHT = 84;
-export const NAVIGATION_BAR_OFFSET = NAVIGATION_BAR_HEIGHT + 24 + Platform.select({ android: 14, default: 0 });
+export const NAVIGATION_BAR_OFFSET = NAVIGATION_BAR_HEIGHT + 24;
 
 /**
  * How far a modal screen pads its content down so it starts below the close and action buttons,

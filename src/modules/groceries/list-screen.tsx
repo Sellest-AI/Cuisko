@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { HouseholdSelect } from "~/modules/households/household-select";
-import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
+import { useNavigationBarClearance } from "~/modules/navigation/hooks";
 
 import { sectionFromParam } from "./_model/model";
 import { GroceryGrid } from "./list-screen.grid";
@@ -35,6 +35,8 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
   const lead = sectionFromParam(section);
   const Icon = lead === "cellar" ? StoreIcon : ReceiptTextIcon;
 
+  const clearance = useNavigationBarClearance();
+
   return (
     <>
       <LinearGradient
@@ -48,7 +50,7 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
         colors={[theme.colors.primary.base, theme.colors.neutral.subtle]}
         style={{ position: "absolute", top: -150, left: -150, opacity: 0.1 }}
       />
-      <ScrollView contentContainerStyle={styles.page}>
+      <ScrollView contentContainerStyle={{ paddingBottom: clearance }}>
         <SafeAreaView
           style={styles.header}
           edges={{ top: "additive", bottom: "off" }}
@@ -66,8 +68,6 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
 };
 
 const styles = StyleSheet.create({
-  /** Clears the navigation bar, which floats over the page rather than sitting in it. */
-  page: { paddingBottom: NAVIGATION_BAR_OFFSET },
   header: {
     padding: theme.spacing[24],
     gap: theme.spacing[12],

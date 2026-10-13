@@ -87,7 +87,7 @@ export const AccountScreen = () => {
             transition={SLIDE}
             style={[styles.panel, { width: panelWidth }]}
           >
-            <View style={[styles.safeArea,]}>
+            <View style={[styles.safeArea]}>
               <LinearGradient
                 colors={[theme.colors.neutral.subtle, theme.colors.background]}
                 style={[StyleSheet.absoluteFill, { height: 500 }]}
@@ -96,7 +96,7 @@ export const AccountScreen = () => {
               />
               <ScrollView
                 contentContainerStyle={[styles.content,
-                { paddingBottom: Math.max(styles.content.paddingBottom, bottom) },
+                { paddingBottom: bottom + theme.spacing[16] },
                 Platform.OS === "android" && { paddingTop: top + styles.content.paddingTop },
                 Platform.OS === "ios" && { paddingTop: Math.max(styles.content.paddingTop, top * 1.2) }
                 ]}
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: {
     padding: theme.spacing[16],
-    paddingBottom: theme.spacing[24],
+    paddingBottom: theme.spacing[16],
     paddingTop: theme.spacing[20],
     gap: theme.spacing[32],
   },

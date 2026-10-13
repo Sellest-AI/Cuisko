@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     paddingTop: CHROME_HEIGHT,
     paddingBottom: Platform.select({
       ios: theme.spacing[32],
-      default: theme.spacing[8],
+      default: theme.spacing[16],
     }),
     paddingHorizontal: GUTTER,
   },
