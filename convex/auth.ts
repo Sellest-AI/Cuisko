@@ -3,11 +3,13 @@ import Google from "@auth/core/providers/google";
 import { convexAuth } from "@convex-dev/auth/server";
 
 import type { Id } from "./_generated/dataModel";
+import { accountEventOf } from "./functions/users/accountEvent";
 import { clearDeletion } from "./functions/users/clearDeletion";
 import { onUserCreated } from "./functions/users/onUserCreated";
 import type { MutationCtx } from "./procedures";
 import { env } from "./env";
 import { resolveAuthRedirect } from "./lib/authRedirect";
+import { captureEvent } from "./lib/posthog/captureEvent";
 
 /**
  * Authentication, owned by @convex-dev/auth.
@@ -51,12 +53,18 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     /**
      * Signing in cancels a pending account deletion. Runs on every sign-in that creates a session,
      * whatever the provider, and never on a token refresh. See `clearDeletion`.
+     *
+     * Reports `account deletion cancelled` (ADR 0019) from here: this callback is sign-in's entry
+     * point, the one Convex Auth calls where a client would call a router.
      */
     async beforeSessionCreation(genericCtx, { userId }) {
       // Same narrowing as `afterUserCreatedOrUpdated` above.
       const ctx = genericCtx as unknown as MutationCtx;
 
-      await clearDeletion(ctx, userId as Id<"users">);
+      const cleared = await clearDeletion(ctx, userId as Id<"users">);
+
+      const event = cleared && accountEventOf(cleared.user, "account deletion cancelled", { daysLeft: cleared.daysLeft });
+      if (event) await captureEvent(ctx, event);
     },
   },
 });

@@ -4,11 +4,17 @@ import type { MutationCtx } from "@convex/procedures";
 import { deleteConversationsOf } from "../assistant/deleteConversationsOf";
 import { cascadeDelete } from "../cascade";
 import { scheduleImageTreeDeletion } from "../media/imageTree";
-import { type AccountHolder, captureAccountEvent } from "./captureAccountEvent";
+import type { AccountHolder } from "./accountEvent";
 import { deleteSignIns } from "./deleteSignIns";
 
 /** What the purge did: nothing (not due, or already done), the tombstone, or nothing left at all. */
 export type PurgeOutcome = "skipped" | "anonymized" | "erased";
+
+/**
+ * The outcome, and for a purge that ran, the account as read before it was cleared: the router
+ * reports it (`account deleted`), and only the row as it was still says whose it was.
+ */
+export type Purged = { outcome: "skipped" } | { outcome: Exclude<PurgeOutcome, "skipped">; user: AccountHolder };
 
 /**
  * Removes a person from the database while keeping what they cooked and stocked, anonymously.
@@ -31,9 +37,10 @@ export type PurgeOutcome = "skipped" | "anonymized" | "erased";
  * Their solo households are deleted outright, their recipes archived and detached (a recipe is never
  * removed, ADR 0017), and the account itself goes through `CASCADE.users`, so no row names them.
  *
- * Either outcome is reported to analytics (`account deleted`, with `outcome`), on the id the cook's
- * events already carry; "skipped" is not, since nothing was deleted. A forced erase is a bot or a
- * spammer rather than a cook leaving, which `outcome` lets a funnel filter out.
+ * Either outcome is returned with the account as it was, for the router to report (`account
+ * deleted`, with `outcome`) on the id the cook's events already carry; "skipped" is not reported,
+ * since nothing was deleted. A forced erase is a bot or a spammer rather than a cook leaving, which
+ * `outcome` lets a funnel filter out.
  *
  * @limitation One transaction. A cook with a very large kitchen or recipe book could exceed a
  * mutation's read and write budget. The fix is to schedule one batch per household, and no caller
@@ -43,7 +50,7 @@ export const purgeUser = async (
   ctx: MutationCtx,
   userId: Id<"users">,
   { force }: { force: boolean },
-): Promise<PurgeOutcome> => {
+): Promise<Purged> => {
   const now = Date.now();
   const extended = await ctx.db
     .query("usersExtended")
@@ -55,7 +62,7 @@ export const purgeUser = async (
     extended?.deletionDueAt !== undefined &&
     extended.deletionDueAt <= now;
 
-  if (!force && !isDue) return "skipped";
+  if (!force && !isDue) return { outcome: "skipped" };
 
   // Read before anything is cleared: the failed-attempt counters are keyed by this address.
   const user = await ctx.db.get(userId);
@@ -82,8 +89,7 @@ export const purgeUser = async (
     for (const recipe of recipes) await ctx.db.patch(recipe._id, { isArchived: true, updatedAt: now });
 
     await cascadeDelete(ctx, "users", userId);
-    await _reportDeleted(ctx, user ?? { _id: userId }, "erased");
-    return "erased";
+    return { outcome: "erased", user: user ?? { _id: userId } };
   }
 
   await ctx.db.patch(userId, {
@@ -105,13 +111,8 @@ export const purgeUser = async (
     });
   }
 
-  await _reportDeleted(ctx, user ?? { _id: userId }, "anonymized");
-  return "anonymized";
+  return { outcome: "anonymized", user: user ?? { _id: userId } };
 };
-
-/** `user` is the row as read before the purge cleared it, so its email still says who it was. */
-const _reportDeleted = (ctx: MutationCtx, user: AccountHolder, outcome: Exclude<PurgeOutcome, "skipped">) =>
-  captureAccountEvent(ctx, { user, event: "account deleted", properties: { outcome } });
 
 /**
  * Leaves every household. A shared one keeps its other members and loses only this one; a solo

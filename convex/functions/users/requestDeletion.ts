@@ -2,7 +2,6 @@ import { internal } from "@convex/_generated/api";
 import type { MutationCtx } from "@convex/procedures";
 import { ACCOUNT_DELETION_GRACE_MS } from "@shared/accountDeletion";
 
-import { captureAccountEvent } from "./captureAccountEvent";
 import type { AppUser } from "./loadUser";
 
 type RequestCtx = Pick<MutationCtx, "db" | "scheduler">;
@@ -22,13 +21,13 @@ type RequestCtx = Pick<MutationCtx, "db" | "scheduler">;
  * wakes, so a cleared or later date turns that job into a no-op. A pending request already has its
  * job, which is why the early return schedules nothing.
  *
- * A new request is reported to analytics (`account deletion requested`); a repeat is not, so a
- * retry never counts as a second cook leaving.
+ * `isNew` says whether this call made the request, for the router to report (`account deletion
+ * requested`); a repeat is not reported, so a retry never counts as a second cook leaving.
  */
 export const requestDeletion = async (
   ctx: RequestCtx,
   user: Pick<AppUser, "_id" | "_creationTime" | "_idExtended" | "deletionDueAt" | "email">,
-): Promise<number> => {
+): Promise<{ deletionDueAt: number; isNew: boolean }> => {
   const now = Date.now();
 
   // Pending only while the date is ahead. A date already past usually belongs to a purge that failed,
@@ -36,14 +35,12 @@ export const requestDeletion = async (
   // @limitation Design choice: it can also be a job the scheduler has not run yet, for the moments
   // after the due time; asking again in that window postpones the deletion by 30 days, which is what
   // asking again on that day promises.
-  if (user.deletionDueAt !== undefined && user.deletionDueAt > now) return user.deletionDueAt;
+  if (user.deletionDueAt !== undefined && user.deletionDueAt > now) return { deletionDueAt: user.deletionDueAt, isNew: false };
 
   const deletionDueAt = now + ACCOUNT_DELETION_GRACE_MS;
 
   await ctx.db.patch(user._idExtended, { deletionDueAt, updatedAt: now });
   await ctx.scheduler.runAt(deletionDueAt, internal.router.users.purge._internal, { userId: user._id });
 
-  await captureAccountEvent(ctx, { user, event: "account deletion requested", properties: { deletionDueAt } });
-
-  return deletionDueAt;
+  return { deletionDueAt, isNew: true };
 };

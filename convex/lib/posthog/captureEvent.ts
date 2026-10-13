@@ -1,23 +1,7 @@
-import type { Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
-import type { AnalyticsEvent, EventProperties } from "@convex/schema/events";
+import type { CapturedEvent } from "@convex/schema/events";
 
 import { posthog } from "./client";
-
-/**
- * One event as `captureEvent` takes it: a union over every event, so its `properties` must be the
- * ones `EventProperties` declares for that name. A missing id is a compile error, not a gap in a chart.
- */
-export type CapturedEvent<E extends AnalyticsEvent = AnalyticsEvent> = {
-  [Name in E]: {
-    event: Name;
-    /** The cook, or the household's id with `personless: true` when no cook acted (`skipMeal`). */
-    distinctId: string;
-    householdId?: Id<"households">;
-    personless?: boolean;
-    properties: EventProperties[Name];
-  };
-}[E];
 
 /**
  * Sends PostHog one product event, from the mutation that made the change it reports.

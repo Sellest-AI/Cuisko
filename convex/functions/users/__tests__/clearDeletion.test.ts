@@ -80,25 +80,22 @@ describe("functions/users/clearDeletion", () => {
     expect(await extendedOf(t, userId)).toBeNull();
   });
 
-  describe("analytics", () => {
-    /** Coming back on day 1 and on day 29 are different stories; `daysLeft` tells them apart. */
-    test("reports a cancellation with the days that were left", async () => {
+  /** What the sign-in callback reports: coming back on day 1 and on day 29 are different stories. */
+  describe("what it returns", () => {
+    test("the account and the days that were left, when it cancelled one", async () => {
       const t = newDeployment();
       const userId = await seedUser(t, { deletionDueAt: Date.now() + 3 * 24 * 60 * 60 * 1000 - 1000 });
 
-      await t.run((ctx) => clearDeletion(ctx, userId));
+      const cleared = await t.run((ctx) => clearDeletion(ctx, userId));
 
-      expect(accountEvents()).toEqual([["account deletion cancelled", { accountAgeDays: 0, daysLeft: 3 }]]);
-      expect(capture.mock.calls[0]![1].distinctId).toBe(userId);
+      expect(cleared).toMatchObject({ user: { _id: userId }, daysLeft: 3 });
     });
 
-    test("reports nothing for an ordinary sign-in", async () => {
+    test("null for an ordinary sign-in", async () => {
       const t = newDeployment();
       const userId = await seedUser(t);
 
-      await t.run((ctx) => clearDeletion(ctx, userId));
-
-      expect(capture).not.toHaveBeenCalled();
+      expect(await t.run((ctx) => clearDeletion(ctx, userId))).toBeNull();
     });
   });
 
@@ -121,6 +118,26 @@ describe("functions/users/clearDeletion", () => {
       const extended = await extendedOf(t, userId);
       expect(extended?.deletionDueAt).toBeUndefined();
       expect(extended?.updatedAt).toBe(1);
+    });
+
+    /** Reported from the callback in `auth.ts`, sign-in's entry point (ADR 0019). */
+    test("a sign-in that cancels a deletion reports it, with the days that were left", async () => {
+      const t = newDeployment();
+      const userId = await seedUser(t, { deletionDueAt: Date.now() + 3 * 24 * 60 * 60 * 1000 - 1000 });
+
+      await signIn(t, userId);
+
+      expect(accountEvents()).toEqual([["account deletion cancelled", { accountAgeDays: 0, daysLeft: 3 }]]);
+      expect(capture.mock.calls[0]![1].distinctId).toBe(userId);
+    });
+
+    test("an ordinary sign-in reports nothing", async () => {
+      const t = newDeployment();
+      const userId = await seedUser(t);
+
+      await signIn(t, userId);
+
+      expect(capture).not.toHaveBeenCalled();
     });
   });
 });

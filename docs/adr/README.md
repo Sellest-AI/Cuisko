@@ -23,7 +23,7 @@ carries the command that proves it still holds.
 | [0016](./0016-household-state-resets-on-a-switch.md) | Session state about a household resets when the household switches | `src/modules/**`, `src/lib/**`, `app/_layout.tsx` | `pnpm check:households`, `pnpm test` |
 | [0017](./0017-a-deleted-recipe-is-archived-and-unlisted.md) | A deleted recipe is archived, and no list reaches it | `convex/functions/**`, `convex/router/**`, `convex/agent/**`, `convex/schema/recipes.ts` | `pnpm check:recipes`, `pnpm test` |
 | [0018](./0018-an-expensive-operation-is-rate-limited.md) | An operation that costs money is rate limited per caller | `convex/router/**`, `convex/functions/**`, `convex/lib/rateLimits.ts` | `pnpm check:ratelimits`, `pnpm test` |
-| [0019](./0019-a-paid-call-is-traced.md) | A paid call is traced to the route it was made for, and tracing never throws | `convex/router/**`, `convex/functions/**`, `convex/agent/**`, `convex/lib/**`, `convex/procedures.ts`, `convex/schema/tracing.ts`, `scripts/database/**` | `pnpm check:traces`, `pnpm typecheck`, `pnpm test` |
+| [0019](./0019-a-paid-call-is-traced.md) | A paid call is traced to the route it was made for, and tracing never throws | `convex/router/**`, `convex/functions/**`, `convex/agent/**`, `convex/lib/**`, `convex/procedures.ts`, `convex/schema/tracing.ts`, `scripts/database/**` | `pnpm check:traces`, `pnpm check:events`, `pnpm typecheck`, `pnpm test` |
 `pnpm verify` runs all of them — on demand, in the pre-commit and pre-merge-commit hooks, and in CI.
 
 ## Format

@@ -1,7 +1,7 @@
 import type { Id } from "@convex/_generated/dataModel";
 import type { MutationCtx } from "@convex/procedures";
 
-import { captureAccountEvent, DAY_MS } from "./captureAccountEvent";
+import { type AccountHolder, DAY_MS } from "./accountEvent";
 
 type ClearCtx = Pick<MutationCtx, "db" | "scheduler">;
 
@@ -16,23 +16,26 @@ type ClearCtx = Pick<MutationCtx, "db" | "scheduler">;
  * Writes nothing when there is nothing to cancel, so an ordinary sign-in costs one read. A tombstone
  * never reaches here (its sign-ins are deleted with it), and has no date to clear if it did.
  *
- * A cancellation is reported to analytics (`account deletion cancelled`), with the days that were
- * left: a cook who comes back the next day and one who comes back on the last are different stories.
+ * Returns the account and the days that were left when it cancelled one, `null` when there was
+ * nothing to cancel, for the sign-in callback to report (`account deletion cancelled`): a cook who
+ * comes back the next day and one who comes back on the last are different stories.
  */
-export const clearDeletion = async (ctx: ClearCtx, userId: Id<"users">): Promise<void> => {
+export const clearDeletion = async (
+  ctx: ClearCtx,
+  userId: Id<"users">,
+): Promise<{ user: AccountHolder; daysLeft: number } | null> => {
   const extended = await ctx.db
     .query("usersExtended")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .first();
 
-  if (extended?.deletionDueAt === undefined) return;
+  if (extended?.deletionDueAt === undefined) return null;
 
   const now = Date.now();
   await ctx.db.patch(extended._id, { deletionDueAt: undefined, updatedAt: now });
 
-  await captureAccountEvent(ctx, {
+  return {
     user: (await ctx.db.get(userId)) ?? { _id: userId },
-    event: "account deletion cancelled",
-    properties: { daysLeft: Math.max(0, Math.ceil((extended.deletionDueAt - now) / DAY_MS)) },
-  });
+    daysLeft: Math.max(0, Math.ceil((extended.deletionDueAt - now) / DAY_MS)),
+  };
 };

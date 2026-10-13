@@ -43,12 +43,15 @@ MAY: list a router file in C17's `PENDING` with the reason, as a known gap in th
 MUST: send a product event with `captureEvent` ([convex/lib/posthog/captureEvent.ts](../../convex/lib/posthog/captureEvent.ts)),
       named and shaped by `EventProperties` in [convex/schema/events.ts](../../convex/schema/events.ts):
       one entry per event, declaring every property it carries.
-MUST: send it from the router export that called the write, inside the same mutation, so it goes
-      out only if the write commits. A router that is an action (`createOne`, `importVideo`) sends
+MUST: send it from the entry point that called the write, inside the same mutation, so it goes
+      out only if the write commits. An entry point is where a call comes in: a router export (a
+      scheduled job's included: `purge._internal`), a cron job's body in `convex/crons/`, a webhook
+      in `convex/http/`, or the Convex Auth callback in `convex/auth.ts` for what a sign-in changes. A router that is an action (`createOne`, `importVideo`) sends
       it once the mutation it ran has returned, so an event never announces a write that did not
-      happen. The domain function returns what happened (a count, whether a
-      plate was settled) and MUST NOT import `captureEvent` or take an argument that exists only to
-      be reported. Where a write has two callers and only one is the act reported, only that
+      happen. The domain function returns what happened (a count, whether a plate was settled, the
+      row it read) and MUST NOT import `captureEvent` or take an argument that exists only to be
+      reported. When the event needs building, the domain returns its shape (`accountEventOf`,
+      `reportedPlate`) and the entry point sends it. Where a write has two callers and only one is the act reported, only that
       caller's router reports (`removeOne`, not `commitPlan` replacing a plate through `dropMeal`).
 MUST: report an undo like any other write, tagged `isUndo: true`, never skip it: the chat's undo
       puts a plate back under a new id, and a skipped report would leave a planned plate that never
@@ -69,13 +72,6 @@ MUST NOT: carry identifiable data that cannot be anonymized afterwards: an email
           behind it into an anonymous tombstone, a catalog id because it names shared reference
           data. So is a catalog row's own name, sent in one fixed language (`reportedIngredient`):
           it is what every cook already sees in the catalog, not the line one of them typed.
-
-@limitation The account events (`account deletion requested` · `cancelled` · `deleted`) predate the
-router rule and are still sent from `functions/users/` through `captureAccountEvent`, by the
-functions that make the change. **Accepted because** `purgeUser` runs from the scheduler and
-`clearDeletion` from sign-in, so moving them is its own change. **Until fixed**, `captureAccountEvent`
-is the one domain-side reporter. **The fix** is to return the outcome from those functions and send
-from their routers, like the product events.
 
 ## Why
 
@@ -143,6 +139,7 @@ either changes. **The fix** is to price a Replicate render from the megapixels i
 
 ```bash
 pnpm check:traces   # C17 — a route reaching a paid service or a @costly action starts a trace; no hop to a @costly action drops it
+pnpm check:events   # C18 — captureEvent is reached only from entry points (router/, crons/, http/, auth.ts); the PostHog client only by its two senders
 pnpm typecheck      # TracedToolCtx / RecordingCtx: a tool or helper reached with an untraced ctx does not compile
 pnpm test           # the trace layer (tracing.test.ts), recordGeneration, wrapAgent, and each route's events
                     # captureEvent, and each product event in the test of the router that sends it
@@ -153,9 +150,10 @@ property that is not flat (a string, number or boolean), and an event sent witho
 entry declares: `importVideo` reporting `recipe imported` with no `recipeId` does not compile. What
 it cannot judge is whether a new entry declares the right ids; that is the entry's review, one line
 in one file, and a line of the Architecture checklist in AGENTS.md. Each event's route test pins who it is filed under and the values it carries.
-Nothing yet refuses a direct `posthog.capture` that skips `captureEvent`, nor a `captureEvent` in
-`convex/functions/`; a lint restriction on importing `lib/posthog/client` outside `captureEvent.ts`
-and `recordGeneration.ts`, and `captureEvent` outside `router/` and `captureAccountEvent.ts`, would.
+C18 refuses the two ways around the split: `captureEvent` reached outside an entry point, and the
+PostHog client reached anywhere but `captureEvent.ts` and `recordGeneration.ts`. It reads every way
+a file reaches a module, an `import`, an `export … from` and an `import()`, so a barrel handing the
+sender on to the domain fails where it re-exports it.
 
 **What the checks can and cannot do.** C17 shares C16's reachability (`scripts/checks/_costs.mjs`),
 so the two cannot disagree on what costs money, and it proves a paid route starts a trace and that no

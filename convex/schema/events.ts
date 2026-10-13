@@ -38,7 +38,7 @@ type PlanCounts = {
  */
 type Undoable = { isUndo: boolean };
 
-/** Added by `captureAccountEvent` whenever the account's creation time is known. */
+/** Added by `accountEventOf` whenever the account's creation time is known. */
 type AccountAge = { accountAgeDays?: number };
 
 /**
@@ -114,3 +114,19 @@ export type EventProperties = Flat<{
 }>;
 
 export type AnalyticsEvent = keyof EventProperties;
+
+/**
+ * One event as `captureEvent` takes it: a union over every event, so its `properties` must be the
+ * ones `EventProperties` declares for that name. Here rather than beside `captureEvent` so a
+ * `functions/` helper can build one (`accountEventOf`) without importing the sender (C18).
+ */
+export type CapturedEvent<E extends AnalyticsEvent = AnalyticsEvent> = {
+  [Name in E]: {
+    event: Name;
+    /** The cook, or the household's id with `personless: true` when no cook acted (`skipMeal`). */
+    distinctId: string;
+    householdId?: Id<"households">;
+    personless?: boolean;
+    properties: EventProperties[Name];
+  };
+}[E];

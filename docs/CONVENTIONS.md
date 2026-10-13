@@ -11,7 +11,7 @@ constrain code are in [adr/](./adr/).
 | 🔒 **LINT**   | ESLint fails the build                                |
 | 🔬 **TYPE**   | TypeScript makes the violation impossible or an error |
 | 🧪 **TEST**   | A test in CI asserts it                               |
-| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C17)              |
+| 📐 **SCRIPT** | A custom check in `pnpm verify` (C1–C18)              |
 | 👁 **REVIEW** | Human judgement — a guideline, not a rule             |
 
 **A rule with no tag does not exist.** If you cannot tag it, write it as a guideline (👁) and accept
@@ -307,6 +307,12 @@ A mutation or action builder whose operation spends money takes `trace: "<operat
 handler hands the trace on with `ctx.runTracedAction` / `ctx.scheduleTracedAfter`. Only
 `internalMutation` / `internalAction` accept a `__trace` from their caller; no handler declares it.
 📐 C17 · [ADR 0019](./adr/0019-a-paid-call-is-traced.md)
+
+A product event is sent with `captureEvent` by the entry point that called the write: a router
+export, a cron job, a webhook, or the sign-in callback in `convex/auth.ts`. The `functions/` writer returns what happened
+(a count, the row it settled) and, when the event needs building, returns its shape
+(`accountEventOf`, `reportedPlate`) rather than sending it.
+📐 C18 · [ADR 0019](./adr/0019-a-paid-call-is-traced.md)
 
 Most builders above have an `*I18n` sibling (`publicQueryI18n`, `authMutationI18n`,
 `ownedQueryI18n`, `householdQueryI18n`, `householdMutationI18n`). `server*` and `internal*` do

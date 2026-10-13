@@ -190,7 +190,7 @@ import type * as functions_recipes_updateRecipe from "../functions/recipes/updat
 import type * as functions_recipes_uploadRestoredImages from "../functions/recipes/uploadRestoredImages.js";
 import type * as functions_recipes_verifyAgainstSource from "../functions/recipes/verifyAgainstSource.js";
 import type * as functions_tracing_recordGeneration from "../functions/tracing/recordGeneration.js";
-import type * as functions_users_captureAccountEvent from "../functions/users/captureAccountEvent.js";
+import type * as functions_users_accountEvent from "../functions/users/accountEvent.js";
 import type * as functions_users_clearDeletion from "../functions/users/clearDeletion.js";
 import type * as functions_users_deleteSignIns from "../functions/users/deleteSignIns.js";
 import type * as functions_users_isAuthorized from "../functions/users/isAuthorized.js";
@@ -518,7 +518,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/uploadRestoredImages": typeof functions_recipes_uploadRestoredImages;
   "functions/recipes/verifyAgainstSource": typeof functions_recipes_verifyAgainstSource;
   "functions/tracing/recordGeneration": typeof functions_tracing_recordGeneration;
-  "functions/users/captureAccountEvent": typeof functions_users_captureAccountEvent;
+  "functions/users/accountEvent": typeof functions_users_accountEvent;
   "functions/users/clearDeletion": typeof functions_users_clearDeletion;
   "functions/users/deleteSignIns": typeof functions_users_deleteSignIns;
   "functions/users/isAuthorized": typeof functions_users_isAuthorized;

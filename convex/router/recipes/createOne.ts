@@ -4,9 +4,10 @@ import { createGeneratedRecipe } from "@convex/functions/recipes/createGenerated
 import { generateRecipe } from "@convex/functions/recipes/generateRecipe";
 import { replaceRecipeImages } from "@convex/functions/recipes/recipeImages";
 import { saveRecipe } from "@convex/functions/recipes/saveRecipe";
-import { type CapturedEvent, captureEvent } from "@convex/lib/posthog/captureEvent";
+import { captureEvent } from "@convex/lib/posthog/captureEvent";
 import { isSocialVideoLink } from "@convex/lib/socialVideo/sources";
 import { authActionI18n, internalAction, internalMutation, type TracedActionCtx } from "@convex/procedures";
+import type { CapturedEvent } from "@convex/schema/events";
 import { type Locale, vLocale } from "@convex/schema/i18n";
 import { vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { type ObjectType, v } from "convex/values";
