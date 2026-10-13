@@ -235,7 +235,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 - Export name matches its builder (`admin` ⇒ `admin*`). **The highest-value check in this list** — a
   mismatch is a silent authorization hole that nothing else detects.
 - Router file ≤ 90 lines of code (comments and blank lines not counted), and contains no loop, no domain branching, no domain-library import.
-- Screen ≤ ~120 lines and calls a module hook rather than fetching.
+- Screen ≤ ~120 lines of component code (its `StyleSheet`, comments and blank lines not counted) and calls a module hook rather than fetching.
 
 ### Schema (if `convex/schema/**` changed)
 

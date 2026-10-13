@@ -817,7 +817,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] Screen contains no `useQuery` 🔒
 - [ ] Data access lives in the module's `_hooks/` 👁
 - [ ] UI props are structural types, not `Doc<'x'>` 🔬
-- [ ] Screen under ~120 lines 👁
+- [ ] Screen under ~120 lines of component code, styles and comments not counted 👁
 
 **Tests**
 
@@ -995,7 +995,7 @@ would rot into a wish list, and a rule nobody intends to mechanise should say so
 | A8 — never return credentials                    | Would require taint tracking.                                                                                                                                    |
 | A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                |
 | ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                     |
-| Screen ≤ ~120 lines                              | A cap would fight legitimate layout composition.                                                                                                                 |
+| Screen ≤ ~120 lines of component code           | A cap would fight legitimate layout composition.                                                                                                                 |
 | A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).            |
 | A reported bug is pinned; assertions stay put     | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not. |
 | A known, accepted choice carries `@limitation`   | Whether a behaviour is a chosen cost or just how the code works is the judgement itself. The tag makes the answer greppable once someone has given it.           |

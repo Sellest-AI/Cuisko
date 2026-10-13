@@ -430,12 +430,12 @@ and a stale refresh token silently restores the session on next launch.
 
 ### `app/` — screens
 
-| Allowed                  | Forbidden                          |
-| ------------------------ | ---------------------------------- |
-| `useLocalSearchParams`   | `useQuery` / `useMutation` / `api` |
-| `<Stack.Screen options>` | domain logic, computation          |
-| layout composition       | more than ~120 lines               |
-| one feature-hook call    |                                    |
+| Allowed                  | Forbidden                                                              |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `useLocalSearchParams`   | `useQuery` / `useMutation` / `api`                                     |
+| `<Stack.Screen options>` | domain logic, computation                                              |
+| layout composition       | more than ~120 lines of component code (styles, comments not counted) |
+| one feature-hook call    |                                                                        |
 
 ### `src/ui/` — the isolation that worked
 
