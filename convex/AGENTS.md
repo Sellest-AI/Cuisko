@@ -3,7 +3,7 @@
 Builders and ctx types come from `../procedures.ts` — never `_generated/server` (ADR 0001).
 `internal` / `api` come from `_generated/api` — but never inside `procedures.ts` (type cycle).
 
-- `router/{domain}/{operation}.ts` — validators + procedure wrappers only. Max 90 lines.
+- `router/{domain}/{operation}.ts` — validators + procedure wrappers only. Max 90 lines of code; comments and blank lines are free.
   Loops, domain branching or domain-library imports mean the logic belongs in `functions/`.
 - `functions/` — reusable logic that touches `ctx.db`. Plain `(ctx, args)` functions, not procedures.
 - `lib/` — vendor clients and pure helpers. Never touches `ctx.db`.

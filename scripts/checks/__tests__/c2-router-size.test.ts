@@ -12,8 +12,12 @@ import { cleanupTrees, runCheck } from "./_harness";
 
 const MAX_LINES = 90;
 
-/** A file of exactly `count` lines. */
-const linesOf = (count: number) => Array.from({ length: count }, (_, i) => `// ${i}`).join("\n");
+/** A file of exactly `count` lines of code — C2 counts nothing else. */
+const linesOf = (count: number) => Array.from({ length: count }, (_, i) => `const line${i} = ${i};`).join("\n");
+
+/** `count` lines that are not code: a comment, a blank line, a JSDoc block, in turn. */
+const proseOf = (count: number) =>
+  Array.from({ length: count }, (_, i) => ["// why this router is shaped so", "", "/** A JSDoc line. */"][i % 3]).join("\n");
 
 const runC2 = (files: Record<string, string>) =>
   runCheck(
@@ -34,6 +38,35 @@ it("rejects a file one line over the cap", () => {
 
   expect(code).toBe(1);
   expect(output).toContain(`${MAX_LINES + 1} lines — the cap is ${MAX_LINES}`);
+});
+
+/** The cap guards against logic in a router; a router that explains itself must not pay for it. */
+it("counts neither comments nor blank lines", () => {
+  const { code } = runC2({ "getOne.ts": `${proseOf(60)}\n${linesOf(MAX_LINES)}\n${proseOf(30)}` });
+
+  expect(code).toBe(0);
+});
+
+it("does not count a multi-line JSDoc block", () => {
+  const jsdoc = `/**\n${Array.from({ length: 40 }, () => " * The export binds an access level.").join("\n")}\n */`;
+  const { code } = runC2({ "getOne.ts": `${jsdoc}\n${linesOf(MAX_LINES)}` });
+
+  expect(code).toBe(0);
+});
+
+/** Read as a string, not as the start of a comment: the line is code. */
+it("counts a line whose string holds a //", () => {
+  const urls = Array.from({ length: MAX_LINES + 1 }, (_, i) => `const page${i} = "https://www.marmiton.org/${i}";`).join("\n");
+  const { code } = runC2({ "getOne.ts": urls });
+
+  expect(code).toBe(1);
+});
+
+it("counts every line a template literal spans", () => {
+  const template = `const prompt = \`${Array.from({ length: 10 }, (_, i) => `line ${i}`).join("\n")}\`;`;
+  const { code } = runC2({ "getOne.ts": `${template}\n${linesOf(MAX_LINES - 9)}` });
+
+  expect(code).toBe(1);
 });
 
 it("names the file that is too long, not just the count", () => {

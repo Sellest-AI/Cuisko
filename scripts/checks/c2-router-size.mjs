@@ -8,6 +8,11 @@
  * Crude, but it makes the boundary observable — and every violation in the predecessor project
  * exceeded this line count.
  *
+ * **Only lines of code count.** Comments and blank lines are not where domain logic hides, and
+ * counting them taxed the JSDoc this repo asks every export to carry: a router that explained itself
+ * hit the cap before one that did not. A line counts when the TypeScript scanner finds a real token
+ * on it, so a `//` inside a string is code and a template literal counts every line it spans.
+ *
  * The rest of this check exists because the cap has an obvious wrong answer. Splitting an oversized
  * router into a sibling satisfies the cap and moves nothing; the domain logic is still a layer too
  * high. So a second file for one operation is a violation unless the operation genuinely could not
@@ -22,9 +27,25 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import ts from "typescript";
+
 import { listFiles, relative, report, ROOT } from "./_lib.mjs";
 
 const MAX_LINES = 90;
+
+/** The 1-based file lines that carry code, in order: every line a non-trivia token touches. */
+const codeLinesOf = (source) => {
+  const scanner = ts.createScanner(ts.ScriptTarget.Latest, /* skipTrivia */ true, ts.LanguageVariant.Standard, source);
+  const starts = [0, ...[...source.matchAll(/\n/g)].map((match) => match.index + 1)];
+  const lineAt = (position) => starts.findLastIndex((start) => start <= position) + 1;
+  const lines = new Set();
+
+  for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
+    for (let line = lineAt(scanner.getTokenStart()); line <= lineAt(scanner.getTokenEnd() - 1); line++) lines.add(line);
+  }
+
+  return [...lines].sort((a, b) => a - b);
+};
 
 const USE_NODE = /^\s*("|')use node("|');?\s*$/m;
 
@@ -37,13 +58,13 @@ const sources = new Map(
 );
 
 const tooLong = [...sources].flatMap(([file, source]) => {
-  const lines = source.split("\n").length;
-  if (lines <= MAX_LINES) return [];
+  const lines = codeLinesOf(source);
+  if (lines.length <= MAX_LINES) return [];
   return [
     {
       file: relative(file),
-      line: MAX_LINES + 1,
-      message: `${lines} lines — the cap is ${MAX_LINES}.`,
+      line: lines[MAX_LINES],
+      message: `${lines.length} lines — the cap is ${MAX_LINES}, comments and blank lines not counted.`,
       fix: 'Move domain logic into convex/functions/. A sibling file is not the answer: an operation splits only for "use node" (CONVENTIONS §2.2).',
     },
   ];
@@ -126,7 +147,7 @@ const neverRegistered = listFiles(ROUTER)
     fix: "Rename to a single dot (<operation>Node.ts). See CONVENTIONS §1 and §2.2.",
   }));
 
-report(`C2 router files ≤ ${MAX_LINES} lines, split only for "use node"`, [
+report(`C2 router files ≤ ${MAX_LINES} lines of code, split only for "use node"`, [
   ...tooLong,
   ...namedNodeButIsNot,
   ...nodeHalfWithNoOperation,
