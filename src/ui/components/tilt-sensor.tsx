@@ -3,25 +3,13 @@ import { AppState, Platform } from "react-native";
 import { SensorType, useAnimatedReaction, useAnimatedSensor, type SharedValue } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
 import { useReduceMotion } from "@ui/hooks/useReduceMotion";
-
-/** How far the phone must roll away from how it is held for the full shift: about 15°, as a
- *  fraction of gravity. Past it the shift stays pinned at `maxShift`. */
-const FULL_TILT = 0.25;
-
-/** How fast "how it is held" follows the hand, per sample. Small on purpose: a quick tilt reads as
- *  a tilt, while lying on the couch with the phone on its side drifts back to rest in seconds
- *  instead of leaving everything pushed to one edge. */
-const NEUTRAL_FOLLOW = 0.004;
-
-/** How much of the gap to the target the shift closes per sample. This is what turns the sensor's
- *  jitter into a glide, and what eases the shift back in when listening resumes. */
-const SMOOTHING = 0.12;
+import { stepTilt } from "@ui/utils";
 
 /** How long after the caller's content last moved on its own the shift stays held, in ms. Longer
  *  than the gap between two scroll events, so a swipe holds it from its first frame to its last. */
 const HOLD_AFTER_MOVE = 150;
 
-/** One sample per frame at 60Hz. The constants above are per sample, so this fixes their pace. */
+/** One sample per frame at 60Hz. `stepTilt`'s constants are per sample, so this fixes their pace. */
 const INTERVAL = 16;
 
 export type Tilt = {
@@ -92,17 +80,11 @@ const Listener = ({ tilt, maxShift, movedAt }: Props) => {
        *  is, through the same smoothing as any other change. */
       if (movedAt && performance.now() - movedAt.get() < HOLD_AFTER_MOVE) return;
 
-      const roll = x / magnitude;
+      const step = stepTilt({ roll: x / magnitude, neutral: tilt.neutral.get(), shift: tilt.shift.get(), maxShift });
 
-      const previous = tilt.neutral.get();
-      const neutral = previous === null ? roll : previous + (roll - previous) * NEUTRAL_FOLLOW;
-
-      tilt.neutral.set(neutral);
-
-      const target = Math.max(Math.min(((roll - neutral) / FULL_TILT) * maxShift, maxShift), -maxShift);
-      const shift = tilt.shift.get();
-
-      tilt.shift.set(shift + (target - shift) * SMOOTHING);
+      // The neutral restyles nothing, so it is written every sample; the shift only when it moves.
+      tilt.neutral.set(step.neutral);
+      if (step.shift !== null) tilt.shift.set(step.shift);
     }
   );
 

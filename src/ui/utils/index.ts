@@ -1,5 +1,7 @@
 /** Chat markdown, read into blocks. Its own file: it is a reader, not a formatter like the rest. */
 export * from "./markdown";
+/** A tilt's per-sample step. Its own file: `TiltSensor` runs it as a worklet, which no formatter is. */
+export * from "./tilt";
 
 const COMPACT_UNITS = [
   { threshold: 1_000_000_000, suffix: "B" },
