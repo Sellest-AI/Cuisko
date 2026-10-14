@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/cuisko/cuisko-winking-head.webp" alt="Cuisko, the chef red panda" width="180" />
+  <img src=".github/assets/logo.webp" alt="Cuisko, the chef red panda" width="180" />
 </p>
 
 <h1 align="center">Cuisko</h1>
