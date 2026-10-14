@@ -1,3 +1,4 @@
+import { useIsFocused } from "expo-router";
 import { useEffect } from "react";
 import {
   Easing,
@@ -22,13 +23,20 @@ type Options = {
  * affordance and a standalone spinner all want the same linear revolution, and none of
  * them should own an animation loop. Returns a style for an `Animated.View` wrapper rather
  * than a component, so the thing being spun stays whatever the caller wants it to be.
+ *
+ * **Parked while its screen is not focused.** A screen under another one stays mounted, and its
+ * spinner kept turning on the UI thread for nobody — today's day marker turns for as long as the
+ * planning list is open. Outside any screen (the navigation bar, beside the navigator) the router
+ * answers focused, so those spin as asked.
  */
 export const useSpin = (active: boolean, options?: Options) => {
   const rotation = useSharedValue(0);
   const revolutionMs = options?.revolutionMs ?? REVOLUTION_MS;
+  const isFocused = useIsFocused();
+  const isSpinning = active && isFocused;
 
   useEffect(() => {
-    if (!active) {
+    if (!isSpinning) {
       cancelAnimation(rotation);
       // Snap rather than unwind: easing back to 0 rotates *backwards*, which reads as an
       // error. Callers cross-fade or morph at this moment anyway, so the jump is invisible.
@@ -42,7 +50,7 @@ export const useSpin = (active: boolean, options?: Options) => {
     );
 
     return () => cancelAnimation(rotation);
-  }, [active, revolutionMs, rotation]);
+  }, [isSpinning, revolutionMs, rotation]);
 
   return useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
 };
