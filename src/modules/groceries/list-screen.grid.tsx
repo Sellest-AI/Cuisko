@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanim
 
 import { GroceryItem, type GroceryItemVariant } from "@ui/cards/grocery-item";
 import { EmptyState } from "@ui/empty-state";
+import { useIsMotionAllowed } from "@ui/hooks/useIsMotionAllowed";
 import { CalendarPlus, CheckIcon, IconComponent, ShoppingBasket, ShoppingCartIcon } from "@ui/icons";
 import { Pressable } from "@ui/pressable";
 import { Select } from "@ui/select";
@@ -118,15 +119,19 @@ const SectionHeader = ({
   color,
   trailing,
   style,
-}: Omit<Extract<Row, { kind: "header" }>, "kind" | "id"> & { trailing?: ReactNode; style?: ViewStyle }) => (
-  <Animated.View layout={HEADER_TRANSITION} style={[styles.section, style]}>
-    <View style={styles.sectionTitle}>
-      <Text.Lg>{label}</Text.Lg>
-      {Icon && <Icon size={20} color={color} />}
-    </View>
-    {trailing}
-  </Animated.View>
-);
+}: Omit<Extract<Row, { kind: "header" }>, "kind" | "id"> & { trailing?: ReactNode; style?: ViewStyle }) => {
+  const isMotionAllowed = useIsMotionAllowed();
+
+  return (
+    <Animated.View layout={isMotionAllowed ? HEADER_TRANSITION : undefined} style={[styles.section, style]}>
+      <View style={styles.sectionTitle}>
+        <Text.Lg>{label}</Text.Lg>
+        {Icon && <Icon size={20} color={color} />}
+      </View>
+      {trailing}
+    </Animated.View>
+  );
+};
 
 /**
  * A heading inside "To Buy": the plate, the aisle, or what no plate asked for.
@@ -147,6 +152,7 @@ const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; sty
   const tVocabulary = useTranslations("Vocabulary");
   const locale = useLocale();
   const router = useRouter();
+  const isMotionAllowed = useIsMotionAllowed();
 
   const title =
     heading.kind === "plate" ? heading.title
@@ -162,9 +168,9 @@ const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; sty
 
   return (
     <Animated.View
-      layout={HEADER_TRANSITION}
-      entering={SUBHEADER_ENTERING}
-      exiting={SUBHEADER_EXITING}
+      layout={isMotionAllowed ? HEADER_TRANSITION : undefined}
+      entering={isMotionAllowed ? SUBHEADER_ENTERING : undefined}
+      exiting={isMotionAllowed ? SUBHEADER_EXITING : undefined}
       style={[styles.subheader, style]}
     >
       {heading.kind === "plate"

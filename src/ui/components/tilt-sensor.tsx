@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AppState, Platform } from "react-native";
 import { SensorType, useAnimatedReaction, useAnimatedSensor, type SharedValue } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
-import { useReduceMotion } from "@ui/hooks/useReduceMotion";
+import { useIsMotionAllowed } from "@ui/hooks/useIsMotionAllowed";
 import { stepTilt } from "@ui/utils";
 
 /** How long after the caller's content last moved on its own the shift stays held, in ms. Longer
@@ -35,7 +35,8 @@ type Props = {
  * Writes the phone's left–right roll into `tilt.shift`, and renders nothing.
  *
  * The sensor only runs while it is useful: the screen focused, the app in the foreground, and the
- * reader not asking for reduced motion. Reanimated registers a sensor on mount and has no pause, so
+ * motion allowed (`useIsMotionAllowed`: not on an old device, nor for a reader who turned animations
+ * off). Reanimated registers a sensor on mount and has no pause, so
  * those conditions mount and unmount `Listener` rather than toggling a flag — which is what actually
  * releases it. Android in particular keeps a registered listener running in the background.
  *
@@ -44,7 +45,7 @@ type Props = {
  */
 export const TiltSensor = ({ tilt, maxShift, movedAt }: Props) => {
   const isFocused = useIsFocused();
-  const reduceMotion = useReduceMotion();
+  const isMotionAllowed = useIsMotionAllowed();
   const [isForeground, setIsForeground] = useState(AppState.currentState === "active");
 
   useEffect(() => {
@@ -56,10 +57,10 @@ export const TiltSensor = ({ tilt, maxShift, movedAt }: Props) => {
   /** Turning the setting on mid-session asks for the motion to stop now: the plates go back to
    *  rest at once rather than easing there, since easing is itself the motion. */
   useEffect(() => {
-    if (reduceMotion) tilt.shift.set(0);
-  }, [reduceMotion, tilt]);
+    if (!isMotionAllowed) tilt.shift.set(0);
+  }, [isMotionAllowed, tilt]);
 
-  if (Platform.OS === "web" || !isFocused || !isForeground || reduceMotion) return null;
+  if (Platform.OS === "web" || !isFocused || !isForeground || !isMotionAllowed) return null;
 
   return <Listener tilt={tilt} maxShift={maxShift} movedAt={movedAt} />;
 };

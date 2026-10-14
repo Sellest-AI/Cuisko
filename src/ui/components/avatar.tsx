@@ -2,7 +2,7 @@ import { Blobatar } from "@blobatar/react-native";
 import { AnimatedBlobatar } from "@blobatar/react-native/animated";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { theme } from "theme";
-import { useReduceMotion } from "@ui/hooks/useReduceMotion";
+import { useIsMotionAllowed } from "@ui/hooks/useIsMotionAllowed";
 import { Pressable } from "./pressable";
 
 /** The ring, counted twice: the blobatar is drawn inside it rather than under it. */
@@ -36,7 +36,7 @@ type Props = {
  */
 export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = false, variant = "ringed", onPress }: Props) => {
   const Component = onPress ? Pressable : View;
-  const reduceMotion = useReduceMotion();
+  const isMotionAllowed = useIsMotionAllowed();
 
   /**
    * Sized to the content box rather than the border box. A blobatar draws to the number it is
@@ -64,9 +64,9 @@ export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = 
       {/*
         * The idle loop is the caller's to gate: the library says so, and nothing below it reads the
         * OS setting. A face that never stops moving is the thing "reduce motion" is turned on to
-        * stop, and this one sits on the first screen of the app.
+        * stop, and this one sits on the first screen of the app. An old device is spared it too.
         */}
-      {(reduceMotion || !animated)
+      {(!isMotionAllowed || !animated)
         ? <Blobatar name={seed} size={face} />
         : <AnimatedBlobatar name={seed} size={face} animate />}
     </Component>

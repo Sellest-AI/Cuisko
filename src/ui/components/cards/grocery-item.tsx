@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { useIsMotionAllowed } from "@ui/hooks/useIsMotionAllowed";
 import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { theme } from "theme";
@@ -134,7 +135,9 @@ const usePulse = (active: boolean) => {
 };
 
 export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", expiresSoon, width, onPress, onLongPress, style }: Props) => {
-  const pulse = usePulse(variant === "resolving");
+  /** Off, the card neither flies, fades nor breathes: it is drawn where and how it ends up. */
+  const isMotionAllowed = useIsMotionAllowed();
+  const pulse = usePulse(isMotionAllowed && variant === "resolving");
 
   /** A bundled picture wins over a fetched one, and either wins over the glyph standing in. */
   const picture = imageSrc ?? (imageUrl ? { uri: imageUrl } : undefined);
@@ -144,7 +147,10 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageS
   const title = name ? name[0]!.toUpperCase() + name.slice(1) : name;
 
   return (
-    <Animated.View layout={ITEM_TRANSITION} entering={ITEM_ENTERING} exiting={ITEM_EXITING}
+    <Animated.View
+      layout={isMotionAllowed ? ITEM_TRANSITION : undefined}
+      entering={isMotionAllowed ? ITEM_ENTERING : undefined}
+      exiting={isMotionAllowed ? ITEM_EXITING : undefined}
       style={[{ width }, pulse]}>
       <Pressable
         intensity={0.95}

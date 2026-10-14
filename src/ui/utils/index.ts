@@ -2,6 +2,8 @@
 export * from "./markdown";
 /** A tilt's per-sample step. Its own file: `TiltSensor` runs it as a worklet, which no formatter is. */
 export * from "./tilt";
+/** Which devices count as old. Its own file: it reads the platform, which no formatter does. */
+export * from "./device";
 
 const COMPACT_UNITS = [
   { threshold: 1_000_000_000, suffix: "B" },
