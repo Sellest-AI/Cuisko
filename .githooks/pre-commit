@@ -22,7 +22,9 @@ set -e
 # name is not the committer's to choose.
 branch=$(git symbolic-ref --short -q HEAD || echo "")
 
-if [ -n "$branch" ] && [ "$branch" != "main" ]; then
+# `main` and `dev` are the two long-lived branches: nothing is committed on them directly, but
+# merging into them runs this hook (through pre-merge-commit), and their names are fixed.
+if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "dev" ]; then
   if ! echo "$branch" | grep -Eq '^(feat|fix|hotfix|refactor|perf|docs|test|chore|ci)/[a-z0-9]+(-[a-z0-9]+)*$'; then
     echo "✖ Commit refused: branch name \"$branch\" does not follow the convention." >&2
     echo "" >&2

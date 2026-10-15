@@ -52,11 +52,14 @@ cuisko/
 │   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
 │   │   └── recipes/     `seed:catalog` / `catalog:export` / `catalog:restore` (README inside).
-│   └── images/          Hand-run asset preparation (compress, sanitize).
+│   ├── images/          Hand-run asset preparation (compress, sanitize).
+│   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
 ├── .githooks/            pre-commit (verify + branch name), pre-merge-commit (the same, on a merge), commit-msg (commitlint).
+├── .github/workflows/    ci.yml (verify on every push), deploy.yml (ships dev and main, see Releases).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
+├── fingerprint.config.js The runtime version: what makes a merge an update or a build.
 ├── metro.config.js       Metro: open-file cap (EMFILE) + .history blocklist.
 ├── commitlint.config.js  Conventional Commits rules.
 └── eslint.config.js      Carries the architectural lint rules R1–R8.
@@ -526,6 +529,44 @@ too**; nothing links the two, and a check missing from that list simply stops ru
 Rules that remain human judgement are listed, with the reason, in
 [CONVENTIONS §11](./CONVENTIONS.md#11-rules-that-stay--and-why). A tag is never promoted ahead of
 its mechanism.
+
+---
+
+## Releases
+
+Work merges into `dev`; merging `dev` into `main` is the release. A push to either that passes
+`verify` ships itself, each to its own world ([deploy.yml](../.github/workflows/deploy.yml)):
+
+```
+dev   verify ─► Convex dev  ─► a preview build with this fingerprint exists?
+                                 yes ─► eas update, preview channel
+                                 no  ─► nothing ships, the run warns: try it with a dev build
+
+main  verify ─► Convex prod ─► a production build with this fingerprint exists?
+                                 yes ─► eas update, production channel
+                                 no  ─► pnpm release, commit + tag v<version>, eas build production
+```
+
+A release commit is pushed to `dev` too when `dev` has not moved since, so the next `dev` → `main`
+merge does not fight over the version line; when it has, the run warns, and `main` is merged back
+into `dev` by hand. Only `main` ever builds: a preview APK is built by hand
+(`eas build --profile preview`) when a native change should reach the preview phones.
+
+**Three numbers, three jobs.** The **runtime version** is the native fingerprint (`app.json`
+`runtimeVersion.policy`): an update reaches only a build with the same one, so it alone decides
+update or build. The **build number** is incremented by EAS on every production build
+(`autoIncrement`, `appVersionSource: remote`). The **version** (`0.2.0`) is the label the stores
+show; it moves only with a build, by as much as the commits since the last `v*` tag ask: `fix` →
+patch, `feat` → minor, breaking → major (minor before 1.0). [fingerprint.config.js](../fingerprint.config.js)
+keeps it out of the fingerprint, or every bump would itself demand a build.
+
+A store build also happens without a native change: by hand (Actions → Deploy → Run workflow,
+with a bump), or on the Monday schedule once the last `v*` tag is 10 days old and something was
+merged since. Whichever way the last release came, the next one counts from its tag.
+
+Convex deploys first, so an update never calls a function the server lacks.
+The reverse is not guarded: removing a function an installed build still calls breaks that build.
+Where each channel and deployment lives: [external/deployments.md](./external/deployments.md).
 
 ---
 

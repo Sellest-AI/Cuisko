@@ -23,3 +23,16 @@ jobs:
       # NOTE: this job has no Convex credentials, so it cannot run codegen. convex/_generated
       # is committed for exactly that reason — see .gitignore.
       - run: pnpm verify
+
+  # A push to dev (preview) or main (production) that passed verify ships itself. Pull requests
+  # and other branches stop above, and never see the secrets.
+  deploy:
+    needs: verify
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: write
+    secrets:
+      CONVEX_DEPLOY_KEY_DEV: ${{ secrets.CONVEX_DEPLOY_KEY_DEV }}
+      CONVEX_DEPLOY_KEY_PROD: ${{ secrets.CONVEX_DEPLOY_KEY_PROD }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
