@@ -46,7 +46,7 @@
       "favicon": "./assets/icons/favicon.png"
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "experiments": {
       "typedRoutes": true,
