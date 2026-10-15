@@ -3,10 +3,11 @@
 # Refuses a merge commit whose merged tree `pnpm verify` would fail.
 #
 # A merge commit does not run pre-commit, and it is the one tree no branch commit ever
-# verified: the branch passed against the main it started from, main passed against itself,
-# and nothing checked the two together. This runs the same gate on that combination.
+# verified: the branch passed against the target it started from (`dev` or `main`), the target
+# passed against itself, and nothing checked the two together. This runs the same gate on that
+# combination.
 #
-# Not run on a fast-forward (no commit is made; main becomes a tip pre-commit already passed)
+# Not run on a fast-forward (no commit is made; the target becomes a tip pre-commit already passed)
 # nor on a conflicted merge (resolving it ends in `git commit`, which runs pre-commit).
 #
 # Genuinely need to bypass it?  git merge --no-verify
