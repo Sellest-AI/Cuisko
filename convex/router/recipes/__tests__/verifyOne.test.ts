@@ -89,11 +89,20 @@ const CORRECTED = {
   ],
 };
 
-/** The modules the tests cross, warmed before anything is timed — see `updateOne.test.ts` (C10). */
+/**
+ * The modules the tests cross, warmed before anything is timed — see `updateOne.test.ts` (C10).
+ * `updateOne` is reached only by the rewrite, through the router's `runMutation`: left cold, its
+ * import was billed to that last test, and it timed out under `pnpm verify`.
+ */
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/verifyOne.") || path.startsWith("/convex/router/recipes/getOne."))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/recipes/verifyOne.") ||
+          path.startsWith("/convex/router/recipes/getOne.") ||
+          path.startsWith("/convex/router/recipes/updateOne."),
+      )
       .map(([, load]) => load()),
   ).then(warmRateLimiter),
 );

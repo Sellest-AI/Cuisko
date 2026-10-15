@@ -222,7 +222,8 @@ thing anyone has to remember.
 - every file in `src/modules/*/_model/` has a test in that folder's `__tests__/` 📐 C10
 - every access-gated Convex export has a rejection test 📐 C5
 - every `convex-test` file that calls through `api.` / `internal.` preloads its module in a
-  `beforeAll` — the glob is lazy, and the first test would otherwise pay the import against its
+  `beforeAll`, and every module that module runs through `ctx.runQuery` / `runMutation` /
+  `runAction` — the glob is lazy, and the first test would otherwise pay the import against its
   own timeout ([ADR 0008](./adr/0008-tests-are-layered.md), "The first test pays for the import") 📐 C10
 
 **A test for a reported bug** (the rule and the report format: `AGENTS.md`, "Tests" 👁). Write it

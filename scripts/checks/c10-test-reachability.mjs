@@ -17,6 +17,10 @@
  * Rule 3 is placement, and it is here because placement is the one property a test cannot report
  * on itself. A misplaced test still runs and still passes; what it costs is found later, by
  * someone who looks beside a file, finds nothing, and writes the second copy.
+ *
+ * Rules 4 and 5 are the warm-up: every module a convex-test file names, and every module those run
+ * through `ctx.run*` — themselves or through a helper they import — is loaded in its `beforeAll`
+ * (ADR 0008, "The first test pays for the import").
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -126,13 +130,101 @@ const WARM_UP_FIX =
   ".filter(([p]) => p.startsWith(\"/convex/<path>.\")).map(([, load]) => load())))`. " +
   "Filter on the modules the file calls — never load the whole glob.";
 
+/** A function reference, `api.` or `internal.` then at least a module and an export. */
+const REFERENCE = String.raw`\b(?:api|internal)(?:\.[A-Za-z_$][\w$]*){2,}`;
+
+const RUN_CALL = new RegExp(String.raw`\.run(?:Query|Mutation|Action)\(\s*(${REFERENCE})`, "g");
+
+const IMPORT = /^\s*import\s+(?!type\s)[^;]*?\sfrom\s+["']([^"']+)["']/gm;
+
+const MOCK = /\bvi\.mock\(\s*["']([^"']+)["']/g;
+
+/** `api.router.households.join.authed` → `/convex/router/households/join.`: the last segment is the export. */
+const moduleOf = (reference) => `/convex/${reference.split(".").slice(1, -1).join("/")}.`;
+
+const fileOf = (module) => path.join(ROOT, `${module.slice(1)}ts`);
+
+/**
+ * Every file rule 5 walks, read once, its comments blanked: a `ctx.run*` quoted in prose is not a
+ * call. `null` for a file that does not exist. A `//` after a colon is a URL, not a comment.
+ */
+const _code = new Map();
+const codeOf = (file) => {
+  if (!_code.has(file))
+    _code.set(
+      file,
+      existsSync(file)
+        ? readFileSync(file, "utf8")
+            .replace(/\/\*[\s\S]*?\*\//g, "")
+            .replace(/(^|[^:])\/\/.*$/gm, "$1")
+        : null,
+    );
+  return _code.get(file);
+};
+
+const isNodeModule = (module) => /^\s*["']use node["']/.test(codeOf(fileOf(module)) ?? "");
+
+/**
+ * An `@convex/…` or relative specifier → the backend file it loads, or null outside convex/. A file
+ * not found is still named, as `<path>.ts`: a mock of it must still match its module.
+ */
+const resolveImport = (from, specifier) => {
+  const base = specifier.startsWith("@convex/")
+    ? path.join(ROOT, "convex", specifier.slice("@convex/".length))
+    : specifier.startsWith(".")
+      ? path.resolve(path.dirname(from), specifier)
+      : null;
+  if (base === null || relative(base).split("/").includes("_generated")) return null;
+
+  return [`${base}.ts`, path.join(base, "index.ts")].find((file) => existsSync(file)) ?? `${base}.ts`;
+};
+
+/**
+ * The modules loaded lazily once `module` runs: every `ctx.runQuery` / `runMutation` / `runAction`
+ * target reached from its source, from the helpers it imports, and from those targets in turn.
+ * recipes/verifyOne.test.ts warmed every module it named and still billed its last test for
+ * `updateOne`, which only the router's own `runMutation` reached — and timed out under load. Half
+ * the router-to-router calls here go through a `functions/` helper, so imports are followed too.
+ *
+ * Left out on purpose: a scheduled target (`runAfter`, `scheduleTracedAfter`), which loads only when
+ * the scheduler fires and the tests fake it; a `"use node"` target, which the edge-runtime project
+ * must never load (ADR 0008, the trailing dot); and any file the test mocks, whose calls never run.
+ * A call through a variable rather than a literal reference is not seen.
+ */
+const reachedBy = (module, mocked) => {
+  const reached = new Set();
+  const visited = new Set();
+  const pending = [fileOf(module)];
+
+  while (pending.length > 0) {
+    const file = pending.pop();
+    if (visited.has(file) || mocked.has(file)) continue;
+    visited.add(file);
+
+    const code = codeOf(file);
+    if (code === null) continue;
+
+    for (const [, reference] of code.matchAll(RUN_CALL)) {
+      const target = moduleOf(reference);
+      if (reached.has(target) || mocked.has(fileOf(target)) || isNodeModule(target)) continue;
+      reached.add(target);
+      pending.push(fileOf(target));
+    }
+
+    for (const [, specifier] of code.matchAll(IMPORT)) {
+      const imported = resolveImport(file, specifier);
+      if (imported !== null) pending.push(imported);
+    }
+  }
+
+  return reached;
+};
+
 for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
   const source = readFileSync(file, "utf8");
   if (!source.includes("convexTest(")) continue;
 
-  const references = [...source.matchAll(/\b(?:api|internal)(?:\.[A-Za-z_$][\w$]*){2,}/g)].map(
-    (match) => match[0].split("."),
-  );
+  const references = [...source.matchAll(new RegExp(REFERENCE, "g"))].map((match) => match[0].split("."));
   if (references.length === 0) continue;
 
   // Below router/ the last segment must be an access level (C1), or the path below reads it wrong.
@@ -146,8 +238,7 @@ for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
     });
   }
 
-  // `api.router.households.join.authed` → `/convex/router/households/join.`: the last segment is the export.
-  const called = new Set(references.map((reference) => `/convex/${reference.slice(1, -1).join("/")}.`));
+  const called = new Set(references.map((reference) => moduleOf(reference.join("."))));
 
   if (!/\bbeforeAll\(/.test(source)) {
     findings.push({
@@ -161,14 +252,28 @@ for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
   const warmed = [...source.matchAll(/startsWith\(\s*["'`](\/convex\/[^"'`]*)["'`]/g)].map((match) => match[1]);
   if (warmed.length === 0) continue;
 
-  const cold = [...called].filter((module) => !warmed.some((prefix) => module.startsWith(prefix)));
-  if (cold.length === 0) continue;
+  const isCold = (module) => !warmed.some((prefix) => module.startsWith(prefix));
 
-  findings.push({
-    file: relative(file),
-    message: `Its beforeAll does not warm ${cold.join(", ")}, which it calls through the lazy glob.`,
-    fix: `Add each to the warm-up's filter, so no test is billed for its import: ${WARM_UP_FIX}`,
-  });
+  const cold = [...called].filter(isCold);
+  if (cold.length > 0)
+    findings.push({
+      file: relative(file),
+      message: `Its beforeAll does not warm ${cold.join(", ")}, which it calls through the lazy glob.`,
+      fix: `Add each to the warm-up's filter, so no test is billed for its import: ${WARM_UP_FIX}`,
+    });
+
+  const mocked = new Set(
+    [...source.matchAll(MOCK)].map(([, specifier]) => resolveImport(file, specifier)).filter((mock) => mock !== null),
+  );
+  const coldRun = [...new Set([...called].flatMap((module) => [...reachedBy(module, mocked)]))].filter(
+    (module) => !called.has(module) && isCold(module),
+  );
+  if (coldRun.length > 0)
+    findings.push({
+      file: relative(file),
+      message: `Its beforeAll does not warm ${coldRun.join(", ")}, which a function it calls runs through ctx.run*.`,
+      fix: `Add each to the warm-up's filter — the test never names it, but it pays for its import: ${WARM_UP_FIX}`,
+    });
 }
 
 report("C10 every test runs, sits in __tests__/, warms its glob, and every _model/ has one", findings);

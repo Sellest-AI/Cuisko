@@ -18,7 +18,12 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/restoreOne."))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/recipes/restoreOne.") ||
+          path.startsWith("/convex/router/recipes/importOne.") ||
+          path.startsWith("/convex/router/ingredients/resolve."),
+      )
       .map(([, load]) => load()),
   ),
 );

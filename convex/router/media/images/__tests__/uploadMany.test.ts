@@ -17,7 +17,11 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/media/images/uploadMany."))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/media/images/uploadMany.") ||
+          path.startsWith("/convex/router/media/images/saveMany."),
+      )
       .map(([, load]) => load()),
   ).then(warmRateLimiter),
 );

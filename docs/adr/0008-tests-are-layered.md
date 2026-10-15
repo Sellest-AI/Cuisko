@@ -25,9 +25,9 @@ MUST: keep a rejection test for every access-gated Convex export ([0003](./0003-
 MUST: exercise a hook by mounting it — `renderHook` with the module's own store — never by
       re-implementing what it composes.
 MUST: preload the module under test in a `beforeAll` when a `convex-test` file reaches a function
-      through `api.` / `internal.` — filter the glob on `/convex/<path>.` (the trailing dot keeps
-      a `"use node"` sibling out), never load the whole glob. See "The first test pays for the
-      import" below 📐 C10.
+      through `api.` / `internal.`, and every module it runs through `ctx.run*` — filter the glob
+      on `/convex/<path>.` (the trailing dot keeps a `"use node"` sibling out), never load the
+      whole glob. See "The first test pays for the import" below 📐 C10.
 MUST NOT: mock a module of this repo inside `test/setup.dom.ts`. That file carries browser APIs
           jsdom omits, and nothing else.
 MUST NOT: leave a test file no project collects. A test that never runs reports nothing and reads
@@ -148,9 +148,27 @@ C10 rule 4 checks the shape: a `convex-test` file that references `api.` or `int
 `beforeAll`, and when that warm-up filters with `startsWith("/convex/…")`, every module the file
 names falls under one of those prefixes. A reference into `router/` must end in a legal export name
 (`authed`, `_internal_<verb>`…, the C1 grammar), since that is how the module is read off it;
-`migrations.` keeps one export per migration and is outside the rule. It reads the test's text
-only, so a module the subject calls from inside — the `updateOne` → `getOne` case — is left to the
-author and to review.
+`migrations.` keeps one export per migration and is outside the rule.
+
+C10 rule 5 checks the module the subject calls from inside — the `updateOne` → `getOne` case. It
+was left to the author and to review until `recipes/verifyOne.test.ts` warmed every module it named
+and still timed out at 5s under `pnpm verify`, twice in a row on 15 October 2026: only its last test
+reached `updateOne`, through the router's `ctx.runMutation`, and paid for that import (120–310ms
+idle, 4ms warm). For each module the test names, the rule walks that module's source, the backend
+files it imports (`@convex/…` or relative) and every target it reaches, and requires each target of
+a `ctx.runQuery` / `runMutation` / `runAction` to be warmed too. Following imports is not optional:
+half the router-to-router calls go through a `functions/` helper — `uploadMany` reaches `saveMany`
+only through `functions/media/uploadImage.ts`. Comments are stripped first, so a call quoted in
+prose is not read as one.
+
+Exempt: a scheduled target (`runAfter`, `scheduleTracedAfter`), which loads only when the scheduler
+fires and the tests fake the timers; a `"use node"` target, which the edge-runtime project must
+never load; and any file the test `vi.mock`s, whose calls never run. A call through a variable
+rather than a literal reference is not seen. The rule works per module and per file, not per code
+path: it asks for every module a test *could* reach, so it can ask for one the tests never touch —
+of the five files it has flagged, only `verifyOne` was slow; the other four measured under 50ms
+cold. Warming a few extra modules costs the 30s hook budget a few hundred milliseconds; missing one
+costs a commit.
 
 ## Not yet — flow tests
 
@@ -170,7 +188,8 @@ Until then this ADR claims no flow coverage, which is the point of writing the g
 
 ```bash
 pnpm check:tests   # C10 — every test file is collected by a project; every _model/ has a test;
-                   #       every convex-test file calling through api./internal. warms its module
+                   #       every convex-test file calling through api./internal. warms its module,
+                   #       and every module that module runs through ctx.run*
 pnpm test          # all three projects
 ```
 
