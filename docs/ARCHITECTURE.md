@@ -557,7 +557,10 @@ into `dev` by hand. Only `main` ever builds: a preview APK is built by hand
 update or build. The **build number** is incremented by EAS on every production build
 (`autoIncrement`, `appVersionSource: remote`). The **version** (`0.2.0`) is the label the stores
 show; it moves only with a build, by as much as the commits since the last `v*` tag ask: `fix` →
-patch, `feat` → minor, breaking → major (minor before 1.0). [fingerprint.config.js](../fingerprint.config.js)
+patch, `feat` → minor, breaking → major (minor before 1.0). `pnpm release` counts from the highest
+`v*` tag in the repo, never from the files, and keeps the files when they are already ahead: it gives
+the same answer on every run and every branch, so `pnpm build:dev` sets it before the dev build of a
+native change, and the release on `main` lands on the same number instead of bumping twice. [fingerprint.config.js](../fingerprint.config.js)
 keeps it out of the fingerprint, or every bump would itself demand a build.
 
 A store build also happens without a native change: by hand (Actions → Deploy → Run workflow,

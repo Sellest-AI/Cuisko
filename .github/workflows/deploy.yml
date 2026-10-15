@@ -156,7 +156,7 @@ jobs:
       - name: Native change, nothing shipped
         if: steps.plan.outputs.ship == 'build' && github.ref_name == 'dev'
         run: |
-          echo "::warning::Native change on dev, so no update was published. Try it with a dev build, or run: eas build --profile preview."
+          echo "::warning::Native change on dev, so no update was published. Try it with a dev build (pnpm build:dev), or run: eas build --profile preview."
 
       # ── Store build on main: bump, tag, build ──────────────────────────────────────────────
       # A merge reaches here through ci.yml, after verify. A scheduled or hand run did not, and
@@ -172,10 +172,15 @@ jobs:
           if [ -n "$FORCED" ] && [ "$FORCED" != "auto" ]; then version=$(pnpm --silent release "$FORCED"); else version=$(pnpm --silent release); fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json app.json
-          # Hooks off: `pnpm install` turned them on, and pre-commit would rerun the whole verify
-          # that already passed on this same tree, two version strings aside.
-          git -c core.hooksPath=/dev/null commit -m "chore(release): $version"
+          # The version may already be in the files: `pnpm build:dev` bumps it on dev, and the
+          # release counts from the highest tag, so it lands on the same number. Then there is
+          # nothing to commit, only the tag to set.
+          if ! git diff --quiet package.json app.json; then
+            git add package.json app.json
+            # Hooks off: `pnpm install` turned them on, and pre-commit would rerun the whole verify
+            # that already passed on this same tree, two version strings aside.
+            git -c core.hooksPath=/dev/null commit -m "chore(release): $version"
+          fi
           # Pushed with the workflow's own token, which never triggers another workflow run.
           git tag "v$version"
           git push origin HEAD:main "v$version"

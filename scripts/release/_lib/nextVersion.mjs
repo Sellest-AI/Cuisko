@@ -1,8 +1,8 @@
 /**
  * The version a release should carry, read from the Conventional Commits it contains.
  *
- * Only a store build moves the version: an over-the-air update keeps the one baked into the
- * installed app. So this runs when a build is cut, over every commit since the last `v*` tag.
+ * Only a build moves the version: an over-the-air update keeps the one baked into the installed
+ * app. So this runs when a build is cut, over every commit since the last `v*` tag.
  *
  * A release with nothing but `chore` and `docs` still gets a patch: it exists because the native
  * side changed, and two different binaries must never share a version.
@@ -45,4 +45,36 @@ export const nextVersion = (current, messages, forced) => {
   if (bump === "major") return `${major + 1}.0.0`;
   if (bump === "minor") return `${major}.${minor + 1}.0`;
   return `${major}.${minor}.${patch + 1}`;
+};
+
+/** Negative, zero or positive, as `a` is below, equal to or above `b`. Both `major.minor.patch`. */
+const _compare = (a, b) => {
+  const [x, y] = [a, b].map((v) => v.split(".").map(Number));
+  return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+};
+
+/**
+ * The version the next build should carry, the same however many times it is asked.
+ *
+ * The base is the highest version ever released (the highest `v*` tag in the repo), never the
+ * files: a bump read from the files bumps again once it is committed, and again on every run. And
+ * the highest tag, not the nearest one in this branch's history, so a branch cut before the last
+ * release still lands above it instead of reusing its number.
+ *
+ * The files win when they are already ahead: a bump made earlier on dev, a `major` forced by
+ * hand. So the answer only ever moves forward.
+ *
+ * @param {object} input
+ * @param {string} input.files  the version in package.json
+ * @param {string | null} input.released  the highest released version, or null before the first
+ * @param {string[]} input.messages  full commit messages since the nearest release in this branch
+ * @param {"patch" | "minor" | "major"} [input.forced]
+ * @returns {string}
+ */
+export const releaseVersion = ({ files, released, messages, forced }) => {
+  // Nothing released yet: count from zero, so the first release is the files' own version unless
+  // the commits ask for more.
+  const derived = nextVersion(released ?? "0.0.0", messages, forced);
+  nextVersion(files, []); // throws on a malformed files version, which _compare would misread
+  return _compare(files, derived) > 0 ? files : derived;
 };
