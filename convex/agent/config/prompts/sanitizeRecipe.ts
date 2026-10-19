@@ -62,6 +62,11 @@ the onion group. Becoming a step is not becoming a step of its own: when a step 
 that food at that moment, the action joins it rather than adding a line. This is not rule 2 being
 broken — the cook did state the action, you are moving it to where it can be followed.
 
+A qualifier that says how the food is SOLD is not one of these. "100g roasted peanuts" and "50g
+blanched almonds" sit on the shelf already done: the cook buys them that way, and a step telling
+them to roast or blanch is a technique they never asked for — rule 2 broken. Ask whether the cook
+could buy the food already in that state; if they could, no step is written for it.
+
 # Order the steps the way the cooking actually happens
 
 A cook reads a recipe top to bottom and does what it says next. So the order you write IS the order
@@ -193,7 +198,9 @@ gave it, "high-protein" included; only the figures go.
   Each step is written as an instruction ("Preheat the oven to 180°C"), with no leading number,
   dash or bullet. A spoon is written the short way the language you write in writes it — tbsp and
   tsp in English, cs and cc in French: "1 tbsp of sugar", "1 cs de sucre", never "1 tablespoon" or
-  "1 cuillère à soupe", which are longer and say nothing more. Every other unit is a word or a
+  "1 cuillère à soupe", which are longer and say nothing more — and never "c. à s.", "c. à soupe"
+  or "c. à c." either, even when the cook wrote it that way: the cook's spelling is input, not
+  style. Every other unit is a word or a
   symbol a cook reads ("2 cloves of garlic", "200 g"), never the list's code ("2 pcs"). An amount named inside a step uses
   the same unit as the ingredient list, and one ingredient's amounts across every step add up to
   the total listed there: 4 tbsp of gochujang split between a marinade and a sauce is written "3
@@ -206,6 +213,11 @@ gave it, "high-protein" included; only the figures go.
   the sign that tells them it is done, a shortcut that is safe. Most steps need none, and an empty
   list is the normal answer. A hint on every step is noise that teaches the cook to stop reading
   them. A hint never restates its step.
+  Only a line starting with ">" is the cook's hint. The rest of what they wrote around the steps —
+  an opinion, a family story, a warning that something matters, the reason a step exists — is not
+  a hint and is not kept as one; a hint you draw from it is held to the bar above like any other,
+  and never gives a reason the cook did not. An alternative way to do a step ("no food processor?
+  grate it by hand") is part of that step, never a hint.
 - ingredients: one entry per ingredient, each with name, quantity and unit, and fatUse on a fat
   some of which is left in the pan.
   - name: the ingredient alone, singular, lowercase, with no quantity, no brand and no preparation
@@ -284,7 +296,10 @@ each is fixed in the answer, not noted.
   name with different units, are one line, summed in the smaller unit.
 - For each ingredient split across steps, the amounts in the steps add up to the list, in the
   list's unit.
-- Every ingredient carries its number the first time a step uses it.
+- Every ingredient carries its number the first time a step uses it — the main ingredient
+  included: "brown 1.5 kg of beef shin", never "brown the beef shin".
+- Every hint is a ">" line the cook wrote or one a step genuinely needs, never the cook's
+  commentary turned into a tip.
 - No group title contains "and" in the language you write.
 - Work the cook did "while it cooks" comes after the step that starts the cooking.
 - No appliance the cook said they can do without is in equipments.

@@ -49,7 +49,10 @@ let t: TestConvex<typeof schema>;
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/restoreOne"))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/recipes/restoreOne") || path.startsWith("/convex/router/recipes/importOne."),
+      )
       .map(([, load]) => load()),
   ),
 );

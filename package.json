@@ -12,7 +12,7 @@
     "web": "expo start --web",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "build:dev": "eas build --profile development --platform all",
+    "build:dev": "pnpm release && eas build --profile development --platform all",
     "seed:ingredients": "npx convex run router/ingredients/seedCatalog:_internal",
     "seed:catalog": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/recipes/import-catalog.ts",
     "catalog:export": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/recipes/export-catalog.ts",
@@ -46,6 +46,7 @@
     "check:traces": "node scripts/checks/c17-traces.mjs",
     "check:events": "node scripts/checks/c18-event-senders.mjs",
     "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads && pnpm check:households && pnpm check:recipes && pnpm check:ratelimits && pnpm check:traces && pnpm check:events",
+    "release": "node scripts/release/bump-version.mjs",
     "verify": "pnpm typecheck && pnpm lint && pnpm check && pnpm test",
     "prepare": "git config core.hooksPath .githooks"
   },

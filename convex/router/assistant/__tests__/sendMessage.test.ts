@@ -24,7 +24,20 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all([
     ...Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/assistant/sendMessage."))
+      // sendMessage itself, then what the agent's tools run through ctx.run* (C10 rule 5).
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/assistant/sendMessage.") ||
+          path.startsWith("/convex/router/recipes/search.") ||
+          path.startsWith("/convex/router/recipes/missingIds.") ||
+          path.startsWith("/convex/router/recipes/computeNutrition.") ||
+          path.startsWith("/convex/router/ingredients/search.") ||
+          path.startsWith("/convex/router/ingredients/missingIds.") ||
+          path.startsWith("/convex/router/planning/getMany.") ||
+          path.startsWith("/convex/router/planning/planOne.") ||
+          path.startsWith("/convex/router/cellars/addToCellar.") ||
+          path.startsWith("/convex/router/cellars/removeFromCellar."),
+      )
       .map(([, load]) => load()),
     ...Object.values(agentTest.modules).map((load) => load()),
     warmRateLimiter(),

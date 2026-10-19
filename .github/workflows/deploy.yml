@@ -1,0 +1,204 @@
+name: Deploy
+
+# Ships a branch to the phones that follow it. Two branches deploy, each to its own world:
+#
+#   branch  Convex  EAS channel + environment  native change
+#   dev     dev     preview                    nothing ships: a warning, try it with a dev build
+#   main    prod    production                 bump the version, tag it, production build
+#
+# Work merges into dev first and is tried on a preview APK; merging dev into main is the release.
+#
+# Three ways in, one decision ("what ships?"):
+#   - a push to dev or main, called by ci.yml once `verify` passes: update, or build if the native
+#     side changed;
+#   - by hand (Actions → Deploy → Run workflow, on main): a chosen bump forces a store build;
+#     `auto` behaves exactly like a merge;
+#   - every Monday, on main: a store build, if something was merged since the last v* tag and that
+#     tag is at least RELEASE_GAP_DAYS old. Weekly runs + a 10-day gap release every two weeks, and
+#     never the week after a release made some other way.
+#
+# Secrets, all required:
+#   CONVEX_DEPLOY_KEY_DEV   dev deployment key (Convex dashboard → dev → Settings → Deploy keys)
+#   CONVEX_DEPLOY_KEY_PROD  prod deployment key (same page, on the prod deployment)
+#   EXPO_TOKEN              expo.dev → Account settings → Access tokens
+#
+# Each channel reads its own Convex deployment, through its EAS environment's
+# EXPO_PUBLIC_CONVEX_URL. Where each lives: docs/external/deployments.md.
+
+on:
+  workflow_call:
+    secrets:
+      CONVEX_DEPLOY_KEY_DEV:
+        required: true
+      CONVEX_DEPLOY_KEY_PROD:
+        required: true
+      EXPO_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump for the store build (main only; auto reads the commits since the last tag)
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+  schedule:
+    # Mondays 06:00 UTC, on the default branch (main). GitHub may start it late, and turns it off
+    # after 60 days without a commit on the repo.
+    - cron: "0 6 * * 1"
+
+env:
+  RELEASE_GAP_DAYS: 10
+  # Everything that differs between the two branches, decided once. Any other branch is refused
+  # by the job's `if` below, so `preview` is never reached by accident.
+  CHANNEL: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+
+# One deploy per branch at a time, in order. A deploy is never cancelled halfway: Convex would be
+# on the new code while the phones still run the old.
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref_name == 'main' || github.ref_name == 'dev'
+    runs-on: ubuntu-latest
+    # Pushes the release commit and its tag; nothing else writes.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history: the bump reads every commit since the last v* tag.
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Convex first, so an update never calls a function the server lacks. The schedule skips
+      # it: every commit it could ship was deployed when it was merged.
+      - name: Convex → ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+        if: github.event_name != 'schedule'
+        run: npx convex deploy
+        env:
+          CONVEX_DEPLOY_KEY: ${{ github.ref_name == 'main' && secrets.CONVEX_DEPLOY_KEY_PROD || secrets.CONVEX_DEPLOY_KEY_DEV }}
+
+      # ship = update | build | nothing, and for a build, the platforms it covers.
+      - name: What ships?
+        id: plan
+        env:
+          BRANCH: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          FORCED: ${{ inputs.bump }}
+        run: |
+          ship() { echo "ship=$1" >> "$GITHUB_OUTPUT"; echo "platforms=$2" >> "$GITHUB_OUTPUT"; echo "→ $1 $2"; }
+
+          # By hand, with a chosen bump: always a store build. A version is a store release, so
+          # only main carries one.
+          if [ -n "$FORCED" ] && [ "$FORCED" != "auto" ]; then
+            if [ "$BRANCH" != "main" ]; then echo "::error::A version bump releases to the stores: run it on main."; exit 1; fi
+            ship build "android ios"; exit 0
+          fi
+
+          if [ "$EVENT" = "schedule" ]; then
+            last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+            if [ -n "$last" ]; then
+              age=$(( ($(date +%s) - $(git log -1 --format=%ct "$last")) / 86400 ))
+              new=$(git rev-list --count "$last..HEAD")
+              echo "last release $last, $age day(s) ago, $new commit(s) since"
+              if [ "$new" = "0" ]; then ship nothing; exit 0; fi
+              if [ "$age" -lt "$RELEASE_GAP_DAYS" ]; then ship nothing; exit 0; fi
+            fi
+            ship build "android ios"; exit 0
+          fi
+
+          # A merge. The runtime version IS the fingerprint (app.json): an update only reaches a
+          # build with the same one, so a fingerprint with no build on this branch's profile means
+          # the native side changed, and that platform needs a build instead.
+          # dev only needs to know whether the native side changed; Android alone answers that.
+          if [ "$BRANCH" = "main" ]; then platforms="android ios"; else platforms="android"; fi
+          missing=""
+          for platform in $platforms; do
+            runtime=$(npx expo-updates runtimeversion:resolve --platform "$platform" | tail -n 1 | jq -r .runtimeVersion)
+            # Errored and cancelled builds do not count; a build still in the queue does, so two
+            # merges in a row never start two builds of the same native side.
+            found=$(pnpm exec eas build:list --platform "$platform" --build-profile "$CHANNEL" \
+              --runtime-version "$runtime" --limit 10 --json --non-interactive \
+              | jq '[.[] | select(.status != "ERRORED" and .status != "CANCELED")] | length')
+            echo "$platform runtime $runtime: $found $CHANNEL build(s)"
+            if [ "$found" = "0" ]; then missing="$missing $platform"; fi
+          done
+          if [ -z "$missing" ]; then ship update; else ship build "${missing# }"; fi
+
+      # ── JS only: one update, on this branch's channel ──────────────────────────────────────
+      - name: Update message from the pushed commits
+        if: steps.plan.outputs.ship == 'update'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # A push carries `before`; a hand run or a new branch does not, so fall back to HEAD.
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE" 2>/dev/null; then range="$BEFORE..HEAD"; else range="-1"; fi
+          # Subjects only, never the bodies. EAS caps the message at 1024 characters.
+          git log --no-merges --format='%s' $range | head -c 1000 > "$RUNNER_TEMP/update-message"
+          cat "$RUNNER_TEMP/update-message"
+      - name: OTA → ${{ env.CHANNEL }}
+        if: steps.plan.outputs.ship == 'update'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: pnpm exec eas update --channel "$CHANNEL" --environment "$CHANNEL" --message "$(cat "$RUNNER_TEMP/update-message")" --non-interactive
+
+      # ── Native change on dev: nothing ships ────────────────────────────────────────────────
+      # Builds are store releases, so only main makes them. No update either: it would carry a
+      # runtime no preview APK has, and reach nobody. Try it with a dev build instead.
+      - name: Native change, nothing shipped
+        if: steps.plan.outputs.ship == 'build' && github.ref_name == 'dev'
+        run: |
+          echo "::warning::Native change on dev, so no update was published. Try it with a dev build (pnpm build:dev), or run: eas build --profile preview."
+
+      # ── Store build on main: bump, tag, build ──────────────────────────────────────────────
+      # A merge reaches here through ci.yml, after verify. A scheduled or hand run did not, and
+      # main's tip may be a commit whose CI went red, so it is verified here before it ships.
+      - name: Verify main (scheduled or hand-run build)
+        if: steps.plan.outputs.ship == 'build' && github.ref_name == 'main' && github.event_name != 'push'
+        run: pnpm verify
+      - name: Bump the version and tag it
+        if: steps.plan.outputs.ship == 'build' && github.ref_name == 'main'
+        env:
+          FORCED: ${{ inputs.bump }}
+        run: |
+          if [ -n "$FORCED" ] && [ "$FORCED" != "auto" ]; then version=$(pnpm --silent release "$FORCED"); else version=$(pnpm --silent release); fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The version may already be in the files: `pnpm build:dev` bumps it on dev, and the
+          # release counts from the highest tag, so it lands on the same number. Then there is
+          # nothing to commit, only the tag to set.
+          if ! git diff --quiet package.json app.json; then
+            git add package.json app.json
+            # Hooks off: `pnpm install` turned them on, and pre-commit would rerun the whole verify
+            # that already passed on this same tree, two version strings aside.
+            git -c core.hooksPath=/dev/null commit -m "chore(release): $version"
+          fi
+          # Pushed with the workflow's own token, which never triggers another workflow run.
+          git tag "v$version"
+          git push origin HEAD:main "v$version"
+          # dev must carry the release commit too, or the next dev → main merge fights over the
+          # version line. A fast-forward when dev has not moved; otherwise merging main back into
+          # dev is left to a human, and the run says so.
+          if git push origin HEAD:dev 2>/dev/null; then
+            echo "dev fast-forwarded to the release commit"
+          else
+            echo "::warning::dev has moved since this release: merge main into dev."
+          fi
+      - name: Production build
+        if: steps.plan.outputs.ship == 'build' && github.ref_name == 'main'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          PLATFORMS: ${{ steps.plan.outputs.platforms }}
+        run: |
+          # Both platforms → one build call for all; otherwise only the one that changed.
+          case "$PLATFORMS" in *" "*) platform=all ;; *) platform="$PLATFORMS" ;; esac
+          # --no-wait: the build runs on EAS for 15+ minutes; the job does not sit and pay for it.
+          pnpm exec eas build --profile production --platform "$platform" --non-interactive --no-wait

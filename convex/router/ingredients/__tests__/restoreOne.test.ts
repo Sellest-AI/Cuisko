@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Id } from "@convex/_generated/dataModel";
 import type { PortableIngredient } from "@convex/schema/ingredientPayloads";
 
+import { drainScheduled } from "../../../__tests__/scheduler.fixtures";
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
 
@@ -22,18 +23,28 @@ vi.mock("@convex/functions/media/uploadImage", async (importOriginal) => {
   return { ...actual, uploadManyImages: uploadRun };
 });
 
+/** The bucket a discarded base is removed from — mocked for the same reason the upload is. */
+const deleteFile = vi.hoisted(() => vi.fn());
+
+vi.mock("@convex/lib/s3/node", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../lib/s3/node")>();
+  return { ...actual, StorageCloud: { ...actual.StorageCloud, deleteFile } };
+});
+
 let t: TestConvex<typeof schema>;
 
 /**
  * The narrow warm-up `createOne.test.ts` explains: the graph this file exercises, loaded once. The
- * upload router is in it because the action reaches it once the row is written, and a first test
- * paying for that import times out under a full run.
+ * image routers are in it because the action reaches the upload one once the row is written, and a
+ * first test paying for that import times out under a full run. They are in it as a folder because
+ * the discard a failed cut-out schedules reaches several of them, and the drain gives up on a job
+ * still importing one: a router missing from a hand-kept list would fail only on a slow runner.
  */
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
       .filter(([path]) =>
-        ["/convex/router/ingredients/restoreOne", "/convex/router/media/images/uploadMany"].some((graph) => path.startsWith(graph)),
+        ["/convex/router/ingredients/restoreOne", "/convex/router/media/images/"].some((graph) => path.startsWith(graph)),
       )
       .map(([, load]) => load()),
   ),
@@ -112,6 +123,7 @@ const scheduledDeletes = () =>
 beforeEach(() => {
   t = convexTest(schema, modules);
   uploadRun.mockReset();
+  deleteFile.mockReset();
 });
 
 describe("restoreOne._internal", () => {
@@ -174,6 +186,11 @@ describe("restoreOne._internal", () => {
     expect(outcome).toBe("created");
     expect((await t.run((ctx) => ctx.db.get(ingredientId)))?.imageId).toBeUndefined();
     expect((await scheduledDeletes()).map(({ args }) => args[0])).toEqual([{ imageId: base }]);
+
+    await drainScheduled(t);
+
+    expect(deleteFile.mock.calls).toEqual([["public/base.webp"]]);
+    expect(await t.run((ctx) => ctx.db.get(base))).toBeNull();
   });
 
   test("restores the row without an image when the zip carried none, uploading nothing", async () => {

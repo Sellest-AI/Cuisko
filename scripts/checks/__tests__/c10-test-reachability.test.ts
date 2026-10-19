@@ -231,6 +231,160 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
     });
   });
 
+  /**
+   * recipes/verifyOne.test.ts warmed `verifyOne.` and `getOne.`, and only its last test reached
+   * `updateOne` — through the router's own `ctx.runMutation`, never named in the test. That import
+   * was billed to that test, and it timed out under `pnpm verify` twice in a row.
+   */
+  describe("a warm-up covers every module the called router runs", () => {
+    const test = "convex/router/recipes/__tests__/verifyOne.test.ts";
+    const router = "convex/router/recipes/verifyOne.ts";
+    const routerSource = `
+      const stored = await ctx.runQuery(internal.router.recipes.getOne._internal, { id });
+      await ctx.runMutation(
+        internal.router.recipes.updateOne._internal_persist,
+        { recipeId },
+      );
+      await ctx.scheduleTracedAfter(0, internal.router.recipes.translateOne._internal, { recipeId });
+      await ctx.scheduler.runAfter(0, internal.router.recipes.importOne._internal, {});
+    `;
+    const warming = (...prefixes: string[]) => `
+      const modules = import.meta.glob("/convex/**/*.*s");
+      beforeAll(() => Promise.all(Object.entries(modules)
+        .filter(([path]) => ${prefixes.map((p) => `path.startsWith("${p}")`).join(" || ")})
+        .map(([, load]) => load())));
+      const t = convexTest(schema, modules);
+      it('x', () => t.action(api.router.recipes.verifyOne.admin, {}));
+    `;
+
+    it("rejects a module the router runs that the warm-up does not load, even across lines", () => {
+      const { code, output } = runC10(
+        {
+          [router]: routerSource,
+          [test]: warming("/convex/router/recipes/verifyOne.", "/convex/router/recipes/getOne."),
+        },
+        [test],
+      );
+
+      expect(code).toBe(1);
+      expect(output).toContain(test);
+      expect(output).toContain("/convex/router/recipes/updateOne.");
+    });
+
+    it("accepts it once that module is warmed too", () => {
+      const { code } = runC10(
+        {
+          [router]: routerSource,
+          [test]: warming(
+            "/convex/router/recipes/verifyOne.",
+            "/convex/router/recipes/getOne.",
+            "/convex/router/recipes/updateOne.",
+          ),
+        },
+        [test],
+      );
+
+      expect(code).toBe(0);
+    });
+
+    it("does not ask for a scheduled target — it loads only when the scheduler fires", () => {
+      const { output } = runC10(
+        {
+          [router]: routerSource,
+          [test]: warming("/convex/router/recipes/verifyOne.", "/convex/router/recipes/getOne."),
+        },
+        [test],
+      );
+
+      expect(output).not.toContain("/convex/router/recipes/translateOne.");
+      expect(output).not.toContain("/convex/router/recipes/importOne.");
+    });
+
+    it("does not ask for a \"use node\" target — the edge-runtime project must never load one", () => {
+      const { code } = runC10(
+        {
+          [router]: "await ctx.runAction(internal.router.recipes.verifyOneNode._internal, {});",
+          "convex/router/recipes/verifyOneNode.ts": `"use node"\n\nexport const _internal = internalAction({});`,
+          [test]: warming("/convex/router/recipes/verifyOne."),
+        },
+        [test],
+      );
+
+      expect(code).toBe(0);
+    });
+
+    /** media/images/uploadMany reaches `saveMany` only through functions/media/uploadImage.ts. */
+    it("follows the router into the helpers it imports, by alias and by relative path", () => {
+      const files = {
+        [router]: `
+          import { checkAgainstSource } from "@convex/functions/recipes/checkAgainstSource";
+          import { persist } from "../../functions/recipes/persist";
+        `,
+        "convex/functions/recipes/checkAgainstSource.ts":
+          "await ctx.runQuery(internal.router.recipes.getMany._internal, {});",
+        "convex/functions/recipes/persist.ts":
+          "await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {});",
+        [test]: warming("/convex/router/recipes/verifyOne."),
+      };
+      const { code, output } = runC10(files, [test]);
+
+      expect(code).toBe(1);
+      expect(output).toContain("/convex/router/recipes/getMany.");
+      expect(output).toContain("/convex/router/recipes/updateOne.");
+    });
+
+    it("follows a target into what it runs in turn", () => {
+      const { code, output } = runC10(
+        {
+          [router]: "await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {});",
+          "convex/router/recipes/updateOne.ts": "await ctx.runQuery(internal.router.recipes.getOne._internal, {});",
+          [test]: warming("/convex/router/recipes/verifyOne.", "/convex/router/recipes/updateOne."),
+        },
+        [test],
+      );
+
+      expect(code).toBe(1);
+      expect(output).toContain("/convex/router/recipes/getOne.");
+    });
+
+    it("does not read a call quoted in a comment as a call", () => {
+      const { code } = runC10(
+        {
+          [router]: `
+            /** Once checked through \`ctx.runQuery(internal.router.recipes.getMany._internal)\`. */
+            // await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {});
+            const page = "https://example.com/a"; // a URL is not a comment start
+          `,
+          [test]: warming("/convex/router/recipes/verifyOne."),
+        },
+        [test],
+      );
+
+      expect(code).toBe(0);
+    });
+
+    it("does not ask for a module the test mocks, nor for what a mocked helper would run", () => {
+      const { code } = runC10(
+        {
+          [router]: `
+            import { persist } from "@convex/functions/recipes/persist";
+            await ctx.runQuery(internal.router.recipes.getMany._internal, {});
+          `,
+          "convex/functions/recipes/persist.ts":
+            "await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {});",
+          [test]: `
+            vi.mock("@convex/functions/recipes/persist", () => ({}));
+            vi.mock("@convex/router/recipes/getMany", () => ({}));
+            ${warming("/convex/router/recipes/verifyOne.")}
+          `,
+        },
+        [test],
+      );
+
+      expect(code).toBe(0);
+    });
+  });
+
   /** A router reference ends in its access level; anything else names no function at all. */
   describe("a router reference names a legal export", () => {
     const warmed = (call: string) => `

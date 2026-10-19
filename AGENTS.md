@@ -23,7 +23,7 @@ pnpm start         # Expo dev server
 pnpm test -- <file>  # single test file
 pnpm test:app      # jsdom project only — components, hooks, _model/
 pnpm test:convex   # edge-runtime project only — Convex functions
-pnpm test:scripts  # node project only — the C1–C18 check scripts
+pnpm test:scripts  # node project only — the C1–C18 checks, and the database and release scripts
 ```
 
 Use the `context-mode` plugin when available: any command whose output you will process rather
@@ -114,7 +114,7 @@ root file. `_components/` and `_hooks/` are that module's interior, reached only
 **Keep going unless a step needs the user.** The status note rides with the next action — never
 "want me to continue?". Stop only when a decision is the user's, at a stop this file names (review
 finding, red test, wrong branch, unagreed plan), or before anything destructive or outside this
-worktree (deleting data, force-push, `main`, the shared stash).
+worktree (deleting data, force-push, `dev`, `main`, the shared stash).
 
 **A run that changed or investigated something ends with these headings, in this order:**
 **Changed** (by layer, and what verify said) · **Found** (noticed but not acted on, and what you
@@ -310,7 +310,7 @@ Ask what the branch exists to do, then:
 
 - The change serves that purpose → commit.
 - It does not — a doc, an unrelated fix, a chore no other commit here needs → **stop and ask the
-  user**, naming the branch it belongs on. Usually `main`, or a branch of its own.
+  user**, naming the branch it belongs on. Usually `dev`, or a branch of its own.
 - Unsure → ask. The question is cheaper than the move.
 
 Supporting work is not a stray: a `feat(groceries)` a `feat/planning-…` branch needs, or a `fix` for
@@ -318,8 +318,12 @@ something the branch itself broke, belongs on the branch, even when its scope is
 
 - **The hooks check the files on disk, not what you commit.** An uncommitted edit can hide a broken
   commit, so trust `pnpm verify` only once nothing is left uncommitted. Commit `package.json` whole.
-- **Into `main`:** rename a `claude/…` branch to `<type>/…` (the hook refuses it), merge `main` into
-  it, verify, then a plain `git merge`. Never `--no-ff`.
+- **Into `dev`:** rename a `claude/…` branch to `<type>/…` (the hook refuses it), merge `dev` into
+  it, verify, then a plain `git merge`. Never `--no-ff`. A push to `dev` ships to preview phones and
+  the dev Convex deployment.
+- **Into `main`:** only `dev` is merged into `main`, and only when the user says so: that merge is
+  the release, to the production channel and the prod deployment (`docs/ARCHITECTURE.md` §
+  Releases).
 
 Format is Conventional Commits. The rules live in `commitlint.config.js`, which the `commit-msg` hook
 runs; branch names are checked by `.githooks/pre-commit`. When the two disagree with a doc, they win.
