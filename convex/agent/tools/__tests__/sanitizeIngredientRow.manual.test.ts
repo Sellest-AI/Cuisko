@@ -74,6 +74,7 @@ const CANDIDATES: Candidate[] = [
   // { name: "z-ai/glm-5.3-flash", modes: ["low"] },
   // { name: "anthropic/claude-haiku-5.5", modes: ["low"] },
   { name: "openai/gpt-6-luna", modes: ["low"] }, // BEST ONE
+  // { name: "deepseek/deepseek-v4.1-flash-1017", modes: ["low", "high"] },
 ];
 
 const LOCALE = "fr" as const;
