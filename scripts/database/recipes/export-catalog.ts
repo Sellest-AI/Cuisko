@@ -10,8 +10,6 @@
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { PaginationResult } from "convex/server";
-
 import { internal } from "@convex/_generated/api";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
@@ -23,11 +21,10 @@ import {
   packArchive,
   withoutImages,
 } from "./_lib/archive";
+import { catalogPagesOf } from "./_lib/catalogPages";
 import { connectAdmin } from "../_lib/convexAdmin";
 import { uniqueFolder } from "../_lib/folders";
 import { downloadImage } from "../_lib/downloadImage";
-
-const PAGE_SIZE = 20;
 
 const main = async () => {
   const admin = connectAdmin();
@@ -39,16 +36,11 @@ const main = async () => {
 
   console.log(`Exporting the catalog of ${admin.deployment}.`);
 
-  let cursor: string | null = null;
-  do {
-    // Annotated because `cursor` is assigned from the page and read by the call that fetches it,
-    // which TypeScript refuses to infer round.
-    const page: PaginationResult<PortableRecipe> = await admin.query(
-      internal.router.recipes.exportCatalog._internal,
-      { paginationOpts: { cursor, numItems: PAGE_SIZE } },
-    );
-
-    for (const exported of page.page) {
+  const pages = catalogPagesOf((paginationOpts) =>
+    admin.query(internal.router.recipes.exportCatalog._internal, { paginationOpts }),
+  );
+  for await (const page of pages) {
+    for (const exported of page) {
       const folder = uniqueFolder(folderOf(exported), new Set(Object.keys(recipes)));
       const { recipe, files } = localizeImages(exported, folder);
       const missing: string[] = [];
@@ -63,9 +55,7 @@ const main = async () => {
       for (const file of files) if (!kept.has(file.file)) delete images[file.file];
       console.log(`  ${folder}/ · ${kept.size} image(s)`);
     }
-
-    cursor = page.isDone ? null : page.continueCursor;
-  } while (cursor);
+  }
 
   const folders = Object.keys(recipes);
   const zip = path.join(directory, archiveNameOf(admin.deployment, exportedAt));

@@ -27,6 +27,17 @@ export const COOKING_TIMES = ["any", "20", "30", "60"] as const;
 export type CookingTime = (typeof COOKING_TIMES)[number];
 
 /**
+ * The times that are a ceiling, which `any` is not: what the catalog import may ask
+ * `suggestDishes` for a dish to fit.
+ *
+ * The import's ledger records which of these it asked under. That is a fact about an ask, not
+ * about how long a cook has, so it does not break the rule above that a cooking time is never stored.
+ */
+export const CONSTRAINT_TIMES = COOKING_TIMES.filter(
+  (time): time is Exclude<CookingTime, "any"> => time !== "any",
+);
+
+/**
  * How far past the stated ceiling a recipe may still go.
  *
  * A stated ceiling is an estimate on both sides — the cook's, who said "about half an hour", and

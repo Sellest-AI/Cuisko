@@ -11,9 +11,14 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import * as z from "zod/v4";
 
+import type { AssertTrue, Exact } from "@convex/agent/utils/exact";
+import type { DishConstraints } from "@convex/schema/recipePayloads";
+import { CONSTRAINT_TIMES } from "@shared/cookingTimes";
 import { type Cuisine, CUISINES } from "@shared/cuisines";
-import { type VegetarianDiet, VEGETARIAN_DIETS } from "@shared/diets";
+import { CONSTRAINT_DIETS, type ConstraintDiet, fitsDiet } from "@shared/diets";
+import { NUTRITION_PREFERENCES } from "@shared/preferences";
 
+import { type ConstraintKey, type HitRate, hitsOf, type RecipeFacts } from "./constraints";
 import type { RatedRecipe, Verdict } from "./verdicts";
 
 const _importSchema = z.object({
@@ -22,6 +27,19 @@ const _importSchema = z.object({
   recipeId: z.string().min(1),
   at: z.string(),
 });
+
+/**
+ * The constraints a dish was asked under, as the file holds them. Parsed, not re-checked: the tool
+ * refused anything illegal before the dish existed.
+ */
+const _askedSchema = z.object({
+  time: z.enum(CONSTRAINT_TIMES).optional(),
+  diet: z.enum(CONSTRAINT_DIETS).optional(),
+  seeks: z.array(z.enum(NUTRITION_PREFERENCES)).optional(),
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- a compile-time assertion, read by tsc alone
+type _AskedPinned = AssertTrue<Exact<z.infer<typeof _askedSchema>, DishConstraints>>;
 
 /** Where a recipe was found. It decides the locale the import reads the page in. */
 export const SOURCES = ["marmiton", "bbcgoodfood"] as const;
@@ -73,7 +91,14 @@ const _ledgerSchema = z.object({
        */
       versionOf: z.string().optional(),
       /** What the agent intended; the real facets are computed at import. */
-      diet: z.enum(VEGETARIAN_DIETS).optional(),
+      diet: z.enum(CONSTRAINT_DIETS).optional(),
+      /**
+       * The constraints the agent was asked to fit when it proposed the dish, so a run can score
+       * each one against the tags the imported recipe came out with. Absent on an unconstrained
+       * ask, on the script's own vegan-version lookups, and on every dish searched before asks
+       * carried constraints.
+       */
+      asked: _askedSchema.optional(),
       searchedAt: z.string(),
     }),
   ),
@@ -82,6 +107,29 @@ const _ledgerSchema = z.object({
    * Insertion order is kept by JSON and by this schema, and it is the order imports run in.
    */
   recipes: z.record(z.string(), _recipeSchema),
+  /**
+   * Dishes the agent proposed under a diet they miss by its own answer, by cuisine then by
+   * `dishKeyOf`, and never searched. Kept so the next ask under that diet is told to avoid them: the
+   * agent's best-known answers come back otherwise, are dropped again, and the ask is wasted. Not in
+   * `dishes`, which every ask avoids: ayam taliwang misses a vegan ask and is a fine dish to search
+   * for an unconstrained one.
+   *
+   * By cuisine first because one name can miss in two: "curry de légumes" dropped from an Indian
+   * ask, then a Thai one, kept one entry and lost the Indian miss when keyed by the dish alone.
+   */
+  dietMisses: z
+    .partialRecord(
+      z.enum(CUISINES),
+      z.record(
+        z.string(),
+        z.object({
+          /** The agent's answer: absent when the dish has meat. */
+          diet: z.enum(CONSTRAINT_DIETS).optional(),
+          missedAt: z.string(),
+        }),
+      ),
+    )
+    .optional(),
 });
 
 export type Ledger = z.infer<typeof _ledgerSchema>;
@@ -114,8 +162,39 @@ export const readLedger = (file: string): Ledger => {
  */
 export const writeLedger = (file: string, ledger: Ledger): void => {
   const temporary = `${file}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(ledger, null, 2)}\n`);
-  renameSync(temporary, file);
+  const json = `${JSON.stringify(ledger, null, 2)}\n`;
+  whileLocked(() => writeFileSync(temporary, json));
+  whileLocked(() => renameSync(temporary, file));
+};
+
+/** The codes Windows answers a write or a rename with while another process holds the file open. */
+const _LOCKED_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
+const _LOCK_TRIES = 20;
+const _LOCK_WAIT_MS = 100;
+
+/**
+ * `operation` (a write, a rename), tried again for up to two seconds while its file is locked.
+ * `waitMs` is the pause between tries, a parameter so a test need not sleep through a real lock.
+ *
+ * Windows refuses to write or rename onto a file another process has open, for as long as it has
+ * it: an editor reloading the ledger it shows, an antivirus scanning the file just written. The run
+ * writes after every search, so a lock lasting a moment ended a run (EPERM), or cost a dish its
+ * remaining lookups, with nothing wrong with either. Any other error, or a lock that outlasts the
+ * retries, is thrown as before.
+ */
+export const whileLocked = (operation: () => void, waitMs = _LOCK_WAIT_MS): void => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      operation();
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (attempt >= _LOCK_TRIES || !code || !_LOCKED_CODES.has(code)) throw error;
+      // A synchronous wait: `writeLedger` is synchronous, and every caller relies on the file
+      // being written when it returns.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+    }
+  }
 };
 
 /**
@@ -157,13 +236,13 @@ export const nextCuisine = (ledger: Ledger): Cuisine => {
 export const dishKeyOf = (name: string): string => name.trim().normalize("NFC").toLocaleLowerCase("fr");
 
 /**
- * What the agent is told not to suggest for `cuisine`: its dishes already searched, and the titles
- * of its recipes already imported.
+ * What the agent is told not to suggest for `cuisine`: its dishes already searched, the titles of
+ * its recipes already imported, and, under a diet, the dishes it proposed before that miss it.
  *
  * Scoped to the cuisine, because a Thai dish name tells the model nothing when it is suggesting
  * Peruvian ones, and a list across every cuisine would grow with every run.
  */
-export const avoidFor = (ledger: Ledger, cuisine: Cuisine): string[] => {
+export const avoidFor = (ledger: Ledger, cuisine: Cuisine, diet?: ConstraintDiet): string[] => {
   // The script's own vegan-version lookups are left out: the agent never proposed them.
   const dishes = Object.keys(ledger.dishes).filter(
     (dish) => ledger.dishes[dish]!.cuisine === cuisine && !ledger.dishes[dish]!.versionOf,
@@ -172,7 +251,27 @@ export const avoidFor = (ledger: Ledger, cuisine: Cuisine): string[] => {
     .filter((recipe) => recipe.status === "imported" && ledger.dishes[recipe.dish]?.cuisine === cuisine)
     .map((recipe) => recipe.title);
 
-  return [...new Set([...dishes, ...titles])];
+  const misses = diet
+    ? Object.entries(ledger.dietMisses?.[cuisine] ?? {})
+        .filter(([, miss]) => !fitsDiet(miss.diet, diet))
+        .map(([dish]) => dish)
+    : [];
+
+  return [...new Set([...dishes, ...titles, ...misses])];
+};
+
+/**
+ * Records a dish the agent proposed under a diet it misses by its own answer (`fitsDiet`), so
+ * `avoidFor` lists it on the next ask under that diet. Never searched, so not a `dishes` entry.
+ */
+export const recordDietMiss = (
+  ledger: Ledger,
+  { dish, cuisine, diet, missedAt }: { dish: string; cuisine: Cuisine; diet?: ConstraintDiet; missedAt: string },
+): void => {
+  ledger.dietMisses = {
+    ...ledger.dietMisses,
+    [cuisine]: { ...ledger.dietMisses?.[cuisine], [dishKeyOf(dish)]: { ...(diet && { diet }), missedAt } },
+  };
 };
 
 export type SearchedCard = RatedRecipe & { verdict: Verdict };
@@ -183,7 +282,8 @@ export type DishSearch = {
   cuisine: Cuisine;
   nameEn?: string;
   versionOf?: string;
-  diet?: VegetarianDiet;
+  diet?: ConstraintDiet;
+  asked?: DishConstraints;
   searchedAt: string;
 };
 
@@ -255,4 +355,35 @@ export const coverageOf = (ledger: Ledger) => {
     dishes: dishes.length,
     vegan: dishes.filter((dish) => dish.diet === "vegan").length,
   };
+};
+
+/**
+ * Per constraint value, how many dishes asked under it were imported on `deployment`, and how many
+ * of those came out fitting it. The weights the rotation draws by (`weightsOf`).
+ *
+ * `factsById` is the catalog read back from the deployment, keyed by recipe id: the tags are
+ * computed at import, and the ledger never holds them. A recipe no longer there (deleted, or
+ * archived) is not counted, rather than counted as a miss. Each value of a pair is scored on its
+ * own: a dish asked high-protein and low-carb counts toward both.
+ */
+export const hitRatesOf = (
+  ledger: Ledger,
+  deployment: string,
+  factsById: ReadonlyMap<string, RecipeFacts>,
+): Map<ConstraintKey, HitRate> => {
+  const rates = new Map<ConstraintKey, HitRate>();
+
+  for (const recipe of Object.values(ledger.recipes)) {
+    const asked = ledger.dishes[recipe.dish]?.asked;
+    const landed = recipe.imports.find((entry) => entry.deployment === deployment);
+    const facts = landed && factsById.get(landed.recipeId);
+    if (!asked || !facts) continue;
+
+    for (const [key, hit] of hitsOf(asked, facts)) {
+      const rate = rates.get(key) ?? { asked: 0, hit: 0 };
+      rates.set(key, { asked: rate.asked + 1, hit: rate.hit + (hit ? 1 : 0) });
+    }
+  }
+
+  return rates;
 };

@@ -257,10 +257,10 @@ const KCAL_PER_G_CARB = 4;
  * [`NUTRITION_PREFERENCES`](./preferences.ts). Someone eating to gain weight is served by it
  * exactly as much as someone eating to lose is served by its opposite.
  */
-const HIGH_PROTEIN_ENERGY_SHARE = 0.2;
-const LOW_CARB_ENERGY_SHARE = 0.26;
-const LOW_CALORIE_KCAL_PER_SERVING = 500;
-const HIGH_CALORIE_KCAL_PER_SERVING = 850;
+export const HIGH_PROTEIN_ENERGY_SHARE = 0.2;
+export const LOW_CARB_ENERGY_SHARE = 0.26;
+export const LOW_CALORIE_KCAL_PER_SERVING = 500;
+export const HIGH_CALORIE_KCAL_PER_SERVING = 850;
 
 /**
  * The two regulated claims in this file, and the only thresholds here that are not our own judgement.
@@ -279,10 +279,10 @@ const HIGH_CALORIE_KCAL_PER_SERVING = 850;
  * ⚠️ Both are claims about what the catalog MEASURED. Neither is emitted from a total that could
  * not be worked out — see `nutritionTagsOf`.
  */
-const HIGH_FIBRE_G_PER_100_KCAL = 3;
+export const HIGH_FIBRE_G_PER_100_KCAL = 3;
 const IRON_NRV_MG = 14;
 const HIGH_MINERAL_NRV_SHARE = 0.3;
-const IRON_RICH_MG_PER_SERVING = IRON_NRV_MG * HIGH_MINERAL_NRV_SHARE;
+export const IRON_RICH_MG_PER_SERVING = IRON_NRV_MG * HIGH_MINERAL_NRV_SHARE;
 
 /**
  * The facts the nutrition tags are decided from, for ONE serving.

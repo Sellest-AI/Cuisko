@@ -16,8 +16,11 @@ import { vLocale, vLocalized, vLocalizedList } from "./i18n";
 import { vFatUse, vRecipeUnit } from "./ingredients";
 import { vEquipments } from "./cellars";
 import { recipes, vRecipeStatus } from "./recipes";
+import { vNutritionPreferences } from "./preferences";
 import { DIFFICULTY_LEVELS } from "@shared/recipes";
+import { CONSTRAINT_TIMES } from "@shared/cookingTimes";
 import { CUISINES } from "@shared/cuisines";
+import { CONSTRAINT_DIETS } from "@shared/diets";
 import { AUTHORED_TAGS } from "@shared/tags";
 
 /**
@@ -47,6 +50,20 @@ const vTimings = v.object({
   cooking: v.optional(v.number()),
   resting: v.optional(v.number()),
 });
+
+/**
+ * What the catalog import asks `suggestDishes` to fit besides the cuisine: a ceiling and a diet the
+ * dish's usual recipe fits, and the goals it meets.
+ *
+ * The seeks' count (`MAX_CONSTRAINT_SEEKS`) and exclusive pair are not checked here: the tool's own
+ * schema refuses both, and it parses every call, this router's included.
+ */
+export const vDishConstraints = v.object({
+  time: v.optional(v.union(...CONSTRAINT_TIMES.map(v.literal))),
+  diet: v.optional(v.union(...CONSTRAINT_DIETS.map(v.literal))),
+  seeks: v.optional(vNutritionPreferences),
+});
+export type DishConstraints = Infer<typeof vDishConstraints>;
 
 /**
  * The free text a cook's edit carries, as `updateOne` accepts it off the wire.
