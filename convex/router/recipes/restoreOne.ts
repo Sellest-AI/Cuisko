@@ -5,8 +5,10 @@ import {
   persistRestoredRecipe,
 } from "@convex/functions/recipes/persistRestoredRecipe";
 import { type RestoredRecipe, restoreRecipe } from "@convex/functions/recipes/restoreRecipe";
-import { internalAction, internalMutation } from "@convex/procedures";
+import { findRestoreTarget } from "@convex/functions/recipes/findCatalogBySource";
+import { internalAction, internalMutation, internalQuery } from "@convex/procedures";
 import { vPortableRecipe, vRecipeLink, vRestoredPhotos } from "@convex/schema/recipePayloads";
+import { vRecipeStatus } from "@convex/schema/recipes";
 
 /**
  * One recipe from a `catalog:export` zip into this deployment's catalog, for the `catalog:restore`
@@ -21,8 +23,23 @@ import { vPortableRecipe, vRecipeLink, vRestoredPhotos } from "@convex/schema/re
  */
 export const _internal = internalAction({
   args: { recipe: vPortableRecipe, photos: vRestoredPhotos },
-  returns: v.object({ recipeId: v.id("recipes"), created: v.boolean(), unmatched: v.array(v.string()) }),
+  returns: v.object({
+    recipeId: v.id("recipes"),
+    created: v.boolean(),
+    replaced: v.optional(v.literal(true)),
+    unmatched: v.array(v.string()),
+  }),
   handler: (ctx, args): Promise<RestoredRecipe> => restoreRecipe(ctx, args),
+});
+
+/**
+ * The catalog recipe a restore of `url` would land on, and whether the export's `status` replaces
+ * it (`restoreReplaces`). Asked by the action and by the script before anything is paid for.
+ */
+export const _internal_find = internalQuery({
+  args: { url: v.string(), status: v.optional(vRecipeStatus) },
+  returns: v.union(v.object({ recipeId: v.id("recipes"), replaceable: v.boolean() }), v.null()),
+  handler: (ctx, args) => findRestoreTarget(ctx, args),
 });
 
 /** The write, called by `_internal` with the ids of the photos it has just uploaded. */
@@ -34,7 +51,7 @@ export const _internal_persist = internalMutation({
     coverImageId: v.optional(v.id("images")),
     plateImageId: v.optional(v.id("images")),
   },
-  returns: v.object({ recipeId: v.id("recipes"), created: v.boolean() }),
+  returns: v.object({ recipeId: v.id("recipes"), created: v.boolean(), replaced: v.optional(v.literal(true)) }),
   handler: (ctx, args) => persistRestoredRecipe(ctx, args),
 });
 

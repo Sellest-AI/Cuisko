@@ -184,6 +184,7 @@ import type * as functions_recipes_regenerateRecipe from "../functions/recipes/r
 import type * as functions_recipes_reportedRecipe from "../functions/recipes/reportedRecipe.js";
 import type * as functions_recipes_resolveRecipeIngredients from "../functions/recipes/resolveRecipeIngredients.js";
 import type * as functions_recipes_restoreRecipe from "../functions/recipes/restoreRecipe.js";
+import type * as functions_recipes_restoreReplaces from "../functions/recipes/restoreReplaces.js";
 import type * as functions_recipes_saveRecipe from "../functions/recipes/saveRecipe.js";
 import type * as functions_recipes_saveTranslations from "../functions/recipes/saveTranslations.js";
 import type * as functions_recipes_searchForUser from "../functions/recipes/searchForUser.js";
@@ -517,6 +518,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/reportedRecipe": typeof functions_recipes_reportedRecipe;
   "functions/recipes/resolveRecipeIngredients": typeof functions_recipes_resolveRecipeIngredients;
   "functions/recipes/restoreRecipe": typeof functions_recipes_restoreRecipe;
+  "functions/recipes/restoreReplaces": typeof functions_recipes_restoreReplaces;
   "functions/recipes/saveRecipe": typeof functions_recipes_saveRecipe;
   "functions/recipes/saveTranslations": typeof functions_recipes_saveTranslations;
   "functions/recipes/searchForUser": typeof functions_recipes_searchForUser;

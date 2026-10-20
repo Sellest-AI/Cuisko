@@ -75,7 +75,8 @@ Marmiton in French, as imported). Each recipe ends `reviewed`, rewritten when th
 wrong. An `edited` recipe is left alone: a person corrected it after a review.
 
 The report lists every correction and every failure. A failed recipe stays `generated`, so a
-re-run retries it. The export carries `status`, so a restore keeps the review.
+re-run retries it. The export carries `status`, so a restore keeps the review, and upgrades a
+deployment's unverified copy of the page with it.
 
 ## Export and restore
 
@@ -90,6 +91,14 @@ printed. A walk that could not finish (an API down, a model timeout) fails the r
 saving it short, and a re-run retries it. A photo that fails to download at export, or to upload at restore, is left out, and the
 server regenerates the recipe's photos. A recipe that fails is reported and the run goes on; a
 re-run retries it.
+
+A page the catalog already holds is left as it is, with one exception: a `reviewed` or `edited`
+recipe in the zip replaces this catalog's `generated` copy of the same page (`restoreReplaces`). The
+row keeps its id, so meal plans and favorites still point at it; its text, tags, status and lines
+become the zip's, and its photos are swapped for the zip's (one that fails to upload leaves the old
+one, and a row left with no cover or no plate has its photos regenerated). An archived copy comes
+back live. The run prints it `upgraded`. A `reviewed` or `edited` copy here is never replaced. For such a
+recipe the ledger's "landed here" does not skip it, since the copy that landed may be the generated one.
 
 The restore records an import in the ledger only for a URL the ledger already holds. A recipe
 exported with no `sourceUrl` has no duplicate guard, and the script says so.

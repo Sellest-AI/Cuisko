@@ -14,8 +14,10 @@ type Args = {
 
 export type RestoredRecipe = {
   recipeId: Id<"recipes">;
-  /** `false` when the catalog already held the page and nothing was written. */
+  /** `false` when the catalog already held the page: nothing was written, unless `replaced`. */
   created: boolean;
+  /** Set when the catalog's `generated` copy of the page was replaced by this one (`restoreReplaces`). */
+  replaced?: true;
   /** The lines the resolver refused, by the name they were exported under. Dropped, not guessed. */
   unmatched: string[];
 };
@@ -55,8 +57,10 @@ const _spelledName = ({ name }: PortableRecipe["ingredients"][number]["ingredien
  * (`complete: false`) throws instead, so the script reports the recipe failed and a re-run retries
  * it, finding the rows the first walk created by name.
  *
- * A page the catalog already holds returns its id before any resolution or upload is paid for. The
- * persist mutation checks again inside its transaction; this check is the one that saves the work.
+ * A page the catalog already holds returns its id before any resolution or upload is paid for,
+ * unless the export replaces it (`restoreReplaces`): then it goes the whole way, photos included,
+ * and the persist replaces the row in place. The persist mutation checks again inside its
+ * transaction; this check is the one that saves the work.
  *
  * **The photos are uploaded here, after the lines resolve and just before the write.** A photo that
  * fails is left out and regenerated (`uploadRestoredImages`). If the write itself throws, the
@@ -69,10 +73,10 @@ export const restoreRecipe = async (
 ): Promise<RestoredRecipe> => {
   const { row, ingredients } = recipe;
 
-  const existingId = row.sourceUrl
-    ? await ctx.runQuery(internal.router.recipes.importOne._internal_find, { url: row.sourceUrl })
+  const existing = row.sourceUrl
+    ? await ctx.runQuery(internal.router.recipes.restoreOne._internal_find, { url: row.sourceUrl, status: row.status })
     : null;
-  if (existingId) return { recipeId: existingId, created: false, unmatched: [] };
+  if (existing && !existing.replaceable) return { recipeId: existing.recipeId, created: false, unmatched: [] };
 
   // The resolver positions its links by index into the list it is handed, so the list is walked in
   // position order and each link is stamped with the exported position afterwards.
@@ -103,14 +107,14 @@ export const restoreRecipe = async (
   if (stranded.length) await discard(stranded);
 
   try {
-    const { recipeId, created } = await ctx.runMutation(internal.router.recipes.restoreOne._internal_persist, {
+    const { recipeId, created, replaced } = await ctx.runMutation(internal.router.recipes.restoreOne._internal_persist, {
       recipe,
       links,
       unmatched,
       ...uploaded,
     });
 
-    return { recipeId, created, unmatched: created ? unmatched : [] };
+    return { recipeId, created, ...(replaced && { replaced }), unmatched: created || replaced ? unmatched : [] };
   } catch (error) {
     if (kept.length) await discard(kept);
     throw error;
