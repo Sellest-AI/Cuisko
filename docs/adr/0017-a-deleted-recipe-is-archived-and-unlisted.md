@@ -24,9 +24,9 @@ page, the search box, the favorites shelf and the planning pool is each of those
 live rows. A new list that forgets shows deleted recipes again with no error, and no existing test
 goes red, because every fixture seeds live rows.
 
-`isArchived` is a boolean beside `status` rather than a third status, because a Convex index reads
-equality on a prefix: "generated OR reviewed" is two reads, and a paginated list cannot be one page
-of two reads.
+`isArchived` is a boolean beside `status` rather than another status, because a Convex index reads
+equality on a prefix: "generated OR reviewed OR edited" is three reads, and a paginated list cannot
+be one page of several reads.
 
 ## Verify
 

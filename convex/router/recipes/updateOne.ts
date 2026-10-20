@@ -5,7 +5,7 @@ import { regenerateRecipe } from "@convex/functions/recipes/regenerateRecipe";
 import { updateRecipe } from "@convex/functions/recipes/updateRecipe";
 import { type AppUser, authActionI18n, internalMutation, type TracedActionCtx } from "@convex/procedures";
 import { type Locale, vLocale } from "@convex/schema/i18n";
-import { vRecipeEdit, vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
+import { vRecipeEdit, vRecipeEditor, vRecipeLink, vSanitizedRecipe } from "@convex/schema/recipePayloads";
 import { ConvexError, v } from "convex/values";
 
 type Context = TracedActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role">; i18n: { locale: Locale } };
@@ -53,6 +53,7 @@ const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
     recipe,
     links,
     complete,
+    editor: { by: "cook" },
   });
 
   if (requiresTranslation || analyzed)
@@ -71,6 +72,15 @@ export const authed = authActionI18n({
 });
 
 export const _internal_persist = internalMutation({
-  args: { recipeId: v.id("recipes"), locale: vLocale, recipe: vSanitizedRecipe, analyzed: v.boolean(), links: v.array(vRecipeLink), complete: v.boolean() },
+  args: {
+    recipeId: v.id("recipes"),
+    locale: vLocale,
+    recipe: vSanitizedRecipe,
+    analyzed: v.boolean(),
+    links: v.array(vRecipeLink),
+    complete: v.boolean(),
+    // Internal only: `authed` above always says "cook", so no client can claim to be the verifier.
+    editor: vRecipeEditor,
+  },
   handler: (ctx, args): Promise<Id<"recipes">> => updateRecipe(ctx, args),
 });

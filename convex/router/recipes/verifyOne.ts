@@ -1,9 +1,11 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { enforceRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
+import { markRecipeReviewed } from "@convex/functions/recipes/markRecipeReviewed";
+import { recipeFingerprint } from "@convex/functions/recipes/recipeFingerprint";
 import { verifyAgainstSource } from "@convex/functions/recipes/verifyAgainstSource";
-import { type AppUser, adminActionI18n, type TracedActionCtx } from "@convex/procedures";
-import type { Locale } from "@convex/schema/i18n";
+import { type AppUser, adminActionI18n, internalMutation, type TracedActionCtx } from "@convex/procedures";
+import { type Locale, vLocale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
 type Context = TracedActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role">; i18n: { locale: Locale } };
@@ -18,6 +20,10 @@ type Outcome = typeof vOutcome.type;
 /**
  * An admin's "Verify the recipe": the stored recipe checked by the verifier against its page, which
  * the tool scrapes again, and the row rewritten through the edit's own persist when it was wrong.
+ *
+ * Either verdict ends the recipe `reviewed` (see `recipes.status`): a rewrite through that persist,
+ * an acceptance through `_internal_accept`, which writes the status alone. Both are refused when a
+ * cook saved the recipe while it was being verified — see `assertUnchangedSince`.
  *
  * `admin` and nothing else. It rewrites any recipe, a catalog one with no owner included, so there
  * is no ownership to check — the role is the whole gate, and `adminActionI18n` holds it.
@@ -40,9 +46,15 @@ const handler = async (ctx: Context, { recipeId }: { recipeId: Id<"recipes"> }):
   // After the refusal that costs nothing, before the tool's scrape and model, which cost something.
   await enforceRateLimit(ctx, "recipeWrite");
 
+  // Taken before the verifier runs, of exactly what it is handed: both writes are refused if it moved.
+  const fingerprint = recipeFingerprint(stored);
   const verification = await verifyAgainstSource(ctx, { stored, url: stored.sourceUrl, locale });
 
-  if (verification.verdict === "unchanged") return verification;
+  // Either verdict ends `reviewed`: a verify vouches for the recipe whether it corrected it or not.
+  if (verification.verdict === "unchanged") {
+    await ctx.runMutation(internal.router.recipes.verifyOne._internal_accept, { recipeId, locale, fingerprint });
+    return verification;
+  }
 
   const { corrections, recipe, links, complete } = verification;
   await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {
@@ -52,6 +64,7 @@ const handler = async (ctx: Context, { recipeId }: { recipeId: Id<"recipes"> }):
     recipe,
     links,
     complete,
+    editor: { by: "verifier", fingerprint },
   });
 
   await ctx.scheduleTracedAfter(0, internal.router.recipes.translateOne._internal, {
@@ -67,4 +80,9 @@ export const admin = adminActionI18n({
   args: { recipeId: v.id("recipes") },
   returns: vOutcome,
   handler: (ctx, args): Promise<Outcome> => handler(ctx, args),
+});
+
+export const _internal_accept = internalMutation({
+  args: { recipeId: v.id("recipes"), locale: vLocale, fingerprint: v.string() },
+  handler: (ctx, args): Promise<void> => markRecipeReviewed(ctx, args),
 });

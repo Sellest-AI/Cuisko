@@ -7,6 +7,10 @@ import type { FatUse, Unit } from "@shared/ingredients";
 
 import schema from "../../../schema";
 import type { RecipeLink } from "../resolveRecipeIngredients";
+import type { RecipeEditor } from "@convex/schema/recipePayloads";
+import type { RecipeStatus } from "@convex/schema/recipes";
+import { loadRecipe } from "../loadRecipe";
+import { recipeFingerprint } from "../recipeFingerprint";
 import { updateRecipe } from "../updateRecipe";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -55,10 +59,10 @@ const seed = async () => {
   return ids;
 };
 
-const seedRecipe = (servings = 4) =>
+const seedRecipe = (servings = 4, status: RecipeStatus = "generated") =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
-      status: "generated",
+      status,
       isArchived: false,
       title: {
         values: { fr: "Soupe à l'oignon", en: "Onion soup" },
@@ -147,9 +151,9 @@ const recipe = (ingredients: SanitizedRecipe["ingredients"], servings: number): 
 const update = (
   recipeId: Id<"recipes">,
   ingredients: SanitizedRecipe["ingredients"],
-  { analyzed = true, complete = true, servings = 4 } = {},
+  { analyzed = true, complete = true, servings = 4, by = "cook" as RecipeEditor["by"] } = {},
 ) =>
-  t.run((ctx) =>
+  t.run(async (ctx) =>
     updateRecipe(ctx, {
       recipeId,
       locale: "fr",
@@ -157,6 +161,10 @@ const update = (
       analyzed,
       links: linksOf(ingredients),
       complete,
+      // A verifier that read the row as it stands — the stale case is `verifyOne.test.ts`'s.
+      editor: by === "cook"
+        ? { by }
+        : { by, fingerprint: recipeFingerprint(await loadRecipe(ctx, { recipe: recipeId, locale: "fr" })) },
     }),
   );
 
@@ -213,6 +221,25 @@ describe("functions/recipes/updateRecipe", () => {
     const row = await t.run((ctx) => ctx.db.get(recipeId));
 
     expect(row!.status).toBe("reviewed");
+  });
+
+  /**
+   * The whole of `recipes.status`'s transitions: a cook's first edit fixes the model's text, every
+   * later one is theirs, and a verify ends `reviewed` from anywhere — `edited` included.
+   */
+  test.each([
+    ["cook", "generated", "reviewed"],
+    ["cook", "reviewed", "edited"],
+    ["cook", "edited", "edited"],
+    ["verifier", "generated", "reviewed"],
+    ["verifier", "reviewed", "reviewed"],
+    ["verifier", "edited", "reviewed"],
+  ] as const)("a %s's rewrite of a %s recipe leaves it %s", async (by, from, to) => {
+    const recipeId = await seedRecipe(4, from);
+
+    await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }], { by });
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe(to);
   });
 
   test("recomputes the facets to match the tags the edit produced", async () => {

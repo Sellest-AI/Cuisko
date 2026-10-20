@@ -10,6 +10,7 @@ import { skipAt } from "../functions/planning/skipMeal";
 import { cellarItems, groceryListItems, recentlyUsedIngredients } from "../schema/cellars";
 import { ingredients } from "../schema/ingredients";
 import { plannedMealIngredients } from "../schema/planning";
+import type { RecipeStatus } from "../schema/recipes";
 import { recipeIngredients, recipes } from "../schema/recipes";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -37,7 +38,7 @@ beforeAll(() =>
 let t: ReturnType<typeof convexTest>;
 
 const insertRecipe = (
-  fields: { shuffleKey?: number; status?: "generated" | "reviewed"; isArchived?: boolean } = {},
+  fields: { shuffleKey?: number; status?: RecipeStatus; isArchived?: boolean } = {},
 ) =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {

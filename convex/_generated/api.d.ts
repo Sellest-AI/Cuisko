@@ -150,6 +150,7 @@ import type * as functions_preferences_getPlanningSeed from "../functions/prefer
 import type * as functions_preferences_save from "../functions/preferences/save.js";
 import type * as functions_rateLimits_enforceRateLimit from "../functions/rateLimits/enforceRateLimit.js";
 import type * as functions_recipes_archiveRecipe from "../functions/recipes/archiveRecipe.js";
+import type * as functions_recipes_assertUnchangedSince from "../functions/recipes/assertUnchangedSince.js";
 import type * as functions_recipes_computeNutrition from "../functions/recipes/computeNutrition.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_createGeneratedRecipe from "../functions/recipes/createGeneratedRecipe.js";
@@ -167,11 +168,13 @@ import type * as functions_recipes_listForUser from "../functions/recipes/listFo
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
 import type * as functions_recipes_loadRecipe from "../functions/recipes/loadRecipe.js";
 import type * as functions_recipes_loadRecipeCards from "../functions/recipes/loadRecipeCards.js";
+import type * as functions_recipes_markRecipeReviewed from "../functions/recipes/markRecipeReviewed.js";
 import type * as functions_recipes_mergeDuplicateLinks from "../functions/recipes/mergeDuplicateLinks.js";
 import type * as functions_recipes_missingRecipeIds from "../functions/recipes/missingRecipeIds.js";
 import type * as functions_recipes_persistRestoredRecipe from "../functions/recipes/persistRestoredRecipe.js";
 import type * as functions_recipes_recipeCard from "../functions/recipes/recipeCard.js";
 import type * as functions_recipes_recipeChangesOf from "../functions/recipes/recipeChangesOf.js";
+import type * as functions_recipes_recipeFingerprint from "../functions/recipes/recipeFingerprint.js";
 import type * as functions_recipes_recipeImages from "../functions/recipes/recipeImages.js";
 import type * as functions_recipes_recipeNutrition from "../functions/recipes/recipeNutrition.js";
 import type * as functions_recipes_recipeSearchText from "../functions/recipes/recipeSearchText.js";
@@ -478,6 +481,7 @@ declare const fullApi: ApiFromModules<{
   "functions/preferences/save": typeof functions_preferences_save;
   "functions/rateLimits/enforceRateLimit": typeof functions_rateLimits_enforceRateLimit;
   "functions/recipes/archiveRecipe": typeof functions_recipes_archiveRecipe;
+  "functions/recipes/assertUnchangedSince": typeof functions_recipes_assertUnchangedSince;
   "functions/recipes/computeNutrition": typeof functions_recipes_computeNutrition;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/createGeneratedRecipe": typeof functions_recipes_createGeneratedRecipe;
@@ -495,11 +499,13 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
   "functions/recipes/loadRecipe": typeof functions_recipes_loadRecipe;
   "functions/recipes/loadRecipeCards": typeof functions_recipes_loadRecipeCards;
+  "functions/recipes/markRecipeReviewed": typeof functions_recipes_markRecipeReviewed;
   "functions/recipes/mergeDuplicateLinks": typeof functions_recipes_mergeDuplicateLinks;
   "functions/recipes/missingRecipeIds": typeof functions_recipes_missingRecipeIds;
   "functions/recipes/persistRestoredRecipe": typeof functions_recipes_persistRestoredRecipe;
   "functions/recipes/recipeCard": typeof functions_recipes_recipeCard;
   "functions/recipes/recipeChangesOf": typeof functions_recipes_recipeChangesOf;
+  "functions/recipes/recipeFingerprint": typeof functions_recipes_recipeFingerprint;
   "functions/recipes/recipeImages": typeof functions_recipes_recipeImages;
   "functions/recipes/recipeNutrition": typeof functions_recipes_recipeNutrition;
   "functions/recipes/recipeSearchText": typeof functions_recipes_recipeSearchText;

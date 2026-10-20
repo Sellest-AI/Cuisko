@@ -35,7 +35,7 @@ export type Verification =
  * A stored recipe checked against the page it came from, and the recipe to write when it was wrong.
  *
  * Only a correction pays for a resolve. "Nothing to fix" returns before any ingredient is walked,
- * so a recipe that was imported well costs one model call and writes nothing.
+ * so a recipe that was imported well costs one model call, and its caller writes only its status.
  *
  * Every line is re-resolved on a rewrite, the unchanged ones included, for the reason
  * `regenerateRecipe` writes out: a line that linked before answers from the catalog's first step.

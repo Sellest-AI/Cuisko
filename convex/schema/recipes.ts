@@ -27,9 +27,11 @@ const FACET_FIELDS = [
   "isArchived",
 ] as const;
 
-export const RECIPE_STATUSES = ["generated", "reviewed"] as const;
+export const RECIPE_STATUSES = ["generated", "reviewed", "edited"] as const;
 
 export const vRecipeStatus = v.union(...RECIPE_STATUSES.map(v.literal));
+
+export type RecipeStatus = (typeof RECIPE_STATUSES)[number];
 
 export const recipes = defineTable({
   title: vLocalized,
@@ -127,9 +129,16 @@ export const recipes = defineTable({
 
   /**
    * Whether a person has been through what the model wrote. Every recipe starts `generated` — a
-   * typed one too, since the model fills in its tags, cuisine and timings — and becomes `reviewed`
-   * the first time its cook saves an edit (`updateRecipe`). Nothing is gated on it yet; `by_status`
-   * is what a review queue will read.
+   * typed one too, since the model fills in its tags, cuisine and timings.
+   *
+   * - `reviewed`: the description is vouched for. A verify sets it, whatever it found and whatever
+   *   the status was, `edited` included; so does a cook's edit of a `generated` recipe, read as
+   *   fixing what the model wrote.
+   * - `edited`: the cook changed a recipe that was already `reviewed` or `edited`, whether a verify
+   *   or their own earlier edit reviewed it. The last status: only a verify moves it back.
+   *
+   * An admin saving in the editor is a cook like any other. `updateRecipe` holds the transitions.
+   * Nothing is gated on it yet; `by_status` is what a scan for unverified recipes reads.
    */
   status: vRecipeStatus,
   /**
@@ -137,8 +146,8 @@ export const recipes = defineTable({
    * and a cook opening last week's dinner must still find the recipe. So it leaves every surface a
    * recipe is CHOSEN from — the cook's list, search, favorites, planning — and stays readable by id.
    *
-   * A boolean beside `status` rather than a third value of it, for the index: a Convex index reads
-   * equality on a prefix, so "generated OR reviewed" would be two reads, and a paginated list cannot
+   * A boolean beside `status` rather than another value of it, for the index: a Convex index reads
+   * equality on a prefix, so "any status but archived" would be several reads, and a paginated list cannot
    * be one page of two reads. It also keeps a reviewed recipe's review when it is archived.
    *
    * Required because every list read asks `eq("isArchived", false)`, and an absent field does not

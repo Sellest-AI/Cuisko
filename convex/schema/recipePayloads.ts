@@ -263,3 +263,19 @@ export const vRestoredPhotos = v.object({
 });
 
 export type RestoredPhotos = Infer<typeof vRestoredPhotos>;
+
+/**
+ * Who is rewriting a stored recipe, which decides the `status` it is left with — see
+ * `recipes.status`. An argument of `updateOne._internal_persist` only, never of a public function:
+ * `updateOne.authed` always says `"cook"`, and only `verifyOne` says `"verifier"`.
+ *
+ * A verifier also says what it judged — the `recipeFingerprint` of the recipe it was handed — and
+ * cannot leave it out: it reads long before it writes, and a write without it would land on a
+ * cook's save made in between — see `assertUnchangedSince`.
+ */
+export const vRecipeEditor = v.union(
+  v.object({ by: v.literal("cook") }),
+  v.object({ by: v.literal("verifier"), fingerprint: v.string() }),
+);
+
+export type RecipeEditor = Infer<typeof vRecipeEditor>;
