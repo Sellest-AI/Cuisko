@@ -1,9 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { NoOutputGeneratedError } from "ai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { searchTerms } from "@shared/ingredientMatch";
 
+import { verifierAgent } from "../../agents";
+import { type TracedToolCtx, wrapAgent } from "../../utils";
 import { modelRecipeSchema } from "../sanitizeRecipe";
-import { pageIngredientQueries, toRecipeVerification, verifyRecipeUserPrompt } from "../verifyRecipe";
+import { pageIngredientQueries, toRecipeVerification, verifyRecipe, verifyRecipeUserPrompt } from "../verifyRecipe";
+
+/** The model call and the catalog index leave the process; what is tested is what the tool does with their answers. */
+vi.mock("../../utils", async (importOriginal) => ({ ...(await importOriginal<object>()), wrapAgent: vi.fn() }));
+vi.mock("../searchIngredients", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  searchIngredients: vi.fn(async () => []),
+}));
 
 /**
  * The generation is a model call and is not tested here. What is tested is the boundary after it,
@@ -105,5 +115,55 @@ describe("verifyRecipeUserPrompt", () => {
 
   it("has no catalog section when the page had no line to search", () => {
     expect(verifyRecipeUserPrompt({ stored: modelRecipeSchema.parse(_recipe()), source, catalog: [] })).not.toContain("The catalog");
+  });
+});
+
+describe("verifyRecipe", () => {
+  const PAGE = { title: "Poulet frit", description: "", servings: 4, ingredients: "600 g de blancs de poulet", instructions: "Faites frire le poulet" };
+  const _ctx = () => ({ runTracedAction: vi.fn(async () => PAGE) }) as unknown as TracedToolCtx;
+  const _input = () => ({ locale: "fr" as const, stored: modelRecipeSchema.parse(_recipe()), url: "https://example.com/poulet" });
+
+  /** The model's replies in order, each one a `generateText` result. */
+  const _replies = (...outputs: (() => unknown)[]) => {
+    const generateText = vi.fn();
+    for (const output of outputs) generateText.mockResolvedValueOnce({ get output() { return output(); } });
+    vi.mocked(wrapAgent).mockReturnValue({ generateText } as unknown as ReturnType<typeof wrapAgent>);
+    return generateText;
+  };
+
+  const NOTHING_TO_FIX = () => ({ corrections: [], recipe: null });
+
+  // `retryPromise` warns on each failed attempt; silenced here, and restored for the rest of the file.
+  beforeEach(() => vi.spyOn(console, "warn").mockImplementation(() => undefined));
+  afterEach(() => vi.restoreAllMocks());
+
+  /**
+   * A reply cut at `maxOutputTokens` does not reject: `generateText` resolves, and only its `output`
+   * getter throws. Read outside the retry, that ended a catalog run's verify of a yassa on its first
+   * attempt (2026-10-20).
+   */
+  it("asks again when the reply was cut off before it could be read", async () => {
+    const generateText = _replies(() => { throw new NoOutputGeneratedError(); }, NOTHING_TO_FIX);
+
+    await expect(verifyRecipe.run!(_ctx(), _input())).resolves.toEqual({ corrections: [], recipe: null });
+    expect(generateText).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks again when the reply lists corrections but no recipe", async () => {
+    const generateText = _replies(() => ({ corrections: ["L'huile manquait."], recipe: null }), NOTHING_TO_FIX);
+
+    await expect(verifyRecipe.run!(_ctx(), _input())).resolves.toEqual({ corrections: [], recipe: null });
+    expect(generateText).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("verifierAgent", () => {
+  // The longest verify that finished on its own wrote 2,258 tokens (PostHog, 2026-10-13 to 10-20);
+  // 4 of 44 never finished and ran to the provider's 65,536, at $0.66 each.
+  it("caps a generation's output well above the longest answer and far below a runaway", () => {
+    const cap = verifierAgent.options.callSettings?.maxOutputTokens;
+
+    expect(cap).toBeGreaterThanOrEqual(2 * 2_258);
+    expect(cap).toBeLessThanOrEqual(8_000);
   });
 });

@@ -32,7 +32,7 @@ import { VERIFY_TOOLS, verifyRecipePrompt } from "../../config/prompts/verifyRec
 
 /* ── The field ─────────────────────────────────────────────────────────────────────────── */
 
-/** `models.verifier` ships GPT-6 Luna at `xhigh`; the efforts either side are what it is weighed against. */
+/** `models.verifier` ships GPT-6.1 Sol at `low`; the commented rows are what it was weighed against. */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6.1-sol", modes: ["low"] }, // uses around 0.023€ per request
   // { name: "deepseek/deepseek-v4.1-flash-1017", modes: ["low", "high"] },

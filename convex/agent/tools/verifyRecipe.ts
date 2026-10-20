@@ -160,7 +160,7 @@ export const verifyRecipeUserPrompt = ({ stored, source, catalog }: {
  * search, for the names the page's lines did not find — a food only the method adds, a line whose
  * rows are all another product — and only a text generation can call a tool before it answers. The
  * steps are capped by the agent's `maxSteps`; a model still searching at the cap leaves no answer,
- * which throws.
+ * which throws, and is asked again like any reply that cannot be read.
  *
  * The search runs in the app's locale, the one the stored recipe was read in, because that is the
  * language its names are written in and the catalog index each locale is searched by. Not the
@@ -178,8 +178,11 @@ export const verifyRecipe = createTool({
     const source = await ctx.runTracedAction(internal.router.recipes.importOneNode._internal, { url });
     const catalog = await _searchPage(ctx, { locale, ingredients: source.ingredients });
 
-    const result = await retryPromise(() =>
-      wrapAgent(verifierAgent).generateText(
+    // The answer is read INSIDE the attempt. A reply cut at the agent's `maxOutputTokens` does not
+    // reject: `generateText` resolves, and only `result.output` throws. Read after the retry, that
+    // ended the verify on its first attempt; so did corrections with no recipe to carry them.
+    return await retryPromise(async () => {
+      const result = await wrapAgent(verifierAgent).generateText(
         ctx,
         {},
         {
@@ -192,8 +195,9 @@ export const verifyRecipe = createTool({
           maxRetries: 2,
         },
         { storageOptions: { saveMessages: "none" } },
-      ), 2);
+      );
 
-    return toRecipeVerification(result.output);
+      return toRecipeVerification(result.output);
+    }, 2);
   },
 });
