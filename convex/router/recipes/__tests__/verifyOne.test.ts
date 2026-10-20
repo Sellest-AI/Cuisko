@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import type { RecipeStatus } from "../../../schema/recipes";
@@ -326,5 +326,42 @@ describe("router/recipes/verifyOne", () => {
     const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
     expect(row.instructions.values.fr).toContain("600 g de blanc de poulet");
     expect(row.updatedAt).not.toBe(1);
+  });
+});
+
+/** `catalog:verify`'s path: the same verify through a deploy key, with no caller to rate limit. */
+describe("router/recipes/verifyOne._internal", () => {
+  const verifyInternal = (recipeId: Id<"recipes">, locale: "fr" | "en" = "fr") =>
+    t.action(internal.router.recipes.verifyOne._internal, { recipeId, locale });
+
+  test("refuses a recipe that was not imported from a page", async () => {
+    const recipeId = await seedRecipe();
+
+    await expect(verifyInternal(recipeId)).rejects.toMatchObject({ data: { code: "INVALID_INPUT" } });
+
+    expect(verifyRun).not.toHaveBeenCalled();
+  });
+
+  test("marks a catalog recipe the verifier found nothing wrong with reviewed", async () => {
+    const recipeId = await seedRecipe(SOURCE_URL);
+    verifyRun.mockResolvedValue({ corrections: [], recipe: null });
+
+    expect(await verifyInternal(recipeId)).toEqual({ verdict: "unchanged" });
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("reviewed");
+  });
+
+  test("rewrites a catalog recipe the verifier corrected, in the locale it was given", async () => {
+    const recipeId = await seedRecipe(SOURCE_URL);
+    const corrections = ["Huile : la friture manquait."];
+    verifyRun.mockResolvedValue({ corrections, recipe: CORRECTED });
+
+    expect(await verifyInternal(recipeId)).toEqual({ verdict: "rewritten", corrections });
+
+    const [, input] = verifyRun.mock.calls[0]!;
+    expect(input.locale).toBe("fr");
+    const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
+    expect(row.instructions.values.fr).toContain("600 g de blanc de poulet");
+    expect(row.status).toBe("reviewed");
   });
 });

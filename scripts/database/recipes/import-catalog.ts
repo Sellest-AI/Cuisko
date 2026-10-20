@@ -32,7 +32,9 @@ import {
 } from "./_lib/constraints";
 import { catalogPagesOf } from "./_lib/catalogPages";
 import { candidatesFor, classifyPages, parseRecipePage, recipeSitemapsOf, recipeUrlsOf } from "./_lib/bbcGoodFood";
+import { catalogLocaleOf } from "../_lib/catalogLocale";
 import { connectAdmin } from "../_lib/convexAdmin";
+import { errorMessageOf } from "../_lib/errorMessage";
 import { scriptTrace } from "../_lib/scriptTrace";
 import {
   ASKED_CUISINES,
@@ -130,13 +132,6 @@ const _lookUpBbc = async (ledger: Ledger, dishEn: string, { vegan }: { vegan: bo
 const _acceptedTitleOf = (cards: readonly SearchedCard[]) =>
   cards.find((card) => card.verdict === "accepted")?.title;
 
-const _messageOf = (error: unknown): string => {
-  const message = error instanceof Error ? error.message : String(error);
-
-  // `ConvexHttpClient` throws the response body as the message, and a gateway timeout has none.
-  return message.trim() || "the deployment answered with an error and no message (a timeout, usually)";
-};
-
 /** "1m 23s", for a wait the user is watching. */
 const _elapsed = (since: number): string => {
   const seconds = Math.round((Date.now() - since) / 1000);
@@ -206,7 +201,7 @@ const main = async () => {
   // An optimisation, never a reason to import nothing: a catalog that cannot be read back leaves
   // every value at weight 1.
   const facts = await _catalogFactsOf(admin).catch((error: unknown) => {
-    _log(`Could not read the catalog's tags back, so every value weighs 1: ${_messageOf(error)}`);
+    _log(`Could not read the catalog's tags back, so every value weighs 1: ${errorMessageOf(error)}`);
     return new Map<string, RecipeFacts>();
   });
   const rates = hitRatesOf(ledger, admin.deployment, facts);
@@ -276,7 +271,7 @@ const main = async () => {
         }
       } catch (error) {
         run.errored++;
-        _log(`    ${name}: ${_messageOf(error)}`);
+        _log(`    ${name}: ${errorMessageOf(error)}`);
       }
     }
 
@@ -295,16 +290,16 @@ const main = async () => {
     try {
       const recipeId = await admin.action(internal.router.recipes.importOne._internal, {
         url,
-        locale: source === "bbcgoodfood" ? "en" : "fr",
+        locale: catalogLocaleOf(url),
         __trace: scriptTrace("seed/catalog"),
       });
       recordImport(ledger, url, { deployment: admin.deployment, recipeId, at: now() });
       run.imported++;
       _log(`  ${label}: imported as ${recipeId} in ${_elapsed(began)}`);
     } catch (error) {
-      recordFailure(ledger, url, _messageOf(error));
+      recordFailure(ledger, url, errorMessageOf(error));
       run.failed++;
-      _log(`  ${label}: failed after ${_elapsed(began)}: ${_messageOf(error)}`);
+      _log(`  ${label}: failed after ${_elapsed(began)}: ${errorMessageOf(error)}`);
     }
     // Written as each one settles, not once per batch: an interruption keeps every result so far.
     writeLedger(LEDGER_FILE, ledger);

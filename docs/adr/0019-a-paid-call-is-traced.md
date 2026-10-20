@@ -27,7 +27,7 @@ MUST: price a provider that returns no cost (Replicate, RunPod) in
       [convex/lib/costRates.ts](../../convex/lib/costRates.ts), sent as `estimated`. A provider that
       returns its own cost (OpenRouter) is sent that cost, never an estimate.
 MUST: pass `__trace: scriptTrace("<operation>")` from a script under `scripts/database/` that calls a
-      paid internal action, with a `seed/…` or `restore/…` operation, one trace per call.
+      paid internal action, with a `seed/…`, `restore/…` or `verify/…` operation, one trace per call.
 MUST NOT: throw from tracing. A missing trace is logged and nothing is sent; a failure to send is
           logged. The cook's operation never depends on it.
 MUST NOT: accept a `__trace` from outside. Only `internalMutation` / `internalAction` take one; every

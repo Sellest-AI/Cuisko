@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Operation, TraceContext } from "@convex/schema/tracing";
 
-export const scriptTrace = (operation: Extract<Operation, `${"seed" | "restore"}/${string}`>): TraceContext => ({
+export const scriptTrace = (operation: Extract<Operation, `${"seed" | "restore" | "verify"}/${string}`>): TraceContext => ({
   traceId: randomUUID(),
   operation,
   distinctId: null,

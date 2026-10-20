@@ -1,11 +1,12 @@
 # Catalog scripts
 
-The shared catalog (recipes with no `userId`) is filled and moved by three scripts. Each runs on
+The shared catalog (recipes with no `userId`) is filled, checked and moved by four scripts. Each runs on
 your machine and calls `_internal` Convex functions through a deploy key.
 
 | Command                         | What it does                                                                  |
 | ------------------------------- | ----------------------------------------------------------------------------- |
 | `pnpm seed:catalog`             | Asks the agent for dishes, finds a well-reviewed page for each, imports 20, ten at a time |
+| `pnpm catalog:verify [--limit N] [dir]` | Verifies 16 `generated` catalog recipes (or N) against their page; writes what it corrected to `catalog-verify-<deployment>-<date>.md` |
 | `pnpm catalog:export [dir]`     | The deployment's catalog as `catalog-<deployment>-<date>.zip`; writes nothing |
 | `pnpm catalog:restore <zip>`    | An export into this deployment's catalog                                      |
 
@@ -65,6 +66,16 @@ every read, so a hand edit that breaks it fails before a run spends anything.
 The ledger is the cheap duplicate guard: it saves a search, an upload and a model call. The
 second guard is on the server: `importOne` and `restoreOne` both return the existing id when the
 catalog already holds the `sourceUrl`. A lost ledger wastes work, and never duplicates a recipe.
+
+## Verify
+
+`catalog:verify` runs the admin's "Verify the recipe" (`verifyOne._internal`) on the live
+catalog recipes still `generated`, 16 per run unless `--limit` says otherwise, four at a time, in its page's language (BBC Good Food in English,
+Marmiton in French, as imported). Each recipe ends `reviewed`, rewritten when the verifier found it
+wrong. An `edited` recipe is left alone: a person corrected it after a review.
+
+The report lists every correction and every failure. A failed recipe stays `generated`, so a
+re-run retries it. The export carries `status`, so a restore keeps the review.
 
 ## Export and restore
 

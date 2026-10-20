@@ -19,6 +19,8 @@ expo-env.d.ts
 # Catalog exports — `pnpm catalog:export` writes one here by default. Megabytes of images that
 # the source deployment still holds; a zip worth keeping goes somewhere other than the repo.
 catalog-*.zip
+# `pnpm catalog:verify` reports: what the verifier corrected, read before an export.
+catalog-verify-*.md
 
 # misc
 .DS_Store

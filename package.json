@@ -17,6 +17,7 @@
     "seed:catalog": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/recipes/import-catalog.ts",
     "catalog:export": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/recipes/export-catalog.ts",
     "catalog:restore": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/recipes/restore-catalog.ts",
+    "catalog:verify": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/recipes/verify-catalog.ts",
     "ingredients:export": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/ingredients/export-ingredients.ts",
     "ingredients:restore": "tsx --env-file=.env.local --env-file=.env.catalog scripts/database/ingredients/restore-ingredients.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p convex/tsconfig.json",

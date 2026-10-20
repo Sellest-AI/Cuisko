@@ -51,7 +51,7 @@ cuisko/
 │   ├── database/        Scripts that talk to a deployment through a deploy key.
 │   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
-│   │   └── recipes/     `seed:catalog` / `catalog:export` / `catalog:restore` (README inside).
+│   │   └── recipes/     `seed:catalog` / `catalog:verify` / `catalog:export` / `catalog:restore` (README inside).
 │   ├── images/          Hand-run asset preparation (compress, sanitize).
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.

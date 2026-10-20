@@ -165,6 +165,7 @@ import type * as functions_recipes_insertRecipe from "../functions/recipes/inser
 import type * as functions_recipes_keepCookingFatUses from "../functions/recipes/keepCookingFatUses.js";
 import type * as functions_recipes_listFavorites from "../functions/recipes/listFavorites.js";
 import type * as functions_recipes_listForUser from "../functions/recipes/listForUser.js";
+import type * as functions_recipes_listUnreviewedCatalog from "../functions/recipes/listUnreviewedCatalog.js";
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
 import type * as functions_recipes_loadRecipe from "../functions/recipes/loadRecipe.js";
 import type * as functions_recipes_loadRecipeCards from "../functions/recipes/loadRecipeCards.js";
@@ -299,6 +300,7 @@ import type * as router_recipes_getAll from "../router/recipes/getAll.js";
 import type * as router_recipes_getFavorites from "../router/recipes/getFavorites.js";
 import type * as router_recipes_getMany from "../router/recipes/getMany.js";
 import type * as router_recipes_getOne from "../router/recipes/getOne.js";
+import type * as router_recipes_getUnreviewed from "../router/recipes/getUnreviewed.js";
 import type * as router_recipes_importOne from "../router/recipes/importOne.js";
 import type * as router_recipes_importOneNode from "../router/recipes/importOneNode.js";
 import type * as router_recipes_importVideo from "../router/recipes/importVideo.js";
@@ -496,6 +498,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/keepCookingFatUses": typeof functions_recipes_keepCookingFatUses;
   "functions/recipes/listFavorites": typeof functions_recipes_listFavorites;
   "functions/recipes/listForUser": typeof functions_recipes_listForUser;
+  "functions/recipes/listUnreviewedCatalog": typeof functions_recipes_listUnreviewedCatalog;
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
   "functions/recipes/loadRecipe": typeof functions_recipes_loadRecipe;
   "functions/recipes/loadRecipeCards": typeof functions_recipes_loadRecipeCards;
@@ -630,6 +633,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/getFavorites": typeof router_recipes_getFavorites;
   "router/recipes/getMany": typeof router_recipes_getMany;
   "router/recipes/getOne": typeof router_recipes_getOne;
+  "router/recipes/getUnreviewed": typeof router_recipes_getUnreviewed;
   "router/recipes/importOne": typeof router_recipes_importOne;
   "router/recipes/importOneNode": typeof router_recipes_importOneNode;
   "router/recipes/importVideo": typeof router_recipes_importVideo;
