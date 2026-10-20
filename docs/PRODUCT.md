@@ -343,6 +343,9 @@ and back into the cellar. Grouped by the beat it serves.
   what to cook with what is left, nutrition questions, what to swap for a missing ingredient (shown
   as a card). Replies stream in order with visible status lines and render formatting. When the
   answer calls for a change, he ends with a button into the screen where the user makes it.
+- **Photos go with the question.** A photo taken in the navigation bar travels with the next
+  message, so the cook can show Cuisko the fridge, a cupboard or a product instead of describing
+  it. The photo is input to the assistant, nothing else: no feed, nowhere to post it.
 
 ### Household and account
 
@@ -374,7 +377,6 @@ is the wrong trade.
 | **Scan a receipt to fill the cellar** | The biggest remaining cut to data entry (anti-goal 2): one photo instead of ticking a whole shop. | A form to review line by line. When a line cannot be read, say so plainly and move on. |
 | **The list works offline in the shop** | Shopping is the beat where signal is worst and patience is shortest. Ticking must never wait on the network. | A list that silently diverges from the household's: what was ticked offline reconciles when signal returns. |
 | **A weekly "what you saved" line** | Money and time are the currency of success; showing them once a week makes the promise visible. | A score, a streak or a guilt metric. It reports what was saved, never what was "lost" or "missed". |
-| **Photos in the navigation bar chat** | A photo of the fridge or of a dish is faster than typing it, and the bar is where the user already talks to Cuisko. | A photo feed or a place to post. The photo is input to the assistant, nothing else. |
 | **One weekly planning reminder** | The week starts on planning day; a nudge at that moment protects the hero moment. | A daily-engagement lever. One reminder a week, on the planning beat, easy to turn off. |
 | **Favorites in the planning pool** | A recipe the household loves should be able to come back in a planned week. | A way to plan somebody else's private recipes. The requirements for the hookup are already recorded. |
 | **Sign in with Apple** | The App Store requires it (guideline 4.8) once Google sign-in is offered. The button is on the sign-in page today, disabled. | A reason to ask for more than the name and email the other sign-ins already give. |
