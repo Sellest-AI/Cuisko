@@ -12,6 +12,7 @@ import type { Allergen } from "@shared/allergens";
 import type { Category } from "@shared/categories";
 import type { Diet } from "@shared/diets";
 import type { IngredientSource, Unit } from "@shared/ingredients";
+import { foldSpelling } from "@shared/ingredientMatch";
 import { computeNutriScore, type IngredientNutrition } from "@shared/nutrition";
 import { searchTextByLocale } from "@shared/search";
 
@@ -316,10 +317,11 @@ export const ALIASES_PER_LOCALE = 10;
  * caller patches what this returns and nothing else, which is ADR 0011's other clause: a write
  * that changes no source of a derived field must not recompute it.
  *
- * `undefined` for every reason not to write: the word is already on the row under some casing, it
- * is not a word, it is too long, or the locale is full. A caller that patched anyway would bump
- * `updatedAt` for no change. The name is checked alongside the aliases — a row does not need a
- * synonym for what it is already called.
+ * `undefined` for every reason not to write: the word is already on the row as the matcher reads
+ * it (`foldSpelling` — "Epaule d’agneau" is "Épaule d'agneau"), it is not a word, it is too long,
+ * or the locale is full. A caller that patched anyway would bump `updatedAt` for no change. The
+ * name is checked alongside the aliases — a row does not need a synonym for what it is already
+ * called.
  *
  * **A full locale REFUSES rather than trimming**, which is the difference between a bound and a
  * silent eviction. Dropping the oldest to make room would delete a word somebody has been finding
@@ -338,7 +340,8 @@ export const withAlias = (
 
   if (!spelling || spelling.length > ALIAS_MAX_LENGTH) return undefined;
   if (stored.length >= ALIASES_PER_LOCALE) return undefined;
-  if (known.some((word) => word?.toLowerCase() === spelling.toLowerCase())) return undefined;
+  const folded = foldSpelling(spelling);
+  if (known.some((word) => word !== undefined && foldSpelling(word) === folded)) return undefined;
 
   const aliases = { ...doc.aliases, [locale]: [...stored, spelling] };
 
@@ -389,6 +392,10 @@ export const withAliases = (
  * wins the cap when the two together overflow. A learned word that loses its slot is not a loss of
  * data anybody typed — it is a cache entry, and the ranker will answer it again.
  *
+ * Repeats are spellings `foldSpelling` reads alike, as in `withAlias`, and the row's own `names`
+ * count among them, so a re-seed also clears the accent and apostrophe variants that merges and
+ * the catalog itself left beside a word.
+ *
  * Unlike `withAlias`, this one TRIMS to the cap rather than refusing. It is not adding a word to a
  * row; it is stating what the row's list now is, and a merge of two capped lists can legitimately
  * arrive over the bound with neither side at fault.
@@ -411,19 +418,21 @@ export const withAliases = (
 export const mergedAliases = (
   catalog: LocalizedList,
   learned: LocalizedList | undefined,
+  names: Partial<Record<Locale, string>>,
 ): LocalizedList =>
   Object.fromEntries(
     LOCALES.map((locale) => {
-      const seen = new Set<string>();
+      // The name goes in first, so a copy of it is dropped like any other repeat.
+      const seen = new Set<string>(names[locale] === undefined ? [] : [foldSpelling(names[locale])]);
       const kept: string[] = [];
 
       for (const alias of [...(catalog[locale] ?? []), ...(learned?.[locale] ?? [])]) {
         const spelling = alias.trim();
 
         if (!spelling || spelling.length > ALIAS_MAX_LENGTH) continue;
-        if (seen.has(spelling.toLowerCase())) continue;
+        if (seen.has(foldSpelling(spelling))) continue;
 
-        seen.add(spelling.toLowerCase());
+        seen.add(foldSpelling(spelling));
         kept.push(spelling);
 
         if (kept.length === ALIASES_PER_LOCALE) break;

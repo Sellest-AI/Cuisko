@@ -45,7 +45,7 @@ export const seedIngredients = async (ctx: MutationCtx) => {
           // `rememberAlias` had cached onto it — silently, and on precisely the rows that matter,
           // since the near-miss candidates the ranker is asked about are mostly seeded ones. The
           // catalog still wins any conflict; see `mergedAliases`.
-          aliases: mergedAliases(entry.aliases, existing?.aliases),
+          aliases: mergedAliases(entry.aliases, existing?.aliases, { en, fr }),
           // Both languages are hand-written in `ingredientCatalog.ts`, so neither is a rendering
           // of the other and nothing should ever replace one with a translation of its twin.
           names: { en: { value: en, status: "edited" }, fr: { value: fr, status: "edited" } },

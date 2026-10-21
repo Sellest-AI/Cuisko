@@ -303,11 +303,11 @@ const _isQuantity = (token: string) => /^\d/.test(token);
 /**
  * A GRADE the shop prints — "5%", "80/20" — rewritten to one letter-leading token, `pct5`.
  *
- * The rewrite exists because every other rule in this file conspires to destroy it. `_fold` turns
- * "%" into a space, `_isQuantity` drops anything starting with a digit, and between them
- * "steak haché 5%" and "steak haché 20%" both reduce to the same two words and score **1.0** — an
- * exact match, linked at `CONFIDENT` without the ranker ever being asked. Four times the fat, on
- * somebody's shopping list, with no error anywhere.
+ * The rewrite exists because every other rule in this file conspires to destroy it.
+ * `foldSpelling` turns "%" into a space, `_isQuantity` drops anything starting with a digit, and
+ * between them "steak haché 5%" and "steak haché 20%" both reduce to the same two words and score
+ * **1.0** — an exact match, linked at `CONFIDENT` without the ranker ever being asked. Four times
+ * the fat, on somebody's shopping list, with no error anywhere.
  *
  * A number a shop prints is identity, not quantity: 5% and 20% mince, 70% and 85% chocolate, whole
  * and semi-skimmed milk are different products on different shelves. So the grade survives folding
@@ -319,8 +319,8 @@ const _isQuantity = (token: string) => /^\d/.test(token);
  * butchers write improper ratios ("80/20", "95/5"). The catalog's own seeded mince is
  * `Bœuf haché (80/20)`, so this is not a hypothetical form.
  *
- * A decimal keeps its fraction behind a `d` rather than a dot, which `_fold` would split in two:
- * "lait 1,5%" is `pct1d5`, and must not collide with the `pct15` of a 15% cream.
+ * A decimal keeps its fraction behind a `d` rather than a dot, which `foldSpelling` would split in
+ * two: "lait 1,5%" is `pct1d5`, and must not collide with the `pct15` of a 15% cream.
  */
 const _PERCENT = /(\d+)(?:[.,](\d+))?\s*%/g;
 const _RATIO = /(\d+)\s*\/\s*(\d+)/g;
@@ -363,8 +363,11 @@ export const isGrade = (token: string): boolean => _isGradeToken(_grades(token).
  * what hid it — it bit only where the spellings disagreed, and a cook typing `œuf` at a row
  * holding `oeufs` retrieved NOTHING, walked all five resolve steps and had a duplicate row
  * invented for them. Calling the one folder keeps the index and the query a single rule.
+ *
+ * Exported for the alias writers in `ingredientRow`, which ask whether a word is NEW to a row: two
+ * spellings this folds alike are one word to the matcher, so storing the second only uses a slot.
  */
-const _fold = (value: string) =>
+export const foldSpelling = (value: string) =>
   foldAccents(_grades(value))
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
@@ -397,18 +400,20 @@ const _layers = (value: string, qualifiers: ReadonlySet<string> = QUALIFIERS) =>
 };
 
 /**
- * `_fold`'s words, each paired with the spelling it was typed in — what `STOPWORDS_EN` is tested
- * against, since the fold is exactly what turns `thé` into `the`.
+ * `foldSpelling`'s words, each paired with the spelling it was typed in — what `STOPWORDS_EN` is
+ * tested against, since the fold is exactly what turns `thé` into `the`.
  *
  * Split on the typed text first and folded word by word, so the pairing cannot slip. The two splits
- * agree: a letter, a combining accent or a digit is what `_fold` keeps, and a character that folds
- * to nothing it keeps (an `ß`) splits the word here exactly as it would there.
+ * agree: a letter, a combining accent or a digit is what `foldSpelling` keeps, and a character that
+ * folds to nothing it keeps (an `ß`) splits the word here exactly as it would there.
  */
 const _words = (value: string): { typed: string; folded: string }[] =>
   _grades(value)
     .toLowerCase()
     .split(/[^\p{L}\p{M}\p{N}]+/u)
-    .flatMap((typed) => _fold(typed).split(" ").filter(Boolean).map((folded) => ({ typed, folded })));
+    .flatMap((typed) =>
+      foldSpelling(typed).split(" ").filter(Boolean).map((folded) => ({ typed, folded })),
+    );
 
 /**
  * A name reduced to the words that identify it.
@@ -455,7 +460,7 @@ const _pick = ({ raw, meaningful, identifying }: _Layers): string[] =>
  * work, and a rule that ranks by what folding destroyed has to see it.
  */
 export const foldCost = (value: string): number =>
-  _fold(value).split(" ").filter(Boolean).length - _tokenize(value).length;
+  foldSpelling(value).split(" ").filter(Boolean).length - _tokenize(value).length;
 
 const _editDistance = (left: string, right: string): number => {
   let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
@@ -525,8 +530,8 @@ export const searchTerms = (query: string): string =>
  * (80/20)` — the exact confusion `_grades` exists to prevent, undone one step later.
  *
  * Returning tokens rather than the raw words is what makes them re-attachable: `pct5` is already
- * folded, so appending it to a spelling survives `_fold` unchanged and reaches `scoreCandidate`
- * as the identity it is.
+ * folded, so appending it to a spelling survives `foldSpelling` unchanged and reaches
+ * `scoreCandidate` as the identity it is.
  */
 export const gradesIn = (query: string): string[] =>
   _tokenize(query).filter(_isGradeToken);

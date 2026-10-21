@@ -1,12 +1,13 @@
 import { describe, expect, test } from "vitest";
 
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { hashText } from "@convex/lib/i18n";
 import { LOCALES } from "@convex/schema/i18n";
 import { computeNutriScore } from "@shared/nutrition";
 import { searchTextOf } from "@shared/search";
 
 import { CATALOG } from "../ingredientCatalog";
-import { ingredientRow, restoredIngredientRow } from "../ingredientRow";
+import { ingredientRow, mergedAliases, restoredIngredientRow, withAlias } from "../ingredientRow";
 
 /** The catalog's flat `en`/`fr` pair in the locale-keyed shape the sanitizer takes. */
 const factsOf = (entry: (typeof CATALOG)[number]) => {
@@ -308,5 +309,60 @@ describe("functions/ingredients/restoredIngredientRow", () => {
     expect(() => restoredIngredientRow({ ...row, nutrition: { ...row.nutrition, sugars: undefined } })).toThrow(
       "has no sugars",
     );
+  });
+});
+
+/** The seeded lamb shoulder as the deployment holds it — "Épaule d'agneau" in French. */
+const lambShoulder = (): Doc<"ingredients"> => ({
+  ...ingredientRow(factsOf(CATALOG.find((entry) => entry.slug === "lamb-shoulder")!), "seed"),
+  _id: "lamb-shoulder" as Id<"ingredients">,
+  _creationTime: 0,
+  updatedAt: 0,
+});
+
+/**
+ * A word the matcher cannot tell from one the row holds adds nothing but a used slot. Merging the
+ * dev duplicates wrote "épaule d’agneau" and "Epaule d'agneau" beside the name "Épaule d'agneau",
+ * because the comparison only ignored capitals: accents and the typographic apostrophe got through.
+ */
+describe("functions/ingredients/withAlias", () => {
+  test.each(["épaule d’agneau", "Epaule d'agneau", "EPAULE D’AGNEAU"])(
+    "%s is the row's name to the matcher, so it is not stored",
+    (spelling) => {
+      expect(withAlias(lambShoulder(), spelling, "fr")).toBeUndefined();
+    },
+  );
+
+  test("a spelling of an alias the row holds, under other accents, is not stored", () => {
+    const grown = withAlias(lambShoulder(), "gigot d'épaule", "fr")!;
+
+    expect(withAlias({ ...lambShoulder(), ...grown }, "Gigot d’epaule", "fr")).toBeUndefined();
+  });
+
+  test("a different word is still stored", () => {
+    expect(withAlias(lambShoulder(), "palette d'agneau", "fr")?.aliases?.fr).toContain("palette d'agneau");
+  });
+});
+
+describe("functions/ingredients/mergedAliases", () => {
+  test("keeps the first of two spellings the matcher cannot tell apart, the catalog's", () => {
+    const merged = mergedAliases(
+      { fr: ["viande hachée d'agneau"], en: [] },
+      { fr: ["viande hachée d’agneau", "Viande hachee d'agneau", "agneau haché"], en: [] },
+      { fr: "Agneau haché, viande", en: "Lamb mince" },
+    );
+
+    expect(merged.fr).toEqual(["viande hachée d'agneau", "agneau haché"]);
+  });
+
+  /** So a re-seed clears the copies of a row's own name that a merge or the catalog left behind. */
+  test("drops an alias that is the row's own name in that locale", () => {
+    const merged = mergedAliases(
+      { fr: ["huile d'olive", "huile d’olive vierge"], en: ["olive oil"] },
+      { fr: ["Huile d’Olive"], en: [] },
+      { fr: "Huile d'olive", en: "Olive oil" },
+    );
+
+    expect(merged).toEqual({ fr: ["huile d’olive vierge"], en: [] });
   });
 });
