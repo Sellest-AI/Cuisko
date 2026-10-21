@@ -9,7 +9,7 @@
  *
  * Only four are read by a tag today (`gluten`, `milk`, `nuts`, `peanuts` — see `allergenTagsOf` in
  * [`tags.ts`](./tags.ts)). The other ten are carried because recording a fact is cheap and
- * back-filling one across 266 catalog rows is not.
+ * back-filling one across every catalog row is not.
  *
  * ⚠️ Like [`DIETS`](./diets.ts), every use of this is a claim of ABSENCE. An ingredient with no
  * allergens listed is only free of them if something actually looked; a row nothing has classified

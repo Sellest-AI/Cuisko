@@ -14,7 +14,7 @@ let t: ReturnType<typeof convexTest>;
 /**
  * Two rows, written the way the seed writes them — `search` per locale, aliases per locale. By
  * hand rather than by running the seed so a failure here points at the search and not at the
- * 266-row catalog.
+ * whole catalog.
  */
 const seedCatalog = () =>
   t.run(async (ctx) => {

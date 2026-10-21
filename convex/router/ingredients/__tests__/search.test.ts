@@ -23,7 +23,7 @@ beforeAll(() =>
 /**
  * Two rows written the way `seedIngredients` writes them — name and aliases flattened into
  * `search`, each also stored accent-stripped. Written by hand rather than by running the seed so
- * a failure here points at the search, not at the 266-row catalog.
+ * a failure here points at the search, not at the whole catalog.
  */
 const seedCatalog = async (t: ReturnType<typeof convexTest>) =>
   t.run(async (ctx) => {

@@ -14,7 +14,7 @@ const modules = import.meta.glob("/convex/**/*.*s");
  * The real catalog, seeded once for the whole file.
  *
  * Against fixtures this test proves nothing: the numbers `CONFIDENT` is set from are numbers about
- * *this* catalog — how close its 200-odd rows sit to each other, and how loud the noise floor is
+ * *this* catalog — how close its few hundred rows sit to each other, and how loud the noise floor is
  * for an ingredient it does not hold. Hand-written candidates would drift from it silently, which
  * is the one failure this file exists to catch. `searchWidened.test.ts` deliberately does the
  * opposite with two rows by hand, so a failure there points at the search rather than at the seed;
@@ -173,6 +173,14 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["feuilles de basilic", "basil"],
     ["feuilles de menthe", "mint"],
     ["feuilles de gélatine", "gelatin"],
+    // A curry leaf is not curry powder: it lands on its own row, never on the shared word.
+    ["feuille de curry", "curry-leaves"],
+    ["feuilles de curry", "curry-leaves"],
+    // The rows that share a bare word, named in full (see the unlinked cases below).
+    ["piment rouge", "chili-red"],
+    ["piment vert", "chili-green"],
+    ["sucrine", "little-gem"],
+    ["crème fraîche épaisse légère", "creme-fraiche-light"],
     // Mincing is a preparation for a vegetable, a product only for meat.
     ["ail haché", "garlic"],
   ])("%s links to %s", async (name, slug) => {
@@ -222,8 +230,21 @@ describe("functions/ingredients: the bar a name is linked at", () => {
    * asked.
    */
   // The chickpea row is the tinned one, so dry chickpeas, three times as dense, are not it.
-  // A curry leaf is not curry powder, nor a cardamom pod the ground spice.
-  test.each(["sumac", "kombu", "quatre-quarts breton", "pois chiches secs", "feuille de curry", "gousse de cardamome"])(
+  /**
+   * A bare word several rows share names none of them. "Un piment" is red, green, a bird's eye or a
+   * scotch bonnet; "une laitue" a romaine or a sucrine; "crème légère" the thick pot or the liquid
+   * carton. Each weighs and shops differently, so the name goes on to the steps that can ask,
+   * rather than being linked to whichever row the index returned first.
+   */
+  test.each(["piment", "piments", "1 piment", "laitue", "crème légère", "crème fraîche légère"])(
+    "%s, a word several rows share, is not linked",
+    async (name) => {
+      expect(await linked(name)).toBe("unmatched");
+    },
+  );
+
+  // A cardamom pod is not the ground spice.
+  test.each(["sumac", "kombu", "quatre-quarts breton", "pois chiches secs", "gousse de cardamome"])(
     "%s is not linked to its nearest row",
     async (name) => {
       expect(await linked(name)).toBe("unmatched");

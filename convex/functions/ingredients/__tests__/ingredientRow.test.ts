@@ -31,7 +31,7 @@ const factsOf = (entry: (typeof CATALOG)[number]) => {
  * rows comes out of the shared serializers and out of nothing else.
  *
  * Run across the whole `CATALOG` rather than a fixture on purpose. A derived field that is wrong
- * for one row in 266 has no symptom — the row is simply never found by search again — so the only
+ * for one row in the catalog has no symptom — the row is simply never found by search again — so the only
  * useful sample size is all of them.
  */
 describe("functions/ingredients/ingredientRow", () => {

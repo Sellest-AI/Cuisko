@@ -73,12 +73,17 @@ describe("catalog weights", () => {
         watermelon: "bought whole and written by the slice or in grams, never as one",
         "coconut-fresh": "the shell and water outweigh the flesh, so a piece weight would lie",
         "lemon-juice": "a liquid",
+        "lime-juice": "a liquid",
       },
     },
     {
       unit: "tsp",
       categories: ["SPICE", "HERB", "SEED", "CONDIMENT", "SWEETENER", "OIL"],
-      exempt: { "bay-leaf": "counted by the leaf, never spooned" },
+      exempt: {
+        "bay-leaf": "counted by the leaf, never spooned",
+        "cinnamon-stick": "counted by the stick, never spooned",
+        "bouquet-garni": "tied in a bundle, never spooned",
+      },
     },
   ])("every $categories row can be weighed in $unit", ({ unit, categories, exempt }) => {
     const inScope = CATALOG.filter((entry) => categories.includes(entry.category));

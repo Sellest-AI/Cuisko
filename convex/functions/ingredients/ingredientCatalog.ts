@@ -13,15 +13,22 @@ import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
  * much curation on top. `defaultUnit`/`defaultQuantity` are a starting point for "how much of this
  * does a household usually buy at once", not a measured fact — edit freely.
  *
- * **Every figure is per 100 g of the RAW, EDIBLE part**, and a reference that lists a food several
- * times (raw, boiled, roasted) is read at its raw entry. A recipe line is a raw weight, and cooking
- * drives out water, not calories, so a cooked figure times a raw weight counts the same energy
- * again: `mussels` took USDA's "cooked, moist heat" entry, 172 kcal against 86 raw, and every dish
- * of them came out at twice its calories. The edible part is the other half of that rule: bone and
- * shell are in the weights below and out of these figures, and `EDIBLE_SHARE` reconciles the two.
+ * Where neither reference measures a food, its row says what it read instead, in a comment beside
+ * it: the median of the product labels on Open Food Facts for a jarred sauce or a loaf, another
+ * national table (India's, for curry leaves), one named label, or a blend worked out from other rows
+ * of this file. A row with no comment is a USDA or CIQUAL entry read as it stands.
  *
- * One row per tuple keeps ~200 entries reviewable; `CATALOG` below is what the rest of the code
- * actually consumes.
+ * **Every figure is per 100 g of the RAW, EDIBLE part**, and a reference that lists a food several
+ * times (raw, boiled, roasted) is read at its raw entry. Raw means uncooked, not fresh: a food sold
+ * dry (nori sheets, a stock cube, a spice) is read as the shop sells it. A recipe line is a raw
+ * weight, and cooking drives out water, not calories, so a cooked figure times a raw weight counts
+ * the same energy again: `mussels` took USDA's "cooked, moist heat" entry, 172 kcal against 86 raw,
+ * and every dish of them came out at twice its calories. The edible part is the other half of that
+ * rule: bone and shell are in the weights below and out of these figures, and `EDIBLE_SHARE`
+ * reconciles the two.
+ *
+ * One row per tuple keeps a few hundred entries reviewable; `CATALOG` below is what the rest of the
+ * code actually consumes.
  */
 type Row = readonly [
   slug: string,
@@ -126,6 +133,16 @@ const ROWS: Row[] = [
   ["jalapeno", "Jalapeño", "Piment jalapeño", "VEGETABLE", "pcs", 4, 29, 0.9, 0.4, 0, 6.5, 4.1, 2.8, 3],
   ["bean-sprouts", "Bean sprouts", "Germes de soja", "VEGETABLE", "g", 200, 30, 3, 0.2, 0, 5.9, 4.1, 1.8, 6],
   ["bok-choy", "Bok choy", "Pak choï", "VEGETABLE", "pcs", 2, 13, 1.5, 0.2, 0, 2.2, 1.2, 1, 65],
+  ["chili-red", "Red chilli", "Piment rouge", "VEGETABLE", "pcs", 4, 40, 1.9, 0.4, 0, 8.8, 5.3, 1.5, 9],
+  // USDA measures no bird's eye or scotch bonnet apart: both carry its hot red chilli, 170106.
+  ["chili-birds-eye", "Bird's eye chilli", "Piment oiseau", "VEGETABLE", "pcs", 10, 40, 1.9, 0.4, 0, 8.8, 5.3, 1.5, 9],
+  ["scotch-bonnet", "Scotch bonnet pepper", "Piment scotch bonnet", "VEGETABLE", "pcs", 4, 40, 1.9, 0.4, 0, 8.8, 5.3, 1.5, 9],
+  ["chinese-cabbage", "Chinese cabbage", "Chou chinois", "VEGETABLE", "pcs", 1, 16, 1.2, 0.2, 0, 3.2, 1.4, 1.2, 9],
+  ["chestnut-mushroom", "Chestnut mushroom", "Champignon brun", "VEGETABLE", "g", 250, 22, 2.5, 0.1, 0, 4.3, 1.7, 0.6, 6],
+  ["watercress", "Watercress", "Cresson", "VEGETABLE", "pcs", 1, 11, 2.3, 0.1, 0, 1.3, 0.2, 0.5, 41],
+  ["snow-peas", "Snow peas", "Pois gourmands", "VEGETABLE", "g", 200, 42, 2.8, 0.2, 0, 7.6, 4, 2.6, 4],
+  // CIQUAL 20031, laitue. It measures no sucrine apart, and the leaves are the same.
+  ["little-gem", "Little gem lettuce", "Sucrine", "VEGETABLE", "pcs", 2, 15, 1.3, 0.2, 0, 2.5, 0.7, 1.2, 9],
 
   // ── Fruits ──────────────────────────────────────────────────────────────────────────────
   ["apple", "Apple", "Pomme", "FRUIT", "pcs", 1, 52, 0.3, 0.2, 0, 14, 10.4, 2.4, 1],
@@ -151,6 +168,7 @@ const ROWS: Row[] = [
   ["fig", "Fig", "Figue", "FRUIT", "pcs", 1, 74, 0.8, 0.3, 0.1, 19, 16, 2.9, 1],
   ["pomegranate", "Pomegranate", "Grenade", "FRUIT", "pcs", 1, 83, 1.7, 1.2, 0.1, 19, 14, 4, 3],
   ["lemon-juice", "Lemon juice", "Jus de citron", "FRUIT", "ml", 100, 22, 0.35, 0.24, 0.04, 6.9, 2.5, 0.3, 1],
+  ["lime-juice", "Lime juice", "Jus de citron vert", "FRUIT", "ml", 100, 25, 0.4, 0.1, 0, 8.4, 1.7, 0.4, 2],
   ["clementine", "Clementine", "Clémentine", "FRUIT", "pcs", 6, 47, 0.9, 0.2, 0, 12, 9, 1.7, 1],
   ["raisins-dried", "Raisins", "Raisins secs", "FRUIT", "g", 200, 299, 3.1, 0.5, 0.1, 79, 59, 3.7, 11],
   ["prunes-dried", "Prunes", "Pruneaux", "FRUIT", "g", 250, 240, 2.2, 0.4, 0, 64, 38, 7.1, 2],
@@ -178,7 +196,8 @@ const ROWS: Row[] = [
   ["penne", "Penne", "Penne", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
   ["macaroni", "Macaroni", "Macaroni", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
   ["lasagna-sheets", "Lasagna sheets", "Feuilles de lasagne", "GRAIN", "g", 500, 367, 13.5, 1.6, 0.3, 74, 3.2, 3.4, 8],
-  ["fresh-tagliatelle", "Fresh tagliatelle", "Tagliatelles fraîches", "GRAIN", "g", 250, 288, 11, 2.7, 0.7, 55, 2.2, 2.5, 20],
+  // CIQUAL 9815, pâtes fraîches aux œufs crues. The row carried an estimate at a seventh of its salt.
+  ["fresh-tagliatelle", "Fresh tagliatelle", "Tagliatelles fraîches", "GRAIN", "g", 250, 283, 10.1, 1.9, 0.5, 57, 2.5, 3.2, 156],
   ["rice-noodles", "Rice noodles", "Nouilles de riz", "GRAIN", "g", 400, 364, 6, 0.6, 0.2, 82, 0.3, 1.6, 182],
   ["egg-noodles", "Egg noodles", "Nouilles aux œufs", "GRAIN", "g", 400, 384, 14.2, 4.4, 1.1, 71, 1.9, 3.3, 21],
   ["arborio-rice", "Arborio rice", "Riz arborio", "GRAIN", "g", 500, 349, 6.7, 0.6, 0.2, 77, 0.1, 1.4, 1],
@@ -193,6 +212,14 @@ const ROWS: Row[] = [
   ["cornstarch", "Cornstarch", "Maïzena", "GRAIN", "g", 250, 381, 0.3, 0.1, 0, 91, 0, 0.9, 9],
   ["cereal-cornflakes", "Cornflakes", "Corn flakes", "GRAIN", "g", 500, 357, 7.5, 0.4, 0.1, 84, 8, 3, 729],
   ["granola", "Granola", "Granola", "GRAIN", "g", 500, 471, 10, 20, 3.2, 61, 20, 7, 26],
+  ["jasmine-rice", "Jasmine rice", "Riz jasmin", "GRAIN", "g", 500, 365, 7.1, 0.7, 0.2, 80, 0.1, 1.3, 5],
+  ["orzo", "Orzo", "Orzo", "GRAIN", "g", 500, 371, 13, 1.5, 0.3, 75, 2.7, 3.2, 6],
+  ["naan", "Naan", "Naan", "GRAIN", "pcs", 4, 291, 9.6, 5.7, 1.4, 50.4, 3.6, 2.2, 465],
+  ["burger-bun", "Burger bun", "Pain à burger", "GRAIN", "pcs", 4, 293, 9.1, 5.4, 0.9, 53, 5.9, 3.3, 453],
+  // Neither reference measures it: the median of 53 labels on Open Food Facts.
+  ["ciabatta", "Ciabatta", "Ciabatta", "GRAIN", "pcs", 1, 259, 8.8, 3.2, 0.6, 49.7, 3.2, 3.2, 424],
+  // CIQUAL 26264, the raw potato gnocchi sold in a vacuum pack.
+  ["gnocchi", "Gnocchi", "Gnocchi", "GRAIN", "g", 500, 176, 4.7, 1.4, 0.3, 37.2, 3.2, 2.2, 468],
 
   // ── Meat ────────────────────────────────────────────────────────────────────────────────
   ["chicken-breast", "Chicken breast", "Blanc de poulet", "MEAT", "g", 400, 110, 23.4, 1.5, 0.4, 0, 0, 0, 43],
@@ -202,7 +229,9 @@ const ROWS: Row[] = [
   ["pork-chop", "Pork chop", "Côte de porc", "MEAT", "g", 300, 164, 19.8, 9.3, 3.8, 0.4, 0, 0, 49],
   ["pork-loin", "Pork loin", "Filet mignon de porc", "MEAT", "g", 400, 123, 21.2, 4.1, 1.7, 0.4, 0, 0, 44],
   ["bacon", "Bacon", "Lard fumé", "MEAT", "g", 200, 303, 15.6, 26.1, 9.4, 0.8, 0.8, 1, 956],
-  ["ham", "Ham", "Jambon", "MEAT", "g", 150, 145, 21, 5.5, 1.8, 1.5, 1.4, 0, 1203],
+  // CIQUAL 28900, jambon cuit supérieur: the jambon blanc France buys, at 60% of the salt of
+  // USDA's sliced ham, which the row carried.
+  ["ham", "Ham", "Jambon", "MEAT", "g", 150, 125, 20.8, 4.3, 1.6, 0.8, 0.8, 0, 749],
   ["ground-turkey", "Ground turkey", "Dinde hachée", "MEAT", "g", 500, 148, 19.7, 7.7, 2, 0, 0, 0, 58],
   ["turkey-breast", "Turkey breast", "Blanc de dinde", "MEAT", "g", 400, 109, 24.1, 1.2, 0.3, 0.5, 0.3, 0, 83],
   ["lamb", "Lamb", "Agneau", "MEAT", "g", 400, 170, 18.3, 10.6, 3.9, 0.5, 0, 0, 79],
@@ -225,6 +254,17 @@ const ROWS: Row[] = [
   ["chicken-whole", "Whole chicken", "Poulet entier", "MEAT", "pcs", 1, 215, 18.6, 15.1, 4.3, 0, 0, 0, 70],
   ["duck-whole", "Whole duck", "Canard entier", "MEAT", "pcs", 1, 404, 11.5, 39.3, 13.2, 0, 0, 0, 59],
   ["turkey-whole", "Whole turkey", "Dinde entière", "MEAT", "pcs", 1, 144, 21.6, 5.6, 1.5, 0.1, 0.1, 0, 112],
+  ["stewing-beef", "Stewing beef", "Bœuf à braiser", "MEAT", "g", 800, 164, 24, 7.5, 2.7, 0, 0, 0, 42],
+  ["lamb-mince", "Minced lamb", "Agneau haché", "MEAT", "g", 500, 282, 16.6, 23.4, 10.2, 0, 0, 0, 59],
+  ["pork-mince", "Pork mince", "Porc haché", "MEAT", "g", 500, 263, 16.9, 21.2, 7.9, 0, 0, 0, 56],
+  // CIQUAL 28479, the butcher's poitrine. References disagree more on belly than on any other cut
+  // (CIQUAL's lean poitrine 253 kcal, USDA's 518): this is the cut sold for roasting, between them.
+  ["pork-belly", "Pork belly", "Poitrine de porc", "MEAT", "g", 500, 323, 15.9, 28.7, 10.2, 0.2, 0.2, 0, 73],
+  ["lamb-shoulder", "Lamb shoulder", "Épaule d'agneau", "MEAT", "g", 1500, 170, 18.3, 10.6, 3.9, 0.5, 0.5, 0, 79],
+  ["chicken-thigh-boneless", "Boneless chicken thigh", "Haut de cuisse de poulet désossé", "MEAT", "g", 500, 116, 19.7, 4.1, 1.1, 0, 0, 0, 95],
+  // The inner fillet of the breast, so the breast's figures.
+  ["chicken-tenders", "Chicken tenders", "Aiguillettes de poulet", "MEAT", "g", 400, 110, 23.4, 1.5, 0.4, 0, 0, 0, 43],
+  ["pancetta", "Pancetta", "Pancetta", "MEAT", "g", 150, 342, 20.2, 28.8, 12.5, 0.8, 0.4, 0, 1650],
 
   // ── Seafood ─────────────────────────────────────────────────────────────────────────────
   ["salmon", "Salmon", "Saumon", "SEAFOOD", "g", 300, 208, 20, 13, 3.1, 0, 0, 0, 59],
@@ -241,6 +281,8 @@ const ROWS: Row[] = [
   ["salmon-smoked", "Smoked salmon", "Saumon fumé", "SEAFOOD", "g", 100, 117, 18.3, 4.3, 0.9, 0, 0, 0, 1880],
   ["squid", "Squid", "Calamar", "SEAFOOD", "g", 300, 92, 15.6, 1.4, 0.4, 3.1, 0, 0, 44],
   ["anchovy", "Anchovy", "Anchois", "SEAFOOD", "g", 50, 131, 20, 4.8, 1.3, 0, 0, 0, 3668],
+  ["haddock", "Haddock", "Églefin", "SEAFOOD", "g", 300, 72, 17.3, 0.4, 0.1, 0, 0, 0, 66],
+  ["pollock", "Alaska pollock", "Colin d'Alaska", "SEAFOOD", "g", 400, 71, 16.3, 0.6, 0, 0, 0, 0, 190],
 
   // ── Dairy ───────────────────────────────────────────────────────────────────────────────
   ["milk-whole", "Whole milk", "Lait entier", "DAIRY", "ml", 1000, 61, 3.2, 3.3, 1.9, 4.8, 5.1, 0, 43],
@@ -248,21 +290,30 @@ const ROWS: Row[] = [
   ["butter", "Butter", "Beurre", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 11],
   ["cheddar-cheese", "Cheddar cheese", "Cheddar", "DAIRY", "g", 200, 403, 25, 33, 21, 1.3, 0.5, 0, 621],
   ["mozzarella", "Mozzarella", "Mozzarella", "DAIRY", "g", 200, 280, 28, 17, 10, 3.1, 1, 0, 627],
-  ["mascarpone", "Mascarpone", "Mascarpone", "DAIRY", "g", 250, 429, 4.8, 44, 29, 4.5, 3.2, 0, 30],
+  // CIQUAL 19584, with the energy CIQUAL leaves blank worked out from it by the EU factors.
+  ["mascarpone", "Mascarpone", "Mascarpone", "DAIRY", "g", 250, 385, 4.4, 39, 25.7, 4, 4, 0, 32],
   ["camembert", "Camembert", "Camembert", "DAIRY", "pcs", 1, 300, 19.8, 24.3, 15.3, 0.5, 0.5, 0, 842],
-  ["raclette-cheese", "Raclette cheese", "Raclette", "DAIRY", "g", 400, 357, 23, 29, 18.5, 1.3, 0.5, 0, 700],
+  ["raclette-cheese", "Raclette cheese", "Raclette", "DAIRY", "g", 400, 342, 23.4, 27.5, 18.5, 0, 0, 0, 676],
   ["paneer", "Paneer", "Paneer", "DAIRY", "g", 200, 321, 25, 25, 16, 3.6, 2.6, 0, 18],
   ["parmesan", "Parmesan", "Parmesan", "DAIRY", "g", 100, 431, 38, 29, 19, 4.1, 0.9, 0, 1529],
   ["cream-cheese", "Cream cheese", "Fromage à tartiner", "DAIRY", "g", 200, 342, 6, 34, 19, 4.1, 3.2, 0, 321],
   ["plain-yogurt", "Plain yogurt", "Yaourt nature", "DAIRY", "g", 500, 61, 3.5, 3.3, 2.1, 4.7, 4.7, 0, 46],
   ["greek-yogurt", "Greek yogurt", "Yaourt grec", "DAIRY", "g", 500, 59, 10, 0.4, 0.1, 3.6, 3.6, 0, 36],
+  ["yogurt-fat-free", "Fat-free yogurt", "Yaourt nature 0%", "DAIRY", "g", 500, 39, 4.8, 0.1, 0, 4.1, 4.1, 0, 57],
   ["heavy-cream", "Heavy cream", "Crème liquide entière", "DAIRY", "ml", 250, 340, 2.8, 36, 23, 2.8, 2.9, 0, 38],
   ["sour-cream", "Sour cream", "Crème aigre", "DAIRY", "g", 250, 198, 2.4, 19.7, 12.6, 4.6, 3.4, 0, 32],
   ["cottage-cheese", "Cottage cheese", "Cottage cheese", "DAIRY", "g", 250, 98, 11, 4.3, 2.7, 3.4, 2.7, 0, 364],
   ["feta", "Feta", "Feta", "DAIRY", "g", 200, 264, 14, 21, 15, 4.1, 4.1, 0, 917],
   ["brie", "Brie", "Brie", "DAIRY", "g", 200, 334, 21, 28, 17.4, 0.5, 0.5, 0, 629],
-  ["ricotta", "Ricotta", "Ricotta", "DAIRY", "g", 250, 174, 11.3, 13, 8.3, 3, 0.3, 0, 84],
-  ["creme-fraiche", "Crème fraîche", "Crème fraîche", "DAIRY", "g", 200, 292, 2.2, 30, 20, 3, 3, 0, 40],
+  // CIQUAL 19585, energy by the EU factors. The row carried USDA's pre-2018 entry, which USDA has
+  // since measured at 150.
+  ["ricotta", "Ricotta", "Ricotta", "DAIRY", "g", 250, 158, 8.8, 11.9, 8.1, 4, 2.3, 0, 109],
+  // CIQUAL 19410, crème de lait 30% épaisse.
+  ["creme-fraiche", "Crème fraîche", "Crème fraîche", "DAIRY", "g", 200, 304, 3, 30.7, 20.8, 2.8, 2.7, 0, 28],
+  // CIQUAL 19431, crème légère épaisse, 15 to 20% fat.
+  // Named as the pot is: "fraîche" is a stopword, so "Crème fraîche légère" read as bare "crème
+  // légère" and took the liquid carton's lines from `single-cream`.
+  ["creme-fraiche-light", "Light crème fraîche", "Crème fraîche épaisse légère", "DAIRY", "g", 200, 166, 2.8, 15.3, 10.4, 3, 3, 0, 34],
   ["single-cream", "Single cream", "Crème liquide légère", "DAIRY", "ml", 250, 165, 2.9, 15, 9.8, 4, 4, 0, 45],
   ["whipping-cream", "Whipping cream", "Crème à fouetter", "DAIRY", "ml", 250, 292, 2.2, 30, 19, 3.5, 3.5, 0, 38],
   ["milk-semi-skimmed", "Semi-skimmed milk", "Lait demi-écrémé", "DAIRY", "ml", 1000, 46, 3.3, 1.6, 1, 4.8, 4.8, 0, 44],
@@ -270,7 +321,9 @@ const ROWS: Row[] = [
   ["evaporated-milk", "Evaporated milk", "Lait concentré non sucré", "DAIRY", "ml", 400, 135, 6.8, 7.6, 4.6, 10, 10, 0, 106],
   ["butter-unsalted", "Unsalted butter", "Beurre doux", "DAIRY", "g", 250, 717, 0.9, 81, 51, 0.1, 0.1, 0, 4],
   ["gruyere", "Gruyère", "Gruyère", "DAIRY", "g", 200, 413, 30, 32, 18.9, 0.4, 0.3, 0, 336],
-  ["comte", "Comté", "Comté", "DAIRY", "g", 200, 417, 27, 34, 21, 1.3, 0.6, 0, 620],
+  // CIQUAL 12110. The row had twice the salt Comté is measured at.
+  ["comte", "Comté", "Comté", "DAIRY", "g", 200, 418, 27.2, 34.6, 22.5, 0, 0, 0, 322],
+  ["gouda", "Gouda", "Gouda", "DAIRY", "g", 200, 374, 23.2, 31.5, 20.3, 0, 0, 0, 795],
   ["goat-cheese", "Goat cheese", "Fromage de chèvre", "DAIRY", "g", 150, 364, 22, 30, 21, 2.5, 2.5, 0, 415],
   ["blue-cheese", "Blue cheese", "Fromage bleu", "DAIRY", "g", 150, 353, 21, 29, 19, 2.3, 0.5, 0, 1395],
   ["emmental", "Emmental", "Emmental", "DAIRY", "g", 200, 380, 28, 30, 18, 1.4, 0.5, 0, 200],
@@ -294,6 +347,7 @@ const ROWS: Row[] = [
   ["split-peas", "Split peas", "Pois cassés", "LEGUME", "g", 400, 344, 22.8, 1.4, 0.2, 52, 2.8, 15.8, 15],
   ["edamame", "Edamame", "Edamame", "LEGUME", "g", 300, 121, 11, 5, 0.6, 10, 2.2, 5.2, 6],
   ["soybeans", "Soybeans", "Graines de soja", "LEGUME", "g", 300, 432, 34.5, 19.2, 2.7, 20.8, 7.3, 13, 3],
+  ["chickpea-flour", "Chickpea flour", "Farine de pois chiche", "LEGUME", "g", 500, 359, 22.4, 6.7, 0.7, 57.8, 10.9, 10.8, 64],
 
   // ── Nuts ────────────────────────────────────────────────────────────────────────────────
   ["almonds", "Almonds", "Amandes", "NUT", "g", 150, 579, 21, 50, 3.8, 22, 4.4, 12.5, 1],
@@ -334,6 +388,13 @@ const ROWS: Row[] = [
   ["lemongrass", "Lemongrass", "Citronnelle", "HERB", "pcs", 2, 99, 1.8, 0.5, 0.1, 25, 0, 0, 6],
   // CIQUAL 11069, fresh sage. The row carried USDA's ground sage, now `dried-sage`.
   ["sage", "Sage", "Sauge", "HERB", "g", 15, 37, 4, 0, 0, 8, 0.3, 7, 11],
+  // Neither USDA nor CIQUAL measures it: India's reference table (NIN, "Nutritive Value of Indian
+  // Foods"), which leaves sugars, saturated fat and sodium unmeasured. Written as 0, and a handful
+  // of leaves weighs a gram, so the gap moves no label.
+  ["curry-leaves", "Curry leaves", "Feuilles de curry", "HERB", "pcs", 20, 108, 6.1, 1, 0, 25.1, 0, 6.4, 0],
+  // Tied from parsley, thyme and a bay leaf, and lifted out before serving. These are USDA's three,
+  // by the weight a bundle holds them in (half parsley, 40% thyme, 10% bay).
+  ["bouquet-garni", "Bouquet garni", "Bouquet garni", "HERB", "pcs", 1, 90, 4.5, 1.9, 0.5, 20.3, 1.1, 9.9, 34],
 
   // ── Spices ──────────────────────────────────────────────────────────────────────────────
   ["black-pepper", "Black pepper", "Poivre noir", "SPICE", "g", 50, 251, 10.4, 3.3, 1.4, 64, 0.6, 25.3, 20],
@@ -342,12 +403,16 @@ const ROWS: Row[] = [
   ["paprika", "Paprika", "Paprika", "SPICE", "g", 50, 282, 14.1, 13, 2.1, 54, 10.3, 34.9, 68],
   ["turmeric", "Turmeric", "Curcuma", "SPICE", "g", 50, 312, 9.7, 3.3, 1.1, 65, 3.2, 21.1, 38],
   ["ginger-ground", "Ground ginger", "Gingembre en poudre", "SPICE", "g", 50, 335, 9, 4.2, 1.1, 71, 3.4, 14.1, 27],
-  ["nutmeg", "Nutmeg", "Muscade", "SPICE", "g", 30, 525, 5.8, 36, 26, 49, 28, 20.8, 16],
-  ["chili-powder", "Chili powder", "Piment en poudre", "SPICE", "g", 50, 282, 13.5, 14.3, 2.6, 50, 7.2, 34.8, 1004],
+  // USDA 171326. The row carried sugars at 28, ten times the entry's 3.
+  ["nutmeg", "Nutmeg", "Muscade", "SPICE", "g", 30, 525, 5.8, 36, 26, 49, 3, 20.8, 16],
+  // USDA's chili powder, but the salt of the pure ground chili France sells as piment en poudre
+  // (USDA cayenne, 30): USDA's is the American blend, salted to 2870.
+  ["chili-powder", "Chili powder", "Piment en poudre", "SPICE", "g", 50, 282, 13.5, 14.3, 2.6, 50, 7.2, 34.8, 30],
   ["garam-masala", "Garam masala", "Garam masala", "SPICE", "g", 30, 379, 14, 15, 3, 45, 3, 25, 50],
   ["curry-powder", "Curry powder", "Curry en poudre", "SPICE", "g", 30, 325, 14, 14, 2.2, 56, 2.8, 53, 52],
   ["saffron", "Saffron", "Safran", "SPICE", "g", 1, 310, 11.4, 5.9, 1.6, 65, 0, 3.9, 148],
-  ["herbes-de-provence", "Herbes de Provence", "Herbes de Provence", "SPICE", "g", 30, 290, 9, 6, 1.5, 50, 3, 30, 50],
+  // CIQUAL 11060.
+  ["herbes-de-provence", "Herbes de Provence", "Herbes de Provence", "SPICE", "g", 30, 283, 11.5, 7.2, 1.9, 63.1, 18.5, 40.1, 35],
   ["ras-el-hanout", "Ras el hanout", "Ras el hanout", "SPICE", "g", 30, 330, 12, 12, 2, 50, 4, 28, 100],
   ["espelette-pepper", "Espelette pepper", "Piment d'Espelette", "SPICE", "g", 30, 282, 13.5, 14.3, 2.6, 50, 7.2, 34.8, 30],
   ["paprika-smoked", "Smoked paprika", "Paprika fumé", "SPICE", "g", 50, 282, 14, 13, 2.1, 54, 10, 35, 68],
@@ -357,7 +422,8 @@ const ROWS: Row[] = [
   ["cloves", "Cloves", "Clou de girofle", "SPICE", "g", 20, 274, 6, 13, 4.1, 65, 2.4, 33.9, 277],
   ["cardamom", "Cardamom", "Cardamome", "SPICE", "g", 20, 311, 10.8, 6.7, 0.5, 68, 0, 28, 18],
   ["dried-oregano", "Dried oregano", "Origan séché", "SPICE", "g", 30, 265, 9, 4.3, 1.6, 69, 4.1, 42.5, 25],
-  ["dried-basil", "Dried basil", "Basilic séché", "SPICE", "g", 30, 233, 23, 4, 2, 50, 0, 37.7, 26],
+  // USDA 171317, whose sodium the row carried at a third.
+  ["dried-basil", "Dried basil", "Basilic séché", "SPICE", "g", 30, 233, 23, 4, 2, 50, 0, 37.7, 76],
   // A recipe naming a bare herb means it fresh; the dried jar is another product, written as one.
   ["dried-thyme", "Dried thyme", "Thym séché", "SPICE", "g", 30, 276, 9.1, 7.4, 2.7, 64, 1.7, 37, 55],
   ["dried-rosemary", "Dried rosemary", "Romarin séché", "SPICE", "g", 30, 331, 4.9, 15.2, 7.4, 64, 0, 42.6, 50],
@@ -371,6 +437,20 @@ const ROWS: Row[] = [
   ["garlic-powder", "Garlic powder", "Ail en poudre", "SPICE", "g", 50, 331, 16.6, 0.7, 0.2, 73, 2.4, 9, 60],
   ["onion-powder", "Onion powder", "Oignon en poudre", "SPICE", "g", 50, 341, 10.4, 1, 0.2, 79, 6.6, 15.2, 73],
   ["bay-leaf", "Bay leaf", "Feuille de laurier", "SPICE", "g", 15, 313, 7.6, 8.4, 2.3, 75, 0, 26.3, 23],
+  // Crushed red pepper is the cayenne pod flaked rather than ground, and USDA files it as cayenne.
+  ["chili-flakes", "Chilli flakes", "Piment en flocons", "SPICE", "g", 50, 318, 12, 17.3, 3.3, 57, 10.3, 27.2, 30],
+  // The ground spice's figures: a stick is the same bark, not yet ground.
+  ["cinnamon-stick", "Cinnamon stick", "Bâton de cannelle", "SPICE", "pcs", 10, 247, 4, 1.2, 0.3, 81, 2.2, 53.1, 10],
+  ["white-pepper", "Ground white pepper", "Poivre blanc moulu", "SPICE", "g", 50, 296, 10.4, 2.1, 0.6, 68.6, 0, 26.2, 5],
+  ["mustard-powder", "Mustard powder", "Moutarde en poudre", "SPICE", "g", 50, 508, 26.1, 36.2, 2, 28.1, 6.8, 12.2, 13],
+  ["allspice", "Allspice", "Piment de la Jamaïque", "SPICE", "g", 30, 263, 6.1, 8.7, 2.6, 72.1, 0, 21.6, 77],
+  // The French blend, pepper, clove, nutmeg and ginger, in equal parts from those four rows above.
+  // Not CIQUAL 11056 "Quatre épices": that entry is allspice, which French also calls quatre-épices.
+  ["quatre-epices", "Four-spice blend", "Quatre-épices", "SPICE", "g", 30, 346, 7.8, 14.1, 8.2, 62.3, 2.4, 23.5, 85],
+  // No reference measures star anise. These are USDA's anise seed, the nearest spice it measures,
+  // and a star weighs half a gram, so the borrowing moves no label.
+  ["star-anise", "Star anise", "Anis étoilé", "SPICE", "pcs", 10, 337, 17.6, 15.9, 0.6, 50, 0, 14.6, 16],
+  ["coriander-seeds", "Coriander seeds", "Graines de coriandre", "SPICE", "g", 30, 298, 12.4, 17.8, 1, 55, 0, 41.9, 35],
 
   // ── Oils ────────────────────────────────────────────────────────────────────────────────
   ["olive-oil", "Olive oil", "Huile d'olive", "OIL", "ml", 500, 884, 0, 100, 13.8, 0, 0, 0, 2],
@@ -380,21 +460,29 @@ const ROWS: Row[] = [
   ["sesame-oil", "Sesame oil", "Huile de sésame", "OIL", "ml", 250, 884, 0, 100, 14.2, 0, 0, 0, 0],
   ["canola-oil", "Canola oil", "Huile de colza", "OIL", "ml", 1000, 884, 0, 100, 7.4, 0, 0, 0, 0],
   ["sunflower-oil", "Sunflower oil", "Huile de tournesol", "OIL", "ml", 1000, 884, 0, 100, 10.3, 0, 0, 0, 0],
+  ["hazelnut-oil", "Hazelnut oil", "Huile de noisette", "OIL", "ml", 250, 884, 0, 100, 7.4, 0, 0, 0, 0],
+  ["peanut-oil", "Peanut oil", "Huile d'arachide", "OIL", "ml", 1000, 884, 0, 100, 16.9, 0, 0, 0, 0],
 
   // ── Condiments ──────────────────────────────────────────────────────────────────────────
   ["salt", "Salt", "Sel", "CONDIMENT", "g", 500, 0, 0, 0, 0, 0, 0, 0, 38758],
   ["soy-sauce", "Soy sauce", "Sauce soja", "CONDIMENT", "ml", 250, 53, 8, 0.6, 0.1, 4.9, 0.4, 0.8, 5493],
   ["ketchup", "Ketchup", "Ketchup", "CONDIMENT", "g", 500, 101, 1.2, 0.2, 0, 26, 21, 0.4, 1110],
-  ["mustard-yellow", "Yellow mustard", "Moutarde", "CONDIMENT", "g", 250, 66, 4.4, 4, 0.2, 5.8, 3, 3.3, 1135],
+  // CIQUAL 11013, the Dijon a French jar of "moutarde" holds. The row carried USDA's American
+  // yellow mustard, at under half its fat and salt. The slug predates that, as `beef-steak-sirloin`'s
+  // does: renaming it would seed a second row.
+  ["mustard-yellow", "Dijon mustard", "Moutarde", "CONDIMENT", "g", 250, 152, 6.9, 11.2, 0.8, 4.8, 1.7, 0.5, 1860],
   ["mayonnaise", "Mayonnaise", "Mayonnaise", "CONDIMENT", "g", 250, 680, 1, 75, 12, 1, 1, 0, 635],
   ["vinegar-white", "White vinegar", "Vinaigre blanc", "CONDIMENT", "ml", 500, 18, 0, 0, 0, 0.4, 0.1, 0, 2],
   ["balsamic-vinegar", "Balsamic vinegar", "Vinaigre balsamique", "CONDIMENT", "ml", 250, 88, 0.5, 0, 0, 17, 15, 0, 23],
   ["hot-sauce", "Hot sauce", "Sauce piquante", "CONDIMENT", "ml", 150, 11, 0.5, 0.4, 0.1, 1.6, 0.8, 0.3, 2400],
-  ["harissa", "Harissa", "Harissa", "CONDIMENT", "g", 100, 72, 2.9, 1, 0.5, 11, 6.9, 2.5, 680],
+  // CIQUAL 11112, energy by the EU factors. CIQUAL leaves its sugars blank, so those are the row's
+  // earlier figure.
+  ["harissa", "Harissa", "Harissa", "CONDIMENT", "g", 100, 76, 2.7, 2.9, 0.5, 12.4, 6.9, 5.1, 1120],
   ["vinegar-red-wine", "Red wine vinegar", "Vinaigre de vin rouge", "CONDIMENT", "ml", 500, 19, 0, 0, 0, 0.3, 0.3, 0, 8],
   ["fish-sauce", "Fish sauce", "Nuoc-mâm", "CONDIMENT", "ml", 200, 35, 5.1, 0, 0, 3.6, 3.6, 0, 7850],
   ["tahini", "Tahini", "Purée de sésame", "CONDIMENT", "g", 300, 595, 17, 53.8, 7.6, 21, 0.5, 9.3, 115],
-  ["mustard-wholegrain", "Wholegrain mustard", "Moutarde à l'ancienne", "CONDIMENT", "g", 200, 143, 8, 9, 0.6, 7, 1.5, 5, 1550],
+  // CIQUAL 11021.
+  ["mustard-wholegrain", "Wholegrain mustard", "Moutarde à l'ancienne", "CONDIMENT", "g", 200, 142, 6.6, 9.9, 0.6, 6.7, 2.2, 4.5, 1960],
   ["rice-vinegar", "Rice vinegar", "Vinaigre de riz", "CONDIMENT", "ml", 250, 18, 0.3, 0, 0, 0.5, 0.5, 0, 6],
   ["oyster-sauce", "Oyster sauce", "Sauce d'huître", "CONDIMENT", "ml", 250, 51, 2.4, 0.3, 0.1, 11, 5, 0.3, 2730],
   ["hoisin-sauce", "Hoisin sauce", "Sauce hoisin", "CONDIMENT", "ml", 250, 220, 3.3, 3.4, 0.6, 44, 30, 2.8, 1615],
@@ -405,6 +493,22 @@ const ROWS: Row[] = [
   ["hummus", "Hummus", "Houmous", "CONDIMENT", "g", 200, 166, 7.9, 9.6, 1.4, 14, 0.3, 6, 379],
   ["worcestershire-sauce", "Worcestershire sauce", "Sauce Worcestershire", "CONDIMENT", "ml", 150, 78, 0, 0, 0, 19.5, 14, 0, 980],
   ["tomato-paste", "Tomato paste", "Concentré de tomate", "CONDIMENT", "g", 140, 82, 4.3, 0.5, 0.1, 19, 12, 4.1, 59],
+  ["soy-sauce-reduced-salt", "Reduced-salt soy sauce", "Sauce soja réduite en sel", "CONDIMENT", "ml", 250, 57, 9.1, 0.3, 0, 5.6, 0.5, 0.7, 3600],
+  ["tamari", "Tamari", "Tamari", "CONDIMENT", "ml", 250, 60, 10.5, 0.1, 0, 5.6, 1.7, 0.8, 5590],
+  ["cider-vinegar", "Cider vinegar", "Vinaigre de cidre", "CONDIMENT", "ml", 500, 21, 0, 0, 0, 0.9, 0.4, 0, 5],
+  // No reference splits wine vinegar by its wine: both carry USDA's red wine vinegar, as that row does.
+  ["white-wine-vinegar", "White wine vinegar", "Vinaigre de vin blanc", "CONDIMENT", "ml", 500, 19, 0, 0, 0, 0.3, 0, 0, 8],
+  ["sherry-vinegar", "Sherry vinegar", "Vinaigre de xérès", "CONDIMENT", "ml", 250, 19, 0, 0, 0, 0.3, 0, 0, 8],
+  // USDA's raw tamarind pulp, which is what a block or jar of paste is. Labels run from 80 to 300 kcal
+  // with how much water the maker added, so no one of them is the paste.
+  ["tamarind-paste", "Tamarind paste", "Pâte de tamarin", "CONDIMENT", "g", 200, 239, 2.8, 0.6, 0.3, 62.5, 38.8, 5.1, 28],
+  // Neither reference measures these: each is the median of the labels on Open Food Facts (54, 51,
+  // 32, 48 and 56 products), sold mostly in France.
+  ["sriracha", "Sriracha", "Sauce sriracha", "CONDIMENT", "ml", 250, 130, 1.3, 1, 0.2, 27.6, 19, 1.6, 1800],
+  ["mirin", "Mirin", "Mirin", "CONDIMENT", "ml", 250, 260, 0, 0, 0, 58, 40.6, 0, 24],
+  ["curry-paste-green", "Green curry paste", "Pâte de curry vert", "CONDIMENT", "g", 200, 133, 2.7, 4.6, 1.1, 13.5, 5, 3.5, 2600],
+  ["sweet-chili-sauce", "Sweet chilli sauce", "Sauce chili douce", "CONDIMENT", "ml", 250, 188, 0.5, 0.2, 0, 46, 41, 0, 1101],
+  ["mango-chutney", "Mango chutney", "Chutney de mangue", "CONDIMENT", "g", 300, 240, 0.5, 0.5, 0.1, 58.9, 47.6, 0.9, 920],
 
   // ── Sweeteners ──────────────────────────────────────────────────────────────────────────
   ["white-sugar", "White sugar", "Sucre blanc", "SWEETENER", "g", 1000, 387, 0, 0, 0, 100, 100, 0, 1],
@@ -423,9 +527,19 @@ const ROWS: Row[] = [
   ["chicken-broth", "Chicken broth", "Bouillon de poulet", "OTHER", "l", 1, 4, 0.6, 0.1, 0, 0.4, 0.2, 0, 343],
   ["beef-broth", "Beef broth", "Bouillon de bœuf", "OTHER", "l", 1, 7, 1, 0.2, 0.1, 0.5, 0.2, 0, 356],
   ["bouillon-cube", "Bouillon cube", "Cube de bouillon", "OTHER", "pcs", 12, 230, 10, 14, 7, 17, 5, 0, 19000],
+  // CIQUAL measures no dry vegetable cube: one French label (Carrefour Bio), whose energy Maggi's
+  // Kub Légumes agrees with (241).
+  ["vegetable-stock-cube", "Vegetable stock cube", "Cube de bouillon de légumes", "OTHER", "pcs", 12, 261, 3.6, 8, 3.9, 45.1, 11, 3.1, 14520],
+  // CIQUAL 11169, the dehydrated fond de veau sold in a tub.
+  ["veal-stock-powder", "Veal stock powder", "Fond de veau", "OTHER", "g", 100, 343, 8.5, 7.4, 3.2, 61.6, 22.3, 2.1, 6660],
+  // Neither reference measures it: the median of three French labels (Gerblé, Gayelord Hauser,
+  // Priméal).
+  ["nutritional-yeast", "Nutritional yeast", "Levure alimentaire", "OTHER", "g", 150, 331, 45, 4.9, 0.8, 39, 1, 23, 100],
   ["soy-milk", "Soy milk", "Boisson au soja", "OTHER", "l", 1, 45, 3.3, 1.8, 0.3, 3.3, 2.5, 0.5, 40],
   ["tofu-silken", "Silken tofu", "Tofu soyeux", "OTHER", "g", 300, 55, 4.8, 2.7, 0.4, 2.3, 0.6, 0.2, 8],
-  ["nori", "Nori seaweed", "Algues nori", "OTHER", "g", 25, 35, 5.8, 0.3, 0.1, 5.1, 0.5, 0.3, 48],
+  // CIQUAL 20987, dried: the sheets a shop sells. The row carried USDA's fresh laver, at a seventh of
+  // the energy. CIQUAL leaves saturated fat and sugars blank; those two are laver's shares, scaled.
+  ["nori", "Nori seaweed", "Algues nori", "OTHER", "g", 25, 255, 31.5, 1.6, 0.3, 46.8, 1, 36.3, 1980],
   ["orange-blossom-water", "Orange blossom water", "Eau de fleur d'oranger", "OTHER", "ml", 250, 0, 0, 0, 0, 0, 0, 0, 1],
   ["tofu-firm", "Firm tofu", "Tofu ferme", "OTHER", "g", 400, 144, 15.8, 8.7, 1.3, 4.3, 0.6, 2.3, 14],
   ["tempeh", "Tempeh", "Tempeh", "OTHER", "g", 300, 192, 20.3, 10.8, 2.2, 7.6, 0, 0, 9],
@@ -440,6 +554,8 @@ const ROWS: Row[] = [
   ["vanilla-extract", "Vanilla extract", "Extrait de vanille", "OTHER", "ml", 50, 288, 0.1, 0.1, 0, 12.7, 12.7, 0, 9],
   ["peanut-butter", "Peanut butter", "Beurre de cacahuète", "OTHER", "g", 350, 588, 25, 50, 10, 20, 9, 6, 17],
   ["coconut-milk", "Coconut milk", "Lait de coco", "OTHER", "ml", 400, 230, 2.3, 24, 21, 5.5, 3.3, 2.2, 15],
+  // Neither reference measures it: the median of seven labels on Open Food Facts.
+  ["coconut-milk-light", "Light coconut milk", "Lait de coco allégé", "OTHER", "ml", 400, 84, 0.8, 8.3, 6.7, 1.7, 1.2, 0, 12],
   ["almond-milk", "Almond milk", "Lait d'amande", "OTHER", "ml", 1000, 17, 0.6, 1.1, 0.1, 1.5, 1.5, 0.3, 72],
   ["oat-milk", "Oat milk", "Boisson à l'avoine", "OTHER", "ml", 1000, 45, 1, 1.5, 0.2, 6.7, 4, 0.8, 42],
   ["canned-tomatoes", "Canned chopped tomatoes", "Tomates concassées en conserve", "OTHER", "g", 400, 32, 1.6, 0.3, 0, 7.3, 4, 1.9, 186],
@@ -462,7 +578,7 @@ const ROWS: Row[] = [
  * The emoji a card draws, for the slugs that have one worth drawing.
  *
  * A map rather than two more columns on `Row`: the tuple is already fourteen wide and adding a
- * fifteenth costs every one of the 266 rows a re-alignment, for a value most of them do not have a
+ * fifteenth costs every row a re-alignment, for a value most of them do not have a
  * distinct one of. Coverage is meant to be partial — `CATEGORY_EMOJI` answers the rest — so the
  * absence of a slug here is a decision that its category's icon is good enough, not an omission.
  */
@@ -475,10 +591,12 @@ const EMOJI: Record<string, string> = {
   "ginger-fresh": "🫘", jalapeno: "🌶️", "bean-sprouts": "🌱", "bok-choy": "🥬",
   "lambs-lettuce": "🥬",
   broccoli: "🥦", cauliflower: "🥦", "corn-sweet": "🌽", mushroom: "🍄", pumpkin: "🎃",
-  "butternut-squash": "🎃", peas: "🫛", "green-beans": "🫛",
+  "butternut-squash": "🎃", peas: "🫛", "green-beans": "🫛", "chili-red": "🌶️",
+  "chili-birds-eye": "🌶️", "scotch-bonnet": "🌶️", "chinese-cabbage": "🥬",
+  "chestnut-mushroom": "🍄", watercress: "🥬", "snow-peas": "🫛", "little-gem": "🥬",
   // Fruit
   apple: "🍎", pear: "🍐", banana: "🍌", orange: "🍊", grapefruit: "🍊", lemon: "🍋",
-  lime: "🍋", "lemon-juice": "🍋", grape: "🍇", clementine: "🍊", "raisins-dried": "🍇",
+  lime: "🍋", "lemon-juice": "🍋", "lime-juice": "🍋", grape: "🍇", clementine: "🍊", "raisins-dried": "🍇",
   "prunes-dried": "🍑", strawberry: "🍓", blueberry: "🫐", blackberry: "🫐",
   raspberry: "🫐", cherry: "🍒", peach: "🍑", apricot: "🍑", plum: "🍑", pineapple: "🍍",
   mango: "🥭", kiwi: "🥝", avocado: "🥑", watermelon: "🍉", cantaloupe: "🍈",
@@ -491,7 +609,9 @@ const EMOJI: Record<string, string> = {
   "chicken-whole": "🍗", "turkey-whole": "🦃", "duck-whole": "🦆",
   "lamb-leg": "🍖", "pork-roast": "🥩",
   "turkey-breast": "🦃", "turkey-slices": "🦃", "ground-turkey": "🦃", "duck-breast": "🦆",
-  "sausage-pork": "🌭", merguez: "🌭", chorizo: "🌭",
+  "sausage-pork": "🌭", merguez: "🌭", chorizo: "🌭", "stewing-beef": "🥩", "lamb-mince": "🍖",
+  "pork-mince": "🥩", "pork-belly": "🥓", "lamb-shoulder": "🍖", "chicken-thigh-boneless": "🍗",
+  "chicken-tenders": "🍗", pancetta: "🥓",
   // Seafood
   shrimp: "🦐", crab: "🦀", mussels: "🦪", scallops: "🦪", squid: "🦑",
   "salmon-smoked": "🐟",
@@ -505,7 +625,8 @@ const EMOJI: Record<string, string> = {
   "whole-wheat-pasta": "🍝", "fresh-tagliatelle": "🍝", "lasagna-sheets": "🍝",
   "egg-noodles": "🍜", "rice-noodles": "🍜", "white-rice": "🍚", "brown-rice": "🍚",
   "basmati-rice": "🍚", "arborio-rice": "🍚", granola: "🥣", "cereal-cornflakes": "🥣",
-  "puff-pastry": "🥐", "shortcrust-pastry": "🥐",
+  "puff-pastry": "🥐", "shortcrust-pastry": "🥐", "jasmine-rice": "🍚", orzo: "🍝", naan: "🫓",
+  "burger-bun": "🍔", ciabatta: "🥖", gnocchi: "🥔",
   // Nuts and seeds
   peanuts: "🥜",
   // Sweeteners
@@ -517,7 +638,9 @@ const EMOJI: Record<string, string> = {
   "fish-sauce": "🐟", tahini: "🥜", "mustard-wholegrain": "🟡",
   "rice-vinegar": "🍚", "oyster-sauce": "🦪", "hoisin-sauce": "🍶", "miso-paste": "🍜",
   "curry-paste-red": "🌶️", "preserved-lemon": "🍋",
-  "soy-sauce": "🍶",
+  "soy-sauce": "🍶", "soy-sauce-reduced-salt": "🍶", tamari: "🍶", "cider-vinegar": "🍏",
+  "white-wine-vinegar": "🍷", "sherry-vinegar": "🍷", sriracha: "🌶️", mirin: "🍶",
+  "curry-paste-green": "🌶️", "sweet-chili-sauce": "🌶️", "mango-chutney": "🥭",
   // Spices
   "black-pepper": "🧂", paprika: "🌶️", "cayenne-pepper": "🌶️", "chili-powder": "🌶️",
   "garam-masala": "🧂", "curry-powder": "🧂", saffron: "🌼", "herbes-de-provence": "🌿",
@@ -526,9 +649,10 @@ const EMOJI: Record<string, string> = {
   "ginger-ground": "🫚", "bay-leaf": "🌿", "dried-basil": "🌿", "dried-oregano": "🌿",
   "dried-thyme": "🌿", "dried-rosemary": "🌿", "dried-parsley": "🌿", "dried-sage": "🌿",
   "dried-dill": "🌿", "dried-mint": "🌿", "dried-chives": "🌿", "dried-tarragon": "🌿",
-  "garlic-powder": "🧄", "onion-powder": "🧅",
+  "garlic-powder": "🧄", "onion-powder": "🧅", "chili-flakes": "🌶️", "mustard-powder": "🟡",
+  "star-anise": "⭐", "bouquet-garni": "🌿",
   // Oils
-  "olive-oil": "🫒", "coconut-oil": "🥥", ghee: "🧈",
+  "olive-oil": "🫒", "coconut-oil": "🥥", ghee: "🧈", "hazelnut-oil": "🌰", "peanut-oil": "🥜",
   // Everything else
   water: "💧", "coffee-ground": "☕", "black-tea": "🍵", "orange-juice": "🧃",
   "apple-juice": "🧃", beer: "🍺", "white-wine": "🍷", "red-wine": "🍷",
@@ -539,7 +663,8 @@ const EMOJI: Record<string, string> = {
   tempeh: "🧆", seitan: "🧆", "beef-broth": "🍲", "chicken-broth": "🍲",
   "vegetable-broth": "🍲", "bouillon-cube": "🍲", "baking-powder": "🧂", "baking-soda": "🧂",
   "dry-yeast": "🍞",
-  gelatin: "🍮", "vanilla-extract": "🫙",
+  gelatin: "🍮", "vanilla-extract": "🫙", "vegetable-stock-cube": "🍲", "veal-stock-powder": "🍲",
+  "coconut-milk-light": "🥥",
 };
 
 /** The fallback, so no row is ever emoji-less and no card ever draws a blank. */
@@ -560,7 +685,11 @@ const CATEGORY_EMOJI: Record<Category, string> = {
  * so "creme" and "crème" both find it.
  */
 const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
-  potato: { fr: ["patates"], en: ["spuds"] },
+  // A variety or a harvest, not another food: the figures and the shopping are the same tuber.
+  potato: {
+    fr: ["patates", "pomme de terre nouvelle", "pomme de terre à chair ferme"],
+    en: ["spuds", "new potato", "waxy potato"],
+  },
   // The onion France sells by default is the yellow one; naming its colour buys the same net.
   onion: { fr: ["oignon jaune"], en: ["yellow onion", "brown onion"] },
   // Young leaves are sold in a bag beside the mature ones, cooked and eaten the same way.
@@ -614,9 +743,13 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "egg-whole": { fr: ["oeufs", "œufs"] },
   "pasta-dry": { fr: ["pâtes"] },
   "white-rice": { fr: ["riz"] },
-  "flour-all-purpose": { fr: ["farine"] },
+  "flour-all-purpose": { fr: ["farine", "farine de blé"], en: ["plain flour", "wheat flour"] },
   "white-sugar": { fr: ["sucre", "sucre semoule", "sucre en poudre"], en: ["caster sugar", "superfine sugar"] },
-  "brown-sugar": { fr: ["cassonade"] },
+  // Unrefined cane sugar, which France sells as blond: the same row a cupboard covers it from.
+  "brown-sugar": {
+    fr: ["cassonade", "sucre blond", "sucre de canne blond"],
+    en: ["light brown sugar", "golden caster sugar"],
+  },
   cornstarch: { fr: ["fécule de maïs"] },
   honey: { fr: ["miel liquide"] },
   // Extra virgin is a grade, not another food: a cupboard holding either covers a recipe asking for
@@ -651,7 +784,7 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "dried-tarragon": { fr: ["estragon sec"] },
   // Sold dried; a fresh leaf is rare enough that a recipe naming it would say so.
   "bay-leaf": { fr: ["laurier", "feuille de laurier séchée"], en: ["dried bay leaf", "bay leaves"] },
-  salt: { fr: ["fleur de sel", "gros sel", "sel fin", "sel marin"], en: ["sea salt"] },
+  salt: { fr: ["fleur de sel", "gros sel", "sel fin", "sel marin", "sel en flocons"], en: ["sea salt", "sea salt flakes"] },
   "mustard-yellow": { fr: ["moutarde de dijon"] },
   // A British recipe says "stock" where this row says "broth". Without these, "chicken stock"
   // scored 0.45 here and was linked to a stock CUBE the import had invented.
@@ -679,8 +812,13 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   },
   "spring-onion": { fr: ["oignon nouveau", "cébette", "ciboule"] },
   "bouillon-cube": {
-    fr: ["bouillon cube", "tablette de bouillon", "cube de bouillon de volaille"],
-    en: ["stock cube"],
+    fr: ["bouillon cube", "tablette de bouillon", "cube de bouillon de volaille", "cube de bouillon de poulet", "cube de bouillon de bœuf"],
+    en: ["stock cube", "chicken stock cube", "beef stock cube"],
+  },
+  // A vegetable cube is a row of its own, not an alias of the one above: that one is omnivore.
+  "vegetable-stock-cube": {
+    fr: ["bouillon cube de légumes", "tablette de bouillon de légumes", "bouillon de légumes en poudre"],
+    en: ["vegetable bouillon cube", "vegetable bouillon powder"],
   },
   "curry-powder": { fr: ["curry"] },
   hummus: { en: ["houmous"] },
@@ -702,11 +840,101 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "curry-paste-red": { fr: ["pâte de curry"] },
   ghee: { fr: ["beurre clarifié"] },
   nori: { fr: ["feuilles de nori"] },
+  // -- Spellings the recipe import created rows for, on the rows they meant ----------------------
+  // Each one was a second row on dev, linked from at least two recipes: the matcher missed the row
+  // the catalog already had. A grade or a style of the same food, as `olive-oil` reads it above.
+  "chili-powder": { en: ["chilli powder"] },
+  "hot-sauce": { fr: ["sauce pimentée"] },
+  "white-wine": { fr: ["vin blanc sec"], en: ["dry white wine"] },
+  salmon: { fr: ["pavé de saumon", "filet de saumon"], en: ["salmon fillet"] },
+  "soy-sauce": { fr: ["sauce soja claire", "sauce soja foncée"], en: ["light soy sauce", "dark soy sauce"] },
+  "arborio-rice": { fr: ["riz à risotto"], en: ["risotto rice"] },
+  "vegetable-oil": { fr: ["huile neutre"], en: ["neutral oil"] },
+  "sesame-oil": { fr: ["huile de sésame grillé"], en: ["toasted sesame oil"] },
+  "sesame-seeds": { fr: ["graines de sésame grillées"], en: ["toasted sesame seeds"] },
+  broccoli: { fr: ["fleurettes de brocoli", "bouquets de brocoli"], en: ["broccoli florets"] },
+  tomato: { fr: ["tomate roma"], en: ["plum tomato", "roma tomato"] },
+  "cheddar-cheese": { fr: ["cheddar affiné"], en: ["mature cheddar", "sharp cheddar"] },
+  "whole-wheat-pasta": { fr: ["spaghetti complets"], en: ["wholewheat spaghetti", "whole wheat spaghetti"] },
+  peanuts: { fr: ["cacahuètes grillées"], en: ["roasted peanuts"] },
+  pomegranate: { fr: ["graines de grenade"], en: ["pomegranate seeds"] },
+  "tortilla-wrap": { fr: ["tortilla de blé"], en: ["flour tortilla"] },
+  // -- The rows promoted from dev ----------------------------------------------------------------
+  "chili-red": { fr: ["piment rouge frais"], en: ["red chili", "red chili pepper", "red chilli pepper"] },
+  "chili-birds-eye": { fr: ["piment oiseau rouge"], en: ["bird's eye chili", "thai chili"] },
+  "scotch-bonnet": { fr: ["piment antillais"], en: ["scotch bonnet"] },
+  "chinese-cabbage": { fr: ["chou de pékin", "pé-tsaï"], en: ["napa cabbage"] },
+  "chestnut-mushroom": {
+    fr: ["champignon de paris brun", "champignons bruns"],
+    en: ["cremini mushroom", "crimini mushroom", "baby bella mushroom"],
+  },
+  watercress: { fr: ["cresson de fontaine"] },
+  "snow-peas": { fr: ["pois mange-tout", "mange-tout"], en: ["mangetout"] },
+  "little-gem": { fr: ["laitue sucrine"], en: ["little gem"] },
+  "jasmine-rice": { fr: ["riz thaï"], en: ["thai jasmine rice"] },
+  orzo: { fr: ["pâtes langues d'oiseau", "risoni"], en: ["risoni"] },
+  naan: { fr: ["pain naan"], en: ["naan bread"] },
+  "burger-bun": { fr: ["pain à hamburger", "pain hamburger", "pain burger"], en: ["hamburger bun"] },
+  // "Pot-au-feu" is the dish, so not alone: the cuts, and the way a butcher's label words them.
+  "stewing-beef": {
+    fr: ["bœuf à bourguignon", "bœuf pour bourguignon", "bœuf à mijoter", "paleron", "macreuse"],
+    en: ["braising beef", "beef stew meat", "beef chuck"],
+  },
+  "lamb-mince": { fr: ["viande hachée d'agneau"], en: ["ground lamb", "lamb mince"] },
+  "pork-mince": { fr: ["viande hachée de porc"], en: ["ground pork", "minced pork"] },
+  // Fresh: "poitrine fumée" is `bacon`.
+  "pork-belly": { fr: ["poitrine de porc fraîche", "ventre de porc"], en: ["pork belly slices"] },
+  "lamb-shoulder": { en: ["shoulder of lamb"] },
+  "chicken-thigh-boneless": {
+    fr: ["haut de cuisse désossé", "filet de haut de cuisse de poulet"],
+    en: ["boneless skinless chicken thigh", "chicken thigh fillet"],
+  },
+  "chicken-tenders": { fr: ["aiguillette de poulet"], en: ["chicken tenderloin"] },
+  // Not "haddock": in France that is the smoked fish, a product of its own.
+  haddock: { fr: ["aiglefin", "filet d'églefin"] },
+  pollock: { fr: ["lieu d'alaska", "filet de colin"], en: ["pollock", "pollock fillet"] },
+  // Not bare "crème légère", nor anything that reduces to it: a recipe writes that of the liquid
+  // carton too, `single-cream`.
+  "creme-fraiche-light": {
+    fr: ["crème fraîche allégée", "crème épaisse légère"],
+    en: ["light crème fraîche", "half-fat crème fraîche"],
+  },
+  "yogurt-fat-free": { fr: ["yaourt 0%", "yaourt écrémé"], en: ["fat free yogurt", "non-fat yogurt"] },
+  "chickpea-flour": { fr: ["farine de pois chiches", "besan"], en: ["gram flour", "besan"] },
+  "curry-leaves": { fr: ["feuilles de cari", "feuille de curry"], en: ["curry leaf"] },
+  "chili-flakes": {
+    fr: ["flocons de piment", "piment concassé"],
+    en: ["chili flakes", "red pepper flakes", "crushed red pepper", "crushed chillies"],
+  },
+  "cinnamon-stick": { fr: ["cannelle en bâton"], en: ["cinnamon sticks"] },
+  "white-pepper": { fr: ["poivre blanc", "poivre blanc en poudre"], en: ["white pepper"] },
+  "mustard-powder": { en: ["dry mustard", "ground mustard", "english mustard powder"] },
+  allspice: { fr: ["piment de la jamaïque moulu", "poivre de la jamaïque"], en: ["ground allspice"] },
+  "quatre-epices": { fr: ["4 épices", "quatre épices"], en: ["quatre épices", "four spice"] },
+  "star-anise": { fr: ["badiane", "étoile de badiane"], en: ["star anise pod"] },
+  "coriander-seeds": { fr: ["coriandre en grains", "grains de coriandre"], en: ["whole coriander"] },
+  "soy-sauce-reduced-salt": {
+    fr: ["sauce soja à teneur réduite en sel", "sauce soja allégée en sel"],
+    en: ["low-sodium soy sauce", "low-salt soy sauce", "reduced-sodium soy sauce"],
+  },
+  tamari: { fr: ["sauce tamari"] },
+  "cider-vinegar": { fr: ["vinaigre de cidre de pomme"], en: ["apple cider vinegar"] },
+  "tamarind-paste": { fr: ["pulpe de tamarin"], en: ["tamarind pulp"] },
+  sriracha: { en: ["sriracha sauce"] },
+  "curry-paste-green": { fr: ["pâte de curry vert thaï"], en: ["thai green curry paste"] },
+  "sweet-chili-sauce": { fr: ["sauce piment doux", "sauce chili thaï"], en: ["sweet chili sauce", "thai sweet chilli sauce"] },
+  "mango-chutney": { fr: ["chutney à la mangue", "chutney mangue"] },
+  "veal-stock-powder": { fr: ["fond de veau déshydraté", "fond brun"] },
+  "nutritional-yeast": {
+    fr: ["levure maltée", "flocons de levure alimentaire", "levure de bière en paillettes"],
+    en: ["nutritional yeast flakes", "nooch"],
+  },
+  "coconut-milk-light": { fr: ["lait de coco léger"], en: ["reduced-fat coconut milk", "lite coconut milk"] },
 };
 
 /**
- * What one of an ingredient weighs, in grams — for the 66 rows a household counts rather than
- * weighs, plus the few written per piece in a recipe whatever the shop sells them by.
+ * What one of an ingredient weighs, in grams — for the rows a household counts rather than weighs,
+ * plus the ones written per piece in a recipe whatever the shop sells them by.
  *
  * Hand-compiled like the nutrition values above, for a medium specimen AS SOLD: a whole raw item
  * before trimming, since that is what someone holds when they write "2 onions", and what the
@@ -735,6 +963,10 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   mushroom: 20, asparagus: 20, "butternut-squash": 1000, pumpkin: 1200,
   // A stalk, not the head — "2 branches de céleri", the way `garlic` is a clove.
   celery: 40,
+  "chili-red": 15, "chili-birds-eye": 2, "scotch-bonnet": 10, "chinese-cabbage": 1000,
+  "chestnut-mushroom": 20, "snow-peas": 4, "little-gem": 100,
+  // A bunch, as "1 botte de cresson" means and as it is sold — unlike a herb, it is counted so.
+  watercress: 125,
   // Fruits
   apple: 180, banana: 120, orange: 130, lemon: 100, lime: 65, cantaloupe: 550, pineapple: 900,
   mango: 200, kiwi: 75, peach: 150, pear: 180, plum: 65, apricot: 40, fig: 50, pomegranate: 280,
@@ -744,6 +976,7 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   "shortcrust-pastry": 230, "chicken-slices": 25, "turkey-slices": 25, merguez: 70,
   "flavoured-yogurt": 125, "egg-whole": 50, "egg-yolk": 17, camembert: 250,
   "chicken-breast": 150, "duck-breast": 350, "pork-chop": 180, "sausage-pork": 80, "egg-noodles": 50,
+  naan: 90, "burger-bun": 60, ciabatta: 250, "chicken-thigh-boneless": 100, "chicken-tenders": 35,
   // The whole leg, thigh and drumstick, as a French "cuisse" is sold: ~175 g of it comes off the
   // bone (see `EDIBLE_SHARE`).
   "chicken-thigh": 250,
@@ -754,9 +987,13 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   // Whole birds — the weight on the label, carcass included (see `EDIBLE_SHARE`).
   "chicken-whole": 1400, "duck-whole": 2000, "turkey-whole": 4500,
   // A cube, as every recipe that calls for one means, and as the box is portioned.
-  "bouillon-cube": 10,
+  "bouillon-cube": 10, "vegetable-stock-cube": 10,
   // Sold by weight, written by the piece — "2 bay leaves", never "0.4g of bay leaf".
-  "bay-leaf": 0.2,
+  "bay-leaf": 0.2, "cinnamon-stick": 3, "star-anise": 0.5,
+  // A leaf, since the row's name counts leaves — "10 feuilles de curry", not ten sprigs.
+  "curry-leaves": 0.2,
+  // One tied bundle, as it is sold and as every recipe counts it.
+  "bouquet-garni": 10,
   // A sprig, as "2 brins de thym" means — sold by the bunch, and nobody counts bunches. A recipe
   // counting basil or sage in LEAVES is read as sprigs too: a gram either way.
   thyme: 1, rosemary: 2, basil: 2, parsley: 2, cilantro: 2, mint: 1, "oregano-fresh": 1, dill: 1,
@@ -778,13 +1015,13 @@ const GRAMS_PER_PIECE: Record<string, number> = {
  */
 const GRAMS_PER_SLICE: Record<string, number> = {
   // Bread
-  baguette: 35, "bread-white": 30, "bread-whole-wheat": 30,
+  baguette: 35, "bread-white": 30, "bread-whole-wheat": 30, ciabatta: 30,
   // Cured and cooked meats, one deli slice
   ham: 20, prosciutto: 15, salami: 5, chorizo: 10, bacon: 15, "chicken-slices": 25,
-  "turkey-slices": 25,
+  "turkey-slices": 25, pancetta: 10,
   // Cheese, one sandwich slice or one round of the log
   "cheddar-cheese": 30, emmental: 30, gruyere: 30, comte: 30, brie: 30, "goat-cheese": 20,
-  mozzarella: 25,
+  mozzarella: 25, gouda: 25,
   // Rounds — "rondelles" of a fruit or vegetable
   lemon: 10, lime: 7, tomato: 20, cucumber: 8,
 };
@@ -792,7 +1029,7 @@ const GRAMS_PER_SLICE: Record<string, number> = {
 /**
  * Density in grams per millilitre, for anything that can be poured or spooned.
  *
- * Wider than the 34 rows whose `defaultUnit` is a volume, because the unit that breaks nutrition is
+ * Wider than the rows whose `defaultUnit` is a volume, because the unit that breaks nutrition is
  * the one a RECIPE uses, not the one a shop sells by: salt, flour, sugar and every spice are bought
  * by weight and written by the spoonful. A line this cannot convert costs the whole recipe its
  * nutrition, so the spoon-measured pantry is the half that matters most.
@@ -810,15 +1047,18 @@ const GRAMS_PER_ML: Record<string, number> = {
   "single-cream": 1.01, "whipping-cream": 0.99, "evaporated-milk": 1.07, "condensed-milk": 1.28,
   "sour-cream": 0.98, "creme-fraiche": 0.98, "plain-yogurt": 1.03, "greek-yogurt": 1.05,
   "fromage-blanc": 1.03, butter: 0.91, "butter-unsalted": 0.91, "butter-salted": 0.91,
+  "creme-fraiche-light": 1, "yogurt-fat-free": 1.03,
   // Oils
   "olive-oil": 0.91, "vegetable-oil": 0.92, "coconut-oil": 0.92, "sesame-oil": 0.92,
-  "canola-oil": 0.92, "sunflower-oil": 0.92,
+  "canola-oil": 0.92, "sunflower-oil": 0.92, "hazelnut-oil": 0.92, "peanut-oil": 0.92,
   // Condiments
   salt: 1.2, "soy-sauce": 1.15, "vinegar-white": 1.01, "balsamic-vinegar": 1.1, "hot-sauce": 1.05,
   "worcestershire-sauce": 1.1, ketchup: 1.14, "mustard-yellow": 1.05, mayonnaise: 0.91,
   "tomato-paste": 1.07, "peanut-butter": 1.08, capers: 0.85, "olives-green": 0.75, "olives-black": 0.75,
   harissa: 1.05, pesto: 1, mascarpone: 1, hummus: 1.05, "preserved-lemon": 0.9, ghee: 0.91,
-  lemongrass: 0.5,
+  lemongrass: 0.5, "soy-sauce-reduced-salt": 1.15, tamari: 1.15, "cider-vinegar": 1.01,
+  "white-wine-vinegar": 1.01, "sherry-vinegar": 1.01, "tamarind-paste": 1.2, sriracha: 1.1,
+  mirin: 1.15, "curry-paste-green": 1.1, "sweet-chili-sauce": 1.25, "mango-chutney": 1.25,
   // Grated or chopped fresh, spooned loose — "1 tsp of grated ginger", "2 tbsp of parmesan".
   "ginger-fresh": 0.5, parmesan: 0.35,
   // Sweeteners
@@ -827,7 +1067,8 @@ const GRAMS_PER_ML: Record<string, number> = {
   // Dry pantry, spooned
   "flour-all-purpose": 0.53, "whole-wheat-flour": 0.55, cornstarch: 0.6, cornmeal: 0.65,
   polenta: 0.65, breadcrumbs: 0.4, oats: 0.4, "cocoa-powder": 0.5, "baking-powder": 0.92,
-  "baking-soda": 1.2, "dry-yeast": 0.75, gelatin: 0.8,
+  "baking-soda": 1.2, "dry-yeast": 0.75, gelatin: 0.8, "chickpea-flour": 0.5,
+  "nutritional-yeast": 0.25, "vegetable-stock-cube": 0.6, "veal-stock-powder": 0.6,
   // Seeds, nuts and pulses, spooned dry
   "chia-seeds": 0.65, "flax-seeds": 0.6, "sesame-seeds": 0.6, "poppy-seeds": 0.6,
   "sunflower-seeds": 0.55, "pumpkin-seeds": 0.55, "hemp-seeds": 0.5, "pine-nuts": 0.6,
@@ -841,13 +1082,14 @@ const GRAMS_PER_ML: Record<string, number> = {
   "garlic-powder": 0.62, "onion-powder": 0.48,
   "garam-masala": 0.45, "curry-powder": 0.45, saffron: 0.35, "ras-el-hanout": 0.45,
   "espelette-pepper": 0.45, "herbes-de-provence": 0.2, "paprika-smoked": 0.46,
-  "mustard-seeds": 0.65,
+  "mustard-seeds": 0.65, "chili-flakes": 0.36, "white-pepper": 0.5, "mustard-powder": 0.5,
+  allspice: 0.45, "quatre-epices": 0.45, "star-anise": 0.45, "coriander-seeds": 0.36,
   // Fresh herbs, chopped — "1 tbsp of parsley". Light enough that the imprecision costs nothing.
   basil: 0.25, parsley: 0.25, cilantro: 0.25, mint: 0.25, thyme: 0.3, rosemary: 0.3, tarragon: 0.3,
-  "oregano-fresh": 0.25, dill: 0.25, chives: 0.25, sage: 0.25,
+  "oregano-fresh": 0.25, dill: 0.25, chives: 0.25, sage: 0.25, "curry-leaves": 0.1,
   // Liquids
   water: 1, "vegetable-broth": 1, "chicken-broth": 1, "beef-broth": 1, "vanilla-extract": 0.88,
-  "lemon-juice": 1.02, "vinegar-red-wine": 1.01, "fish-sauce": 1.02, tahini: 1.07,
+  "lemon-juice": 1.02, "lime-juice": 1.03, "coconut-milk-light": 1, "vinegar-red-wine": 1.01, "fish-sauce": 1.02, tahini: 1.07,
   "mustard-wholegrain": 1.05, "soy-milk": 1.03, "rice-vinegar": 1.01, "oyster-sauce": 1.2,
   "hoisin-sauce": 1.2, "miso-paste": 1.2, "curry-paste-red": 1.1, "orange-blossom-water": 1,
   "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "tomato-sauce": 1.05, "white-wine": 0.99,
@@ -878,8 +1120,10 @@ const GRAMS_PER_ML: Record<string, number> = {
 export const EDIBLE_SHARE: Record<string, number> = {
   // Whole birds: meat and skin off the carcass. 1.4 kg of chicken is ~1 kg eaten.
   "chicken-whole": 0.7, "duck-whole": 0.5, "turkey-whole": 0.67,
-  // Bone-in cuts, as a French butcher sells them: a cuisse, the wings, a côte, a gigot, a lapin.
-  "chicken-thigh": 0.7, "chicken-wings": 0.55, "pork-chop": 0.8, "lamb-leg": 0.75, rabbit: 0.65,
+  // Bone-in cuts, as a French butcher sells them: a cuisse, the wings, a côte, a gigot, an épaule,
+  // a lapin.
+  "chicken-thigh": 0.7, "chicken-wings": 0.55, "pork-chop": 0.8, "lamb-leg": 0.75,
+  "lamb-shoulder": 0.75, rabbit: 0.65,
   // In the shell, raw meat against live weight.
   mussels: 0.4,
 };
@@ -933,6 +1177,10 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   "chili-green": { sealed: 7, opened: 3 }, jalapeno: { sealed: 7, opened: 3 },
   celeriac: { sealed: 30, opened: 5 }, "ginger-fresh": { sealed: 21, opened: 7 },
   "bean-sprouts": { sealed: 3, opened: 2 }, "bok-choy": { sealed: 3, opened: 2 },
+  "chili-red": { sealed: 7, opened: 3 }, "chili-birds-eye": { sealed: 7, opened: 3 },
+  "scotch-bonnet": { sealed: 7, opened: 3 }, "chinese-cabbage": { sealed: 10, opened: 3 },
+  "chestnut-mushroom": { sealed: 5, opened: 2 }, watercress: { sealed: 3, opened: 2 },
+  "snow-peas": { sealed: 5, opened: 2 }, "little-gem": { sealed: 5, opened: 2 },
   // -- Fruit, fresh unless noted -------------------------------------------------------------
   apple: { sealed: 30, opened: 2 }, banana: { sealed: 5, opened: 1 },
   orange: { sealed: 14, opened: 3 }, clementine: { sealed: 7, opened: 2 },
@@ -948,11 +1196,12 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   fig: { sealed: 3, opened: 2 }, pomegranate: { sealed: 30, opened: 3 },
   avocado: { sealed: 4, opened: 2 }, "coconut-fresh": { sealed: 30, opened: 3 },
   // Bottled, and dried.
-  "lemon-juice": { sealed: 365, opened: 90 },
+  "lemon-juice": { sealed: 365, opened: 90 }, "lime-juice": { sealed: 365, opened: 90 },
   "raisins-dried": { sealed: 180, opened: 90 }, "prunes-dried": { sealed: 180, opened: 90 },
   // -- Grains, dry unless noted --------------------------------------------------------------
   "white-rice": { sealed: 730, opened: 365 }, "basmati-rice": { sealed: 730, opened: 365 },
   "arborio-rice": { sealed: 730, opened: 365 }, "brown-rice": { sealed: 180, opened: 90 },
+  "jasmine-rice": { sealed: 730, opened: 365 }, orzo: { sealed: 730, opened: 365 },
   "pasta-dry": { sealed: 730, opened: 365 }, spaghetti: { sealed: 730, opened: 365 },
   penne: { sealed: 730, opened: 365 }, macaroni: { sealed: 730, opened: 365 },
   "lasagna-sheets": { sealed: 730, opened: 365 }, "rice-noodles": { sealed: 730, opened: 365 },
@@ -968,6 +1217,10 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   baguette: { sealed: 1, opened: 1 },
   "bread-white": { sealed: 14, opened: 7 }, "bread-whole-wheat": { sealed: 14, opened: 7 },
   "tortilla-wrap": { sealed: 30, opened: 7 }, "tortilla-corn": { sealed: 30, opened: 7 },
+  naan: { sealed: 10, opened: 3 }, "burger-bun": { sealed: 14, opened: 5 },
+  ciabatta: { sealed: 3, opened: 2 },
+  // Vacuum-packed, kept in the cupboard until opened.
+  gnocchi: { sealed: 60, opened: 3 },
   // Chilled.
   "fresh-tagliatelle": { sealed: 14, opened: 2 }, "pizza-dough": { sealed: 14, opened: 2 },
   "puff-pastry": { sealed: 14, opened: 2 }, "shortcrust-pastry": { sealed: 14, opened: 2 },
@@ -984,7 +1237,12 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   "pork-roast": { sealed: 3, opened: 2 }, lamb: { sealed: 3, opened: 2 },
   "lamb-leg": { sealed: 3, opened: 2 }, veal: { sealed: 3, opened: 2 },
   "duck-breast": { sealed: 3, opened: 2 },
+  "lamb-mince": { sealed: 2, opened: 1 }, "pork-mince": { sealed: 2, opened: 1 },
+  "chicken-thigh-boneless": { sealed: 2, opened: 1 }, "chicken-tenders": { sealed: 2, opened: 1 },
+  "stewing-beef": { sealed: 3, opened: 2 }, "pork-belly": { sealed: 3, opened: 2 },
+  "lamb-shoulder": { sealed: 3, opened: 2 },
   bacon: { sealed: 7, opened: 5 }, lardons: { sealed: 7, opened: 5 },
+  pancetta: { sealed: 30, opened: 5 },
   // Sliced and cooked, or cured, in a sealed pack.
   ham: { sealed: 14, opened: 3 }, "chicken-slices": { sealed: 14, opened: 3 },
   "turkey-slices": { sealed: 14, opened: 3 }, prosciutto: { sealed: 30, opened: 3 },
@@ -994,11 +1252,11 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   salmon: { sealed: 2, opened: 1 }, cod: { sealed: 2, opened: 1 },
   trout: { sealed: 2, opened: 1 }, mackerel: { sealed: 2, opened: 1 },
   squid: { sealed: 2, opened: 1 }, scallops: { sealed: 2, opened: 1 },
-  mussels: { sealed: 2, opened: 1 },
+  mussels: { sealed: 2, opened: 1 }, haddock: { sealed: 2, opened: 1 },
   // Sold cooked, at the counter or in a tray.
   shrimp: { sealed: 3, opened: 2 },
   // Frozen fillets.
-  tilapia: { sealed: 180, opened: 30 },
+  tilapia: { sealed: 180, opened: 30 }, pollock: { sealed: 180, opened: 30 },
   "salmon-smoked": { sealed: 14, opened: 3 },
   // Tinned.
   "tuna-canned-water": { sealed: 730, opened: 3 }, sardines: { sealed: 730, opened: 3 },
@@ -1017,7 +1275,8 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   // Hard cheeses, vacuum-packed.
   parmesan: { sealed: 180, opened: 30 }, "cheddar-cheese": { sealed: 90, opened: 21 },
   gruyere: { sealed: 90, opened: 21 }, comte: { sealed: 90, opened: 21 },
-  emmental: { sealed: 90, opened: 21 }, "raclette-cheese": { sealed: 30, opened: 14 },
+  emmental: { sealed: 90, opened: 21 }, gouda: { sealed: 90, opened: 21 },
+  "raclette-cheese": { sealed: 30, opened: 14 },
   "blue-cheese": { sealed: 30, opened: 14 }, feta: { sealed: 30, opened: 7 },
   // Soft and fresh cheeses.
   camembert: { sealed: 14, opened: 7 }, brie: { sealed: 14, opened: 7 },
@@ -1027,8 +1286,9 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   "cottage-cheese": { sealed: 7, opened: 5 }, "fromage-blanc": { sealed: 14, opened: 5 },
   // Yogurts and thick creams.
   "plain-yogurt": { sealed: 14, opened: 3 }, "greek-yogurt": { sealed: 14, opened: 5 },
-  "flavoured-yogurt": { sealed: 14, opened: 3 },
+  "flavoured-yogurt": { sealed: 14, opened: 3 }, "yogurt-fat-free": { sealed: 14, opened: 3 },
   "heavy-cream": { sealed: 14, opened: 5 }, "creme-fraiche": { sealed: 14, opened: 5 },
+  "creme-fraiche-light": { sealed: 14, opened: 5 },
   "sour-cream": { sealed: 14, opened: 7 },
   // -- Eggs ----------------------------------------------------------------------------------
   // In the shell; `opened` is a cracked egg. Whites come as a chilled carton, yolks are separated
@@ -1043,6 +1303,7 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   // Dry.
   "lentils-red": { sealed: 365, opened: 365 }, "lentils-green": { sealed: 365, opened: 365 },
   "split-peas": { sealed: 365, opened: 365 }, soybeans: { sealed: 365, opened: 365 },
+  "chickpea-flour": { sealed: 365, opened: 180 },
   // Frozen.
   edamame: { sealed: 240, opened: 90 },
   // -- Nuts and seeds ------------------------------------------------------------------------
@@ -1064,6 +1325,7 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   tarragon: { sealed: 7, opened: 3 }, sage: { sealed: 7, opened: 5 },
   "oregano-fresh": { sealed: 7, opened: 5 }, thyme: { sealed: 10, opened: 7 },
   rosemary: { sealed: 14, opened: 7 }, lemongrass: { sealed: 14, opened: 7 },
+  "curry-leaves": { sealed: 14, opened: 7 }, "bouquet-garni": { sealed: 7, opened: 5 },
   // -- Spices and dried herbs: two years sealed, one once opened, whatever the spice --------
   "black-pepper": { sealed: 730, opened: 365 }, cinnamon: { sealed: 730, opened: 365 },
   cumin: { sealed: 730, opened: 365 }, paprika: { sealed: 730, opened: 365 },
@@ -1082,17 +1344,30 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   "dried-dill": { sealed: 730, opened: 365 }, "dried-mint": { sealed: 730, opened: 365 },
   "dried-chives": { sealed: 730, opened: 365 }, "dried-tarragon": { sealed: 730, opened: 365 },
   "garlic-powder": { sealed: 730, opened: 365 }, "onion-powder": { sealed: 730, opened: 365 },
+  "chili-flakes": { sealed: 730, opened: 365 }, "cinnamon-stick": { sealed: 730, opened: 365 },
+  "white-pepper": { sealed: 730, opened: 365 }, "mustard-powder": { sealed: 730, opened: 365 },
+  allspice: { sealed: 730, opened: 365 }, "quatre-epices": { sealed: 730, opened: 365 },
+  "star-anise": { sealed: 730, opened: 365 }, "coriander-seeds": { sealed: 730, opened: 365 },
   // -- Oils ----------------------------------------------------------------------------------
   "olive-oil": { sealed: 540, opened: 90 }, "coconut-oil": { sealed: 540, opened: 365 },
   "vegetable-oil": { sealed: 365, opened: 180 }, "canola-oil": { sealed: 365, opened: 180 },
   "sunflower-oil": { sealed: 365, opened: 180 }, "sesame-oil": { sealed: 365, opened: 180 },
+  "peanut-oil": { sealed: 365, opened: 180 },
+  // A nut oil turns rancid within months of opening, as `walnuts` does.
+  "hazelnut-oil": { sealed: 365, opened: 90 },
   ghee: { sealed: 270, opened: 90 },
   // -- Condiments ----------------------------------------------------------------------------
   // Keeps indefinitely; ten years stands in for "never".
   salt: { sealed: 3650, opened: 3650 },
   "vinegar-white": { sealed: 730, opened: 730 }, "vinegar-red-wine": { sealed: 730, opened: 730 },
   "balsamic-vinegar": { sealed: 730, opened: 730 }, "rice-vinegar": { sealed: 730, opened: 730 },
+  "cider-vinegar": { sealed: 730, opened: 730 }, "white-wine-vinegar": { sealed: 730, opened: 730 },
+  "sherry-vinegar": { sealed: 730, opened: 730 },
   "soy-sauce": { sealed: 730, opened: 365 }, "fish-sauce": { sealed: 730, opened: 365 },
+  "soy-sauce-reduced-salt": { sealed: 730, opened: 365 }, tamari: { sealed: 730, opened: 365 },
+  mirin: { sealed: 730, opened: 180 }, sriracha: { sealed: 365, opened: 180 },
+  "sweet-chili-sauce": { sealed: 365, opened: 180 }, "mango-chutney": { sealed: 365, opened: 90 },
+  "tamarind-paste": { sealed: 365, opened: 90 }, "curry-paste-green": { sealed: 365, opened: 30 },
   "worcestershire-sauce": { sealed: 730, opened: 365 },
   ketchup: { sealed: 365, opened: 180 }, "mustard-yellow": { sealed: 365, opened: 180 },
   "mustard-wholegrain": { sealed: 365, opened: 180 }, "hot-sauce": { sealed: 365, opened: 180 },
@@ -1115,6 +1390,7 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   // Liquid, in a carton; and dry cubes.
   "vegetable-broth": { sealed: 365, opened: 3 }, "chicken-broth": { sealed: 365, opened: 3 },
   "beef-broth": { sealed: 365, opened: 3 }, "bouillon-cube": { sealed: 365, opened: 365 },
+  "vegetable-stock-cube": { sealed: 365, opened: 365 }, "veal-stock-powder": { sealed: 365, opened: 180 },
   // Shelf-stable cartons.
   "soy-milk": { sealed: 180, opened: 7 }, "almond-milk": { sealed: 180, opened: 7 },
   "oat-milk": { sealed: 180, opened: 7 },
@@ -1125,6 +1401,7 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   // Tins, jars and bottles.
   "canned-tomatoes": { sealed: 365, opened: 5 }, passata: { sealed: 365, opened: 5 },
   "tomato-sauce": { sealed: 365, opened: 5 }, "coconut-milk": { sealed: 730, opened: 3 },
+  "coconut-milk-light": { sealed: 730, opened: 3 },
   "olives-green": { sealed: 365, opened: 14 }, "olives-black": { sealed: 365, opened: 14 },
   capers: { sealed: 365, opened: 90 }, pickles: { sealed: 365, opened: 30 },
   // Wine is ordinary table wine, corked back and kept in the fridge once opened.
@@ -1137,7 +1414,7 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   "dry-yeast": { sealed: 365, opened: 120 }, gelatin: { sealed: 730, opened: 365 },
   "dark-chocolate": { sealed: 365, opened: 180 }, "milk-chocolate": { sealed: 180, opened: 90 },
   "cocoa-powder": { sealed: 730, opened: 365 }, "vanilla-extract": { sealed: 730, opened: 730 },
-  "peanut-butter": { sealed: 180, opened: 60 },
+  "peanut-butter": { sealed: 180, opened: 60 }, "nutritional-yeast": { sealed: 730, opened: 365 },
 };
 
 /**
@@ -1195,6 +1472,8 @@ const DIET: Record<string, Diet> = {
   // Egg in the pasta, butter in the pastry, honey in the granola.
   "fresh-tagliatelle": "vegetarian", "egg-noodles": "vegetarian", "puff-pastry": "vegetarian",
   "shortcrust-pastry": "vegetarian", granola: "vegetarian",
+  // Yogurt or milk in the naan and the bun, egg in the gnocchi on most French shelves.
+  naan: "vegetarian", "burger-bun": "vegetarian", gnocchi: "vegetarian",
 
   // -- Condiments: the category proves nothing -----------------------------------------------
   // Worcestershire is anchovy and mayonnaise is egg; neither is legible from "CONDIMENT".
@@ -1209,7 +1488,10 @@ const DIET: Record<string, Diet> = {
   "preserved-lemon": "vegan",
   // Both read as a plant sauce and are not one: oyster sauce is oyster extract, and Thai red curry
   // paste is built on shrimp paste in every jar not explicitly labelled otherwise.
-  "oyster-sauce": "pescatarian", "curry-paste-red": "pescatarian",
+  "oyster-sauce": "pescatarian", "curry-paste-red": "pescatarian", "curry-paste-green": "pescatarian",
+  "soy-sauce-reduced-salt": "vegan", tamari: "vegan", "cider-vinegar": "vegan",
+  "white-wine-vinegar": "vegan", "sherry-vinegar": "vegan", "tamarind-paste": "vegan",
+  sriracha: "vegan", mirin: "vegan", "sweet-chili-sauce": "vegan", "mango-chutney": "vegan",
   // Parmesan in the jar, in every recipe and on every label that calls itself pesto.
   pesto: "vegetarian",
 
@@ -1229,9 +1511,11 @@ const DIET: Record<string, Diet> = {
   "soy-milk": "vegan", "tofu-silken": "vegan", nori: "vegan", "orange-blossom-water": "vegan",
   pickles: "vegan", "coffee-ground": "vegan", "black-tea": "vegan", "orange-juice": "vegan",
   "apple-juice": "vegan", "white-wine": "vegan", "red-wine": "vegan", beer: "vegan",
-  "milk-chocolate": "vegetarian",
+  "milk-chocolate": "vegetarian", "vegetable-stock-cube": "vegan", "nutritional-yeast": "vegan",
+  "coconut-milk-light": "vegan",
   // Stock from an animal, and a setting agent made of its collagen. Both read as "OTHER".
   "chicken-broth": "omnivore", "beef-broth": "omnivore", gelatin: "omnivore",
+  "veal-stock-powder": "omnivore",
   // A generic cube is built on poultry or beef fat far more often than not, and the direction to
   // be wrong in is the one that does not serve a vegetarian a stock they would refuse.
   "bouillon-cube": "omnivore",
@@ -1274,7 +1558,10 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   barley: ["gluten"], oats: ["gluten"], granola: ["gluten"],
   "flour-all-purpose": ["gluten"], "whole-wheat-flour": ["gluten"], breadcrumbs: ["gluten"],
   "bread-white": ["gluten"], "bread-whole-wheat": ["gluten"], baguette: ["gluten"],
-  "tortilla-wrap": ["gluten"], "pizza-dough": ["gluten"],
+  "tortilla-wrap": ["gluten"], "pizza-dough": ["gluten"], orzo: ["gluten"], ciabatta: ["gluten"],
+  // Yogurt in the naan; milk and the sesame on top of most buns, egg in most gnocchi. Not on every
+  // packet, and the direction to be wrong in is the one that withholds a free-from tag.
+  naan: ["gluten", "milk"], "burger-bun": ["gluten", "milk", "sesame"], gnocchi: ["gluten", "eggs"],
   // Barley malt extract is what keeps cornflakes off a gluten-free table, despite the corn.
   "cereal-cornflakes": ["gluten"],
   // Egg in the dough, butter in the pastry.
@@ -1284,24 +1571,26 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   // -- Fish, crustaceans and molluscs: three separate EU allergens, not one "seafood" --------
   salmon: ["fish"], "tuna-canned-water": ["fish"], cod: ["fish"], tilapia: ["fish"],
   sardines: ["fish"], trout: ["fish"], mackerel: ["fish"], anchovy: ["fish"],
-  "salmon-smoked": ["fish"],
+  "salmon-smoked": ["fish"], haddock: ["fish"], pollock: ["fish"],
   // Anchovy, fermented — the sauce the DIET map above also singles out.
   "fish-sauce": ["fish"],
   shrimp: ["crustaceans"], crab: ["crustaceans"],
   mussels: ["molluscs"], scallops: ["molluscs"], squid: ["molluscs"],
-  "oyster-sauce": ["molluscs"], "curry-paste-red": ["crustaceans"],
+  "oyster-sauce": ["molluscs"], "curry-paste-red": ["crustaceans"], "curry-paste-green": ["crustaceans"],
 
   // -- Tree nuts, and the rows that are not tree nuts ----------------------------------------
   almonds: ["nuts"], "almonds-flaked": ["nuts"], walnuts: ["nuts"], cashews: ["nuts"],
   pistachios: ["nuts"],
   pecans: ["nuts"], hazelnuts: ["nuts"], macadamia: ["nuts"], "brazil-nuts": ["nuts"],
   "almond-milk": ["nuts"],
+  // A cold-pressed nut oil keeps the protein a refined one loses, and is sold cold-pressed.
+  "hazelnut-oil": ["nuts"],
   // A pine nut is a seed and is not on the EU-14, but it is sold, stored and reacted to as a nut.
   // Listed, because the direction to be wrong in is the one that WITHHOLDS `nut-free`.
   "pine-nuts": ["nuts"],
   // A peanut is a legume. Its own allergen, and someone allergic to tree nuts is often fine with
   // it - which is why `nut-free` withholds on either and the two are still recorded apart.
-  peanuts: ["peanuts"], "peanut-butter": ["peanuts"],
+  peanuts: ["peanuts"], "peanut-butter": ["peanuts"], "peanut-oil": ["peanuts"],
   // Coconut is not an EU-14 nut: `coconut-fresh` and `coconut-milk` deliberately carry nothing.
 
   // -- Soy, sesame, celery, mustard ----------------------------------------------------------
@@ -1312,12 +1601,16 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   celery: ["celery"],
   // Stock, in a cube or a carton, is built on celery almost without exception.
   "vegetable-broth": ["celery"], "chicken-broth": ["celery"], "beef-broth": ["celery"],
-  "bouillon-cube": ["celery"],
+  "bouillon-cube": ["celery"], "vegetable-stock-cube": ["celery"],
+  // Wheat flour thickens a fond, and celery flavours it.
+  "veal-stock-powder": ["celery", "gluten"],
   "mustard-yellow": ["mustard"], "mustard-wholegrain": ["mustard"], "mustard-seeds": ["mustard"],
+  "mustard-powder": ["mustard"],
 
   // -- Everything else -----------------------------------------------------------------------
-  // Brewed from wheat, and fermented from soy.
-  "soy-sauce": ["gluten", "soybeans"],
+  // Brewed from wheat, and fermented from soy. Tamari is the one brewed without the wheat.
+  "soy-sauce": ["gluten", "soybeans"], "soy-sauce-reduced-salt": ["gluten", "soybeans"],
+  tamari: ["soybeans"],
   // Anchovy, malt vinegar and soy - the sauce that is three allergens and reads as none.
   "worcestershire-sauce": ["fish", "gluten", "soybeans"],
   mayonnaise: ["eggs"],
@@ -1332,18 +1625,27 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   "dark-chocolate": ["soybeans"], "milk-chocolate": ["milk", "soybeans"],
   // Preserved with sulphur dioxide, and declared as such on every bottle.
   "white-wine": ["sulphites"], "red-wine": ["sulphites"], "balsamic-vinegar": ["sulphites"],
-  "vinegar-red-wine": ["sulphites"],
+  "vinegar-red-wine": ["sulphites"], "white-wine-vinegar": ["sulphites"],
+  "sherry-vinegar": ["sulphites"], "cider-vinegar": ["sulphites"],
+  // Sodium bisulphite, on the bottle that named the sauce.
+  sriracha: ["sulphites"],
   beer: ["gluten", "sulphites"],
 };
 
 /**
  * A name that already says its form, or is a whole part rather than the spice itself.
  *
+ * The whole parts include a stick, a flake, a star and a tied bundle: the spice sold uncut and the
+ * herbs sold tied. Their row is not the ground spice, so without the word here `_formsSoldAs`
+ * would give a cinnamon stick "bâton de cannelle en poudre", and the matcher, which reads a form
+ * word as identity, would file the whole stick as a powder.
+ *
  * Keyed by `Locale`, like `FORM_SPELLINGS`, so a new language cannot be forgotten here either.
  */
 const _NAMES_A_FORM: Record<Locale, RegExp> = {
-  fr: /poudre|moulu|s[ée]ch|graine|feuille/i,
-  en: /powder|ground|dried|seed|leaf/i,
+  fr: /poudre|moulu|s[ée]ch|graine|feuille|b[âa]ton|flocon|[ée]toil|bouquet/i,
+  // `\bstar\b` and not `star`, which is inside "mustard".
+  en: /powder|ground|dried|seed|leaf|stick|flake|\bstar\b|bouquet/i,
 };
 
 /**
@@ -1379,7 +1681,7 @@ const FORM_SPELLINGS: Record<Locale, Record<"ground" | "dried" | "leaves", (name
  * product, two to three times as dense, and must not land on them.
  */
 const SOLD_DRY = new Set([
-  "white-rice", "brown-rice", "basmati-rice", "arborio-rice", "pasta-dry", "whole-wheat-pasta",
+  "white-rice", "brown-rice", "basmati-rice", "arborio-rice", "jasmine-rice", "orzo", "pasta-dry", "whole-wheat-pasta",
   "spaghetti", "penne", "macaroni", "rice-noodles", "egg-noodles", "quinoa", "couscous", "barley",
   "bulgur", "lentils-red", "lentils-green", "split-peas", "soybeans",
 ]);
