@@ -354,6 +354,28 @@ export const withAlias = (
 };
 
 /**
+ * Many more spellings on a row that already exists — `withAlias` folded over `words`, so each
+ * refusal it makes (a word the row holds, a full locale) applies word by word. For `mergeIngredient`,
+ * which hands one row every word another row was found by.
+ *
+ * `undefined` when not one of them was new, for the reason `withAlias` gives.
+ */
+export const withAliases = (
+  doc: Doc<"ingredients">,
+  words: LocalizedList,
+): Pick<IngredientRow, "aliases" | "search"> | undefined => {
+  let grown: Pick<IngredientRow, "aliases" | "search"> | undefined;
+
+  for (const locale of LOCALES) {
+    for (const word of words[locale] ?? []) {
+      grown = withAlias({ ...doc, ...grown }, word, locale) ?? grown;
+    }
+  }
+
+  return grown;
+};
+
+/**
  * The catalog's aliases for a row, plus the ones the app LEARNED for it — what a re-seed must
  * write instead of the catalog's list alone.
  *

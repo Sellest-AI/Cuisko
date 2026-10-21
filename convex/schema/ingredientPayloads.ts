@@ -131,3 +131,30 @@ export type PortableIngredient = Infer<typeof vPortableIngredient>;
 export const vRestoredIngredientImage = v.optional(v.object({ image: v.string(), base: v.string() }));
 
 export type RestoredIngredientImage = Infer<typeof vRestoredIngredientImage>;
+
+/**
+ * What repointing recipe lines from one catalog row to another reports — `ReplaceOutcome` in
+ * `functions/ingredients/replaceInRecipes`. Here rather than in its router file because
+ * `mergeIngredient` returns it too, and two copies of the field list are two `returns` that drift.
+ */
+const replaceOutcomeFields = {
+  linesMoved: v.number(),
+  recipesRefreshed: v.number(),
+  recipesSkipped: v.array(v.id("recipes")),
+  recipesWithMergedLines: v.array(v.id("recipes")),
+  deleted: v.boolean(),
+  keptBecause: v.array(v.string()),
+};
+
+export const vReplaceOutcome = v.object(replaceOutcomeFields);
+
+/** The same, plus every other table `mergeIngredient` moves — `MergeOutcome`. */
+export const vMergeOutcome = v.object({
+  ...replaceOutcomeFields,
+  cellarItemsMoved: v.number(),
+  groceryListItemsMoved: v.number(),
+  plannedMealIngredientsMoved: v.number(),
+  recentlyUsedMoved: v.number(),
+  recentlyUsedDropped: v.number(),
+  aliasesCarried: v.number(),
+});

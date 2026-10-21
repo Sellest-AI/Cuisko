@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { replaceInRecipes } from "@convex/functions/ingredients/replaceInRecipes";
 import { internalMutation } from "@convex/procedures";
+import { vReplaceOutcome } from "@convex/schema/ingredientPayloads";
 
 /**
  * Moves the named recipe lines from one catalog row to another, refreshes the recipes they belong
@@ -16,13 +17,6 @@ export const _internal = internalMutation({
     to: v.id("ingredients"),
     lineIds: v.array(v.id("recipeIngredients")),
   },
-  returns: v.object({
-    linesMoved: v.number(),
-    recipesRefreshed: v.number(),
-    recipesSkipped: v.array(v.id("recipes")),
-    recipesWithMergedLines: v.array(v.id("recipes")),
-    deleted: v.boolean(),
-    keptBecause: v.array(v.string()),
-  }),
+  returns: vReplaceOutcome,
   handler: (ctx, args) => replaceInRecipes(ctx, args),
 });

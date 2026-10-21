@@ -98,6 +98,7 @@ import type * as functions_ingredients_lookup_lookupHit from "../functions/ingre
 import type * as functions_ingredients_lookup_openFoodFacts from "../functions/ingredients/lookup/openFoodFacts.js";
 import type * as functions_ingredients_lookup_taxonomy from "../functions/ingredients/lookup/taxonomy.js";
 import type * as functions_ingredients_matchIngredient from "../functions/ingredients/matchIngredient.js";
+import type * as functions_ingredients_mergeIngredient from "../functions/ingredients/mergeIngredient.js";
 import type * as functions_ingredients_missingIngredientIds from "../functions/ingredients/missingIngredientIds.js";
 import type * as functions_ingredients_persistRestoredIngredient from "../functions/ingredients/persistRestoredIngredient.js";
 import type * as functions_ingredients_rememberAlias from "../functions/ingredients/rememberAlias.js";
@@ -260,6 +261,7 @@ import type * as router_ingredients_generateImage from "../router/ingredients/ge
 import type * as router_ingredients_generateImageNode from "../router/ingredients/generateImageNode.js";
 import type * as router_ingredients_getIngredient from "../router/ingredients/getIngredient.js";
 import type * as router_ingredients_list from "../router/ingredients/list.js";
+import type * as router_ingredients_mergeIngredient from "../router/ingredients/mergeIngredient.js";
 import type * as router_ingredients_missingIds from "../router/ingredients/missingIds.js";
 import type * as router_ingredients_replaceInRecipes from "../router/ingredients/replaceInRecipes.js";
 import type * as router_ingredients_resolve from "../router/ingredients/resolve.js";
@@ -432,6 +434,7 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/lookup/openFoodFacts": typeof functions_ingredients_lookup_openFoodFacts;
   "functions/ingredients/lookup/taxonomy": typeof functions_ingredients_lookup_taxonomy;
   "functions/ingredients/matchIngredient": typeof functions_ingredients_matchIngredient;
+  "functions/ingredients/mergeIngredient": typeof functions_ingredients_mergeIngredient;
   "functions/ingredients/missingIngredientIds": typeof functions_ingredients_missingIngredientIds;
   "functions/ingredients/persistRestoredIngredient": typeof functions_ingredients_persistRestoredIngredient;
   "functions/ingredients/rememberAlias": typeof functions_ingredients_rememberAlias;
@@ -594,6 +597,7 @@ declare const fullApi: ApiFromModules<{
   "router/ingredients/generateImageNode": typeof router_ingredients_generateImageNode;
   "router/ingredients/getIngredient": typeof router_ingredients_getIngredient;
   "router/ingredients/list": typeof router_ingredients_list;
+  "router/ingredients/mergeIngredient": typeof router_ingredients_mergeIngredient;
   "router/ingredients/missingIds": typeof router_ingredients_missingIds;
   "router/ingredients/replaceInRecipes": typeof router_ingredients_replaceInRecipes;
   "router/ingredients/resolve": typeof router_ingredients_resolve;
