@@ -53,7 +53,8 @@ const main = async () => {
       // A plate whose base is gone is dropped whole, so its cut-out, downloaded, must go too.
       const kept = new Set(imageFilesOf(recipes[folder], folder));
       for (const file of files) if (!kept.has(file.file)) delete images[file.file];
-      console.log(`  ${folder}/ · ${kept.size} image(s)`);
+      // @limitation No total: the catalog is read a page at a time, and nothing counts it up front.
+      console.log(`  [${Object.keys(recipes).length}] ${folder}/ · ${kept.size} image(s)`);
     }
   }
 

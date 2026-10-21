@@ -60,8 +60,11 @@ const main = async () => {
 
   console.log(`Restoring ${recipes.length} recipe(s) exported from ${manifest.deployment} into ${admin.deployment}.`);
 
-  for (const unpacked of recipes) {
+  const total = String(recipes.length);
+  for (const [index, unpacked] of recipes.entries()) {
     const { folder, recipe } = unpacked;
+    // Padded to the total's width, so the folders line up down the run.
+    const progress = `[${String(index + 1).padStart(total.length)}/${total}]`;
     const sourceUrl = recipe.row.sourceUrl;
     const known = sourceUrl ? ledger.recipes[sourceUrl] : undefined;
     const landedHere = known?.imports.some((landed) => landed.deployment === admin.deployment) ?? false;
@@ -72,9 +75,10 @@ const main = async () => {
     // this one replaces, which only the server can tell (`restoreReplaces`).
     if (known?.status === "excluded" || (landedHere && !exportCanUpgrade(recipe.row.status))) {
       run.skipped++;
+      console.log(`  ${progress} skipped ${folder}/ (${known?.status === "excluded" ? "excluded" : "already restored here"})`);
       continue;
     }
-    if (!sourceUrl) console.log(`  ! ${folder}/ has no sourceUrl: a second restore would duplicate it`);
+    if (!sourceUrl) console.log(`  ${progress} ! ${folder}/ has no sourceUrl: a second restore would duplicate it`);
 
     // Asked before sending the photos: a page the catalog holds and keeps costs nothing, and a ledger
     // entry that did not know it landed here (one from another machine) is repaired from the answer.
@@ -97,7 +101,7 @@ const main = async () => {
     } catch (error) {
       // One recipe that fails does not stop the zip: the rest land, and a re-run retries this one.
       run.failed++;
-      console.error(`  ✗ ${folder}/ failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(`  ${progress} ✗ ${folder}/ failed: ${error instanceof Error ? error.message : String(error)}`);
       continue;
     }
     const { recipeId, created, replaced, unmatched } = restored;
@@ -113,7 +117,7 @@ const main = async () => {
     else run.existing++;
     run.unmatched += unmatched.length;
     console.log(
-      `  ${created ? "restored" : replaced ? "upgraded" : "already there"} ${folder}/` +
+      `  ${progress} ${created ? "restored" : replaced ? "upgraded" : "already there"} ${folder}/` +
         (unmatched.length ? ` · ${unmatched.length} line(s) unmatched: ${unmatched.join(", ")}` : ""),
     );
   }
