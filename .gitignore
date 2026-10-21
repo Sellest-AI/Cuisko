@@ -49,3 +49,6 @@ convex/agent/__bench__/runs/
 
 # Extracted video frames (scripts/videos/extract-frames.ts)
 assets/videos/frames/
+
+# The release deploy key (docs/external/deployments.md): its private half lives in a GitHub secret only.
+cuisko-release*

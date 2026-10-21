@@ -21,6 +21,8 @@ name: Deploy
 #   CONVEX_DEPLOY_KEY_DEV   dev deployment key (Convex dashboard → dev → Settings → Deploy keys)
 #   CONVEX_DEPLOY_KEY_PROD  prod deployment key (same page, on the prod deployment)
 #   EXPO_TOKEN              expo.dev → Account settings → Access tokens
+#   RELEASE_DEPLOY_KEY      private half of the repo's write deploy key (Settings → Deploy keys);
+#                           the only credential the `protect-main` ruleset lets push to main
 #
 # Each channel reads its own Convex deployment, through its EAS environment's
 # EXPO_PUBLIC_CONVEX_URL. Where each lives: docs/external/deployments.md.
@@ -33,6 +35,8 @@ on:
       CONVEX_DEPLOY_KEY_PROD:
         required: true
       EXPO_TOKEN:
+        required: true
+      RELEASE_DEPLOY_KEY:
         required: true
   workflow_dispatch:
     inputs:
@@ -70,6 +74,9 @@ jobs:
         with:
           # The whole history: the bump reads every commit since the last v* tag.
           fetch-depth: 0
+          # The release push goes through this key: `protect-main` takes changes to main by pull
+          # request only, and refuses the workflow's own token. Deploy keys are on its bypass list.
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -181,7 +188,8 @@ jobs:
             # that already passed on this same tree, two version strings aside.
             git -c core.hooksPath=/dev/null commit -m "chore(release): $version"
           fi
-          # Pushed with the workflow's own token, which never triggers another workflow run.
+          # Pushed with the deploy key (see the checkout). Unlike the workflow's own token, a key's
+          # push starts CI again: that run finds this release's build queued and ships an update.
           git tag "v$version"
           git push origin HEAD:main "v$version"
           # dev must carry the release commit too, or the next dev → main merge fights over the

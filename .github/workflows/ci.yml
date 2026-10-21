@@ -36,3 +36,4 @@ jobs:
       CONVEX_DEPLOY_KEY_DEV: ${{ secrets.CONVEX_DEPLOY_KEY_DEV }}
       CONVEX_DEPLOY_KEY_PROD: ${{ secrets.CONVEX_DEPLOY_KEY_PROD }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      RELEASE_DEPLOY_KEY: ${{ secrets.RELEASE_DEPLOY_KEY }}

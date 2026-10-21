@@ -26,20 +26,32 @@ where, and only as far as where to look: see [the rule](./README.md#the-rule).
 
 GitHub Actions secrets, by name, read by `.github/workflows/deploy.yml`:
 
-| Secret                   | Where it comes from                              |
-| ------------------------ | ------------------------------------------------ |
-| `CONVEX_DEPLOY_KEY_DEV`  | Convex dashboard → dev → Settings → Deploy keys  |
-| `CONVEX_DEPLOY_KEY_PROD` | Convex dashboard → prod → Settings → Deploy keys |
-| `EXPO_TOKEN`             | expo.dev → Account settings → Access tokens      |
+| Secret                   | Where it comes from                                                 |
+| ------------------------ | ------------------------------------------------------------------- |
+| `CONVEX_DEPLOY_KEY_DEV`  | Convex dashboard → dev → Settings → Deploy keys                     |
+| `CONVEX_DEPLOY_KEY_PROD` | Convex dashboard → prod → Settings → Deploy keys                    |
+| `EXPO_TOKEN`             | expo.dev → Account settings → Access tokens                         |
+| `RELEASE_DEPLOY_KEY`     | private half of GitHub → Settings → Deploy keys → `release` (write) |
 
 Each Convex key carries `deployment:deploy` only: it can push functions, never read data or env.
+
+**Why a deploy key.** A store release commits the version bump and pushes it to `main`, and the
+`protect-main` ruleset takes changes to `main` only through a pull request. The workflow's own token
+cannot bypass it (GitHub Actions is not a bypass actor), so the release pushes through the deploy
+key, and **Deploy keys** sit on the ruleset's bypass list. Deploy keys are off by default in the
+Sellest-AI organization; they were enabled for this. Anyone holding the key can push to `main`, so
+rotate it (new key, new secret, old key deleted) if it may have leaked. Generate it outside the
+repository: the private half must never sit in the working tree, and `.gitignore` refuses
+`cuisko-release*` as a guard.
 
 ## iOS signing
 
 Everything an iOS build signs with is stored on EAS (`npx eas credentials --platform ios`):
 
-- The distribution certificate and the App Store provisioning profile; the development profile is
-  ad hoc, tied to the registered iPhone.
+- The distribution certificate, and an App Store provisioning profile per target: the app
+  (`com.cuisko.app`), the share extension and the widget (`com.cuisko.app.ExpoWidgetsTarget`). The
+  development profiles are ad hoc, tied to the registered iPhone. A new extension target needs its
+  own profile, made the same way as a new capability below.
 - An App Store Connect API key, assigned to the app for EAS Submit.
 
 **CI builds with `--non-interactive`, so it cannot log in to Apple.** It signs with what EAS
