@@ -50,6 +50,10 @@ is a rewrite for one side. One file, one screen or a dep bump needs none. Its sl
 a slice found mid-build gets one before it is built, and each is ticked when it is completed. The
 plan file is deleted once every box is ticked, before merging.
 
+**Every new plan goes through the review loop** (`docs/plans/README.md`) before the user sees it:
+`plan-reviewer` re-runs on each revision until `READY`, and the questions neither of you can settle
+reach the user once, in one batch, at the end. Then the user agrees the plan.
+
 Before adding a helper, hook or component, search for one that already exists —
 `docs/CONVENTIONS.md` says where it would live. If it does, call it. If you are about to write the
 second copy of the same logic, propose extracting it — never paste it, never refactor the first
@@ -363,7 +367,7 @@ prompt. Every spawn must therefore include:
 lives in the definition instead of the prompt — a stable prefix the model caches, rather than one you
 retype and drift from each time — and the definition pins the model and the tool list, so a
 table-checking pass is not paying for a reasoning model with a shell it does not need.
-`architecture-reviewer` is the one that exists; it is the shape to copy.
+`architecture-reviewer` and `plan-reviewer` are the two that exist; they are the shape to copy.
 
 Prefer read-only sub-agents for investigation and keep edits in the main thread, so changes stay
 reviewable in one place. When several sub-agents will edit, give each a disjoint set of files.
