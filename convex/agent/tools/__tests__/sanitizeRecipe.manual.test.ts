@@ -47,6 +47,7 @@ import { sanitizeRecipePrompt } from "../../config/prompts/sanitizeRecipe";
  */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6-luna", modes: ["medium"] }, // BEST ONE !
+  // { name: "deepseek/deepseek-v4.1-flash-1017", modes: ["low", "high"] },
   // { name: "anthropic/claude-haiku-5.5", modes: ["low", "medium"] },
   // { name: "openai/gpt-5.6-luna", modes: ["medium"] },
   // { name: "deepseek/deepseek-v4-flash-0731", modes: [false] },

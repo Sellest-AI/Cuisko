@@ -18,7 +18,12 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/restoreOne."))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/recipes/restoreOne.") ||
+          path.startsWith("/convex/router/recipes/importOne.") ||
+          path.startsWith("/convex/router/ingredients/resolve."),
+      )
       .map(([, load]) => load()),
   ),
 );
@@ -297,5 +302,145 @@ describe("persistRestoredRecipe", () => {
     const { recipe } = await loadRestored(first.recipeId);
     expect(recipe.sourceUrl).toBe("https://example.com/soupe");
     expect(second).toEqual({ recipeId: first.recipeId, created: false });
+  });
+
+  /**
+   * A recipe verified on one deployment, restored onto another that imported the same page and
+   * never verified it: the review wins, on the row meal plans and favorites already point at.
+   */
+  test("replaces a generated recipe in place with a reviewed export: same id, its text, links and status", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot, seeds.onion]);
+    const exported = await exportFirst();
+    const targetSeeds = await seedCatalog(target);
+    const first = await persist(exported, { links: linksOnto(exported, [targetSeeds.carrot, targetSeeds.onion]) });
+    const before = await loadRestored(first.recipeId);
+
+    const reviewed: PortableRecipe = {
+      ...exported,
+      row: {
+        ...exported.row,
+        status: "reviewed",
+        title: { values: { fr: "Soupe de carottes", en: "Carrot soup" }, meta: {} },
+        tags: ["vegan"],
+        servings: 2,
+      },
+    };
+    const second = await persist(reviewed, { links: linksOnto(reviewed, [targetSeeds.carrot]), unmatched: ["persil"] });
+    const { recipe, lines } = await loadRestored(first.recipeId);
+    const recipes = await target.run((ctx) => ctx.db.query("recipes").withIndex("by_user").collect());
+
+    expect(second).toEqual({ recipeId: first.recipeId, created: false, replaced: true });
+    expect(recipes).toHaveLength(1);
+    expect(recipe).toMatchObject({
+      status: "reviewed",
+      title: reviewed.row.title,
+      tags: ["vegan"],
+      ...facetsOf(["vegan"]),
+      servings: 2,
+      shuffleKey: before.recipe.shuffleKey,
+      isArchived: false,
+    });
+    expect(recipe.search.fr).toContain("persil");
+    // The carrot line kept its row; the onion line, gone from the export, lost its own.
+    expect(lines.map((line) => line._id)).toEqual([before.lines[0]!._id]);
+  });
+
+  test("swaps in the uploaded photos on a replace, and queues the old ones for deletion", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot]);
+    const exported = await exportFirst();
+    const oldCover = await insertImage(target, "old-cover.webp");
+    const oldPlate = await insertImage(target, "old-plate.png");
+    const { recipeId } = await persist(exported, { coverImageId: oldCover, plateImageId: oldPlate });
+
+    const newCover = await insertImage(target, "new-cover.webp");
+    const newPlate = await insertImage(target, "new-plate.png");
+    await persist(
+      { ...exported, row: { ...exported.row, status: "reviewed" } },
+      { coverImageId: newCover, plateImageId: newPlate },
+    );
+    const { recipe, scheduled } = await loadRestored(recipeId);
+
+    expect([recipe.coverImageId, recipe.plateImageId]).toEqual([newCover, newPlate]);
+    const jobs = scheduled.map((job) => job.args[0]);
+    expect(jobs).toContainEqual({ imageId: oldCover });
+    expect(jobs).toContainEqual({ imageId: oldPlate });
+    expect(jobs).not.toContainEqual({ recipeId });
+  });
+
+  test("keeps the old photo on a replace when its new one did not arrive", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot]);
+    const exported = await exportFirst();
+    const oldCover = await insertImage(target, "old-cover.webp");
+    const oldPlate = await insertImage(target, "old-plate.png");
+    const { recipeId } = await persist(exported, { coverImageId: oldCover, plateImageId: oldPlate });
+
+    const newCover = await insertImage(target, "new-cover.webp");
+    await persist({ ...exported, row: { ...exported.row, status: "edited" } }, { coverImageId: newCover });
+    const { recipe, scheduled } = await loadRestored(recipeId);
+
+    expect([recipe.coverImageId, recipe.plateImageId]).toEqual([newCover, oldPlate]);
+    const jobs = scheduled.map((job) => job.args[0]);
+    expect(jobs).not.toContainEqual({ imageId: oldPlate });
+    expect(jobs).not.toContainEqual({ recipeId });
+  });
+
+  /** As a new recipe does: the catalog ends up whole, whichever path wrote the row. */
+  test("schedules the photos on a replace when the row is still missing one", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot]);
+    const exported = await exportFirst();
+    const { recipeId } = await persist(exported, { coverImageId: await insertImage(target, "old-cover.webp") });
+    const generations = async () =>
+      (await loadRestored(recipeId)).scheduled.filter((job) => job.args[0]?.recipeId === recipeId).length;
+    const before = await generations();
+
+    await persist({ ...exported, row: { ...exported.row, status: "reviewed" } });
+
+    expect(await generations()).toBe(before + 1);
+  });
+
+  /** An upgrade is a decision to show the reviewed recipe, so an archived copy comes back live. */
+  test("brings an archived generated recipe back live when it is replaced", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot]);
+    const exported = await exportFirst();
+    const { recipeId } = await persist(exported);
+    await target.run((ctx) => ctx.db.patch(recipeId, { isArchived: true }));
+
+    const second = await persist({ ...exported, row: { ...exported.row, status: "reviewed" } });
+    const { recipe } = await loadRestored(recipeId);
+
+    expect(second).toEqual({ recipeId, created: false, replaced: true });
+    expect(recipe).toMatchObject({ status: "reviewed", isArchived: false });
+  });
+
+  test("leaves a reviewed or edited recipe alone, whatever the export says", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot]);
+    const exported = await exportFirst();
+    const renamed = { values: { fr: "Autre soupe" }, meta: {} };
+    const at = (sourceUrl: string, status: "reviewed" | "edited", title = exported.row.title): PortableRecipe => ({
+      ...exported,
+      row: { ...exported.row, sourceUrl, status, title },
+    });
+    const kept = await Promise.all([
+      persist(at("https://example.com/reviewed", "reviewed")),
+      persist(at("https://example.com/edited", "edited")),
+    ]);
+
+    const again = await Promise.all([
+      persist(at("https://example.com/reviewed", "edited", renamed)),
+      persist(at("https://example.com/edited", "reviewed", renamed)),
+    ]);
+    const rows = await Promise.all(kept.map(({ recipeId }) => loadRestored(recipeId)));
+
+    expect(again).toEqual(kept.map(({ recipeId }) => ({ recipeId, created: false })));
+    expect(rows.map(({ recipe }) => [recipe.status, recipe.title.values.fr])).toEqual([
+      ["reviewed", "Soupe"],
+      ["edited", "Soupe"],
+    ]);
   });
 });

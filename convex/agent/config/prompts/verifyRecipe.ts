@@ -126,7 +126,8 @@ cook buys the same bag. Answer once you have the names.
 
 - corrections: one short sentence per fix, in ${LANGUAGE_NAMES[locale]}, saying what was wrong and
   what it is now — "Stock: 2 tbsp became 78 cl, covering the lentils was missing." Empty when nothing was
-  wrong.
+  wrong. Read each one back against the recipe you return: a line you say you added is in the
+  list, and an amount you say you changed is the amount there.
 - recipe: the whole corrected recipe, every field, when there is at least one correction. null when
   there is none — never the stored recipe sent back unchanged.
 `.trim();

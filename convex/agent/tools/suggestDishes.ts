@@ -1,8 +1,12 @@
 import { CUISINES } from "@shared/cuisines";
-import { VEGETARIAN_DIETS, type VegetarianDiet } from "@shared/diets";
+import { CONSTRAINT_TIMES } from "@shared/cookingTimes";
+import { CONSTRAINT_DIETS, type ConstraintDiet } from "@shared/diets";
 import { retryPromise } from "@shared/helpers";
+import { EXCLUSIVE_PREFERENCES, MAX_CONSTRAINT_SEEKS, NUTRITION_PREFERENCES } from "@shared/preferences";
 import { foldAccents } from "@shared/translations";
 import z from "zod/v4";
+
+import type { DishConstraints } from "@convex/schema/recipePayloads";
 
 import { catalogAgent } from "../agents";
 import { suggestDishesPrompt, suggestDishesUserPrompt } from "../config/prompts/suggestDishes";
@@ -23,8 +27,9 @@ import {
  * Main plates of a lunch or a dinner only, since that is what the planner fills a week with. Only a
  * name (in French for Marmiton, and in English for BBC Good Food's slugs) and an intended diet
  * come back. The diet is what the model believes the usual
- * recipe is, recorded in the ledger for the coverage print, and nothing else reads it: the
- * recipe's real facets are computed from its ingredients at import (`deriveRecipeFields`).
+ * recipe is, recorded in the ledger for the coverage print, and checked by the script against
+ * the diet an ask names (`fitsDiet`). Nothing else reads it: the recipe's real facets are computed
+ * from its ingredients at import (`deriveRecipeFields`).
  */
 
 /** The most dishes one call returns: enough for a run to fill a batch, few enough to read. */
@@ -46,16 +51,16 @@ const _modelDishesSchema = z.object({
         .boolean()
         .describe("Whether the dish is served as the main plate of a lunch or a dinner."),
       diet: z
-        .enum(VEGETARIAN_DIETS)
+        .enum(CONSTRAINT_DIETS)
         .nullable()
-        // Optional too, so a null, or a diet outside the two, drops the diet and keeps the dish.
+        // Optional too, so a null, or a diet outside the three, drops the diet and keeps the dish.
         .optional()
-        .describe("What the dish's USUAL recipe is suitable for, or null when it has meat or fish."),
+        .describe("What the dish's USUAL recipe is suitable for, or null when it has meat."),
     }),
   ),
 });
 
-export type SuggestedDish = { name: string; nameEn: string; veganEn?: string; diet?: VegetarianDiet };
+export type SuggestedDish = { name: string; nameEn: string; veganEn?: string; diet?: ConstraintDiet };
 
 /**
  * Both ways round, so the schema and `SuggestedDish` cannot drift apart (ADR 0010). `main` is left
@@ -127,12 +132,33 @@ export const toSuggestedDishes = (
   return dishes.slice(0, count);
 };
 
+const _constraintsSchema = z
+  .object({
+    time: z.enum(CONSTRAINT_TIMES).optional().describe("A ceiling in minutes the usual recipe fits."),
+    diet: z.enum(CONSTRAINT_DIETS).optional().describe("A diet the usual recipe suits."),
+    seeks: z
+      .array(z.enum(NUTRITION_PREFERENCES))
+      .max(MAX_CONSTRAINT_SEEKS)
+      .optional()
+      .describe("Nutrition goals the usual recipe meets, all of them."),
+  })
+  // A dish both light and substantial is no dish: the model would invent one rather than say so.
+  .refine(({ seeks = [] }) => !EXCLUSIVE_PREFERENCES.every((exclusive) => seeks.includes(exclusive)), {
+    message: `seeks cannot hold both ${EXCLUSIVE_PREFERENCES.join(" and ")}.`,
+  });
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- a compile-time assertion, read by tsc alone
+type _ConstraintsPinned = AssertTrue<Exact<z.infer<typeof _constraintsSchema>, DishConstraints>>;
+
 const _inputSchema = z.object({
   cuisine: z.enum(CUISINES).describe("The cuisine to suggest dishes from."),
   count: z.number().int().min(1).max(_MAX_COUNT).describe("How many dishes to return."),
   avoid: z
     .array(z.string())
-    .describe("Dish names already searched for this cuisine. None of them is returned again."),
+    .describe("Dish names already searched for this cuisine, or that missed what is asked. None of them is returned again."),
+  constraints: _constraintsSchema
+    .optional()
+    .describe("What every dish must fit besides the cuisine. None means any main plate of it."),
 });
 
 const _suggest = async (ctx: TracedToolCtx, args: z.infer<typeof _inputSchema>): Promise<SuggestedDish[]> => {
@@ -148,7 +174,7 @@ const _suggest = async (ctx: TracedToolCtx, args: z.infer<typeof _inputSchema>):
       ctx,
       {},
       {
-        system: suggestDishesPrompt(args.cuisine, args.count),
+        system: suggestDishesPrompt(args.cuisine, args.count, args.constraints),
         prompt: suggestDishesUserPrompt(args.avoid),
         schema: providerSchema(_modelDishesSchema),
         output: "object",

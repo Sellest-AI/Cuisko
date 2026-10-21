@@ -16,6 +16,7 @@ import {
   MARMITON_BAR,
   parseSearchResults,
   passesBar,
+  searchCardsOf,
   type SearchCard,
 } from "../marmiton";
 
@@ -116,6 +117,21 @@ describe("parseSearchResults", () => {
 
   it("returns nothing for a page with no results", () => {
     expect(parseSearchResults(pageOf())).toEqual([]);
+  });
+});
+
+/** dakgalbi, bossam, bakso: a 404 errored the dish, skipped BBC Good Food and left it unrecorded. */
+describe("searchCardsOf", () => {
+  it("reads a 404 as a search with no results, whatever the page says", () => {
+    expect(searchCardsOf({ status: 404, html: "<html><body>Page introuvable</body></html>" })).toEqual([]);
+  });
+
+  it("reads the cards of a page that answered", () => {
+    expect(searchCardsOf({ status: 200, html: LASAGNES })).toEqual(parseSearchResults(LASAGNES));
+  });
+
+  it("still throws on any other failing status", () => {
+    expect(() => searchCardsOf({ status: 503, html: "" })).toThrow("503");
   });
 });
 

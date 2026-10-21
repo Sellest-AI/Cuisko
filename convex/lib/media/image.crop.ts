@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { imageBufferFromUrl } from "./image.buffer";
 
 const ALPHA_THRESHOLD = 5;
-const PERCENTAGE_THRESHOLD = 0.10;
+const PERCENTAGE_THRESHOLD = 0.02;
 
 type Response = {
   buffer: Buffer;

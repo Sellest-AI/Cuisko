@@ -150,8 +150,9 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C18 scripts, which had no runner at all until this project existed, and the
-       * scripts under `scripts/database/` that talk to a deployment.
+       * The C1-C18 scripts, which had no runner at all until this project existed, the scripts
+       * under `scripts/database/` that talk to a deployment, and the release version logic under
+       * `scripts/release/`.
        *
        * Plain node: nothing here needs a DOM or the Convex runtime. The checks' tests spawn the real
        * script as a subprocess; the catalog helpers are imported directly, and they need

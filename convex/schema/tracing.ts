@@ -24,6 +24,7 @@ export const OPERATIONS = [
   "seed/catalog",
   "restore/catalog",
   "restore/ingredients",
+  "verify/catalog",
 ] as const;
 
 export type Operation = (typeof OPERATIONS)[number];

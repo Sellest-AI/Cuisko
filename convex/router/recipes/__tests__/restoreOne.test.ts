@@ -49,7 +49,10 @@ let t: TestConvex<typeof schema>;
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/restoreOne"))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/recipes/restoreOne") || path.startsWith("/convex/router/recipes/importOne."),
+      )
       .map(([, load]) => load()),
   ),
 );
@@ -247,5 +250,43 @@ describe("router/recipes/restoreOne", () => {
     expect(uploadRun).not.toHaveBeenCalled();
     const recipes = await t.run((ctx) => ctx.db.query("recipes").withIndex("by_user").collect());
     expect(recipes).toHaveLength(0);
+  });
+
+  test("_internal_find says a held generated page is replaceable by a reviewed export only", async () => {
+    resolveRun.mockResolvedValue({ links: [], complete: true });
+    const { recipeId } = await t.action(internal.router.recipes.restoreOne._internal, { recipe: portable(), photos: {} });
+    const find = (status?: "generated" | "reviewed" | "edited", url = "https://example.com/soupe") =>
+      t.query(internal.router.recipes.restoreOne._internal_find, { url, ...(status && { status }) });
+
+    expect(await find("reviewed")).toEqual({ recipeId, replaceable: true });
+    expect(await find("edited")).toEqual({ recipeId, replaceable: true });
+    expect(await find("generated")).toEqual({ recipeId, replaceable: false });
+    expect(await find()).toEqual({ recipeId, replaceable: false });
+    expect(await find("reviewed", "https://example.com/autre")).toBeNull();
+
+    await t.run((ctx) => ctx.db.patch(recipeId, { status: "reviewed" }));
+    expect(await find("edited")).toEqual({ recipeId, replaceable: false });
+  });
+
+  /** A replace pays the whole way, as a new page does: the review's lines and photos are the point. */
+  test("resolves and uploads for a held generated page when the export is reviewed, and replaces it", async () => {
+    const onion = await insertIngredient("onion", "oignon");
+    resolveRun.mockResolvedValue({ links: [], complete: true });
+    const first = await t.action(internal.router.recipes.restoreOne._internal, { recipe: portable(), photos: {} });
+    const coverImageId = await insertImage("cover.webp");
+    uploadRun.mockClear().mockResolvedValue({ uploaded: { coverImageId }, kept: [coverImageId], stranded: [] });
+    resolveRun.mockResolvedValue({
+      links: [{ ingredientId: onion, position: 1, quantity: 1, unit: "pcs" }],
+      complete: true,
+    });
+
+    const reviewed = portable();
+    reviewed.row.status = "reviewed";
+    const second = await t.action(internal.router.recipes.restoreOne._internal, { recipe: reviewed, photos: PHOTOS });
+
+    expect(second).toEqual({ recipeId: first.recipeId, created: false, replaced: true, unmatched: ["poivron vert"] });
+    expect(uploadRun).toHaveBeenCalledOnce();
+    const recipe = await t.run((ctx) => ctx.db.get(first.recipeId));
+    expect(recipe).toMatchObject({ status: "reviewed", coverImageId });
   });
 });

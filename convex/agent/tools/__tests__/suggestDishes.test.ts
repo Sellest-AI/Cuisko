@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { type SuggestedDish, toSuggestedDishes } from "../suggestDishes";
+import { suggestDishes, type SuggestedDish, toSuggestedDishes } from "../suggestDishes";
 
 /**
  * The generation is a model call and is not tested here. What is tested is the boundary after it,
@@ -84,18 +84,24 @@ describe("toSuggestedDishes", () => {
     expect(toSuggestedDishes(answer, { count: 6, avoid: [] })).toHaveLength(3);
   });
 
-  it("keeps the dish and drops a diet outside the two the ledger tracks", () => {
+  it("keeps a pescatarian dish's diet, which a pescatarian ask is checked against", () => {
     const dishes = toSuggestedDishes(_answer({ name: "sole meunière", diet: "pescatarian" }), {
       count: 6,
       avoid: [],
     });
 
-    expect(dishes).toEqual([{ name: "sole meunière", nameEn: "sole meunière" }]);
+    expect(dishes).toEqual([{ name: "sole meunière", nameEn: "sole meunière", diet: "pescatarian" }]);
   });
 
-  /** `pnpm typecheck` runs this one: the diet stays the ledger's two values (ADR 0010). */
+  it("keeps the dish and drops a diet outside the three an ask can name", () => {
+    const dishes = toSuggestedDishes(_answer({ name: "osso buco", diet: "omnivore" }), { count: 6, avoid: [] });
+
+    expect(dishes).toEqual([{ name: "osso buco", nameEn: "osso buco" }]);
+  });
+
+  /** `pnpm typecheck` runs this one: the diet stays the ledger's three values (ADR 0010). */
   it("types the diet as the ledger's vocabulary", () => {
-    expectTypeOf<SuggestedDish["diet"]>().toEqualTypeOf<"vegan" | "vegetarian" | undefined>();
+    expectTypeOf<SuggestedDish["diet"]>().toEqualTypeOf<"vegan" | "vegetarian" | "pescatarian" | undefined>();
   });
 });
 
@@ -161,5 +167,22 @@ describe("toSuggestedDishes, main plates only", () => {
     });
 
     expect(dishes.map(({ name }) => name)).toEqual(["osso buco"]);
+  });
+});
+
+/**
+ * Refused before the model is called: the input is parsed first, so no ctx is needed to reach the
+ * refusal, and a model call never happens for an ask nothing can fit.
+ */
+describe("suggestDishes, the constraints it refuses", () => {
+  const _ask = (seeks: string[]) => () =>
+    suggestDishes.run({} as never, { cuisine: "indian", count: 6, avoid: [], constraints: { seeks } } as never);
+
+  it("refuses a light and a substantial dish at once", () => {
+    expect(_ask(["low-calorie", "high-calorie"])).toThrow();
+  });
+
+  it("refuses more than two goals", () => {
+    expect(_ask(["high-protein", "low-carb", "iron-rich"])).toThrow();
   });
 });

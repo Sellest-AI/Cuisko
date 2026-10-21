@@ -1,11 +1,12 @@
 # Catalog scripts
 
-The shared catalog (recipes with no `userId`) is filled and moved by three scripts. Each runs on
+The shared catalog (recipes with no `userId`) is filled, checked and moved by four scripts. Each runs on
 your machine and calls `_internal` Convex functions through a deploy key.
 
 | Command                         | What it does                                                                  |
 | ------------------------------- | ----------------------------------------------------------------------------- |
 | `pnpm seed:catalog`             | Asks the agent for dishes, finds a well-reviewed page for each, imports 20, ten at a time |
+| `pnpm catalog:verify [--limit N] [dir]` | Verifies 16 `generated` catalog recipes (or N) against their page; writes what it corrected to `catalog-verify-<deployment>-<date>.md` |
 | `pnpm catalog:export [dir]`     | The deployment's catalog as `catalog-<deployment>-<date>.zip`; writes nothing |
 | `pnpm catalog:restore <zip>`    | An export into this deployment's catalog                                      |
 
@@ -66,6 +67,17 @@ The ledger is the cheap duplicate guard: it saves a search, an upload and a mode
 second guard is on the server: `importOne` and `restoreOne` both return the existing id when the
 catalog already holds the `sourceUrl`. A lost ledger wastes work, and never duplicates a recipe.
 
+## Verify
+
+`catalog:verify` runs the admin's "Verify the recipe" (`verifyOne._internal`) on the live
+catalog recipes still `generated`, 16 per run unless `--limit` says otherwise, four at a time, in its page's language (BBC Good Food in English,
+Marmiton in French, as imported). Each recipe ends `reviewed`, rewritten when the verifier found it
+wrong. An `edited` recipe is left alone: a person corrected it after a review.
+
+The report lists every correction and every failure. A failed recipe stays `generated`, so a
+re-run retries it. The export carries `status`, so a restore keeps the review, and upgrades a
+deployment's unverified copy of the page with it.
+
 ## Export and restore
 
 The zip holds a `catalog.json` manifest and one folder per recipe: `recipe.json` (the portable
@@ -79,6 +91,14 @@ printed. A walk that could not finish (an API down, a model timeout) fails the r
 saving it short, and a re-run retries it. A photo that fails to download at export, or to upload at restore, is left out, and the
 server regenerates the recipe's photos. A recipe that fails is reported and the run goes on; a
 re-run retries it.
+
+A page the catalog already holds is left as it is, with one exception: a `reviewed` or `edited`
+recipe in the zip replaces this catalog's `generated` copy of the same page (`restoreReplaces`). The
+row keeps its id, so meal plans and favorites still point at it; its text, tags, status and lines
+become the zip's, and its photos are swapped for the zip's (one that fails to upload leaves the old
+one, and a row left with no cover or no plate has its photos regenerated). An archived copy comes
+back live. The run prints it `upgraded`. A `reviewed` or `edited` copy here is never replaced. For such a
+recipe the ledger's "landed here" does not skip it, since the copy that landed may be the generated one.
 
 The restore records an import in the ledger only for a URL the ledger already holds. A recipe
 exported with no `sourceUrl` has no duplicate guard, and the script says so.

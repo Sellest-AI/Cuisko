@@ -24,13 +24,22 @@ export type Diet = (typeof DIETS)[number];
 /**
  * The diets with neither meat nor fish: the prefix of `DIETS` a dish is vegetarian at.
  *
- * What the catalog import records as a dish's INTENDED diet, before it has any ingredients to
- * compute one from. Pescatarian and omnivore are both "no intent" there, since the only question
- * the import's coverage print asks is how many of the dishes asked for were meant to be meat-free.
+ * What a BBC Good Food page can declare (`suitableForDiet`), which has no pescatarian marker.
  */
 export const VEGETARIAN_DIETS = ["vegan", "vegetarian"] as const satisfies readonly Diet[];
 
 export type VegetarianDiet = (typeof VEGETARIAN_DIETS)[number];
+
+/**
+ * The diets that rule something out, which `omnivore` does not: what the catalog import may ask
+ * `suggestDishes` for every dish to fit, and what the agent answers a dish's usual recipe suits.
+ *
+ * The answer needs all three for the ask to be checked: with only vegan and vegetarian, "fish but
+ * no meat" and "meat" were one answer, and a pescatarian ask kept chicken katsu.
+ */
+export const CONSTRAINT_DIETS = DIETS.filter((diet): diet is Exclude<Diet, "omnivore"> => diet !== "omnivore");
+
+export type ConstraintDiet = (typeof CONSTRAINT_DIETS)[number];
 
 /**
  * The most permissive diet among `diets` — what a dish made of exactly these ingredients is
@@ -73,3 +82,11 @@ export const strictestDietOf = (diets: readonly Diet[]): Diet =>
     (strictest, diet) => (DIETS.indexOf(diet) < DIETS.indexOf(strictest) ? diet : strictest),
     "omnivore",
   );
+
+/**
+ * Whether a dish of diet `dish` suits someone eating `asked`: the ordering again, a stricter dish
+ * suits a looser eater (a vegan dish suits a pescatarian). `undefined` is a dish with meat, as the
+ * catalog agent answers it, so it suits only an omnivore.
+ */
+export const fitsDiet = (dish: Diet | undefined, asked: Diet): boolean =>
+  DIETS.indexOf(dish ?? "omnivore") <= DIETS.indexOf(asked);

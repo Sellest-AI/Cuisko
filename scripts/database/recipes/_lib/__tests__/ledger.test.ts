@@ -15,14 +15,17 @@ import {
   coverageOf,
   dishKeyOf,
   emptyLedger,
+  hitRatesOf,
   type Ledger,
   type LedgerRecipe,
   nextCuisine,
   pendingFor,
   readLedger,
+  recordDietMiss,
   recordFailure,
   recordImport,
   recordSearch,
+  whileLocked,
   type SearchedCard,
   writeLedger,
 } from "../ledger";
@@ -147,6 +150,56 @@ describe("readLedger / writeLedger", () => {
 
     expect(() => readLedger(file)).toThrow(/cuisine/);
   });
+
+  /** The committed ledger holds hundreds of dishes searched before asks carried constraints. */
+  it("reads a dish with no constraints, as every dish before them was written", () => {
+    writeFileSync(
+      file,
+      JSON.stringify({ ...emptyLedger(), dishes: { dal: { cuisine: "indian", searchedAt: "2026-09-21" } } }),
+    );
+
+    expect(readLedger(file).dishes["dal"]).toEqual({ cuisine: "indian", searchedAt: "2026-09-21" });
+  });
+
+  it("reads back the constraints a dish was asked under", () => {
+    const ledger: Ledger = {
+      ...emptyLedger(),
+      dishes: {
+        "chana masala": {
+          cuisine: "indian",
+          asked: { diet: "vegan", seeks: ["high-protein", "high-fibre"] },
+          searchedAt: "2026-09-21",
+        },
+      },
+    };
+
+    writeLedger(file, ledger);
+
+    expect(readLedger(file)).toEqual(ledger);
+  });
+
+  it("reads back the dishes that missed a diet", () => {
+    const ledger: Ledger = {
+      ...emptyLedger(),
+      dietMisses: { indonesian: { "gulai kambing": { missedAt: "2026-10-19" } } },
+    };
+
+    writeLedger(file, ledger);
+
+    expect(readLedger(file)).toEqual(ledger);
+  });
+
+  it("refuses a constraint the tool could never have asked under", () => {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        ...emptyLedger(),
+        dishes: { dal: { cuisine: "indian", asked: { time: "any" }, searchedAt: "2026-09-21" } },
+      }),
+    );
+
+    expect(() => readLedger(file)).toThrow(/time/);
+  });
 });
 
 const SEARCHED_AT = "2026-09-21T10:00:00.000Z";
@@ -192,6 +245,18 @@ describe("recordSearch", () => {
       ["pad thaï", "skipped"],
       ["pad thaï", "rejected"],
     ]);
+  });
+
+  it("records the constraints the dish was asked under", () => {
+    const ledger = emptyLedger();
+
+    recordSearch(
+      ledger,
+      { dish: "Pad Thaï", source: "marmiton", cuisine: "thai", asked: { time: "30" }, searchedAt: SEARCHED_AT },
+      [card("https://m.org/a", "accepted")],
+    );
+
+    expect(ledger.dishes["pad thaï"]?.asked).toEqual({ time: "30" });
   });
 
   it("accepts a card an earlier search skipped, under the dish that accepted it", () => {
@@ -296,6 +361,44 @@ describe("avoidFor", () => {
   });
 });
 
+/**
+ * Asked for vegan Indonesian dishes, the agent returned chicken, duck and goat. Dropped without a
+ * trace, the same three came back on the next vegan ask, and were dropped again.
+ */
+describe("avoidFor, the dishes that missed a diet", () => {
+  const ledger = emptyLedger();
+  recordDietMiss(ledger, { dish: "Ayam taliwang", cuisine: "indonesian", missedAt: SEARCHED_AT });
+  recordDietMiss(ledger, { dish: "martabak telur", cuisine: "indonesian", diet: "vegetarian", missedAt: SEARCHED_AT });
+  recordDietMiss(ledger, { dish: "pad krapow", cuisine: "thai", missedAt: SEARCHED_AT });
+
+  it("lists, under a diet, every dish of the cuisine that misses it", () => {
+    expect(avoidFor(ledger, "indonesian", "vegan")).toEqual(["ayam taliwang", "martabak telur"]);
+  });
+
+  it("leaves out a dish that fits the diet asked, though it missed a stricter one", () => {
+    expect(avoidFor(ledger, "indonesian", "vegetarian")).toEqual(["ayam taliwang"]);
+  });
+
+  /** Ayam taliwang misses a vegan ask and is a fine dish to search for an unconstrained one. */
+  it("lists none of them when no diet is asked", () => {
+    expect(avoidFor(ledger, "indonesian")).toEqual([]);
+  });
+
+  it("keeps a dish missed in two cuisines as a miss in both", () => {
+    const both = emptyLedger();
+    recordDietMiss(both, { dish: "curry de légumes", cuisine: "indian", diet: "vegetarian", missedAt: SEARCHED_AT });
+    recordDietMiss(both, { dish: "curry de légumes", cuisine: "thai", diet: "vegetarian", missedAt: SEARCHED_AT });
+
+    expect(avoidFor(both, "indian", "vegan")).toEqual(["curry de légumes"]);
+    expect(avoidFor(both, "thai", "vegan")).toEqual(["curry de légumes"]);
+  });
+
+  it("records the agent's answer, and an empty ledger holds no misses", () => {
+    expect(ledger.dietMisses?.indonesian?.["ayam taliwang"]).toEqual({ missedAt: SEARCHED_AT });
+    expect(emptyLedger().dietMisses).toBeUndefined();
+  });
+});
+
 describe("coverageOf", () => {
   it("counts cuisines with a dish and the dishes meant as vegan", () => {
     const ledger: Ledger = {
@@ -348,5 +451,113 @@ describe("recordSearch across sources", () => {
     ]);
 
     expect(ledger.recipes["https://bbc.org/b"]).not.toHaveProperty("diet");
+  });
+});
+
+describe("hitRatesOf", () => {
+  const ASKED_AT = "2026-10-19T10:00:00.000Z";
+
+  /** A ledger with one imported recipe per dish, each landed on `deployment` as `recipeId`. */
+  const _ledgerOf = (dishes: { dish: string; asked?: Ledger["dishes"][string]["asked"]; landed: ReturnType<typeof landed>[] }[]) => {
+    const ledger = emptyLedger();
+    for (const { dish, asked, landed: imports } of dishes) {
+      ledger.dishes[dish] = { cuisine: "indian", ...(asked && { asked }), searchedAt: ASKED_AT };
+      ledger.recipes[`https://m.org/${dish}`] = recipe({ dish, status: "imported", imports });
+    }
+    return ledger;
+  };
+
+  it("scores each value of a pair on its own", () => {
+    const ledger = _ledgerOf([
+      { dish: "chana masala", asked: { seeks: ["high-protein", "high-fibre"] }, landed: [landed(DEV, "r1")] },
+    ]);
+    const facts = new Map([["r1", { tags: ["high-fibre" as const] }]]);
+
+    expect(hitRatesOf(ledger, DEV, facts)).toEqual(
+      new Map([
+        ["seeks:high-protein", { asked: 1, hit: 0 }],
+        ["seeks:high-fibre", { asked: 1, hit: 1 }],
+      ]),
+    );
+  });
+
+  it("counts only the recipes imported on that deployment", () => {
+    const ledger = _ledgerOf([
+      { dish: "dal", asked: { diet: "vegan" }, landed: [landed(DEV, "r1")] },
+      { dish: "korma", asked: { diet: "vegan" }, landed: [landed(PROD, "r2")] },
+    ]);
+    const facts = new Map([
+      ["r1", { tags: ["vegan" as const] }],
+      ["r2", { tags: [] }],
+    ]);
+
+    expect(hitRatesOf(ledger, DEV, facts).get("diet:vegan")).toEqual({ asked: 1, hit: 1 });
+  });
+
+  it("leaves out a dish asked under nothing, and a recipe gone from the catalog", () => {
+    const ledger = _ledgerOf([
+      { dish: "biryani", landed: [landed(DEV, "r1")] },
+      { dish: "tikka", asked: { seeks: ["low-carb"] }, landed: [landed(DEV, "deleted")] },
+    ]);
+
+    expect(hitRatesOf(ledger, DEV, new Map([["r1", { tags: [] }]])).size).toBe(0);
+  });
+
+  /** The planner's filter: an untimed recipe gets into a timed week, so it counts as fitting. */
+  it("scores a time by the planner's ceiling, margin included, and an untimed recipe as fitting", () => {
+    const ledger = _ledgerOf([
+      { dish: "omelette", asked: { time: "20" }, landed: [landed(DEV, "r1")] },
+      { dish: "curry", asked: { time: "20" }, landed: [landed(DEV, "r2")] },
+      { dish: "khichdi", asked: { time: "20" }, landed: [landed(DEV, "r3")] },
+    ]);
+    const facts = new Map([
+      ["r1", { tags: [], totalMinutes: 24 }],
+      ["r2", { tags: [], totalMinutes: 25 }],
+      ["r3", { tags: [] }],
+    ]);
+
+    expect(hitRatesOf(ledger, DEV, facts).get("time:20")).toEqual({ asked: 3, hit: 2 });
+  });
+
+  it("scores a vegan recipe as fitting a vegetarian ask, since the diet tags nest", () => {
+    const ledger = _ledgerOf([{ dish: "dal", asked: { diet: "vegetarian" }, landed: [landed(DEV, "r1")] }]);
+    const facts = new Map([["r1", { tags: ["vegan" as const, "vegetarian" as const, "pescatarian" as const] }]]);
+
+    expect(hitRatesOf(ledger, DEV, facts).get("diet:vegetarian")).toEqual({ asked: 1, hit: 1 });
+  });
+});
+
+/** A run died on EPERM: Windows refused the ledger's write while another process held it open. */
+describe("whileLocked", () => {
+  /** An operation failing with `codes` in turn, then succeeding once they run out. */
+  const _failing = (codes: string[]) => {
+    const calls: number[] = [];
+    const operation = () => {
+      calls.push(calls.length);
+      const code = codes[calls.length - 1];
+      if (code !== undefined) throw Object.assign(new Error(code), { code });
+    };
+    return { operation, calls };
+  };
+
+  it("tries again while the file is locked, and goes through once it is free", () => {
+    const { operation, calls } = _failing(["EPERM", "EBUSY"]);
+
+    whileLocked(operation, 0);
+
+    expect(calls).toHaveLength(3);
+  });
+
+  it("throws any other error at once", () => {
+    const { operation, calls } = _failing(["ENOENT"]);
+
+    expect(() => whileLocked(operation, 0)).toThrow("ENOENT");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("gives up on a lock that never lifts", () => {
+    const { operation } = _failing(Array.from({ length: 50 }, () => "EPERM"));
+
+    expect(() => whileLocked(operation, 0)).toThrow("EPERM");
   });
 });

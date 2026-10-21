@@ -19,10 +19,10 @@ const openrouter = {
  * The assistant's model, because it reads images: a photo sent with a question reaches it as an
  * image part, which `DEEPSEEK_V4_FLASH_0731` cannot take. Uses the same options, which name no model.
  */
-const DEEPSEEK_V4_1_FLASH = openrouter.chat("deepseek/deepseek-v4.1-flash");
+const DEEPSEEK_V4_1_FLASH = openrouter.chat("deepseek/deepseek-v4.1-flash-1017");
 
 const DEEPSEEK_V4_FLASH_0731 = openrouter.chat("deepseek/deepseek-v4-flash-0731");
-const DEEPSEEK_V4_FLASH_0731_OPTIONS = {
+const DEEPSEEK_V4X_FLASH_OPTIONS = {
   providerOptions: ({ effort }: { effort?: false | "low" | "max" }) => ({
     openrouter: {
       reasoning: effort ? { enabled: true, effort } : { enabled: false },
@@ -141,7 +141,7 @@ const Z_AI_GLM_5_3_FLASH_OPTIONS = {
 export const models = {
   default: {
     model: DEEPSEEK_V4_FLASH_0731,
-    ...DEEPSEEK_V4_FLASH_0731_OPTIONS
+    ...DEEPSEEK_V4X_FLASH_OPTIONS
   },
   recipes: {
     model: OPENAI_GPT_6_LUNA,
@@ -166,7 +166,7 @@ export const models = {
    */
   assistant: {
     model: DEEPSEEK_V4_1_FLASH,
-    ...DEEPSEEK_V4_FLASH_0731_OPTIONS
+    ...DEEPSEEK_V4X_FLASH_OPTIONS
   },
   /**
    * The admin's second opinion on an imported recipe (`tools/verifyRecipe.ts`). A stronger model

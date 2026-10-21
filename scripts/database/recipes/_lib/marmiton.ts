@@ -41,6 +41,21 @@ const _reviewsOf = (text: string): number | undefined => {
 };
 
 /**
+ * The cards a search answered with, from its HTTP status and page.
+ *
+ * Marmiton answers a search for a word it holds no recipe of ("dakgalbi", "bakso") with a 404, not
+ * an empty results page. That is no results: the dish is recorded, and BBC Good Food is looked up
+ * for it. Read as an error, it skipped both, and the dish, never recorded, was proposed again.
+ * Any other failing status is still an error.
+ */
+export const searchCardsOf = ({ status, html }: { status: number; html: string }): SearchCard[] => {
+  if (status === 404) return [];
+  if (status < 200 || status >= 300) throw new Error(`www.marmiton.org answered ${status} to a search`);
+
+  return parseSearchResults(html);
+};
+
+/**
  * Every recipe card on a search results page, in page order, editorial cards left out.
  *
  * A card with no rating block is a recipe nobody has reviewed yet, so it is read as 0 and 0 and the

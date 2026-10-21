@@ -2,6 +2,7 @@ import type { Agent, UsageHandler } from "@convex-dev/agent";
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { drainScheduled } from "../../../__tests__/scheduler.fixtures";
 import { api, internal } from "../../../_generated/api";
 import { wrapAgent } from "../../../agent/utils";
 import type { Id } from "../../../_generated/dataModel";
@@ -563,11 +564,7 @@ describe("router/ingredients/resolve", () => {
     // The write is SCHEDULED rather than awaited, so that a conflict on a hot catalog row cannot
     // fail a resolve that already succeeded. Draining it here is what makes the caching observable
     // — and the drain being necessary is itself the assertion that the shopper never waited on it.
-    // Fake timers only for the drain: `finishAllScheduledFunctions` advances them itself, and the
-    // action above has already returned, so nothing real is left waiting on a clock.
-    vi.useFakeTimers();
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
-    vi.useRealTimers();
+    await drainScheduled(t);
 
     // Both fields, because only one of them is reachable: an alias stored without its `search`
     // entry is an alias no shopper can ever find, and nothing would report it (ADR 0011).

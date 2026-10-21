@@ -37,3 +37,5 @@ Errors are `ConvexError({ code })`, never bare `Error`.
 A test that calls a function through `api.` / `internal.` preloads it in a `beforeAll` — copy the
 block from any `router/**/__tests__/` file, filtering on `/convex/<path>.` (ADR 0008, C10). The
 glob is lazy, so without it the first test pays the whole module graph against its own timeout.
+Warm what the router runs through `ctx.run*` as well, directly or through a `functions/` helper:
+the test never names it, but the test that reaches it pays for its import (C10 rule 5).

@@ -311,6 +311,32 @@ describe("router/recipes/updateOne", () => {
     expect(row!.instructions.meta.fr!.status).toBe("edited");
   });
 
+  /** A cook's second edit is theirs, not a fix — see `recipes.status`. Only a verify ends `reviewed`. */
+  test("marks a reviewed recipe edited when its cook saves it again", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+    await t.run((ctx) => ctx.db.patch(recipeId, { status: "reviewed" }));
+
+    await t
+      .withIdentity(asUser(userId))
+      .action(api.router.recipes.updateOne.authed, { ...UNCHANGED, recipeId, title: "Soupe du soir" });
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("edited");
+  });
+
+  /** `by` lives on `_internal_persist` alone: a client claiming to be the verifier is refused. */
+  test("refuses a caller who passes who is editing", async () => {
+    const userId = await seedUser("Franck");
+    const recipeId = await seedRecipe(userId);
+    const forged = { ...UNCHANGED, recipeId, editor: { by: "verifier", fingerprint: "forged" } } as typeof UNCHANGED & {
+      recipeId: typeof recipeId;
+    };
+
+    await expect(t.withIdentity(asUser(userId)).action(api.router.recipes.updateOne.authed, forged)).rejects.toThrow();
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("generated");
+  });
+
   test("_internal_persist patches the row it is handed rather than inserting a new one", async () => {
     const userId = await seedUser("Franck");
     const recipeId = await seedRecipe(userId);
@@ -322,6 +348,7 @@ describe("router/recipes/updateOne", () => {
       analyzed: true,
       links: [],
       complete: true,
+      editor: { by: "cook" },
     });
 
     expect(returned).toBe(recipeId);

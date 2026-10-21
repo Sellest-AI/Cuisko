@@ -1,11 +1,14 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText, setTranslation } from "@convex/lib/i18n";
 import type { Localized, TranslationStatus } from "@convex/schema/i18n";
+import type { RecipeEditor } from "@convex/schema/recipePayloads";
+import type { RecipeStatus } from "@convex/schema/recipes";
 import type { MutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
 
+import { assertUnchangedSince } from "./assertUnchangedSince";
 import { deriveRecipeFields } from "./deriveRecipeFields";
 import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import { recipeSearchText } from "./recipeSearchText";
@@ -37,7 +40,17 @@ type Args = {
    * never got to.
    */
   complete: boolean;
+  /** Who is rewriting it, which decides its `status` — see `vRecipeEditor`. */
+  editor: RecipeEditor;
 };
+
+/**
+ * The status a rewrite leaves behind — the transitions `recipes.status` describes. A verify always
+ * ends `reviewed`; a cook's edit of a `generated` recipe fixes what the model wrote, and any other
+ * is theirs.
+ */
+const _statusAfter = (current: RecipeStatus, { by }: RecipeEditor): RecipeStatus =>
+  by === "verifier" || current === "generated" ? "reviewed" : "edited";
 
 /**
  * A re-sanitized recipe patched onto the row it came from, rather than a new one.
@@ -50,10 +63,12 @@ type Args = {
  */
 export const updateRecipe = async (
   ctx: MutationCtx,
-  { recipeId, locale, recipe, analyzed, links, complete }: Args,
+  { recipeId, locale, recipe, analyzed, links, complete, editor }: Args,
 ) => {
   const existing = await ctx.db.get(recipeId);
   if (!existing) throw new Error(`updateRecipe: recipe ${recipeId} does not exist.`);
+  if (editor.by === "verifier")
+    await assertUnchangedSince(ctx, { recipe: existing, locale, fingerprint: editor.fingerprint });
 
   const old = await ctx.db
     .query("recipeIngredients")
@@ -159,8 +174,8 @@ export const updateRecipe = async (
     search,
     cuisine: recipe.cuisine,
     timings: recipe.timings,
-    // The cook has been through every field of it to get here, whatever the model then re-derived.
-    status: "reviewed",
+    // Read from the row inside the mutation, so two saves racing each other cannot both see `generated`.
+    status: _statusAfter(existing.status, editor),
     updatedAt: Date.now(),
   });
 

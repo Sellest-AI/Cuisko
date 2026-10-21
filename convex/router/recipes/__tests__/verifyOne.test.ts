@@ -1,9 +1,10 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { api } from "../../../_generated/api";
+import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
+import type { RecipeStatus } from "../../../schema/recipes";
 import { enforceRateLimit } from "../../../functions/rateLimits/enforceRateLimit";
 import { rateLimitFor } from "../../../lib/rateLimits";
 import { registerRateLimiter, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
@@ -45,10 +46,10 @@ const seedUser = (name: string, role: "USER" | "ADMIN") =>
   });
 
 /** A catalog recipe: no owner, which is exactly the row `updateOne.authed` could never reach. */
-const seedRecipe = (sourceUrl?: string) =>
+const seedRecipe = (sourceUrl?: string, status: RecipeStatus = "generated") =>
   t.run((ctx) =>
     ctx.db.insert("recipes", {
-      status: "generated",
+      status,
       isArchived: false,
       sourceUrl,
       title: { values: { fr: "Poulet frit" }, meta: {} },
@@ -89,11 +90,20 @@ const CORRECTED = {
   ],
 };
 
-/** The modules the tests cross, warmed before anything is timed — see `updateOne.test.ts` (C10). */
+/**
+ * The modules the tests cross, warmed before anything is timed — see `updateOne.test.ts` (C10).
+ * `updateOne` is reached only by the rewrite, through the router's `runMutation`: left cold, its
+ * import was billed to that last test, and it timed out under `pnpm verify`.
+ */
 beforeAll(() =>
   Promise.all(
     Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/verifyOne.") || path.startsWith("/convex/router/recipes/getOne."))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/recipes/verifyOne.") ||
+          path.startsWith("/convex/router/recipes/getOne.") ||
+          path.startsWith("/convex/router/recipes/updateOne."),
+      )
       .map(([, load]) => load()),
   ).then(warmRateLimiter),
 );
@@ -158,7 +168,8 @@ describe("router/recipes/verifyOne", () => {
     expect(verifyRun).not.toHaveBeenCalled();
   });
 
-  test("leaves a recipe the verifier found nothing wrong with untouched", async () => {
+  /** Accepted as it stands: its content is not rewritten, only its status — see `recipes.status`. */
+  test("leaves a recipe the verifier found nothing wrong with untouched, and marks it reviewed", async () => {
     const adminId = await seedUser("Admin", "ADMIN");
     const recipeId = await seedRecipe(SOURCE_URL);
     verifyRun.mockResolvedValue({ corrections: [], recipe: null });
@@ -166,6 +177,129 @@ describe("router/recipes/verifyOne", () => {
     expect(await verify(adminId, recipeId)).toEqual({ verdict: "unchanged" });
 
     expect(resolveRun).not.toHaveBeenCalled();
+    const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
+    expect(row.instructions.values.fr).toBe("- Faites frire le poulet.");
+    expect(row.status).toBe("reviewed");
+  });
+
+  /** A verify always ends `reviewed`, from a cook's own `edited` recipe too, whatever it found. */
+  test.each([
+    ["unchanged", null],
+    ["rewritten", CORRECTED],
+  ] as const)("marks an edited recipe reviewed when the verdict is %s", async (_verdict, recipe) => {
+    const adminId = await seedUser("Admin", "ADMIN");
+    const recipeId = await seedRecipe(SOURCE_URL, "edited");
+    verifyRun.mockResolvedValue({ corrections: recipe ? ["Huile : la friture manquait."] : [], recipe });
+
+    await verify(adminId, recipeId);
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("reviewed");
+  });
+
+  /**
+   * The verifier judged the text it was handed, not a cook's save landing during the scrape and
+   * model call: that save must neither be overwritten nor marked `reviewed` — see `assertUnchangedSince`.
+   */
+  test.each([
+    ["unchanged", null],
+    ["rewritten", CORRECTED],
+  ] as const)("refuses to write when the cook saved during a verify whose verdict is %s", async (_verdict, recipe) => {
+    const adminId = await seedUser("Admin", "ADMIN");
+    const recipeId = await seedRecipe(SOURCE_URL, "edited");
+    const cookText = { values: { fr: "- Faites frire 2 blancs de poulet." }, meta: {} };
+    verifyRun.mockImplementation(async () => {
+      await t.run((ctx) => ctx.db.patch(recipeId, { instructions: cookText, updatedAt: 2 }));
+      return { corrections: recipe ? ["Huile : la friture manquait."] : [], recipe };
+    });
+
+    await expect(verify(adminId, recipeId)).rejects.toThrow();
+
+    const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
+    expect(row.status).toBe("edited");
+    expect(row.instructions.values.fr).toBe("- Faites frire 2 blancs de poulet.");
+  });
+
+  /** The ingredient lines are part of what the verifier judged, not only the text. */
+  test("refuses to write when the cook changed a quantity during the verify", async () => {
+    const adminId = await seedUser("Admin", "ADMIN");
+    const recipeId = await seedRecipe(SOURCE_URL, "edited");
+    const lineId = await t.run(async (ctx) => {
+      const chicken = await ctx.db.insert("ingredients", {
+        name: { values: { fr: "blanc de poulet" }, meta: {} },
+        search: { fr: "blanc de poulet" },
+        category: "MEAT",
+        emoji: "🍗",
+        diet: "omnivore",
+        allergens: [],
+        defaultUnit: "g",
+        defaultQuantity: 500,
+        nutrition: { calories: 120, protein: 23, fat: 2, carbohydrates: 0 },
+        updatedAt: 1,
+      });
+      return ctx.db.insert("recipeIngredients", { recipeId, ingredientId: chicken, position: 0, quantity: 600, unit: "g", updatedAt: 1 });
+    });
+    verifyRun.mockImplementation(async () => {
+      await t.run((ctx) => ctx.db.patch(lineId, { quantity: 400 }));
+      return { corrections: [], recipe: null };
+    });
+
+    await expect(verify(adminId, recipeId)).rejects.toThrow();
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("edited");
+  });
+
+  /**
+   * What lands on a fresh import while it is verified: the translation into the other language
+   * (`saveTranslations`) and the photos (`recipeImages`) both write the row, and neither touches the
+   * text the verifier judged — so neither may refuse its verdict.
+   */
+  test.each([
+    ["unchanged", null],
+    ["rewritten", CORRECTED],
+  ] as const)("still writes a %s verdict when only the translation and photos landed meanwhile", async (_verdict, recipe) => {
+    const adminId = await seedUser("Admin", "ADMIN");
+    const recipeId = await seedRecipe(SOURCE_URL, "edited");
+    verifyRun.mockImplementation(async () => {
+      await t.run(async (ctx) => {
+        const row = (await ctx.db.get(recipeId))!;
+        await ctx.db.patch(recipeId, { title: { ...row.title, values: { ...row.title.values, en: "Fried chicken" } }, updatedAt: 2 });
+        await ctx.db.patch(recipeId, { updatedAt: 3 });
+      });
+      return { corrections: recipe ? ["Huile : la friture manquait."] : [], recipe };
+    });
+
+    await verify(adminId, recipeId);
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("reviewed");
+  });
+
+  /**
+   * A cook's FIRST edit leaves a recipe `reviewed`, so finding it `reviewed` at write time does not
+   * mean nothing changed: the check still runs, and refuses a verdict on text the verifier never read.
+   */
+  test("refuses an unchanged verdict when the cook's first edit landed during the verify", async () => {
+    const adminId = await seedUser("Admin", "ADMIN");
+    const recipeId = await seedRecipe(SOURCE_URL, "generated");
+    verifyRun.mockImplementation(async () => {
+      await t.run((ctx) =>
+        ctx.db.patch(recipeId, {
+          instructions: { values: { fr: "- Faites frire 400 g de poulet." }, meta: {} },
+          status: "reviewed",
+        }),
+      );
+      return { corrections: [], recipe: null };
+    });
+
+    await expect(verify(adminId, recipeId)).rejects.toThrow();
+  });
+
+  test("does not write a recipe already reviewed that the verifier found nothing wrong with", async () => {
+    const adminId = await seedUser("Admin", "ADMIN");
+    const recipeId = await seedRecipe(SOURCE_URL, "reviewed");
+    verifyRun.mockResolvedValue({ corrections: [], recipe: null });
+
+    await verify(adminId, recipeId);
+
     expect((await t.run((ctx) => ctx.db.get(recipeId)))!.updatedAt).toBe(1);
   });
 
@@ -192,5 +326,42 @@ describe("router/recipes/verifyOne", () => {
     const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
     expect(row.instructions.values.fr).toContain("600 g de blanc de poulet");
     expect(row.updatedAt).not.toBe(1);
+  });
+});
+
+/** `catalog:verify`'s path: the same verify through a deploy key, with no caller to rate limit. */
+describe("router/recipes/verifyOne._internal", () => {
+  const verifyInternal = (recipeId: Id<"recipes">, locale: "fr" | "en" = "fr") =>
+    t.action(internal.router.recipes.verifyOne._internal, { recipeId, locale });
+
+  test("refuses a recipe that was not imported from a page", async () => {
+    const recipeId = await seedRecipe();
+
+    await expect(verifyInternal(recipeId)).rejects.toMatchObject({ data: { code: "INVALID_INPUT" } });
+
+    expect(verifyRun).not.toHaveBeenCalled();
+  });
+
+  test("marks a catalog recipe the verifier found nothing wrong with reviewed", async () => {
+    const recipeId = await seedRecipe(SOURCE_URL);
+    verifyRun.mockResolvedValue({ corrections: [], recipe: null });
+
+    expect(await verifyInternal(recipeId)).toEqual({ verdict: "unchanged" });
+
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("reviewed");
+  });
+
+  test("rewrites a catalog recipe the verifier corrected, in the locale it was given", async () => {
+    const recipeId = await seedRecipe(SOURCE_URL);
+    const corrections = ["Huile : la friture manquait."];
+    verifyRun.mockResolvedValue({ corrections, recipe: CORRECTED });
+
+    expect(await verifyInternal(recipeId)).toEqual({ verdict: "rewritten", corrections });
+
+    const [, input] = verifyRun.mock.calls[0]!;
+    expect(input.locale).toBe("fr");
+    const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
+    expect(row.instructions.values.fr).toContain("600 g de blanc de poulet");
+    expect(row.status).toBe("reviewed");
   });
 });

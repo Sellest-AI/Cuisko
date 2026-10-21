@@ -10,10 +10,15 @@ touch. The code answers "how does this work"; nothing answers "where does this r
 
 ## The rule
 
-**Names and locations, never values.** A deployment name, a dashboard URL, a bundle identifier, an
-account owner — all fine. A key, a token, a password — never, in any form, including "shortened" or
-"example" ones. Secrets are set on the deployment and their *names* are documented in `.env.example`,
-which is the pattern this folder follows.
+**Say where to look, not what is there.** Name the service and the path that reaches a thing
+("Convex dashboard → prod → Settings → Deploy keys"), and stop there. An identifier that can be read
+at that place, or in a file of the repo, is not copied: a deployment name, a project id, a team, a
+key id, a bundle identifier. Two reasons. The repo should be reproducible: pointed at other
+accounts and deployments through its env alone, with as few ties to this one's real world as
+possible. And a copy has to change wherever the original does; the day one is missed, this folder
+points at a deployment that no longer exists. Write one only when nothing else can tell the reader
+which one is meant. Secrets never, in any form, including "shortened" or "example" ones; their *names* are
+documented in `.env.example`, which is the pattern this folder follows.
 
 If a fact would let someone act without asking, it belongs here. If it would let someone act without
 *authorisation*, it does not.
@@ -37,15 +42,7 @@ documentation this project exists to avoid — see the note on drift in [adr/REA
 
 ## What is true today
 
-**Application identity** — from `app.json`, repeated here because the rest of this file is about
-things `app.json` cannot tell you.
-
-| | |
-| --- | --- |
-| Expo slug | `cuisko` |
-| Deep-link scheme | `cuisko://` |
-| Bundle id / package | `com.cuisko.app` (iOS and Android) |
-| Web output | static, Metro bundler |
+**Application identity** — slug, scheme, bundle id and package live in `app.json`, and only there.
 
 **Environment** — no values here by design.
 
@@ -53,12 +50,12 @@ things `app.json` cannot tell you.
 - Backend secrets are **not** read from any file. They are set on the deployment with
   `npx convex env set`, validated by `convex/env.ts`, and that file throws at boot if one is missing.
 
+**Deployments** — Convex deployments, EAS channels and the CI secrets: [deployments.md](./deployments.md).
+
 **Not yet recorded**, because it does not exist or has not been asked for yet — listed so the
 absence reads as *not yet* rather than *forgotten*:
 
-- Convex deployment names and dashboard URLs (dev and prod)
 - Where the mockups [PRODUCT.md](../PRODUCT.md) is drawn from actually live
-- EAS account, build profiles, distribution channels
 - Test accounts and any seeded data
 - Support channel — where a user reaches a human
 - AI provider accounts, once `convex/agent/` has its first file

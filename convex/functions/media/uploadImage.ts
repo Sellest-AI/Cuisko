@@ -56,6 +56,9 @@ export const uploadImage = async (base64orUrl: string, extra: Extra) => {
 
   const folder = userId ? StorageCloud.FOLDERS.USER(userId) : StorageCloud.FOLDERS.PUBLIC;
   const uploadedFile = await StorageCloud.uploadFile(compressedImage, folder);
+  const object = extra.object && croppedImage ?
+    { ...extra.object, x: extra.object.x + croppedImage.position.left, y: extra.object.y + croppedImage.position.top }
+    : extra.object;
 
   return {
     userId,
@@ -67,7 +70,7 @@ export const uploadImage = async (base64orUrl: string, extra: Extra) => {
     size: compressedImage.size,
     mimeType: compressedImage.mimeType,
     hasAlpha: hasAlpha ?? false,
-    object: extra.object,
+    object: object,
     tags: extra.tags,
   };
 }

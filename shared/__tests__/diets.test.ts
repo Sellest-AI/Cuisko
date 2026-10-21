@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { DIETS, type Diet, mostPermissiveDietOf, strictestDietOf } from "../diets";
+import { DIETS, type Diet, fitsDiet, mostPermissiveDietOf, strictestDietOf } from "../diets";
 
 describe("the vocabulary", () => {
   /**
@@ -10,6 +10,19 @@ describe("the vocabulary", () => {
    */
   test("runs strictest to most permissive", () => {
     expect(DIETS).toEqual(["vegan", "vegetarian", "pescatarian", "omnivore"]);
+  });
+});
+
+describe("fitsDiet", () => {
+  test("a stricter dish suits a looser eater, never the reverse", () => {
+    expect(fitsDiet("vegan", "pescatarian")).toBe(true);
+    expect(fitsDiet("vegetarian", "vegetarian")).toBe(true);
+    expect(fitsDiet("pescatarian", "vegetarian")).toBe(false);
+  });
+
+  test("a dish with no diet has meat, and suits only an omnivore", () => {
+    expect(fitsDiet(undefined, "pescatarian")).toBe(false);
+    expect(fitsDiet(undefined, "omnivore")).toBe(true);
   });
 });
 

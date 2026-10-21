@@ -1,12 +1,15 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { enforceRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
+import { markRecipeReviewed } from "@convex/functions/recipes/markRecipeReviewed";
+import type { RecipeDetail } from "@convex/functions/recipes/loadRecipe";
+import { recipeFingerprint } from "@convex/functions/recipes/recipeFingerprint";
 import { verifyAgainstSource } from "@convex/functions/recipes/verifyAgainstSource";
-import { type AppUser, adminActionI18n, type TracedActionCtx } from "@convex/procedures";
-import type { Locale } from "@convex/schema/i18n";
+import { adminActionI18n, internalAction, internalMutation, type TracedActionCtx } from "@convex/procedures";
+import { type Locale, vLocale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
-type Context = TracedActionCtx & { userId: Id<"users">; user: Pick<AppUser, "role">; i18n: { locale: Locale } };
+type Args = { recipeId: Id<"recipes">; locale: Locale };
 
 const vOutcome = v.union(
   v.object({ verdict: v.literal("unchanged") }),
@@ -19,30 +22,46 @@ type Outcome = typeof vOutcome.type;
  * An admin's "Verify the recipe": the stored recipe checked by the verifier against its page, which
  * the tool scrapes again, and the row rewritten through the edit's own persist when it was wrong.
  *
- * `admin` and nothing else. It rewrites any recipe, a catalog one with no owner included, so there
- * is no ownership to check — the role is the whole gate, and `adminActionI18n` holds it.
+ * Either verdict ends the recipe `reviewed` (see `recipes.status`): a rewrite through that persist,
+ * an acceptance through `_internal_accept`, which writes the status alone. Both are refused when a
+ * cook saved the recipe while it was being verified — see `assertUnchangedSince`.
+ *
+ * `admin` for the app, `_internal` for `catalog:verify`. It rewrites any recipe, a catalog one with
+ * no owner included, so there is no ownership to check. For `admin` the role is the whole gate, and
+ * `adminActionI18n` holds it; `_internal` has none, and is reached only by a deploy key or by
+ * server code — any internal caller can rewrite any recipe through it.
  *
  * Rate limited like a cook's edit (`recipeWrite`), whose work it repeats — a model call and a
  * resolve of every line — plus a scrape. ADR 0018 does not exempt admins: they get
  * `ADMIN_MULTIPLIER` times the allowance, so a leaked admin session still has a ceiling.
  *
- * @limitation The check runs in the app's language, like `updateOne`, not in the recipe's own. A
+ * @limitation `admin` checks in the app's language, like `updateOne`, not in the recipe's own. A
  *   French recipe verified from an app in English is read and rewritten in English, and the French
  *   is then re-translated from it. Accepted: the recipe does not record the language it was written in.
+ *   `_internal` has no app: `catalog:verify` passes the language of the recipe's page.
  */
-const handler = async (ctx: Context, { recipeId }: { recipeId: Id<"recipes"> }): Promise<Outcome> => {
-  const locale = ctx.i18n.locale;
-
+const _load = async (ctx: TracedActionCtx, { recipeId, locale }: Args): Promise<RecipeDetail & { sourceUrl: string }> => {
   const stored = await ctx.runQuery(internal.router.recipes.getOne._internal, { id: recipeId, locale });
   if (!stored.sourceUrl)
     throw new ConvexError({ code: "INVALID_INPUT" as const, message: "This recipe was not imported from a page" });
 
-  // After the refusal that costs nothing, before the tool's scrape and model, which cost something.
-  await enforceRateLimit(ctx, "recipeWrite");
+  return { ...stored, sourceUrl: stored.sourceUrl };
+};
 
+const _verify = async (
+  ctx: TracedActionCtx,
+  { recipeId, locale }: Args,
+  stored: RecipeDetail & { sourceUrl: string },
+): Promise<Outcome> => {
+  // Taken before the verifier runs, of exactly what it is handed: both writes are refused if it moved.
+  const fingerprint = recipeFingerprint(stored);
   const verification = await verifyAgainstSource(ctx, { stored, url: stored.sourceUrl, locale });
 
-  if (verification.verdict === "unchanged") return verification;
+  // Either verdict ends `reviewed`: a verify vouches for the recipe whether it corrected it or not.
+  if (verification.verdict === "unchanged") {
+    await ctx.runMutation(internal.router.recipes.verifyOne._internal_accept, { recipeId, locale, fingerprint });
+    return verification;
+  }
 
   const { corrections, recipe, links, complete } = verification;
   await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {
@@ -52,6 +71,7 @@ const handler = async (ctx: Context, { recipeId }: { recipeId: Id<"recipes"> }):
     recipe,
     links,
     complete,
+    editor: { by: "verifier", fingerprint },
   });
 
   await ctx.scheduleTracedAfter(0, internal.router.recipes.translateOne._internal, {
@@ -66,5 +86,29 @@ export const admin = adminActionI18n({
   trace: "recipes/verifyOne",
   args: { recipeId: v.id("recipes") },
   returns: vOutcome,
-  handler: (ctx, args): Promise<Outcome> => handler(ctx, args),
+  handler: async (ctx, { recipeId }): Promise<Outcome> => {
+    const args = { recipeId, locale: ctx.i18n.locale };
+    const stored = await _load(ctx, args);
+    // After the refusal that costs nothing, before the tool's scrape and model, which cost something.
+    await enforceRateLimit(ctx, "recipeWrite");
+    return _verify(ctx, args, stored);
+  },
+});
+
+/**
+ * The `catalog:verify` path, through a deploy key: the same verify for a catalog recipe, in the
+ * locale the script reads from its source page. No rate limit: no session can reach it (ADR 0018
+ * limits `authed` operations).
+ *
+ * @costly
+ */
+export const _internal = internalAction({
+  args: { recipeId: v.id("recipes"), locale: vLocale },
+  returns: vOutcome,
+  handler: async (ctx, args): Promise<Outcome> => _verify(ctx, args, await _load(ctx, args)),
+});
+
+export const _internal_accept = internalMutation({
+  args: { recipeId: v.id("recipes"), locale: vLocale, fingerprint: v.string() },
+  handler: (ctx, args): Promise<void> => markRecipeReviewed(ctx, args),
 });

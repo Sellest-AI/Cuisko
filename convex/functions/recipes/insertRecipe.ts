@@ -45,6 +45,23 @@ export const recipeFactsOf = (
   return facts as RecipeFacts;
 };
 
+/**
+ * The columns a recipe's facts and links derive, for every writer of a whole row: `insertRecipe`,
+ * and the restore's replace in place. `search` by the field's one serializer (ADR 0011), the six
+ * facets from `tags` (ADR 0015), and `updatedAt`. `shuffleKey` and `isArchived` are left to the
+ * writer, because a replace keeps the row's own key.
+ */
+export const derivedRecipeColumns = async (
+  ctx: MutationCtx,
+  { tags, links, names }: { tags: RecipeFacts["tags"]; links: RecipeLink[]; names: string[] },
+) => ({
+  ...facetsOf(tags),
+  // ADR 0011: the serializer is called HERE, where `search` is assigned, so C11 can verify this
+  // writer on its own rather than trust a bundle it cannot see into.
+  search: await recipeSearchText(ctx, { ingredientIds: links.map((link) => link.ingredientId), names }),
+  updatedAt: Date.now(),
+});
+
 type Args = {
   recipe: RecipeFacts;
   /** The catalog rows the recipe's lines resolved to, each carrying the position of its line. */
@@ -78,21 +95,12 @@ export const insertRecipe = async (
 ): Promise<Id<"recipes">> => {
   const links = await keepCookingFatUses(ctx, tagged);
 
-  // ADR 0011: the serializer is called HERE, where `search` is assigned, so C11 can verify this
-  // writer on its own rather than trust a bundle it cannot see into.
-  const search = await recipeSearchText(ctx, {
-    ingredientIds: links.map((link) => link.ingredientId),
-    names,
-  });
-
   const recipeId = await ctx.db.insert("recipes", {
     ...recipe,
     sourceUrl: recipe.sourceUrl === undefined ? undefined : canonicalUrlOf(recipe.sourceUrl),
-    ...facetsOf(recipe.tags),
-    search,
+    ...(await derivedRecipeColumns(ctx, { tags: recipe.tags, links, names })),
     shuffleKey: randomShuffleKey(),
     isArchived: false,
-    updatedAt: Date.now(),
   });
 
   await Promise.all(

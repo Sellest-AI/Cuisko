@@ -94,6 +94,12 @@ export const verifierAgent = new Agent(components.agent, {
   languageModel: models.verifier.model,
   instructions: "",
   contextOptions: { recentMessages: 0, searchOptions: { limit: 0 } },
+  /**
+   * The longest verify that finished on its own wrote 2,258 tokens; 4 of the first 44 (to
+   * 2026-10-20) never finished, and ran to the provider's 65,536 at $0.66 each. Cut at 6,000, a
+   * runaway costs about $0.06, and its truncated answer fails to parse like any other bad reply.
+   */
+  callSettings: { maxOutputTokens: 6_000 },
   maxSteps: 7,
 });
 

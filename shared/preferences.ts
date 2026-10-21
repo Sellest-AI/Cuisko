@@ -58,6 +58,13 @@ export const EXCLUSIVE_PREFERENCES = [
 ] as const satisfies readonly NutritionPreference[];
 
 /**
+ * The most goals the catalog import asks `suggestDishes` for at once. Two is the intersection a
+ * cook actually stacks ("high-protein and low-carb"); three is a dish the model invents rather than
+ * one Marmiton holds. A cook may seek more: this caps the import's ask, not the preference.
+ */
+export const MAX_CONSTRAINT_SEEKS = 2;
+
+/**
  * Whether a recipe carrying `tags` is what someone seeking `seeks` asked for.
  *
  * Every sought tag must be present — "high-protein and low-carb" means both, and a recipe that
