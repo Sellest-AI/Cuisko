@@ -1,10 +1,11 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
-import { RESOLVABLE } from "@shared/ingredientMatch";
+import { CONFIDENT, MARGIN, RESOLVABLE } from "@shared/ingredientMatch";
 
 import schema from "../../../schema";
 import { searchWidened } from "../searchWidened";
+import { seedIngredients } from "../seedIngredients";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -124,5 +125,26 @@ describe("functions/ingredients/searchWidened", () => {
 
     expect(await t.run((ctx) => searchWidened(ctx, { text: "  ", locale: "fr" }))).toEqual([]);
     expect(await t.run((ctx) => searchWidened(ctx, { text: "2", locale: "fr" }))).toEqual([]);
+  });
+
+  /**
+   * A spelling the taxonomy files under the wrong catalog food is only safe when the catalog
+   * answers it first: the resolver links step 1's winner when it clears `CONFIDENT` by `MARGIN`
+   * (`_fromCatalog`), and only a miss falls through to the taxonomy, which reads "apple cider",
+   * the American juice, as `en:cider` and lands on the alcoholic `cider` row. Run on the real
+   * seed, so a row whose names come to compete for the spelling fails here too.
+   */
+  test.each([
+    ["apple cider", "en", "apple-juice"],
+    ["apple cider", "fr", "apple-juice"],
+  ] as const)("the seeded catalog links %s (%s device) to %s, clear of the runner-up", async (text, locale, slug) => {
+    await t.run((ctx) => seedIngredients(ctx));
+
+    const [best, runnerUp] = await t.run((ctx) => searchWidened(ctx, { text, locale }));
+    const linked = best && (await t.run((ctx) => ctx.db.get(best.ingredientId)));
+
+    expect(linked?.slug).toBe(slug);
+    expect(best!.score).toBeGreaterThanOrEqual(CONFIDENT);
+    expect(best!.score - (runnerUp?.score ?? 0)).toBeGreaterThanOrEqual(MARGIN);
   });
 });

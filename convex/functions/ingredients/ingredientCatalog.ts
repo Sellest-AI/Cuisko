@@ -565,9 +565,15 @@ const ROWS: Row[] = [
   ["olives-black", "Black olives", "Olives noires", "OTHER", "g", 200, 115, 0.8, 10.7, 1.4, 6.3, 0, 3.2, 735],
   ["capers", "Capers", "Câpres", "OTHER", "g", 100, 23, 2.4, 0.9, 0.2, 4.9, 0.4, 3.2, 2964],
   ["pickles", "Pickles", "Cornichons", "OTHER", "g", 200, 11, 0.3, 0.2, 0, 2.3, 1.1, 1.2, 1208],
+  // CIQUAL's pre-packed coleslaw (26259), dressing included: the tub a recipe serves on the side. OTHER, not
+  // CONDIMENT like hummus, since a condiment scales as a pinch and a side is served by the kilo.
+  ["coleslaw", "Coleslaw", "Coleslaw", "OTHER", "g", 250, 105, 0.9, 8.1, 0.6, 5.8, 4.7, 3, 353],
   ["white-wine", "White wine", "Vin blanc", "OTHER", "ml", 750, 82, 0.1, 0, 0, 2.6, 1, 0, 5],
   ["red-wine", "Red wine", "Vin rouge", "OTHER", "ml", 750, 85, 0.1, 0, 0, 2.6, 0.6, 0, 4],
   ["beer", "Beer", "Bière", "OTHER", "ml", 500, 43, 0.5, 0, 0, 3.6, 0, 0, 4],
+  // CIQUAL's cidre brut, the dry cider a recipe cooks with. CIQUAL leaves its energy blank, so it is
+  // worked out from its 2.62 g of carbohydrate and 3.72 g of alcohol at the EU's 4 and 7 kcal a gram.
+  ["cider", "Cider", "Cidre", "OTHER", "ml", 750, 37, 0, 0, 0, 2.6, 2.2, 0, 4],
   ["coffee-ground", "Ground coffee", "Café moulu", "OTHER", "g", 250, 2, 0.1, 0, 0, 0, 0, 0, 2],
   ["black-tea", "Black tea", "Thé noir", "OTHER", "g", 100, 1, 0, 0, 0, 0.3, 0, 0, 3],
   ["orange-juice", "Orange juice", "Jus d'orange", "OTHER", "ml", 1000, 45, 0.7, 0.2, 0, 10.4, 8.4, 0.2, 1],
@@ -655,7 +661,7 @@ const EMOJI: Record<string, string> = {
   "olive-oil": "🫒", "coconut-oil": "🥥", ghee: "🧈", "hazelnut-oil": "🌰", "peanut-oil": "🥜",
   // Everything else
   water: "💧", "coffee-ground": "☕", "black-tea": "🍵", "orange-juice": "🧃",
-  "apple-juice": "🧃", beer: "🍺", "white-wine": "🍷", "red-wine": "🍷",
+  "apple-juice": "🧃", beer: "🍺", cider: "🍏", "white-wine": "🍷", "red-wine": "🍷", coleslaw: "🥗",
   "dark-chocolate": "🍫", "milk-chocolate": "🍫", "cocoa-powder": "🍫", "peanut-butter": "🥜",
   "canned-tomatoes": "🥫", passata: "🥫", "tomato-sauce": "🥫", "coconut-milk": "🥥", "almond-milk": "🥛",
   "oat-milk": "🥛", "soy-milk": "🥛", "tofu-silken": "🧆", nori: "🍜",
@@ -930,6 +936,13 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
     en: ["nutritional yeast flakes", "nooch"],
   },
   "coconut-milk-light": { fr: ["lait de coco léger"], en: ["reduced-fat coconut milk", "lite coconut milk"] },
+  // "Apple cider" is the unfiltered juice in American English. The taxonomy files it under cider, so
+  // it is claimed here, where an alias answers before the taxonomy is asked.
+  "apple-juice": { en: ["apple cider"] },
+  cider: { fr: ["cidre brut", "cidre de pomme"], en: ["dry cider", "hard cider"] },
+  // Not "salade de chou": French also names a vinaigrette cabbage salad that way, and that is no
+  // mayonnaise tub.
+  coleslaw: { fr: ["salade coleslaw"], en: ["slaw"] },
 };
 
 /**
@@ -1096,7 +1109,7 @@ const GRAMS_PER_ML: Record<string, number> = {
   "mustard-wholegrain": 1.05, "soy-milk": 1.03, "rice-vinegar": 1.01, "oyster-sauce": 1.2,
   "hoisin-sauce": 1.2, "miso-paste": 1.2, "curry-paste-red": 1.1, "orange-blossom-water": 1,
   "coconut-milk": 0.98, "almond-milk": 1.03, "oat-milk": 1.03, passata: 1.05, "tomato-sauce": 1.05, "white-wine": 0.99,
-  "red-wine": 0.99, beer: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
+  "red-wine": 0.99, beer: 1.01, cider: 1.01, "orange-juice": 1.05, "apple-juice": 1.05,
   // Shellfish by the litre, in the shell — see the note above.
   mussels: 0.75,
 };
@@ -1409,7 +1422,9 @@ const SHELF_LIFE_DAYS: Record<string, { sealed: number; opened: number }> = {
   capers: { sealed: 365, opened: 90 }, pickles: { sealed: 365, opened: 30 },
   // Wine is ordinary table wine, corked back and kept in the fridge once opened.
   "white-wine": { sealed: 365, opened: 3 }, "red-wine": { sealed: 730, opened: 3 },
-  beer: { sealed: 180, opened: 1 },
+  beer: { sealed: 180, opened: 1 }, cider: { sealed: 365, opened: 3 },
+  // A chilled tub, dated a week or two out, and eaten within days of the lid coming off.
+  coleslaw: { sealed: 10, opened: 3 },
   "coffee-ground": { sealed: 180, opened: 30 }, "black-tea": { sealed: 365, opened: 180 },
   // The pantry.
   nori: { sealed: 365, opened: 90 }, "orange-blossom-water": { sealed: 730, opened: 180 },
@@ -1513,7 +1528,9 @@ const DIET: Record<string, Diet> = {
   "canned-tomatoes": "vegan", passata: "vegan", "tomato-sauce": "vegan", "olives-green": "vegan", "olives-black": "vegan", capers: "vegan",
   "soy-milk": "vegan", "tofu-silken": "vegan", nori: "vegan", "orange-blossom-water": "vegan",
   pickles: "vegan", "coffee-ground": "vegan", "black-tea": "vegan", "orange-juice": "vegan",
-  "apple-juice": "vegan", "white-wine": "vegan", "red-wine": "vegan", beer: "vegan",
+  "apple-juice": "vegan", "white-wine": "vegan", "red-wine": "vegan", beer: "vegan", cider: "vegan",
+  // The mayonnaise in its dressing is egg.
+  coleslaw: "vegetarian",
   "milk-chocolate": "vegetarian", "vegetable-stock-cube": "vegan", "nutritional-yeast": "vegan",
   "coconut-milk-light": "vegan",
   // Stock from an animal, and a setting agent made of its collagen. Both read as "OTHER".
@@ -1633,6 +1650,9 @@ const ALLERGENS_BY_SLUG: Record<string, Allergen[]> = {
   // Sodium bisulphite, on the bottle that named the sauce.
   sriracha: ["sulphites"],
   beer: ["gluten", "sulphites"],
+  cider: ["sulphites"],
+  // Egg from the mayonnaise in its dressing, and the mustard a shop-bought dressing almost always adds.
+  coleslaw: ["eggs", "mustard"],
 };
 
 /**
