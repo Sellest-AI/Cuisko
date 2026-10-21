@@ -980,8 +980,9 @@ const GRAMS_PER_PIECE: Record<string, number> = {
   // The whole leg, thigh and drumstick, as a French "cuisse" is sold: ~175 g of it comes off the
   // bone (see `EDIBLE_SHARE`).
   "chicken-thigh": 250,
-  // Fish and seafood — a raw peeled prawn, a whole fresh sardine
-  shrimp: 15, sardines: 50,
+  // Fish and seafood — a raw peeled prawn, a whole fresh sardine, a salmon pavé as French shops
+  // pack them, two to a 250 g tray.
+  shrimp: 15, sardines: 50, salmon: 125,
   // One of them out of the packet or the jar — a nori sheet, an olive.
   nori: 3, "olives-black": 4,
   // Whole birds — the weight on the label, carcass included (see `EDIBLE_SHARE`).
@@ -1019,6 +1020,8 @@ const GRAMS_PER_SLICE: Record<string, number> = {
   // Cured and cooked meats, one deli slice
   ham: 20, prosciutto: 15, salami: 5, chorizo: 10, bacon: 15, "chicken-slices": 25,
   "turkey-slices": 25, pancetta: 10,
+  // Fresh meat, one butcher's slice about a centimetre thick — not a bacon rasher
+  "pork-belly": 60,
   // Cheese, one sandwich slice or one round of the log
   "cheddar-cheese": 30, emmental: 30, gruyere: 30, comte: 30, brie: 30, "goat-cheese": 20,
   mozzarella: 25, gouda: 25,
