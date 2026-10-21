@@ -65,7 +65,7 @@ loop: which findings the author declined, and why.
 | Interruption | The app is backgrounded or killed mid-flow, the socket drops, the screen loses focus. Does the work finish, and does the cook find its result? |
 | Repetition | A double tap, a retry, an intent Android replays from Recents, a scheduled function that runs twice. Is the write idempotent, or does it make two rows? |
 | Existing data | Rows already in dev **and** prod. A new required field on old rows, a backfill, an index over data that predates it, archived rows (ADR 0017), duplicates the new code assumes away. |
-| Old clients | The server deploys before every installed app updates. Does a changed argument or return shape break a build already on a phone? |
+| Old clients | The server deploys before every installed app updates. Does a changed argument or return shape break a build already on a phone? A new value in a field old builds already read — a plate status, a union member — reaches them too: what does that build show? |
 | Concurrency | Two members of one household, two devices, a mutation racing a scheduled job, a household switch mid-flow (ADR 0016). |
 | Knock-on effects | The cellar, the plan and the grocery list describe the same food and must agree. A write to one — stock taken out, a purchase, servings changed, an expiry passed — and what each of the others must do about it. |
 | Boundaries | A date past the plan's end or across a week, a zero quantity, the first and last item, a single-member household. |
@@ -108,7 +108,7 @@ the one bar is that you can name the case and say what goes wrong in it.
 - Explore. Open what the plan names, what the lenses send you to, and the ADRs that match. No
   surveys of a module, no reading sibling files "for context".
 
-Budget: **under 25 tool calls on round 1, under 10 on later rounds.** Past that you have started
+Budget: **under 25 tool calls on round 1, under 15 on later rounds.** Past that you have started
 exploring — stop and report what you have, and say what you did not reach.
 
 ## Classification

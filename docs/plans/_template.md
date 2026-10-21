@@ -52,7 +52,8 @@ say "none": an empty statement is a decision, a missing one is an oversight.
 **Existing data** — the rows already in dev and prod. A new field on old rows (optional, or
 backfilled, and by what), an index over data that predates it, archived rows the new read must not
 return. And what an installed app does when the server deploys first: a changed argument or return
-shape reaches phones that have not updated. "None" is an answer here too.
+shape reaches phones that have not updated, and so does a new value in a field they already read,
+such as a new plate status. "None" is an answer here too.
 
 **Cost and limits** — every paid call (a model, storage), its rate limit and its trace, and any
 Convex limit the slice comes near: action duration, document size, array length, reads per query.
