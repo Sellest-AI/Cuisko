@@ -1,9 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import { REVIEW_ACCOUNT } from "../reviewAccount";
-import { reviewWindow } from "../reviewWindow";
+import { REVIEW_ACCOUNT, reviewWindow } from "../reviewAccount";
 
-describe("functions/auth/reviewWindow", () => {
+describe("functions/auth/reviewAccount › reviewWindow", () => {
   test("live 0.1.0, no review version: closed to every build", () => {
     expect(reviewWindow({ liveVersion: "0.1.0" }, "0.1.0")).toBeNull();
     expect(reviewWindow({ liveVersion: "0.1.0" }, "0.2.0")).toBeNull();

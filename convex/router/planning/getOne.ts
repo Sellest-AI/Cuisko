@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { loadMealCard } from "@convex/functions/planning/loadMealCard";
+import { loadMealCard } from "@convex/functions/planning/plannedMealCard";
 import { householdQueryI18n } from "@convex/procedures";
 
 /**

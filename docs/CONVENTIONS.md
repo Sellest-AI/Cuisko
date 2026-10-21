@@ -799,6 +799,33 @@ second one needs it. Either way the file is named for the concept it holds, neve
 that first called it (`useThing.helpers.ts`): a name tied to one hook reads as misplaced the day a
 second hook imports it.
 
+**A `functions/` file holds a concept, not a function.** 👁 It is named for the thing it works on
+(`recipeCard.ts`, `cookMeal.ts`). A helper whose only caller is that concept goes in the caller's
+file, exported only if a test needs it, and its test is renamed after that file. It keeps a file of
+its own when a second concept calls it, or when folding costs something:
+
+- its unit test would import the caller's dependencies (`appendBrief`, beside the agent);
+- the runtimes differ: a `"use node"` file is only importable from a Node action (§2.2);
+- C13 allowlists the target by file, which would exempt the newcomer too.
+
+A file whose only caller is its router is that router's work, not a fold.
+
+**One loader per access path, one projection per shape.** 👁
+
+```
+router/recipes/getAll.ts                 picks the shape
+  └─> functions/recipes/listForUser.ts   loader: reads one page of rows, by index
+        └─> recipeCard.ts › toRecipeCard  projection: keeps the card's fields, drops the rest
+```
+
+The projection is the only place a payload's fields are chosen: a `to<Shape>` function, or the
+loader's own return when the shape has a single loader (`loadRecipe`). A wider shape extends
+a narrower one (`RecipeDetail = RecipeCard & {…}`); a second projection for a shape is a finding.
+The router picks the loader and passes `viewer`, and never maps fields, except that an internal
+export may add what only the server should see (`getOne._internal` adds `userId` and `sourceUrl`). Never one loader that reads everything and
+projects it down: every row a query reads is billed and re-runs the query when it changes, so the
+loader decides the joins.
+
 A directory is created the first time a file belongs in it — but the destination is decided here,
 not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may and may not do.
 
@@ -817,6 +844,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] New secret added to the Zod schema in `convex/env.ts` 🔬
 - [ ] Router file under 90 lines of code (comments and blank lines not counted) 📐
 - [ ] Authorization test added for each new gated export 📐
+- [ ] A new read of a table reuses its query for that access path and its `to<Shape>` mapper, and reads no row the payload drops (§6) 👁
 
 **Frontend**
 

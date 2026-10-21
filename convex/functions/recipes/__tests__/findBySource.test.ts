@@ -5,7 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { facetsOf } from "@shared/tags";
 
 import schema from "../../../schema";
-import { findCatalogBySource } from "../findCatalogBySource";
+import { findCatalogBySource } from "../findBySource";
 
 const modules = import.meta.glob("/convex/**/*.*s");
 
@@ -39,7 +39,7 @@ beforeEach(() => {
   t = convexTest(schema, modules);
 });
 
-describe("findCatalogBySource", () => {
+describe("functions/recipes/findBySource › findCatalogBySource", () => {
   test("returns the catalog recipe imported from the url", async () => {
     const recipeId = await insertRecipe("https://example.com/tarte");
 

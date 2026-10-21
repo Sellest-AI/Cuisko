@@ -1,7 +1,7 @@
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
-import { findCatalogBySource } from "@convex/functions/recipes/findCatalogBySource";
+import { findCatalogBySource } from "@convex/functions/recipes/findBySource";
 import type { RecipeDraft } from "@convex/lib/scraping/toRecipeDraft";
 import { type TracedActionCtx, authAction, internalAction, internalQuery } from "@convex/procedures";
 import { vLocale } from "@convex/schema/i18n";

@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { Id } from "@convex/_generated/dataModel";
 import type { MealSlot } from "@shared/mealSlots";
 
-import { nearestPlate, type PlateCandidate } from "../nearestPlate";
+import { nearestPlate, type PlateCandidate } from "../cookMeal";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** A Tuesday at local midnight, somewhere: the arithmetic only ever reads differences. */
@@ -23,7 +23,7 @@ const plate = (
 
 const at = (hour: number) => ({ today: TODAY, hour });
 
-describe("functions/planning/nearestPlate", () => {
+describe("functions/planning/cookMeal › nearestPlate", () => {
   describe("the current slot wins", () => {
     /** Lunch is still the meal in progress at 16h — people eat late — even with dinner planned. */
     test("at 16h, lunch and dinner today → lunch", () => {

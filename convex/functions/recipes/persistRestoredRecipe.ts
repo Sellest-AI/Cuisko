@@ -4,7 +4,7 @@ import { scheduleImageTreeDeletion } from "@convex/functions/media/imageTree";
 import type { MutationCtx, TracedMutationCtx } from "@convex/procedures";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
-import { findCatalogRowBySource } from "./findCatalogBySource";
+import { findCatalogRowBySource } from "./findBySource";
 import { derivedRecipeColumns, insertRecipe, type RecipeFacts, recipeFactsOf } from "./insertRecipe";
 import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import { replaceRecipeImages } from "./recipeImages";

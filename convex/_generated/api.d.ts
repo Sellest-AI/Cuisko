@@ -61,9 +61,7 @@ import type * as functions_assistant_recipeBrief from "../functions/assistant/re
 import type * as functions_assistant_saveQuestion from "../functions/assistant/saveQuestion.js";
 import type * as functions_assistant_threadMessages from "../functions/assistant/threadMessages.js";
 import type * as functions_assistant_turnBrief from "../functions/assistant/turnBrief.js";
-import type * as functions_auth_getReviewAccount from "../functions/auth/getReviewAccount.js";
 import type * as functions_auth_reviewAccount from "../functions/auth/reviewAccount.js";
-import type * as functions_auth_reviewWindow from "../functions/auth/reviewWindow.js";
 import type * as functions_cascade from "../functions/cascade.js";
 import type * as functions_cellars_addToCellar from "../functions/cellars/addToCellar.js";
 import type * as functions_cellars_addToGroceryList from "../functions/cellars/addToGroceryList.js";
@@ -75,7 +73,6 @@ import type * as functions_cellars_removeFromRecentlyUsed from "../functions/cel
 import type * as functions_config_setVersions from "../functions/config/setVersions.js";
 import type * as functions_health_weekSummary from "../functions/health/weekSummary.js";
 import type * as functions_households_createHousehold from "../functions/households/createHousehold.js";
-import type * as functions_households_getForUser from "../functions/households/getForUser.js";
 import type * as functions_households_inviteCode from "../functions/households/inviteCode.js";
 import type * as functions_households_isMember from "../functions/households/isMember.js";
 import type * as functions_households_joinHousehold from "../functions/households/joinHousehold.js";
@@ -129,9 +126,7 @@ import type * as functions_planning_dropMeal from "../functions/planning/dropMea
 import type * as functions_planning_lastPlannedDate from "../functions/planning/lastPlannedDate.js";
 import type * as functions_planning_limits from "../functions/planning/limits.js";
 import type * as functions_planning_loadHouseholdMeal from "../functions/planning/loadHouseholdMeal.js";
-import type * as functions_planning_loadMealCard from "../functions/planning/loadMealCard.js";
 import type * as functions_planning_mealsBetween from "../functions/planning/mealsBetween.js";
-import type * as functions_planning_nearestPlate from "../functions/planning/nearestPlate.js";
 import type * as functions_planning_pageMeals from "../functions/planning/pageMeals.js";
 import type * as functions_planning_planDraft from "../functions/planning/planDraft.js";
 import type * as functions_planning_planMeal from "../functions/planning/planMeal.js";
@@ -159,7 +154,6 @@ import type * as functions_recipes_deriveRecipeFields from "../functions/recipes
 import type * as functions_recipes_dietFacet from "../functions/recipes/dietFacet.js";
 import type * as functions_recipes_exportCatalog from "../functions/recipes/exportCatalog.js";
 import type * as functions_recipes_findBySource from "../functions/recipes/findBySource.js";
-import type * as functions_recipes_findCatalogBySource from "../functions/recipes/findCatalogBySource.js";
 import type * as functions_recipes_generateRecipe from "../functions/recipes/generateRecipe.js";
 import type * as functions_recipes_generateRecipeFromVideo from "../functions/recipes/generateRecipeFromVideo.js";
 import type * as functions_recipes_insertRecipe from "../functions/recipes/insertRecipe.js";
@@ -169,7 +163,6 @@ import type * as functions_recipes_listForUser from "../functions/recipes/listFo
 import type * as functions_recipes_listUnreviewedCatalog from "../functions/recipes/listUnreviewedCatalog.js";
 import type * as functions_recipes_loadForTranslation from "../functions/recipes/loadForTranslation.js";
 import type * as functions_recipes_loadRecipe from "../functions/recipes/loadRecipe.js";
-import type * as functions_recipes_loadRecipeCards from "../functions/recipes/loadRecipeCards.js";
 import type * as functions_recipes_markRecipeReviewed from "../functions/recipes/markRecipeReviewed.js";
 import type * as functions_recipes_mergeDuplicateLinks from "../functions/recipes/mergeDuplicateLinks.js";
 import type * as functions_recipes_missingRecipeIds from "../functions/recipes/missingRecipeIds.js";
@@ -397,9 +390,7 @@ declare const fullApi: ApiFromModules<{
   "functions/assistant/saveQuestion": typeof functions_assistant_saveQuestion;
   "functions/assistant/threadMessages": typeof functions_assistant_threadMessages;
   "functions/assistant/turnBrief": typeof functions_assistant_turnBrief;
-  "functions/auth/getReviewAccount": typeof functions_auth_getReviewAccount;
   "functions/auth/reviewAccount": typeof functions_auth_reviewAccount;
-  "functions/auth/reviewWindow": typeof functions_auth_reviewWindow;
   "functions/cascade": typeof functions_cascade;
   "functions/cellars/addToCellar": typeof functions_cellars_addToCellar;
   "functions/cellars/addToGroceryList": typeof functions_cellars_addToGroceryList;
@@ -411,7 +402,6 @@ declare const fullApi: ApiFromModules<{
   "functions/config/setVersions": typeof functions_config_setVersions;
   "functions/health/weekSummary": typeof functions_health_weekSummary;
   "functions/households/createHousehold": typeof functions_households_createHousehold;
-  "functions/households/getForUser": typeof functions_households_getForUser;
   "functions/households/inviteCode": typeof functions_households_inviteCode;
   "functions/households/isMember": typeof functions_households_isMember;
   "functions/households/joinHousehold": typeof functions_households_joinHousehold;
@@ -465,9 +455,7 @@ declare const fullApi: ApiFromModules<{
   "functions/planning/lastPlannedDate": typeof functions_planning_lastPlannedDate;
   "functions/planning/limits": typeof functions_planning_limits;
   "functions/planning/loadHouseholdMeal": typeof functions_planning_loadHouseholdMeal;
-  "functions/planning/loadMealCard": typeof functions_planning_loadMealCard;
   "functions/planning/mealsBetween": typeof functions_planning_mealsBetween;
-  "functions/planning/nearestPlate": typeof functions_planning_nearestPlate;
   "functions/planning/pageMeals": typeof functions_planning_pageMeals;
   "functions/planning/planDraft": typeof functions_planning_planDraft;
   "functions/planning/planMeal": typeof functions_planning_planMeal;
@@ -495,7 +483,6 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/dietFacet": typeof functions_recipes_dietFacet;
   "functions/recipes/exportCatalog": typeof functions_recipes_exportCatalog;
   "functions/recipes/findBySource": typeof functions_recipes_findBySource;
-  "functions/recipes/findCatalogBySource": typeof functions_recipes_findCatalogBySource;
   "functions/recipes/generateRecipe": typeof functions_recipes_generateRecipe;
   "functions/recipes/generateRecipeFromVideo": typeof functions_recipes_generateRecipeFromVideo;
   "functions/recipes/insertRecipe": typeof functions_recipes_insertRecipe;
@@ -505,7 +492,6 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/listUnreviewedCatalog": typeof functions_recipes_listUnreviewedCatalog;
   "functions/recipes/loadForTranslation": typeof functions_recipes_loadForTranslation;
   "functions/recipes/loadRecipe": typeof functions_recipes_loadRecipe;
-  "functions/recipes/loadRecipeCards": typeof functions_recipes_loadRecipeCards;
   "functions/recipes/markRecipeReviewed": typeof functions_recipes_markRecipeReviewed;
   "functions/recipes/mergeDuplicateLinks": typeof functions_recipes_mergeDuplicateLinks;
   "functions/recipes/missingRecipeIds": typeof functions_recipes_missingRecipeIds;

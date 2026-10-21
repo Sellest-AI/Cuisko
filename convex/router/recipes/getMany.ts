@@ -1,4 +1,4 @@
-import { loadRecipeCards } from "@convex/functions/recipes/loadRecipeCards";
+import { loadRecipeCards } from "@convex/functions/recipes/recipeCard";
 import { authQueryI18n } from "@convex/procedures";
 import { v } from "convex/values";
 

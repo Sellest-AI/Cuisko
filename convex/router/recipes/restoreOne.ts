@@ -5,7 +5,7 @@ import {
   persistRestoredRecipe,
 } from "@convex/functions/recipes/persistRestoredRecipe";
 import { type RestoredRecipe, restoreRecipe } from "@convex/functions/recipes/restoreRecipe";
-import { findRestoreTarget } from "@convex/functions/recipes/findCatalogBySource";
+import { findRestoreTarget } from "@convex/functions/recipes/findBySource";
 import { internalAction, internalMutation, internalQuery } from "@convex/procedures";
 import { vPortableRecipe, vRecipeLink, vRestoredPhotos } from "@convex/schema/recipePayloads";
 import { vRecipeStatus } from "@convex/schema/recipes";

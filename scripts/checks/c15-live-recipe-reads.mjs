@@ -21,12 +21,34 @@ import path from "node:path";
 import { lineOf, listFiles, parse, relative, report, ROOT, stringLiteral, ts } from "./_lib.mjs";
 
 /**
- * Files allowed to read archived recipes, each with the reason. Adding one here is the review: it
- * says the reader needs every row, and why no screen will show what it returns.
+ * Readers allowed to see archived recipes, as `file#function`, each with the reason. Adding one here
+ * is the review: it says the reader needs every row, and why no screen will show what it returns.
+ *
+ * Keyed by function rather than by file because a concept file holds several readers (CONVENTIONS
+ * §6): `findBySource.ts` holds the catalog dedupe, which needs every row, beside `findBySource`
+ * itself, which must stay live-only. Exempting the file would exempt both.
  */
 const ALLOWLIST = new Map([
-  ["convex/functions/recipes/findCatalogBySource.ts", "dedupes an import against every row holding the page"],
+  ["convex/functions/recipes/findBySource.ts#findCatalogRowBySource", "dedupes an import against every row holding the page"],
 ]);
+
+/**
+ * The top-level `const` or `function` a node sits in, or `null` at module level.
+ *
+ * The outermost one, not the nearest: a reader usually holds its query in an inner
+ * `const recipe = await ctx.db.query(…)`, and the allowlist names the reader.
+ */
+const readerOf = (node) => {
+  let name = null;
+
+  for (let current = node.parent; current; current = current.parent) {
+    if ((ts.isVariableDeclaration(current) || ts.isFunctionDeclaration(current)) && current.name && ts.isIdentifier(current.name)) {
+      name = current.name.text;
+    }
+  }
+
+  return name;
+};
 
 const INDEX_READS = new Set(["withIndex", "withSearchIndex"]);
 
@@ -59,12 +81,10 @@ for (const file of listFiles(path.join(ROOT, "convex"))) {
   if (file.endsWith(".test.ts")) continue;
 
   const name = relative(file);
-  if (ALLOWLIST.has(name)) continue;
-
   const source = parse(file);
 
   const visit = (node) => {
-    if (isRecipesQuery(node)) {
+    if (isRecipesQuery(node) && !ALLOWLIST.has(`${name}#${readerOf(node)}`)) {
       const read = indexReadOf(node);
       const range = read?.arguments[1];
 
@@ -79,7 +99,7 @@ for (const file of listFiles(path.join(ROOT, "convex"))) {
           fix:
             "Read through an index carrying `isArchived` and add `.eq(\"isArchived\", false)` inside " +
             "the `withIndex` / `withSearchIndex` callback, or, if this reader needs archived rows, " +
-            "add it to ALLOWLIST in scripts/checks/c15-live-recipe-reads.mjs with the reason.",
+            "add `<file>#<function>` to ALLOWLIST in scripts/checks/c15-live-recipe-reads.mjs with the reason.",
         });
       }
     }

@@ -30,6 +30,30 @@ describe("a recipe query that can reach archived rows", () => {
     expect(output).toContain("a recipe its cook deleted would show up");
   });
 
+  it("rejects an unlisted reader sharing a file with an allowlisted one", () => {
+    const { code, output } = runCheck(SCRIPT, {
+      "convex/functions/recipes/findBySource.ts": `
+        export const findCatalogRowBySource = (ctx, sourceUrl) =>
+          ctx.db
+            .query("recipes")
+            .withIndex("by_user_and_source_url", (q) => q.eq("userId", undefined).eq("sourceUrl", sourceUrl))
+            .first();
+
+        export const findBySource = async (ctx, { sourceUrl }) => {
+          const recipe = await ctx.db
+            .query("recipes")
+            .withIndex("by_source_url", (q) => q.eq("sourceUrl", sourceUrl))
+            .first();
+          return recipe?._id ?? null;
+        };
+      `,
+    });
+
+    expect(code).toBe(1);
+    expect(output).toContain("convex/functions/recipes/findBySource.ts:10");
+    expect(output).not.toContain("convex/functions/recipes/findBySource.ts:4");
+  });
+
   it("rejects a search that does not narrow to live rows", () => {
     const { code, output } = runCheck(SCRIPT, {
       "convex/agent/tools/findDish.ts": `
@@ -120,8 +144,8 @@ describe("what it lets through", () => {
 
   it("accepts an allowlisted reader, which needs every row", () => {
     const result = runCheck(SCRIPT, {
-      "convex/functions/recipes/findCatalogBySource.ts": `
-        export const findCatalogBySource = (ctx, paginationOpts) =>
+      "convex/functions/recipes/findBySource.ts": `
+        export const findCatalogRowBySource = (ctx, paginationOpts) =>
           ctx.db
             .query("recipes")
             .withIndex("by_user", (q) => q.eq("userId", undefined))
