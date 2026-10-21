@@ -5,6 +5,11 @@ allowBuilds:
   # Downloads its ffmpeg binary on install; scripts/videos/extract-frames.ts decodes with it.
   ffmpeg-static: true
   unrs-resolver: true
+# The native fingerprint (the runtime version) hashes the paths of autolinked modules under
+# node_modules/.pnpm. pnpm truncates those folder names at 60 characters on Windows and 120
+# elsewhere, so a build started from Windows disagreed with the runtime version EAS computed on
+# macOS, and EAS refused the build. Pinning the Windows length makes every machine agree.
+virtualStoreDirMaxLength: 60
 minimumReleaseAgeExclude:
   - expo-dev-client@57.0.13
   - expo-dev-launcher@57.0.13
