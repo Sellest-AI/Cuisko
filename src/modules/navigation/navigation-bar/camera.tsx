@@ -3,11 +3,12 @@ import { type LayoutChangeEvent, Platform, StyleSheet, View } from "react-native
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { CameraView } from "expo-camera";
+import { launchImageLibraryAsync } from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BlurView } from "@ui/blur-view";
 import { ButtonIcon } from "@ui/button-icon";
-import { X } from "@ui/icons";
+import { Image, X } from "@ui/icons";
 import type { Frame } from "@ui/input";
 import { Pressable } from "@ui/pressable";
 import { theme } from "theme";
@@ -26,6 +27,9 @@ const SIDE_MARGIN = theme.spacing[16];
 const VIEWFINDER_SHARE = 0.62;
 const VIEWFINDER_RADIUS = Platform.select({ default: 36, ios: 48 });
 const SHUTTER_SIZE = 72;
+/** The photo picker's button: a `size="md"` `ButtonIcon`'s width, and its gap to the shutter. */
+const PICK_BUTTON_SIZE = 52;
+const PICK_BUTTON_GAP = 48;
 
 type Props = {
   /** Where the camera button is — the circle this grows out of, and shrinks back into. */
@@ -35,7 +39,7 @@ type Props = {
    * goes down — so the way back is measured when it starts, not taken from `origin`.
    */
   measureOrigin: () => Promise<Frame>,
-  /** A photo was taken: its local file URI. The sheet closes itself right after. */
+  /** A photo was taken, or picked from the phone: its local file URI. The sheet closes itself right after. */
   onCapture: (uri: string) => void,
   /** The close animation has finished, so the caller can stop rendering this. */
   onClosed: () => void,
@@ -120,6 +124,20 @@ export const NavigationBarCamera = ({ origin, measureOrigin, onCapture, onClosed
     close();
   };
 
+  /**
+   * The system photo picker, not a gallery of our own: it needs no storage permission (Android shows
+   * its Photo Picker, backported below 13 through Play services; iOS its PHPicker), which is what
+   * Google Play requires of an app that only ever takes one image. Cancelled, the camera stays open.
+   */
+  const pickPhoto = async () => {
+    if (isClosing.current) return;
+    const result = await launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
+    const picked = result.assets?.[0];
+    if (!picked) return;
+    onCapture(picked.uri);
+    close();
+  };
+
   const box = useAnimatedStyle(() => ({
     left: interpolate(progress.value, [0, 1], [from.get().x, target.x]),
     top: interpolate(progress.value, [0, 1], [from.get().y, target.y]),
@@ -158,6 +176,18 @@ export const NavigationBarCamera = ({ origin, measureOrigin, onCapture, onClosed
               {X}
             </ButtonIcon>
           </View>
+          <View style={styles.pickButton}>
+            <ButtonIcon
+              elevated
+              variant="neutral"
+              size="md"
+              onPress={pickPhoto}
+              iconColor={Platform.select({ ios: "white", default: undefined })}
+              iconSize={24}
+            >
+              {Image}
+            </ButtonIcon>
+          </View>
           <Pressable haptic onPress={takePhoto} style={styles.shutterContainer}>
             <Shutter style={styles.shutter}>
               <View style={styles.shutterInner} />
@@ -185,6 +215,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: theme.spacing[20],
     left: theme.spacing[20],
+  },
+  pickButton: {
+    position: "absolute",
+    alignSelf: "center",
+    /** Align the button with the shutter. */
+    bottom: theme.spacing[20] + ((SHUTTER_SIZE + 10) / 2) - (PICK_BUTTON_SIZE / 2),
+    /** Space the button from the shutter. */
+    marginLeft: (SHUTTER_SIZE + 10) + PICK_BUTTON_SIZE + PICK_BUTTON_GAP,
   },
   shutterContainer: {
     position: "absolute",
