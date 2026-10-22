@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
 import { CardRecipe } from "@ui/cards/recipe";
+import { useIsMotionAllowed } from "@ui/hooks/useIsMotionAllowed";
 import { CircleCheck, ForkKnifeIcon, Lightbulb } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { m } from "@ui/motion";
@@ -44,6 +45,7 @@ export const OnboardingRecipes = () => {
   const { complete } = useOnboarding();
   const clearance = useProgressClearance();
   const [searched, setSearched] = useState<number[]>([]);
+  const isMotionAllowed = useIsMotionAllowed();
 
   const hints = RECIPE_SEARCHES.map(({ id }) => t(`Recipes.Hints.${id}`));
   const last = searched.at(-1);
@@ -84,9 +86,9 @@ export const OnboardingRecipes = () => {
             {shown.map((id) => (
               <Animated.View
                 key={`${last ?? "suggested"}:${id}`}
-                entering={CARD_ENTERING}
-                exiting={CARD_EXITING}
-                layout={CARD_LAYOUT}
+                entering={isMotionAllowed ? CARD_ENTERING : undefined}
+                exiting={isMotionAllowed ? CARD_EXITING : undefined}
+                layout={isMotionAllowed ? CARD_LAYOUT : undefined}
                 style={styles.cell}
               >
                 <CardRecipe
