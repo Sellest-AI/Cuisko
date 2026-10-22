@@ -62,7 +62,23 @@ terminal and answer **yes** to the Apple login; EAS updates the App ID and store
 and CI builds work again from the next one. A native module that adds no capability needs none of
 this.
 
+## Store submission
+
+Every production build is submitted when it finishes (`eas build --auto-submit`, profile
+`submit.production` in `eas.json`). Neither store gets the build in front of users by itself:
+
+- **iOS** uploads to App Store Connect with the API key above, and shows in TestFlight. Sending a
+  version to review is done in App Store Connect.
+- **Android** uploads to the `production` track as a **draft**. Rolling it out is done in Play
+  Console. Google refuses an API upload until one AAB has been uploaded by hand in Play Console,
+  and the upload goes through a Google service account whose JSON key is stored on EAS, never in the
+  repository: `npx eas credentials --platform android` → production → Google Service Account →
+  upload the key for submissions. The account is invited in Play Console (Users and permissions)
+  with release rights on the app.
+
+A failed submission leaves the build intact. It shows on the build's page at expo.dev and is retried
+with `npx eas submit --platform <android|ios> --latest`.
+
 ## Not yet recorded
 
-- Play Console account and its `eas submit` service account
 - Whether a CI iOS build really needs no Apple login: unconfirmed until the first one runs

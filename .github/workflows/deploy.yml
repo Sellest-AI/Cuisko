@@ -4,7 +4,7 @@ name: Deploy
 #
 #   branch  Convex  EAS channel + environment  native change
 #   dev     dev     preview                    nothing ships: a warning, try it with a dev build
-#   main    prod    production                 bump the version, tag it, production build
+#   main    prod    production                 bump the version, tag it, production build, submit
 #
 # Work merges into dev first and is tried on a preview APK; merging dev into main is the release.
 #
@@ -213,4 +213,8 @@ jobs:
           # Both platforms → one build call for all; otherwise only the one that changed.
           case "$PLATFORMS" in *" "*) platform=all ;; *) platform="$PLATFORMS" ;; esac
           # --no-wait: the build runs on EAS for 15+ minutes; the job does not sit and pay for it.
-          pnpm exec eas build --profile production --platform "$platform" --non-interactive --no-wait
+          # --auto-submit: EAS submits each build once it finishes, with eas.json's `production`
+          # submit profile. iOS lands in App Store Connect (TestFlight), Android in a production
+          # draft on Play; sending it to review or rolling it out stays a human step. A failed
+          # submission leaves the build intact: retry with `eas submit --platform <p> --latest`.
+          pnpm exec eas build --profile production --platform "$platform" --non-interactive --no-wait --auto-submit

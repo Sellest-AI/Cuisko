@@ -545,7 +545,11 @@ dev   verify ─► Convex dev  ─► the latest preview build has this fingerp
 main  verify ─► Convex prod ─► the latest production build has this fingerprint?
                                  yes ─► eas update, production channel
                                  no  ─► pnpm release, commit + tag v<version>, eas build production
+                                        ─► submitted when it finishes: App Store Connect, Play draft
 ```
+
+Submission stops short of users on both stores: the iOS build waits in App Store Connect to be
+sent to review, the Android one in a production draft to be rolled out. Both are done by hand.
 
 The latest build, not any build: an older one on the same fingerprint (a native change reverted,
 a test build made by hand) would take the update while the phones on the latest build got none.
