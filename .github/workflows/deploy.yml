@@ -190,8 +190,10 @@ jobs:
           fi
           # Pushed with the deploy key (see the checkout). Unlike the workflow's own token, a key's
           # push starts CI again: that run finds this release's build queued and ships an update.
+          # Atomic: a refused main must refuse the tag too. v0.2.0 once landed alone, on a commit
+          # main never got, and the next release counted up from it.
           git tag "v$version"
-          git push origin HEAD:main "v$version"
+          git push --atomic origin HEAD:main "v$version"
           # dev must carry the release commit too, or the next dev → main merge fights over the
           # version line. A fast-forward when dev has not moved; otherwise merging main back into
           # dev is left to a human, and the run says so.
