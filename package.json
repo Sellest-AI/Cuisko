@@ -129,7 +129,7 @@
     "recipe-scrapers": "^3.0.0",
     "replicate": "^1.4.0",
     "runpod-sdk": "^1.1.2",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "zod": "^4.6.0"
   },
   "devDependencies": {
@@ -151,7 +151,7 @@
     "jsdom": "^30.0.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   },
   "reanimated": {
     "staticFeatureFlags": {

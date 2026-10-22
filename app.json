@@ -134,7 +134,9 @@
         "expo-build-properties",
         {
           "android": {
-            "minSdkVersion": 33
+            "minSdkVersion": 33,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           },
           "ios": {
             "deploymentTarget": "26.0"
