@@ -138,9 +138,6 @@ importers:
       expo-localization:
         specifier: ~57.0.2
         version: 57.0.2(expo@57.0.26)(react@19.2.3)
-      expo-media-library:
-        specifier: ~57.0.4
-        version: 57.0.4(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
       expo-notifications:
         specifier: ~57.0.12
         version: 57.0.12(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)
@@ -4253,12 +4250,6 @@ packages:
     resolution: {integrity: sha512-qB/mDG2dYdl+EvUeQuqP8KFYCFgFCQjJYdWIHo8SFBgDzMYmdF286DFY2M1M9Okr99wkb5M4tgA3aCcwv3aEQA==}
     peerDependencies:
       expo: '*'
-
-  expo-media-library@57.0.4:
-    resolution: {integrity: sha512-mg/KyGftxNa+fl7qBnFzqPrIjWB8K4NgYwvcAio4ZjyA+tIETTIN/NwYCBgnzIpNtAiOxbK7x9GSrT7Cwcwp1w==}
-    peerDependencies:
-      expo: '*'
-      react-native: '*'
 
   expo-modules-autolinking@57.0.13:
     resolution: {integrity: sha512-Hj5NjZRlfccazhKab+wK19leRVUr1Y/PUERaRvegIbUSkq4GVxKq6lU9QHlKQyC16MdD/VS4iwsiLivB4o7lvQ==}
@@ -12145,11 +12136,6 @@ snapshots:
     dependencies:
       expo: 57.0.26(152179dadaacf4b6ee0e3b3a8ee0e622)
       expo-json-utils: 57.0.1
-
-  expo-media-library@57.0.4(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)):
-    dependencies:
-      expo: 57.0.26(152179dadaacf4b6ee0e3b3a8ee0e622)
-      react-native: 0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
 
   expo-modules-autolinking@57.0.13(supports-color@8.1.1)(typescript@6.0.3):
     dependencies:

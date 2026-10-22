@@ -25,19 +25,7 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.ACCESS_MEDIA_LOCATION",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.ACCESS_MEDIA_LOCATION",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -103,17 +91,6 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) access to your photo library so you can import photos of your groceries, your fridge or a recipe you want to keep.",
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera so you can scan the food in your fridge and cupboards, photograph a recipe, and point at a product to ask about it."
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow $(PRODUCT_NAME) access to your photo library so you can import photos of your groceries, your fridge or a recipe you want to keep.",
-          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save recipes and shopping lists to your camera roll.",
-          "isAccessMediaLocationEnabled": true,
-          "granularPermissions": [
-            "photo"
-          ]
         }
       ],
       "expo-web-browser",
