@@ -1,4 +1,5 @@
 import { Password } from "@convex-dev/auth/providers/Password";
+import Apple from "@auth/core/providers/apple";
 import Google from "@auth/core/providers/google";
 import { convexAuth } from "@convex-dev/auth/server";
 
@@ -24,6 +25,20 @@ import { captureEvent } from "./lib/posthog/captureEvent";
  */
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Password,
+    Apple({
+      clientId: env.AUTH_APPLE_ID,
+      clientSecret: env.AUTH_APPLE_SECRET,
+      /**
+       * Replaces the provider's own `profile`, which returns `image: null` — a value the
+       * component's `users` validator rejects, so every Apple sign-in failed
+       * (github.com/convex/convex-auth/issues/301). Apple sends `user` with the name on the first
+       * consent only; later sign-ins carry no name, and leaving it out keeps the stored one.
+       */
+      profile: ({ sub, email, user }) => {
+        const name = [user?.name?.firstName, user?.name?.lastName].filter(Boolean).join(" ");
+        return { id: sub, email: email ?? user?.email ?? undefined, name: name || undefined };
+      },
+    }),
     Google({
       clientId: env.AUTH_GOOGLE_ID,
       clientSecret: env.AUTH_GOOGLE_SECRET,

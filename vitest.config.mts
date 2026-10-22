@@ -67,6 +67,8 @@ const CONVEX_TEST_ENV = {
   SITE_URL: "http://localhost:8081",
   AUTH_GOOGLE_ID: "test-google-client-id",
   AUTH_GOOGLE_SECRET: "test-google-client-secret",
+  AUTH_APPLE_ID: "test-apple-services-id",
+  AUTH_APPLE_SECRET: "test-apple-client-secret",
   SERVER_PRIVATE_KEY: "test-server-private-key-0123456789abcdef",
   OPENROUTER_API_KEY: "test-openrouter-api-key-0123456789abcdef",
   REPLICATE_API_KEY: "test-replicate-api-key-0123456789abcdef",

@@ -25,7 +25,8 @@ const REVIEW_PRESS_MS = 3000;
  * the backend runs the same path for a new and a returning user — asking someone to classify
  * themselves first would be a question nothing downstream needs answered.
  *
- * Apple is shown disabled: the provider is not built yet, and the mockup keeps its place.
+ * Apple leads on iOS, where the App Store requires it beside Google (guideline 4.8), and is absent
+ * elsewhere: Android users have Google, and a second web sign-in there would only add a choice.
  */
 export const AuthScreen = () => {
   const t = useTranslations("Auth");
@@ -74,6 +75,24 @@ export const AuthScreen = () => {
         </View>
 
         <View style={styles.actions}>
+          {Platform.OS === "ios" ? (
+            <>
+              <ProviderButton
+                label={t("continue_with_apple")}
+                logo={AppleLogo}
+                isLoading={pendingProvider === "apple"}
+                disabled={isSubmitting}
+                onPress={() => void signInWithProvider("apple")}
+              />
+
+              <View style={styles.divider}>
+                <View style={styles.rule} />
+                <Text.Base color={theme.colors.muted}>{t("or")}</Text.Base>
+                <View style={styles.rule} />
+              </View>
+            </>
+          ) : null}
+
           <ProviderButton
             variant="secondary"
             label={t("continue_with_google")}
@@ -81,19 +100,6 @@ export const AuthScreen = () => {
             isLoading={pendingProvider === "google"}
             disabled={isSubmitting}
             onPress={() => void signInWithProvider("google")}
-          />
-
-          <View style={styles.divider}>
-            <View style={styles.rule} />
-            <Text.Base color={theme.colors.muted}>{t("or")}</Text.Base>
-            <View style={styles.rule} />
-          </View>
-
-          <ProviderButton
-            label={t("continue_with_apple")}
-            logo={AppleLogo}
-            disabled
-            onPress={() => void signInWithProvider("apple")}
           />
 
           {error ? (
@@ -145,7 +151,8 @@ const styles = StyleSheet.create({
   divider: { alignItems: "center", flexDirection: "row", gap: theme.spacing[16] },
   rule: { backgroundColor: theme.colors.neutral.subtle, flex: 1, height: StyleSheet.hairlineWidth },
   legal: {
-    marginTop: theme.spacing[4],
+    // Android has no Apple button, so the legal line takes up the space it would have filled.
+    marginTop: Platform.select({ android: theme.spacing[12], default: theme.spacing[4] }),
     textAlign: "center",
     maxWidth: 232,
     alignSelf: "center"

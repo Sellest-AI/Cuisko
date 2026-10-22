@@ -23,6 +23,13 @@ const schema = z.object({
   /** Google OAuth credentials, read by `auth.ts`. */
   AUTH_GOOGLE_ID: z.string().min(1),
   AUTH_GOOGLE_SECRET: z.string().min(1),
+  /**
+   * Sign in with Apple, read by `auth.ts`: the Services ID, and the client-secret JWT signed with
+   * the .p8 key. Apple caps that JWT at six months; `.github/workflows/apple-secret.yml` re-signs
+   * and sets it every two months.
+   */
+  AUTH_APPLE_ID: z.string().min(1),
+  AUTH_APPLE_SECRET: z.string().min(1),
   /** Authenticates `server` procedures. `npx convex env set SERVER_PRIVATE_KEY ...` */
   SERVER_PRIVATE_KEY: z.string().min(32),
   OPENROUTER_API_KEY: z.string().min(32),
@@ -71,6 +78,9 @@ const parsed = schema.safeParse({
   // Google
   AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
+  // Apple
+  AUTH_APPLE_ID: process.env.AUTH_APPLE_ID,
+  AUTH_APPLE_SECRET: process.env.AUTH_APPLE_SECRET,
   // PostHog
   POSTHOG_PROJECT_TOKEN: process.env.POSTHOG_PROJECT_TOKEN,
   POSTHOG_HOST: process.env.POSTHOG_HOST,

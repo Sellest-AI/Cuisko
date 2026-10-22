@@ -379,7 +379,6 @@ is the wrong trade.
 | **A weekly "what you saved" line** | Money and time are the currency of success; showing them once a week makes the promise visible. | A score, a streak or a guilt metric. It reports what was saved, never what was "lost" or "missed". |
 | **One weekly planning reminder** | The week starts on planning day; a nudge at that moment protects the hero moment. | A daily-engagement lever. One reminder a week, on the planning beat, easy to turn off. |
 | **Favorites in the planning pool** | A recipe the household loves should be able to come back in a planned week. | A way to plan somebody else's private recipes. The requirements for the hookup are already recorded. |
-| **Sign in with Apple** | The App Store requires it (guideline 4.8) once Google sign-in is offered. The button is on the sign-in page today, disabled. | A reason to ask for more than the name and email the other sign-ins already give. |
 | **Replace the photo in the recipe editor** | A cook's own recipe should look like their dish. Today the editor displays the image but cannot change it. | — |
 
 Further out, and still real product: an assistant that performs the changes it is asked for instead
