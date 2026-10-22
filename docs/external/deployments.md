@@ -35,6 +35,20 @@ GitHub Actions secrets, by name, read by `.github/workflows/deploy.yml`:
 
 Each Convex key carries `deployment:deploy` only: it can push functions, never read data or env.
 
+Read by `.github/workflows/apple-secret.yml`, which signs a fresh Sign in with Apple client secret on
+the 1st of every other month and sets `AUTH_APPLE_SECRET` on both deployments (Apple refuses one older than
+six months):
+
+| Secret                | Where it comes from                                                             |
+| --------------------- | ------------------------------------------------------------------------------- |
+| `APPLE_SIGN_IN_KEY`   | contents of `AuthKey_LUDZW6WZ8F.p8` (developer.apple.com → Keys; downloadable once) |
+| `CONVEX_ENV_KEY_DEV`  | Convex dashboard → dev → Settings → Deploy keys, `deployment:env:write` only    |
+| `CONVEX_ENV_KEY_PROD` | Convex dashboard → prod → Settings → Deploy keys, `deployment:env:write` only   |
+
+A separate pair because widening the deploy keys would let every deploy rewrite secrets. To renew by
+hand: `node scripts/release/apple-client-secret.mjs <path to the .p8>`, then `npx convex env set
+AUTH_APPLE_SECRET <output>` on dev and with `--prod`. A failed run still leaves four months.
+
 **Why a deploy key.** A store release commits the version bump and pushes it to `main`, and the
 `protect-main` ruleset takes changes to `main` only through a pull request. The workflow's own token
 cannot bypass it (GitHub Actions is not a bypass actor), so the release pushes through the deploy
