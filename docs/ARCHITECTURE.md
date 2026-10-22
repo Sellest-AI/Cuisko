@@ -538,14 +538,17 @@ Work merges into `dev`; merging `dev` into `main` is the release. A push to eith
 `verify` ships itself, each to its own world ([deploy.yml](../.github/workflows/deploy.yml)):
 
 ```
-dev   verify ─► Convex dev  ─► a preview build with this fingerprint exists?
+dev   verify ─► Convex dev  ─► the latest preview build has this fingerprint?
                                  yes ─► eas update, preview channel
                                  no  ─► nothing ships, the run warns: try it with a dev build
 
-main  verify ─► Convex prod ─► a production build with this fingerprint exists?
+main  verify ─► Convex prod ─► the latest production build has this fingerprint?
                                  yes ─► eas update, production channel
                                  no  ─► pnpm release, commit + tag v<version>, eas build production
 ```
+
+The latest build, not any build: an older one on the same fingerprint (a native change reverted,
+a test build made by hand) would take the update while the phones on the latest build got none.
 
 A release commit is pushed to `dev` too when `dev` has not moved since, so the next `dev` → `main`
 merge does not fight over the version line; when it has, the run warns, and `main` is merged back

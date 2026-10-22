@@ -123,20 +123,22 @@ jobs:
           fi
 
           # A merge. The runtime version IS the fingerprint (app.json): an update only reaches a
-          # build with the same one, so a fingerprint with no build on this branch's profile means
-          # the native side changed, and that platform needs a build instead.
+          # build with the same one, so a fingerprint other than the latest build's on this branch's
+          # profile means the native side changed, and that platform needs a build instead.
+          # The latest build, not any build: an older one on the same fingerprint (a native change
+          # reverted, a test build) would take the update while the phones on the latest got none.
           # dev only needs to know whether the native side changed; Android alone answers that.
           if [ "$BRANCH" = "main" ]; then platforms="android ios"; else platforms="android"; fi
           missing=""
           for platform in $platforms; do
             runtime=$(npx expo-updates runtimeversion:resolve --platform "$platform" | tail -n 1 | jq -r .runtimeVersion)
-            # Errored and cancelled builds do not count; a build still in the queue does, so two
-            # merges in a row never start two builds of the same native side.
-            found=$(pnpm exec eas build:list --platform "$platform" --build-profile "$CHANNEL" \
-              --runtime-version "$runtime" --limit 10 --json --non-interactive \
-              | jq '[.[] | select(.status != "ERRORED" and .status != "CANCELED")] | length')
-            echo "$platform runtime $runtime: $found $CHANNEL build(s)"
-            if [ "$found" = "0" ]; then missing="$missing $platform"; fi
+            # Newest first. Errored and cancelled builds do not count; a build still in the queue
+            # does, so two merges in a row never start two builds of the same native side.
+            latest=$(pnpm exec eas build:list --platform "$platform" --build-profile "$CHANNEL" \
+              --limit 10 --json --non-interactive \
+              | jq -r '[.[] | select(.status != "ERRORED" and .status != "CANCELED")][0].runtime.version // "none"')
+            echo "$platform runtime $runtime, latest $CHANNEL build on $latest"
+            if [ "$latest" != "$runtime" ]; then missing="$missing $platform"; fi
           done
           if [ -z "$missing" ]; then ship update; else ship build "${missing# }"; fi
 
