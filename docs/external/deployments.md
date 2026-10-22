@@ -67,7 +67,8 @@ this.
 Every production build is submitted when it finishes (`eas build --auto-submit`, profile
 `submit.production` in `eas.json`). Neither store gets the build in front of users by itself:
 
-- **iOS** uploads to App Store Connect with the API key above, and shows in TestFlight. Sending a
+- **iOS** uploads to App Store Connect with the API key above, to the app `ascAppId` names in
+  `eas.json` (its Apple ID, App Store Connect → App Information), and shows in TestFlight. Sending a
   version to review is done in App Store Connect.
 - **Android** uploads to the `production` track as a **draft**. Rolling it out is done in Play
   Console. Google refuses an API upload until one AAB has been uploaded by hand in Play Console,
