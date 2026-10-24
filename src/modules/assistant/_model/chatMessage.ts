@@ -27,6 +27,7 @@ import {
   type IngredientSwap,
   type MealPlanned,
   type SubstitutionsCard,
+  type WebRecipe,
 } from "@shared/assistant";
 import { UNITS } from "@shared/ingredients";
 import { MEAL_SLOTS } from "@shared/mealSlots";
@@ -105,7 +106,8 @@ export type AnswerBlock =
   | { type: "substitutions"; key: string; card: SubstitutionsCard }
   | { type: "cellar"; key: string; change: DrawnCellarChange }
   | { type: "meal"; key: string; meal: MealPlanned }
-  | { type: "button"; key: string; button: AssistantButton };
+  | { type: "button"; key: string; button: AssistantButton }
+  | { type: "webRecipe"; key: string; recipe: WebRecipe };
 
 /** A message as the screen draws it. */
 export type ChatMessage = {

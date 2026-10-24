@@ -51,5 +51,16 @@
   "meal": {
     "undo": "Annuler",
     "canceled": "Annulé"
+  },
+  "webRecipe": {
+    "add": "Ajouter à mes recettes",
+    "adding": "Ajout en cours…",
+    "added": "Dans tes recettes",
+    "servings_one": "{{count, number}} personne",
+    "servings_many": "{{count, number}} personnes",
+    "servings_other": "{{count, number}} personnes",
+    "ingredients_one": "{{count, number}} ingrédient",
+    "ingredients_many": "{{count, number}} ingrédients",
+    "ingredients_other": "{{count, number}} ingrédients"
   }
 }

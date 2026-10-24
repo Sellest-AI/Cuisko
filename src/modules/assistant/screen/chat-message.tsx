@@ -11,6 +11,7 @@ import { PlannedMeal } from "./planned-meal";
 import { OfferedButton } from "./offered-button";
 import { Substitutions } from "./substitutions";
 import { ToolStep } from "./tool-step";
+import { WebRecipeBlock } from "./web-recipe-card";
 
 type Props = {
   message: ChatMessageModel;
@@ -57,6 +58,12 @@ const _Block = ({ block, isFirst, messageKey }: { block: AnswerBlock; isFirst: b
       return (
         <View style={styles.assistantTool}>
           <PlannedMeal meal={block.meal} changeKey={`${messageKey}:${block.key}`} />
+        </View>
+      );
+    case "webRecipe":
+      return (
+        <View style={styles.assistantTool}>
+          <WebRecipeBlock recipe={block.recipe} />
         </View>
       );
   }

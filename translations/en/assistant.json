@@ -47,5 +47,14 @@
   "meal": {
     "undo": "Undo",
     "canceled": "Canceled"
+  },
+  "webRecipe": {
+    "add": "Add to my recipes",
+    "adding": "Adding…",
+    "added": "In your recipes",
+    "servings_one": "{{count, number}} serving",
+    "servings_other": "{{count, number}} servings",
+    "ingredients_one": "{{count, number}} ingredient",
+    "ingredients_other": "{{count, number}} ingredients"
   }
 }
