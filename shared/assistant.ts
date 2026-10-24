@@ -51,6 +51,7 @@ export const ASSISTANT_TOOLS = {
   addToCellar: "addToCellar",
   removeFromCellar: "removeFromCellar",
   planMeal: "planMeal",
+  findWebRecipe: "findWebRecipe",
 } as const;
 
 export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];

@@ -9,6 +9,7 @@ import { assistantPrompt } from "../../agent/config/prompts/assistant";
 import { addToCellarTool, removeFromCellarTool } from "../../agent/tools/cellar";
 import { computeNutritionTool } from "../../agent/tools/computeNutrition";
 import { displayTool } from "../../agent/tools/display";
+import { findWebRecipeTool } from "../../agent/tools/findWebRecipe";
 import { planMealTool } from "../../agent/tools/planMeal";
 import { searchIngredientsTool } from "../../agent/tools/searchIngredients";
 import { searchRecipesTool } from "../../agent/tools/searchRecipes";
@@ -83,6 +84,7 @@ export const answerTurn = async (
         [ASSISTANT_TOOLS.addToCellar]: addToCellarTool({ householdId, userId }),
         [ASSISTANT_TOOLS.removeFromCellar]: removeFromCellarTool({ householdId }),
         [ASSISTANT_TOOLS.planMeal]: planMealTool({ householdId, userId, locale, today, now }),
+        [ASSISTANT_TOOLS.findWebRecipe]: findWebRecipeTool({ userId, locale }),
       },
       /*
        * No `stopWhen`: the turn ends when the model stops calling tools, capped by the agent's

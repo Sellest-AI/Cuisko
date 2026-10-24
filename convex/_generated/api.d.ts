@@ -31,6 +31,7 @@ import type * as agent_tools_cellar from "../agent/tools/cellar.js";
 import type * as agent_tools_computeNutrition from "../agent/tools/computeNutrition.js";
 import type * as agent_tools_display from "../agent/tools/display.js";
 import type * as agent_tools_extractVideoRecipe from "../agent/tools/extractVideoRecipe.js";
+import type * as agent_tools_findWebRecipe from "../agent/tools/findWebRecipe.js";
 import type * as agent_tools_generateIngredientImage from "../agent/tools/generateIngredientImage.js";
 import type * as agent_tools_generateRecipeImages from "../agent/tools/generateRecipeImages.js";
 import type * as agent_tools_planMeal from "../agent/tools/planMeal.js";
@@ -369,6 +370,7 @@ declare const fullApi: ApiFromModules<{
   "agent/tools/computeNutrition": typeof agent_tools_computeNutrition;
   "agent/tools/display": typeof agent_tools_display;
   "agent/tools/extractVideoRecipe": typeof agent_tools_extractVideoRecipe;
+  "agent/tools/findWebRecipe": typeof agent_tools_findWebRecipe;
   "agent/tools/generateIngredientImage": typeof agent_tools_generateIngredientImage;
   "agent/tools/generateRecipeImages": typeof agent_tools_generateRecipeImages;
   "agent/tools/planMeal": typeof agent_tools_planMeal;

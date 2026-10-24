@@ -33,6 +33,15 @@
       "done_many": "Valeurs nutritionnelles calculées",
       "done_other": "Valeurs nutritionnelles calculées",
       "failed": "Le calcul n'a pas abouti"
+    },
+    "findWebRecipe": {
+      "running": "Je cherche la recette…",
+      "found": "Recette trouvée",
+      "none": "Pas de recette trouvée",
+      "done_one": "Recette trouvée",
+      "done_many": "Recette trouvée",
+      "done_other": "Recette trouvée",
+      "failed": "Recherche impossible"
     }
   },
   "cards": {

@@ -30,6 +30,14 @@
       "done_one": "Nutrition worked out",
       "done_other": "Nutrition worked out",
       "failed": "The calculation did not go through"
+    },
+    "findWebRecipe": {
+      "running": "Looking for the recipe…",
+      "found": "Recipe found",
+      "none": "No recipe found",
+      "done_one": "Recipe found",
+      "done_other": "Recipe found",
+      "failed": "The search did not go through"
     }
   },
   "cards": {
