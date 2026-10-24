@@ -48,3 +48,26 @@ export const vCookingRecipe = v.object({
   step: v.optional(v.number()),
   servings: v.optional(v.number()),
 });
+
+/**
+ * `FoundWebRecipe`, as a validator: what `router/recipes/findWebRecipe` hands the chat's tool.
+ *
+ * A mirror of `shared/assistant.ts`, as `vIntent` is, pinned both ways by `AssertTrue<Exact<…>>` in
+ * that action: a field added to one and not the other is a typecheck failure.
+ */
+export const vFoundWebRecipe = v.union(
+  v.object({
+    v: v.literal(1),
+    status: v.literal("found"),
+    recipe: v.object({
+      url: v.string(),
+      source: v.literal("marmiton"),
+      title: v.string(),
+      servings: v.number(),
+      ingredients: v.array(v.string()),
+      imageUrl: v.optional(v.string()),
+    }),
+  }),
+  v.object({ v: v.literal(1), status: v.literal("known"), recipeId: v.string() }),
+  v.object({ v: v.literal(1), status: v.literal("none") }),
+);

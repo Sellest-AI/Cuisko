@@ -2,10 +2,9 @@ import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { type RateLimitCtx, withRateLimit } from "@convex/functions/rateLimits/enforceRateLimit";
 import { createGeneratedRecipe } from "@convex/functions/recipes/createGeneratedRecipe";
-import { findBySource } from "@convex/functions/recipes/findBySource";
 import { captureEvent } from "@convex/lib/posthog/captureEvent";
 import { socialShortLinkOf, socialVideoSourceOf } from "@convex/lib/socialVideo/sources";
-import { type TracedActionCtx, authActionI18n, internalQuery } from "@convex/procedures";
+import { type TracedActionCtx, authActionI18n } from "@convex/procedures";
 import type { Locale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
@@ -64,7 +63,7 @@ const _canonicalUrlOf = async (ctx: Context, url: string): Promise<string> => {
  */
 const _import = async (ctx: Context, url: string): Promise<Imported> => {
   const sourceUrl = await _canonicalUrlOf(ctx, url);
-  const existing = await ctx.runQuery(internal.router.recipes.importVideo._internal_find, { sourceUrl });
+  const existing = await ctx.runQuery(internal.router.recipes.findBySource._internal, { sourceUrl });
   if (existing) return { recipeId: existing.recipeId, isOwned: existing.userId === ctx.userId };
 
   return await withRateLimit(ctx, "recipeVideoImport", async () => {
@@ -90,10 +89,4 @@ export const authed = authActionI18n({
   args: { url: v.string() },
   returns: v.object({ recipeId: v.id("recipes"), isOwned: v.boolean() }),
   handler: (ctx, { url }): Promise<Imported> => _import(ctx, url),
-});
-
-export const _internal_find = internalQuery({
-  args: { sourceUrl: v.string() },
-  returns: v.union(v.object({ recipeId: v.id("recipes"), userId: v.optional(v.id("users")) }), v.null()),
-  handler: (ctx, args) => findBySource(ctx, args),
 });

@@ -35,9 +35,7 @@ const findings = [];
  */
 const PLANNED = new Set([
   "src/global/routes.ts",
-  // docs/plans/web-recipe-search.md: built in its slices 3, 5 and 6.
-  "convex/lib/scraping/readRecipePage.ts",
-  "convex/lib/webRecipes/marmitonUrl.ts",
+  // docs/plans/web-recipe-search.md: built in its slices 5 and 6.
   "src/ui/hooks/useNow.ts",
   "convex/lib/posthog/captureException.ts",
 ]);

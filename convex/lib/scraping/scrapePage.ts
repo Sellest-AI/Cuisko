@@ -3,21 +3,22 @@ import { getScraper } from "recipe-scrapers";
 import type { ScrapedRecipe } from "./toRecipeDraft";
 
 /**
- * The five fields we read off a page, asked for one at a time.
+ * The six fields we read off a page, asked for one at a time.
  *
  * ⚠️ **This module reaches `cheerio` through `recipe-scrapers`, so it may only ever be imported by
- * a `"use node"` action.** Today that is `router/recipes/importOneNode.ts` and nothing else. Import
+ * a `"use node"` action.** Today its one importer is `readRecipePage.ts`, under the same rule, which
+ * `router/recipes/importOneNode.ts` and `router/recipes/findWebRecipe.ts` read pages through. Import
  * it from an edge-runtime function and that function stops deploying, with an error naming a Node
  * built-in rather than this line.
  *
  * ⚠️ **`scrapeRecipe` is unusable here, and this is the whole reason this file exists.** That entry
  * point extracts a fixed field set and throws `ExtractorNotFoundException` on the first one it
- * cannot find — `author` and `image` included, neither of which this slice reads. A perfectly good
+ * cannot find — `author` and `image` included, and many pages carry neither. A perfectly good
  * recipe page naming no author would come back as an unreadable page. `fallbackAuthor` and
  * `fallbackYield` patch two of those holes, and there is no `fallbackImage`, so the fallbacks are
  * not a way out either.
  *
- * `extract` is the public per-field entry point underneath it, so we ask for the five fields we
+ * `extract` is the public per-field entry point underneath it, so we ask for the six fields we
  * actually use and let each one fail alone.
  */
 
@@ -48,5 +49,7 @@ export const scrapePage = async (html: string, url: string): Promise<ScrapedReci
     yields: await _softly(() => scraper.extract("yields"), ""),
     ingredients: await _softly(() => scraper.extract("ingredients"), []),
     instructions: await _softly(() => scraper.extract("instructions"), []),
+    // For the chat's web recipe card only; `httpsImageOf` decides whether it is drawn.
+    image: await _softly<string | undefined>(() => scraper.extract("image"), undefined),
   };
 };

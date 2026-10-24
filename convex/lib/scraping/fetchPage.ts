@@ -163,14 +163,27 @@ const _readCapped = async (response: Response, contentType: string): Promise<str
   return chunks.join("");
 };
 
+type FetchOptions = {
+  /**
+   * What a 404 means. `"throw"` (the default): the cook's page is gone, an error like any other
+   * failing status. `"null"`: an answer, as when Marmiton says it holds no recipe of a word by
+   * answering its search with a 404 rather than an empty page.
+   */
+  notFound?: "throw" | "null";
+};
+
 /**
  * The HTML at `url`, or a `ConvexError` the screen can word an apology from.
  *
  * `INVALID_INPUT` and `EXTERNAL_SERVICE_ERROR` are both possible and they are different apologies:
  * the first is "check what you pasted", the second is "your link is fine, the site would not
  * answer". `importOne` passes both through untouched for exactly that reason.
+ *
+ * `null` only for a 404 asked for with `{ notFound: "null" }`.
  */
-export const fetchPage = async (url: string): Promise<string> => {
+export async function fetchPage(url: string, options?: { notFound?: "throw" }): Promise<string>;
+export async function fetchPage(url: string, options: FetchOptions): Promise<string | null>;
+export async function fetchPage(url: string, { notFound = "throw" }: FetchOptions = {}): Promise<string | null> {
   let target = _allowedUrlOf(url);
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
@@ -207,6 +220,12 @@ export const fetchPage = async (url: string): Promise<string> => {
         continue;
       }
 
+      if (response.status === 404 && notFound === "null") {
+        // Nothing reads a 404's body, and an unread one holds its connection open.
+        await response.body?.cancel().catch(() => undefined);
+        return null;
+      }
+
       if (!response.ok) throw unreachable(`The site answered ${response.status}`);
 
       const contentType = response.headers.get("content-type") ?? "";
@@ -225,4 +244,4 @@ export const fetchPage = async (url: string): Promise<string> => {
   }
 
   throw unreachable("The site redirected us too many times");
-};
+}

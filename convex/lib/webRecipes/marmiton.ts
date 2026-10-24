@@ -14,12 +14,8 @@ import { load } from "cheerio";
 
 import { canonicalUrlOf } from "@shared/urls";
 
+import { MARMITON_ORIGIN, RECIPE_PATH } from "./marmitonUrl";
 import { bestOf, classify, passes, type RatedRecipe, type Verdict } from "./verdicts";
-
-const MARMITON_ORIGIN = "https://www.marmiton.org";
-
-/** A recipe page's path. The search also returns editorial pages (`/shopping/`, `/focus-ingredient/`). */
-const RECIPE_PATH = /^\/recettes\/recette_/;
 
 /**
  * The import filter, and nothing else: no surface shows a Marmiton score (docs/PRODUCT.md).
