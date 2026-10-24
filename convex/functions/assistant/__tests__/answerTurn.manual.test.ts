@@ -938,6 +938,26 @@ const CASES: Case[] = [
       !/\d{2,}\s*(k?cal|calories)/i.test(turn.text) || "the answer gives a calorie figure the tool said it could not compute",
     ],
   },
+  {
+    // "always give a figure, never a question alone" ... "then ask one short question"
+    name: "fr · a plate gets a figure, then a question",
+    locale: "fr",
+    stock: [],
+    question: "Je mange une assiette de pâtes au beurre avec du parmesan, ça fait combien de calories ?",
+    expect: (turn) => {
+      const counted = _succeeded(turn, ASSISTANT_TOOLS.computeNutrition)
+        .map((call) => call.output as { lines?: NutritionFigures } | undefined)
+        .flatMap((output) => (output?.lines ? [output.lines] : []));
+      const ids = _calls(turn, ASSISTANT_TOOLS.computeNutrition).flatMap((call) => ((call.input.lines as LineRequest[]) ?? []).map((line) => line.ingredientId));
+      const last = counted[counted.length - 1];
+      return [
+        ids.includes(I.spaghetti) || `the pasta was not counted (got: ${ids.map(_nameOf).join(", ") || "nothing"})`,
+        last !== undefined || "computeNutrition never counted the plate from ingredients",
+        last === undefined || _says(turn, last.total.calories, "the plate's calories"),
+        _asks(turn, "how to make the figure more exact"),
+      ];
+    },
+  },
 
   /* The cellar: act on an order, offer on a story, ask when the place is unclear. */
   {

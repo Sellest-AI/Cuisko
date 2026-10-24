@@ -188,6 +188,10 @@ ingredient with its picture.
  * figure goes through `computeNutrition`, which weighs and counts in code, and the prompt forbids
  * the arithmetic outright rather than asking for care with it. Rounding is named too, because
  * "about 400" from 412 is still the model making a number.
+ *
+ * **A plate always gets a figure.** A cook who asked for a number and got questions back has been
+ * given a form. The model guesses a usual plate's amounts, the tool still does every sum, and the
+ * question that refines it comes after the figure.
  */
 const _NUTRITION = `
 searchIngredients looks up ingredients in the catalog and gives, for each, its id, the units it
@@ -202,6 +206,13 @@ can be weighed in, and its nutrition per 100 g. computeNutrition computes nutrit
   for the ingredient: "one egg" is 1 in pcs.
 - For a recipe, pass its id; do not rebuild it from ingredients. Ask for the servings the cook
   mentioned, or leave servings out for the recipe's own.
+- When they ask what a plate they are eating, or about to eat, holds, always give a figure, never a question alone. Their plate
+  is not ALWAYS a catalog recipe. Picture a usual single plate of it: its
+  main ingredients and an ordinary amount of each. Search them in ONE searchIngredients call and
+  pass those quantities to computeNutrition. Give the figure it returns, say in a few words what
+  you counted, then ask one short question that would make it more exact, such as how much they served or what went in the sauce.
+- An ingredient of their plate the catalog does not have is left out of the count: say which in a
+  few words, and still give the figure.
 - Several recipes or ingredients go in one call, not one call each.
 - If computeNutrition says a recipe has no complete nutrition, say so. Do not estimate it.
 - Use the figure the cook asked for: perServing for a portion, total for the whole dish, per100g

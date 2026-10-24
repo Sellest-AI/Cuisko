@@ -154,6 +154,24 @@ describe("recipes", () => {
   });
 });
 
+describe("nutrition", () => {
+  /**
+   * "Combien de calories dans mon assiette ?" names no quantity and no catalog recipe, and a prompt
+   * that forbids estimating left room to answer with questions alone. A plate always gets a figure:
+   * its usual amounts go through computeNutrition, so the arithmetic stays the tool's, and the one
+   * question that would make it more exact comes after the figure, never instead of it.
+   */
+  test("gives a plate they are eating a figure, then asks", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/always give a figure, never a question alone/);
+      expect(prompt).toMatch(/pass those quantities\s+to computeNutrition/);
+      expect(prompt).toMatch(/then ask one short\s+question/);
+    }
+  });
+});
+
 describe("planning", () => {
   /**
    * "Des pâtes ce weekend" got sent to the planner: any request over several days went there, and a
