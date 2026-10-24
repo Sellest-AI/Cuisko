@@ -1,9 +1,8 @@
 /**
  * Marmiton's addresses: which pages are recipes, and the one search URL we send.
  *
- * Apart from `marmiton.ts` because that file reaches `cheerio` and this one must not: `importWeb`
- * runs in the edge runtime and gates its url here. The search page parser and the gate keep one
- * definition of a recipe page between them.
+ * Apart from `marmiton.ts` because that file reaches `cheerio` and this one must stay edge-safe.
+ * The search page parser reads its recipe-page definition from here.
  */
 
 export const MARMITON_ORIGIN = "https://www.marmiton.org";

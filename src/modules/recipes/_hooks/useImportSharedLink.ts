@@ -8,15 +8,18 @@ import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
 import { VIDEO_IMPORT_MINUTES } from "../_model/importCountdown";
-import { importFailureOf, isConnectionLost, type ImportFailure } from "../_model/importFailure";
+import { importFailureOf, type ImportFailure } from "../_model/importFailure";
 import { importKeyOf, importPathOf, type ImportPath } from "../_model/importPath";
 import { recipeRoute } from "../routes";
 
-import { type ImportInFlight, importsInFlightAtom } from "./atoms";
+import { startImport } from "./startImport";
 import { useImportRecipe } from "./useImportRecipe";
 import { useSetRecipeFavorite } from "./useSetRecipeFavorite";
 
 type Status = "importing" | "failed";
+
+/** A reel's announced time, which a lost import also waits out before its card goes. */
+const VIDEO_IMPORT_MS = VIDEO_IMPORT_MINUTES * 60_000;
 
 /**
  * A link someone shared to Cuisko, imported the moment the share sheet opens.
@@ -31,13 +34,14 @@ type Status = "importing" | "failed";
  *   by the share that started the import, and whether or not the sheet is still open.
  * - **web**: the paste-a-link import, unchanged (`useImportRecipe`), which hands the editor a draft.
  *
- * **One import per reel at a time.** A video import in flight is kept in `importsInFlightAtom`; the
- * same reel shared again before it lands (a second tap, a re-share from Instagram) opens a sheet
- * that waits on that same import instead of starting another. Memory only: after a restart a share
- * starts afresh, and the server's dedupe answers it if the first one finished. So does a share after
- * the connection dropped under the import (leaving the app): that entry is `lost`, its card kept
- * until the announced minutes are up, since the server is likely still importing. The web road is left
- * out: it creates nothing and costs no model, so a repeated scrape is harmless.
+ * **One import per reel at a time** (`startImport`). A video import in flight is kept in
+ * `importsInFlightAtom`; the same reel shared again before it lands (a second tap, a re-share from
+ * Instagram) opens a sheet that waits on that same import instead of starting another. Memory
+ * only: after a restart a share starts afresh, and the server's dedupe answers it if the first one
+ * finished. So does a share after the connection dropped under the import (leaving the app): that
+ * entry is `lost`, its card kept until the announced minutes are up, since the server is likely
+ * still importing. The web road is left out: it creates nothing and costs no model, so a repeated
+ * scrape is harmless.
  *
  * Started once per mount, guarded by a ref: a strict-mode double effect runs the effect twice.
  *
@@ -72,39 +76,16 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
       return;
     }
 
-    /**
-     * Join the import already running for this reel, or start it. Read and written through the
-     * store, synchronously, rather than through a rendered `useAtom` value: two sheets opened in the
-     * same moment would both read an empty map from their last render and both start an import.
-     */
-    const key = importKeyOf(url);
-    const running = store.get(importsInFlightAtom).get(key);
-    // A lost import will never answer this app, so a new share starts afresh rather than joining it.
-    let pending = running?.status === "importing" ? running.recipe : undefined;
-
-    if (!pending) {
-      pending = action({ url, locale }).then(async (imported) => {
-        // `set` holds its own failure: an unfavorited recipe still opens, and the heart says so.
-        if (!imported.isOwned) await favorite(imported.recipeId, true);
-        return imported;
-      });
-      const entry: ImportInFlight = { url, startedAt: Date.now(), status: "importing", recipe: pending };
-      store.set(importsInFlightAtom, (inFlight) => new Map(inFlight).set(key, entry));
-
-      // Only this entry: a share of the same reel after it was lost has replaced it under the same key.
-      const settle = () =>
-        store.set(importsInFlightAtom, (inFlight) => {
-          if (inFlight.get(key)?.recipe !== entry.recipe) return inFlight;
-          const next = new Map(inFlight);
-          next.delete(key);
-          return next;
-        });
-      const lose = () => {
-        store.set(importsInFlightAtom, (inFlight) => new Map(inFlight).set(key, { ...entry, status: "lost" }));
-        setTimeout(settle, entry.startedAt + VIDEO_IMPORT_MINUTES * 60_000 - Date.now());
-      };
-      pending.then(settle, (caught: unknown) => (isConnectionLost(caught) ? lose() : settle()));
-    }
+    // Join the import already running for this reel, or start it. A lost one waits out its minutes.
+    const pending = startImport(store, {
+      url,
+      key: importKeyOf(url),
+      expectedMs: VIDEO_IMPORT_MS,
+      lostMs: VIDEO_IMPORT_MS,
+      run: () => action({ url, locale }),
+      // `set` holds its own failure: an unfavorited recipe still opens, and the heart says so.
+      favorite: (recipeId) => favorite(recipeId, true),
+    });
 
     pending.then(
       ({ recipeId }) => {

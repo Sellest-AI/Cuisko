@@ -156,7 +156,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               marginRight: index % 2 === 0 ? COLUMN_GAP / 2 : 0
             }}>
               {item.id === undefined ? (
-                // Back to the reel it is being read from: there is no recipe to open yet.
+                // Back to the page or reel it is being read from: there is no recipe to open yet.
                 <CardRecipe
                   pending
                   title={t("Importing.title")}

@@ -41,7 +41,8 @@ type WebRecipeCardProps = {
  *
  * The row under it holds one thing at a time: Add, the bar while it imports, "In your recipes" once
  * it is there. The bar is time, not progress: `StepProgress` always animates, so with reduced motion
- * the row says "Adding…" instead.
+ * the row says "Adding…" instead. The setting is shared app-wide (`useReduceMotion`'s atom), so by
+ * the time a card imports, another view has usually read it already.
  */
 export const WebRecipeCard = ({ recipe, state, progress, errorText, onAdd, onOpen }: WebRecipeCardProps) => {
   const t = useTranslations("Assistant");

@@ -50,34 +50,38 @@ export const importedDraftAtom = atom<ImportedDraft | undefined>(undefined);
 export const servingsAtom = atom<{ id: string; servings: number } | undefined>(undefined);
 
 /**
- * The recipe a video import ends in, and whether it is the cook's own: a video another cook already
- * imported answers with their recipe. Read off the action like `ImportedDraft`.
+ * The recipe an import that creates ends in, and whether it is the cook's own: a reel another cook
+ * already imported answers with their recipe. Read off the action like `ImportedDraft`. A web page
+ * added from the chat ends in the same shape, always its cook's own (`useImportWebRecipe`).
  */
-export type ImportedVideoRecipe = FunctionReturnType<typeof api.router.recipes.importVideo.authed>;
+export type ImportedRecipe = FunctionReturnType<typeof api.router.recipes.importVideo.authed>;
 
 /**
- * A video import this app started: the link shared, when, and the recipe it will end in.
+ * An import this app started (a shared reel, or a web page added from the chat): the link, when,
+ * how long it is announced to take, and the recipe it will end in.
  *
  * `lost` once the connection dropped under it (`isConnectionLost`): the server is still importing
- * but this app will never hear the answer, so the card stays until its announced time is up and
- * then goes, and the recipe arrives through the list query on its own.
+ * but this app will never hear the answer, so the card stays a while longer and then goes, and the
+ * recipe arrives through the list query on its own.
  */
 export type ImportInFlight = {
   url: string;
   startedAt: number;
+  /** What the countdown and the time bar count: a reel's 3 minutes, a web page's 30 s. */
+  expectedMs: number;
   status: "importing" | "lost";
-  recipe: Promise<ImportedVideoRecipe>;
+  recipe: Promise<ImportedRecipe>;
 };
 
 /**
- * The video imports this app has started and not yet heard back from, by `importKeyOf` key.
+ * The imports this app has started and not yet heard back from, by `importKeyOf` key.
  *
- * What makes a second share of the same reel, while the first is still importing, join that import
- * instead of paying for another one: `useImportSharedLink` finds the key here and waits on the same
- * promise, so both sheets end on the same recipe (or the same error). Each entry is removed the
- * moment its import settles, except a `lost` one, which waits out its countdown. The link and start
- * time are for the grid, which draws each entry as a card counting down until its recipe arrives
- * (`useImportsInFlight`).
+ * What makes a second share of the same reel, or a second Add of the same page, while the first is
+ * still importing, join that import instead of paying for another one: `startImport` finds the key
+ * here and hands back the same promise, so both end on the same recipe (or the same error). Each
+ * entry is removed the moment its import settles, except a `lost` one, which waits a while. The link
+ * and start time are for the grid, which draws each entry as a card counting down until its recipe
+ * arrives (`useImportsInFlight`).
  *
  * Memory only, on purpose: a cook who closes the app and shares again gets a fresh attempt, which
  * the server answers with the finished recipe if the first one completed (`findBySource`).
