@@ -351,10 +351,10 @@ and back into the cellar. Grouped by the beat it serves.
 
 - Sign in with Google or with email and password; the splash holds until the profile is loaded.
 - **Every sign-in walks the onboarding** before home: a promise screen, then the list filled from the
-  navigation bar, a recipe searched and planned, a step-by-step cook and a generated week, each
-  opened by a screenshot of the real screen. It runs on pretend data and writes nothing to the
-  account. It ends on home with Cuisko's chat open. For now it runs again after a sign-out or a
-  reinstall, since nothing records that it was seen.
+  navigation bar, recipes asked of Cuisko and one planned by asking for it, a step-by-step cook and
+  a generated week, each opened by a screenshot of the real screen. It runs on pretend data and
+  writes nothing to the account. It ends on home with Cuisko's chat open. For now it runs again
+  after a sign-out or a reinstall, since nothing records that it was seen.
 - Create, join (by invite code), leave and switch households, from an account drawer. Each cook has
   a generated avatar and their own preferences.
 - Delete the account, from the same drawer. The sheet says it all before the second tap: what goes

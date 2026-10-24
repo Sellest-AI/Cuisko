@@ -33,24 +33,22 @@
     "done_title": "Tout est dans ton cellier"
   },
   "Recipes": {
-    "title": "Cherche des recettes",
+    "title": "Demande à Cuisko",
     "Hints": {
       "potatoes-cream": "Pommes de terre et crème",
       "cosy": "Un plat réconfortant avec ce que j'ai"
     },
-    "tip_send": "Touche une suggestion en dessous. Cherche par ingrédient, comme pommes de terre et crème, ou décris simplement ce dont tu as envie : Cuisko trouve les recettes qui correspondent.",
-    "suggested": "Pour toi",
-    "results": "Résultats pour « {{query}} »",
-    "search_title": "Lance une recherche",
-    "done_title": "Deux façons, une seule barre",
-    "tip_done": "Des ingrédients ou une envie, Cuisko comprend les deux. Cherche comme ça te vient."
+    "greeting": "Salut ! Dis-moi ce que tu as ou ce dont tu as envie, et je te trouve les recettes.",
+    "Replies": {
+      "potatoes-cream": "Pommes de terre et crème, le duo gagnant. Voilà deux recettes faites pour eux.",
+      "cosy": "Du réconfort avec ce que tu as déjà : ces trois-là partent de ta cuisine."
+    }
   },
   "PlanRecipe": {
     "title": "Planifie-la",
-    "tip": "Touche un jour libre pour placer le gratin dans ta semaine. Cuisko regarde ton cellier et ajoute à ta liste de courses tout ce qu'il manque pour la recette.",
-    "added": "{{items}} ajoutés à ta liste de courses. Une fois achetés, ils passent dans ton cellier, prêts pour le jour où tu cuisines.",
-    "added_title": "C'est planifié",
-    "tip_title": "Choisis un jour libre"
+    "greeting": "Dis-moi ce que tu veux cuisiner et quand, je le place dans ta semaine.",
+    "hint": "Planifie le gratin pour deux demain soir",
+    "reply": "J'ai planifié le gratin pour demain soir, pour deux. J'ai regardé ce que tu avais déjà dans ton cellier et ajouté tout ce qui manque à ta liste de courses."
   },
   "Cook": {
     "Steps": {

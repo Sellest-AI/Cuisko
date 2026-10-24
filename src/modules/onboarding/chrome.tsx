@@ -4,6 +4,7 @@ import { ReactNode, useEffect } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
 
 import { ArrowRight } from "@ui/icons";
+import { AnimatePresence } from "@ui/motion";
 import { StepBar } from "@ui/step-bar";
 import { StepProgress } from "@ui/step-progress";
 import { useSafeAreaInsets } from "@ui/safe-area-view";
@@ -36,10 +37,11 @@ const ONBOARDING_THEME = {
  * `useProgressClearance`), and the same pill at the foot. The onboarding is a
  * first taste of the app, so it wears the app's look rather than one of its own.
  *
- * Continue is always there, so the way on never moves, and dimmed until the step allows it
- * (`canContinue`): the pill lighting up is itself the sign that the action worked. On a section's
- * intro it is worded for the section ("Start tracking"). A step that brings its own way on (the
- * cooking session, the week's "Plan my week") keeps the foot to itself until its action is done.
+ * Continue stays away until the step allows it (`canContinue`), then rises into place: the pill
+ * arriving is itself the sign that the action worked. It used to wait dimmed instead, and people
+ * kept tapping it, so a step now shows only what can be done on it. On a section's intro it is
+ * worded for the section ("Start tracking"). This also leaves the foot to a step that brings its
+ * own way on (the cooking session, the week's loader) until its action is done.
  *
  * **Forward only.** There is no back button, no Skip, and the Android back button does nothing here
  * (the layout turns off the swipe on iOS): each screen builds on the one before, the gratin
@@ -50,7 +52,7 @@ const ONBOARDING_THEME = {
  */
 export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
   const t = useTranslations("Onboarding");
-  const { step, intro, position, progress, progressTotal, total, isLast, canContinue, hasOwnTransport, next } = useOnboarding();
+  const { step, intro, position, progress, progressTotal, total, isLast, canContinue, next } = useOnboarding();
   const { top, bottom } = useSafeAreaInsets();
   const clearance = useProgressClearance();
 
@@ -103,20 +105,21 @@ export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
             style={styles.progress}
           />
         </View>
-        {!(hasOwnTransport && !canContinue) && (
-          <StepBar
-            travel={NAVIGATION_BAR_HEIGHT}
-            step={position}
-            total={total}
-            showProgress={false}
-            label={label}
-            variant="primary"
-            nextIcon={ArrowRight}
-            disabled={!canContinue}
-            style={{ alignItems: "stretch" }}
-            onNext={next}
-          />
-        )}
+        <AnimatePresence>
+          {canContinue && (
+            <StepBar
+              travel={NAVIGATION_BAR_HEIGHT}
+              step={position}
+              total={total}
+              showProgress={false}
+              label={label}
+              variant="primary"
+              nextIcon={ArrowRight}
+              style={{ alignItems: "stretch" }}
+              onNext={next}
+            />
+          )}
+        </AnimatePresence>
       </PawLayer>
     </View>
   );
