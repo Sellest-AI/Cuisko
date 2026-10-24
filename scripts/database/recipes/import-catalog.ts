@@ -18,6 +18,7 @@ import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { internal } from "@convex/_generated/api";
+import { classifyCards, searchCardsOf } from "@convex/lib/webRecipes/marmiton";
 import { totalMinutesOf } from "@shared/recipes";
 
 import {
@@ -54,7 +55,6 @@ import {
   type SearchedCard,
   writeLedger,
 } from "./_lib/ledger";
-import { classifyCards, searchCardsOf } from "./_lib/marmiton";
 
 const LEDGER_FILE = path.join(__dirname, "catalog.ledger.json");
 /** Recipes imported per run, at most. */

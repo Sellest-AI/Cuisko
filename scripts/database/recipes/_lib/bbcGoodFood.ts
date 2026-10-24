@@ -6,8 +6,8 @@
  * user agent, and allows the sitemap and the recipe pages. So a dish is matched against recipe
  * slugs offline, and only the few candidates are fetched.
  *
- * Offline by design, like `marmiton.ts`: this file takes XML and HTML and returns data. The fetch,
- * the throttle and the cache belong to the script.
+ * Offline by design, like `convex/lib/webRecipes/marmiton.ts`: this file takes XML and HTML and
+ * returns data. The fetch, the throttle and the cache belong to the script.
  */
 import { load } from "cheerio";
 import * as z from "zod/v4";
@@ -15,8 +15,8 @@ import * as z from "zod/v4";
 import type { VegetarianDiet } from "@shared/diets";
 import { canonicalUrlOf } from "@shared/urls";
 
-import { matchesDish, type MatchOptions } from "./dishMatch";
-import { type Bar, classify, type RatedRecipe, type Verdict } from "./verdicts";
+import { matchesDish, type MatchOptions } from "@convex/lib/webRecipes/dishMatch";
+import { type Bar, classify, type RatedRecipe, type Verdict } from "@convex/lib/webRecipes/verdicts";
 
 /**
  * Lower than Marmiton's, because BBC Good Food's ratings are fewer and harsher: its best-known

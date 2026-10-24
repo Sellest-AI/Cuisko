@@ -26,7 +26,7 @@ A recipe is imported only when its source rates it well enough, and only the bes
 each search:
 
 ```ts
-MARMITON_BAR = { minReviews: 30, minRating: 4.5 }   // _lib/marmiton.ts
+MARMITON_BAR = { minReviews: 30, minRating: 4.5 }   // convex/lib/webRecipes/marmiton.ts
 BBC_BAR      = { minReviews: 5,  minRating: 4.2 }   // _lib/bbcGoodFood.ts
 ```
 

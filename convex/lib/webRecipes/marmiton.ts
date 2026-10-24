@@ -4,6 +4,11 @@
  * Offline by design: this file takes HTML and returns cards. The fetch, the throttle and the ledger
  * belong to the script that calls it, so everything that decides what gets imported can be proven
  * against a saved page (`__tests__/fixtures/`), without a request.
+ *
+ * ⚠️ **This module reaches `cheerio`, so inside `convex/` it may only ever be imported by a `"use
+ * node"` action.** Import it from an edge-runtime function and that function stops deploying, with
+ * an error naming a Node built-in rather than this line. The catalog script (`seed:catalog`) runs it
+ * under Node too. For the same reason its tests run in the `scripts` Vitest project, not `convex`.
  */
 import { load } from "cheerio";
 
