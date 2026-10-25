@@ -20,7 +20,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { meanCost, median, mode, num, succeeded, toolUseLines, usd } from "./format";
+import { entrantName, meanCost, median, num, succeeded, toolUseLines, usd } from "./format";
 import type { Verdict } from "./judge";
 import type { Attempt, Entrant } from "./types";
 
@@ -99,7 +99,7 @@ export const transcript = (options: {
   const named = (label: string) => {
     const entrant = entrants.get(label);
 
-    return entrant ? `${entrant.model} · reasoning ${mode(entrant.effort)}` : `unknown (${label})`;
+    return entrant ? entrantName(entrant) : `unknown (${label})`;
   };
 
   const body = [

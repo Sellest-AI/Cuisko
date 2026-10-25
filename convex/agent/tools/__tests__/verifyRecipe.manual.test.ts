@@ -35,6 +35,8 @@ import { VERIFY_TOOLS, verifyRecipePrompt } from "../../config/prompts/verifyRec
 /** `models.verifier` ships GPT-6.1 Sol at `low`; the commented rows are what it was weighed against. */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6.1-sol", modes: ["low"] }, // uses around 0.023€ per request
+  // { name: "minimax/minimax-m3.1-flash", modes: ["max"] , },
+  // { name: "google/gemini-4-argon", modes: ["low"] }, // better than sol 6.1 but twice the cost
   // { name: "deepseek/deepseek-v4.1-flash-1017", modes: ["low", "high"] },
   // { name: "anthropic/claude-haiku-5.5", modes: ["xhigh", "max"] }, // too slow
   // { name: "x-ai/grok-4.7", modes: ["low"] }, // uses 0.05 - 0.10€ per request

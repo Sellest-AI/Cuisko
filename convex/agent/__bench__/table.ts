@@ -8,6 +8,7 @@
  * `modes` exists.
  */
 import {
+  entrantName,
   isReasoning,
   meanCost,
   median,
@@ -84,9 +85,7 @@ export const table = (options: {
     const entrant = entrants.get(row.label);
     const all = attempts.get(row.label) ?? [];
     const ok = succeeded(all);
-    const name = entrant
-      ? `${entrant.model}  ·  reasoning ${mode(entrant.effort)}`
-      : `unknown (${row.label})`;
+    const name = entrant ? entrantName(entrant, "  ·  ") : `unknown (${row.label})`;
 
     return [
       "",
@@ -104,10 +103,13 @@ export const table = (options: {
   // in the ranking above, and repeating it here would be noise.
   const compared = candidates
     .filter(({ modes }) => modes.length > 1)
-    .flatMap(({ name, modes }) => {
+    .flatMap(({ name, modes, provider }) => {
       const of = (effort: Effort) => {
+        // The routing by reference: the entrant carries its candidate's own object, and the same
+        // model listed on two hosts is two candidates with two baselines.
         const label = [...entrants].find(
-          ([, entrant]) => entrant.model === name && entrant.effort === effort,
+          ([, entrant]) =>
+            entrant.model === name && entrant.effort === effort && entrant.provider === provider,
         )?.[0];
         const ok = succeeded(label ? (attempts.get(label) ?? []) : []);
 

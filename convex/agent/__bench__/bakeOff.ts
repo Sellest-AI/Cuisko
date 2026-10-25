@@ -16,7 +16,7 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 import { transcript } from "./transcript";
-import { label as blindLabel, mode, num, say, secs, spentOn, usd } from "./format";
+import { label as blindLabel, entrantName, num, say, secs, spentOn, usd } from "./format";
 import { judge as runJudge, judgePrompt } from "./judge";
 import { pool } from "./pool";
 import { attempt, DEFAULT_JUDGE_TIMEOUT_MS, DEFAULT_TIMEOUT_MS } from "./provider";
@@ -71,8 +71,8 @@ export const runBakeOff = async <Raw, Parsed>(
 
   const openrouter = createOpenRouter({ apiKey: _openrouterKey() });
 
-  const field: Entrant[] = candidates.flatMap(({ name, modes }) =>
-    modes.map((effort) => ({ model: name, effort })),
+  const field: Entrant[] = candidates.flatMap(({ name, modes, provider: pinned }) =>
+    modes.map((effort) => ({ model: name, effort, ...(pinned && { provider: pinned }) })),
   );
 
   // Letters assigned by shuffle, so a judge with a positional bias — and they all have one — does
@@ -97,7 +97,7 @@ export const runBakeOff = async <Raw, Parsed>(
     `abandoned, then 1 judge call to ${judge} (${Math.round(judgeTimeoutMs / 1000)}s)`,
   );
   for (const [label, entrant] of entrants)
-    say(`    ${label}  ${entrant.model}  ·  reasoning ${mode(entrant.effort)}`);
+    say(`    ${label}  ${entrantName(entrant, "  ·  ")}`);
   say("");
 
   const started = Date.now();
@@ -113,7 +113,7 @@ export const runBakeOff = async <Raw, Parsed>(
         prompt: input,
         answer,
         tools,
-        provider,
+        provider: { ...provider, ...entrant.provider },
         timeoutMs,
       }),
     }),
@@ -128,7 +128,7 @@ export const runBakeOff = async <Raw, Parsed>(
       say(
         `  [${String(completed).padStart(String(total).length)}/${total}] ` +
         `${label}  ${secs(result.ms)}  ${outcome}   ` +
-        `${entrant.model} (${mode(entrant.effort)})`,
+        entrantName(entrant),
       );
     },
   );
@@ -146,7 +146,7 @@ export const runBakeOff = async <Raw, Parsed>(
     const failures = all.filter((run): run is Extract<Attempt, { ok: false }> => !run.ok);
 
     say(
-      `  ${label} = ${entrant.model} (reasoning ${mode(entrant.effort)}) — ` +
+      `  ${label} = ${entrantName(entrant)} — ` +
       `${all.length - failures.length}/${runs} ok`,
     );
     for (const failure of failures) say(`      ✗ ${failure.error.split("\n")[0]}`);

@@ -35,10 +35,23 @@ export type Effort = false | "low" | "medium" | "high" | "xhigh" | "auto" | "max
  * `[false]` alone is a model you only ever want to see cheap. Order the modes cheapest first — the
  * first one is the baseline every other mode's delta is measured against.
  */
-export type Candidate = { name: string; modes: readonly Effort[] };
+export type Candidate = {
+  name: string;
+  modes: readonly Effort[];
+  /**
+   * Routing for this model only, merged key by key over the bake-off's `provider`.
+   *
+   * A model is not one thing on OpenRouter: each host serves it at its own quantization and with
+   * its own support for structured output, and some switch reasoning off under a JSON schema while
+   * still accepting the setting — MiniMax M3.1 Flash reasoned only on SambaNova. Pinning the host
+   * here measures the model rather than whichever host the sort picked. The same model listed
+   * twice with two hosts competes as two entrants.
+   */
+  provider?: ProviderRouting;
+};
 
-/** One model at one effort. The unit that is actually ranked. */
-export type Entrant = { model: string; effort: Effort };
+/** One model at one effort, on its candidate's routing. The unit that is actually ranked. */
+export type Entrant = { model: string; effort: Effort; provider?: ProviderRouting };
 
 /**
  * How OpenRouter should pick a provider for every call in the bake-off.
@@ -197,7 +210,10 @@ export type BakeOff<Raw, Parsed = Raw> = {
    */
   rules?: string;
 
-  /** How OpenRouter picks a provider. Defaults to throughput-sorted with fallbacks. */
+  /**
+   * How OpenRouter picks a provider. Defaults to throughput-sorted with fallbacks. A candidate's
+   * own `provider` overrides it key by key, for that candidate's generations only.
+   */
   provider?: ProviderRouting;
 
   /** The one that ranks them. It never generates, so it is not in the running. */

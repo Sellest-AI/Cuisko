@@ -5,7 +5,7 @@
  * same number the same way — a latency that reads as `1.4s` in the progress lines and as `1400ms`
  * in the table is two facts to the eye and one to the machine.
  */
-import type { Attempt, Effort, Success, ToolUse } from "./types";
+import type { Attempt, Effort, Entrant, Success, ToolUse } from "./types";
 
 /**
  * Straight to stdout, bypassing `console` entirely.
@@ -23,6 +23,18 @@ export const say = (line: string) => process.stdout.write(`${line}\n`);
 /** `false` is a legal effort and an illegal thing to print; a budget needs to look like one. */
 export const mode = (effort: Effort) =>
   effort === false ? "off" : typeof effort === "number" ? `≤${effort}` : effort;
+
+/**
+ * An entrant as a reader names it: the model, its effort, and the host when its candidate pinned
+ * one — without the host, the same model on two hosts prints as two identical rows.
+ */
+export const entrantName = ({ model, effort, provider }: Entrant, separator = " · ") => {
+  const hosts = provider?.only ?? provider?.order;
+
+  return [model, `reasoning ${mode(effort)}`, ...(hosts ? [`via ${hosts.join(", ")}`] : [])].join(
+    separator,
+  );
+};
 
 /**
  * Whether the entrant was asked to reason at all.
