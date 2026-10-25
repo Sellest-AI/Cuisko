@@ -431,6 +431,10 @@ readable, and a screen trusting it fires its first query a beat too early.
 `storage.ts` exists for `clear()`. @convex-dev/auth leaves the refresh token behind on sign-out,
 and a stale refresh token silently restores the session on next launch.
 
+Once a session ends, by sign-out or otherwise, `RestartOnSignOut` (`src/modules/auth/`, mounted
+at the root) restarts the app with `reloadAppAsync`, so no atom, module cache or cached query
+outlives the cook who left. `householdAtom`s reset on their own only when the household changes.
+
 ### `app/` — screens
 
 | Allowed                  | Forbidden                                                              |

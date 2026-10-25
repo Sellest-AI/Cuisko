@@ -6,6 +6,7 @@ import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { theme } from "~/global/theme";
 import { AnalyticsTracking } from "~/modules/auth/analytics-tracking";
 import { AuthGate } from "~/modules/auth/auth-gate";
+import { RestartOnSignOut } from "~/modules/auth/restart-on-sign-out";
 import { HouseholdAtomsReset } from "~/modules/households/household-atoms-reset";
 import { NavigationBar } from "~/modules/navigation/navigation-bar";
 import { ShareIntentListener } from "~/modules/recipes/share-intent-listener";
@@ -123,8 +124,10 @@ export default function RootLayout() {
       <ShareIntentListener />
       {/* Analytics follows the signed-in cook and the route, whichever screen is up. */}
       <AnalyticsTracking />
-      {/* Last, so its cover draws over the bar as well as the page. */}
+      {/* After everything else, so its cover draws over the bar and the page as well. */}
       <AuthGate />
+      {/* Last of all: a session can end on any screen, and its cover draws over the gate's sign-in. */}
+      <RestartOnSignOut />
     </Providers>
   );
 }

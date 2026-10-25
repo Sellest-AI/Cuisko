@@ -1,11 +1,10 @@
 import { router, useNavigationContainerRef, usePathname, type Href } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
-import { theme } from "theme";
 
 import { useAuth } from "./_hooks/useAuth";
 import { AUTH } from "./constants";
+import { Cover } from "./cover";
 
 /**
  * At module scope, not in an effect: the splash hides itself on the first frame unless told
@@ -84,9 +83,3 @@ export const AuthGate = () => {
 
   return isSettled || isOnAuth ? null : <Cover />;
 };
-
-const Cover = () => <View style={[StyleSheet.absoluteFill, styles.cover]} />;
-
-const styles = StyleSheet.create({
-  cover: { backgroundColor: theme.colors.background },
-});
