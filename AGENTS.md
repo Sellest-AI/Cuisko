@@ -117,7 +117,7 @@ root file. `_components/` and `_hooks/` are that module's interior, reached only
 
 **Keep going unless a step needs the user.** The status note rides with the next action — never
 "want me to continue?". Stop only when a decision is the user's, at a stop this file names (review
-finding, red test, wrong branch, unagreed plan), or before anything destructive or outside this
+findings left after the fix loop, red test, wrong branch, unagreed plan), or before anything destructive or outside this
 worktree (deleting data, force-push, `dev`, `main`, the shared stash).
 
 **A run that changed or investigated something ends with these headings, in this order:**
@@ -208,9 +208,9 @@ and the depth to run one. Neither finds the other's issues. If you catch Step 3 
 condition or Step 4 reporting a filename, the split has collapsed and the cheap pass has stopped
 being cheap.
 
-**Step 5 — verify every finding before relaying it.** Open the file each one names and confirm it. A
-reviewer that never saw the conversation also invents findings, and passing one on unchecked costs
-more trust than the whole review buys.
+**Step 5 — verify every finding before fixing or relaying it.** Open the file each one names and
+confirm it. A reviewer that never saw the conversation also invents findings, and acting on one
+unchecked costs more trust than the whole review buys.
 
 ### Naming
 
@@ -261,44 +261,39 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 
 **Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
 
-**When the review finds anything: STOP. Report to the user and wait.** Do not fix silently, and do
-not fold fixes into the same edit. A broken rule is BLOCKING. Something that breaks no rule but is
-weaker than it should be — a name that says nothing, a shape that duplicates one already in the
-codebase — is NON-BLOCKING: report it, and let the user decide whether it is worth the churn. That
-second tier is deliberately open to general code criticism: duplication, a name that says nothing
- — anything you would raise on a colleague's PR. The one bar is that you can point at the line and
- say what it costs. Report in this shape:
+### The fix loop
+
+**When the review finds anything, fix, re-run, and report what is left: three reviews at most**,
+like [the plan review loop](docs/plans/README.md#the-review-loop). BLOCKING breaks a written rule;
+NON-BLOCKING breaks none but costs something you can point at (a name that says nothing, a
+duplicated shape). Each round, verify every finding (Step 5), then:
+
+- **Fix it** if it is BLOCKING and the fix stays inside the change, or NON-BLOCKING and the
+  reviewer marked it `Effort: easy` (local, mechanical, no behaviour change). The tag is a hint.
+- **Leave it** if it is involved (reaches files the change never touched, an extraction), or the
+  user's call even when easy: a deliberate violation, a behaviour change, wider scope.
+- **Decline it**, with the reason, if it does not hold once the file is open.
+
+A fix obeys the rest of this file: one that turns an existing test red stops the loop ([Tests](#tests)).
+Then continue the same reviewer with `SendMessage`: `round n`, each finding marked fixed, left or
+declined, with a reason for the last two. The loop ends on a clean round, after round 3, or when a
+round fixed nothing. Then `pnpm verify` if anything changed, Step 4 on the fixed diff, and report:
 
 ```
-⚠️ Review found 5 issues in 5 changed files
-
-BLOCKING
-1. convex/router/wallets/getOne.ts:48 — export `admin` uses `authQuery`  (ADR 0001 · C1)
-   Any signed-in user could read another user's wallet by passing a userId.
-   Fix: change the builder to `adminQuery`.
-
-2. src/ui/cards/recipe.tsx:3 — imports `Doc<'recipes'>` from ~/lib/convex/api  (ADR 0002)
-   Couples the design system to the schema; breaks UI isolation.
-   Fix: replace with a structural prop type.
-
-3. convex/schema/recipes.ts:31 — new FK `recipeId` has no cascade index or CASCADE entry  (ADR 0007)
-   Deleting a recipe will orphan these rows, and there is no index to clean them up with.
-   Fix: add `.index("by_recipe", ["recipeId"])` + an entry in functions/cascade.ts.
-
-NON-BLOCKING
-4. src/modules/recipes/_hooks/use-recipes.ts — hook file should be camelCase  (naming)
-   Fix: rename to useRecipes.ts.
-
-5. convex/functions/recipes/loadRecipe.ts:22 — `const data = await ctx.db.get(id)`  (naming, quality)
-   Legal, but `data` says nothing at the call site three lines down.
-   Fix: rename to `recipe`.
-
-Want me to apply these? I can do 1–3 now and 4–5 separately if you'd rather keep the renames isolated.
+Architecture review: 3 rounds, 3 fixed, 2 left, 1 declined
+FIXED     getOne.ts:48 `admin` → `adminQuery` (ADR 0001 · r1) · use-recipes.ts → useRecipes.ts (r1) · …
+LEFT — BLOCKING
+1. src/ui/cards/recipe.tsx:3 — imports `Doc<'recipes'>` from ~/lib/convex/api  (ADR 0002)
+   Couples the design system to the schema. Fix: a structural prop type.
+   Left because: the card then needs `servings`, which no screen passes yet; it widens the slice.
+LEFT — NON-BLOCKING
+2. convex/functions/recipes/loadRecipe.ts:22 — `const data = await ctx.db.get(id)`  (naming)
+   `data` says nothing three lines down. Fix: rename to `recipe`.
+   Left because: `loadRecipe` is outside this change, and the name reaches 6 callers.
+DECLINED  useRecipes.ts:14 "useQuery outside a hook": it is the hook (ADR 0006).
 ```
 
-Rules for the report: list **all** issues before fixing **any**; separate blocking from non-blocking;
-cite the rule *and* say what actually breaks — "violates ADR 0002" alone is not actionable. Then
-wait for approval.
+Every left finding cites its rule, what actually breaks, and why it was left. Then wait for approval.
 
 If a violation is deliberate, ask the user to confirm, and record it: a knowingly-broken rule must
 become `status: superseded` in its ADR. **Never leave a rule documented as active that the project
