@@ -16,7 +16,8 @@ import { curatedSpellingsIn, type LookupHit, type MeasuredResult } from "./looku
  * what they typed worth storing on that row?
  *
  * Step 4 of `resolveIngredient`, first half: `resolveWithAgent` asks this before paying for a row,
- * and asks it again of each source's search page (`pickMeasuredFood`) before any figure is kept.
+ * and asks a question of its own of each source's search page (`pickMeasuredFood`) before any
+ * figure is kept.
  * A judgment and not a generation, so it runs on TypeSafe's Jev rather than on a chat model: the
  * candidates are the options, "none" is one more, and the reply is a probability per option. There
  * is no index to hallucinate, no JSON to parse, and no confidence a model states about itself — the
@@ -54,6 +55,8 @@ type Input<C extends Candidate> = {
    * what Jev reads: `matchState` picks its fields by name.
    */
   report?: ReportUsage;
+  /** Another System One model than `ask.ts` pins, named only by the manual tests to compare. */
+  model?: string;
 };
 
 /**
@@ -70,6 +73,11 @@ type Input<C extends Candidate> = {
  * **Measured 2026-09-24 on jev-1.13, fourteen fixtures over several runs: right links 0.93–1.00,
  * the most any wrong candidate drew 0.24** (`kiwi` for kaki; `amandes effilées` ~0.2 for amande).
  * The answers move by a few points between runs, so read the gap, not a cell.
+ *
+ * @limitation It is also the floor of `judgeMeasured`, a looser question, and it was not set from
+ * it. Measured 2026-10-25 on jev-1.13: right results 0.80–0.99, the most a wrong one drew 0.51, so
+ * the weakest right result sits on the floor. `pickMeasuredFood.manual.test.ts` sets it apart if a
+ * run says so.
  */
 export const MATCHED = 0.8;
 
@@ -163,6 +171,40 @@ const _NONE_CRITERION =
   "the same product, a broader shelf, or a choice between kinds the shopper did not make is not a " +
   "match.";
 
+/**
+ * The question asked of a source's search page, which is not the catalog's.
+ *
+ * **A catalog link and a set of figures fail differently.** A shopping list needs the exact item,
+ * so `_MATCH_INSTRUCTIONS` calls a broader kind another food. Figures only need a food measured the
+ * same way: plain olive oil measures what extra virgin does, and a database title qualifies its
+ * food — "Egg, whole, raw, fresh" — where a catalog name does not. Asked the catalog question, every
+ * model tried on 2026-10-25 (three Jevs and three others) refused `egg` its whole egg.
+ *
+ * Its examples stay out of `pickMeasuredFood.manual.test.ts`'s pages, so the test measures the rule
+ * and not the words.
+ */
+const _MEASURED_INSTRUCTIONS = {
+  question:
+    "Which result measured the food the shopper typed? Results are titles from a nutrition " +
+    "database, in any language.",
+  rules: [
+    "A title names the food, then how it was measured: \"Apples, raw, with skin\" measured apple.",
+    "Same food: another language, a plural, a synonym, or the form it is usually sold in " +
+    "(\"Thon au naturel\" for \"thon en boîte\").",
+    "A broader kind measured the food when the shopper's extra words barely change its figures: " +
+    "\"Honey\" for \"miel de lavande\".",
+    "A part is not the whole: orange zest is not an orange.",
+    "A dish, or a product made from the food, is another food: apple juice and apple pie are not apples.",
+    "A variety, or a word that makes another product, changes the figures: \"Yogurt, Greek\" is " +
+    "not plain yogurt, \"Cream cheese\" is not cheese.",
+    "A foodDictionary, when given, says what the shopper's words mean.",
+  ],
+};
+
+const _MEASURED_NONE_CRITERION =
+  "No result measured this food: each is another food, a part of it, a dish or product made from " +
+  "it, or a variety with other figures.";
+
 /** The pick → the candidate to link, or nothing. Pure, so what we DO with a 0.7 is unit-tested. */
 export const readMatchAnswer = <C extends Candidate>(
   answer: ChoiceAnswer<string>,
@@ -215,8 +257,8 @@ const _titleOf = ({ measuredAs }: MeasuredResult, locale: Locale) =>
  *
  * **A keyword search returns a page, and spelling cannot tell which result is the food.** "onion"
  * finds onion rings beside raw onions, "tomates séchées" finds plain tomatoes, and "pesto rouge"
- * found USDA's basil pesto, stamped `foodComposition` on a red one. It is the question
- * `matchIngredient` asks of catalog rows, asked unchanged of the page, with `MATCHED` as its floor.
+ * found USDA's basil pesto, stamped `foodComposition` on a red one. Its question is its own
+ * (`_MEASURED_INSTRUCTIONS`), with `MATCHED` as its floor.
  *
  * Marked `judged` either way, so `measuredAboutIt` does not re-judge it on spelling, and stripped
  * of the page, so the row-writing model is shown one set of figures rather than five.
@@ -240,7 +282,8 @@ export const pickMeasuredFood = async (
       id: String(index),
       name: _titleOf(result, asked.locale),
     }));
-    const choice = await retryPromise(() => matchIngredient({ ...asked, candidates: options }), 2);
+    const answer = await retryPromise(() => judgeMeasured({ ...asked, candidates: options }), 2);
+    const choice = readMatchAnswer(answer, options);
     picked = choice && candidates[Number(choice.id)];
   } catch (error) {
     console.error("pickMeasuredFood could not reach a judgment; the figures are dropped", error);
@@ -258,23 +301,35 @@ export const pickMeasuredFood = async (
     nutrition: picked?.nutrition, measuredAs: picked?.measuredAs ?? [] };
 };
 
-/** The raw judgment, floor not applied — what the manual test measures the floor from. */
-export const judgeMatch = async (input: Input<Candidate>): Promise<ChoiceAnswer<string>> => {
-  const question: ChoiceQuestion<string> = {
-    type: "choice",
-    instructions: _MATCH_INSTRUCTIONS,
-    // `none` first, the candidates after it with no description: their names say what they are,
-    // and a description written for each would be this side's opinion of the food, not the food.
-    criteria: {
-      [NONE]: _NONE_CRITERION,
-      ...Object.fromEntries(optionsFor(input.candidates).map((key) => [key, null])),
-    },
+const _choiceAmong = (
+  instructions: ChoiceQuestion<string>["instructions"],
+  none: string,
+  candidates: readonly Candidate[],
+): ChoiceQuestion<string> => ({
+  type: "choice",
+  instructions,
+  // `none` first, the candidates after it with no description: their names say what they are,
+  // and a description written for each would be this side's opinion of the food, not the food.
+  criteria: {
+    [NONE]: none,
+    ...Object.fromEntries(optionsFor(candidates).map((key) => [key, null])),
+  },
+});
+
+const _judge =
+  (instructions: ChoiceQuestion<string>["instructions"], none: string) =>
+  async (input: Input<Candidate>): Promise<ChoiceAnswer<string>> => {
+    const question = _choiceAmong(instructions, none, input.candidates);
+    const { match } = await askTypeSafe(matchState(input), { match: question }, input.report, input.model);
+
+    return match;
   };
 
-  const { match } = await askTypeSafe(matchState(input), { match: question }, input.report);
+/** The raw judgment, floor not applied — what the manual test measures the floor from. */
+export const judgeMatch = _judge(_MATCH_INSTRUCTIONS, _NONE_CRITERION);
 
-  return match;
-};
+/** Which result on a search page measured the food, floor not applied. Measured by its own manual test. */
+export const judgeMeasured = _judge(_MEASURED_INSTRUCTIONS, _MEASURED_NONE_CRITERION);
 
 /**
  * Which candidate the shopper meant, or nothing. **Throws** when TypeSafe cannot be reached — the
@@ -308,7 +363,9 @@ export const judgeAlias = async (
   input: Omit<Input<Candidate>, "candidates">,
   matched: string,
 ): Promise<NoulAnswer> => {
-  const { alias } = await askTypeSafe(matchState(input), { alias: _aliasQuestion(matched) }, input.report);
+  const { alias } = await askTypeSafe(
+    matchState(input), { alias: _aliasQuestion(matched) }, input.report, input.model,
+  );
 
   return alias;
 };

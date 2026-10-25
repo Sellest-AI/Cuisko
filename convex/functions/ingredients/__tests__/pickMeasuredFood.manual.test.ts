@@ -1,13 +1,16 @@
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { judgeMatch, MATCHED, NONE, readMatchAnswer } from "@convex/functions/ingredients/matchIngredient";
+import { judgeMeasured, MATCHED, NONE, readMatchAnswer } from "@convex/functions/ingredients/matchIngredient";
+import { CANDIDATES, ranking, type Scored } from "@convex/lib/typesafe/__tests__/candidates.fixtures";
+import { retryPromise } from "@shared/helpers";
 import type { Locale } from "@shared/translations";
 
 /**
  * Which result of a source's search page Jev says the shopper's food was measured on, the question
  * `pickMeasuredFood` asks before any figure reaches a row.
  *
- * ⚠️ THIS COSTS MONEY — a fraction of a cent: one TypeSafe call per page. Hand-run:
+ * ⚠️ THIS COSTS MONEY — a fraction of a cent per model: one TypeSafe call per page, for every
+ * model in `CANDIDATES` (`lib/typesafe/__tests__/`), which it ranks side by side. Hand-run:
  *
  *     pnpm test:manual
  *
@@ -18,11 +21,10 @@ import type { Locale } from "@shared/translations";
  * these pages put each of those beside the result that is the food, the way a keyword search
  * returns them. Titles are written the way USDA and Open Food Facts write them, not fetched.
  *
- * **The question is `matchIngredient`'s, unchanged, and it was written for catalog links.** Its
- * rules call a broader kind a different item, which is right for a shopping list and stricter than
- * nutrition needs: plain olive oil measures what extra virgin does. The `broader kind` pages are
- * here to show where that costs us. When they fail, the choice is a question of its own for
- * figures, not a lower `MATCHED`.
+ * **The question is its own, not the catalog's.** Asked `matchIngredient`'s, which calls a broader
+ * kind a different item, every model tried on 2026-10-25 refused `egg` its whole egg, and the
+ * `broader kind` pages failed on most. `judgeMeasured` asks which result MEASURED the food instead.
+ * A page failing here is fixed in that question, not by a lower `MATCHED`.
  */
 
 type Page = {
@@ -73,31 +75,70 @@ const extremes = (values: number[]) =>
     ? "none"
     : `${Math.min(...values).toFixed(2)}–${Math.max(...values).toFixed(2)}`;
 
-describe("pickMeasuredFood's question against the real model", () => {
-  test("keeps the figures of the food, and of nothing else", async () => {
+const runOf = (model: string) =>
+  Promise.all(
+    PAGES.map(async (page) => {
+      const candidates = page.results.map((name, index) => ({ id: String(index), name }));
+      // Retried as production retries: every model runs at once, and a free tier's 429 is not a wrong answer.
+      const answer = await retryPromise(
+        () => judgeMeasured({ text: page.text, locale: page.locale, candidates, dictionary: {}, model }),
+        2,
+      );
+      const kept = readMatchAnswer(answer, candidates)?.name;
+      const wrong = Math.max(
+        0,
+        ...Object.entries(answer.probabilities)
+          .filter(([option]) => option !== NONE && option !== page.want)
+          .map(([, probability]) => probability),
+      );
+
+      return { page, answer, kept, wrong, probability: answer.probabilities[answer.choice] ?? 0 };
+    }),
+  );
+type Row = Awaited<ReturnType<typeof runOf>>[number];
+
+/** Filled by each model's test as it lands, ranked once they all have. */
+const scores: Scored[] = [];
+
+describe("pickMeasuredFood's question against the real models", () => {
+  beforeAll(() => {
     expect(
       process.env.OPENROUTER_API_KEY,
       "no real OPENROUTER_API_KEY — put one in .env.local",
     ).not.toMatch(/^test-/);
+  });
 
-    const rows = await Promise.all(
-      PAGES.map(async (page) => {
-        const candidates = page.results.map((name, index) => ({ id: String(index), name }));
-        const answer = await judgeMatch({ text: page.text, locale: page.locale, candidates, dictionary: {} });
-        const kept = readMatchAnswer(answer, candidates)?.name;
-        const wrong = Math.max(
-          0,
-          ...Object.entries(answer.probabilities)
-            .filter(([option]) => option !== NONE && option !== page.want)
-            .map(([, probability]) => probability),
-        );
+  afterAll(() => {
+    console.log(`\npickMeasuredFood, ${PAGES.length} pages, by pages right then gap:\n${ranking(scores)}`);
+  });
 
-        return { page, answer, kept, wrong, probability: answer.probabilities[answer.choice] ?? 0 };
-      }),
-    );
+  // Sanity on the pages themselves: a `want` the model never saw is a typo here.
+  test("every page wants one of its own results", () => {
+    for (const page of PAGES) if (page.want) expect(page.results).toContain(page.want);
+  });
+
+  // One test per model, so the run says which models pass and the ranking says by how much.
+  test.concurrent.each(CANDIDATES)("%s keeps the figures of the food, and of nothing else", async (model) => {
+    let rows: Row[];
+    try {
+      rows = await runOf(model);
+    } catch (error) {
+      const failed = error instanceof Error ? error.message : String(error);
+      scores.push({ model, failed, right: 0, total: PAGES.length, rightLinks: [], wrong: [], misses: [] });
+      throw error;
+    }
+
+    scores.push({
+      model,
+      right: rows.filter((r) => r.kept === r.page.want).length,
+      total: PAGES.length,
+      rightLinks: rows.filter((r) => r.page.want && r.answer.choice === r.page.want).map((r) => r.probability),
+      wrong: rows.map((r) => r.wrong),
+      misses: rows.filter((r) => r.kept !== r.page.want).map((r) => `${r.page.text} → ${r.kept ?? NONE}`),
+    });
 
     console.log(
-      "\n" +
+      `\n${model}:\n` +
       rows
         .map(({ page, answer, kept, wrong, probability }) =>
           `${kept === page.want ? "✓" : "✗"} ${page.title.padEnd(13)} ${page.text.padEnd(27)} ` +
@@ -113,9 +154,6 @@ describe("pickMeasuredFood's question against the real model", () => {
       `\nmost any wrong result drew, per page: ${extremes(rows.map((r) => r.wrong))}` +
       `\nMATCHED is ${MATCHED}. ${rows.filter((r) => r.kept === r.page.want).length} / ${rows.length} pages right.`,
     );
-
-    // Sanity on the pages themselves: a `want` the model never saw is a typo here.
-    for (const { page } of rows) if (page.want) expect(page.results).toContain(page.want);
 
     expect(rows.filter((r) => r.kept !== r.page.want).map((r) => `${r.page.text} → ${r.kept ?? NONE}`)).toEqual([]);
   });

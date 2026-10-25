@@ -85,6 +85,15 @@ describe("askTypeSafe", () => {
     expect(bodyOf(fetched).questions.verdict.criteria).toEqual(CHOICE.criteria);
   });
 
+  /** The manual tests compare models by naming each; a name dropped on the way measures the pin twice. */
+  test("sends the model a caller names instead of the pinned one", async () => {
+    const fetched = answering({ answers: { verdict: choiceAnswer } });
+
+    await askTypeSafe({ input: "olive oil" }, { verdict: CHOICE }, undefined, "liquid/d1-ultra");
+
+    expect(bodyOf(fetched).model).toBe("liquid/d1-ultra");
+  });
+
   test("throws when the service refuses the request", async () => {
     answering({ error: "nope" }, 402);
 

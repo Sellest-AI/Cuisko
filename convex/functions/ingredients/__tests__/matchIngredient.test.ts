@@ -6,7 +6,9 @@ import type { LookupHit } from "../lookup/lookupHit";
 import {
   aliasWorthSaving,
   dictionaryOf,
+  judgeAlias,
   judgeMatch,
+  judgeMeasured,
   matchIngredient,
   matchState,
   NONE,
@@ -223,6 +225,25 @@ describe("pickMeasuredFood", () => {
     ]);
   });
 
+  /**
+   * The catalog's question calls a broader kind or a qualified title another food, and a search page
+   * is all qualified titles: asked it, every model refused `egg` its "Egg, whole, raw, fresh".
+   */
+  test("asks which result measured the food, not the catalog's same-item question", async () => {
+    const fetched = answering({ match: picked(NONE, 1) });
+
+    await pickMeasuredFood(ASKED, SEARCHED);
+    await judgeMatch({ ...ASKED, candidates: CANDIDATES });
+
+    const [page, catalog] = [0, 1].map((call) => {
+      const [, init] = fetched.mock.calls[call] as unknown as [string, RequestInit];
+      return JSON.parse(init.body as string).questions.match;
+    });
+    expect(page.instructions.question).toMatch(/measured/);
+    expect(page.instructions).not.toEqual(catalog.instructions);
+    expect(page.criteria[NONE]).not.toEqual(catalog.criteria[NONE]);
+  });
+
   test("drops every figure when Jev says none of the results is the food", async () => {
     answering({ match: picked(NONE, 1) });
 
@@ -242,6 +263,20 @@ describe("pickMeasuredFood", () => {
 
     expect(judged.nutrition).toBeUndefined();
     expect(judged.judged).toBe(true);
+  });
+
+  /** The manual tests compare models through these judges; a name dropped here measures the pin. */
+  test("asks every judge on the model a caller names", async () => {
+    const fetched = answering({ match: picked(NONE, 1), alias: { type: "noul", noul: 0.9 } });
+    const input = { ...ASKED, candidates: CANDIDATES, model: "liquid/d1-ultra" };
+
+    await judgeMatch(input);
+    await judgeMeasured(input);
+    await judgeAlias(input, "cider vinegar");
+
+    const models = (fetched.mock.calls as unknown as [string, RequestInit][])
+      .map(([, init]) => JSON.parse(init.body as string).model);
+    expect(models).toEqual(["liquid/d1-ultra", "liquid/d1-ultra", "liquid/d1-ultra"]);
   });
 
   test("leaves a curated hit alone and asks Jev nothing about it", async () => {

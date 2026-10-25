@@ -27,8 +27,14 @@ const ENDPOINT = "https://openrouter.ai/api/v1/systemone";
 /**
  * Pinned, not `jev-latest`. A caller thresholds its answers against a floor calibrated on one
  * model's calibration, and an alias that moves under us moves that floor with no diff anywhere.
+ * Moving it is a deliberate change: add the new model to `CANDIDATES` (`__tests__/candidates.fixtures.ts`)
+ * and read the ranking the ingredient manual tests print first.
+ *
+ * Kept on 1.13 on 2026-10-25: of the five models in that run (Jev 1.13 and 1.14, Mammoth 1 free,
+ * D1 Ultra, Span 02), it and Mammoth were the only two to pass both ingredient tests; Mammoth had
+ * more room, but only its free tier was tried.
  */
-const MODEL = "typesafe/jev-1.13";
+export const MODEL = "typesafe/jev-1.13";
 
 /**
  * Short, because the caller is a shopper watching a spinner rather than a pipeline. A judgment that
@@ -231,6 +237,8 @@ export const askTypeSafe = async <Q extends Record<string, Question>>(
   state: unknown,
   questions: Q,
   report?: ReportUsage,
+  /** Another System One model than the pinned one. Only the manual tests name one, to compare. */
+  model = MODEL,
 ): Promise<Answers<Q>> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -243,7 +251,7 @@ export const askTypeSafe = async <Q extends Record<string, Question>>(
         Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: MODEL, state, questions }),
+      body: JSON.stringify({ model, state, questions }),
       signal: controller.signal,
     });
 
@@ -257,7 +265,7 @@ export const askTypeSafe = async <Q extends Record<string, Question>>(
     // Reported before the answers are checked: a reply that answers unusably was still billed.
     const { usage } = envelope.data;
     await report?.({
-      model: envelope.data.model ?? MODEL,
+      model: envelope.data.model ?? model,
       inputTokens: usage?.input_tokens ?? usage?.prompt_tokens,
       outputTokens: usage?.output_tokens ?? usage?.completion_tokens,
       costUsd: usage?.cost ?? null,

@@ -1,5 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import { CANDIDATES, ranking, type Scored } from "@convex/lib/typesafe/__tests__/candidates.fixtures";
+import { retryPromise } from "@shared/helpers";
 import type { Locale } from "@shared/translations";
 
 import {
@@ -17,8 +19,9 @@ import {
  * What Jev does with the near-misses `resolveWithAgent` hands it, and the measurement `MATCHED`
  * and `ALIAS_WORTH_SAVING` are set from.
  *
- * ⚠️ THIS COSTS MONEY — a fraction of a cent: one TypeSafe call per fixture, plus one per fixture
- * with an alias verdict. It calls OpenRouter for real, so it is hand-run:
+ * ⚠️ THIS COSTS MONEY — a fraction of a cent per model: one TypeSafe call per fixture, plus one per
+ * fixture with an alias verdict, for every model in `CANDIDATES` (`lib/typesafe/__tests__/`), which
+ * it ranks side by side. It calls OpenRouter for real, so it is hand-run:
  *
  *     pnpm test:manual
  *
@@ -209,33 +212,81 @@ const extremes = (values: number[]) =>
     ? "none"
     : `${Math.min(...values).toFixed(2)}–${Math.max(...values).toFixed(2)}`;
 
-describe("matchIngredient against the real model", () => {
-  test("links only the same food, and stores only a word", async () => {
+const runOf = (model: string) =>
+  Promise.all(
+    FIXTURES.map(async (fixture) => {
+      const candidates = fixture.candidates.map((name, index) => ({ id: `k${index}`, name }));
+      const input = { ...fixture, candidates, model };
+
+      // Retried as production retries: every model runs at once, and a free tier's 429 is not a wrong answer.
+      const answer = await retryPromise(() => judgeMatch(input), 2);
+      const linked = readMatchAnswer(answer, candidates)?.name;
+      const probability = answer.probabilities[answer.choice] ?? 0;
+
+      // Asked of the RIGHT row whatever the match said, so a fixture measures the word alone.
+      const alias = fixture.want && fixture.keeps !== undefined
+        ? (await retryPromise(() => judgeAlias(input, fixture.want!), 2)).noul
+        : undefined;
+
+      return { fixture, answer, probability, linked, alias };
+    }),
+  );
+type Row = Awaited<ReturnType<typeof runOf>>[number];
+
+const isRight = ({ fixture, linked, alias }: Row) =>
+  linked === fixture.want &&
+  (alias === undefined || (alias >= ALIAS_WORTH_SAVING) === fixture.keeps);
+
+/** Filled by each model's test as it lands, ranked once they all have. */
+const scores: Scored[] = [];
+
+describe("matchIngredient against the real models", () => {
+  beforeAll(() => {
     expect(
       process.env.OPENROUTER_API_KEY,
       "no real OPENROUTER_API_KEY — put one in .env.local",
     ).not.toMatch(/^test-/);
+  });
 
-    const rows = await Promise.all(
-      FIXTURES.map(async (fixture) => {
-        const candidates = fixture.candidates.map((name, index) => ({ id: `k${index}`, name }));
-        const input = { ...fixture, candidates };
+  afterAll(() => {
+    console.log(`\nmatchIngredient, ${FIXTURES.length} fixtures, by fixtures right then gap:\n${ranking(scores)}`);
+  });
 
-        const answer = await judgeMatch(input);
-        const linked = readMatchAnswer(answer, candidates)?.name;
-        const probability = answer.probabilities[answer.choice] ?? 0;
+  // Sanity on the fixtures themselves: an option key the model never saw is a typo here.
+  test("every fixture wants one of its own candidates", () => {
+    for (const fixture of FIXTURES)
+      if (fixture.want) expect(optionsFor(fixture.candidates.map((name) => ({ id: name, name })))).toContain(fixture.want);
+  });
 
-        // Asked of the RIGHT row whatever the match said, so a fixture measures the word alone.
-        const alias = fixture.want && fixture.keeps !== undefined
-          ? (await judgeAlias(input, fixture.want)).noul
-          : undefined;
+  // One test per model, so the run says which models pass and the ranking says by how much.
+  test.concurrent.each(CANDIDATES)("%s links only the same food, and stores only a word", async (model) => {
+    let rows: Row[];
+    try {
+      rows = await runOf(model);
+    } catch (error) {
+      const failed = error instanceof Error ? error.message : String(error);
+      scores.push({ model, failed, right: 0, total: FIXTURES.length, rightLinks: [], wrong: [], misses: [] });
+      throw error;
+    }
 
-        return { fixture, answer, probability, linked, alias };
-      }),
-    );
+    scores.push({
+      model,
+      right: rows.filter(isRight).length,
+      total: FIXTURES.length,
+      rightLinks: rows.filter((r) => r.fixture.want && r.answer.choice === r.fixture.want).map((r) => r.probability),
+      wrong: rows.map((r) =>
+        Math.max(
+          0,
+          ...Object.entries(r.answer.probabilities)
+            .filter(([option]) => option !== NONE && option !== r.fixture.want)
+            .map(([, probability]) => probability),
+        ),
+      ),
+      misses: rows.filter((r) => !isRight(r)).map((r) => `${r.fixture.text} → ${r.linked ?? NONE}`),
+    });
 
     console.log(
-      "\n" +
+      `\n${model}:\n` +
       rows
         .map(({ fixture, answer, probability, linked, alias }) => {
           const right = linked === fixture.want;
@@ -275,10 +326,6 @@ describe("matchIngredient against the real model", () => {
       `\nalias yes on the ${drop.length} slips: ${extremes(drop.map((r) => r.alias ?? 0))}` +
       `\nALIAS_WORTH_SAVING is ${ALIAS_WORTH_SAVING}.`,
     );
-
-    // Sanity on the fixtures themselves: an option key the model never saw is a typo here.
-    for (const { fixture } of rows)
-      if (fixture.want) expect(optionsFor(fixture.candidates.map((name) => ({ id: name, name })))).toContain(fixture.want);
 
     expect(rows.filter((r) => r.linked !== r.fixture.want).map((r) => r.fixture.title)).toEqual([]);
     expect(
