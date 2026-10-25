@@ -40,8 +40,8 @@ const EMOJI: Record<StepTool, Record<StepLine, string>> = {
   },
   findWebRecipe: {
     running: "🔍",
-    done: "🍽️",
-    found: "🍽️",
+    done: "🥘",
+    found: "🥘",
     none: "🔍",
     failed: "⚠️",
   },

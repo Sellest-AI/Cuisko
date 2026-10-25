@@ -14,7 +14,8 @@ export type Bar = { readonly minReviews: number; readonly minRating: number };
  * is often one the catalog script already looked up and rejected for its rating, so its bar would
  * answer "none" for exactly the dishes the chat's search exists for. What every cook draws from
  * stays stricter than what one cook asked for by name. Tuned from the `web recipe searched` event's
- * nearest misses (docs/plans/web-recipe-search.md): change these two numbers, ship.
+ * nearest misses (`nearestMissRating` × `nearestMissReviews` on `outcome: "none"`, in PostHog):
+ * change these two numbers, ship.
  */
 export const CHAT_BAR = { minReviews: 5, minRating: 4.0 } as const satisfies Bar;
 

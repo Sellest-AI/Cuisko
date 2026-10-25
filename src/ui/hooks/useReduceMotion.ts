@@ -3,9 +3,9 @@ import { useEffect } from "react";
 import { AccessibilityInfo } from "react-native";
 
 /** The OS's answer, shared app-wide: a view mounted later reads what an earlier one was told. */
-const reduceMotionAtom = atom<boolean | undefined>(undefined);
+const reduceMotionAtom = atom<boolean>(true);
 
-/** The OS's answer, or `undefined` until it has given one; `useReduceMotion` decides what that means. */
+/** The OS's answer, or `true` until it has given one (`useReduceMotion` says why). */
 const useReduceMotionAnswer = () => {
   const [reduceMotion, setReduceMotion] = useAtom(reduceMotionAtom);
 
@@ -52,4 +52,4 @@ const useReduceMotionAnswer = () => {
  * exists to prevent. So the unknown state is treated as "reduce", and the animation begins only
  * once the OS has said it may.
  */
-export const useReduceMotion = (): boolean => useReduceMotionAnswer() ?? true;
+export const useReduceMotion = (): boolean => useReduceMotionAnswer();
