@@ -33,10 +33,10 @@
     },
     "findWebRecipe": {
       "running": "Looking for the recipe…",
-      "found": "Recipe found",
-      "none": "No recipe found",
-      "done_one": "Recipe found",
-      "done_other": "Recipe found",
+      "found": "Recipe found on the web",
+      "none": "No recipe found on the web",
+      "done_one": "Recipe found on the web",
+      "done_other": "Recipe found on the web",
       "failed": "The search did not go through"
     }
   },
@@ -60,8 +60,7 @@
     "add": "Add to my recipes",
     "adding": "Adding…",
     "added": "In your recipes",
-    "servings_one": "{{count, number}} serving",
-    "servings_other": "{{count, number}} servings",
+    "retry": "Try again",
     "ingredients_one": "{{count, number}} ingredient",
     "ingredients_other": "{{count, number}} ingredients"
   }

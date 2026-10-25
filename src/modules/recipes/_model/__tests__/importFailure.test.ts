@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
 
-import { IMPORT_FAILURES, importFailureOf, isConnectionLost } from "../importFailure";
+import { IMPORT_FAILURES, importFailureOf, isConnectionLost, isScrapeLost, scrapeLost } from "../importFailure";
 
 const failed = (code: string) => new ConvexError({ code, message: "server said so" });
 
@@ -14,6 +14,20 @@ describe("isConnectionLost", () => {
     expect(isConnectionLost(failed("NOT_A_RECIPE"))).toBe(false);
     expect(isConnectionLost(new Error("socket hang up"))).toBe(false);
     expect(isConnectionLost(null)).toBe(false);
+  });
+
+  /** `startImport` holds a lost call for its answer; a lost scrape has none coming, so it is not one. */
+  it("is false for a scrape lost with the connection", () => {
+    expect(isConnectionLost(scrapeLost())).toBe(false);
+  });
+});
+
+describe("isScrapeLost", () => {
+  it("is told by its tag, not by its message", () => {
+    expect(isScrapeLost(scrapeLost())).toBe(true);
+    expect(isScrapeLost(new Error(scrapeLost().message))).toBe(false);
+    expect(isScrapeLost(new Error("Connection lost while action was in flight"))).toBe(false);
+    expect(isScrapeLost(null)).toBe(false);
   });
 });
 
@@ -43,6 +57,10 @@ describe("importFailureOf", () => {
 
   it("keeps the paste-a-link screen's reading when no path is given", () => {
     expect(importFailureOf(failed("INVALID_INPUT"))).toBe(IMPORT_FAILURES.invalid);
+  });
+
+  it("words a lost scrape as the connection, never as the site", () => {
+    expect(importFailureOf(scrapeLost(), "web")).toBe(IMPORT_FAILURES.scrapeLost);
   });
 
   it("words anything it does not recognise as the site not answering", () => {

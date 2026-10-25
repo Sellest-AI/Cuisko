@@ -8,15 +8,15 @@ import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
 import { importProgressOf } from "../_model/importCountdown";
-import { importFailureOf, isConnectionLost, type ImportFailure } from "../_model/importFailure";
+import { importFailureOf, isConnectionLost, scrapeLost, type ImportFailure } from "../_model/importFailure";
 import { importKeyOf } from "../_model/importPath";
 
-import { type ImportedRecipe, importsInFlightAtom } from "./atoms";
+import { addedWebRecipesAtom, type ImportedRecipe, importsInFlightAtom } from "./atoms";
 import { startImport } from "./startImport";
 import { useSetRecipeFavorite } from "./useSetRecipeFavorite";
 
 export type WebRecipeImport = {
-  /** A no-op while this url is already importing. */
+  /** A no-op while this url is importing, and once it was added. */
   start(): void;
   status: "idle" | "importing" | "done" | "failed";
   /** Done only: the recipe the page became, or the one it already was. */
@@ -37,8 +37,6 @@ const WEB_IMPORT_MS = 30_000;
  */
 const WEB_IMPORT_LOST_MS = 2 * 60_000;
 
-type Outcome = { recipeId: ImportedRecipe["recipeId"] } | { error: unknown };
-
 /**
  * Adds one web recipe page the chat found to the cook's recipes, and says how far it got.
  *
@@ -48,18 +46,21 @@ type Outcome = { recipeId: ImportedRecipe["recipeId"] } | { error: unknown };
  * imported when the chat searched (`findWebRecipe` checks `findBySource` first), so it is always the
  * cook's own new recipe.
  *
- * **The state is the in-flight atom's, then this mount's.** `importing` while the page is in
- * `importsInFlightAtom`, a `lost` entry included; then `done` or `failed` once the import this
- * mount started or joined answered; else `idle`. So a chat closed and reopened mid-add shows the
- * bar where it had got to and joins the running import's promise (`startImport`), turning into
- * "In your recipes" when it answers, not back into Add.
+ * **The state is the atoms', then this mount's.** `importing` while the page is in
+ * `importsInFlightAtom`, a `lost` entry included; `done` once the page is in `addedWebRecipesAtom`,
+ * which the import writes itself; `failed` when the import this mount started or joined failed;
+ * else `idle`. So a chat closed and reopened mid-add shows how far it had got and joins the
+ * running import's promise (`startImport`), and one reopened after the add shows "In your recipes",
+ * never Add: a second tap would save a second copy.
  *
- * A lost import never answers: its card holds the bar until the entry goes, then shows Add again.
- * Not a failure, so it is never one here.
+ * **A lost connection is read by which call it dropped.** A lost save may still land, and never
+ * answers this app: its card stays importing, held at 95 %, until the entry goes, then shows Add
+ * again, never a failure. A lost scrape cannot land, since the phone never sent the save: it fails at once, worded
+ * as the connection (`scrapeLost`), so the cook is not left waiting on nothing for 2 minutes.
  *
- * @limitation Nothing is remembered past the import: a card reopened after its page was added
- * shows Add again, and a second tap saves a second copy. The two calls are also two round trips
- * from the phone: a connection lost after the scrape never sends the save, and Add comes back.
+ * @limitation The add is remembered in memory only, by this app: a lost save that lands anyway, or
+ * an add from another device, leaves Add on the card, and a tap saves a second copy. The two calls
+ * are also two round trips from the phone, so a lost scrape is paid for again on the next try.
  */
 export const useImportWebRecipe = (url: string): WebRecipeImport => {
   const store = useStore();
@@ -70,8 +71,9 @@ export const useImportWebRecipe = (url: string): WebRecipeImport => {
 
   const key = importKeyOf(url);
   const entry = useAtomValue(importsInFlightAtom).get(key);
+  const added = useAtomValue(addedWebRecipesAtom).get(key);
   const now = useNow(entry !== undefined);
-  const [outcome, setOutcome] = useState<Outcome>();
+  const [failed, setFailed] = useState<{ error: unknown }>();
 
   const isMounted = useRef(true);
   const awaited = useRef<Promise<ImportedRecipe>>(undefined);
@@ -88,14 +90,10 @@ export const useImportWebRecipe = (url: string): WebRecipeImport => {
     if (awaited.current === recipe) return;
     awaited.current = recipe;
 
-    recipe.then(
-      ({ recipeId }) => {
-        if (isMounted.current) setOutcome({ recipeId });
-      },
-      (error: unknown) => {
-        if (isMounted.current) setOutcome(isConnectionLost(error) ? undefined : { error });
-      },
-    );
+    // An answer needs nothing here: the import wrote it to `addedWebRecipesAtom`, which this reads.
+    recipe.catch((error: unknown) => {
+      if (isMounted.current) setFailed(isConnectionLost(error) ? undefined : { error });
+    });
   }, []);
 
   // A card that mounts while its page imports (a chat reopened mid-add) waits on that import too.
@@ -104,9 +102,9 @@ export const useImportWebRecipe = (url: string): WebRecipeImport => {
   }, [entry, listen]);
 
   const start = useCallback(() => {
-    if (store.get(importsInFlightAtom).has(key)) return;
+    if (store.get(importsInFlightAtom).has(key) || store.get(addedWebRecipesAtom).has(key)) return;
 
-    setOutcome(undefined);
+    setFailed(undefined);
     listen(
       startImport(store, {
         url,
@@ -114,7 +112,10 @@ export const useImportWebRecipe = (url: string): WebRecipeImport => {
         expectedMs: WEB_IMPORT_MS,
         lostMs: WEB_IMPORT_LOST_MS,
         run: async () => {
-          const draft = await importOne({ url });
+          // A scrape lost with the connection never sends its save, so nothing can land: a failure, not `lost`.
+          const draft = await importOne({ url }).catch((error: unknown) => {
+            throw isConnectionLost(error) ? scrapeLost() : error;
+          });
           // A page with no title or description sends none, as the editor's Save does (`useCreateRecipe`).
           const recipeId = await createOne({
             ...draft,
@@ -122,6 +123,7 @@ export const useImportWebRecipe = (url: string): WebRecipeImport => {
             description: draft.description.trim() || undefined,
             locale,
           });
+          store.set(addedWebRecipesAtom, (pages) => new Map(pages).set(key, recipeId));
           return { recipeId, isOwned: true };
         },
         favorite: (recipeId) => favorite(recipeId, true),
@@ -136,7 +138,7 @@ export const useImportWebRecipe = (url: string): WebRecipeImport => {
       progress: importProgressOf(entry.startedAt, entry.expectedMs, Math.max(now, entry.startedAt)),
     };
   }
-  if (outcome && "recipeId" in outcome) return { start, status: "done", recipeId: outcome.recipeId };
-  if (outcome) return { start, status: "failed", failure: importFailureOf(outcome.error, "web") };
+  if (added) return { start, status: "done", recipeId: added };
+  if (failed) return { start, status: "failed", failure: importFailureOf(failed.error, "web") };
   return { start, status: "idle" };
 };

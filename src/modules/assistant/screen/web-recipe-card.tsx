@@ -5,10 +5,8 @@ import { useTranslations } from "translations";
 
 import { Button } from "@ui/button";
 import { CardRecipe } from "@ui/cards/recipe";
-import { CircleCheckIcon, Plus } from "@ui/icons";
-import { StepProgress } from "@ui/step-progress";
+import { Check, Plus, X } from "@ui/icons";
 import { Text } from "@ui/text";
-import { useReduceMotion } from "@ui/hooks/useReduceMotion";
 import { theme } from "theme";
 
 import { openInBrowser } from "~/lib/openInBrowser";
@@ -16,17 +14,20 @@ import { COVER_PLACEHOLDER } from "~/modules/recipes/constants";
 import { useImportWebRecipe } from "~/modules/recipes/hooks";
 
 /** The site a page came from, as the card's source line credits it. */
-const _SITES: Record<WebRecipe["source"], string> = { marmiton: "marmiton.org" };
+const _SITES: Record<WebRecipe["source"], string> = { marmiton: "Marmiton" };
+
+/** The title's length, in characters, past which the card cuts it, with an ellipsis. */
+const _TITLE_MAX = 26;
 
 type WebRecipeCardProps = {
   /** Drawn through `CardRecipe`: the page's photo or the placeholder, its title, the source line. */
   recipe: WebRecipe;
   state: "idle" | "importing" | "done" | "failed";
-  /** Importing only: how full the bar is. */
+  /** Importing only: the share done, which the button shows as a percentage. */
   progress?: number;
-  /** Failed only: the failure's title, which never names a wait. */
+  /** Failed only: the failure's title, under the button. It never names a wait. */
   errorText?: string;
-  /** Add, and Retry once it failed. */
+  /** The button: Add, and Retry once it failed. */
   onAdd(): void;
   /** The card body: the recipe once added, else the page it came from. */
   onOpen(): void;
@@ -39,52 +40,60 @@ type WebRecipeCardProps = {
  * look like the same kind of thing. No rating badge: the catalog cards in the chat pass none, and a
  * Marmiton score there would read as Cuisko's.
  *
- * The row under it holds one thing at a time: Add, the bar while it imports, "In your recipes" once
- * it is there. The bar is time, not progress: `StepProgress` always animates, so with reduced motion
- * the row says "Adding…" instead. The setting is shared app-wide (`useReduceMotion`'s atom), so by
- * the time a card imports, another view has usually read it already.
+ * Under it, one button that changes with the import: Add, then "42% • Adding…" with no icon while
+ * it imports (pressing does nothing then), then a check and "In your recipes" once it is there,
+ * which opens it. A failed import shows a cross and Retry, with the failure's title under the
+ * button. A lost import is still `importing`, held at 95 %, until the entry goes (`useImportWebRecipe`).
+ *
+ * @limitation "In your recipes" is what this app remembers adding, not what the cook holds: a
+ * recipe deleted after its add leaves the card done, opening a recipe that is gone, and the page
+ * cannot be added again from this card until the app restarts.
  */
 export const WebRecipeCard = ({ recipe, state, progress, errorText, onAdd, onOpen }: WebRecipeCardProps) => {
   const t = useTranslations("Assistant");
-  const reduceMotion = useReduceMotion();
 
+  // By character, not UTF-16 unit, so an emoji is never cut in half.
+  const characters = Array.from(recipe.title);
+  const title = characters.length > _TITLE_MAX ? `${characters.slice(0, _TITLE_MAX).join("").trim()}…` : recipe.title;
   const subtitle = [
-    t("webRecipe.servings", { count: recipe.servings }),
-    t("webRecipe.ingredients", { count: recipe.ingredients.length }),
     _SITES[recipe.source],
-  ].join(" · ");
+    t("webRecipe.ingredients", { count: recipe.ingredients.length }),
+  ].join(" • ");
 
-  const row = (() => {
+  const button = (() => {
     switch (state) {
       case "importing":
-        return reduceMotion
-          ? <Text.Sm color={theme.colors.muted}>{t("webRecipe.adding")}</Text.Sm>
-          : <StepProgress step={progress ?? 0} total={1} curve="linear" style={styles.bar} />;
+        return { text: `${Math.round((progress ?? 0) * 100)}% • ${t("webRecipe.adding")}`, onPress: onAdd };
+      // Done, Add again would save a second copy: the button opens the recipe, as the card does.
       case "done":
-        return (
-          <View style={styles.done}>
-            <CircleCheckIcon size={16} color={theme.colors.muted} />
-            <Text.Sm color={theme.colors.muted}>{t("webRecipe.added")}</Text.Sm>
-          </View>
-        );
+        return { icon: Check, text: t("webRecipe.added"), onPress: onOpen };
       case "failed":
+        return { icon: X, text: t("webRecipe.retry"), onPress: onAdd };
       case "idle":
-        return (
-          <View style={styles.idle}>
-            {errorText && <Text.Sm color={theme.colors.muted}>{errorText}</Text.Sm>}
-            <Button variant="neutral" leftIcon={Plus} onPress={onAdd} style={styles.add}>
-              {t("webRecipe.add")}
-            </Button>
-          </View>
-        );
+        return { icon: Plus, text: t("webRecipe.add"), onPress: onAdd };
     }
   })();
+
+  const row = (
+    <View style={styles.button}>
+      <Button
+        variant="neutral"
+        leftIcon={button.icon}
+        onPress={button.onPress}
+        style={styles.add}
+        isLoading={state === "importing"}
+      >
+        {button.text}
+      </Button>
+      {errorText && <Text.Base color={theme.colors.muted}>{errorText}</Text.Base>}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <CardRecipe
         style={styles.card}
-        title={recipe.title}
+        title={title}
         subtitle={subtitle}
         imageSrc={recipe.imageUrl ? { uri: recipe.imageUrl } : COVER_PLACEHOLDER}
         onPress={onOpen}
@@ -114,26 +123,17 @@ export const WebRecipeBlock = ({ recipe }: { recipe: WebRecipe }) => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: theme.spacing[12],
-    paddingVertical: theme.spacing[8],
+    gap: theme.spacing[16],
+    marginBottom: theme.spacing[12],
   },
   card: {
     alignSelf: "stretch",
-    // The answer's width, not CardRecipe's 220px shelf cap.
-    maxWidth: "100%",
+    maxWidth: 232,
+    width: "100%",
   },
-  bar: {
-    marginHorizontal: theme.spacing[4],
-  },
-  done: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[4],
-    paddingLeft: theme.spacing[4],
-  },
-  idle: {
+  button: {
     alignItems: "flex-start",
-    gap: theme.spacing[8],
+    gap: theme.spacing[12],
   },
   add: {
     alignSelf: "flex-start",

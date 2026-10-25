@@ -36,11 +36,11 @@
     },
     "findWebRecipe": {
       "running": "Je cherche la recette…",
-      "found": "Recette trouvée",
-      "none": "Pas de recette trouvée",
-      "done_one": "Recette trouvée",
-      "done_many": "Recette trouvée",
-      "done_other": "Recette trouvée",
+      "found": "Recette trouvée en ligne",
+      "none": "Pas de recette trouvée en ligne",
+      "done_one": "Recette trouvée en ligne",
+      "done_many": "Recette trouvée en ligne",
+      "done_other": "Recette trouvée en ligne",
       "failed": "Recherche impossible"
     }
   },
@@ -65,9 +65,7 @@
     "add": "Ajouter à mes recettes",
     "adding": "Ajout en cours…",
     "added": "Dans tes recettes",
-    "servings_one": "{{count, number}} personne",
-    "servings_many": "{{count, number}} personnes",
-    "servings_other": "{{count, number}} personnes",
+    "retry": "Réessayer",
     "ingredients_one": "{{count, number}} ingrédient",
     "ingredients_many": "{{count, number}} ingrédients",
     "ingredients_other": "{{count, number}} ingrédients"

@@ -134,6 +134,20 @@ describe("useImportWebRecipe", () => {
     expect(state.calls).toHaveLength(2);
   });
 
+  /** The chat closed and reopened after the add: the card is the recipe, and Add cannot pay for a second copy. */
+  it("shows the recipe on a card mounted after its page was added, and starts no second import", async () => {
+    const first = mountCard();
+    act(() => first.result.current.start());
+    first.unmount();
+    await _land();
+
+    const reopened = mountCard();
+    expect(reopened.result.current).toMatchObject({ status: "done", recipeId: "recipe-1" });
+
+    act(() => reopened.result.current.start());
+    expect(state.calls).toHaveLength(2);
+  });
+
   it("says why the scrape failed, as a web import, saves nothing, and lets the cook try again", async () => {
     const card = mountCard();
     act(() => card.result.current.start());
@@ -163,14 +177,15 @@ describe("useImportWebRecipe", () => {
   });
 
   /**
-   * The cook left the app mid-add: this app will never hear the answer, but the server may still be
-   * working. The bar holds for 2 minutes, then Add comes back, never a failure.
+   * The cook left the app mid-save: this app will never hear the answer, but the server may still be
+   * saving. The card stays importing for 2 minutes, then Add comes back, never a failure.
    */
   it("holds the bar for 2 minutes after the connection is lost, then shows Add", async () => {
     const card = mountCard();
     act(() => card.result.current.start());
 
-    await act(async () => state.calls[0]!.reject(new Error("Connection lost while action was in flight")));
+    await act(async () => state.calls[0]!.resolve(DRAFT));
+    await act(async () => state.calls[1]!.reject(new Error("Connection lost while action was in flight")));
 
     expect(store.get(importsInFlightAtom).get(KEY)?.status).toBe("lost");
     expect(card.result.current.status).toBe("importing");
@@ -179,5 +194,20 @@ describe("useImportWebRecipe", () => {
 
     expect(card.result.current.status).toBe("idle");
     expect(card.result.current.failure).toBeUndefined();
+  });
+
+  /** The draft never reached the phone, so no save was sent: nothing can land, and the cook is told now. */
+  it("fails at once when the scrape is lost with the connection, worded as the connection", async () => {
+    const card = mountCard();
+    act(() => card.result.current.start());
+
+    await act(async () => state.calls[0]!.reject(new Error("Connection lost while action was in flight")));
+
+    expect(card.result.current).toMatchObject({ status: "failed", failure: { title: "Import.scrape_lost_title" } });
+    expect(store.get(importsInFlightAtom).has(KEY)).toBe(false);
+    expect(_names()).toEqual(["router/recipes/importOne:authed"]);
+
+    act(() => card.result.current.start());
+    expect(state.calls).toHaveLength(2);
   });
 });

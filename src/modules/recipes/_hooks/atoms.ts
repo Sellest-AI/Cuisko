@@ -91,6 +91,19 @@ export type ImportInFlight = {
  */
 export const importsInFlightAtom = atom<ReadonlyMap<string, ImportInFlight>>(new Map());
 
+/**
+ * The web pages this app added from the chat, by `importKeyOf` key, and the recipe each became.
+ *
+ * What keeps a card "In your recipes" once its import is over: the in-flight entry is gone by then,
+ * and a card that mounts after it (the chat closed and reopened) would otherwise show Add, and a
+ * second tap would scrape and save a second copy. Written by the import itself, so it is recorded
+ * even when no card was on screen to hear the answer.
+ *
+ * Memory only, like the conversation the cards sit in (`conversationAtom`): killing the app forgets
+ * both, so no card is left to show it.
+ */
+export const addedWebRecipesAtom = atom<ReadonlyMap<string, ImportedRecipe["recipeId"]>>(new Map());
+
 /** What a verify said: the fixes it made, or that there were none. Read off the action like `ImportedDraft`. */
 export type VerifyOutcome = FunctionReturnType<typeof api.router.recipes.verifyOne.admin>;
 

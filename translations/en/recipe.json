@@ -108,7 +108,9 @@
     "unavailable_title": "Importing from this app is down for now",
     "unavailable_body": "Something changed on its side. Try again later, or write the recipe out instead.",
     "too_large_title": "This video is too long to import",
-    "too_large_body": "Try a shorter one, or write the recipe out instead."
+    "too_large_body": "Try a shorter one, or write the recipe out instead.",
+    "scrape_lost_title": "The connection dropped",
+    "scrape_lost_body": "Nothing was saved. Check your connection and try again."
   },
   "Creating": {
     "step_glasses": "Putting on our reading glasses",

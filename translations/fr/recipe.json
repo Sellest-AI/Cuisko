@@ -110,7 +110,9 @@
     "unavailable_title": "L'import depuis cette application est indisponible pour le moment",
     "unavailable_body": "Quelque chose a changé de son côté. Réessayez plus tard, ou saisissez la recette à la main.",
     "too_large_title": "Cette vidéo est trop longue pour être importée",
-    "too_large_body": "Essayez-en une plus courte, ou saisissez la recette à la main."
+    "too_large_body": "Essayez-en une plus courte, ou saisissez la recette à la main.",
+    "scrape_lost_title": "La connexion a été coupée",
+    "scrape_lost_body": "Rien n'a été enregistré. Vérifie ta connexion, puis réessaie."
   },
   "Creating": {
     "step_glasses": "On chausse nos lunettes de lecture",

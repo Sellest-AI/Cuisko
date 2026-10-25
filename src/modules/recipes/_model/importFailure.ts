@@ -27,6 +27,7 @@ export const IMPORT_FAILURES = {
   notFound: { title: "Import.not_found_title", body: "Import.not_found_body" },
   unavailable: { title: "Import.unavailable_title", body: "Import.unavailable_body" },
   tooLarge: { title: "Import.too_large_title", body: "Import.too_large_body" },
+  scrapeLost: { title: "Import.scrape_lost_title", body: "Import.scrape_lost_body" },
 } as const;
 
 export type ImportFailure = (typeof IMPORT_FAILURES)[keyof typeof IMPORT_FAILURES];
@@ -41,8 +42,27 @@ export type ImportFailure = (typeof IMPORT_FAILURES)[keyof typeof IMPORT_FAILURE
 export const isConnectionLost = (error: unknown): boolean =>
   error instanceof Error && error.message.includes("Connection lost while action was in flight");
 
+/**
+ * A scrape the connection dropped, when the phone itself was to send the save that follows it.
+ *
+ * Unlike a lost call that saves (`isConnectionLost`), nothing can land: the draft the server read
+ * never reached the phone, so no save was sent. It is a failure, worded as the connection, never as
+ * the site. Told apart by its tag, not its message, and `isConnectionLost` is false for it, so
+ * `startImport` settles it at once rather than holding it as `lost`.
+ */
+export type ScrapeLost = Error & { scrapeLost: true };
+
+export const scrapeLost = (): ScrapeLost =>
+  Object.assign(new Error("The scrape was dropped with the connection, before its save was sent"), {
+    scrapeLost: true as const,
+  });
+
+export const isScrapeLost = (error: unknown): error is ScrapeLost =>
+  error instanceof Error && "scrapeLost" in error && error.scrapeLost === true;
+
 export const importFailureOf = (error: unknown, path: ImportPath = "web"): ImportFailure | undefined => {
   if (error === null || error === undefined) return undefined;
+  if (isScrapeLost(error)) return IMPORT_FAILURES.scrapeLost;
   if (isRateLimited(error)) return IMPORT_FAILURES.limited;
   if (!isAppError(error)) return IMPORT_FAILURES.unreachable;
 
