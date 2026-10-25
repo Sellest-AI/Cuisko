@@ -5,6 +5,8 @@ import { ConvexError, type Infer, v } from "convex/values";
 import { internal } from "@convex/_generated/api";
 import type { AssertTrue, Exact } from "@convex/agent/utils/exact";
 import { findWebRecipe } from "@convex/functions/webRecipes/findWebRecipe";
+import { captureEvent } from "@convex/lib/posthog/captureEvent";
+import { captureException } from "@convex/lib/posthog/captureException";
 import { fetchPage } from "@convex/lib/scraping/fetchPage";
 import { readRecipePage } from "@convex/lib/scraping/readRecipePage";
 import { internalAction } from "@convex/procedures";
@@ -31,9 +33,13 @@ type _Pinned = AssertTrue<Exact<Infer<typeof vFoundWebRecipe>, FoundWebRecipe>>;
  * `fetchPage`'s guards, and the two lookups, which an action reaches only through queries. Called
  * from the chat's edge tool with `ctx.runTracedAction`, as `verifyRecipe` calls `importOneNode`.
  *
- * A search that failed (Marmiton down, or its markup changed) throws `EXTERNAL_SERVICE_ERROR`: the
- * model reads it and gives the old answer. `userId` is the cook the catalog is ranked for, as
- * `searchRecipes` passes it; the tool's factory closes over it.
+ * Every search that reaches an outcome is reported as `web recipe searched`, under the cook. A search
+ * that failed (Marmiton down, or its markup changed) also goes to Error tracking, then throws
+ * `EXTERNAL_SERVICE_ERROR`: the model reads it and gives the old answer. A catalog lookup that
+ * throws is Convex failing, not Marmiton: it rejects the action unreported, and Convex logs it.
+ *
+ * `userId` is the cook the catalog is ranked for, as `searchRecipes` passes it; the tool's factory
+ * closes over it.
  *
  * @costly
  */
@@ -45,7 +51,7 @@ export const _internal = internalAction({
   },
   returns: vFoundWebRecipe,
   handler: async (ctx, { dish, locale, userId }): Promise<FoundWebRecipe> => {
-    const { result } = await findWebRecipe(dish, locale, {
+    const { result, event, error } = await findWebRecipe(dish, locale, {
       knownByTitle: (query) =>
         ctx.runQuery(internal.router.recipes.search._internal, { query, userId, locale, limit: KNOWN_BY_TITLE_LIMIT }),
       fetch: (url) => fetchPage(url, { notFound: "null" }),
@@ -54,7 +60,14 @@ export const _internal = internalAction({
         (await ctx.runQuery(internal.router.recipes.findBySource._internal, { sourceUrl }))?.recipeId ?? null,
     });
 
+    await captureEvent(ctx, { event: "web recipe searched", distinctId: userId, properties: event });
+
     if (!result) {
+      await captureException(ctx, {
+        error,
+        distinctId: userId,
+        properties: { source: "marmiton", reason: event.reason, feature: "web recipe search" },
+      });
       throw new ConvexError({ code: "EXTERNAL_SERVICE_ERROR" as const, message: "Marmiton could not be searched" });
     }
     return result;

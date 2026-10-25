@@ -111,6 +111,36 @@ export type EventProperties = Flat<{
   "recipe created": { recipeId: Id<"recipes">; ingredients: number };
   /** A new recipe read from a page or a video (`recipes/createOne`, `recipes/importVideo`). */
   "recipe imported": { recipeId: Id<"recipes">; source: "link" | "video"; ingredients: number };
+
+  // The chat.
+  /**
+   * One search for a dish the cook asked the chat for (`recipes/findWebRecipe`), whatever it found.
+   * Never the dish's text: it is the cook's words. A failure also goes to Error tracking.
+   */
+  "web recipe searched": {
+    outcome: "known" | "found" | "none" | "failed";
+    /** Known only: by the catalog's titles (no web request), or by the chosen page's address. */
+    knownBy?: "title" | "source";
+    /** Known only: the recipe it is about. */
+    recipeId?: Id<"recipes">;
+    /** Failed only. */
+    reason?: "parse" | "unreachable";
+    /** Found, or known by source: the chosen page's. */
+    rating?: number;
+    reviews?: number;
+    /**
+     * None only, and only when a card named the dish but fell short of the bar: the one `bestOf`
+     * would pick with no bar, as three columns so a chart can set its rating against its reviews.
+     * A card that cleared the bar and would not read is counted in `unreadable`.
+     */
+    nearestMissUrl?: string;
+    nearestMissRating?: number;
+    nearestMissReviews?: number;
+    /** The Marmiton cards that named the dish, before the bar. Absent when Marmiton was not asked. */
+    candidates?: number;
+    /** Pages that cleared the bar and would not read, when any did: a scraping problem, not the bar's. */
+    unreadable?: number;
+  };
 }>;
 
 export type AnalyticsEvent = keyof EventProperties;

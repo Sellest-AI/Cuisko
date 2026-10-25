@@ -11,10 +11,13 @@
  * structural, the shape of C13: it reads every import and fails a file outside the allowlist that
  * reaches the sender. Two doors, two lists:
  *
- * - `lib/posthog/captureEvent` (sends a product event): the entry points, `convex/router/**`,
- *   `convex/crons/**` (a job's own body), `convex/http/**` (a webhook) and `convex/auth.ts`.
+ * - `lib/posthog/captureEvent` (sends a product event) and `lib/posthog/captureException` (sends a
+ *   failure to Error tracking): the entry points, `convex/router/**`, `convex/crons/**` (a job's own
+ *   body), `convex/http/**` (a webhook) and `convex/auth.ts`. A domain function returns its failure,
+ *   as `findWebRecipe` does, and the entry point reports it.
  * - `lib/posthog/client` (the PostHog client itself): `captureEvent.ts`, the one product-event core,
- *   and `functions/tracing/recordGeneration.ts`, the trace layer's `$ai_generation` sender.
+ *   `captureException.ts`, the Error tracking one, and `functions/tracing/recordGeneration.ts`, the
+ *   trace layer's `$ai_generation` sender.
  *
  * Every way a file reaches a module counts: an `import`, an `export … from` (a barrel would hand the
  * sender on to the domain), and a dynamic `import()`. A type-only one passes: it cannot send. Tests
@@ -25,14 +28,19 @@ import path from "node:path";
 import { lineOf, listFiles, parse, relative, report, ROOT, ts } from "./_lib.mjs";
 
 const CAPTURE_EVENT = "convex/lib/posthog/captureEvent";
+const CAPTURE_EXCEPTION = "convex/lib/posthog/captureException";
 const CLIENT = "convex/lib/posthog/client";
 
 /** Who may send a product event: the entry points ADR 0019 names. */
 const ENTRY_POINT_DIRS = ["convex/router/", "convex/crons/", "convex/http/"];
 const mayCapture = (name) => ENTRY_POINT_DIRS.some((dir) => name.startsWith(dir)) || name === "convex/auth.ts";
 
-/** Who may hold the PostHog client: the two senders, one per kind of event. */
-const CLIENT_HOLDERS = new Set(["convex/lib/posthog/captureEvent.ts", "convex/functions/tracing/recordGeneration.ts"]);
+/** Who may hold the PostHog client: the three senders, one per kind of event. */
+const CLIENT_HOLDERS = new Set([
+  "convex/lib/posthog/captureEvent.ts",
+  "convex/lib/posthog/captureException.ts",
+  "convex/functions/tracing/recordGeneration.ts",
+]);
 
 /** An import's target as a repo path without extension, or `null` for a package. */
 const targetOf = (file, specifier) => {
@@ -97,6 +105,19 @@ for (const file of listFiles(path.join(ROOT, "convex"))) {
           "Return what happened from the function, and send the event from the entry point that " +
           "called it (a router export, a cron job, a webhook, or the auth callback in convex/auth.ts). To build an event here, return its shape " +
           "(`accountEventOf`, `reportedPlate`) and let the entry point send it.",
+      });
+    }
+
+    if (target === CAPTURE_EXCEPTION && !mayCapture(name)) {
+      findings.push({
+        file: name,
+        line: lineOf(source, statement),
+        message:
+          "imports `captureException` outside an entry point: a domain function shared by several " +
+          "callers would report the same failure under each, and needs the cook as an argument (ADR 0019).",
+        fix:
+          "Return the error from the function (`findWebRecipe`'s `error`), and send it from the entry " +
+          "point that called it.",
       });
     }
 

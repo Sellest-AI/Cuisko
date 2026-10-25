@@ -139,7 +139,7 @@ either changes. **The fix** is to price a Replicate render from the megapixels i
 
 ```bash
 pnpm check:traces   # C17 — a route reaching a paid service or a @costly action starts a trace; no hop to a @costly action drops it
-pnpm check:events   # C18 — captureEvent is reached only from entry points (router/, crons/, http/, auth.ts); the PostHog client only by its two senders
+pnpm check:events   # C18 — captureEvent and captureException are reached only from entry points (router/, crons/, http/, auth.ts); the PostHog client only by its three senders
 pnpm typecheck      # TracedToolCtx / RecordingCtx: a tool or helper reached with an untraced ctx does not compile
 pnpm test           # the trace layer (tracing.test.ts), recordGeneration, wrapAgent, and each route's events
                     # captureEvent, and each product event in the test of the router that sends it
@@ -150,8 +150,9 @@ property that is not flat (a string, number or boolean), and an event sent witho
 entry declares: `importVideo` reporting `recipe imported` with no `recipeId` does not compile. What
 it cannot judge is whether a new entry declares the right ids; that is the entry's review, one line
 in one file, and a line of the Architecture checklist in AGENTS.md. Each event's route test pins who it is filed under and the values it carries.
-C18 refuses the two ways around the split: `captureEvent` reached outside an entry point, and the
-PostHog client reached anywhere but `captureEvent.ts` and `recordGeneration.ts`. It reads every way
+C18 refuses the two ways around the split: `captureEvent` or `captureException` (a failure sent to
+Error tracking) reached outside an entry point, and the PostHog client reached anywhere but
+`captureEvent.ts`, `captureException.ts` and `recordGeneration.ts`. It reads every way
 a file reaches a module, an `import`, an `export … from` and an `import()`, so a barrel handing the
 sender on to the domain fails where it re-exports it.
 

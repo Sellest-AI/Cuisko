@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import { describe, expect, it, vi } from "vitest";
 
+import type { Id } from "@convex/_generated/dataModel";
 import type { ScrapedRecipe } from "@convex/lib/scraping/toRecipeDraft";
 import { MARMITON_BAR } from "@convex/lib/webRecipes/marmiton";
 import { passes } from "@convex/lib/webRecipes/verdicts";
@@ -58,7 +59,7 @@ const depsOf = (overrides: Partial<FindWebRecipeDeps> & { html?: string | null }
 
 describe("findWebRecipe › step 0, Cuisko first", () => {
   it("answers a recipe whose title names the dish, and never asks Marmiton", async () => {
-    const deps = depsOf({ knownByTitle: vi.fn(async () => [{ id: "recipe_1", title: "La tartiflette" }]) });
+    const deps = depsOf({ knownByTitle: vi.fn(async () => [{ id: "recipe_1" as Id<"recipes">, title: "La tartiflette" }]) });
 
     const { result, event } = await findWebRecipe(TARTIFLETTE, "fr", deps);
 
@@ -88,8 +89,8 @@ describe("findWebRecipe › step 0, Cuisko first", () => {
   it("asks Marmiton when the search found the dish's words only among ingredients", async () => {
     const deps = depsOf({
       knownByTitle: vi.fn(async () => [
-        { id: "recipe_1", title: "Gratin au reblochon" },
-        { id: "recipe_2", title: "Poêlée d'oignons" },
+        { id: "recipe_1" as Id<"recipes">, title: "Gratin au reblochon" },
+        { id: "recipe_2" as Id<"recipes">, title: "Poêlée d'oignons" },
       ]),
     });
 
@@ -99,7 +100,7 @@ describe("findWebRecipe › step 0, Cuisko first", () => {
   });
 
   it("answers a title that says more than the dish (the accepted limitation, pinned so a change is deliberate)", async () => {
-    const deps = depsOf({ knownByTitle: vi.fn(async () => [{ id: "recipe_1", title: "Pizza tartiflette" }]) });
+    const deps = depsOf({ knownByTitle: vi.fn(async () => [{ id: "recipe_1" as Id<"recipes">, title: "Pizza tartiflette" }]) });
 
     const { result } = await findWebRecipe(TARTIFLETTE, "fr", deps);
 
@@ -163,7 +164,7 @@ describe("findWebRecipe › Marmiton", () => {
   it("answers the recipe Cuisko already holds from the chosen page, and never reads the page", async () => {
     const deps = depsOf({
       html: searchPageOf({ slug: "tartiflette_1", title: "Tartiflette", rating: 4.6, reviews: 120 }),
-      knownBySource: vi.fn(async () => "recipe_9"),
+      knownBySource: vi.fn(async () => "recipe_9" as Id<"recipes">),
     });
 
     const { result, event } = await findWebRecipe(TARTIFLETTE, "fr", deps);
@@ -250,7 +251,10 @@ describe("findWebRecipe › Marmiton", () => {
     const { event, error } = await findWebRecipe(TARTIFLETTE, "fr", deps);
 
     expect(event).toEqual({ outcome: "failed", reason: "unreachable" });
-    expect(error).toBe(down);
+    expect(error).toMatchObject({
+      message: "A Marmiton recipe page did not answer",
+      cause: { url: urlOf("tartiflette_1"), detail: "The site answered 503" },
+    });
   });
 });
 
@@ -296,7 +300,7 @@ describe("findWebRecipe › the event", () => {
     expect(event).toEqual({
       outcome: "none",
       candidates: 2,
-      nearestMiss: { url: urlOf("tartiflette_1"), rating: 3.8, reviews: 3 },
+      nearestMissUrl: urlOf("tartiflette_1"), nearestMissRating: 3.8, nearestMissReviews: 3,
     });
   });
 
@@ -316,7 +320,7 @@ describe("findWebRecipe › the event", () => {
     expect(event).toEqual({
       outcome: "none",
       candidates: 2,
-      nearestMiss: { url: urlOf("tartiflette_2"), rating: 3.8, reviews: 3 },
+      nearestMissUrl: urlOf("tartiflette_2"), nearestMissRating: 3.8, nearestMissReviews: 3,
       unreadable: 1,
     });
   });
@@ -342,6 +346,22 @@ describe("findWebRecipe › the event", () => {
     expect(error).toBeInstanceOf(Error);
   });
 
+  /** One issue per redesign, whichever line of the parser it broke: the card it broke on rides in `cause`. */
+  it("words a parse failure one way, the card's address and the parser's words in its cause", async () => {
+    const deps = depsOf({
+      html: `<ul><li class="search-list__item"><a href="/recettes/recette_t_1.aspx" class="card-content__title">Tartiflette</a>
+        <div class="rating__rating">★★★★</div><div class="rating__nbreviews">12 avis</div></li></ul>`,
+    });
+
+    const { error } = await findWebRecipe(TARTIFLETTE, "fr", deps);
+
+    expect(error).toMatchObject({
+      message: "Marmiton's search page could not be parsed",
+      cause: { url: "https://www.marmiton.org/recettes/recette_t_1.aspx", detail: expect.stringMatching(/markup has probably changed/) },
+    });
+    expect((error as { cause: object }).cause).not.toHaveProperty("title");
+  });
+
   it("reports a search that failed as unreachable", async () => {
     const down = new ConvexError({ code: "EXTERNAL_SERVICE_ERROR" as const, message: "The site answered 503" });
     const deps = depsOf({ fetch: vi.fn(async () => Promise.reject(down)) });
@@ -349,6 +369,31 @@ describe("findWebRecipe › the event", () => {
     const { event, error } = await findWebRecipe(TARTIFLETTE, "fr", deps);
 
     expect(event).toEqual({ outcome: "failed", reason: "unreachable" });
-    expect(error).toBe(down);
+    expect(error).toMatchObject({ message: "Marmiton's search page did not answer", cause: { detail: "The site answered 503" } });
+  });
+
+  /** Only a plain object's fields are carried over: a socket error's own `code` and `errno` are not columns. */
+  it("carries over a failure's cause only when it is a plain object", async () => {
+    const socket = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET", errno: -4077 });
+    const down = Object.assign(new Error("fetch failed"), { cause: socket });
+
+    const { error } = await findWebRecipe(TARTIFLETTE, "fr", depsOf({ fetch: vi.fn(async () => Promise.reject(down)) }));
+
+    expect((error as { cause: unknown }).cause).toEqual({ detail: "fetch failed" });
+  });
+
+  /** Error tracking opens one issue per message: an outage answering 503, then 502, then nothing, is one issue. */
+  it("words a failed search the same whatever the site answered, the search address left out", async () => {
+    const messages = await Promise.all(
+      [new ConvexError({ code: "EXTERNAL_SERVICE_ERROR" as const, message: "The site answered 502" }), new Error("getaddrinfo ENOTFOUND")].map(
+        async (down) => {
+          const { error } = await findWebRecipe(TARTIFLETTE, "fr", depsOf({ fetch: vi.fn(async () => Promise.reject(down)) }));
+          expect(JSON.stringify((error as { cause: unknown }).cause)).not.toContain("tartiflette");
+          return (error as Error).message;
+        },
+      ),
+    );
+
+    expect(messages).toEqual(["Marmiton's search page did not answer", "Marmiton's search page did not answer"]);
   });
 });

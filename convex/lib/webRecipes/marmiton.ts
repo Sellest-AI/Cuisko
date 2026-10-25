@@ -89,9 +89,11 @@ export const parseSearchResults = (html: string): SearchCard[] => {
     const rating = ratingText ? _ratingOf(ratingText) : 0;
     const reviews = reviewsText ? _reviewsOf(reviewsText) : 0;
     if (rating === undefined || reviews === undefined) {
-      throw new Error(
-        `Marmiton card "${title}" (${url}) has a rating block this parser cannot read: ` +
-        `"${ratingText}" / "${reviewsText}". The markup has probably changed.`,
+      // The card in `cause`, where the catalog script's log still shows it. Error tracking's one issue
+      // per redesign is `findWebRecipe`'s wording, not this message's.
+      throw Object.assign(
+        new Error("A Marmiton search card has a rating block this parser cannot read. The markup has probably changed."),
+        { cause: { url, ratingText, reviewsText } },
       );
     }
 

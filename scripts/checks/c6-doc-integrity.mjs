@@ -35,8 +35,6 @@ const findings = [];
  */
 const PLANNED = new Set([
   "src/global/routes.ts",
-  // docs/plans/web-recipe-search.md: built in its slice 6.
-  "convex/lib/posthog/captureException.ts",
 ]);
 
 /* ── Which files to check ─────────────────────────────────────────────────────────────── */

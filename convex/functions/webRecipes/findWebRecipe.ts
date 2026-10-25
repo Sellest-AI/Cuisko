@@ -1,52 +1,31 @@
 import type { FoundWebRecipe, WebRecipe } from "@shared/assistant";
 import { isAppError } from "@shared/errors";
 
+import type { Id } from "@convex/_generated/dataModel";
 import { toRecipeDraft, type ScrapedRecipe } from "@convex/lib/scraping/toRecipeDraft";
 import { matchesDish } from "@convex/lib/webRecipes/dishMatch";
 import { httpsImageOf } from "@convex/lib/webRecipes/imageUrl";
 import { parseSearchResults, type SearchCard } from "@convex/lib/webRecipes/marmiton";
 import { searchUrlOf } from "@convex/lib/webRecipes/marmitonUrl";
 import { bestOf, CHAT_BAR, passes } from "@convex/lib/webRecipes/verdicts";
+import type { EventProperties } from "@convex/schema/events";
 import type { Locale } from "@convex/schema/i18n";
 
 /** The dish as the model named it, in both languages: the catalog is searched in the cook's, Marmiton in French. */
 export type Dish = { fr: string; en: string };
 
-/**
- * What one search tells PostHog, as `web recipe searched` (docs/plans/web-recipe-search.md, §2).
- * Never the dish's text: it is the cook's words (ADR 0019).
- */
-export type WebRecipeSearched = {
-  outcome: "known" | "found" | "none" | "failed";
-  /** Known only: by the catalog's titles (no web request), or by the chosen page's address. */
-  knownBy?: "title" | "source";
-  /** Known only: the recipe it is about. */
-  recipeId?: string;
-  /** Failed only. */
-  reason?: "parse" | "unreachable";
-  /** Found, or known by source: the chosen page's. */
-  rating?: number;
-  reviews?: number;
-  /**
-   * None only, and only when a card named the dish but fell short of the bar: the one `bestOf`
-   * would pick with no bar. A card that cleared it and would not read is counted in `unreadable`.
-   */
-  nearestMiss?: { url: string; rating: number; reviews: number };
-  /** The Marmiton cards that named the dish, before the bar. Absent when Marmiton was not asked. */
-  candidates?: number;
-  /** Pages that cleared the bar and would not read, when any did: a scraping problem, not the bar's. */
-  unreadable?: number;
-};
+/** What one search tells PostHog, as `web recipe searched`: declared with the event (`schema/events.ts`). */
+export type WebRecipeSearched = EventProperties["web recipe searched"];
 
 export type FindWebRecipeDeps = {
   /** The catalog's recipes matching `name`, ranked for this cook (`search._internal`). */
-  knownByTitle?(name: string): Promise<{ id: string; title: string }[]>;
+  knownByTitle?(name: string): Promise<{ id: Id<"recipes">; title: string }[]>;
   /** The search page's HTML, or `null` for Marmiton's 404: it holds no recipe of the word. */
   fetch(url: string): Promise<string | null>;
   /** One recipe page, read as Add will read it (`readRecipePage`). */
   readPage(url: string): Promise<ScrapedRecipe>;
   /** The live recipe already imported from `url`, anyone's (`findBySource._internal`). */
-  knownBySource?(url: string): Promise<string | null>;
+  knownBySource?(url: string): Promise<Id<"recipes"> | null>;
 };
 
 /** The answer, and what to report; or a failure the caller words for the model and sends to Error tracking. */
@@ -80,6 +59,23 @@ const _previewOf = (card: SearchCard, scraped: ScrapedRecipe): WebRecipe => {
 };
 
 const _isUnreadable = (error: unknown): boolean => isAppError(error) && error.data.code === "UNREADABLE_PAGE";
+
+/**
+ * A failed step, as Error tracking will group it: one fixed message per cause, so an outage
+ * answering 503, then 502, then nothing is one issue, and so is a redesign whichever line of the
+ * parser it breaks. What varied (`fetchPage`'s status, the parser's words) rides in `cause`, with the
+ * original's own cause (the card it broke on) and the page's address. Never the search's address: it
+ * holds the dish.
+ */
+// A socket error or a list as a cause would turn its fields or indices into Error tracking columns.
+const _isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && Object.getPrototypeOf(value) === Object.prototype;
+
+const _failureOf = (message: string, error: unknown, url?: string): Error => {
+  const detail = isAppError(error) ? (error.data.message ?? error.data.code) : error instanceof Error ? error.message : String(error);
+  const original = error instanceof Error && "cause" in error && _isPlainObject(error.cause) ? error.cause : {};
+  return Object.assign(new Error(message), { cause: { ...original, ...(url ? { url } : {}), detail } });
+};
 
 /**
  * A recipe for `dish` the cook can add: one Cuisko already holds, or a Marmiton page that names the
@@ -127,7 +123,7 @@ export const findWebRecipe = async (
   try {
     html = await deps.fetch(searchUrlOf(dish.fr));
   } catch (error) {
-    return { event: { outcome: "failed", reason: "unreachable" }, error };
+    return { event: { outcome: "failed", reason: "unreachable" }, error: _failureOf("Marmiton's search page did not answer", error) };
   }
 
   let cards: SearchCard[];
@@ -135,7 +131,7 @@ export const findWebRecipe = async (
     cards = html === null ? [] : parseSearchResults(html);
   } catch (error) {
     // A page that answered and does not parse: Marmiton's markup changed.
-    return { event: { outcome: "failed", reason: "parse" }, error };
+    return { event: { outcome: "failed", reason: "parse" }, error: _failureOf("Marmiton's search page could not be parsed", error) };
   }
 
   const candidates = cards.filter((card) => matchesDish(card.title, dish.fr)).length;
@@ -164,7 +160,12 @@ export const findWebRecipe = async (
         event: { outcome: "found", rating, reviews, candidates },
       };
     } catch (error) {
-      if (!_isUnreadable(error)) return { event: { outcome: "failed", reason: "unreachable" }, error };
+      if (!_isUnreadable(error)) {
+        return {
+          event: { outcome: "failed", reason: "unreachable" },
+          error: _failureOf("A Marmiton recipe page did not answer", error, winner.url),
+        };
+      }
       const unread = winner;
       remaining = remaining.filter((card) => card !== unread);
       unreadable += 1;
@@ -182,7 +183,7 @@ export const findWebRecipe = async (
     event: {
       outcome: "none",
       candidates,
-      ...(nearest ? { nearestMiss: { url: nearest.url, rating: nearest.rating, reviews: nearest.reviews } } : {}),
+      ...(nearest ? { nearestMissUrl: nearest.url, nearestMissRating: nearest.rating, nearestMissReviews: nearest.reviews } : {}),
       ...(unreadable > 0 ? { unreadable } : {}),
     },
   };

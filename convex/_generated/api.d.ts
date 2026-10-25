@@ -210,6 +210,7 @@ import type * as lib_nanoid from "../lib/nanoid.js";
 import type * as lib_openrouter_transcribe from "../lib/openrouter/transcribe.js";
 import type * as lib_path from "../lib/path.js";
 import type * as lib_posthog_captureEvent from "../lib/posthog/captureEvent.js";
+import type * as lib_posthog_captureException from "../lib/posthog/captureException.js";
 import type * as lib_posthog_client from "../lib/posthog/client.js";
 import type * as lib_rateLimits from "../lib/rateLimits.js";
 import type * as lib_replicate_node from "../lib/replicate/node.js";
@@ -549,6 +550,7 @@ declare const fullApi: ApiFromModules<{
   "lib/openrouter/transcribe": typeof lib_openrouter_transcribe;
   "lib/path": typeof lib_path;
   "lib/posthog/captureEvent": typeof lib_posthog_captureEvent;
+  "lib/posthog/captureException": typeof lib_posthog_captureException;
   "lib/posthog/client": typeof lib_posthog_client;
   "lib/rateLimits": typeof lib_rateLimits;
   "lib/replicate/node": typeof lib_replicate_node;
