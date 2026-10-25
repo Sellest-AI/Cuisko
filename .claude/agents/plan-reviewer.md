@@ -40,8 +40,15 @@ loop: which findings the author declined, and why.
    there is, and only the code can show it:
    - every existing file the plan says it changes or reuses: open it and check the assumption the
      plan makes — the signature, the index, the return shape, the behaviour it relies on.
-   - every new helper, hook or component: `Glob` / `Grep` for one that already exists under the name
-     `docs/CONVENTIONS.md` would give it. A plan that writes the second copy is a finding.
+   - every new helper, hook, atom, component or operation: search for one that already does **the
+     same job**, not one with the same name. Say the job in one line ("remembers an import while it
+     runs", "is this page already a recipe?"), then `Grep` for that behaviour: the table and index it
+     reads, the action it calls, the shape of its state, the domain words in its docblock. A name
+     search alone misses the copy that matters, because a second copy is named for the new feature:
+     `webAddsInFlightAtom` beside `importsInFlightAtom`. Read the closest feature to the plan's (a
+     web import beside the video import, a new card beside the cards already drawn) end to end,
+     because its whole flow is the likeliest thing the plan rebuilds. A plan that writes the second
+     copy is a BLOCKING finding.
    - every table it reads: the indexes it would query through, and whether archived or other-owner
      rows reach it.
 
@@ -76,6 +83,7 @@ loop: which findings the author declined, and why.
 | Words | Every new string in both locales (C8), copy that tells the cook what happened rather than what failed. Text the cook types or a model writes — accents, ligatures, case, plurals — normalized once before it is compared or searched (ADR 0011), and a search that found nothing not read as "there is none". |
 | Analytics | A new event declares the ids of the rows it is about (ADR 0019). An event fired before the cook is identified is lost. |
 | Tests | Every rule the plan states has a named test that would turn red if the rule broke. A paid manual test is the user's to run. |
+| Reuse | Every new file in §3 against what already exists (Method step 2): a flow the app already runs for another source, state already kept in an atom, an operation whose shape the new one copies. A new file is justified in the plan, not assumed. A change that extends an existing one (an optional field, an extracted shared function) beats a parallel copy, and the plan says which existing test proves the extraction changed nothing. |
 | Consistency | The file list, the flow, the signatures, the slices and the tests name the same things. A file in the flow that no slice builds, a test for a function no file defines. |
 | Slices | Each one observable, `pnpm verify` green at each tick, step 1 unblocking both halves of the work. |
 
@@ -108,7 +116,7 @@ the one bar is that you can name the case and say what goes wrong in it.
 - Explore. Open what the plan names, what the lenses send you to, and the ADRs that match. No
   surveys of a module, no reading sibling files "for context".
 
-Budget: **under 25 tool calls on round 1, under 15 on later rounds.** Past that you have started
+Budget: **under 30 tool calls on round 1, under 20 on later rounds.** Past that you have started
 exploring — stop and report what you have, and say what you did not reach.
 
 ## Classification
