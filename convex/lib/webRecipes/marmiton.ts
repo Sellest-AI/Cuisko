@@ -4,17 +4,18 @@
  * Offline by design: this file takes HTML and returns cards. The fetch, the throttle and the ledger
  * belong to the script that calls it, so everything that decides what gets imported can be proven
  * against a saved page (`__tests__/fixtures/`), without a request.
+ *
+ * ⚠️ **This module reaches `cheerio`, so inside `convex/` it may only ever be imported by a `"use
+ * node"` action.** Import it from an edge-runtime function and that function stops deploying, with
+ * an error naming a Node built-in rather than this line. The catalog script (`seed:catalog`) runs it
+ * under Node too. For the same reason its tests run in the `scripts` Vitest project, not `convex`.
  */
 import { load } from "cheerio";
 
 import { canonicalUrlOf } from "@shared/urls";
 
+import { MARMITON_ORIGIN, RECIPE_PATH } from "./marmitonUrl";
 import { bestOf, classify, passes, type RatedRecipe, type Verdict } from "./verdicts";
-
-const MARMITON_ORIGIN = "https://www.marmiton.org";
-
-/** A recipe page's path. The search also returns editorial pages (`/shopping/`, `/focus-ingredient/`). */
-const RECIPE_PATH = /^\/recettes\/recette_/;
 
 /**
  * The import filter, and nothing else: no surface shows a Marmiton score (docs/PRODUCT.md).
@@ -88,9 +89,11 @@ export const parseSearchResults = (html: string): SearchCard[] => {
     const rating = ratingText ? _ratingOf(ratingText) : 0;
     const reviews = reviewsText ? _reviewsOf(reviewsText) : 0;
     if (rating === undefined || reviews === undefined) {
-      throw new Error(
-        `Marmiton card "${title}" (${url}) has a rating block this parser cannot read: ` +
-        `"${ratingText}" / "${reviewsText}". The markup has probably changed.`,
+      // The card in `cause`, where the catalog script's log still shows it. Error tracking's one issue
+      // per redesign is `findWebRecipe`'s wording, not this message's.
+      throw Object.assign(
+        new Error("A Marmiton search card has a rating block this parser cannot read. The markup has probably changed."),
+        { cause: { url, ratingText, reviewsText } },
       );
     }
 

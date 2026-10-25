@@ -74,7 +74,8 @@ export const StepBar = ({
       from={{ opacity: 0, translateY: travel }}
       animate={{ opacity: 1, translateY: 0 }}
       exit={{ opacity: 0, translateY: travel }}
-      transition={{ type: "timing", duration: 300, delay: 300 }}
+      exitTransition={{ type: "timing", duration: 300, delay: 100 }}
+      transition={{ type: "timing", duration: 300, delay: 200 }}
     >
       <SafeAreaView
         style={[styles.flex, stretch && { alignItems: "stretch" }]}

@@ -3,7 +3,6 @@ import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  OWN_TRANSPORT,
   canLeave,
   ONBOARDING_STEPS,
   PROGRESS_BAR_TOTAL,
@@ -112,10 +111,8 @@ export const useOnboarding = () => {
     progressTotal: PROGRESS_BAR_TOTAL,
     total: PROGRESS_TOTAL,
     isLast: nextOf(step) === null,
-    /** Continue is live: the step asks for nothing, or its action is done. */
+    /** Continue is shown: the step asks for nothing, or its action is done. */
     canContinue: canLeave(step, doneSteps),
-    /** The step draws its own way on, so the chrome's pill stays away until it is done. */
-    hasOwnTransport: OWN_TRANSPORT.includes(step),
     /** The calling screen reports its own action done (`ownStep`). Repeating it is harmless. */
     complete: useCallback(() => {
       if (doneRef.current.includes(ownStep)) return;

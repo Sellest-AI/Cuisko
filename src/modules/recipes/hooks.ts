@@ -14,3 +14,8 @@ export { useRecipeList } from "./_hooks/useRecipeList";
  * also subscribe it to the cook's whole paginated library for an answer it never draws.
  */
 export { useRecipeMatches } from "./_hooks/useRecipeMatches";
+/**
+ * The chat draws a web recipe Cuisko found and adds it from its card, through the same in-flight
+ * imports a shared reel uses, so the recipes screen shows it arriving too.
+ */
+export { useImportWebRecipe } from "./_hooks/useImportWebRecipe";

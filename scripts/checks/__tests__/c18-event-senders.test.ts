@@ -16,6 +16,11 @@ import { posthog } from "./client";
 export const captureEvent = async (ctx, event) => posthog.capture(ctx, event);
 `;
 
+const CAPTURE_EXCEPTION = `
+import { posthog } from "./client";
+export const captureException = async (ctx, { error, distinctId }) => posthog.captureException(ctx, { error, distinctId });
+`;
+
 afterEach(cleanupTrees);
 
 describe("an event sent from the domain", () => {
@@ -77,7 +82,7 @@ describe("an event sent from the domain", () => {
     expect(output).toContain("convex/functions/cellars/addToCellar.ts:3");
   });
 
-  it("rejects the PostHog client imported anywhere but its two senders", () => {
+  it("rejects the PostHog client imported anywhere but its three senders", () => {
     const { code, output } = runCheck(SCRIPT, {
       "convex/lib/posthog/captureEvent.ts": CAPTURE_EVENT,
       "convex/router/planning/cookOne.ts": `
@@ -90,10 +95,36 @@ describe("an event sent from the domain", () => {
     expect(output).toContain("convex/router/planning/cookOne.ts:2");
     expect(output).toContain("imports the PostHog client directly");
   });
+
+  /** `findWebRecipe` returns its failure for the router to report, rather than reporting it itself. */
+  it("rejects a functions/ search that sends its own failure to Error tracking", () => {
+    const { code, output } = runCheck(SCRIPT, {
+      "convex/lib/posthog/captureException.ts": CAPTURE_EXCEPTION,
+      "convex/functions/webRecipes/findWebRecipe.ts": `
+        import { captureException } from "@convex/lib/posthog/captureException";
+        export const findWebRecipe = async (ctx, error) => captureException(ctx, { error, distinctId: "camille", properties: {} });
+      `,
+    });
+
+    expect(code).toBe(1);
+    expect(output).toContain("convex/functions/webRecipes/findWebRecipe.ts:2");
+    expect(output).toContain("imports `captureException` outside an entry point");
+  });
+});
+
+describe("a failure sent from an entry point", () => {
+  it("accepts captureException from a router, and captureException.ts holding the client", () => {
+    const { code } = runCheck(SCRIPT, {
+      "convex/lib/posthog/captureException.ts": CAPTURE_EXCEPTION,
+      "convex/router/recipes/findWebRecipe.ts": `import { captureException } from "@convex/lib/posthog/captureException";`,
+    });
+
+    expect(code).toBe(0);
+  });
 });
 
 describe("an event sent from an entry point", () => {
-  it("accepts a router, a cron job, a webhook, the sign-in callback, and the two client holders", () => {
+  it("accepts a router, a cron job, a webhook, the sign-in callback, and the client holders", () => {
     const { code } = runCheck(SCRIPT, {
       "convex/lib/posthog/captureEvent.ts": CAPTURE_EVENT,
       "convex/crons/expireCellar.ts": `import { captureEvent } from "@convex/lib/posthog/captureEvent";`,

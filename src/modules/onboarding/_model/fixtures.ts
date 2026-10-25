@@ -136,18 +136,8 @@ export const RECIPE_SEARCHES = [
   { id: "cosy", results: ["bangers-and-mash", "ribollita", "mushroom-risotto"] },
 ] as const satisfies readonly { id: string; results: readonly RecipeId[] }[];
 
-/** What screen 3 shows before the first search, so its grid opens as the page does, not empty. */
-export const SUGGESTED: readonly RecipeId[] = ["spanish-tortilla", "chili-con-carne", "salad-nicoise", "tikka-masala"];
-
 /** The recipe screen 5 plans and screen 6 cooks: one recipe carried through both. */
 export const IMPORTED_RECIPE: RecipeId = "gratin";
-
-/** Screen 5's grid: the days it offers from tomorrow, and the two already holding a dish. */
-export const PLAN_DAYS = 6;
-export const PLANNED: readonly { day: number; recipe: RecipeId }[] = [
-  { day: 1, recipe: "mushroom-risotto" },
-  { day: 4, recipe: "salad-nicoise" },
-];
 
 /** Screen 7's generated week, dinners from tomorrow. */
 export const WEEK: readonly RecipeId[] = [

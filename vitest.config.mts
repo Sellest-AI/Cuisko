@@ -26,6 +26,14 @@ const AUTOMATIC_EXCLUDE = [
 ] as const;
 
 /**
+ * Tests under `convex/` of code that only runs under Node: the web recipe sources (`cheerio`, saved
+ * pages read with `node:fs`), shared by the catalog script and the chat's `"use node"` action.
+ *
+ * Claimed by the `scripts` project and refused by `convex`, so each is collected exactly once (C10).
+ */
+const NODE_CONVEX_TESTS = ["convex/lib/webRecipes/**/*.test.ts", "convex/functions/webRecipes/**/*.test.ts"];
+
+/**
  * `.env.local`, as a plain object.
  *
  * Hand-rolled rather than Vite's `loadEnv`, which is not re-exported by `vitest/config` and lives
@@ -133,7 +141,10 @@ export default defineConfig({
           // it unless it is named here — and a hand-run test claimed by the `convex` project is a
           // hand-run test billed on every `pnpm verify`. The top-level `exclude` does NOT reach
           // into a project, so every project that can match one restates the pattern itself.
-          exclude: [...AUTOMATIC_EXCLUDE],
+          //
+          // The web recipe sources parse with `cheerio` and read saved pages with `node:fs`: Node
+          // code by construction, run in the `scripts` project below.
+          exclude: [...AUTOMATIC_EXCLUDE, ...NODE_CONVEX_TESTS],
 
           // convex/env.ts throws on a missing key by design (P4), so the test run has to supply a
           // valid environment — the same contract a real deployment has to satisfy.
@@ -158,14 +169,16 @@ export default defineConfig({
        *
        * Plain node: nothing here needs a DOM or the Convex runtime. The checks' tests spawn the real
        * script as a subprocess; the catalog helpers are imported directly, and they need
-       * `@shared/` because the ledger keys a recipe by the same canonical URL `importOne` stores.
+       * `@shared/` because the ledger keys a recipe by the same canonical URL `importOne` stores, and
+       * `@convex/` because the Marmiton source they search with lives in `convex/lib/webRecipes/`,
+       * where the chat's search uses it too. Its tests run here (`NODE_CONVEX_TESTS`).
        */
       {
-        resolve: { alias: { "@shared": at("./shared") } },
+        resolve: { alias: { "@convex": at("./convex"), "@shared": at("./shared") } },
         test: {
           name: "scripts",
           environment: "node",
-          include: ["scripts/**/*.test.ts"],
+          include: ["scripts/**/*.test.ts", ...NODE_CONVEX_TESTS],
           exclude: [...AUTOMATIC_EXCLUDE],
         },
       },

@@ -122,4 +122,26 @@ describe("fetchPage", () => {
       expect(await fetchPage("https://example.com/recipe")).toBe("crème");
     });
   });
+
+  describe("a 404", () => {
+    const notFound = () => new Response("<html>Introuvable</html>", { status: 404, headers: { "content-type": "text/html" } });
+
+    it("is an unreachable site by default, as a cook's page that is gone", async () => {
+      vi.stubGlobal("fetch", vi.fn(async () => notFound()));
+
+      expect(await rejectionCodeOf(fetchPage("https://example.com/recipe"))).toBe("EXTERNAL_SERVICE_ERROR");
+    });
+
+    it("is null when the caller reads it as an answer, as Marmiton's search for a word it holds nothing of", async () => {
+      vi.stubGlobal("fetch", vi.fn(async () => notFound()));
+
+      expect(await fetchPage("https://www.marmiton.org/recettes/recherche.aspx?aqt=bakso", { notFound: "null" })).toBeNull();
+    });
+
+    it("still throws on any other failing status when a 404 is an answer", async () => {
+      vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503, headers: { "content-type": "text/html" } })));
+
+      expect(await rejectionCodeOf(fetchPage("https://www.marmiton.org/", { notFound: "null" }))).toBe("EXTERNAL_SERVICE_ERROR");
+    });
+  });
 });

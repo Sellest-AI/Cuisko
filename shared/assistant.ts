@@ -51,6 +51,7 @@ export const ASSISTANT_TOOLS = {
   addToCellar: "addToCellar",
   removeFromCellar: "removeFromCellar",
   planMeal: "planMeal",
+  findWebRecipe: "findWebRecipe",
 } as const;
 
 export type AssistantTool = (typeof ASSISTANT_TOOLS)[keyof typeof ASSISTANT_TOOLS];
@@ -155,6 +156,35 @@ export type MealSlotTaken = {
 };
 
 export type PlanMealResult = MealPlanned | MealSlotTaken;
+
+/**
+ * One recipe page from the web, as the chat's card draws it and the model reads it.
+ *
+ * A preview, never the recipe: no instructions. They are the long free prose where a line written
+ * to a model would hide, and every later turn replays this as paid input. Adding it scrapes the
+ * page again on the server, so the full recipe reaches the cook's row and never the model.
+ */
+export type WebRecipe = {
+  /** Canonical: what the recipe is saved under once added. */
+  url: string;
+  /** A literal while Marmiton is the one source: a second one widens it. */
+  source: "marmiton";
+  title: string;
+  servings: number;
+  /** The page's lines, as written. */
+  ingredients: string[];
+  /** Absolute `https:` only, else absent and the card draws the placeholder. */
+  imageUrl?: string;
+};
+
+/**
+ * What findWebRecipe stores. Only "found" is drawn; "known" (a recipe Cuisko already holds) and
+ * "none" are the model's to act on.
+ */
+export type FoundWebRecipe =
+  | { v: 1; status: "found"; recipe: WebRecipe }
+  | { v: 1; status: "known"; recipeId: string }
+  | { v: 1; status: "none" };
 
 /** One ingredient replaced by another, both catalog ingredient ids. */
 export type IngredientSwap = { from: string; to: string };

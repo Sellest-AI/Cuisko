@@ -18,6 +18,8 @@ import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { internal } from "@convex/_generated/api";
+import { classifyCards, searchCardsOf } from "@convex/lib/webRecipes/marmiton";
+import { searchUrlOf } from "@convex/lib/webRecipes/marmitonUrl";
 import { totalMinutesOf } from "@shared/recipes";
 
 import {
@@ -54,7 +56,6 @@ import {
   type SearchedCard,
   writeLedger,
 } from "./_lib/ledger";
-import { classifyCards, searchCardsOf } from "./_lib/marmiton";
 
 const LEDGER_FILE = path.join(__dirname, "catalog.ledger.json");
 /** Recipes imported per run, at most. */
@@ -91,9 +92,8 @@ const _get = async (url: string): Promise<string> => {
   return response.text();
 };
 
-// `aqt` alone: robots.txt disallows any `aqt=*page*`, so the run never paginates.
 const _searchMarmiton = async (dish: string): Promise<SearchedCard[]> => {
-  const response = await _fetch(`https://www.marmiton.org/recettes/recherche.aspx?aqt=${encodeURIComponent(dish)}`);
+  const response = await _fetch(searchUrlOf(dish));
 
   return classifyCards(searchCardsOf({ status: response.status, html: await response.text() }), dish);
 };

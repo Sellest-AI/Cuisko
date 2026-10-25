@@ -27,6 +27,7 @@ import {
   type IngredientSwap,
   type MealPlanned,
   type SubstitutionsCard,
+  type WebRecipe,
 } from "@shared/assistant";
 import { UNITS } from "@shared/ingredients";
 import { MEAL_SLOTS } from "@shared/mealSlots";
@@ -69,6 +70,9 @@ export type SourceMessage = {
 /**
  * The tools that show the cook a status line while they work. `display`, `showButton`,
  * `showSubstitutions`, the two cellar tools and `planMeal` do not: what they draw is their line.
+ *
+ * `findWebRecipe` is the one tool that does both: a status line while it looks, which may take a
+ * few seconds of web requests, then a card when it found a page (`_showBlockOf`).
  */
 export type StepTool = Exclude<
   AssistantTool,
@@ -105,7 +109,8 @@ export type AnswerBlock =
   | { type: "substitutions"; key: string; card: SubstitutionsCard }
   | { type: "cellar"; key: string; change: DrawnCellarChange }
   | { type: "meal"; key: string; meal: MealPlanned }
-  | { type: "button"; key: string; button: AssistantButton };
+  | { type: "button"; key: string; button: AssistantButton }
+  | { type: "webRecipe"; key: string; recipe: WebRecipe };
 
 /** A message as the screen draws it. */
 export type ChatMessage = {
@@ -284,6 +289,8 @@ const _COUNTS: Record<StepTool, (output: unknown) => number | undefined> = {
   searchIngredients: _countFound("ingredients"),
   // Its line says "calculated"; a count of figures would mean nothing to the cook.
   computeNutrition: () => undefined,
+  // Found or known reads "found", none reads "none": it answers one recipe or none, never a count.
+  findWebRecipe: (output) => (_isObject(output) && output.status === "none" ? 0 : undefined),
 };
 
 const _STEP_TOOLS = Object.keys(_COUNTS) as StepTool[];
@@ -486,6 +493,34 @@ const _plannedMealsOf = (parts: readonly MessagePart[]): MealPlanned[] =>
     .map((part) => _mealPlannedOf(part.output))
     .filter((meal): meal is MealPlanned => meal !== undefined);
 
+const _isHttps = (value: unknown): value is string => typeof value === "string" && value.startsWith("https://");
+
+/**
+ * A stored findWebRecipe output → the page to draw, when it found one and this build knows its shape.
+ *
+ * "known" and "none" are dropped with the malformed: the first is drawn by the `display` the model
+ * calls with it, the second is the model's to say. Both addresses must be `https:`, as the server
+ * writes them: the card opens one in the browser and loads the other.
+ */
+const _webRecipeOf = (output: unknown): WebRecipe | undefined => {
+  if (!_isObject(output) || output.v !== 1 || output.status !== "found" || !_isObject(output.recipe)) return undefined;
+
+  const { url, source, title, servings, ingredients, imageUrl } = output.recipe;
+
+  if (!_isHttps(url) || source !== "marmiton" || typeof title !== "string" || !_isServings(servings)) return undefined;
+  if (!Array.isArray(ingredients) || !ingredients.every((line) => typeof line === "string")) return undefined;
+  if (imageUrl !== undefined && !_isHttps(imageUrl)) return undefined;
+
+  return {
+    url,
+    source,
+    title,
+    servings,
+    ingredients: ingredients as string[],
+    ...(imageUrl !== undefined && { imageUrl }),
+  };
+};
+
 /** A show tool's finished part → its block, when its output is one this build can draw. */
 const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined => {
   if (part.state !== "output-available") return undefined;
@@ -513,6 +548,10 @@ const _showBlockOf = (part: MessagePart, index: number): AnswerBlock | undefined
     case _partType(ASSISTANT_TOOLS.planMeal): {
       const meal = _mealPlannedOf(part.output);
       return meal && { type: "meal", key, meal };
+    }
+    case _partType(ASSISTANT_TOOLS.findWebRecipe): {
+      const recipe = _webRecipeOf(part.output);
+      return recipe && { type: "webRecipe", key, recipe };
     }
     default:
       return undefined;

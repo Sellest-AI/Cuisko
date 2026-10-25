@@ -3,7 +3,8 @@ import { internalMutation } from "@convex/procedures";
 import { v } from "convex/values";
 
 /**
- * Records which versions exist. Internal, so only a terminal or the dashboard can call it:
+ * Records which versions exist. Internal, so only a terminal, the dashboard or a deploy key can call
+ * it. The prod deploy (`.github/workflows/deploy.yml`) does both steps below on its own; by hand:
  *
  *   npx convex run router/config/setVersions:_internal '{"liveVersion":"0.1.0"}' --prod        # first call
  *   npx convex run router/config/setVersions:_internal '{"reviewVersion":"0.2.0"}' --prod      # submitted

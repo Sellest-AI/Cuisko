@@ -7,6 +7,18 @@ import { matchesDish, type MatchOptions } from "./dishMatch";
 
 export type Bar = { readonly minReviews: number; readonly minRating: number };
 
+/**
+ * The bar a Marmiton page clears to answer a cook who asked the chat for a dish by name.
+ *
+ * Lower than the catalog's `MARMITON_BAR` (30 reviews, 4.5), on purpose: a dish the catalog lacks
+ * is often one the catalog script already looked up and rejected for its rating, so its bar would
+ * answer "none" for exactly the dishes the chat's search exists for. What every cook draws from
+ * stays stricter than what one cook asked for by name. Tuned from the `web recipe searched` event's
+ * nearest misses (`nearestMissRating` × `nearestMissReviews` on `outcome: "none"`, in PostHog):
+ * change these two numbers, ship.
+ */
+export const CHAT_BAR = { minReviews: 5, minRating: 4.0 } as const satisfies Bar;
+
 /** One recipe a search found, with the two numbers every bar is made of. */
 export type RatedRecipe = {
   /** Canonical, via `canonicalUrlOf`: the spelling `importOne` stores as `sourceUrl`. */

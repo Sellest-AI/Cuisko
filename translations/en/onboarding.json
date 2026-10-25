@@ -33,24 +33,22 @@
     "done_title": "All in your cellar"
   },
   "Recipes": {
-    "title": "Search recipes",
+    "title": "Ask Cuisko",
     "Hints": {
       "potatoes-cream": "Potatoes and cream",
       "cosy": "Something cosy with what I have"
     },
-    "tip_send": "Tap a suggestion below. Search by ingredient, like potatoes and cream, or just describe what you feel like eating: Cuisko finds the recipes that match.",
-    "suggested": "For you",
-    "results": "Results for “{{query}}”",
-    "search_title": "Try a search",
-    "done_title": "Two ways, one bar",
-    "tip_done": "Ingredients or a mood, Cuisko understands both. Search whichever way comes to mind."
+    "greeting": "Hi! Tell me what you have or what you feel like eating, and I'll find the recipes.",
+    "Replies": {
+      "potatoes-cream": "Potatoes and cream, a winning pair. Here are two recipes made for them.",
+      "cosy": "Something warm from what you already have: these three start from your kitchen."
+    }
   },
   "PlanRecipe": {
     "title": "Plan it",
-    "tip": "Tap a free day to put the gratin on your week. Cuisko checks your cellar and adds whatever the recipe needs and you don't have to your shopping list.",
-    "added": "{{items}} added to your shopping list. Once you've bought them, they move to your cellar, ready for the day you cook.",
-    "added_title": "Planned",
-    "tip_title": "Pick a free day"
+    "greeting": "Tell me what you want to cook and when, and I'll put it on your week.",
+    "hint": "Plan the gratin for two tomorrow night",
+    "reply": "I planned the gratin for tomorrow night, for two. I checked what you already had in your cellar and added everything missing to your shopping list."
   },
   "Cook": {
     "Steps": {

@@ -55,8 +55,8 @@ export const introOf = (step: OnboardingStep): Section | null =>
   step.endsWith("-intro") ? (SECTION_OF[step] as Section) : null;
 
 /**
- * Whether a step keeps Continue greyed until its action is done: the hints sent, the searches
- * tried, the day picked. There is no way out of the flow but through it, so a step that asks for
+ * Whether a step keeps Continue hidden until its action is done: the hints sent, the questions
+ * answered, the gratin planned. There is no way out of the flow but through it, so a step that asks for
  * an action has to be one the user can finish.
  *
  * `false` on the promise, the intros and the import, which ask for nothing: the import is only
@@ -80,19 +80,12 @@ export const NEEDS_ACTION: Record<OnboardingStep, boolean> = {
 /**
  * Whether the flow may move on from `step`: it asks for nothing, or its action is in `done`.
  *
- * The one gate every way forward goes through. The Continue pill greys itself on the same answer,
- * but a greyed control is a look and not a lock: a pill whose arrow still answered a tap let the
- * whole flow be walked by tapping Continue, which is what this rule now refuses at the source.
+ * The one gate every way forward goes through. The Continue pill hides itself on the same answer,
+ * but a hidden control is a look and not a lock: a pill whose arrow still answered a tap let the
+ * whole flow be walked by tapping Continue, which is what this rule refuses at the source.
  */
 export const canLeave = (step: OnboardingStep, done: readonly OnboardingStep[]) =>
   !NEEDS_ACTION[step] || done.includes(step);
-
-/**
- * The steps that carry their own way on, so the chrome's pill stays away until they are done:
- * the cooking session has its own Next and "Update my cellar", and the week has its loader until the
- * week it plans is on screen.
- */
-export const OWN_TRANSPORT: readonly OnboardingStep[] = ["cook", "week"];
 
 /** The path a step is reached by. */
 export const routeOf = (step: OnboardingStep) => `/onboarding/${step}` as const;

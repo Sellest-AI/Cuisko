@@ -5,7 +5,6 @@ import {
   IMPORTED_RECIPE,
   RECIPES,
   RECIPE_SEARCHES,
-  SUGGESTED,
   WEEK,
   WEEK_SWAP,
 } from "../fixtures";
@@ -32,7 +31,7 @@ describe("fixtures", () => {
   });
 
   test("never shows the imported gratin before screen 4 imports it", () => {
-    const shownBefore = [...SUGGESTED, ...RECIPE_SEARCHES.flatMap((search) => search.results)];
+    const shownBefore = RECIPE_SEARCHES.flatMap((search) => search.results);
 
     expect(shownBefore).not.toContain(IMPORTED_RECIPE);
   });

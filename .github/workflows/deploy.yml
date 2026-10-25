@@ -18,8 +18,10 @@ name: Deploy
 #     never the week after a release made some other way.
 #
 # Secrets, all required:
-#   CONVEX_DEPLOY_KEY_DEV   dev deployment key (Convex dashboard → dev → Settings → Deploy keys)
-#   CONVEX_DEPLOY_KEY_PROD  prod deployment key (same page, on the prod deployment)
+#   CONVEX_DEPLOY_KEY_DEV   dev deployment key (Convex dashboard → dev → Settings → Deploy keys);
+#                           allowed actions: deployment:deploy
+#   CONVEX_DEPLOY_KEY_PROD  prod deployment key (same page, on the prod deployment); allowed actions:
+#                           deployment:deploy + deployment:functions:runInternalMutations (setVersions)
 #   EXPO_TOKEN              expo.dev → Account settings → Access tokens
 #   RELEASE_DEPLOY_KEY      private half of the repo's write deploy key (Settings → Deploy keys);
 #                           the only credential the `protect-main` ruleset lets push to main
@@ -52,6 +54,9 @@ on:
 
 env:
   RELEASE_GAP_DAYS: 10
+  # How long a store review is assumed to last at most. A Monday with nothing to ship counts a
+  # release this old as live, so the review account's window closes even when nothing merges.
+  REVIEW_MAX_DAYS: 7
   # Everything that differs between the two branches, decided once. Any other branch is refused
   # by the job's `if` below, so `preview` is never reached by accident.
   CHANNEL: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
@@ -158,6 +163,36 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: pnpm exec eas update --channel "$CHANNEL" --environment "$CHANNEL" --message "$(cat "$RUNNER_TEMP/update-message")" --non-interactive
+      # Nothing merges into main while a build is in review, so a merge means the last release has
+      # cleared review: it is what the stores serve. Catching liveVersion up with reviewVersion
+      # shuts the review account's window (functions/auth/reviewAccount.ts).
+      # The three versions steps warn rather than fail: what has shipped by then has shipped.
+      - name: Versions → prod (live = last release)
+        if: steps.plan.outputs.ship == 'update' && github.ref_name == 'main'
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PROD }}
+        run: |
+          # The release's own push (see the bump step) lands here too, on the tagged commit, while
+          # its build has only just gone to review.
+          if git describe --exact-match --match 'v*' HEAD >/dev/null 2>&1; then echo "HEAD is a release, still in review"; exit 0; fi
+          live=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -z "$live" ]; then echo "no v* tag yet, nothing is live"; exit 0; fi
+          npx convex run router/config/setVersions:_internal "{\"liveVersion\":\"${live#v}\"}" \
+            || echo "::warning::liveVersion was not set to ${live#v}: set it by hand with setVersions --prod."
+
+      # The same catch-up when no merge comes to do it. Mondays only: unlike a merge, a Monday can
+      # fall inside a review, so the release must be REVIEW_MAX_DAYS old to count as cleared.
+      - name: Versions → prod (weekly catch-up)
+        if: steps.plan.outputs.ship == 'nothing' && github.event_name == 'schedule'
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PROD }}
+        run: |
+          live=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -z "$live" ]; then echo "no v* tag yet, nothing is live"; exit 0; fi
+          age=$(( ($(date +%s) - $(git log -1 --format=%ct "$live")) / 86400 ))
+          if [ "$age" -lt "$REVIEW_MAX_DAYS" ]; then echo "$live is $age day(s) old, may still be in review"; exit 0; fi
+          npx convex run router/config/setVersions:_internal "{\"liveVersion\":\"${live#v}\"}" \
+            || echo "::warning::liveVersion was not set to ${live#v}: set it by hand with setVersions --prod."
 
       # ── Native change on dev: nothing ships ────────────────────────────────────────────────
       # Builds are store releases, so only main makes them. No update either: it would carry a
@@ -174,11 +209,16 @@ jobs:
         if: steps.plan.outputs.ship == 'build' && github.ref_name == 'main' && github.event_name != 'push'
         run: pnpm verify
       - name: Bump the version and tag it
+        id: release
         if: steps.plan.outputs.ship == 'build' && github.ref_name == 'main'
         env:
           FORCED: ${{ inputs.bump }}
         run: |
+          # Read before the new tag exists: the release this build follows.
+          previous=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
           if [ -n "$FORCED" ] && [ "$FORCED" != "auto" ]; then version=$(pnpm --silent release "$FORCED"); else version=$(pnpm --silent release); fi
+          echo "previous=${previous#v}" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # The version may already be in the files: `pnpm build:dev` bumps it on dev, and the
@@ -218,3 +258,18 @@ jobs:
           # draft on Play; sending it to review or rolling it out stays a human step. A failed
           # submission leaves the build intact: retry with `eas submit --platform <p> --latest`.
           pnpm exec eas build --profile production --platform "$platform" --non-interactive --no-wait --auto-submit
+      # Opens the review account's window to this build. The previous release is live by now, since
+      # nothing merges into main while a build is in review (see the OTA's versions step above).
+      # @limitation a review rejected and fixed by an OTA closes the window on the resubmission:
+      # the fix merges, the update step sets live = this version. Reopen it by hand with
+      # setVersions '{"liveVersion":"<previous>"}' --prod.
+      - name: Versions → prod (review = this build)
+        if: steps.plan.outputs.ship == 'build' && github.ref_name == 'main'
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PROD }}
+          PREVIOUS: ${{ steps.release.outputs.previous }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if [ -n "$PREVIOUS" ]; then args="{\"liveVersion\":\"$PREVIOUS\",\"reviewVersion\":\"$VERSION\"}"; else args="{\"reviewVersion\":\"$VERSION\"}"; fi
+          npx convex run router/config/setVersions:_internal "$args" \
+            || echo "::warning::the review window was not opened for $VERSION: run setVersions '$args' --prod by hand."

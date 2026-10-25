@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearTransition } from "react-native-reanimated";
 
 import { ButtonPill } from "@ui/button-pill";
@@ -21,8 +21,19 @@ const SEND_DELAY_MS = 240;
 const ICON_SIZE = 20;
 /** A sent chip slides to the end of the rail rather than jumping, and its neighbours close up. */
 const CHIP_MOVE = LinearTransition.duration(260);
-/** How far the bar sinks as it leaves: its own height, so it goes under the step bar, not beside it. */
-const LEAVE_TRAVEL = 128;
+/** The hint rail and the input together. */
+const FAKE_BAR_HEIGHT = 128;
+/** How far the bar sinks as it leaves: its own height, so it goes off the foot, not beside it. */
+const LEAVE_TRAVEL = FAKE_BAR_HEIGHT;
+/** The gap the chrome's Continue pill leaves under itself (`StepBar`), so the bar rests where it will. */
+const FOOT_GAP = theme.spacing[24];
+const GUTTER = theme.spacing[16];
+
+/**
+ * What a page scrolls clear of while the bar is up. Once the step is done the bar has left and the
+ * pill took its place, and the pill is shorter, so this covers both.
+ */
+export const FAKE_BAR_CLEARANCE = FAKE_BAR_HEIGHT + FOOT_GAP;
 
 type Props = {
   /** Already translated: what each chip says, and what the bar types when it is tapped. */
@@ -32,11 +43,10 @@ type Props = {
   /** Called once the hint has typed itself out, as Enter would be on the real bar. */
   onSend: (index: number) => void;
   /**
-   * Off once the screen no longer needs the bar, so the next move is the only thing left to look
-   * at: it sinks and fades rather than vanishing.
+   * The screen is still answering the last send: Cuisko thinking, or a card being looked up. The
+   * chips wait, so nothing is sent over an answer still coming, and the bar stays up until it lands.
    */
-  visible?: boolean;
-  style?: ViewStyle;
+  isAnswering?: boolean;
 };
 
 /**
@@ -44,13 +54,17 @@ type Props = {
  * it. Tapping a hint types it into the bar, letter by letter, then sends it, which is exactly the
  * gesture the real bar asks for, done once for the user so they have seen it work.
  *
+ * It stays while a hint is left to send or its answer is still coming, then sinks and fades rather
+ * than vanishing, so the next move is the only thing left to look at. Leaving matters: the bar
+ * rests where the chrome's Continue pill rises once the step is done, and the two would overlap.
+ *
  * @limitation A look-alike, not the real bar. **Accepted because** the real one classifies what it
  * is given through an action and writes to the household's stock, and a sandboxed mode of it would
  * thread "onboarding" through the navigation module. **Until fixed**, a change to the real bar's
  * look has to be copied here by hand. **The fix** is to lift the bar's visual shell into `@ui` and
  * have both draw it.
  */
-export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }: Props) => {
+export const FakeNavigationBar = ({ hints, used, onSend, isAnswering = false }: Props) => {
   const t = useTranslations("Navigation");
   const [typing, setTyping] = useState<{ index: number; length: number } | null>(null);
   /**
@@ -80,8 +94,9 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
     return () => clearTimeout(timer);
   }, [typing, isTyped, onSend]);
 
-  /** The first hint not yet sent: the one that pulses. */
+  /** The first hint not yet sent: the one that pulses. None left and nothing pending, and the bar leaves. */
   const nextHint = hints.findIndex((_, index) => !used.includes(index));
+  const isComplete = nextHint === -1 && !isAnswering;
 
   /**
    * The rail's order: what is left to tap first, then what was sent, in the order it was. A chip
@@ -93,9 +108,9 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
 
   return (
     <AnimatePresence>
-      {visible && (
+      {!isComplete && (
         <m.View
-          style={[styles.container, style]}
+          style={styles.container}
           from={{ opacity: 0, translateY: LEAVE_TRAVEL }}
           animate={{ opacity: 1, translateY: 0 }}
           exit={{ opacity: 0, translateY: LEAVE_TRAVEL }}
@@ -116,7 +131,13 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
           />
           <LinearGradient
             pointerEvents="none"
-            style={[{ position: "absolute", bottom: 0, left: 0, right: 0, height: 240 }]}
+            style={[{
+              position: "absolute",
+              bottom: 0,
+              left: -GUTTER,
+              right: -GUTTER,
+              height: 240
+            }]}
             colors={[colors.transparent.light, colors.background, colors.background]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
@@ -132,11 +153,11 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
               const isUsed = used.includes(index);
 
               return (
-                <Hint key={hint} active={hasLanded && !typing && index === nextHint} layout={CHIP_MOVE}>
+                <Hint key={hint} active={hasLanded && !typing && !isAnswering && index === nextHint} layout={CHIP_MOVE}>
                   <ButtonPill
                     size="lg"
                     variant="neutral"
-                    disabled={isUsed || typing !== null}
+                    disabled={isUsed || typing !== null || isAnswering}
                     onPress={() => setTyping({ index, length: 0 })}
                     style={isUsed ? styles.used : undefined}
                   >
@@ -166,7 +187,11 @@ export const FakeNavigationBar = ({ hints, used, onSend, visible = true, style }
 };
 
 const styles = StyleSheet.create({
-  container: { gap: theme.spacing[8] },
+  /**
+   * In the foot, where the chrome's Continue pill rests: the pill stays hidden until the step is
+   * done, so leaving the bar at the pill's own height left an empty band under it.
+   */
+  container: { position: "absolute", left: GUTTER, right: GUTTER, bottom: FOOT_GAP, gap: theme.spacing[8] },
   /** Bleeds to the screen edges, so a chip scrolled off reads as more to come, not as clipped. */
   railScroll: { marginHorizontal: -theme.spacing[16] },
   /** Room for the pulse ring, which would otherwise be cut by the scroll view's bounds. */

@@ -4,6 +4,7 @@ import Google from "@auth/core/providers/google";
 import { convexAuth } from "@convex-dev/auth/server";
 
 import type { Id } from "./_generated/dataModel";
+import { refuseClosedReviewSignIn } from "./functions/auth/reviewAccount";
 import { accountEventOf } from "./functions/users/accountEvent";
 import { clearDeletion } from "./functions/users/clearDeletion";
 import { onUserCreated } from "./functions/users/onUserCreated";
@@ -67,7 +68,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     },
     /**
      * Signing in cancels a pending account deletion. Runs on every sign-in that creates a session,
-     * whatever the provider, and never on a token refresh. See `clearDeletion`.
+     * whatever the provider, and never on a token refresh. See `clearDeletion`. The review account
+     * is refused first while no review is open (`refuseClosedReviewSignIn`).
      *
      * Reports `account deletion cancelled` (ADR 0019) from here: this callback is sign-in's entry
      * point, the one Convex Auth calls where a client would call a router.
@@ -76,6 +78,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // Same narrowing as `afterUserCreatedOrUpdated` above.
       const ctx = genericCtx as unknown as MutationCtx;
 
+      await refuseClosedReviewSignIn(ctx, userId as Id<"users">);
       const cleared = await clearDeletion(ctx, userId as Id<"users">);
 
       const event = cleared && accountEventOf(cleared.user, "account deletion cancelled", { daysLeft: cleared.daysLeft });

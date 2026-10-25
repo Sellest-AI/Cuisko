@@ -1,3 +1,6 @@
+import { ConvexError } from "convex/values";
+
+import type { Id } from "../../_generated/dataModel";
 import { compareVersions } from "../../lib/compareVersions";
 import type { QueryCtx } from "../../procedures";
 
@@ -6,9 +9,9 @@ import type { QueryCtx } from "../../procedures";
  *
  * In code, not in env or the database, because `getReviewAccount` hands it to any build the window
  * is open for, so there is no secret to keep from the people it is shown to. What this costs: it is
- * in git, and the password provider accepts it on the production server at any time, window or not.
- * The window controls who is told these credentials, never who can use them. It is an ordinary user
- * with no privileges, and anything it can reach is what any new account can reach.
+ * in git. Signing in with it is refused while the window is closed (`refuseClosedReviewSignIn`), but
+ * a session opened during a review outlives it. It is an ordinary user with no privileges, and
+ * anything it can reach is what any new account can reach.
  *
  * ⚠️ Never edit the password once the account exists on a deployment. The account is created on the
  * first long press with whatever is here (through the signIn-then-signUp fallback in
@@ -51,4 +54,20 @@ export const reviewWindow = (config: ReviewConfig | null, callerVersion: string)
 export const getReviewAccount = async (ctx: QueryCtx, appVersion: string) => {
   const config = await ctx.db.query("appConfig").withIndex("by_creation_time").first();
   return reviewWindow(config, appVersion);
+};
+
+/**
+ * Refuses a sign-in as the review account while no review is open, so the credentials in git open
+ * nothing between reviews. Called from `beforeSessionCreation` in `convex/auth.ts`.
+ *
+ * The caller's version is not known at sign-in, so this asks only whether the window is open at all:
+ * it is open to someone exactly when it is open to the build in review. Any other account costs one
+ * read.
+ */
+export const refuseClosedReviewSignIn = async (ctx: Pick<QueryCtx, "db">, userId: Id<"users">) => {
+  const user = await ctx.db.get(userId);
+  if (user?.email !== REVIEW_ACCOUNT.email) return;
+
+  const config = await ctx.db.query("appConfig").withIndex("by_creation_time").first();
+  if (!reviewWindow(config, config?.reviewVersion ?? "")) throw new ConvexError({ code: "REVIEW_WINDOW_CLOSED" });
 };

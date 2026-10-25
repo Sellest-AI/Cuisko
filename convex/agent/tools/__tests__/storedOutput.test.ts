@@ -2,7 +2,10 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { NutritionFigures } from "@convex/functions/recipes/computeNutrition";
 import { describe, expect, it, vi } from "vitest";
 
+import type { FoundWebRecipe, WebRecipe } from "@shared/assistant";
+
 import { toNutritionOutput } from "../computeNutrition";
+import { findWebRecipeTool } from "../findWebRecipe";
 import { searchIngredientsTool } from "../searchIngredients";
 import { searchRecipesTool } from "../searchRecipes";
 
@@ -78,5 +81,30 @@ describe("what a tool hands back can be stored", () => {
 
     expect(_refusedKeys(toNutritionOutput({ kind: "lines", missing: [], unweighable: [], figures }))).toEqual([]);
     expect(_refusedKeys(toNutritionOutput({ kind: "recipes", missing: [], recipes }))).toEqual([]);
+  });
+
+  /** The action's answer is stored as it is, so each of its three shapes is walked. */
+  it("findWebRecipe", async () => {
+    const tool = findWebRecipeTool({ userId: "user" as Id<"users">, locale: "fr" });
+    const recipe: WebRecipe = {
+      url: "https://www.marmiton.org/recettes/recette_gnocchis-poelees_1.aspx",
+      source: "marmiton",
+      title: NAMES[0] ?? "",
+      servings: 4,
+      ingredients: NAMES,
+      imageUrl: "https://assets.afcdn.com/recipe/gnocchis.jpg",
+    };
+    const answers: FoundWebRecipe[] = [
+      { v: 1, status: "found", recipe },
+      { v: 1, status: "known", recipeId: "r1" },
+      { v: 1, status: "none" },
+    ];
+
+    for (const answer of answers) {
+      const ctx = { runTracedAction: vi.fn(async () => answer) };
+      const found = await tool.run(ctx as unknown as Parameters<typeof tool.run>[0], { dish: { fr: "crêpes", en: "crepes" } });
+
+      expect(_refusedKeys(found)).toEqual([]);
+    }
   });
 });

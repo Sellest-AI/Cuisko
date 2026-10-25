@@ -19,9 +19,9 @@ type ScrapedGroup = {
 /**
  * The fields we ask the scraper for, and the only ones this slice reads.
  *
- * Structural rather than imported: see above. It is a SUBSET on purpose — `author` and `image` are
- * extracted by the library and needed by neither the editor nor us, and asking for them is what
- * makes a page fail (see `importOneNode`).
+ * Structural rather than imported: see above. It is a SUBSET on purpose — `author` is extracted by
+ * the library and needed by nobody here, and asking for a field the page lacks is what makes a page
+ * fail (see `scrapePage`), so every field is asked for softly.
  */
 export type ScrapedRecipe = {
   title: string;
@@ -29,6 +29,11 @@ export type ScrapedRecipe = {
   yields: string;
   ingredients: ScrapedGroup[];
   instructions: ScrapedGroup[];
+  /**
+   * The page's photo, as the page wrote it: possibly relative, possibly `http:`. Read only by the
+   * chat's web recipe card, through `httpsImageOf`; the editor's draft does not carry it.
+   */
+  image?: string;
 };
 
 /**

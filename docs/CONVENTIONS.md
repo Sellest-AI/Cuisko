@@ -365,7 +365,7 @@ must persist what it produced cannot be one file.
 
 ```
 router/recipes/importOne.ts                    →  export const authed, _internal_persist
-router/recipes/importOneNode.ts   "use node"   →  export const _internal_parse
+router/recipes/importOneNode.ts   "use node"   →  export const _internal
 ```
 
 `importOne.ts` stays in the isolate runtime and keeps the entry point and every mutation.

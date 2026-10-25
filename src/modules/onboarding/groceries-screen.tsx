@@ -22,9 +22,7 @@ import { formatGroceryQuantity, NO_EMOJI } from "@shared/ingredients";
 
 import { useUnitLabel } from "~/hooks/useUnitLabel";
 
-import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
-
-import { FakeNavigationBar } from "./_components/fake-navigation-bar";
+import { FAKE_BAR_CLEARANCE, FakeNavigationBar } from "./_components/fake-navigation-bar";
 import { Hint } from "./_components/hint";
 import { GROCERY_HINTS, INGREDIENT_EMOJI, type IngredientId } from "./_model/fixtures";
 import type { PantryRow } from "./_model/pantry";
@@ -36,9 +34,6 @@ import { useOnboardingPantry } from "./_hooks/useOnboardingPantry";
 const COLUMNS = 3;
 const GAP = theme.spacing[8];
 const GUTTER = theme.spacing[16];
-
-/** The fake bar's hint rail and input: what the page scrolls clear of while the bar is up. */
-const FAKE_BAR_HEIGHT = 128;
 
 /**
  * The card's own flight between sections, carried by the pulse wrapper around it: the same spring
@@ -160,14 +155,14 @@ export const OnboardingGroceries = () => {
           {cellar.map((row) => card(row, "recent"))}
         </View>
       </ScrollView>
-      <FakeNavigationBar hints={hints} used={sent} onSend={onSend} visible={!isAllSent} style={styles.bar} />
+      <FakeNavigationBar hints={hints} used={sent} onSend={onSend} isAnswering={resolving !== null} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  page: { paddingBottom: NAVIGATION_BAR_OFFSET + FAKE_BAR_HEIGHT },
+  page: { paddingBottom: FAKE_BAR_CLEARANCE },
   banner: { marginHorizontal: GUTTER, marginBottom: theme.spacing[8] },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP, paddingHorizontal: GUTTER },
   section: {
@@ -178,5 +173,4 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing[20],
     marginBottom: theme.spacing[4],
   },
-  bar: { position: "absolute", left: GUTTER, right: GUTTER, bottom: NAVIGATION_BAR_OFFSET },
 });

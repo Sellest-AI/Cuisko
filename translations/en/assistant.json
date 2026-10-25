@@ -30,6 +30,14 @@
       "done_one": "Nutrition worked out",
       "done_other": "Nutrition worked out",
       "failed": "The calculation did not go through"
+    },
+    "findWebRecipe": {
+      "running": "Looking for the recipe…",
+      "found": "Recipe found on the web",
+      "none": "No recipe found on the web",
+      "done_one": "Recipe found on the web",
+      "done_other": "Recipe found on the web",
+      "failed": "The search did not go through"
     }
   },
   "cards": {
@@ -47,5 +55,13 @@
   "meal": {
     "undo": "Undo",
     "canceled": "Canceled"
+  },
+  "webRecipe": {
+    "add": "Add to my recipes",
+    "adding": "Adding…",
+    "added": "In your recipes",
+    "retry": "Try again",
+    "ingredients_one": "{{count, number}} ingredient",
+    "ingredients_other": "{{count, number}} ingredients"
   }
 }

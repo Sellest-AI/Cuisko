@@ -12,6 +12,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import * as z from "zod/v4";
 
 import type { AssertTrue, Exact } from "@convex/agent/utils/exact";
+import type { RatedRecipe, Verdict } from "@convex/lib/webRecipes/verdicts";
 import type { DishConstraints } from "@convex/schema/recipePayloads";
 import { CONSTRAINT_TIMES } from "@shared/cookingTimes";
 import { type Cuisine, CUISINES } from "@shared/cuisines";
@@ -19,7 +20,6 @@ import { CONSTRAINT_DIETS, type ConstraintDiet, fitsDiet } from "@shared/diets";
 import { NUTRITION_PREFERENCES } from "@shared/preferences";
 
 import { type ConstraintKey, type HitRate, hitsOf, type RecipeFacts } from "./constraints";
-import type { RatedRecipe, Verdict } from "./verdicts";
 
 const _importSchema = z.object({
   /** Where it landed, as read from the deploy key: "dev:happy-otter-123". */

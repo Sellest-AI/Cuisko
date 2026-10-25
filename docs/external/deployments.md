@@ -33,7 +33,9 @@ GitHub Actions secrets, by name, read by `.github/workflows/deploy.yml`:
 | `EXPO_TOKEN`             | expo.dev → Account settings → Access tokens                         |
 | `RELEASE_DEPLOY_KEY`     | private half of GitHub → Settings → Deploy keys → `release` (write) |
 
-Each Convex key carries `deployment:deploy` only: it can push functions, never read data or env.
+The dev key carries `deployment:deploy` only: it can push functions, never read data or env. The prod
+key also carries `deployment:functions:runInternalMutations`, so `deploy.yml` can call
+`router/config/setVersions:_internal` to keep the store review window in step with releases.
 
 Read by `.github/workflows/apple-secret.yml`, which signs a fresh Sign in with Apple client secret on
 the 1st of every other month and sets `AUTH_APPLE_SECRET` on both deployments (Apple refuses one older than

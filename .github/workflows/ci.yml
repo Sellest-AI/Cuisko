@@ -1,6 +1,11 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  # Branches only: a release pushes its v* tag with the commit main is already verifying, and a
+  # tag never deploys, so a tag run re-checks the same tree for nothing.
+  push:
+    branches: ['**']
+  pull_request:
 
 # The repo is public, so anyone can open a pull request that runs this job. It only reads.
 permissions:

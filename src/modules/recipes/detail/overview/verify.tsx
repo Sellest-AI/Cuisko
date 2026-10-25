@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
 import { View, StyleSheet, ViewProps } from "react-native";
 
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { isAppError, isRateLimited } from "@shared/errors";
 import { Button } from "@ui/button";
+import { useNow } from "@ui/hooks/useNow";
 import { StepProgress } from "@ui/step-progress";
 import { Text } from "@ui/text";
 
@@ -66,13 +66,7 @@ export const Verify = ({ id, style }: { id?: string; style?: ViewProps["style"] 
  * bar where it would have been, not empty again.
  */
 const VerifyProgress = ({ startedAt }: { startedAt: number }) => {
-  const [now, setNow] = useState(Date.now);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(true);
 
   const seconds = Math.floor((now - startedAt) / 1000);
 

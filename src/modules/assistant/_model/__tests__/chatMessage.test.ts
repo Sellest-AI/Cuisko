@@ -790,6 +790,90 @@ describe("the meals planned under an answer", () => {
   });
 });
 
+/** A findWebRecipe call, finished unless told otherwise. */
+const webCall = (output: unknown, state = "output-available", toolCallId = "call-w") =>
+  ({ type: "tool-findWebRecipe", toolCallId, state, output });
+
+/** A hachis parmentier for six, from Marmiton, with its photo. */
+const hachis = {
+  url: "https://www.marmiton.org/recettes/recette_hachis-parmentier_12345.aspx",
+  source: "marmiton",
+  title: "Hachis parmentier",
+  servings: 6,
+  ingredients: ["1 kg de pommes de terre", "600 g de boeuf haché", "20 cl de lait"],
+  imageUrl: "https://assets.afcdn.com/recipe/hachis.jpg",
+};
+
+describe("the web recipe found for an answer", () => {
+  /** The first tool both counted as a step and drawn: its line, and its card where it was called. */
+  test("a page found is drawn where it was called, under a found line", () => {
+    const [drawn] = toChatMessages([
+      message({ parts: [webCall({ v: 1, status: "found", recipe: hachis }), said("Une valeur sûre.")] }),
+    ]);
+
+    expect(drawn?.blocks).toEqual([
+      { type: "webRecipe", key: "call-w", recipe: hachis },
+      { type: "text", key: "text-1", text: "Une valeur sûre." },
+    ]);
+    expect(drawn?.steps).toEqual([{ key: "call-w", tool: "findWebRecipe", status: "done" }]);
+  });
+
+  /** "none" reads as the "none" line, through the count of 0 `tool-step.tsx` already reads that way. */
+  test("none is a step with a count of 0, and no card", () => {
+    const [drawn] = toChatMessages([message({ parts: [webCall({ v: 1, status: "none" })] })]);
+
+    expect(drawn?.steps).toEqual([{ key: "call-w", tool: "findWebRecipe", status: "done", count: 0 }]);
+    expect(drawn?.blocks.map((block) => block.type)).toEqual(["text"]);
+  });
+
+  /** A recipe Cuisko holds is drawn by the display the model calls with it, not here. */
+  test("known is a found line with no count, and no card", () => {
+    const [drawn] = toChatMessages([message({ parts: [webCall({ v: 1, status: "known", recipeId: "r1" })] })]);
+
+    expect(drawn?.steps).toEqual([{ key: "call-w", tool: "findWebRecipe", status: "done" }]);
+    expect(drawn?.blocks.map((block) => block.type)).toEqual(["text"]);
+  });
+
+  test("a search still running is a running line, and no card yet", () => {
+    const [drawn] = toChatMessages([message({ status: "streaming", parts: [webCall(undefined, "input-available")] })]);
+
+    expect(drawn?.steps).toEqual([{ key: "call-w", tool: "findWebRecipe", status: "running" }]);
+    expect(drawn?.blocks.map((block) => block.type)).toEqual(["text"]);
+  });
+
+  test("a search that threw is a failed line", () => {
+    const [drawn] = toChatMessages([message({ parts: [webCall(undefined, "output-error")] })]);
+
+    expect(drawn?.steps).toEqual([{ key: "call-w", tool: "findWebRecipe", status: "failed" }]);
+  });
+
+  test("a page with no photo is drawn without one", () => {
+    const { imageUrl: _, ...noPhoto } = hachis;
+    const [drawn] = toChatMessages([message({ parts: [webCall({ v: 1, status: "found", recipe: noPhoto })] })]);
+
+    expect(drawn?.blocks[1]).toEqual({ type: "webRecipe", key: "call-w", recipe: noPhoto });
+  });
+
+  /** The card opens one address in the browser and loads the other: both are the server's https. */
+  test("drops an unknown version, another source, a page with no servings, a line that is not text, and a non-https address", () => {
+    for (const recipe of [
+      { ...hachis, source: "750g" },
+      { ...hachis, servings: 0 },
+      { ...hachis, title: undefined },
+      { ...hachis, ingredients: ["1 kg de pommes de terre", 600] },
+      { ...hachis, url: "javascript:alert(1)" },
+      { ...hachis, imageUrl: "http://assets.afcdn.com/recipe/hachis.jpg" },
+    ]) {
+      const [drawn] = toChatMessages([message({ parts: [webCall({ v: 1, status: "found", recipe })] })]);
+
+      expect(drawn?.blocks.map((block) => block.type)).toEqual(["text"]);
+    }
+
+    const [drawn] = toChatMessages([message({ parts: [webCall({ v: 2, status: "found", recipe: hachis })] })]);
+    expect(drawn?.blocks.map((block) => block.type)).toEqual(["text"]);
+  });
+});
+
 describe("the photo sent with a question", () => {
   const photo = { type: "file", mediaType: "image/webp", url: "https://bucket.example/shelf.webp" };
 

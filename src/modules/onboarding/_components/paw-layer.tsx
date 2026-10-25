@@ -2,6 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useLayout
 import { StyleSheet } from "react-native";
 import Animated, {
   measure,
+  ReduceMotion,
   useAnimatedRef,
   useAnimatedStyle,
   useFrameCallback,
@@ -125,12 +126,17 @@ const Paw = ({ target, isOn, host }: { target: PawTarget; isOn: PawSwitch; host:
     transform: [{ translateX: x.value }, { translateY: y.value }],
   }));
 
+  /**
+   * The tap keeps playing with reduced motion on. Reanimated would otherwise freeze it, and a paw
+   * that stands still was not read as "tap here": the movement is the instruction, not decoration.
+   * It is small and stays in place, which is what reduced motion asks to spare.
+   */
   return (
     <Animated.View style={[styles.paw, placed]}>
       <m.View
         from={{ translateY: -6, scale: 1 }}
         animate={{ translateY: 2, scale: 0.85 }}
-        transition={{ type: "timing", duration: 550, loop: true }}
+        transition={{ type: "timing", duration: 550, loop: true, reduceMotion: ReduceMotion.Never }}
       >
         <Image source={paw} contentFit="contain" transition={false} style={styles.pawImage} />
       </m.View>

@@ -1,4 +1,5 @@
-import { StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { Image } from "@ui/image";
 import { m } from "@ui/motion";
@@ -8,6 +9,8 @@ import { useTranslations } from "translations";
 
 import { CUISKO } from "~/lib/mascots";
 
+import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
+
 import { useProgressClearance } from "./_hooks/useProgressClearance";
 import { SCREENSHOT_ASPECT_RATIO, SCREENSHOTS, type Showcase } from "./screenshots";
 
@@ -16,6 +19,9 @@ const PHONE_WIDTH = "85%";
 /** The frosted rim around the screenshot, as the app's cards have around their photos. */
 const RIM = theme.spacing[6];
 const PHONE_RADIUS = 32;
+/** How far above the pill the screenshot starts fading into the paper. */
+const FADE_HEIGHT = 128;
+const FOOT_HEIGHT = NAVIGATION_BAR_OFFSET + FADE_HEIGHT;
 
 /**
  * The page that opens each section: which part of the app the next few screens are about, and a
@@ -57,6 +63,16 @@ export const OnboardingSectionIntro = ({ page }: { page: Showcase }) => {
           )}
         </View>
       </m.View>
+      {/*
+        The screenshot melts into the paper before it reaches the pill, so it reads as a picture
+        ending there rather than a page going on under the button, which people tried to scroll.
+      */}
+      <LinearGradient
+        pointerEvents="none"
+        style={styles.foot}
+        colors={[`${colors.background}00`, colors.background]}
+        locations={[0, Platform.select({ ios: 0.65, default: 0.7 })]}
+      />
     </View>
   );
 };
@@ -94,4 +110,6 @@ const styles = StyleSheet.create({
   fill: { width: "100%", height: "100%" },
   placeholder: { alignItems: "center", justifyContent: "center", backgroundColor: colors.neutral.subtle },
   mascot: { width: 140, height: 140 },
+  /** Drawn in the page, so it sits over the phone and under the chrome's pill. */
+  foot: { position: "absolute", left: 0, right: 0, bottom: 0, height: FOOT_HEIGHT },
 });
