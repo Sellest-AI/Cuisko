@@ -28,17 +28,24 @@ const outputSchema = z.object({
 
 type Output = z.infer<typeof outputSchema>;
 
+/** The worker's model and silhouette pass. Left out, the worker uses its own defaults. */
+type Options = {
+  model?: "matting" | "lite-matting" | "dynamic-matting" | "general" | "lite" | "dynamic" | "portrait" | "lucida" | "sellestia";
+  silhouette?: "off" | "fill" | "sam";
+};
+
 /**
  * `report` is handed the run's billed time before the output is checked: a worker that answers
  * unusably was still paid for. RunPod reports `executionTime` in milliseconds.
  */
-export const removeBackground = async (url: string, report?: ReportRun): Promise<Output> => {
+export const removeBackground = async (url: string, report?: ReportRun, options: Options = {}): Promise<Output> => {
   if (!endpoint) throw new Error("RunPod endpoint not found");
 
   const startedAt = Date.now();
   const result = await endpoint.runSync({
     input: {
       image_url: url,
+      ...options,
       // image_data_url: base64,
     }
   })

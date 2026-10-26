@@ -148,6 +148,9 @@ const _render = async (prompt: string, shot: Shot, report: ReportRun): Promise<s
   return url;
 };
 
+/** sellestia rather than the worker's default lucida, and the silhouette pass off. */
+const PLATE_CUTOUT = { model: "sellestia", silhouette: "off" } as const;
+
 /**
  * The plate render with its background cut away, or nothing.
  *
@@ -156,7 +159,7 @@ const _render = async (prompt: string, shot: Shot, report: ReportRun): Promise<s
  */
 const _cutOutPlate = async (url: string, report: ReportRun) => {
   try {
-    const cutout = await removeBackground(url, report);
+    const cutout = await removeBackground(url, report, PLATE_CUTOUT);
     return { withBackground: url, withoutBackground: cutout.url, position: cutout.position };
   } catch (error) {
     console.warn("generateRecipeImages: plate background removal failed", error);
