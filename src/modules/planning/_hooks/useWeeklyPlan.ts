@@ -6,7 +6,7 @@ import type { WeekDay } from "@ui/week-strip";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
-import { useQueryCached } from "~/lib/convex/client";
+import { useQueryDevice } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 import {
@@ -74,8 +74,12 @@ export const useWeeklyPlan = () => {
   const [today] = useState(() => startOfDay(new Date()));
   const days = useMemo(() => _buildWeek(today), [today]);
 
-  /** `to` is exclusive: the midnight after the strip's last day. */
-  const { data, isSuccess } = useQueryCached(
+  /**
+   * `to` is exclusive: the midnight after the strip's last day. On the device, the window is loose:
+   * opened the next morning with no signal, yesterday's window still holds today's meals and the
+   * coming ones, so it is served until the live answer for today's lands.
+   */
+  const { data, isSuccess } = useQueryDevice(
     api.router.planning.getMany.authed,
     householdId
       ? {
@@ -85,6 +89,7 @@ export const useWeeklyPlan = () => {
         to: addDays(today, DAYS_AFTER + 1).getTime(),
       }
       : "skip",
+    { loose: ["from", "to"] },
   );
 
   const meals: CarouselMeal[] = useMemo(

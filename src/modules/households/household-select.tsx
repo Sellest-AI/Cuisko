@@ -1,6 +1,10 @@
 import type { ViewStyle } from "react-native";
 
+import { Button } from "@ui/button";
+import { WifiOff } from "@ui/icons";
 import { Select } from "@ui/select";
+import { useIsOffline } from "~/modules/network/hooks";
+import { useTranslations } from "translations";
 
 import { useHouseholds } from "./_hooks/useHouseholds";
 
@@ -15,9 +19,28 @@ type Props = { style?: ViewStyle };
  *
  * Draws nothing until there is a current household to show, which is only ever while `getMine` is
  * in flight or for an account made before sign-up created households.
+ *
+ * Offline, a chip in its place: the list on screen is the last one seen, and a switch could not
+ * reach the server. Checked before the household, which offline has not loaded (`useHouseholds`
+ * waits for Convex to confirm the session), so the chip would otherwise never draw.
  */
 export const HouseholdSelect = ({ style }: Props) => {
+  const t = useTranslations("Network");
+  const isOffline = useIsOffline();
   const { households, currentId, select } = useHouseholds();
+
+  if (isOffline)
+    return (
+      <Button
+        leftIcon={WifiOff}
+        style={style}
+        onPress={() => null}
+        variant="neutral"
+        disabled
+      >
+        {t("offline_chip")}
+      </Button>
+    );
 
   if (!currentId) return null;
 

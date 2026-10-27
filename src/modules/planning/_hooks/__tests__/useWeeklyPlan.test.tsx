@@ -30,7 +30,7 @@ vi.mock("~/modules/households/hooks", () => ({
 }));
 
 vi.mock("~/lib/convex/client", () => ({
-  useQueryCached: (fn: unknown, args: unknown) => {
+  useQueryDevice: (fn: unknown, args: unknown) => {
     if (args === "skip") return { data: undefined, isPending: true, isSuccess: false, isStale: false };
 
     const name = getFunctionName(fn as Parameters<typeof getFunctionName>[0]);

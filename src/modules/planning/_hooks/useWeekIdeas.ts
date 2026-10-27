@@ -5,7 +5,7 @@ import { weekKeyOf } from "@shared/dates";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
-import { useQueryCached } from "~/lib/convex/client";
+import { useQueryDevice } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 /** A card as the shelf draws it — the router's `RecipeCard`, restated structurally (ADR 0002). */
@@ -34,7 +34,7 @@ export const useWeekIdeas = (): { ideas: WeekIdea[]; isLoading: boolean } => {
   const [weekKey] = useState(() => weekKeyOf(new Date()));
 
   /** `'skip'` is Convex's idiom for "not yet" — the hook call stays unconditional, the query unsent. */
-  const { data, isPending } = useQueryCached(
+  const { data, isPending } = useQueryDevice(
     api.router.planning.getWeekIdeas.authed,
     householdId ? { householdId, locale, weekKey } : "skip",
   );

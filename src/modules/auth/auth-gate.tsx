@@ -2,6 +2,8 @@ import { router, useNavigationContainerRef, usePathname, type Href } from "expo-
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
+import { clearDeviceCache } from "~/lib/convex/deviceCache";
+
 import { useAuth } from "./_hooks/useAuth";
 import { AUTH } from "./constants";
 import { Cover } from "./cover";
@@ -29,8 +31,11 @@ type Destination = typeof AUTH | typeof ONBOARDING;
 /**
  * Sends each person to the side of the app they belong on, and holds the splash until it has.
  *
- * Signed out, every route but `/auth` redirects there; signed in, `/auth` redirects to the
- * onboarding, which ends on home by itself. A cold start with a live session never passes through
+ * With no session, every route but `/auth` redirects there; signed in, `/auth` redirects to the
+ * onboarding, which ends on home by itself. "No session" is no stored token, not "Convex has not
+ * confirmed it": a stored session whose cook is on the device draws at once, offline included,
+ * and a refresh failing on a weak network leaves the screen where it is. A session the server
+ * refuses clears the token, and lands here as no session. A cold start with a live session never passes through
  * `/auth`, so it opens wherever it opens, home included. Nothing
  * is decided while auth is settling or a signed-in person's row is still arriving: the first
  * screen drawn is the right one, rather than home flashing before a bounce to `/auth`, or a header
@@ -51,17 +56,23 @@ type Destination = typeof AUTH | typeof ONBOARDING;
  * rows backfilled so current users are not sent through it.
  */
 export const AuthGate = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isAuthenticating, hasSession, isLoading } = useAuth();
   const pathname = usePathname();
   const navigation = useNavigationContainerRef();
 
   const isOnAuth = pathname === AUTH.href;
+  const isSignedOut = !hasSession && !isAuthenticating;
   const destination: Destination | null =
     isLoading ? null
-    : !isAuthenticated && !isOnAuth ? AUTH
+    : isSignedOut && !isOnAuth ? AUTH
     : isAuthenticated && isOnAuth ? ONBOARDING
     : null;
   const isSettled = !isLoading && destination === null;
+
+  /** Two cooks can share a phone: a session that ends leaves nothing of the last one on disk. */
+  useEffect(() => {
+    if (isSignedOut) clearDeviceCache();
+  }, [isSignedOut]);
 
   useEffect(() => {
     if (isSettled) SplashScreen.hide();

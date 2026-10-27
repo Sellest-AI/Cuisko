@@ -1,6 +1,6 @@
 import { api } from "~/lib/convex/api";
 import { useAuthenticated } from "~/lib/convex/auth";
-import { useQueryCached } from "~/lib/convex/client";
+import { useQueryDevice } from "~/lib/convex/client";
 
 /**
  * Which household the app is shopping for.
@@ -14,17 +14,21 @@ import { useQueryCached } from "~/lib/convex/client";
  * cellar could then disagree about which kitchen the cook is standing in.
  */
 export const useHousehold = () => {
-  const { isAuthenticated, isAuthenticating } = useAuthenticated();
+  const { isAuthenticating, hasSession } = useAuthenticated();
 
-  /** `'skip'` is Convex's idiom for "not yet" — the hook call stays unconditional, the query unsent. */
-  const { data, isPending } = useQueryCached(
-    api.router.households.getMine.authed,
-    isAuthenticated ? {} : "skip",
-  );
+  /**
+   * `'skip'` is Convex's idiom for "not yet" — the hook call stays unconditional, the query unsent.
+   * A stored session is enough to read the device copy; the live query waits for confirmation.
+   */
+  const { data, isPending } = useQueryDevice(api.router.households.getMine.authed, hasSession ? {} : "skip");
+  const householdId = data?.find((household) => household.isCurrent)?._id;
 
   return {
-    householdId: data?.find((household) => household.isCurrent)?._id,
-    /** A signed-in user with no household yet is loading, not householdless — the query is in flight. */
-    isLoading: isAuthenticating || (isAuthenticated && isPending),
+    householdId,
+    /**
+     * A signed-in user with no household yet is loading, not householdless — the query is in
+     * flight. One on the device is not loading, whether or not Convex has confirmed the session.
+     */
+    isLoading: householdId === undefined && (isAuthenticating || (hasSession && isPending)),
   };
 };

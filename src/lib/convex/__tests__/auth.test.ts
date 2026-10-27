@@ -1,7 +1,9 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
+import { makeFunctionReference } from "convex/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAuthenticated } from "../auth";
+import { useAuthActions, useAuthenticated } from "../auth";
+import { deviceKey, readDevice, writeDevice } from "../deviceCache";
 
 /**
  * `useAuthenticated` against the states the vendor hooks pass through. Both vendor hooks are faked,
@@ -61,5 +63,31 @@ describe("useAuthenticated", () => {
     vendor.convex = { isAuthenticated: true, isLoading: false };
 
     expect(frame()).toMatchObject({ isAuthenticated: true, isAuthenticating: false });
+  });
+});
+
+describe("hasSession", () => {
+  it("is true on a stored token Convex has not confirmed, as on a cold start with no signal", () => {
+    vendor.token = "token";
+    vendor.convex = { isAuthenticated: false, isLoading: true };
+
+    expect(frame()).toMatchObject({ hasSession: true, isAuthenticated: false });
+  });
+
+  it("is false with no token", () => {
+    expect(frame()).toMatchObject({ hasSession: false });
+  });
+});
+
+describe("signOut", () => {
+  it("leaves nothing of the cook on the device", async () => {
+    const getMe = makeFunctionReference<"query">("users/getMe:authed");
+    const key = deviceKey(getMe, {});
+    writeDevice(key, { data: { name: "Camille" } });
+
+    const { result } = renderHook(() => useAuthActions());
+    await act(() => result.current.signOut());
+
+    expect(readDevice(key)).toBeUndefined();
   });
 });

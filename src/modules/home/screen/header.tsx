@@ -7,10 +7,13 @@ import { theme } from "theme";
 import { router } from "expo-router";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { useAuth } from "~/modules/auth/hooks";
+import { useIsOffline } from "~/modules/network/hooks";
+import { HouseholdSelect } from "~/modules/households/household-select";
 
 /** Who you are, whose kitchen you are in, and the action the page puts on the right. */
 export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: ViewStyle }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, hasSession } = useAuth();
+  const isOffline = useIsOffline();
 
   return (
     <SafeAreaView
@@ -22,13 +25,18 @@ export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: View
           * The anonymous face while the row is still arriving, and for a cook who is not signed in
           * at all. Rendering nothing until the seed lands would move everything beside it once the
           * query resolves, and this header is the first thing drawn on the first screen.
+          *
+          * Offline, the chip in its place: the drawer switches households and signs out, and
+          * neither can reach the server.
           */}
-        <Avatar
-          seed={user?.avatarSeed ?? ANONYMOUS_AVATAR_SEED}
-          onPress={() => isAuthenticated ? router.push("/account") : router.dismissTo("/auth")}
-          animated
-          elevated
-        />
+        {isOffline ?
+          <HouseholdSelect style={styles.offlineChip} /> :
+          <Avatar
+            seed={user?.avatarSeed ?? ANONYMOUS_AVATAR_SEED}
+            onPress={() => hasSession ? router.push("/account") : router.dismissTo("/auth")}
+            animated
+            elevated
+          />}
       </View>
       {action}
     </SafeAreaView>
@@ -50,4 +58,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing[8],
   },
+  offlineChip: {
+    /** Fake offset to match the height of the Avatar */
+    marginBottom: theme.spacing[2],
+  }
 });

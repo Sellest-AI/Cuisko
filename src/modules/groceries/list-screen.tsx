@@ -70,6 +70,7 @@ export const GroceryScreen = ({ section }: GroceryScreenProps) => {
 const styles = StyleSheet.create({
   header: {
     padding: theme.spacing[24],
+    paddingBottom: theme.spacing[16],
     gap: theme.spacing[12],
     alignItems: "center",
   },
@@ -77,5 +78,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[12],
+    marginBottom: theme.spacing[12],
   },
 });

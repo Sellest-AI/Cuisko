@@ -26,7 +26,7 @@ export {
   BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck, CircleMinus,
   ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
   FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock,
-  LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat, ShoppingBasket, Undo2, Book, Mail
+  LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat, ShoppingBasket, Undo2, Book, Mail, WifiOff
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
@@ -41,7 +41,8 @@ export {
   Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,
   Play as PlayIcon, Pause as PauseIcon, SkipBack as SkipBackIcon, SkipForward as SkipForwardIcon,
   DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon, PencilIcon, GlobeIcon,
-  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, Link as LinkIcon, FlameIcon
+  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, Link as LinkIcon, FlameIcon,
+  WifiOff as WifiOffIcon
 } from "lucide-react-native";
 
 export { GoogleLogo, AppleLogo, InstagramTile, TikTokTile, WebTile } from "./icons.logos";

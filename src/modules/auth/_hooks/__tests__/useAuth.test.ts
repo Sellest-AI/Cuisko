@@ -18,16 +18,26 @@ const state = vi.hoisted(() => ({
   /** What the backend answers for the review account: `undefined` is still loading, `null` is closed. */
   reviewAccount: undefined as { email: string; password: string } | null | undefined,
   reviewQueryArgs: [] as unknown[],
+  /**
+   * A session apart from `signedIn`, for the cold start: a token stored, Convex confirming it or not,
+   * the provider still reading storage. Null leaves `signedIn` in charge.
+   */
+  session: null as { token: boolean; confirmed: boolean; isReadingStorage: boolean } | null,
+  /** The cook's row as `useQueryDevice` answers it: null is nothing yet, live or on the device. */
+  cook: null as { data: { name: string }; isPending: false } | null,
 }));
 
 vi.mock("@convex-dev/auth/react", () => ({
   useAuthActions: () => ({ signIn: state.signIn, signOut: vi.fn() }),
-  useAuthToken: () => (state.signedIn ? "token" : null),
+  useAuthToken: () => ((state.session?.token ?? state.signedIn) ? "token" : null),
 }));
 
 vi.mock("convex/react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("convex/react")>()),
-  useConvexAuth: () => ({ isAuthenticated: state.signedIn, isLoading: false }),
+  useConvexAuth: () => ({
+    isAuthenticated: state.session?.confirmed ?? state.signedIn,
+    isLoading: state.session?.isReadingStorage ?? false,
+  }),
 }));
 
 vi.mock("~/lib/appVersion", () => ({ APP_VERSION: "0.2.0" }));
@@ -46,6 +56,8 @@ vi.mock("~/lib/convex/client", async () => {
       state.reviewQueryArgs = args;
       return { data: state.reviewAccount, isPending: state.reviewAccount === undefined };
     },
+    /** The cook's row: unanswered unless a test puts a cook there (`state.cook`). */
+    useQueryDevice: () => state.cook ?? { data: undefined, isPending: true },
   };
 });
 
@@ -64,6 +76,8 @@ beforeEach(() => {
   state.signedIn = false;
   state.reviewAccount = undefined;
   state.reviewQueryArgs = [];
+  state.session = null;
+  state.cook = null;
   // A failed attempt logs under __DEV__; the assertions are on `error`, not on the console.
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
 });
@@ -265,5 +279,45 @@ describe("useAuth review account", () => {
     await act(() => result.current.signInAsReviewer());
 
     expect(result.current.error).toBe("error_review_account");
+  });
+});
+
+/**
+ * Whether `AuthGate` may lift the splash: the gate trusts `isLoading`, so the cold start it exists
+ * for is pinned here. A cook already on the device draws at once, confirmed or not.
+ */
+describe("useAuth.isLoading — cold start", () => {
+  const CAMILLE = { data: { name: "Camille" }, isPending: false } as const;
+
+  it("loads while the token is still being read from storage", () => {
+    state.session = { token: false, confirmed: false, isReadingStorage: true };
+
+    expect(renderHook(() => useAuth()).result.current.isLoading).toBe(true);
+  });
+
+  it("is done with a stored session and the cook on the device, before Convex confirms", () => {
+    state.session = { token: true, confirmed: false, isReadingStorage: false };
+    state.cook = CAMILLE;
+
+    const { result } = renderHook(() => useAuth());
+
+    expect(result.current).toMatchObject({ isLoading: false, hasSession: true, isAuthenticated: false });
+  });
+
+  it("loads with a stored session and no cook on the device, until Convex answers", () => {
+    state.session = { token: true, confirmed: false, isReadingStorage: false };
+
+    expect(renderHook(() => useAuth()).result.current.isLoading).toBe(true);
+  });
+
+  it("loads once confirmed while the cook's row is still arriving, and is done once it has", () => {
+    state.session = { token: true, confirmed: true, isReadingStorage: false };
+    const { result, rerender } = renderHook(() => useAuth());
+    expect(result.current.isLoading).toBe(true);
+
+    state.cook = CAMILLE;
+    rerender();
+
+    expect(result.current.isLoading).toBe(false);
   });
 });

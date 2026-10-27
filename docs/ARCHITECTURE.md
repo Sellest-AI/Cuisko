@@ -404,13 +404,16 @@ calls into screens.
 
 ```
 src/lib/convex/
-├── api.ts       re-exports api, Doc, Id from convex/_generated  ← the ONLY file that may
-├── client.ts    useQueryCached, useQuery, useMutation, useAction, useQueryCachedData
-├── auth.ts      useAuthenticated, useAuthActions (sign in / sign out)
-└── storage.ts   convexAuthStorage — Keychain/Keystore on native, localStorage on web
+├── api.ts          re-exports api, Doc, Id from convex/_generated  ← the ONLY file that may
+├── client.ts       useQueryCached, useQueryHeld, useQueryDevice, useQuery, useMutation, useAction,
+│                   useQueryCachedData
+├── deviceCache.ts  the device copy of query results (MMKV), keyed by bundle — read by useQueryDevice
+├── session.ts      useAuthenticated: isAuthenticated (confirmed) and hasSession (a token is stored)
+├── auth.ts         useAuthActions (sign in / sign out); re-exports useAuthenticated
+└── storage.ts      convexAuthStorage — Keychain/Keystore on native, localStorage on web
 ```
 
-`client.ts` earns its place over raw `convex/react` three times over:
+`client.ts` earns its place over raw `convex/react` four times over:
 
 - **`useQueryCached`** (`makeUseQueryWithStatus` over the helpers cache) returns a discriminated
   `{ status, data, error }` instead of `undefined`-means-loading, **and** holds results across
@@ -420,13 +423,21 @@ src/lib/convex/
 - **Mutations and actions return `{ mutate, isLoading, isSuccess, isError }`** instead of a bare
   function, removing hand-rolled loading state from every call site. They still *throw*: loading
   state is a UI concern, but what a failure means is the caller's decision.
+- **`useQueryDevice`** draws a query's last answer from the device (`deviceCache.ts`) until the
+  live one arrives, then writes that through: what makes a cold start draw at once, offline
+  included. Keys carry the bundle id, so an OTA update never reads a shape it did not write, and
+  the whole store is wiped when a session ends. Only the queries a cold start or an offline route
+  needs use it; everything else stays on `useQueryCached`.
 - **`useQueryCachedData`** caches **action** results. Queries are reactive and cached by Convex;
   actions are neither, so without this a screen re-runs its action on every mount.
 
-`auth.ts` holds no domain queries — `useAuthenticated` and sign-in/out only. Who the user *is*
+`session.ts` and `auth.ts` hold no domain queries — `useAuthenticated` and sign-in/out only. Who the user *is*
 belongs to a module hook (ADR 0006). Its `isAuthenticated` requires the token **and** the client's
 own flag **and** neither transition in flight: `useConvexAuth` alone flips true before the token is
-readable, and a screen trusting it fires its first query a beat too early.
+readable, and a screen trusting it fires its first query a beat too early. `hasSession` is the
+other question — a token is stored, confirmed or not — and it is what `AuthGate` redirects on: a
+stored session draws from the device offline, and only a token the server refused (cleared) sends
+the cook to `/auth`. `isAuthenticated` still decides when the server may be asked.
 
 `storage.ts` exists for `clear()`. @convex-dev/auth leaves the refresh token behind on sign-out,
 and a stale refresh token silently restores the session on next launch.

@@ -25,7 +25,7 @@ vi.mock("~/modules/households/hooks", () => ({
 }));
 
 vi.mock("~/lib/convex/client", () => ({
-  useQueryCached: (fn: unknown, args: unknown) => {
+  useQueryDevice: (fn: unknown, args: unknown) => {
     state.lastArgs = args;
     if (args === "skip") return { data: undefined, isPending: true, isStale: false };
 

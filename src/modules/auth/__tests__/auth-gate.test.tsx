@@ -1,7 +1,20 @@
 import { render } from "@testing-library/react";
+import { makeFunctionReference } from "convex/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { deviceKey, readDevice, writeDevice } from "~/lib/convex/deviceCache";
+
 import { AuthGate } from "../auth-gate";
+
+/** The states `useAuth` passes through, with every field the gate reads. */
+const SIGNED_OUT = { isAuthenticated: false, isAuthenticating: false, hasSession: false, isLoading: false };
+const SIGNED_IN = { isAuthenticated: true, isAuthenticating: false, hasSession: true, isLoading: false };
+/** Confirmed, the cook's row not there yet. */
+const ROW_ARRIVING = { ...SIGNED_IN, isLoading: true };
+/** A sign-in started on `/auth`, its token not landed. */
+const SIGNING_IN = { ...SIGNED_OUT, isAuthenticating: true, isLoading: true };
+/** A stored token Convex has not confirmed (offline, or the first beats of a cold start), the cook on the device. */
+const STORED_SESSION = { isAuthenticated: false, isAuthenticating: true, hasSession: true, isLoading: false };
 
 /**
  * The gate against the auth states it has to tell apart. `useAuth` and the router are faked: what
@@ -9,7 +22,7 @@ import { AuthGate } from "../auth-gate";
  * back to, and whether the splash may lift yet.
  */
 const state = vi.hoisted(() => ({
-  auth: { isAuthenticated: false, isLoading: false },
+  auth: {} as Record<string, boolean>,
   pathname: "/",
   isReady: true,
   reset: vi.fn(),
@@ -37,7 +50,8 @@ vi.mock("expo-splash-screen", () => ({
 const onlyScreen = (name: string) => ({ index: 0, routes: [{ name }] });
 
 beforeEach(() => {
-  state.auth = { isAuthenticated: false, isLoading: false };
+  state.auth = SIGNED_OUT;
+  localStorage.clear();
   state.pathname = "/";
   state.isReady = true;
   state.reset.mockReset();
@@ -48,7 +62,7 @@ beforeEach(() => {
 describe("AuthGate", () => {
   /** The splash lifting before the profile lands is what this gate exists to prevent. */
   it("holds the splash and decides nothing while auth or the profile is loading", () => {
-    state.auth = { isAuthenticated: true, isLoading: true };
+    state.auth = ROW_ARRIVING;
 
     render(<AuthGate />);
 
@@ -86,18 +100,18 @@ describe("AuthGate", () => {
     state.pathname = "/auth";
     const view = render(<AuthGate />);
 
-    state.auth = { isAuthenticated: true, isLoading: true };
+    state.auth = ROW_ARRIVING;
     view.rerender(<AuthGate />);
     expect(state.reset).not.toHaveBeenCalled();
 
-    state.auth = { isAuthenticated: true, isLoading: false };
+    state.auth = SIGNED_IN;
     view.rerender(<AuthGate />);
     expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("onboarding"));
   });
 
   /** The last step resets to home and the assistant itself; the gate must not race it. */
   it("leaves a signed-in person on the onboarding", () => {
-    state.auth = { isAuthenticated: true, isLoading: false };
+    state.auth = SIGNED_IN;
     state.pathname = "/onboarding/week";
 
     render(<AuthGate />);
@@ -117,13 +131,13 @@ describe("AuthGate", () => {
   /** `/auth` draws its own spinners mid sign-in; a cover over them blanked the page, then gave it back. */
   it("draws no cover over /auth while a sign-in resolves", () => {
     state.pathname = "/auth";
-    state.auth = { isAuthenticated: false, isLoading: true };
+    state.auth = SIGNING_IN;
 
     expect(render(<AuthGate />).container).toBeEmptyDOMElement();
   });
 
   it("covers any other page while auth resolves", () => {
-    state.auth = { isAuthenticated: true, isLoading: true };
+    state.auth = ROW_ARRIVING;
 
     expect(render(<AuthGate />).container).not.toBeEmptyDOMElement();
   });
@@ -139,7 +153,7 @@ describe("AuthGate", () => {
   });
 
   it("leaves a signed-in person where they are and lifts the splash", () => {
-    state.auth = { isAuthenticated: true, isLoading: false };
+    state.auth = SIGNED_IN;
     state.pathname = "/groceries";
 
     render(<AuthGate />);
@@ -147,5 +161,68 @@ describe("AuthGate", () => {
     expect(state.reset).not.toHaveBeenCalled();
     expect(state.replace).not.toHaveBeenCalled();
     expect(state.hide).toHaveBeenCalledOnce();
+  });
+
+  describe("with a session stored on the device", () => {
+    const getMe = makeFunctionReference<"query">("users/getMe:authed");
+
+    /** The cold start this exists for: offline, or before the socket confirms the token. */
+    it("lifts the splash on a cook from the device before Convex confirms, and keeps the cache", () => {
+      writeDevice(deviceKey(getMe, {}), { data: { name: "Camille" } });
+      state.auth = STORED_SESSION;
+
+      const view = render(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+      expect(state.replace).not.toHaveBeenCalled();
+      expect(state.hide).toHaveBeenCalledOnce();
+      expect(view.container).toBeEmptyDOMElement();
+      expect(readDevice(deviceKey(getMe, {}))).toBeDefined();
+    });
+
+    it("waits as before when the cook is not on the device yet", () => {
+      state.auth = { ...STORED_SESSION, isLoading: true };
+
+      render(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+      expect(state.hide).not.toHaveBeenCalled();
+    });
+
+    it("raises no cover when Convex confirms after the device draw", () => {
+      state.auth = STORED_SESSION;
+      const view = render(<AuthGate />);
+
+      state.auth = SIGNED_IN;
+      view.rerender(<AuthGate />);
+
+      expect(view.container).toBeEmptyDOMElement();
+      expect(state.reset).not.toHaveBeenCalled();
+    });
+
+    /** A refresh failing on a weak network keeps the tokens: the cook stays where they are. */
+    it("leaves the screen where it is while a stored session is unconfirmed mid-session", () => {
+      state.auth = SIGNED_IN;
+      state.pathname = "/groceries";
+      const view = render(<AuthGate />);
+
+      state.auth = STORED_SESSION;
+      view.rerender(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+    });
+
+    /** The server refused the session, or a cook signed out: the next one finds nothing of them. */
+    it("sends to /auth and clears the device once the session is gone", () => {
+      writeDevice(deviceKey(getMe, {}), { data: { name: "Camille" } });
+      state.auth = STORED_SESSION;
+      const view = render(<AuthGate />);
+
+      state.auth = SIGNED_OUT;
+      view.rerender(<AuthGate />);
+
+      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
+      expect(readDevice(deviceKey(getMe, {}))).toBeUndefined();
+    });
   });
 });

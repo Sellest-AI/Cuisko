@@ -63,7 +63,8 @@ const answer = (fn: unknown) => {
   throw new Error(`Unmocked query: ${name}`);
 };
 
-vi.mock("~/lib/convex/client", () => ({
+vi.mock("~/lib/convex/client", () => {
+  const client = {
   useQueryCached: (fn: unknown, args: unknown) =>
     args === "skip" ? SKIPPED : { ...answer(fn), isStale: false },
 
@@ -104,7 +105,15 @@ vi.mock("~/lib/convex/client", () => ({
       },
     };
   },
-}));
+  };
+
+  /** `useSnapshot` reads through `useQueryDevice`; held when it asks to be, cached otherwise. */
+  return {
+    ...client,
+    useQueryDevice: (fn: unknown, args: unknown, options?: { hold?: boolean }) =>
+      options?.hold ? client.useQueryHeld(fn, args) : client.useQueryCached(fn, args),
+  };
+});
 
 const CARROT = "carrot-id";
 const at = Date.now();

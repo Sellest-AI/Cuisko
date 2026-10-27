@@ -2,7 +2,7 @@ import type { WeekSummary } from "@shared/weekSummary";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
-import { useQueryCached } from "~/lib/convex/client";
+import { useQueryDevice } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 /**
@@ -13,7 +13,7 @@ export const useWeekSummary = (): { summary: WeekSummary | undefined } => {
   const locale = useLocale();
   const { householdId } = useHousehold();
 
-  const { data } = useQueryCached(
+  const { data } = useQueryDevice(
     api.router.health.getWeekSummary.authed,
     householdId ? { householdId, locale } : "skip",
   );

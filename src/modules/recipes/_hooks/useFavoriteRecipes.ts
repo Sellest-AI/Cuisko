@@ -1,6 +1,6 @@
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
-import { useQueryCached } from "~/lib/convex/client";
+import { useQueryDevice } from "~/lib/convex/client";
 
 /**
  * The cook's shelf: the recipes they favorited, newest favorite first, as cards.
@@ -10,11 +10,12 @@ import { useQueryCached } from "~/lib/convex/client";
  * they KEPT, capped server-side and drawn as one row. Folding it into the list would make one
  * hook return two shapes, and the screen already knows which of the two it is drawing.
  *
- * `useQueryCached` so the shelf survives a tab switch the way the grid beneath it does.
+ * `useQueryDevice` so the shelf survives a tab switch the way the grid beneath it does, and on the
+ * device so Home draws it on a cold start and with no signal.
  */
 export const useFavoriteRecipes = () => {
   const locale = useLocale();
-  const query = useQueryCached(api.router.recipes.getFavorites.authed, { locale });
+  const query = useQueryDevice(api.router.recipes.getFavorites.authed, { locale });
 
   return {
     favorites: query.data ?? [],

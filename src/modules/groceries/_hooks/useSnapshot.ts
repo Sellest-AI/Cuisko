@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api, type Doc } from "~/lib/convex/api";
-import { useQueryCached, useQueryHeld } from "~/lib/convex/client";
+import { useQueryDevice } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
 import { receiptsAtom } from "./atoms";
@@ -104,13 +104,16 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
   const locale = useLocale();
   const { householdId, isLoading: isResolvingHousehold } = useHousehold();
 
-  /** One argument for all three, and `'skip'` until there is a household to scope them to. */
+  /**
+   * One argument for all three, and `'skip'` until there is a household to scope them to. All on
+   * the device: the list is the screen a cook opens in the shop, where the signal is worst.
+   */
   const scope = householdId ? { householdId } : "skip";
 
-  const lines = useQueryCached(api.router.cellars.getGroceryList.authed, scope);
-  const cellar = useQueryCached(api.router.cellars.getCellar.authed, scope);
-  const history = useQueryCached(api.router.cellars.getRecentlyUsed.authed, scope);
-  const plates = useQueryCached(
+  const lines = useQueryDevice(api.router.cellars.getGroceryList.authed, scope);
+  const cellar = useQueryDevice(api.router.cellars.getCellar.authed, scope);
+  const history = useQueryDevice(api.router.cellars.getRecentlyUsed.authed, scope);
+  const plates = useQueryDevice(
     api.router.cellars.getPlatesOnList.authed,
     householdId ? { householdId, locale } : "skip",
   );
@@ -125,10 +128,14 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
    * Held, not merely cached. `ids` changes as a *consequence* of the rows on screen changing, so
    * every add and remove re-keys this query — and `buildSections` drops a row whose ingredient it
    * cannot name, which would empty the whole grid for a round trip on each one.
+   *
+   * On the device with `ids` loose: one entry per locale, the names of the last rows seen, which
+   * are the rows the device copy of the three lists above draws.
    */
-  const ingredients = useQueryHeld(
+  const ingredients = useQueryDevice(
     api.router.ingredients.list.anon,
     ids.length > 0 ? { ids, locale } : "skip",
+    { loose: ["ids"], hold: true },
   );
 
   const receipts = useAtomValue(receiptsAtom);
@@ -174,7 +181,7 @@ export const useSnapshot = (): Snapshot & { isLoading: boolean } => {
       plates: (plates.data ?? EMPTY).map(_toPlate),
       now,
       /**
-       * The names are not waited for: `useQueryHeld` keeps the previous ones on screen while the
+       * The names are not waited for: the hold keeps the previous ones on screen while the
        * next set loads, so a row never goes unnamed once it has been named.
        *
        * Scoped on `householdId` rather than on the three `isPending` flags, because a skipped

@@ -9,6 +9,7 @@ import { AuthGate } from "~/modules/auth/auth-gate";
 import { RestartOnSignOut } from "~/modules/auth/restart-on-sign-out";
 import { HouseholdAtomsReset } from "~/modules/households/household-atoms-reset";
 import { NavigationBar } from "~/modules/navigation/navigation-bar";
+import { OfflineGate } from "~/modules/network/offline-gate";
 import { ShareIntentListener } from "~/modules/recipes/share-intent-listener";
 import { Providers } from "~/providers";
 
@@ -126,6 +127,8 @@ export default function RootLayout() {
       <AnalyticsTracking />
       {/* After everything else, so its cover draws over the bar and the page as well. */}
       <AuthGate />
+      {/* After the auth gate: it waits for that gate to settle on a session before it sends anyone offline. */}
+      <OfflineGate />
       {/* Last of all: a session can end on any screen, and its cover draws over the gate's sign-in. */}
       <RestartOnSignOut />
     </Providers>

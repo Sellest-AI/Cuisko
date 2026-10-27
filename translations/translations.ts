@@ -13,6 +13,7 @@ import enGroceries from "./en/groceries.json";
 import enHealth from "./en/health.json";
 import enHome from "./en/home.json";
 import enNavigation from "./en/navigation.json";
+import enNetwork from "./en/network.json";
 import enOnboarding from "./en/onboarding.json";
 import enPlanning from "./en/planning.json";
 import enRecipe from "./en/recipe.json";
@@ -26,6 +27,7 @@ import frGroceries from "./fr/groceries.json";
 import frHealth from "./fr/health.json";
 import frHome from "./fr/home.json";
 import frNavigation from "./fr/navigation.json";
+import frNetwork from "./fr/network.json";
 import frOnboarding from "./fr/onboarding.json";
 import frPlanning from "./fr/planning.json";
 import frRecipe from "./fr/recipe.json";
@@ -63,6 +65,7 @@ i18n.use(initReactI18next).init({
         Health: enHealth,
         Home: enHome,
         Navigation: enNavigation,
+        Network: enNetwork,
         Onboarding: enOnboarding,
         Planning: enPlanning,
         Recipe: enRecipe,
@@ -80,6 +83,7 @@ i18n.use(initReactI18next).init({
         Health: frHealth,
         Home: frHome,
         Navigation: frNavigation,
+        Network: frNetwork,
         Onboarding: frOnboarding,
         Planning: frPlanning,
         Recipe: frRecipe,

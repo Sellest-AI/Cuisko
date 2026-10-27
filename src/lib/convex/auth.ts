@@ -2,49 +2,17 @@ import { useAuthActions as useConvexAuthActions, useAuthToken } from "@convex-de
 import { useConvexAuth } from "convex/react";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
-import { atom, useAtom } from "jotai";
 import { useCallback, useState } from "react";
 import { Platform } from "react-native";
 
+import { clearDeviceCache } from "./deviceCache";
+import { useAuthenticated } from "./session";
 import { convexAuthStorage } from "./storage";
 
 export type Credentials = { email: string; password: string };
 
 /** The OAuth providers the auth screen offers. Ids match the provider ids in `convex/auth.ts`. */
 export type OAuthProvider = "google" | "apple";
-
-/**
- * True only while a sign-in or sign-out is mid-flight.
- *
- * Module-scoped rather than component state because the transition outlives any one component:
- * `signOut` unmounts the screen that started it.
- */
-const authenticatingAtom = atom(false);
-
-/**
- * Whether the app is really authenticated — the question every gate should ask.
- *
- * All four conditions matter. `useConvexAuth` alone flips to `true` before the token is readable,
- * and a screen that trusts it fires its first query a beat too early and gets rejected. Requiring
- * the token as well, and excluding both transition states, is what makes this a single reliable
- * boolean instead of a race the UI has to paper over.
- *
- * The race runs the other way too. When a sign-in lands its token, Convex still reports the
- * signed-out `{ isLoading: false, isAuthenticated: false }` for one render, and only starts
- * confirming the token in an effect after it. A token Convex has not confirmed is therefore
- * "authenticating", never "signed out" — or every gate bounces to its signed-out answer mid sign-in.
- */
-export const useAuthenticated = () => {
-  const token = useAuthToken();
-  const { isAuthenticated: isConvexAuthenticated, isLoading } = useConvexAuth();
-  const [isTransitioning, setAuthenticating] = useAtom(authenticatingAtom);
-
-  return {
-    isAuthenticated: !!token && isConvexAuthenticated && !isTransitioning && !isLoading,
-    isAuthenticating: isTransitioning || isLoading || (!!token && !isConvexAuthenticated),
-    setAuthenticating,
-  };
-};
 
 /**
  * Sign-in and sign-out, vendor-side only. No domain queries live here — a module's `_hooks/`
@@ -122,12 +90,14 @@ export const useAuthActions = () => {
   /**
    * Clearing storage after `signOut()` is not belt-and-braces — @convex-dev/auth leaves the
    * refresh token behind, and a stale refresh token silently restores the session on next launch.
+   * The device copy of the cook's data goes with it, before `RestartOnSignOut` reloads the app.
    */
   const signOut = useCallback(async () => {
     setAuthenticating(true);
     try {
       await convex.signOut();
       await convexAuthStorage.clear();
+      clearDeviceCache();
     } finally {
       setAuthenticating(false);
     }
@@ -136,4 +106,4 @@ export const useAuthActions = () => {
   return { isSubmitting, signIn, signInWithProvider, signOut };
 };
 
-export { useAuthToken, useConvexAuth };
+export { useAuthenticated, useAuthToken, useConvexAuth };

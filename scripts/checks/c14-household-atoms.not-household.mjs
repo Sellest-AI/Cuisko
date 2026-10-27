@@ -6,7 +6,7 @@
  * value is not about a kitchen — "it is UI" is a reason, "it was here already" is not.
  */
 export const NOT_HOUSEHOLD = {
-  "src/lib/convex/auth.ts:authenticatingAtom":
+  "src/lib/convex/session.ts:authenticatingAtom":
     "whether a sign-in is in flight: about the session, before any household is known",
   "src/lib/convex/client.ts:cachedAtom":
     "action results keyed by their arguments, which already carry any householdId they depend on",
@@ -25,6 +25,8 @@ export const NOT_HOUSEHOLD = {
     "the recipe the open assistant was asked from, set by its route and put down when it closes",
   "src/modules/groceries/_hooks/atoms.ts:sortAtom":
     "a way of looking at the list, not a fact about the kitchen",
+  "src/modules/network/_hooks/atoms.ts:isOfflineAtom":
+    "whether the device reaches the server: about the phone's signal, not a kitchen",
   "src/modules/navigation/_hooks/useNavigationBar.ts:modeAtom": "the bar's own mode: UI chrome",
   "src/modules/navigation/_hooks/useNavigationBar.ts:refsAtom": "the bar's input refs: UI chrome",
   "src/modules/navigation/_hooks/useStagedPhoto.ts:uploadBase64Atom":

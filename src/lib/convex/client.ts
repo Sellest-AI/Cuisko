@@ -1,9 +1,12 @@
 import { makeUseQueryWithStatus } from "convex-helpers/react";
 import { useQueries } from "convex-helpers/react/cache";
-import type { FunctionReference } from "convex/server";
+import { getFunctionName, type FunctionReference } from "convex/server";
 import { useAction as useConvexAction, useMutation as useConvexMutation, type OptionalRestArgsOrSkip } from "convex/react";
 import { atom, useAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { useAuthenticated } from "./session";
+import { deleteDevice, deviceKey, readDevice, writeDevice } from "./deviceCache";
 
 /**
  * Convex bindings, wrapped once so no call site hand-rolls loading state.
@@ -22,8 +25,34 @@ export { usePaginatedQuery as usePaginatedQueryCached } from "convex-helpers/rea
  * Two things over raw `useQuery`: a discriminated `{ status, data, error }` result instead of
  * `undefined`-means-loading, and a cache that survives unmount — which is what stops every tab
  * switch from re-fetching and flashing a spinner at content the user just looked at.
+ *
+ * Gone on a cold start, and empty with no signal. A query a screen allowed offline draws on open
+ * (`OFFLINE_ROUTES`, module `network`) takes `useQueryDevice` instead.
  */
 export const useQueryCached = makeUseQueryWithStatus(useQueries);
+
+type QueryStatus<Query extends FunctionReference<"query">> = ReturnType<typeof useQueryCached<Query>>;
+
+/**
+ * Keeps the last value while the next one loads. `"skip"` is not a slower answer, it is the absence
+ * of a question — there is nothing to hold.
+ */
+const useHold = <Query extends FunctionReference<"query">>(
+  result: QueryStatus<Query>,
+  isSkipped: boolean,
+  isOn = true,
+) => {
+  const [held, setHeld] = useState<Query["_returnType"] | undefined>(undefined);
+
+  // Set while rendering, React's pattern for a value that follows the previous render's: it redraws
+  // at once, before anything is committed.
+  const next = isSkipped || !isOn ? undefined : (result.data ?? held);
+  if (next !== held) setHeld(next);
+
+  const data = result.data ?? next;
+
+  return { ...result, data, isStale: result.data === undefined && data !== undefined };
+};
 
 /**
  * `useQueryCached`, but the last result stays on screen while the next one loads.
@@ -40,17 +69,62 @@ export const useQueryCached = makeUseQueryWithStatus(useQueries);
 export const useQueryHeld = <Query extends FunctionReference<"query">>(
   query: Query,
   ...args: OptionalRestArgsOrSkip<Query>
+) => useHold(useQueryCached(query, ...args), args[0] === "skip");
+
+export type DeviceOptions<Query extends FunctionReference<"query">> = {
+  /**
+   * Args left out of the entry's key: the stored answer is served when the other args match,
+   * whatever these were. For a window that moves (yesterday's week still holds today's meals) or an
+   * id list that grows, never for what says whose data it is (`householdId`, `locale`).
+   */
+  loose?: readonly (keyof Query["_args"] & string)[];
+  /** Keep the last value while the next one loads, as `useQueryHeld` does (`isStale`). */
+  hold?: boolean;
+};
+
+/**
+ * `useQueryCached`, with its last answer kept on the device: a cold start draws it before any round
+ * trip, and draws it with no signal at all. The device copy is served until the first live answer,
+ * which replaces it and is written through; `isFromDevice` says which is on screen.
+ *
+ * The caller's `"skip"` says whether there is a subject: a stored session is enough, since reading
+ * the device sends nothing. This hook decides whether the server can be asked yet: an `authed`
+ * subscription opens only once Convex has confirmed the token, or it reaches the server early and is
+ * rejected. An `anon` one needs no token, and opens at once. A live error drops the entry, so a
+ * household left or a row gone does not come back from the device next start.
+ */
+export const useQueryDevice = <Query extends FunctionReference<"query">>(
+  query: Query,
+  args: Query["_args"] | "skip",
+  { loose, hold = false }: DeviceOptions<Query> = {},
 ) => {
-  const live = useQueryCached(query, ...args);
-  const held = useRef<Query["_returnType"] | undefined>(undefined);
+  const { isAuthenticated } = useAuthenticated();
+  const canAsk = isAuthenticated || getFunctionName(query).endsWith(":anon");
+  const live = useQueryCached(
+    query,
+    ...((args === "skip" || !canAsk ? ["skip"] : [args]) as OptionalRestArgsOrSkip<Query>),
+  );
+  const key = args === "skip" ? undefined : deviceKey(query, args, loose);
 
-  // `"skip"` is not a slower answer, it is the absence of a question — there is nothing to hold.
-  if (args[0] === "skip") held.current = undefined;
-  else if (live.data !== undefined) held.current = live.data;
+  // Read only while the live answer is missing, and again each time it goes missing, so an entry
+  // this hook just wrote or deleted is not served from a read before it.
+  const stored = useMemo(
+    () => (key && live.status === "pending" ? readDevice(key) : undefined),
+    [key, live.status],
+  );
 
-  const data = live.data ?? held.current;
+  useEffect(() => {
+    if (!key) return;
+    if (live.status === "success") writeDevice(key, { data: live.data });
+    if (live.status === "error") deleteDevice(key);
+  }, [key, live.status, live.data]);
 
-  return { ...live, data, isStale: live.data === undefined && data !== undefined };
+  const isFromDevice = live.status === "pending" && stored !== undefined;
+  const result: QueryStatus<Query> = isFromDevice
+    ? { status: "success", data: stored.data as Query["_returnType"], error: undefined, isSuccess: true, isPending: false, isError: false }
+    : live;
+
+  return { ...useHold(result, args === "skip", hold), isFromDevice };
 };
 
 /**
