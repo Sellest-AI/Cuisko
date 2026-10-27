@@ -21,6 +21,13 @@ SplashScreen.preventAutoHideAsync().catch((cause) => {
 });
 
 /**
+ * Android fades the splash out over 400 ms by default, on an ease-in curve: its first half barely
+ * moves, so it reads as more launch time rather than a transition. iOS cuts with no fade at all
+ * (`fade` defaults to false there), which this leaves as is.
+ */
+SplashScreen.setOptions({ duration: 200 });
+
+/**
  * Reset to by the group's name, so its layout's `initialRouteName` picks the first step. The href
  * names that step outright, because the group has no index route for `/onboarding` to land on.
  */
@@ -64,9 +71,9 @@ export const AuthGate = () => {
   const isSignedOut = !hasSession && !isAuthenticating;
   const destination: Destination | null =
     isLoading ? null
-    : isSignedOut && !isOnAuth ? AUTH
-    : isAuthenticated && isOnAuth ? ONBOARDING
-    : null;
+      : isSignedOut && !isOnAuth ? AUTH
+        : isAuthenticated && isOnAuth ? ONBOARDING
+          : null;
   const isSettled = !isLoading && destination === null;
 
   /** Two cooks can share a phone: a session that ends leaves nothing of the last one on disk. */

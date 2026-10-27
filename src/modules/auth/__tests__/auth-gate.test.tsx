@@ -43,6 +43,7 @@ vi.mock("expo-router", () => {
 
 vi.mock("expo-splash-screen", () => ({
   preventAutoHideAsync: () => Promise.resolve(true),
+  setOptions: () => undefined,
   hide: state.hide,
 }));
 
