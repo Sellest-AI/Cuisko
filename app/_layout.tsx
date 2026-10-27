@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { BlurScope, BlurTarget } from "@ui/blur-view";
 import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { theme } from "~/global/theme";
+import { prefetchAuthToken } from "~/lib/convex/storage";
 import { AnalyticsTracking } from "~/modules/auth/analytics-tracking";
 import { AuthGate } from "~/modules/auth/auth-gate";
 import { RestartOnSignOut } from "~/modules/auth/restart-on-sign-out";
@@ -12,6 +13,9 @@ import { NavigationBar } from "~/modules/navigation/navigation-bar";
 import { OfflineGate } from "~/modules/network/offline-gate";
 import { ShareIntentListener } from "~/modules/recipes/share-intent-listener";
 import { Providers } from "~/providers";
+
+/** Before the first render: the token read is the longest wait of a cold start (`prefetchAuthToken`). */
+prefetchAuthToken();
 
 /**
  * Root layout: the provider tree and the navigator. Nothing else belongs here.

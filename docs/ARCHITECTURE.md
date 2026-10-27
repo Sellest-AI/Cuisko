@@ -410,7 +410,8 @@ src/lib/convex/
 ├── deviceCache.ts  the device copy of query results (MMKV), keyed by bundle — read by useQueryDevice
 ├── session.ts      useAuthenticated: isAuthenticated (confirmed) and hasSession (a token is stored)
 ├── auth.ts         useAuthActions (sign in / sign out); re-exports useAuthenticated
-└── storage.ts      convexAuthStorage — Keychain/Keystore on native, localStorage on web
+└── storage.ts      convexAuthStorage — Keychain/Keystore on native, localStorage on web;
+                    prefetchAuthToken starts the JWT read before the first render
 ```
 
 `client.ts` earns its place over raw `convex/react` four times over:
