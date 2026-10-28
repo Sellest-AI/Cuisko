@@ -10,7 +10,9 @@
     "not_found_body": "It may have been deleted, or the link is wrong.",
     "not_found_action": "Back to my recipes",
     "created_by": "Created by",
-    "anonymous_chef": "Anonymous"
+    "anonymous_chef": "Anonymous",
+    "share_message_x_title": "\"{{title}}\" on Cuisko",
+    "share_message_x_title_x_url": "\"{{title}}\" on Cuisko: {{url}}"
   },
   "Overview": {
     "utensils": "Utensils",

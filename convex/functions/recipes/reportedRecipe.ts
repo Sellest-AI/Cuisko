@@ -28,3 +28,18 @@ export const reportedRecipeOf = (recipeId: Id<"recipes">, recipe: Doc<"recipes">
 /** The same, for a writer that never loaded the recipe. */
 export const reportedRecipe = async (ctx: Pick<QueryCtx, "db">, recipeId: Id<"recipes">): Promise<ReportedRecipe> =>
   reportedRecipeOf(recipeId, await ctx.db.get(recipeId));
+
+/**
+ * The same, and whether `viewerId` wrote the recipe, from the one read: for an event about a cook
+ * acting on a recipe that may not be theirs (`recipe shared`). A recipe that is gone is nobody's,
+ * so it reports `isOwned: false` beside its bare id.
+ */
+export const reportedRecipeForViewer = async (
+  ctx: Pick<QueryCtx, "db">,
+  recipeId: Id<"recipes">,
+  viewerId: Id<"users">,
+): Promise<ReportedRecipe & { isOwned: boolean }> => {
+  const recipe = await ctx.db.get(recipeId);
+
+  return { ...reportedRecipeOf(recipeId, recipe), isOwned: recipe?.userId === viewerId };
+};

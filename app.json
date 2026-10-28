@@ -12,6 +12,7 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.cuisko.app",
+      "associatedDomains": ["applinks:cuisko.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to turn what you say into text, so you can ask about a recipe or an ingredient out loud.",
@@ -23,6 +24,14 @@
       "userInterfaceStyle": "light",
       "backgroundColor": "#FFFCFA",
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "cuisko.app", "pathPrefix": "/r/" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"

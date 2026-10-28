@@ -52,6 +52,13 @@ documentation this project exists to avoid — see the note on drift in [adr/REA
 
 **Deployments** — Convex deployments, EAS channels and the CI secrets: [deployments.md](./deployments.md).
 
+**Website** — cuisko.app is the `cuisko-web` repo (Next.js, a sibling of this one), on Vercel.
+`cuisko.app` is the primary domain and `www` redirects to it; keep it that way, because the app's
+links claim the apex and Apple and Android refuse a verification file behind a redirect. The site
+serves those files from `public/.well-known/`: the Apple Team ID in them is read at
+developer.apple.com → Membership, and the Android SHA-256 values at Play Console → Protected with
+Play → Play app signing (app signing key and upload key). A new signing key means a new line there.
+
 **Not yet recorded**, because it does not exist or has not been asked for yet — listed so the
 absence reads as *not yet* rather than *forgotten*:
 

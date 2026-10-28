@@ -115,6 +115,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
         headerContent={
           <RecipeHeader
             recipeId={id}
+            title={recipe?.title}
             isOwned={recipe?.isOwned}
             isFavorited={recipe?.isFavorited}
           />
@@ -163,7 +164,9 @@ export const RecipeChrome = ({ children, servings }: Props) => {
         </TabSwipe>
       </ParallaxScrollView>
       <ChromeNavigationBar
-        onBack={() => router.back()}
+        // A recipe opened cold from a shared link is the only screen on the stack, where a bare
+        // `back()` is a no-op; home is what is behind it then, as on the missing state above.
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/"))}
         onStepByStep={() => router.push(`/recipe/step-by-step/${id}`)}
       />
     </>

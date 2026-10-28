@@ -111,6 +111,12 @@ export type EventProperties = Flat<{
   "recipe created": { recipeId: Id<"recipes">; ingredients: number };
   /** A new recipe read from a page or a video (`recipes/createOne`, `recipes/importVideo`). */
   "recipe imported": { recipeId: Id<"recipes">; source: "link" | "video"; ingredients: number };
+  /**
+   * The share sheet reported a recipe's link sent (`recipes/recordShare`). On Android the sheet
+   * cannot tell a cancel from a send, so a cancel there counts too. `isOwned` tells a cook passing
+   * on their own recipe from one passing on the catalog's or another cook's.
+   */
+  "recipe shared": ReportedRecipe & { isOwned: boolean };
 
   // The chat.
   /**

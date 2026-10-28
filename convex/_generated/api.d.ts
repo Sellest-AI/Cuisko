@@ -313,6 +313,7 @@ import type * as router_recipes_importOneNode from "../router/recipes/importOneN
 import type * as router_recipes_importVideo from "../router/recipes/importVideo.js";
 import type * as router_recipes_importVideoNode from "../router/recipes/importVideoNode.js";
 import type * as router_recipes_missingIds from "../router/recipes/missingIds.js";
+import type * as router_recipes_recordShare from "../router/recipes/recordShare.js";
 import type * as router_recipes_restoreOne from "../router/recipes/restoreOne.js";
 import type * as router_recipes_search from "../router/recipes/search.js";
 import type * as router_recipes_setFavorite from "../router/recipes/setFavorite.js";
@@ -653,6 +654,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/importVideo": typeof router_recipes_importVideo;
   "router/recipes/importVideoNode": typeof router_recipes_importVideoNode;
   "router/recipes/missingIds": typeof router_recipes_missingIds;
+  "router/recipes/recordShare": typeof router_recipes_recordShare;
   "router/recipes/restoreOne": typeof router_recipes_restoreOne;
   "router/recipes/search": typeof router_recipes_search;
   "router/recipes/setFavorite": typeof router_recipes_setFavorite;

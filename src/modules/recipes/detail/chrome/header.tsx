@@ -8,11 +8,14 @@ import { theme } from "theme";
 import type { Id } from "~/lib/convex/api";
 
 import { useSetRecipeFavorite } from "../../_hooks/useSetRecipeFavorite";
+import { useShareRecipe } from "../../_hooks/useShareRecipe";
 import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
 
 type Props = {
-  /** The recipe the heart and the pencil act on. Absent only before the route parameter has arrived. */
+  /** The recipe the heart, the pencil and the share act on. Absent only before the route parameter has arrived. */
   recipeId?: string;
+  /** From the `getOne` payload. The share message names it; absent until the recipe has arrived. */
+  title?: string;
   /** From the `getOne` payload. The pencil renders only when this is exactly true. */
   isOwned?: boolean;
   /** From the `getOne` payload. Drives the heart's variant; absent until the recipe has arrived. */
@@ -27,14 +30,18 @@ type Props = {
  * because the parallax header scales and translates this whole view as the page scrolls — a flow
  * layout would reflow under the transform instead of moving with it.
  *
- * It takes the two flags rather than fetching them. The chrome above it already holds
+ * It takes the title and the two flags rather than fetching them. The chrome above it already holds
  * the recipe, and this view is re-rendered by the parallax on every scroll frame — a subscription
  * here would be a second reader of one cache entry for data its parent had in hand. The favorite
- * WRITE is called from here, though: a mutation is not a subscription, and the heart is the only
- * thing that sends it.
+ * and share WRITES are called from here, though: a mutation is not a subscription, and each button
+ * is the only thing that sends its own.
  */
-export const RecipeHeader = ({ recipeId, isOwned, isFavorited }: Props) => {
+export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited }: Props) => {
   const { set } = useSetRecipeFavorite();
+  const { share } = useShareRecipe();
+
+  /** Guarded on the title: the message names the recipe, and a link with no name reads as spam. */
+  const onShare = recipeId && title ? () => share({ id: recipeId, title }) : undefined;
 
   /**
    * Guarded on the flag having arrived, not only on the id: before the payload lands there is no
@@ -72,10 +79,12 @@ export const RecipeHeader = ({ recipeId, isOwned, isFavorited }: Props) => {
           </ButtonIcon>
         )}
         {/*
-          * Inert. A recipe is readable by any signed-in cook (ADR 0014), so a link CAN now be
-          * shared — the button, its payload and its copy are a slice of their own.
+          * Anyone may share, not only the author: a recipe is readable by any signed-in cook
+          * (ADR 0014), and the link opens it for them.
           */}
-        <ButtonIcon variant="neutral" size="sm">{Share2}</ButtonIcon>
+        <ButtonIcon onPress={onShare} disabled={onShare === undefined} variant="neutral" size="sm">
+          {Share2}
+        </ButtonIcon>
         {/*
           * The kept state is the brand disc, not `danger`: that variant is documented as
           * destructive and is the only place in the app that fills a control with red.

@@ -10,7 +10,9 @@
     "not_found_body": "Elle a peut-être été supprimée, ou le lien est incorrect.",
     "not_found_action": "Retour à mes recettes",
     "created_by": "Créée par",
-    "anonymous_chef": "Anonyme"
+    "anonymous_chef": "Anonyme",
+    "share_message_x_title": "« {{title}} » sur Cuisko",
+    "share_message_x_title_x_url": "« {{title}} » sur Cuisko : {{url}}"
   },
   "Overview": {
     "utensils": "Ustensiles",
