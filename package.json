@@ -1,6 +1,6 @@
 {
   "name": "cuisko",
-  "version": "0.7.0",
+  "version": "0.7.9",
   "private": true,
   "license": "UNLICENSED",
   "main": "expo-router/entry",
