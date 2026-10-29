@@ -35,8 +35,15 @@ export type RecipeStatus = (typeof RECIPE_STATUSES)[number];
 
 export const recipes = defineTable({
   title: vLocalized,
-  description: vLocalized,
-  instructions: vLocalized,
+  /**
+   * Moved to `recipeContents`, and optional only until `moveRecipeContent` has run on every
+   * deployment. No writer sets them; `recipeContent.ts` alone reads them, as a fallback for a row
+   * the migration has not reached and to move or unset them. The deploy that removes them comes
+   * after the migration has finished on prod; Convex refuses it anywhere a row still holds one.
+   * Writing them now would be lost: every read prefers the content row.
+   */
+  description: v.optional(vLocalized),
+  instructions: v.optional(vLocalized),
   servings: v.number(),
   equipments: vEquipments,
   difficulty: v.union(...DIFFICULTY_LEVELS.map(v.literal)),
@@ -184,6 +191,26 @@ export const recipes = defineTable({
   .searchIndex("search_fr", { searchField: "search.fr", filterFields: [...FACET_FIELDS] })
   .searchIndex("search_title_en", { searchField: "title.values.en", filterFields: [...FACET_FIELDS] })
   .searchIndex("search_title_fr", { searchField: "title.values.fr", filterFields: [...FACET_FIELDS] });
+
+/**
+ * The long text of a recipe: its description and its instructions, every locale in one row.
+ *
+ * Apart from `recipes` because nothing that reads many recipes shows it. Convex reads a whole
+ * document whatever the caller keeps, so the planning pool's 500 rows, the lists and the search
+ * paid for every locale of every method to print a title. Each locale added grows this text by
+ * about 1.5 KB per recipe; on `recipes` that cost every bulk read, here only the recipe page,
+ * the translation run and the assistant's brief pay it.
+ *
+ * One row per recipe. Convex has no unique index, so every write goes through one function in
+ * `recipeContent.ts` (`_put`), whose callers read `by_recipe` before it inserts. `instructions`
+ * holds the serialized groups, as `serializeInstructions` writes them.
+ */
+export const recipeContents = defineTable({
+  recipeId: v.id("recipes"),
+  description: vLocalized,
+  instructions: vLocalized,
+  updatedAt: v.number(), // S5
+}).index("by_recipe", ["recipeId"]);
 
 export const recipeIngredients = defineTable({
   recipeId: v.id("recipes"),

@@ -12,6 +12,7 @@ import type { RecipeNutrition } from "@shared/nutrition";
 import type { Category } from "@shared/categories";
 
 import { coverOf, plateOf, type RecipeCard, toRecipeCard } from "./recipeCard";
+import { loadRecipeContent } from "./recipeContent";
 import { loadRecipeLines, nutritionOfLines, withCuiScore, type WeighableLine } from "./recipeNutrition";
 
 type LoadCtx = Pick<QueryCtx, "db">;
@@ -302,12 +303,13 @@ export const loadRecipe = async (
 ): Promise<RecipeDetail> => {
   const recipe = await _resolve(ctx, target);
 
-  const [{ lines, weighable, lineCount }, chef, cover, plate, flags] = await Promise.all([
+  const [{ lines, weighable, lineCount }, chef, cover, plate, flags, text] = await Promise.all([
     _linesOf(ctx, recipe._id, locale),
     _chefOf(ctx, recipe),
     coverOf(ctx, recipe),
     plateOf(ctx, recipe),
     _flagsOf(ctx, recipe, viewer),
+    loadRecipeContent(ctx, recipe),
   ]);
 
   return {
@@ -315,8 +317,8 @@ export const loadRecipe = async (
     ...toRecipeCard(recipe, locale, cover, plate),
     coverImageLargeUrl: cover?.sizes.large.url,
     plateImageLargeUrl: plate?.sizes.large.url,
-    description: resolvei18n(recipe.description, locale),
-    instructions: parseInstructions(resolvei18n(recipe.instructions, locale)),
+    description: resolvei18n(text.description, locale),
+    instructions: parseInstructions(resolvei18n(text.instructions, locale)),
     servings: recipe.servings,
     difficulty: recipe.difficulty,
     equipments: recipe.equipments,

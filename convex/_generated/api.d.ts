@@ -170,6 +170,7 @@ import type * as functions_recipes_missingRecipeIds from "../functions/recipes/m
 import type * as functions_recipes_persistRestoredRecipe from "../functions/recipes/persistRestoredRecipe.js";
 import type * as functions_recipes_recipeCard from "../functions/recipes/recipeCard.js";
 import type * as functions_recipes_recipeChangesOf from "../functions/recipes/recipeChangesOf.js";
+import type * as functions_recipes_recipeContent from "../functions/recipes/recipeContent.js";
 import type * as functions_recipes_recipeFingerprint from "../functions/recipes/recipeFingerprint.js";
 import type * as functions_recipes_recipeImages from "../functions/recipes/recipeImages.js";
 import type * as functions_recipes_recipeNutrition from "../functions/recipes/recipeNutrition.js";
@@ -511,6 +512,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/persistRestoredRecipe": typeof functions_recipes_persistRestoredRecipe;
   "functions/recipes/recipeCard": typeof functions_recipes_recipeCard;
   "functions/recipes/recipeChangesOf": typeof functions_recipes_recipeChangesOf;
+  "functions/recipes/recipeContent": typeof functions_recipes_recipeContent;
   "functions/recipes/recipeFingerprint": typeof functions_recipes_recipeFingerprint;
   "functions/recipes/recipeImages": typeof functions_recipes_recipeImages;
   "functions/recipes/recipeNutrition": typeof functions_recipes_recipeNutrition;

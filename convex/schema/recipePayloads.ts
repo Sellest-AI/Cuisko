@@ -187,6 +187,10 @@ export const vTranslatedRecipe = v.object({
  * `status` and `isArchived` are loosened back to optional, because an export written before the
  * two columns existed carries neither and is still a catalog worth restoring. The restore reads a
  * missing status as `generated`; `isArchived` it ignores whatever it says, like every derived column.
+ *
+ * `description` and `instructions` are stated here, required, because they no longer live on the
+ * table: they are stored in `recipeContents`, and the export joins them back into the row. The
+ * portable shape stays what it was, so an export written before the move still restores.
  */
 const {
   userId: _userId,
@@ -194,11 +198,15 @@ const {
   plateImageId: _plateImageId,
   status: _status,
   isArchived: _isArchived,
+  description: _description,
+  instructions: _instructions,
   ...tableRowFields
 } = recipes.validator.fields;
 
 const portableRowFields = {
   ...tableRowFields,
+  description: vLocalized,
+  instructions: vLocalized,
   status: v.optional(vRecipeStatus),
   isArchived: v.optional(v.boolean()),
 };

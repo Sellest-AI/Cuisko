@@ -4,6 +4,7 @@ import type { MutationCtx } from "@convex/procedures";
 import { facetsOf } from "@shared/tags";
 import { canonicalUrlOf } from "@shared/urls";
 
+import { type RecipeText, writeRecipeContent } from "./recipeContent";
 import { recipeSearchText } from "./recipeSearchText";
 import { keepCookingFatUses } from "./keepCookingFatUses";
 import type { RecipeLink } from "./resolveRecipeIngredients";
@@ -28,22 +29,42 @@ const DERIVED_FIELDS = [
 
 type DerivedField = (typeof DERIVED_FIELDS)[number];
 
-/** What a writer states about a recipe: every column but the ones this module derives. */
-export type RecipeFacts = Omit<Doc<"recipes">, "_id" | "_creationTime" | DerivedField>;
+/**
+ * What a writer states about a recipe: every `recipes` column but the ones this module derives, and
+ * its text, which is stored in `recipeContents` rather than on the row.
+ *
+ * The text travels with the facts because every writer states both at once, and a recipe without
+ * its text is not one any writer means to create. `splitRecipeText` is where they part.
+ */
+export type RecipeFacts = Omit<Doc<"recipes">, "_id" | "_creationTime" | DerivedField | keyof RecipeText> &
+  RecipeText;
 
 /**
- * A row's facts, its derived columns stripped — for a writer handed a whole row, as the restore is,
- * so that what it states is exactly what the other deployment stated and nothing this module
- * would then overwrite. The derived columns may be missing, since they are dropped either way.
+ * The facts of a whole row handed over from elsewhere, as the restore's portable row is, with its
+ * derived columns stripped so that what it states is exactly what the other deployment stated and
+ * nothing this module would then overwrite. The derived columns may be missing, since they are
+ * dropped either way.
  */
 export const recipeFactsOf = (
   row: RecipeFacts & Partial<Pick<Doc<"recipes">, DerivedField>>,
 ): RecipeFacts => {
-  const facts: Partial<Doc<"recipes">> = { ...row };
+  const facts: Partial<RecipeFacts & Pick<Doc<"recipes">, DerivedField>> = { ...row };
   for (const field of DERIVED_FIELDS) delete facts[field];
 
   return facts as RecipeFacts;
 };
+
+/**
+ * The facts as the two whole-row writers store them: the `recipes` columns, and the text apart.
+ *
+ * The one place the text comes off the facts, for `insertRecipe` and the restore's replace in
+ * place alike. A writer spreading the facts straight onto the row would put the text back on a
+ * migrated recipe, where `moveRecipeContent` (already recorded as done) would never take it off.
+ */
+export const splitRecipeText = ({ description, instructions, ...row }: RecipeFacts) => ({
+  row,
+  text: { description, instructions } satisfies RecipeText,
+});
 
 /**
  * The columns a recipe's facts and links derive, for every writer of a whole row: `insertRecipe`,
@@ -74,7 +95,8 @@ type Args = {
 };
 
 /**
- * The one insert of a `recipes` row, and the `recipeIngredients` rows that belong to it.
+ * The one insert of a `recipes` row, and the `recipeContents` and `recipeIngredients` rows that
+ * belong to it.
  *
  * Two paths create a recipe: `saveRecipe`, from a generation, and `restoreRecipe`, from another
  * deployment's export. What they have in common is everything the table derives, and it is
@@ -94,14 +116,17 @@ export const insertRecipe = async (
   { recipe, links: tagged, names }: Args,
 ): Promise<Id<"recipes">> => {
   const links = await keepCookingFatUses(ctx, tagged);
+  const { row, text } = splitRecipeText(recipe);
 
   const recipeId = await ctx.db.insert("recipes", {
-    ...recipe,
-    sourceUrl: recipe.sourceUrl === undefined ? undefined : canonicalUrlOf(recipe.sourceUrl),
-    ...(await derivedRecipeColumns(ctx, { tags: recipe.tags, links, names })),
+    ...row,
+    sourceUrl: row.sourceUrl === undefined ? undefined : canonicalUrlOf(row.sourceUrl),
+    ...(await derivedRecipeColumns(ctx, { tags: row.tags, links, names })),
     shuffleKey: randomShuffleKey(),
     isArchived: false,
   });
+
+  await writeRecipeContent(ctx, recipeId, text);
 
   await Promise.all(
     links.map((link) => ctx.db.insert("recipeIngredients", { recipeId, ...link, updatedAt: Date.now() })),

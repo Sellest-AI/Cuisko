@@ -16,8 +16,9 @@ export type RecipeImage = Awaited<ReturnType<typeof getImage>>;
  * A recipe as a list draws it: five fields, already in the caller's language.
  *
  * The line this type holds is the one where the document stops travelling. A card that took a
- * `Doc<"recipes">` would ship both locales of the title, the description, the instructions and the
- * search blob — several kilobytes per row, per page — so that a grid could print one string.
+ * `Doc<"recipes">` would ship both locales of the title and the search blob, every facet and every
+ * timing, per row, per page, so that a grid could print one string. (The description and the
+ * instructions do not belong to the row: they live in `recipeContents`.)
  *
  * `cuisine` is the exception, and deliberately: it stays a key rather than becoming a word, because
  * the vocabulary is locale-free by design (see @shared/cuisines) and the screen already owns a

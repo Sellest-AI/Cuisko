@@ -5,6 +5,8 @@ import { imagePairOf } from "@convex/functions/media/imageTree";
 import type { QueryCtx } from "@convex/procedures";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
+import { loadRecipeContent } from "./recipeContent";
+
 type ExportCtx = Pick<QueryCtx, "db">;
 
 type Args = {
@@ -49,12 +51,16 @@ const _ingredientsOf = async (ctx: ExportCtx, recipeId: Id<"recipes">): Promise<
   return portable.sort((a, b) => a.position - b.position);
 };
 
+/**
+ * The text is joined back into the row from `recipeContents`, so the portable shape is the one an
+ * export has always had and a restore on either side of the move reads it the same way.
+ */
 const _portableRecipeOf = async (ctx: ExportCtx, recipe: Doc<"recipes">): Promise<PortableRecipe> => {
   const { _id, _creationTime, userId: _userId, coverImageId, plateImageId, ...row } = recipe;
 
   return {
     origin: { recipeId: _id, creationTime: _creationTime },
-    row,
+    row: { ...row, ...(await loadRecipeContent(ctx, recipe)) },
     ingredients: await _ingredientsOf(ctx, _id),
     images: { cover: await _coverOf(ctx, coverImageId), plate: await imagePairOf(ctx, plateImageId) },
   };

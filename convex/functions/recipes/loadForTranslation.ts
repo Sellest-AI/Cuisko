@@ -5,6 +5,8 @@ import { hashText, isTranslationOutdated, resolvei18n } from "@convex/lib/i18n";
 import { type Locale, type Localized, LOCALES } from "@convex/schema/i18n";
 import { parseInstructions } from "@shared/recipes";
 
+import { loadRecipeContent } from "./recipeContent";
+
 type Args = {
   recipeId: Id<"recipes">;
   /** The language the recipe was written in. Everything handed to the model is resolved from it. */
@@ -49,9 +51,11 @@ export const loadForTranslation = async (
   const recipe = await ctx.db.get(recipeId);
   if (!recipe) throw new Error(`loadForTranslation: recipe ${recipeId} does not exist.`);
 
+  const { description, instructions } = await loadRecipeContent(ctx, recipe);
+
   // Hashed once per field rather than once per (field, locale) pair — `LOCALES` is walked below
   // once per field, and the source text does not change between those walks.
-  const translatedFields = [recipe.title, recipe.description, recipe.instructions].map(
+  const translatedFields = [recipe.title, description, instructions].map(
     (field): [Localized, string] => [field, hashText(resolvei18n(field, sourceLocale))],
   );
   const isOutdatedSomewhere = (locale: Locale) =>
@@ -78,8 +82,8 @@ export const loadForTranslation = async (
     missingLocales: LOCALES.filter((locale) => isOutdatedSomewhere(locale)),
     recipe: {
       title: resolvei18n(recipe.title, sourceLocale),
-      description: resolvei18n(recipe.description, sourceLocale),
-      instructions: parseInstructions(resolvei18n(recipe.instructions, sourceLocale)),
+      description: resolvei18n(description, sourceLocale),
+      instructions: parseInstructions(resolvei18n(instructions, sourceLocale)),
       servings: recipe.servings,
       difficulty: recipe.difficulty,
       cuisine: recipe.cuisine,

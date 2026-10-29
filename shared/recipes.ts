@@ -109,7 +109,7 @@ export const difficultyKey = (level: DifficultyLevel): Difficulty => DIFFICULTIE
 /**
  * How grouped instructions are spelled as text — the format, and the only place that knows it.
  *
- * `recipes.instructions` is `vLocalized`, a flat string per locale, but a recipe is written in
+ * `recipeContents.instructions` is `vLocalized`, a flat string per locale, but a recipe is written in
  * groups ("Sauce", then "Pasta"), and the model that sanitizes one emits those groups as JSON
  * because a schema-constrained output cannot drift its formatting the way a free-text blob does.
  * So the grouping has to survive a round trip through a single string: serialized on the way into

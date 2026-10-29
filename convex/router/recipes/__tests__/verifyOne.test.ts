@@ -4,6 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
+import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import type { RecipeStatus } from "../../../schema/recipes";
 import { enforceRateLimit } from "../../../functions/rateLimits/enforceRateLimit";
 import { rateLimitFor } from "../../../lib/rateLimits";
@@ -36,6 +37,9 @@ vi.mock("@convex/functions/recipes/resolveRecipeIngredients", async (importOrigi
 });
 
 let t: ReturnType<typeof convexTest>;
+
+/** The recipe's text as every reader sees it, wherever it is stored. */
+const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
 
 const seedUser = (name: string, role: "USER" | "ADMIN") =>
   t.run(async (ctx) => {
@@ -324,7 +328,7 @@ describe("router/recipes/verifyOne", () => {
     expect(await verify(adminId, recipeId)).toEqual({ verdict: "rewritten", corrections });
 
     const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
-    expect(row.instructions.values.fr).toContain("600 g de blanc de poulet");
+    expect((await textOf(recipeId)).instructions.values.fr).toContain("600 g de blanc de poulet");
     expect(row.updatedAt).not.toBe(1);
   });
 });
@@ -361,7 +365,7 @@ describe("router/recipes/verifyOne._internal", () => {
     const [, input] = verifyRun.mock.calls[0]!;
     expect(input.locale).toBe("fr");
     const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
-    expect(row.instructions.values.fr).toContain("600 g de blanc de poulet");
+    expect((await textOf(recipeId)).instructions.values.fr).toContain("600 g de blanc de poulet");
     expect(row.status).toBe("reviewed");
   });
 });

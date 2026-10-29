@@ -7,6 +7,7 @@ import { isServings, scaleQuantity } from "@shared/servings";
 import type { Locale } from "@shared/translations";
 import type { Infer } from "convex/values";
 
+import { loadRecipeContent } from "../recipes/recipeContent";
 import { loadRecipeLines } from "../recipes/recipeNutrition";
 
 /**
@@ -42,8 +43,8 @@ export const recipeBrief = async (ctx: QueryCtx, { recipe, locale }: Args): Prom
   const row = await ctx.db.get(recipe.id);
   if (!row) return undefined;
 
-  const { lines } = await loadRecipeLines(ctx, row._id);
-  const steps = parseInstructions(resolvei18n(row.instructions, locale)).flatMap((group) =>
+  const [{ lines }, { instructions }] = await Promise.all([loadRecipeLines(ctx, row._id), loadRecipeContent(ctx, row)]);
+  const steps = parseInstructions(resolvei18n(instructions, locale)).flatMap((group) =>
     group.steps.map(({ instruction }) => (group.title ? `(${group.title}) ${instruction}` : instruction)),
   );
 

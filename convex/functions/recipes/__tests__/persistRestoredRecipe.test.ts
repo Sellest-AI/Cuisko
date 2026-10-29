@@ -124,6 +124,7 @@ const persist = (recipe: PortableRecipe, { links = [], unmatched = [], ...images
 const loadRestored = (recipeId: Id<"recipes">) =>
   target.run(async (ctx) => ({
     recipe: (await ctx.db.get(recipeId))!,
+    contents: (await ctx.db.query("recipeContents").collect()).filter((row) => row.recipeId === recipeId),
     lines: await ctx.db
       .query("recipeIngredients")
       .withIndex("by_recipe", (q) => q.eq("recipeId", recipeId))
@@ -146,12 +147,14 @@ describe("persistRestoredRecipe", () => {
     const { recipeId, created } = await persist(exported, {
       links: linksOnto(exported, [targetSeeds.carrot, targetSeeds.onion]),
     });
-    const { recipe, lines } = await loadRestored(recipeId);
+    const { recipe, contents, lines } = await loadRestored(recipeId);
 
     expect(created).toBe(true);
     const { shuffleKey: _shuffle, updatedAt: _updated, ...restoredRow } = recipe;
     const { shuffleKey: _exportedShuffle, updatedAt: _exportedUpdated, ...exportedRow } = exported.row;
-    expect(restoredRow).toMatchObject(exportedRow);
+    // The text is stored apart from the row it was exported with; the two together are that row.
+    const { description, instructions } = contents[0]!;
+    expect({ ...restoredRow, description, instructions }).toMatchObject(exportedRow);
     expect(recipe.userId).toBeUndefined();
     // The links point at THIS deployment's rows, in the exported positions.
     expect(lines.map((line) => [line.position, line.ingredientId])).toEqual([
@@ -344,6 +347,41 @@ describe("persistRestoredRecipe", () => {
     expect(recipe.search.fr).toContain("persil");
     // The carrot line kept its row; the onion line, gone from the export, lost its own.
     expect(lines.map((line) => line._id)).toEqual([before.lines[0]!._id]);
+  });
+
+  /**
+   * A restored recipe's text lives in `recipeContents`, whether it was inserted or replaced in
+   * place. The replace is the one at risk: it rewrites the whole row from the export, and a row it
+   * put the text back on would hold what `moveRecipeContent` already recorded as moved.
+   */
+  test("keeps the text off the recipe row on an insert and on a replace in place", async () => {
+    const seeds = await seedCatalog(origin);
+    await insertOriginal([seeds.carrot, seeds.onion]);
+    const exported = await exportFirst();
+    const targetSeeds = await seedCatalog(target);
+    const links = linksOnto(exported, [targetSeeds.carrot, targetSeeds.onion]);
+
+    const { recipeId } = await persist(exported, { links });
+    const inserted = await loadRestored(recipeId);
+    const corrected: PortableRecipe = {
+      ...exported,
+      row: {
+        ...exported.row,
+        status: "reviewed",
+        description: { values: { fr: "Une soupe épaisse.", en: "A thick soup." }, meta: {} },
+      },
+    };
+    await persist(corrected, { links });
+    const replaced = await loadRestored(recipeId);
+
+    for (const { recipe } of [inserted, replaced]) {
+      expect(recipe.description).toBeUndefined();
+      expect(recipe.instructions).toBeUndefined();
+    }
+    expect(inserted.contents).toHaveLength(1);
+    expect(inserted.contents[0]).toMatchObject({ description: exported.row.description, instructions: exported.row.instructions });
+    expect(replaced.contents).toHaveLength(1);
+    expect(replaced.contents[0]).toMatchObject({ description: corrected.row.description, instructions: exported.row.instructions });
   });
 
   test("swaps in the uploaded photos on a replace, and queues the old ones for deletion", async () => {

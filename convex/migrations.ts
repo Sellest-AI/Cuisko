@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { components, internal } from "./_generated/api.js";
 import type { DataModel } from "./_generated/dataModel.js";
 import { skipAt } from "./functions/planning/skipMeal";
+import { moveLegacyRecipeContent } from "./functions/recipes/recipeContent";
 import { refreshRecipe } from "./functions/recipes/refreshRecipe";
 import { randomShuffleKey } from "./lib/nanoid";
 import { internalMutation } from "./procedures";
@@ -173,6 +174,32 @@ export const runRefreshRecipes = internalMutation({
     return null;
   },
 });
+
+/**
+ * Moves every recipe's description and instructions off its row into its `recipeContents` row.
+ *
+ * Run on dev, then on prod once the release carrying `recipeContents` is out:
+ * `npx convex run migrations:runMoveRecipeContent`. Until it finishes, `loadRecipeContent` reads a
+ * row it has not reached from the row itself, so a recipe never fails to open in between.
+ *
+ * The deploy that removes the two fields from `recipes` must come after it has finished on prod;
+ * Convex refuses that deploy anywhere a row still holds one. Idempotent, and a recipe that already
+ * has a content row keeps that row's text: only a write since the deploy creates one, and it is
+ * newer (`moveLegacyRecipeContent`).
+ *
+ * @limitation The backend cannot be rolled back past the deploy that added `recipeContents`. From
+ * the first recipe created, edited or translated after it, a `recipes` row lacks the two fields,
+ * and Convex refuses to deploy the release before it, which requires them. The door is opened by
+ * the deploy, not by this run. **Accepted because** writing the text to both rows instead would
+ * double every write and leave this migration nothing to unset until the fields are removed.
+ * **Until fixed**, a rollback needs the text copied back from `recipeContents` onto each row first.
+ */
+export const moveRecipeContent = migrations.define({
+  table: "recipes",
+  migrateOne: (ctx, recipe) => moveLegacyRecipeContent(ctx, recipe),
+});
+
+export const runMoveRecipeContent = migrations.runner([internal.migrations.moveRecipeContent]);
 
 export const runBackfillRecipeShuffleKey = migrations.runner([
   internal.migrations.backfillRecipeShuffleKey,

@@ -56,6 +56,10 @@ const seed = async (title: Localized = fr("Soupe à l'oignon")) =>
 const save = (recipeId: Id<"recipes">, translations: TranslatedRecipe[]) =>
   t.run((ctx) => saveTranslations(ctx, { recipeId, sourceLocale: "fr", translations }));
 
+/** The recipe's text, from its `recipeContents` row: where the writer stores it. */
+const content = async (recipeId: Id<"recipes">) =>
+  (await t.run((ctx) => ctx.db.query("recipeContents").collect())).find((row) => row.recipeId === recipeId)!;
+
 beforeEach(() => {
   t = convexTest(schema, modules);
 });
@@ -66,22 +70,36 @@ describe("functions/recipes/saveTranslations", () => {
 
     await save(recipeId, [ENGLISH]);
     const row = await t.run((ctx) => ctx.db.get(recipeId));
+    const text = await content(recipeId);
 
     expect(row!.title.values.en).toBe("Onion soup");
-    expect(row!.description.values.en).toBe("A winter soup.");
-    expect(row!.instructions.values.en).toContain("Slice the onions.");
+    expect(text.description.values.en).toBe("A winter soup.");
+    expect(text.instructions.values.en).toContain("Slice the onions.");
   });
 
   test("flattens the groups back into the single string the column holds", async () => {
     const recipeId = await seed();
 
     await save(recipeId, [ENGLISH]);
-    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    const text = await content(recipeId);
 
-    expect(typeof row!.instructions.values.en).toBe("string");
-    expect(row!.instructions.values.en).toContain("Base");
+    expect(typeof text.instructions.values.en).toBe("string");
+    expect(text.instructions.values.en).toContain("Base");
     // The translated hint is stored under its step, so the other language's cooking session shows it.
-    expect(row!.instructions.values.en).toContain("- Slice the onions.\n> A mandoline is faster.");
+    expect(text.instructions.values.en).toContain("- Slice the onions.\n> A mandoline is faster.");
+  });
+
+  /** The seed is a row from before `recipeContents`: translating it is what moves its text. */
+  test("keeps the French it translated from beside the English, and takes both off the recipe row", async () => {
+    const recipeId = await seed();
+
+    await save(recipeId, [ENGLISH]);
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    const text = await content(recipeId);
+
+    expect(text.description.values).toEqual({ fr: "Une soupe d'hiver.", en: "A winter soup." });
+    expect(row!.description).toBeUndefined();
+    expect(row!.instructions).toBeUndefined();
   });
 
   /**

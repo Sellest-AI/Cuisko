@@ -142,6 +142,55 @@ describe("runRefreshRecipes", () => {
   });
 });
 
+describe("moveRecipeContent", () => {
+  const contentsOf = async (recipeId: string) =>
+    (await t.run((ctx) => ctx.db.query("recipeContents").collect())).filter((row) => row.recipeId === recipeId);
+
+  /**
+   * `insertRecipe` here writes the row as every recipe was written before `recipeContents`: its text
+   * on the row. Through the runner, so the batch the component patches with is what is checked.
+   */
+  test("moves a recipe's text into one content row and takes it off the row", async () => {
+    const recipeId = await insertRecipe();
+
+    await t.mutation(internal.migrations.runMoveRecipeContent, {});
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row?.description).toBeUndefined();
+    expect(row?.instructions).toBeUndefined();
+    expect(await contentsOf(recipeId)).toMatchObject([
+      {
+        description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
+        instructions: { values: { fr: "Base\n- Émincer les oignons." }, meta: {} },
+      },
+    ]);
+  });
+
+  /** An edit since the deploy already wrote the newer text; the migration must not put the old one back. */
+  test("keeps the text of a recipe edited before the migration reached it", async () => {
+    const recipeId = await insertRecipe();
+    const edited = { values: { fr: "Une soupe d'hiver, gratinée." }, meta: {} };
+    await t.run((ctx) =>
+      ctx.db.insert("recipeContents", {
+        recipeId,
+        description: edited,
+        instructions: { values: { fr: "Base\n- Émincer les oignons.\n- Gratiner." }, meta: {} },
+        updatedAt: 2,
+      }),
+    );
+
+    await t.mutation(internal.migrations.runMoveRecipeContent, {});
+
+    const contents = await contentsOf(recipeId);
+    expect(contents).toHaveLength(1);
+    expect(contents[0]!.description).toEqual(edited);
+    // And the old text still leaves the row, or the deploy that removes the fields is refused.
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    expect(row?.description).toBeUndefined();
+    expect(row?.instructions).toBeUndefined();
+  });
+});
+
 describe("backfillRecipeStatus", () => {
   /**
    * The real `recipes` table with validation off, for the reason `legacySchema` gives below: the

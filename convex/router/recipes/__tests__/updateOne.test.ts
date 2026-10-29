@@ -4,6 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
+import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
 import { parseInstructions, serializeInstructions } from "../../../../shared/recipes";
 
@@ -42,6 +43,9 @@ vi.mock("@convex/functions/recipes/resolveRecipeIngredients", async (importOrigi
 });
 
 let t: ReturnType<typeof convexTest>;
+
+/** The recipe's text as every reader sees it, wherever it is stored. */
+const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
 
 const seedUser = (name: string) =>
   t.run(async (ctx) => {
@@ -288,7 +292,7 @@ describe("router/recipes/updateOne", () => {
     const row = await t.run((ctx) => ctx.db.get(recipeId));
     expect(row!.title.meta.fr!.status).toBe("machine");
     // The agent's hint reaches the column under the step it belongs to.
-    expect(row!.instructions.values.fr).toContain("- Émincer 2 oignons.\n> Une mandoline va plus vite.");
+    expect((await textOf(recipeId)).instructions.values.fr).toContain("- Émincer 2 oignons.\n> Une mandoline va plus vite.");
   });
 
   /**
@@ -306,9 +310,9 @@ describe("router/recipes/updateOne", () => {
 
     expect(sanitizeRun).not.toHaveBeenCalled();
 
-    const row = await t.run((ctx) => ctx.db.get(recipeId));
-    expect(row!.instructions.values.fr).toBe(instructions);
-    expect(row!.instructions.meta.fr!.status).toBe("edited");
+    const text = await textOf(recipeId);
+    expect(text.instructions.values.fr).toBe(instructions);
+    expect(text.instructions.meta.fr!.status).toBe("edited");
   });
 
   /** A cook's second edit is theirs, not a fix — see `recipes.status`. Only a verify ends `reviewed`. */

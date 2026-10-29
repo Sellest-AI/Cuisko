@@ -5,8 +5,9 @@ import type { MutationCtx, TracedMutationCtx } from "@convex/procedures";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
 
 import { findCatalogRowBySource } from "./findBySource";
-import { derivedRecipeColumns, insertRecipe, type RecipeFacts, recipeFactsOf } from "./insertRecipe";
+import { derivedRecipeColumns, insertRecipe, type RecipeFacts, recipeFactsOf, splitRecipeText } from "./insertRecipe";
 import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
+import { writeRecipeContent } from "./recipeContent";
 import { replaceRecipeImages } from "./recipeImages";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 import { restoreReplaces } from "./restoreReplaces";
@@ -57,15 +58,19 @@ const _replaceInPlace = async (
     .withIndex("by_recipe", (q) => q.eq("recipeId", existing._id))
     .collect();
 
+  const { row, text } = splitRecipeText(facts);
+
   await ctx.db.replace(existing._id, {
-    ...facts,
+    ...row,
     sourceUrl: existing.sourceUrl,
     coverImageId: existing.coverImageId,
     plateImageId: existing.plateImageId,
-    ...(await derivedRecipeColumns(ctx, { tags: facts.tags, links: merged.links, names: unmatched })),
+    ...(await derivedRecipeColumns(ctx, { tags: row.tags, links: merged.links, names: unmatched })),
     shuffleKey: existing.shuffleKey,
     isArchived: false,
   });
+
+  await writeRecipeContent(ctx, existing._id, text);
 
   await syncRecipeLinks(ctx, { recipeId: existing._id, rows, links: merged.links });
 };

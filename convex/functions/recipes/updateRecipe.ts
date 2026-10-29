@@ -11,6 +11,7 @@ import { serializeInstructions } from "@shared/recipes";
 import { assertUnchangedSince } from "./assertUnchangedSince";
 import { deriveRecipeFields } from "./deriveRecipeFields";
 import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
+import { rewriteRecipeContent } from "./recipeContent";
 import { recipeSearchText } from "./recipeSearchText";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 import { syncRecipeLinks } from "./syncRecipeLinks";
@@ -162,10 +163,13 @@ export const updateRecipe = async (
   const _rewrite = (field: Localized, value: string): Localized =>
     setTranslation(field, locale, value, status, hashText(value));
 
+  await rewriteRecipeContent(ctx, existing, (text) => ({
+    description: _rewrite(text.description, recipe.description),
+    instructions: _rewrite(text.instructions, serializeInstructions(recipe.instructions)),
+  }));
+
   await ctx.db.patch(recipeId, {
     title: _rewrite(existing.title, recipe.title),
-    description: _rewrite(existing.description, recipe.description),
-    instructions: _rewrite(existing.instructions, serializeInstructions(recipe.instructions)),
     servings,
     equipments: recipe.equipments,
     difficulty: recipe.difficulty,

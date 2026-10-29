@@ -123,6 +123,10 @@ const links = (recipeId: Id<"recipes">) =>
     return rows.filter((row) => row.recipeId === recipeId);
   });
 
+/** The recipe's text, from its `recipeContents` row: where the writer stores it. */
+const content = async (recipeId: Id<"recipes">) =>
+  (await t.run((ctx) => ctx.db.query("recipeContents").collect())).find((row) => row.recipeId === recipeId)!;
+
 beforeEach(async () => {
   t = convexTest(schema, modules);
   await seed();
@@ -133,16 +137,30 @@ describe("functions/recipes/saveRecipe", () => {
     const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
 
     const row = await t.run((ctx) => ctx.db.get(recipeId));
+    const text = await content(recipeId);
 
     expect(row!.title.values).toEqual({ fr: "Soupe à l'oignon" });
     expect(row!.title.meta.fr!.status).toBe("machine");
-    expect(row!.description.values.fr).toBe("Une soupe d'hiver.");
+    expect(text.description.values.fr).toBe("Une soupe d'hiver.");
     // The groups reach the column as one string — a `vLocalized` holds text, not structure.
-    expect(row!.instructions.values.fr).toContain("Base");
-    expect(row!.instructions.values.fr).toContain("Émincer les oignons.");
+    expect(text.instructions.values.fr).toContain("Base");
+    expect(text.instructions.values.fr).toContain("Émincer les oignons.");
     // The hint is written under its own step, where the parser will look for it on the way back.
-    expect(row!.instructions.values.fr).toContain("- Les faire suer 10 minutes.\n> À feu doux, sans les colorer.");
+    expect(text.instructions.values.fr).toContain("- Les faire suer 10 minutes.\n> À feu doux, sans les colorer.");
     expect(row!.title.values.en).toBeUndefined();
+  });
+
+  test("stores the text in the recipe's content row, and none of it on the recipe row", async () => {
+    const recipeId = await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
+
+    const row = await t.run((ctx) => ctx.db.get(recipeId));
+    const rows = await t.run(async (ctx) =>
+      (await ctx.db.query("recipeContents").collect()).filter((content) => content.recipeId === recipeId),
+    );
+
+    expect(row!.description).toBeUndefined();
+    expect(row!.instructions).toBeUndefined();
+    expect(rows).toHaveLength(1);
   });
 
   test("carries the non-localized fields through untouched", async () => {

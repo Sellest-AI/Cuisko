@@ -4,6 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
+import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -81,6 +82,9 @@ beforeAll(() =>
       .map(([, load]) => load()),
   ).then(warmRateLimiter),
 );
+
+/** The recipe's text as every reader sees it, wherever it is stored. */
+const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
 
 /**
  * `authed` schedules two follow-ups with `runAfter(0)` — the translation and the images — and
@@ -208,7 +212,7 @@ describe("router/recipes/createOne", () => {
     expect(row!.userId).toBe(userId);
     expect(row!.title.values.fr).toBe("Soupe à l'oignon");
     // The agent's hint is stored under its step, where the cooking session will read it back.
-    expect(row!.instructions.values.fr).toBe("## Base\n- Émincer les oignons.\n> Une mandoline va plus vite.");
+    expect((await textOf(recipeId)).instructions.values.fr).toBe("## Base\n- Émincer les oignons.\n> Une mandoline va plus vite.");
   });
 
   /**

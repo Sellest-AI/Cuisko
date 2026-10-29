@@ -205,6 +205,22 @@ describe("cascadeDelete", () => {
     expect(await t.run((ctx) => ctx.db.query("recipeFavorites").collect())).toEqual([]);
   });
 
+  test("deletes a deleted recipe's text with it", async () => {
+    const recipeId = await insertRecipe();
+    await t.run((ctx) =>
+      ctx.db.insert("recipeContents", {
+        recipeId,
+        description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
+        instructions: { values: { fr: "Base\n- Émincer les oignons." }, meta: {} },
+        updatedAt: Date.now(),
+      }),
+    );
+
+    await t.run((ctx) => cascadeDelete(ctx, "recipes", recipeId));
+
+    expect(await t.run((ctx) => ctx.db.query("recipeContents").collect())).toEqual([]);
+  });
+
   /**
    * A recipe outlives its author. Pinned because the rule used to be a delete, and a delete would
    * also have queued the recipe's photos — detaching must leave both the row and its images alone.

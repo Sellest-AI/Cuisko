@@ -7,6 +7,7 @@ import type { Localized } from "@convex/schema/i18n";
 
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
+import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import { facetsOf } from "@shared/tags";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -78,6 +79,9 @@ const seed = async (
   });
 
 const read = (recipeId: Id<"recipes">) => t.run((ctx) => ctx.db.get(recipeId));
+
+/** The recipe's text as every reader sees it, wherever it is stored. */
+const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
 
 beforeEach(() => {
   t = convexTest(schema, modules);
@@ -163,7 +167,7 @@ describe("router/recipes/translateOne", () => {
     const row = await read(recipeId);
 
     expect(row!.title.values.en).toBe("Onion soup");
-    expect(row!.instructions.values.en).toBe("## Base\n- Slice the onions.\n> A mandoline is faster.");
+    expect((await textOf(recipeId)).instructions.values.en).toBe("## Base\n- Slice the onions.\n> A mandoline is faster.");
     // The source's hash, not the translation's — what makes the English stale if the French moves.
     expect(row!.title.meta.en!.sourceHash).toBe(hashText("Soupe à l'oignon"));
   });

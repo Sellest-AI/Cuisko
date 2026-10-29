@@ -195,9 +195,12 @@ describe("functions/recipes/updateRecipe", () => {
     await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }]);
 
     const row = await t.run((ctx) => ctx.db.get(recipeId));
+    const text = (await t.run((ctx) => ctx.db.query("recipeContents").collect())).find(
+      (content) => content.recipeId === recipeId,
+    )!;
 
     expect(row!.title.values.en).toBe("Onion soup");
-    expect(row!.description.values.en).toBe("A soup.");
+    expect(text.description.values.en).toBe("A soup.");
   });
 
   test("carries the non-localized fields through from the revised recipe", async () => {

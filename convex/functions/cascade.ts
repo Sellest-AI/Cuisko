@@ -100,6 +100,7 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     { table: "plannedMeals", index: "by_meal_plan", field: "mealPlanId" },
   ],
   recipes: [
+    { table: "recipeContents", index: "by_recipe", field: "recipeId" },
     { table: "recipeIngredients", index: "by_recipe", field: "recipeId" },
     { table: "recipeFavorites", index: "by_recipe", field: "recipeId" },
     { table: "plannedMeals", index: "by_recipe", field: "recipeId" },

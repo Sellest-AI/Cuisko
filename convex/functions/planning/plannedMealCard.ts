@@ -21,8 +21,8 @@ export type PlannedMealStatus = "cooked" | "skipped" | "ready" | "shopping-neede
  * a card.
  *
  * The recipe stops at `RecipeCard` for the reason that type gives — a row prints a title and a
- * cover, and shipping both locales of the instructions per plate, per page, is kilobytes nobody
- * reads. The meal screen that needs the steps loads the recipe itself.
+ * cover, and shipping the whole recipe row per plate, per page, is bytes nobody reads. The meal
+ * screen that needs the steps loads the recipe itself.
  */
 export type PlannedMealCard = {
   id: Id<"plannedMeals">;

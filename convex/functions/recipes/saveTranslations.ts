@@ -5,6 +5,8 @@ import { hashText, resolvei18n, setTranslations } from "@convex/lib/i18n";
 import type { Locale, Localized } from "@convex/schema/i18n";
 import { serializeInstructions } from "@shared/recipes";
 
+import { rewriteRecipeContent } from "./recipeContent";
+
 type Args = {
   recipeId: Id<"recipes">;
   /** The language the recipe was written in — the one every translation here was made FROM. */
@@ -13,7 +15,8 @@ type Args = {
 };
 
 /**
- * Machine translations folded into the three localized columns that carry language.
+ * Machine translations folded into the three localized fields that carry language: the title on
+ * `recipes`, the description and the instructions on its `recipeContents` row.
  *
  * A patch and not an insert, so a recipe already holding a cook's own `edited` text keeps it for
  * the locales this run did not touch — `setTranslations` writes only the locales it is handed.
@@ -47,10 +50,11 @@ export const saveTranslations = async (
 
   await ctx.db.patch(recipeId, {
     title: fold(recipe.title, ({ recipe }) => recipe.title),
-    description: fold(recipe.description, ({ recipe }) => recipe.description),
-    instructions: fold(recipe.instructions, ({ recipe }) =>
-      serializeInstructions(recipe.instructions),
-    ),
     updatedAt: Date.now(),
   });
+
+  await rewriteRecipeContent(ctx, recipe, ({ description, instructions }) => ({
+    description: fold(description, ({ recipe }) => recipe.description),
+    instructions: fold(instructions, ({ recipe }) => serializeInstructions(recipe.instructions)),
+  }));
 };
