@@ -309,7 +309,7 @@ export const loadRecipe = async (
     coverOf(ctx, recipe),
     plateOf(ctx, recipe),
     _flagsOf(ctx, recipe, viewer),
-    loadRecipeContent(ctx, recipe),
+    loadRecipeContent(ctx, recipe._id),
   ]);
 
   return {

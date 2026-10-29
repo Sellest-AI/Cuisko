@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { TranslatedRecipe } from "@convex/agent/tools/translateRecipe";
 import { hashText } from "@convex/lib/i18n";
@@ -8,7 +9,6 @@ import type { Localized } from "@convex/schema/i18n";
 
 import schema from "../../../schema";
 import { saveTranslations } from "../saveTranslations";
-import { facetsOf } from "@shared/tags";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -31,24 +31,13 @@ const ENGLISH: TranslatedRecipe = {
 
 const seed = async (title: Localized = fr("Soupe à l'oignon")) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       userId: undefined,
       title,
       description: fr("Une soupe d'hiver."),
       instructions: fr("- Émincer les oignons."),
       servings: 4,
-      equipments: [],
       difficulty: 2,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      // Neither is what this file tests; both are here because the columns are required.
-      // `facetsOf` rather than six literals, so adding a facet does not mean editing three
-      // fixtures — and so a fixture can never claim one the tag list does not support.
-      search: { fr: "", en: "" },
-      ...facetsOf([]),
       updatedAt: 1,
     }),
   );

@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { RecipeUnit } from "@shared/ingredients";
 
 import schema from "../../../schema";
@@ -26,26 +27,16 @@ const GRATIN = {
 
 const insertGratin = ({ isArchived = false }: { isArchived?: boolean } = {}) =>
   t.run(async (ctx) => {
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
+    const recipeId = await insertTestRecipe(ctx.db, {
       isArchived,
       title: { values: GRATIN.title, meta: {} },
       description: { values: { fr: "x" }, meta: {} },
       instructions: { values: GRATIN.instructions, meta: {} },
       servings: 4,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
       isPescatarian: true,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
 
     for (const [position, { fr, en, quantity, unit }] of GRATIN.lines.entries()) {

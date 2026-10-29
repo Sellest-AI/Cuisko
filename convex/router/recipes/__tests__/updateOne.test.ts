@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -45,7 +47,7 @@ vi.mock("@convex/functions/recipes/resolveRecipeIngredients", async (importOrigi
 let t: ReturnType<typeof convexTest>;
 
 /** The recipe's text as every reader sees it, wherever it is stored. */
-const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
+const textOf = (recipeId: Id<"recipes">) => t.run((ctx) => loadRecipeContent(ctx, recipeId));
 
 const seedUser = (name: string) =>
   t.run(async (ctx) => {
@@ -61,28 +63,20 @@ const UNCHANGED_INSTRUCTIONS = serializeInstructions(parseInstructions(SEED_INST
 
 const seedRecipe = (userId: Id<"users">, sourceUrl?: string) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       sourceUrl,
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
       instructions: { values: { fr: SEED_INSTRUCTIONS }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
       userId,
       tags: ["soup"],
-      cuisine: "french",
       timings: { preparation: 15 },
       search: { fr: "oignon" },
-      isVegan: false,
       isVegetarian: true,
-      isPescatarian: false,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     }),
   );
 

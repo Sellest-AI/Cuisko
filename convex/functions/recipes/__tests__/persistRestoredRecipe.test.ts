@@ -1,6 +1,7 @@
 import { convexTest, type TestConvex } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
@@ -72,17 +73,13 @@ const insertImage = (t: Deployment, url: string) =>
 const insertOriginal = (ingredientIds: Id<"ingredients">[], sourceUrl = "https://example.com/soupe") =>
   origin.run(async (ctx) => {
     const search = await recipeSearchText(ctx, { ingredientIds, names: [] });
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { fr: "Soupe", en: "Soup" }, meta: { en: { status: "machine", sourceHash: "h" } } },
       description: { values: { fr: "Une soupe.", en: "A soup." }, meta: {} },
       instructions: { values: { fr: "- Cuire.", en: "- Cook." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
       tags: ["vegan", "quick"],
-      cuisine: "french",
       timings: { cooking: 20 },
       search,
       ...facetsOf(["vegan", "quick"]),
@@ -351,8 +348,8 @@ describe("persistRestoredRecipe", () => {
 
   /**
    * A restored recipe's text lives in `recipeContents`, whether it was inserted or replaced in
-   * place. The replace is the one at risk: it rewrites the whole row from the export, and a row it
-   * put the text back on would hold what `moveRecipeContent` already recorded as moved.
+   * place. The replace is the one at risk: it rewrites the whole row from the export, whose row
+   * still carries the text.
    */
   test("keeps the text off the recipe row on an insert and on a replace in place", async () => {
     const seeds = await seedCatalog(origin);
@@ -375,8 +372,8 @@ describe("persistRestoredRecipe", () => {
     const replaced = await loadRestored(recipeId);
 
     for (const { recipe } of [inserted, replaced]) {
-      expect(recipe.description).toBeUndefined();
-      expect(recipe.instructions).toBeUndefined();
+      expect(recipe).not.toHaveProperty("description");
+      expect(recipe).not.toHaveProperty("instructions");
     }
     expect(inserted.contents).toHaveLength(1);
     expect(inserted.contents[0]).toMatchObject({ description: exported.row.description, instructions: exported.row.instructions });

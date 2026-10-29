@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Unit } from "@shared/ingredients";
 
@@ -47,26 +48,16 @@ const ingredient = (facts: IngredientFacts = {}) =>
 /** One plate to hang a ledger off. What it cooks is irrelevant here — the lines are handed in. */
 const plate = (householdId: Id<"households">) =>
   t.run(async (ctx) => {
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { fr: "x" }, meta: {} },
       description: { values: { fr: "x" }, meta: {} },
       instructions: { values: { fr: "x" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { en: "", fr: "" },
       isVegan: true,
       isVegetarian: true,
       isPescatarian: true,
       isGlutenFree: true,
       isDairyFree: true,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
     const mealPlanId = await ctx.db.insert("mealPlans", {
       householdId,

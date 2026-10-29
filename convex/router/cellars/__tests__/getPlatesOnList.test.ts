@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
@@ -41,27 +43,14 @@ const seedMember = () =>
 /** One plate per date, all of the same recipe — the shape a repeated dish takes in a week. */
 const seedPlates = (householdId: Id<"households">, dates: number[]) =>
   t.run(async (ctx) => {
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { fr: "Lasagnes", en: "Lasagna" }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
-      instructions: { values: { fr: "" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
       cuisine: "italian",
       timings: { cooking: 20 },
-      search: { en: "", fr: "" },
       shuffleKey: 0.5,
-      isVegan: false,
       isVegetarian: true,
       isPescatarian: true,
-      isGlutenFree: false,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
     const mealPlanId = await ctx.db.insert("mealPlans", {
       householdId, startDate: dates[0]!, days: dates.length, slots: ["lunch"], people: 2, seed: 0.5, updatedAt: Date.now(),

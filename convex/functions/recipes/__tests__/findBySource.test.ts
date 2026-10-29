@@ -1,8 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
-import { facetsOf } from "@shared/tags";
 
 import schema from "../../../schema";
 import { findCatalogBySource } from "../findBySource";
@@ -13,21 +13,11 @@ let t: ReturnType<typeof convexTest>;
 
 const insertRecipe = (sourceUrl: string, userId?: Id<"users">) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       userId,
       title: { values: { fr: "Tarte" }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "- Cuire." }, meta: {} },
       servings: 4,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { fr: "", en: "" },
-      ...facetsOf([]),
       sourceUrl,
       updatedAt: 1,
     }),

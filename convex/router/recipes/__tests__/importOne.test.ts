@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { facetsOf } from "@shared/tags";
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 
 import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
@@ -147,20 +147,10 @@ describe("router/recipes/importOne", () => {
    */
   test("_internal returns the catalog recipe already imported from the url, without fetching", async () => {
     const existing = await t.run((ctx) =>
-      ctx.db.insert("recipes", {
-        status: "generated",
-        isArchived: false,
+      insertTestRecipe(ctx.db, {
         title: { values: { fr: "Tarte" }, meta: {} },
-        description: { values: { fr: "" }, meta: {} },
         instructions: { values: { fr: "- Cuire." }, meta: {} },
         servings: 4,
-        equipments: [],
-        difficulty: 1,
-        tags: [],
-        cuisine: "french",
-        timings: {},
-        search: { fr: "", en: "" },
-        ...facetsOf([]),
         sourceUrl: "https://example.com/tarte",
         updatedAt: 1,
       }),

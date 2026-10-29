@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import type { Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 import { cascadeDelete } from "../cascade";
@@ -29,27 +31,17 @@ const insertRecipe = (
   fields: { userId?: Id<"users">; coverImageId?: Id<"images">; plateImageId?: Id<"images"> } = {},
 ) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
       instructions: { values: { fr: "Base\n- Émincer les oignons." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
-      tags: [],
-      cuisine: "french",
       timings: { preparation: 15 },
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
-      isPescatarian: false,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
       ...fields,
-      updatedAt: Date.now(),
     }),
   );
 

@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Tag } from "@shared/tags";
 
@@ -46,25 +47,16 @@ const seedIngredient = (
 
 const seedRecipe = (tags: Tag[], search = { fr: "vieux", en: "old" }) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { fr: "Soupe", en: "Soup" }, meta: {} },
       description: { values: { fr: "Une soupe.", en: "A soup." }, meta: {} },
       instructions: { values: { fr: "Cuire.", en: "Cook." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
       tags,
-      cuisine: "french",
-      timings: {},
       search,
       isVegan: tags.includes("vegan"),
       isVegetarian: tags.includes("vegetarian"),
-      isPescatarian: false,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
       updatedAt: 1,
     }),
   );

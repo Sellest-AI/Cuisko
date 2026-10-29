@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Unit } from "@shared/ingredients";
 
@@ -48,26 +49,16 @@ const cellar = (
 /** One planned meal today, reserving `grams` of `ingredientId`. */
 const reserve = (householdId: Id<"households">, ingredientId: Id<"ingredients">, grams: number) =>
   t.run(async (ctx) => {
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { fr: "x" }, meta: {} },
       description: { values: { fr: "x" }, meta: {} },
       instructions: { values: { fr: "x" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { en: "", fr: "" },
       isVegan: true,
       isVegetarian: true,
       isPescatarian: true,
       isGlutenFree: true,
       isDairyFree: true,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
     const mealPlanId = await ctx.db.insert("mealPlans", {
       householdId,
@@ -102,26 +93,15 @@ const reserve = (householdId: Id<"households">, ingredientId: Id<"ingredients">,
 /** A one-step recipe written for 2, for a question asked while cooking it. */
 const omelette = () =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { fr: "Omelette", en: "Omelette" }, meta: {} },
       description: { values: { fr: "x" }, meta: {} },
       instructions: { values: { fr: "- Battre les œufs" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
       isPescatarian: true,
       isGlutenFree: true,
       isDairyFree: true,
       isNutFree: true,
-      updatedAt: Date.now(),
     }),
   );
 

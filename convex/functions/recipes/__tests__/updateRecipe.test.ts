@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { FatUse, Unit } from "@shared/ingredients";
@@ -61,9 +62,8 @@ const seed = async () => {
 
 const seedRecipe = (servings = 4, status: RecipeStatus = "generated") =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
+    insertTestRecipe(ctx.db, {
       status,
-      isArchived: false,
       title: {
         values: { fr: "Soupe à l'oignon", en: "Onion soup" },
         meta: {
@@ -74,20 +74,11 @@ const seedRecipe = (servings = 4, status: RecipeStatus = "generated") =>
       description: { values: { fr: "Une soupe.", en: "A soup." }, meta: {} },
       instructions: { values: { fr: "Base\n- Émincer.", en: "Base\n- Slice." }, meta: {} },
       servings,
-      equipments: [],
       difficulty: 2,
       userId: userId as Id<"users">,
       tags: ["soup"],
-      cuisine: "french",
       timings: { preparation: 15 },
       search: { fr: "oignon", en: "onion" },
-      isVegan: false,
-      isVegetarian: false,
-      isPescatarian: false,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
-      updatedAt: Date.now(),
     }),
   );
 

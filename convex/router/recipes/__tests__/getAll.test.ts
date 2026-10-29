@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -43,27 +45,14 @@ const seedRecipe = (
   overrides: { timings?: { preparation?: number; cooking?: number; resting?: number } } = {},
 ) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { en: title, fr: `${title} (fr)` }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
-      servings: 2,
-      equipments: [],
       difficulty: 2,
       userId,
-      tags: [],
       cuisine: "italian",
       timings: overrides.timings ?? { preparation: 10, cooking: 20 },
-      search: { en: "", fr: "" },
-      isVegan: false,
-      isVegetarian: false,
-      isPescatarian: false,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
-      updatedAt: Date.now(),
     }),
   );
 

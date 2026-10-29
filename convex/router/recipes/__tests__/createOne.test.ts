@@ -84,7 +84,7 @@ beforeAll(() =>
 );
 
 /** The recipe's text as every reader sees it, wherever it is stored. */
-const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
+const textOf = (recipeId: Id<"recipes">) => t.run((ctx) => loadRecipeContent(ctx, recipeId));
 
 /**
  * `authed` schedules two follow-ups with `runAfter(0)` — the translation and the images — and

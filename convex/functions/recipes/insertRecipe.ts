@@ -36,8 +36,7 @@ type DerivedField = (typeof DERIVED_FIELDS)[number];
  * The text travels with the facts because every writer states both at once, and a recipe without
  * its text is not one any writer means to create. `splitRecipeText` is where they part.
  */
-export type RecipeFacts = Omit<Doc<"recipes">, "_id" | "_creationTime" | DerivedField | keyof RecipeText> &
-  RecipeText;
+export type RecipeFacts = Omit<Doc<"recipes">, "_id" | "_creationTime" | DerivedField> & RecipeText;
 
 /**
  * The facts of a whole row handed over from elsewhere, as the restore's portable row is, with its
@@ -58,8 +57,8 @@ export const recipeFactsOf = (
  * The facts as the two whole-row writers store them: the `recipes` columns, and the text apart.
  *
  * The one place the text comes off the facts, for `insertRecipe` and the restore's replace in
- * place alike. A writer spreading the facts straight onto the row would put the text back on a
- * migrated recipe, where `moveRecipeContent` (already recorded as done) would never take it off.
+ * place alike. A writer spreading the facts straight onto the row would fail the schema, which has
+ * no column for the text.
  */
 export const splitRecipeText = ({ description, instructions, ...row }: RecipeFacts) => ({
   row,

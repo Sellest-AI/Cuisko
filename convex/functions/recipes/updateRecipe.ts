@@ -163,7 +163,7 @@ export const updateRecipe = async (
   const _rewrite = (field: Localized, value: string): Localized =>
     setTranslation(field, locale, value, status, hashText(value));
 
-  await rewriteRecipeContent(ctx, existing, (text) => ({
+  await rewriteRecipeContent(ctx, existing._id, (text) => ({
     description: _rewrite(text.description, recipe.description),
     instructions: _rewrite(text.instructions, serializeInstructions(recipe.instructions)),
   }));

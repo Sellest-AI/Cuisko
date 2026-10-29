@@ -2,12 +2,14 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import { ANONYMOUS_AVATAR_SEED, avatarSeed } from "@shared/avatars";
 import { FAT_USE_SHARE, type FatUse } from "@shared/ingredients";
 
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { loadRecipe } from "../loadRecipe";
+import { loadRecipeContent } from "../recipeContent";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -19,27 +21,17 @@ const seedRecipe = ({ chef }: { chef?: string | null } = { chef: "Franck" }) =>
     const userId =
       chef === null ? undefined : await ctx.db.insert("users", chef ? { name: chef } : {});
 
-    return ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    return insertTestRecipe(ctx.db, {
       title: { values: { en: "Onion soup" }, meta: {} },
       description: { values: { en: "A winter soup." }, meta: {} },
       instructions: { values: { en: "Base\n- Slice the onions." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
       userId,
-      tags: [],
-      cuisine: "french",
       timings: { preparation: 15 },
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
-      isPescatarian: false,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
   });
 
@@ -490,7 +482,7 @@ describe("functions/recipes/loadRecipe", () => {
     const another = await t.run(async (ctx) => {
       const recipe = (await ctx.db.get(tombstoned))!;
       const { _id, _creationTime, ...fields } = recipe;
-      return ctx.db.insert("recipes", fields);
+      return insertTestRecipe(ctx.db, { ...fields, ...(await loadRecipeContent(ctx, recipe._id)) });
     });
     await t.run((ctx) =>
       ctx.db.insert("usersExtended", { userId: ownerId, role: "USER", deletedAt: Date.now(), updatedAt: Date.now() }),

@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import type { Id } from "../../../_generated/dataModel";
 import { api, internal } from "../../../_generated/api";
 import { skipAt } from "../../../functions/planning/skipMeal";
@@ -73,27 +75,13 @@ const seedRecipeOf = (
       nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
       updatedAt: Date.now(),
     });
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { fr: title }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
-      instructions: { values: { fr: "" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
       timings: { cooking: 20 },
-      search: { en: "", fr: "" },
       shuffleKey: 1_000,
       isVegan: true,
       isVegetarian: true,
       isPescatarian: true,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
-      updatedAt: Date.now(),
     });
     await ctx.db.insert("recipeIngredients", { recipeId, ingredientId, position: 0, ...line, updatedAt: Date.now() });
     return { recipeId, ingredientId };

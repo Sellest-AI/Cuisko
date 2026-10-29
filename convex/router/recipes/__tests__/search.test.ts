@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -37,27 +39,14 @@ const seedUser = (name: string) =>
 /** A literal blob, for the reason `functions/recipes/__tests__/searchForUser.test.ts` gives. */
 const seedRecipe = (userId: Id<"users">, title: string, search = "") =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { en: title, fr: title }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
-      servings: 2,
-      equipments: [],
       difficulty: 2,
       userId,
-      tags: [],
       cuisine: "italian",
-      timings: {},
       search: { en: search, fr: search },
-      isVegan: false,
-      isVegetarian: false,
-      isPescatarian: false,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
-      updatedAt: Date.now(),
     }),
   );
 

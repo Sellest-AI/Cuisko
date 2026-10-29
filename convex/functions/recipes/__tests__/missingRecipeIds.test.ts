@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import schema from "../../../schema";
 import { missingRecipeIds } from "../missingRecipeIds";
 
@@ -11,26 +13,16 @@ let t: ReturnType<typeof convexTest>;
 
 const seedRecipe = () =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { en: "Onion soup" }, meta: {} },
       description: { values: { en: "A winter soup." }, meta: {} },
       instructions: { values: { en: "Base\n- Slice the onions." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
-      tags: [],
-      cuisine: "french",
       timings: { preparation: 15 },
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
-      isPescatarian: false,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     }),
   );
 

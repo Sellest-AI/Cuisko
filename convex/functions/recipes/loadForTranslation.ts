@@ -51,7 +51,7 @@ export const loadForTranslation = async (
   const recipe = await ctx.db.get(recipeId);
   if (!recipe) throw new Error(`loadForTranslation: recipe ${recipeId} does not exist.`);
 
-  const { description, instructions } = await loadRecipeContent(ctx, recipe);
+  const { description, instructions } = await loadRecipeContent(ctx, recipe._id);
 
   // Hashed once per field rather than once per (field, locale) pair — `LOCALES` is walked below
   // once per field, and the source text does not change between those walks.

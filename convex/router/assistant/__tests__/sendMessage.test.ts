@@ -2,6 +2,8 @@ import agentTest, { register as registerAgent } from "@convex-dev/agent/test";
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { ASSISTANT_IDLE_MS } from "../../../../shared/assistant";
 import { assistantAgent } from "../../../agent/agents";
 import { api } from "../../../_generated/api";
@@ -208,27 +210,16 @@ describe("router/assistant/sendMessage", () => {
     const cook = await seedUser("Franck");
     const author = await seedUser("Léa");
     const recipeId = await t.run((ctx) =>
-      ctx.db.insert("recipes", {
+      insertTestRecipe(ctx.db, {
         userId: author.userId,
-        status: "generated",
-        isArchived: false,
         title: { values: { fr: "Gratin dauphinois" }, meta: {} },
         description: { values: { fr: "x" }, meta: {} },
         instructions: { values: { fr: "- Éplucher\n- Enfourner" }, meta: {} },
         servings: 4,
-        equipments: [],
-        difficulty: 1,
-        tags: [],
-        cuisine: "french",
-        timings: {},
-        search: { en: "", fr: "" },
-        isVegan: false,
         isVegetarian: true,
         isPescatarian: true,
         isGlutenFree: true,
-        isDairyFree: false,
         isNutFree: true,
-        updatedAt: Date.now(),
       }),
     );
 

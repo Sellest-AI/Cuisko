@@ -2,6 +2,8 @@ import agentTest, { register as registerAgent } from "@convex-dev/agent/test";
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { assistantAgent } from "../../../agent/agents";
 import { api, components, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
@@ -147,27 +149,18 @@ const insertIngredient = (t: TestConvex) =>
 
 const insertRecipe = (t: TestConvex, userId: Id<"users">, isArchived = false) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
+    insertTestRecipe(ctx.db, {
       userId,
-      status: "generated",
       isArchived,
       title: { values: { fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: { fr: "Une soupe d'hiver." }, meta: {} },
       instructions: { values: { fr: "Base\n- Émincer les oignons." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
-      tags: [],
-      cuisine: "french",
       timings: { preparation: 15 },
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
-      isPescatarian: false,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     }),
   );
 

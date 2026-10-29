@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { ConvexError } from "convex/values";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { facetsOf } from "@shared/tags";
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 
 import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
@@ -112,21 +112,13 @@ const seedRecipe = (
   { isArchived, sourceUrl = CANONICAL }: { isArchived: boolean; sourceUrl?: string },
 ) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
+    insertTestRecipe(ctx.db, {
       userId,
-      status: "generated",
       isArchived,
       title: { values: { fr: "Poulet croustillant" }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
       instructions: { values: { fr: "- Paner." }, meta: {} },
-      servings: 2,
-      equipments: [],
       difficulty: 2,
-      tags: [],
       cuisine: "other",
-      timings: {},
-      search: { fr: "", en: "" },
-      ...facetsOf([]),
       sourceUrl,
       updatedAt: 1,
     }),

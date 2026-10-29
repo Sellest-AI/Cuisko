@@ -35,15 +35,6 @@ export type RecipeStatus = (typeof RECIPE_STATUSES)[number];
 
 export const recipes = defineTable({
   title: vLocalized,
-  /**
-   * Moved to `recipeContents`, and optional only until `moveRecipeContent` has run on every
-   * deployment. No writer sets them; `recipeContent.ts` alone reads them, as a fallback for a row
-   * the migration has not reached and to move or unset them. The deploy that removes them comes
-   * after the migration has finished on prod; Convex refuses it anywhere a row still holds one.
-   * Writing them now would be lost: every read prefers the content row.
-   */
-  description: v.optional(vLocalized),
-  instructions: v.optional(vLocalized),
   servings: v.number(),
   equipments: vEquipments,
   difficulty: v.union(...DIFFICULTY_LEVELS.map(v.literal)),
@@ -204,6 +195,12 @@ export const recipes = defineTable({
  * One row per recipe. Convex has no unique index, so every write goes through one function in
  * `recipeContent.ts` (`_put`), whose callers read `by_recipe` before it inserts. `instructions`
  * holds the serialized groups, as `serializeInstructions` writes them.
+ *
+ * @limitation The backend cannot be redeployed to a release from before this table (before
+ * f2731d7): those require `description` and `instructions` on every `recipes` row, and no row
+ * holds them any more, so Convex refuses the deploy. **Accepted because** writing the text to both
+ * tables would double every write for a rollback nobody has needed. **Until fixed**, such a
+ * rollback first needs the text copied back from `recipeContents` onto each recipe row.
  */
 export const recipeContents = defineTable({
   recipeId: v.id("recipes"),

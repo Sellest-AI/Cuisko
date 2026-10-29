@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { FatUse } from "@shared/ingredients";
 import { facetsOf } from "@shared/tags";
@@ -51,9 +52,7 @@ type RecipeExtras = {
 
 const insertRecipe = (title: string, extras: RecipeExtras = {}) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       ...extras,
       title: { values: { fr: title, en: `${title} (en)` }, meta: { en: { status: "machine", sourceHash: "h" } } },
       description: { values: { fr: "" }, meta: {} },

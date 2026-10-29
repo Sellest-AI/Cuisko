@@ -1,10 +1,12 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { api, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
-import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
+import { loadRecipeContent, rewriteRecipeContent } from "../../../functions/recipes/recipeContent";
 import type { RecipeStatus } from "../../../schema/recipes";
 import { enforceRateLimit } from "../../../functions/rateLimits/enforceRateLimit";
 import { rateLimitFor } from "../../../lib/rateLimits";
@@ -39,7 +41,7 @@ vi.mock("@convex/functions/recipes/resolveRecipeIngredients", async (importOrigi
 let t: ReturnType<typeof convexTest>;
 
 /** The recipe's text as every reader sees it, wherever it is stored. */
-const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
+const textOf = (recipeId: Id<"recipes">) => t.run((ctx) => loadRecipeContent(ctx, recipeId));
 
 const seedUser = (name: string, role: "USER" | "ADMIN") =>
   t.run(async (ctx) => {
@@ -52,23 +54,17 @@ const seedUser = (name: string, role: "USER" | "ADMIN") =>
 /** A catalog recipe: no owner, which is exactly the row `updateOne.authed` could never reach. */
 const seedRecipe = (sourceUrl?: string, status: RecipeStatus = "generated") =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
+    insertTestRecipe(ctx.db, {
       status,
-      isArchived: false,
       sourceUrl,
       title: { values: { fr: "Poulet frit" }, meta: {} },
       description: { values: { fr: "Croustillant." }, meta: {} },
       instructions: { values: { fr: "- Faites frire le poulet." }, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
-      tags: [],
       cuisine: "american",
       timings: { cooking: 20 },
       search: { fr: "poulet" },
-      isVegan: false,
-      isVegetarian: false,
-      isPescatarian: false,
       isGlutenFree: true,
       isDairyFree: true,
       isNutFree: true,
@@ -181,9 +177,8 @@ describe("router/recipes/verifyOne", () => {
     expect(await verify(adminId, recipeId)).toEqual({ verdict: "unchanged" });
 
     expect(resolveRun).not.toHaveBeenCalled();
-    const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
-    expect(row.instructions.values.fr).toBe("- Faites frire le poulet.");
-    expect(row.status).toBe("reviewed");
+    expect((await textOf(recipeId)).instructions.values.fr).toBe("- Faites frire le poulet.");
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("reviewed");
   });
 
   /** A verify always ends `reviewed`, from a cook's own `edited` recipe too, whatever it found. */
@@ -212,15 +207,17 @@ describe("router/recipes/verifyOne", () => {
     const recipeId = await seedRecipe(SOURCE_URL, "edited");
     const cookText = { values: { fr: "- Faites frire 2 blancs de poulet." }, meta: {} };
     verifyRun.mockImplementation(async () => {
-      await t.run((ctx) => ctx.db.patch(recipeId, { instructions: cookText, updatedAt: 2 }));
+      await t.run(async (ctx) => {
+        await ctx.db.patch(recipeId, { updatedAt: 2 });
+        await rewriteRecipeContent(ctx, recipeId, (text) => ({ ...text, instructions: cookText }));
+      });
       return { corrections: recipe ? ["Huile : la friture manquait."] : [], recipe };
     });
 
     await expect(verify(adminId, recipeId)).rejects.toThrow();
 
-    const row = (await t.run((ctx) => ctx.db.get(recipeId)))!;
-    expect(row.status).toBe("edited");
-    expect(row.instructions.values.fr).toBe("- Faites frire 2 blancs de poulet.");
+    expect((await t.run((ctx) => ctx.db.get(recipeId)))!.status).toBe("edited");
+    expect((await textOf(recipeId)).instructions.values.fr).toBe("- Faites frire 2 blancs de poulet.");
   });
 
   /** The ingredient lines are part of what the verifier judged, not only the text. */

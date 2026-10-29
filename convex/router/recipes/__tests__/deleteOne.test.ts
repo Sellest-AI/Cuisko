@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -34,23 +36,10 @@ const recipeRow = (userId?: Id<"users">, coverImageId?: Id<"images">) => ({
   description: { values: {}, meta: {} },
   instructions: { values: {}, meta: {} },
   servings: 4,
-  equipments: [],
   difficulty: 2 as const,
-  status: "generated" as const,
-  isArchived: false,
   userId,
   coverImageId,
-  tags: [],
   cuisine: "italian" as const,
-  timings: {},
-  search: { en: "", fr: "" },
-  isVegan: false,
-  isVegetarian: false,
-  isPescatarian: false,
-  isGlutenFree: false,
-  isDairyFree: false,
-  isNutFree: false,
-  updatedAt: Date.now(),
 });
 
 /**
@@ -64,7 +53,7 @@ describe("router/recipes/deleteOne", () => {
     const { recipeId, ingredientId } = await t.run(async (ctx) => {
       const userId = await ctx.db.insert("users", { name: "Ana" });
       const coverImageId = await ctx.db.insert("images", imageRow("cover.webp"));
-      const recipeId = await ctx.db.insert("recipes", recipeRow(undefined, coverImageId));
+      const recipeId = await insertTestRecipe(ctx.db, recipeRow(undefined, coverImageId));
       const ingredientId = await ctx.db.insert("ingredients", {
         name: { values: { en: "Mascarpone", fr: "Mascarpone" }, meta: {} },
         emoji: "🧀",
@@ -109,7 +98,7 @@ describe("router/recipes/deleteOne", () => {
     const recipeId = await t.run(async (ctx) => {
       const userId = await ctx.db.insert("users", { name: "Ana" });
 
-      return ctx.db.insert("recipes", recipeRow(userId));
+      return insertTestRecipe(ctx.db, recipeRow(userId));
     });
 
     await expect(t.mutation(internal.router.recipes.deleteOne._internal, { recipeId })).rejects.toThrow(
@@ -124,7 +113,7 @@ describe("router/recipes/deleteOne", () => {
     const t = convexTest(schema, modules);
 
     const recipeId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("recipes", recipeRow());
+      const id = await insertTestRecipe(ctx.db, recipeRow());
       await ctx.db.delete(id);
 
       return id;

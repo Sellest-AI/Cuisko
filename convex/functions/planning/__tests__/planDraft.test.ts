@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Equipment } from "@shared/equipments";
 import type { MealSlot } from "@shared/mealSlots";
@@ -35,19 +36,9 @@ const setup = () =>
       nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
       updatedAt: Date.now(),
     });
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { fr: "Salade de tomates" }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
-      instructions: { values: { fr: "" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
       timings: { cooking: 20 },
-      search: { en: "", fr: "" },
       shuffleKey: 1_000_000_000,
       isVegan: true,
       isVegetarian: true,
@@ -55,7 +46,6 @@ const setup = () =>
       isGlutenFree: true,
       isDairyFree: true,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
     await ctx.db.insert("recipeIngredients", {
       recipeId,
@@ -139,19 +129,8 @@ describe("functions/planning/planDraft", () => {
     const startedAt = Date.now() + 1;
     await new Promise((resolve) => setTimeout(resolve, 2));
     const latecomer = await t.run(async (ctx) => {
-      const recipeId = await ctx.db.insert("recipes", {
-        status: "generated",
-        isArchived: false,
+      const recipeId = await insertTestRecipe(ctx.db, {
         title: { values: { fr: "Tarte tardive" }, meta: {} },
-        description: { values: { fr: "" }, meta: {} },
-        instructions: { values: { fr: "" }, meta: {} },
-        servings: 2,
-        equipments: [],
-        difficulty: 1,
-        tags: [],
-        cuisine: "french",
-        timings: {},
-        search: { en: "", fr: "" },
         // Ahead of the standing recipe in the wrapped window, so without the cut it is drawn first.
         shuffleKey: 500_000_000,
         isVegan: true,
@@ -160,7 +139,6 @@ describe("functions/planning/planDraft", () => {
         isGlutenFree: true,
         isDairyFree: true,
         isNutFree: true,
-        updatedAt: Date.now(),
       });
       await ctx.db.insert("recipeIngredients", {
         recipeId,
@@ -199,7 +177,7 @@ describe("functions/planning/planDraft", () => {
       });
       const recipe = await ctx.db.get(ids.recipeId);
       const { _id, _creationTime, ...fields } = recipe!;
-      const soupId = await ctx.db.insert("recipes", {
+      const soupId = await insertTestRecipe(ctx.db, {
         status: "generated",
         isArchived: false,
         ...fields,
@@ -262,7 +240,7 @@ describe("functions/planning/planDraft", () => {
     const soupId = await t.run(async (ctx) => {
       const recipe = await ctx.db.get(ids.recipeId);
       const { _id, _creationTime, ...fields } = recipe!;
-      const soupId = await ctx.db.insert("recipes", {
+      const soupId = await insertTestRecipe(ctx.db, {
         status: "generated",
         isArchived: false,
         ...fields,

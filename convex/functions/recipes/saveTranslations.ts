@@ -53,7 +53,7 @@ export const saveTranslations = async (
     updatedAt: Date.now(),
   });
 
-  await rewriteRecipeContent(ctx, recipe, ({ description, instructions }) => ({
+  await rewriteRecipeContent(ctx, recipe._id, ({ description, instructions }) => ({
     description: fold(description, ({ recipe }) => recipe.description),
     instructions: fold(instructions, ({ recipe }) => serializeInstructions(recipe.instructions)),
   }));

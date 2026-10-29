@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
@@ -40,27 +42,13 @@ const seedUser = (name: string) =>
 /** `userId` optional so a catalog recipe — one nobody wrote — can be seeded the same way. */
 const seedRecipe = (userId?: Id<"users">) =>
   t.run((ctx) =>
-    ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    insertTestRecipe(ctx.db, {
       title: { values: { en: "Onion soup", fr: "Soupe à l'oignon" }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
       servings: 4,
-      equipments: [],
       difficulty: 2,
       userId,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { en: "", fr: "" },
-      isVegan: false,
-      isVegetarian: false,
-      isPescatarian: false,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
-      updatedAt: Date.now(),
     }),
   );
 

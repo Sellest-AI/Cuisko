@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Equipment } from "@shared/equipments";
 import type { NutritionPreference } from "@shared/preferences";
 import type { Tag } from "@shared/tags";
@@ -79,28 +80,16 @@ const seedRecipe = (
       nutrition: { calories: 10, protein: 1, fat: 1, carbohydrates: 1 },
       updatedAt: Date.now(),
     });
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       userId,
       title: { values: { fr: title }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
-      instructions: { values: { fr: "" }, meta: {} },
-      servings: 2,
       equipments,
-      difficulty: 1,
       tags,
-      cuisine: "french",
       timings: { cooking: 20 },
-      search: { en: "", fr: "" },
       shuffleKey,
       isVegan,
       isVegetarian: isVegan,
       isPescatarian: isVegan,
-      isGlutenFree: false,
-      isDairyFree: false,
-      isNutFree: false,
-      updatedAt: Date.now(),
     });
     await ctx.db.insert("recipeIngredients", {
       recipeId,

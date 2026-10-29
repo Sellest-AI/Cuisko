@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText } from "@convex/lib/i18n";
 import type { Localized } from "@convex/schema/i18n";
@@ -8,7 +9,6 @@ import type { Localized } from "@convex/schema/i18n";
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
 import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
-import { facetsOf } from "@shared/tags";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -56,24 +56,13 @@ const seed = async (
   t.run(async (ctx) => {
     const userId = await ctx.db.insert("users", { name: "Franck", email: "f@example.com" });
 
-    return ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    return insertTestRecipe(ctx.db, {
       userId,
       title,
       description: overrides.description ?? one("fr", "Une soupe d'hiver."),
       instructions: overrides.instructions ?? one("fr", "## Base\n- Émincer les oignons."),
       servings: 4,
-      equipments: [],
       difficulty: 2,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      // Neither is what this file tests; both are here because the columns are required.
-      // `facetsOf` rather than six literals, so adding a facet does not mean editing three
-      // fixtures — and so a fixture can never claim one the tag list does not support.
-      search: { fr: "", en: "" },
-      ...facetsOf([]),
       updatedAt: 1,
     });
   });
@@ -81,7 +70,7 @@ const seed = async (
 const read = (recipeId: Id<"recipes">) => t.run((ctx) => ctx.db.get(recipeId));
 
 /** The recipe's text as every reader sees it, wherever it is stored. */
-const textOf = (recipeId: Id<"recipes">) => t.run(async (ctx) => loadRecipeContent(ctx, (await ctx.db.get(recipeId))!));
+const textOf = (recipeId: Id<"recipes">) => t.run((ctx) => loadRecipeContent(ctx, recipeId));
 
 beforeEach(() => {
   t = convexTest(schema, modules);

@@ -43,7 +43,7 @@ export const recipeBrief = async (ctx: QueryCtx, { recipe, locale }: Args): Prom
   const row = await ctx.db.get(recipe.id);
   if (!row) return undefined;
 
-  const [{ lines }, { instructions }] = await Promise.all([loadRecipeLines(ctx, row._id), loadRecipeContent(ctx, row)]);
+  const [{ lines }, { instructions }] = await Promise.all([loadRecipeLines(ctx, row._id), loadRecipeContent(ctx, row._id)]);
   const steps = parseInstructions(resolvei18n(instructions, locale)).flatMap((group) =>
     group.steps.map(({ instruction }) => (group.title ? `(${group.title}) ${instruction}` : instruction)),
   );

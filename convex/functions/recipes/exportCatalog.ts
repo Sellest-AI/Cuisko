@@ -60,7 +60,7 @@ const _portableRecipeOf = async (ctx: ExportCtx, recipe: Doc<"recipes">): Promis
 
   return {
     origin: { recipeId: _id, creationTime: _creationTime },
-    row: { ...row, ...(await loadRecipeContent(ctx, recipe)) },
+    row: { ...row, ...(await loadRecipeContent(ctx, recipe._id)) },
     ingredients: await _ingredientsOf(ctx, _id),
     images: { cover: await _coverOf(ctx, coverImageId), plate: await imagePairOf(ctx, plateImageId) },
   };

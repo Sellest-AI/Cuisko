@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText } from "@convex/lib/i18n";
 import type { Localized } from "@convex/schema/i18n";
@@ -8,7 +9,7 @@ import { serializeInstructions } from "@shared/recipes";
 
 import schema from "../../../schema";
 import { loadForTranslation } from "../loadForTranslation";
-import { facetsOf } from "@shared/tags";
+import { writeRecipeContent } from "../recipeContent";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -56,6 +57,14 @@ const TRANSLATED = {
   },
 };
 
+/** What a finished translation run leaves: the title on the recipe row, the text on its content row. */
+const translate = (recipeId: Id<"recipes">) =>
+  t.run(async (ctx) => {
+    const { title, ...text } = TRANSLATED;
+    await ctx.db.patch(recipeId, { title });
+    await writeRecipeContent(ctx, recipeId, text);
+  });
+
 /**
  * One French recipe with two ingredients, deliberately linked out of order.
  *
@@ -80,25 +89,15 @@ const seed = async (overrides: { userId?: Id<"users"> | null } = {}) =>
     const onion = await catalog("oignon", "onion");
     const perlimpinpin = await catalog("poudre de perlimpinpin", undefined);
 
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       userId: overrides.userId === null ? undefined : (overrides.userId ?? userId),
       title: fr("Soupe à l'oignon"),
       description: fr("Une soupe d'hiver."),
       instructions: fr(INSTRUCTIONS),
       servings: 4,
-      equipments: [],
       difficulty: 2,
       tags: ["soup"],
-      cuisine: "french",
       timings: { preparation: 15 },
-      // Neither is what this file tests; both are here because the columns are required.
-      // `facetsOf` rather than six literals, so adding a facet does not mean editing three
-      // fixtures — and so a fixture can never claim one the tag list does not support.
-      search: { fr: "", en: "" },
-      ...facetsOf([]),
-      updatedAt: Date.now(),
     });
 
     const link = (ingredientId: Id<"ingredients">, position: number) =>
@@ -189,7 +188,7 @@ describe("functions/recipes/loadForTranslation", () => {
 
   test("reports nothing missing once every locale is translated", async () => {
     const { recipeId } = await seed();
-    await t.run((ctx) => ctx.db.patch(recipeId, TRANSLATED));
+    await translate(recipeId);
 
     expect((await load(recipeId)).missingLocales).toEqual([]);
   });
@@ -202,7 +201,7 @@ describe("functions/recipes/loadForTranslation", () => {
    */
   test("reports a locale as missing again once the source it was translated from changes", async () => {
     const { recipeId } = await seed();
-    await t.run((ctx) => ctx.db.patch(recipeId, TRANSLATED));
+    await translate(recipeId);
 
     const editedTitle = "Soupe à l'oignon gratinée";
     await t.run((ctx) =>

@@ -1,6 +1,8 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
@@ -55,19 +57,8 @@ const seedHousehold = async (t: ReturnType<typeof convexTest>) =>
 /** The scaffolding a ledger claim hangs off: one plan, one plate on it, from a one-recipe library. */
 const seedPlate = (t: ReturnType<typeof convexTest>, householdId: Id<"households">) =>
   t.run(async (ctx) => {
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
-      title: { values: { fr: "Soupe" }, meta: {} },
-      description: { values: { fr: "" }, meta: {} },
-      instructions: { values: { fr: "" }, meta: {} },
-      servings: 2,
-      equipments: [],
-      difficulty: 1,
-      tags: [],
-      cuisine: "french",
+    const recipeId = await insertTestRecipe(ctx.db, {
       timings: { cooking: 20 },
-      search: { en: "", fr: "" },
       shuffleKey: 0.5,
       isVegan: true,
       isVegetarian: true,
@@ -75,7 +66,6 @@ const seedPlate = (t: ReturnType<typeof convexTest>, householdId: Id<"households
       isGlutenFree: true,
       isDairyFree: true,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
     const mealPlanId = await ctx.db.insert("mealPlans", {
       householdId,

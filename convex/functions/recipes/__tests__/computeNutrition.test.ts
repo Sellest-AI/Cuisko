@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
+import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import { FAT_USE_SHARE, type FatUse, type RecipeUnit } from "@shared/ingredients";
 import { roundFacts } from "@shared/nutrition";
 
@@ -47,26 +48,15 @@ const seedRecipe = (
   lines: { ingredientId: Id<"ingredients">; quantity: number; unit: RecipeUnit; fatUse?: FatUse }[],
 ) =>
   t.run(async (ctx) => {
-    const recipeId = await ctx.db.insert("recipes", {
-      status: "generated",
-      isArchived: false,
+    const recipeId = await insertTestRecipe(ctx.db, {
       title: { values: { en: title, fr: title }, meta: {} },
       description: { values: {}, meta: {} },
       instructions: { values: {}, meta: {} },
       servings,
-      equipments: [],
       difficulty: 2,
-      tags: [],
-      cuisine: "french",
-      timings: {},
-      search: { en: "", fr: "" },
-      isVegan: false,
       isVegetarian: true,
-      isPescatarian: false,
       isGlutenFree: true,
-      isDairyFree: false,
       isNutFree: true,
-      updatedAt: Date.now(),
     });
 
     for (const [position, line] of lines.entries()) {
