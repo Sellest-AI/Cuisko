@@ -118,6 +118,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
             title={recipe?.title}
             isOwned={recipe?.isOwned}
             isFavorited={recipe?.isFavorited}
+            sourceUrl={recipe?.sourceUrl}
           />
         }
         contentHeader={

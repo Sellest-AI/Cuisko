@@ -12,7 +12,14 @@
     "created_by": "Created by",
     "anonymous_chef": "Anonymous",
     "share_message_x_title": "\"{{title}}\" on Cuisko",
-    "share_message_x_title_x_url": "\"{{title}}\" on Cuisko: {{url}}"
+    "share_message_x_title_x_url": "\"{{title}}\" on Cuisko: {{url}}",
+    "more": "More actions",
+    "menu_share": "Share the recipe",
+    "menu_edit": "Edit the recipe",
+    "menu_plan": "Plan this meal",
+    "menu_source": "Open the original",
+    "menu_verify": "Fix the recipe",
+    "menu_verifying": "Checking the recipe…"
   },
   "Overview": {
     "utensils": "Utensils",
@@ -26,8 +33,6 @@
     "resting": "Rest",
     "dial_unit": "Minutes",
     "meal_score": "Cui-Score",
-    "source": "See the original recipe",
-    "verify": "Verify the recipe",
     "verify_unchanged": "Nothing to correct: the recipe matches its source.",
     "verify_failed": "The check did not finish. Try again.",
     "verify_rate_limited": "Too many checks for now. Try again later.",

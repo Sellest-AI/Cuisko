@@ -15,7 +15,6 @@ import { GroceryRow } from "./grocery-row";
 import { Timings, type Timing } from "./timings";
 import { Verify } from "./verify";
 import { IngredientGroup } from "../../_components/ingredient-group";
-import { Source } from "./source";
 
 const COLUMNS = 3;
 
@@ -122,10 +121,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
           />
         </View>
       )}
-      <View style={recipe.equipments.length > 0 && { marginTop: theme.spacing[24] }}>
-        {recipe.sourceUrl && <Source url={recipe.sourceUrl} style={styles.source} />}
-        <Verify id={id} style={styles.verify} />
-      </View>
+      <Verify id={id} style={styles.verify} />
     </RecipeScreen>
   );
 };
@@ -149,7 +145,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[8],
   },
   section: { marginTop: theme.spacing[24] },
-  utensils: { marginTop: theme.spacing[8] },
-  source: { marginTop: theme.spacing[24] },
-  verify: { marginTop: theme.spacing[24], marginBottom: theme.spacing[24] },
+  utensils: { marginTop: theme.spacing[8], marginBottom: theme.spacing[12] },
+  verify: { marginTop: theme.spacing[20], marginBottom: theme.spacing[24] },
 });

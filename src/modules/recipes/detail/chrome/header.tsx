@@ -1,14 +1,31 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { router } from "expo-router";
 
+import { Popover } from "@ui/popover";
+import { Pressable } from "@ui/pressable";
+import { Text } from "@ui/text";
 import { ButtonIcon } from "@ui/button-icon";
-import { CalendarPlus, Heart, Share2, SquarePen } from "@ui/icons";
+import {
+  BugOffIcon,
+  CalendarPlus,
+  CalendarPlusIcon,
+  Ellipsis,
+  ExternalLinkIcon,
+  Heart,
+  Share2,
+  Share2Icon,
+  SquarePen,
+  SquarePenIcon,
+} from "@ui/icons";
 import { theme } from "theme";
+import { useTranslations } from "translations";
 
 import type { Id } from "~/lib/convex/api";
+import { openInBrowser } from "~/lib/openInBrowser";
 
 import { useSetRecipeFavorite } from "../../_hooks/useSetRecipeFavorite";
 import { useShareRecipe } from "../../_hooks/useShareRecipe";
+import { useVerifyRecipe } from "../../_hooks/useVerifyRecipe";
 import { CONTENT_NEGATIVE_SPACE, SCREEN_PADDING } from "../../constants";
 
 type Props = {
@@ -20,6 +37,8 @@ type Props = {
   isOwned?: boolean;
   /** From the `getOne` payload. Drives the heart's variant; absent until the recipe has arrived. */
   isFavorited?: boolean;
+  /** From the `getOne` payload, which ships it only to the owner and to an admin. */
+  sourceUrl?: string;
 };
 
 /**
@@ -32,13 +51,21 @@ type Props = {
  *
  * It takes the title and the two flags rather than fetching them. The chrome above it already holds
  * the recipe, and this view is re-rendered by the parallax on every scroll frame — a subscription
- * here would be a second reader of one cache entry for data its parent had in hand. The favorite
- * and share WRITES are called from here, though: a mutation is not a subscription, and each button
- * is the only thing that sends its own.
+ * here would be a second reader of one cache entry for data its parent had in hand. The favorite,
+ * share and verify WRITES are called from here, though: a mutation is not a subscription, and each
+ * control is the only thing that sends its own.
+ *
+ * The `…` menu holds what only some cooks may do: edit for the author, the original page for the
+ * author and an admin (the only ones the server ships it to), the check against it for an admin.
+ * When it would hold only Edit, which the pencil already offers, the button is not drawn. The
+ * check's bar and its results stay at the bottom of the overview (`overview/verify.tsx`), which
+ * reads the same entry.
  */
-export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited }: Props) => {
+export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl }: Props) => {
+  const t = useTranslations("Recipe");
   const { set } = useSetRecipeFavorite();
   const { share } = useShareRecipe();
+  const { canVerify, isVerifying, verify } = useVerifyRecipe(recipeId);
 
   /** Guarded on the title: the message names the recipe, and a link with no name reads as spam. */
   const onShare = recipeId && title ? () => share({ id: recipeId, title }) : undefined;
@@ -51,6 +78,9 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited }: Props) =
     recipeId && isFavorited !== undefined
       ? () => set(recipeId as Id<"recipes">, !isFavorited)
       : undefined;
+
+  const canEdit = recipeId !== undefined && isOwned === true;
+  const hasMenu = sourceUrl !== undefined || (recipeId !== undefined && canVerify);
 
   return (
     <View style={styles.header}>
@@ -67,9 +97,11 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited }: Props) =
       <View style={[styles.actions, styles.rightActions]}>
         {/*
           * Only the author gets the pencil. The read no longer proves ownership, and offering to
-          * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit.
+          * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit. A
+          * recipe with an original page shows the `…` menu, which then holds Edit, so the pencil
+          * steps aside for it rather than offering the same thing twice.
           */}
-        {recipeId && isOwned === true && (
+        {recipeId && isOwned === true && !sourceUrl && (
           <ButtonIcon
             onPress={() => router.push(`/recipe/edit/${recipeId}`)}
             variant="neutral"
@@ -98,6 +130,100 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited }: Props) =
         >
           {Heart}
         </ButtonIcon>
+        {hasMenu && (
+          <Popover
+            minWidth={232}
+            trigger={(open, isOpen) => (
+              <ButtonIcon
+                onPress={open}
+                haptic
+                disabled={isOpen}
+                variant="neutral"
+                size="sm"
+                accessibilityLabel={t("Chrome.more")}
+              >
+                {Ellipsis}
+              </ButtonIcon>
+            )}
+          >
+            {/*
+              * Every row closes the sheet, and hands its action over to run once it is gone: the
+              * editor and the in-app browser each present over the screen, never over the Modal.
+              */}
+            {(close) => (
+              <View style={styles.popover}>
+                {canEdit && (
+                  <Pressable
+                    style={styles.popoverItem}
+                    onPress={() => close(() => router.push(`/recipe/edit/${recipeId}`))}
+                  >
+                    <SquarePenIcon size={22} />
+                    <Text.Base>{t("Chrome.menu_edit")}</Text.Base>
+                  </Pressable>
+                )}
+                {recipeId && (
+                  <Pressable
+                    style={styles.popoverItem}
+                    onPress={() => close(() => router.push({ pathname: "/plan-recipe", params: { recipeId } }))}
+                  >
+                    <CalendarPlusIcon size={22} />
+                    <Text.Base>{t("Chrome.menu_plan")}</Text.Base>
+                  </Pressable>
+                )}
+                {sourceUrl !== undefined && (
+                  <Pressable
+                    style={styles.popoverItem}
+                    /**
+                     * Three platforms, three orders. Android opens once the sheet is gone. iOS opens
+                     * at once and leaves the sheet up: the browser crashes if the Modal is dismissed
+                     * under it too quickly. Web opens inside the tap itself, since a browser blocks a
+                     * tab opened after the gesture has ended, and only then closes.
+                     */
+                    onPress={() => {
+                      if (Platform.OS === "android")
+                        close(() => openInBrowser(sourceUrl));
+                      else {
+                        openInBrowser(sourceUrl);
+                        if (Platform.OS !== "ios") close();
+                      }
+                    }}
+                  >
+                    <ExternalLinkIcon size={22} />
+                    <Text.Base>{t("Chrome.menu_source")}</Text.Base>
+                  </Pressable>
+                )}
+                {onShare && (
+                  <Pressable
+                    style={styles.popoverItem}
+                    onPress={async () => {
+                      await onShare();
+                      close();
+                    }}
+                  >
+                    <Share2Icon size={22} />
+                    <Text.Base>{t("Chrome.menu_share")}</Text.Base>
+                  </Pressable>
+                )}
+                {/*
+                  * A running check keeps its row, disabled and saying so, rather than vanishing:
+                  * the bar is at the bottom of the overview, out of sight from up here.
+                  */}
+                {recipeId !== undefined && canVerify && (
+                  <Pressable
+                    style={styles.popoverItem}
+                    disabled={isVerifying}
+                    onPress={() => close(() => void verify())}
+                  >
+                    <BugOffIcon size={22} />
+                    <Text.Base>
+                      {t(isVerifying ? "Chrome.menu_verifying" : "Chrome.menu_verify")}
+                    </Text.Base>
+                  </Pressable>
+                )}
+              </View>
+            )}
+          </Popover>
+        )}
       </View>
     </View>
   );
@@ -127,4 +253,14 @@ const styles = StyleSheet.create({
     left: SCREEN_PADDING,
     justifyContent: "flex-start",
   },
+  popover: {
+    paddingVertical: theme.spacing[16],
+    paddingHorizontal: theme.spacing[20],
+    gap: theme.spacing[24],
+  },
+  popoverItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[20],
+  }
 });

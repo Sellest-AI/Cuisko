@@ -3,32 +3,25 @@ import { View, StyleSheet, ViewProps } from "react-native";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 import { isAppError, isRateLimited } from "@shared/errors";
-import { Button } from "@ui/button";
 import { useNow } from "@ui/hooks/useNow";
 import { StepProgress } from "@ui/step-progress";
 import { Text } from "@ui/text";
 
 import { useVerifyRecipe } from "../../_hooks/useVerifyRecipe";
 
-/**
- * A second tap within this is dropped. The bar replaces the button only once the screen has drawn
- * the check as running, and a double tap lands before that: it would pay for two checks.
- */
-const DOUBLE_TAP_DELAY_MS = 1000;
-
 /** How long the bar takes to fill: about what a check costs. One that runs longer waits on a full bar. */
 const EXPECTED_SECONDS = 60;
 
 /**
- * The admin's "Verify the recipe", last on the overview, and what the check said under it.
+ * The admin's check against the original, last on the overview: the bar while it runs, and what it
+ * said once it has. The check itself is started from the header's `…` menu; both read the same
+ * entry of `verificationsAtom`, so the bar appears here the moment the menu starts it.
  *
- * A ghost button, because it is a tool and not part of the recipe: it should be findable by the
- * person who needs it and invisible to the eye of everyone else. Draws nothing for a cook who is
- * not an admin.
+ * Draws nothing for a cook who is not an admin, and nothing before a check has been run.
  */
 export const Verify = ({ id, style }: { id?: string; style?: ViewProps["style"] }) => {
   const t = useTranslations("Recipe");
-  const { canVerify, startedAt, outcome, error, verify } = useVerifyRecipe(id);
+  const { canVerify, startedAt, outcome, error } = useVerifyRecipe(id);
 
   if (!canVerify) return null;
 
@@ -43,13 +36,11 @@ export const Verify = ({ id, style }: { id?: string; style?: ViewProps["style"] 
       outcome?.verdict === "unchanged" ? [t("Overview.verify_unchanged")] :
         outcome?.corrections ?? [];
 
+  if (startedAt === undefined && lines.length === 0) return null;
+
   return (
     <View style={[styles.container, style]}>
-      {startedAt !== undefined ? <VerifyProgress startedAt={startedAt} /> : (
-        <Button variant="ghost" onPress={() => void verify()} doubleTapDelay={DOUBLE_TAP_DELAY_MS}>
-          {t("Overview.verify")}
-        </Button>
-      )}
+      {startedAt !== undefined && <VerifyProgress startedAt={startedAt} />}
       {lines.map((line, index) => (
         <Text.Sm key={index} color={theme.colors.neutral.muted} style={styles.line}>
           {line}
