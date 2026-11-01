@@ -171,18 +171,25 @@ export const WeekSummaryReveal = ({ header }: Props) => {
    * corner, and it starts up and right, towards the pill, settling as the box grows. Closing: the
    * bottom-left corner, and it shrinks towards it as the box folds. Both are at rest fully open,
    * where one hands over to the other, so the switch never moves it.
+   *
+   * The anchoring is `left` and `top`, never a transform: it follows the box's own frame, and layout
+   * props land in one commit while transforms take a faster path. Split across the two, a late
+   * commit left the box behind for a few frames while the card kept moving, and the card jittered.
+   * Only the drift and the scale, which follow no edge, are transforms.
    */
   const motion = useAnimatedStyle(() => {
     // How much narrower and shorter than the card the box still is.
     const shortX = interpolate(progress.value, [0, 1], [from.get().width, target.width]) - target.width;
     const shortY = interpolate(progress.value, [0, 1], [from.get().height, target.height]) - target.height;
+    const drift = interpolate(progress.value, [0, 1], [OPEN_DRIFT, 0]);
     return unfolded.get() ? {
-      transform: [{ translateY: shortY }, { scale: interpolate(progress.value, [0, 1], [CLOSED_SCALE, 1]) }],
+      left: 0,
+      top: shortY,
+      transform: [{ translateX: 0 }, { translateY: 0 }, { scale: interpolate(progress.value, [0, 1], [CLOSED_SCALE, 1]) }],
     } : {
-      transform: [
-        { translateX: shortX + interpolate(progress.value, [0, 1], [OPEN_DRIFT, 0]) },
-        { translateY: interpolate(progress.value, [0, 1], [-OPEN_DRIFT, 0]) },
-      ],
+      left: shortX,
+      top: 0,
+      transform: [{ translateX: drift }, { translateY: -drift }, { scale: 1 }],
     };
   });
   const spacer = useAnimatedStyle(() => ({ height: progress.value * push }));
