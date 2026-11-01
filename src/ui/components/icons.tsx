@@ -24,13 +24,13 @@ export {
   ArrowRight, LoaderCircle, Check, CircleDashed, ChevronDown, ChevronUp, ArrowLeftRight,
   CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
   BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck, CircleMinus,
-  ThumbsUp, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
+  ThumbsUp, Ellipsis, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
   FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock,
   LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat, ShoppingBasket, Undo2, Book, Mail, WifiOff
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
-  ArrowLeftRight as ArrowLeftRightIcon, CalendarPlus as CalendarPlusIcon, Eye as EyeIcon,
+  ArrowLeftRight as ArrowLeftRightIcon, CalendarPlusIcon, Eye as EyeIcon,
   Star as StarIcon, Bell as BellIcon, Camera as CameraIcon, Mic as MicIcon, ForkKnife as ForkKnifeIcon,
   Plus as PlusIcon, ListPlus as ListPlusIcon, Store as StoreIcon, ReceiptText as ReceiptTextIcon,
   BadgePercent as BadgePercentIcon, X as XIcon, ArrowLeft as ArrowLeftIcon, Sparkles as SparklesIcon,
@@ -41,7 +41,7 @@ export {
   Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,
   Play as PlayIcon, Pause as PauseIcon, SkipBack as SkipBackIcon, SkipForward as SkipForwardIcon,
   DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon, PencilIcon, GlobeIcon,
-  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, Link as LinkIcon, FlameIcon,
+  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, FlameIcon, BugOffIcon, ExternalLinkIcon,
   WifiOff as WifiOffIcon
 } from "lucide-react-native";
 

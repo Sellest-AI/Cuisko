@@ -72,6 +72,30 @@ export const BlurScope = ({ target, children }: BlurScopeProps) => (
 );
 
 /**
+ * The target an overlay samples: the whole screen, where a `BlurScope`'s target is often only part
+ * of it (the recipe photo, behind the header's discs).
+ *
+ * Kept apart from `BlurTargetContext` because the two answer different questions. A disc floats over
+ * the photo and sits inside the screen, so it can only sample the photo: a blur may not sit inside
+ * its own target. An overlay (a popover) renders in a Modal, outside the screen's native view, so
+ * it can sample all of it, and must: a sheet reaching past the photo's edge had nothing to blur
+ * there, and showed a bare white band. `BlurTarget` does not blank this one, since an overlay
+ * opened from inside the target is still not inside it natively.
+ */
+const OverlayTargetContext = createContext<BlurTargetHandle | undefined>(undefined);
+
+/** Names the screen-wide target for the overlays opened anywhere under it. */
+export const OverlayBlurScope = ({ target, children }: { target: BlurTargetHandle, children?: ReactNode }) => (
+  <OverlayTargetContext.Provider value={target}>{children}</OverlayTargetContext.Provider>
+);
+
+/**
+ * The screen-wide target, or `undefined` outside any `OverlayBlurScope`: an overlay there has
+ * nothing to sample on Android, and picks an opaque surface instead.
+ */
+export const useOverlayBlurTarget = () => useContext(OverlayTargetContext);
+
+/**
  * `expo-blur` with the app's tuning already applied, so a call site gets the frosted surface by
  * writing `<BlurView>` — every prop stays overridable for the case that wants something else.
  *

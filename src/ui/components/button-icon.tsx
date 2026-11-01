@@ -35,6 +35,8 @@ type Props = {
    * pressable either way, the two are independent and a side icon can carry its own handler.
    */
   composite?: boolean;
+  /** What a screen reader announces: a glyph alone says nothing to one. */
+  accessibilityLabel?: string;
 };
 
 export const ButtonIcon = ({
@@ -52,6 +54,7 @@ export const ButtonIcon = ({
   isLoading = false,
   iconSize: iconSizeOverride,
   iconColor,
+  accessibilityLabel,
   style,
 }: Props) => {
   const spin = useSpin(isLoading);
@@ -116,6 +119,8 @@ export const ButtonIcon = ({
       disabled={disabled || isLoading}
       animated={!composite}
       intensity={pressIntensity}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
       <Component
         tint="light"

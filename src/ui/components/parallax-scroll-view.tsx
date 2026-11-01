@@ -3,7 +3,7 @@ import { ComponentProps, ReactNode, useCallback, useEffect, useImperativeHandle,
 import { Animated, Dimensions, Platform, ScrollView, StyleSheet, View, ViewStyle } from "react-native";
 import Reanimated, { interpolate, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { Image } from "./image";
-import { BlurScope, BlurTarget } from "./blur-view";
+import { BlurScope, BlurTarget, OverlayBlurScope } from "./blur-view";
 import { useBlurTarget } from "@ui/hooks/useBlurTarget";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "./safe-area-view";
@@ -99,6 +99,7 @@ export const ParallaxScrollView = ({
    * tree's: the background is drawn before the scroll view and the content inside it.
    */
   const cover = useBlurTarget();
+  const page = useBlurTarget();
 
   // For content inside ScrollView: counteract natural scroll to create parallax
   // eslint-disable-next-line react-hooks/refs
@@ -198,7 +199,13 @@ export const ParallaxScrollView = ({
   }, [scrollKey]);
 
   return (
-    <View style={{ flex: 1, ...style }}>
+    /**
+     * The whole screen is a blur target too, for the overlays opened from it (the header's `…`
+     * menu): see `OverlayBlurScope`. The cover target below stays the one the header's discs
+     * sample, since they sit inside this one.
+     */
+    <OverlayBlurScope target={page}>
+    <BlurTarget target={page} style={{ flex: 1, ...style }}>
       {/* Parallax Background Header */}
       <Reanimated.View
         style={[{
@@ -391,6 +398,7 @@ export const ParallaxScrollView = ({
           {children}
         </View>
       </Animated.ScrollView>
-    </View >
+    </BlurTarget>
+    </OverlayBlurScope>
   );
 };
