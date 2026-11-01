@@ -17,6 +17,8 @@ type Props = {
   iconSize?: number;
   /** The glyph's colour, when the variant's own does not suit the surface the button sits on. */
   iconColor?: string;
+  /** Paints the glyph's inside in its own colour: an on state, like a kept heart. Closed shapes only. */
+  filled?: boolean;
   style?: ViewStyle;
   disabled?: boolean;
   onPress?: () => void;
@@ -54,6 +56,7 @@ export const ButtonIcon = ({
   isLoading = false,
   iconSize: iconSizeOverride,
   iconColor,
+  filled = false,
   accessibilityLabel,
   style,
 }: Props) => {
@@ -144,6 +147,7 @@ export const ButtonIcon = ({
           <MorphIcon
             size={iconSize}
             color={iconColor ?? color.color}
+            fill={filled && !isLoading ? iconColor ?? color.color : "none"}
             icon={isLoading ? LoaderCircle : children}
           />
         </Animated.View>

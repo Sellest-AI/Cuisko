@@ -96,28 +96,6 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
       </View>
       <View style={[styles.actions, styles.rightActions]}>
         {/*
-          * Only the author gets the pencil. The read no longer proves ownership, and offering to
-          * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit. A
-          * recipe with an original page shows the `…` menu, which then holds Edit, so the pencil
-          * steps aside for it rather than offering the same thing twice.
-          */}
-        {recipeId && isOwned === true && !sourceUrl && (
-          <ButtonIcon
-            onPress={() => router.push(`/recipe/edit/${recipeId}`)}
-            variant="neutral"
-            size="sm"
-          >
-            {SquarePen}
-          </ButtonIcon>
-        )}
-        {/*
-          * Anyone may share, not only the author: a recipe is readable by any signed-in cook
-          * (ADR 0014), and the link opens it for them.
-          */}
-        <ButtonIcon onPress={onShare} disabled={onShare === undefined} variant="neutral" size="sm">
-          {Share2}
-        </ButtonIcon>
-        {/*
           * The kept state is the brand disc, not `danger`: that variant is documented as
           * destructive and is the only place in the app that fills a control with red.
           */}
@@ -126,10 +104,33 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
           haptic
           disabled={onHeart === undefined}
           variant={isFavorited ? "primary" : "neutral"}
+          filled={isFavorited}
           size="sm"
         >
           {Heart}
         </ButtonIcon>
+        {/*
+          * Anyone may share, not only the author: a recipe is readable by any signed-in cook
+          * (ADR 0014), and the link opens it for them.
+          */}
+        <ButtonIcon onPress={onShare} disabled={onShare === undefined} variant="neutral" size="sm">
+          {Share2}
+        </ButtonIcon>
+        {/*
+          * Only the author gets the pencil. The read no longer proves ownership, and offering to
+          * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit.
+          * Whenever the `…` menu shows, it holds Edit, so the pencil steps aside for it rather
+          * than offering the same thing twice.
+          */}
+        {!hasMenu && canEdit && (
+          <ButtonIcon
+            onPress={() => router.push(`/recipe/edit/${recipeId}`)}
+            variant="neutral"
+            size="sm"
+          >
+            {SquarePen}
+          </ButtonIcon>
+        )}
         {hasMenu && (
           <Popover
             minWidth={232}
