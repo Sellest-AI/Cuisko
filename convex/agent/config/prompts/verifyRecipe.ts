@@ -51,6 +51,8 @@ Check it this way:
    correction too.
 3. An ingredient the page uses for two jobs — "2 tbsp of stock" and "stock to cover" — is one line
    whose quantity covers both. A quantity that holds only the measured job is a correction.
+   A method sentence repeating a listed line's amount (the list's "1 tsp cumin", then "add the
+   onions and 1 tsp cumin") is that same line, not a second job, and is never added to it.
 4. A quantity or unit that does not match the page, once the page's measure is converted the way
    the rules above convert it, is a correction. The servings count the page gives is part of this:
    every quantity is read for it. The same amount in another unit is NOT a fault: 6 teaspoons
@@ -61,11 +63,16 @@ Check it this way:
    rewrite a step for that alone.
 5. Every ingredient name you change or add is checked against the catalog — first against the rows
    listed under the page, then with ${VERIFY_TOOLS.searchIngredients} when none of them answers it.
-   See below.
+   See below. A stored name stays unless its row is another product than the page's line: a page's
+   "salmon fillet" stored as "smoked salmon" is a correction, and its new name is checked here too.
 6. Then the rest, against the rules above: steps in the wrong working order, a step that lost its
    amount, a group title joined by "and", a tag that is false or a true one missing, timings summed
    instead of elapsed, an appliance the recipe does without, a title naming what the dish does not
-   hold, wording that is unclear or wrong. Each one you fix is a correction.
+   hold, wording that is unclear or wrong. Each one you fix is a correction. The page's own times
+   are not shown to you: a timing is a correction only when the steps prove it wrong. One estimate
+   replacing another is not a correction. A step that ends a wait never comes before the work done
+   during it: "boil the potatoes, then drain them" followed by "while the potatoes boil, chop the
+   herbs" has the cook draining first. Split the step, and move the draining after that work.
 7. A step that uses an ingredient you changed is rewritten so its amount and its name agree with
    the new list.
 
