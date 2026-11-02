@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  durationOf,
+  durationTextOf,
   type InstructionGroup,
   parseInstructions,
   serializeInstructions,
@@ -443,6 +445,31 @@ describe("totalMinutesOf", () => {
   /** A declared zero is an answer, and `0` is falsy — the filter must not read it as undeclared. */
   test("keeps a declared zero as zero rather than as undeclared", () => {
     expect(totalMinutesOf({ cooking: 0 })).toBe(0);
+  });
+});
+
+describe("durationOf", () => {
+  test("splits minutes into hours and the remainder", () => {
+    expect(durationOf(90)).toEqual({ hours: 1, minutes: 30 });
+    expect(durationOf(45)).toEqual({ hours: 0, minutes: 45 });
+    expect(durationOf(undefined)).toBeUndefined();
+  });
+});
+
+describe("durationTextOf", () => {
+  test("writes hours as 1h30, whole hours as 1h and short ones in minutes", () => {
+    expect(durationTextOf(90, "min")).toBe("1h30");
+    expect(durationTextOf(125, "min")).toBe("2h05");
+    expect(durationTextOf(60, "min")).toBe("1h");
+    expect(durationTextOf(45, "min")).toBe("45 min");
+    expect(durationTextOf(undefined, "min")).toBe("");
+  });
+
+  /** A row stored before `wholeTimingsOf` existed can still total 67.5 — it must not read "1h7.5". */
+  test("rounds a fractional duration to the whole minute", () => {
+    expect(durationTextOf(67.5, "min")).toBe("1h08");
+    expect(durationTextOf(7.4, "min")).toBe("7 min");
+    expect(durationTextOf(59.6, "min")).toBe("1h");
   });
 });
 

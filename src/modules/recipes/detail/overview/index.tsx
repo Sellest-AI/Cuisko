@@ -2,7 +2,7 @@ import { View, StyleSheet, useWindowDimensions } from "react-native";
 
 import { theme } from "theme";
 import { useTranslations } from "translations";
-import { difficultyKey } from "@shared/recipes";
+import { difficultyKey, durationTextOf } from "@shared/recipes";
 import { ScoreHorizontal } from "@ui/cards/score-horizontal";
 
 import { NutritionRow } from "../../_components/nutrition-row";
@@ -23,6 +23,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
   const t = useTranslations("Recipe");
   /** The kitchen's words belong to the vocabulary, not to the page that happens to list them. */
   const tVocabulary = useTranslations("Vocabulary");
+  const tCommon = useTranslations("Common");
   const { recipe } = useRecipe(id);
 
   /** Three even columns inside the gutter, so a name has room to sit on one line. */
@@ -47,7 +48,7 @@ export const OverviewScreen = ({ id }: { id?: string }) => {
     { minutes: recipe.minutes, label: t("Overview.total"), isTotal: true },
   ]
     .filter((timing) => timing.minutes !== undefined)
-    .map(({ label, minutes, isTotal }) => ({ isTotal, label, value: t("Overview.minutes", { count: minutes! }) }));
+    .map(({ label, minutes, isTotal }) => ({ isTotal, label, value: durationTextOf(minutes, tCommon("minute_unit")) }));
 
   return (
     <RecipeScreen style={styles.screen}>

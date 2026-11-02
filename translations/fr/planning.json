@@ -22,10 +22,7 @@
   },
   "Meal": {
     "lunch": "Déjeuner",
-    "dinner": "Dîner",
-    "x_minutes_one": "{{count, number}} minute",
-    "x_minutes_many": "{{count, number}} de minutes",
-    "x_minutes_other": "{{count, number}} minutes"
+    "dinner": "Dîner"
   },
   "Status": {
     "cooked": "Cuisiné",

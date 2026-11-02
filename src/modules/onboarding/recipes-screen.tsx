@@ -7,6 +7,7 @@ import { Message } from "@ui/message";
 import { StepHeader } from "@ui/step-header";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { durationTextOf } from "@shared/recipes";
 
 import { ChatAnswer, ChatQuestion, FakeChat, FOUND_EMOJI } from "./_components/fake-chat";
 import { FakeNavigationBar } from "./_components/fake-navigation-bar";
@@ -30,6 +31,7 @@ const SHELF_CARD_WIDTH = 200;
 export const OnboardingRecipes = () => {
   const t = useTranslations("Onboarding");
   const tAssistant = useTranslations("Assistant");
+  const tCommon = useTranslations("Common");
   const { complete } = useOnboarding();
   const { sent, answered, pending, send, isDone } = useFakeChat(RECIPE_SEARCHES.length);
 
@@ -70,7 +72,7 @@ export const OnboardingRecipes = () => {
                       <CardRecipe
                         key={id}
                         title={t(`RecipeNames.${id}`)}
-                        subtitle={t("minutes", { minutes: RECIPES[id].minutes })}
+                        subtitle={durationTextOf(RECIPES[id].minutes, tCommon("minute_unit"))}
                         imageSrc={COVERS[id]}
                         style={styles.card}
                       />

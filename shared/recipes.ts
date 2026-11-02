@@ -79,6 +79,40 @@ export const totalMinutesOf = (timings: Timings): number | undefined => {
   return declared.length > 0 ? declared.reduce((total, minutes) => total + minutes, 0) : undefined;
 };
 
+/**
+ * A duration split for display. Returns the parts, not a string: the word for "min" is a
+ * translation and this file takes no i18n import.
+ *
+ *   90 → { hours: 1, minutes: 30 }   ·   45 → { hours: 0, minutes: 45 }   ·   undefined → undefined
+ *
+ * Rounded to the whole minute first: a row stored before `wholeTimingsOf` rounded writes can still
+ * hold `7.5`, and the split would carry the fraction into the text.
+ */
+export const durationOf = (minutes: number | undefined) => {
+  if (minutes === undefined) return undefined;
+
+  const whole = Math.round(minutes);
+  return { hours: Math.floor(whole / 60), minutes: whole % 60 };
+};
+
+/**
+ * A duration as the app prints it: `1h30` at or above an hour, `1h` on the hour, `45 min` below
+ * it, empty for "not stated".
+ *
+ * One writer for every place a time is read — the recipe's timings, a planned plate, the editor's
+ * field on blur — so a 90-minute recipe never reads "90 min" on one screen and "1h30" on the next.
+ * The editor also parses it back (`minutesOf`), and its tests pin that round trip. `minuteWord` is
+ * the translated `min`; `h` is the same in every locale we ship.
+ */
+export const durationTextOf = (minutes: number | undefined, minuteWord: string): string => {
+  const parts = durationOf(minutes);
+  if (!parts) return "";
+  if (parts.hours === 0) return `${parts.minutes} ${minuteWord}`;
+  if (parts.minutes === 0) return `${parts.hours}h`;
+
+  return `${parts.hours}h${String(parts.minutes).padStart(2, "0")}`;
+};
+
 /** Ordered easiest to hardest. A level is this array's 1-based position — index 0 is level 1. */
 export const DIFFICULTIES = ["simple", "easy", "medium", "hard", "advanced"] as const;
 

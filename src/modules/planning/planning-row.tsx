@@ -1,5 +1,6 @@
 import { StyleSheet, View, ViewStyle } from "react-native";
 
+import { durationTextOf } from "@shared/recipes";
 import { CardMeal } from "@ui/cards/meal";
 import { DayMarker } from "@ui/day-marker";
 import { ArrowLeftRight, EllipsisVertical, Plus } from "@ui/icons";
@@ -35,6 +36,7 @@ type Props = {
  */
 export const PlanningListRow = ({ style, row, variant = "plan", onPress, onLongPress, onTrailingPress }: Props) => {
   const t = useTranslations("Planning");
+  const tCommon = useTranslations("Common");
   const locale = resolveLocale();
 
   const slot = row.kind === "meal" ? row.meal.slot : row.slot;
@@ -61,7 +63,7 @@ export const PlanningListRow = ({ style, row, variant = "plan", onPress, onLongP
         <CardMeal
           style={styles.card}
           title={row.meal.title.slice(0, maxTitleLength).trim().concat(row.meal.title.length > maxTitleLength ? "…" : "")}
-          duration={row.meal.minutes === undefined ? undefined : t("Meal.x_minutes", { count: row.meal.minutes })}
+          duration={row.meal.minutes === undefined ? undefined : durationTextOf(row.meal.minutes, tCommon("minute_unit"))}
           servings={row.meal.servings}
           slot={slot}
           slotLabel={t(slot === "dinner" ? "Meal.dinner" : "Meal.lunch")}

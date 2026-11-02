@@ -110,29 +110,3 @@ export const minutesOf = (text: string): number | undefined => {
 
   return minutes !== undefined && minutes > 0 && minutes <= MAX_TIMING_MINUTES ? minutes : undefined;
 };
-
-/**
- * The same duration split for display. Returns the parts, not a string: the word for "min" is a
- * translation and this file takes no i18n import.
- *
- *   90 → { hours: 1, minutes: 30 }   ·   45 → { hours: 0, minutes: 45 }   ·   undefined → undefined
- */
-export const durationOf = (minutes: number | undefined) =>
-  minutes === undefined ? undefined : { hours: Math.floor(minutes / 60), minutes: minutes % 60 };
-
-/**
- * The canonical text a duration field rewrites itself to on blur: `1h30` at or above an hour, `1h`
- * on the hour, `45 min` below it, empty for "not stated".
- *
- * Here rather than in the field because the round trip is the contract — `minutesOf` of this text
- * must give the same number back, or blurring twice would drift — and that is only testable where
- * both halves live. `minuteWord` is the translated `min`; `h` is the same in every locale we ship.
- */
-export const durationTextOf = (minutes: number | undefined, minuteWord: string): string => {
-  const parts = durationOf(minutes);
-  if (!parts) return "";
-  if (parts.hours === 0) return `${parts.minutes} ${minuteWord}`;
-  if (parts.minutes === 0) return `${parts.hours}h`;
-
-  return `${parts.hours}h${String(parts.minutes).padStart(2, "0")}`;
-};

@@ -5,6 +5,7 @@ import { BentoCard } from "@ui/cards/bento";
 import { Text, TextNative } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { durationTextOf } from "@shared/recipes";
 
 import { TimingsDial } from "./timings.dial";
 
@@ -32,6 +33,7 @@ type Props = {
  */
 export const Timings = ({ timings, total, style }: Props) => {
   const t = useTranslations("Recipe");
+  const tCommon = useTranslations("Common");
   /** Unknown until the first layout; the dial waits for it rather than guessing and then jumping. */
   const [cardHeight, setCardHeight] = useState<number>();
   const onLayout = (event: LayoutChangeEvent) => setCardHeight(event.nativeEvent.layout.height);
@@ -64,9 +66,9 @@ export const Timings = ({ timings, total, style }: Props) => {
           <TimingsDial minutes={total} discRadius={DISC_RADIUS} knobBand={knobBand} />
         )}
         <View style={clockStyles.clockTimer}>
-          <Text.Base style={clockStyles.label}>{t("Overview.dial_unit")}</Text.Base>
+          <Text.Base style={clockStyles.label}>{t("Overview.total")}</Text.Base>
           <TextNative style={clockStyles.score}>
-            {total?.toFixed(1)}
+            {durationTextOf(total, tCommon("minute_unit"))}
           </TextNative>
         </View>
       </View>

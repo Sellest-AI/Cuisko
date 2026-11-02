@@ -1,16 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_TIMING_MINUTES } from "@shared/recipes";
+import { durationTextOf, MAX_TIMING_MINUTES } from "@shared/recipes";
 
-import {
-  computedTagsOf,
-  detailsOf,
-  durationOf,
-  durationTextOf,
-  type EditorDetails,
-  minutesOf,
-  sameDetails,
-} from "../editor";
+import { computedTagsOf, detailsOf, type EditorDetails, minutesOf, sameDetails } from "../editor";
 
 /**
  * The duration field reads what a cook types into a box asking "how long", and rewrites it on blur.
@@ -50,23 +42,7 @@ describe("minutesOf", () => {
   });
 });
 
-describe("durationOf", () => {
-  it("splits minutes into hours and the remainder", () => {
-    expect(durationOf(90)).toEqual({ hours: 1, minutes: 30 });
-    expect(durationOf(45)).toEqual({ hours: 0, minutes: 45 });
-    expect(durationOf(undefined)).toBeUndefined();
-  });
-});
-
-describe("durationTextOf", () => {
-  it("writes hours as 1h30, whole hours as 1h and short ones in minutes", () => {
-    expect(durationTextOf(90, "min")).toBe("1h30");
-    expect(durationTextOf(125, "min")).toBe("2h05");
-    expect(durationTextOf(60, "min")).toBe("1h");
-    expect(durationTextOf(45, "min")).toBe("45 min");
-    expect(durationTextOf(undefined, "min")).toBe("");
-  });
-
+describe("durationTextOf and minutesOf", () => {
   /** Blurring twice must change nothing, so every canonical text has to parse back to its number. */
   it("re-parses to the minutes it was written from, for every duration up to the cap", () => {
     for (let minutes = 1; minutes <= MAX_TIMING_MINUTES; minutes++)

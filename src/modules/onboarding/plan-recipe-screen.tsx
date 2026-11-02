@@ -6,6 +6,7 @@ import { Message } from "@ui/message";
 import { StepHeader } from "@ui/step-header";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { durationTextOf } from "@shared/recipes";
 
 import { useLocale } from "~/hooks/useLocale";
 import { CUISKO } from "~/lib/mascots";
@@ -37,6 +38,7 @@ export const OnboardingPlanRecipe = () => {
   const t = useTranslations("Onboarding");
   const tAssistant = useTranslations("Assistant");
   const tPlanning = useTranslations("Planning");
+  const tCommon = useTranslations("Common");
   const locale = useLocale();
   const { complete } = useOnboarding();
   const { plan } = useOnboardingPantry();
@@ -70,7 +72,7 @@ export const OnboardingPlanRecipe = () => {
             <CardMeal
               style={styles.card}
               title={t(`RecipeNames.${IMPORTED_RECIPE}`)}
-              duration={tPlanning("Meal.x_minutes", { count: recipe.minutes })}
+              duration={durationTextOf(recipe.minutes, tCommon("minute_unit"))}
               servings={SERVINGS}
               slot="dinner"
               slotLabel={slotLabel}

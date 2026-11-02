@@ -1,4 +1,5 @@
 import type { MealPlanned } from "@shared/assistant";
+import { durationTextOf } from "@shared/recipes";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { resolveLocale, useTranslations } from "translations";
@@ -31,6 +32,7 @@ type Props = {
 export const PlannedMeal = ({ meal, changeKey }: Props) => {
   const t = useTranslations("Assistant");
   const tPlanning = useTranslations("Planning");
+  const tCommon = useTranslations("Common");
   const { card, date, slot, servings, isLoading, isCanceled, canUndo, isUndoing, undo } = usePlannedMeal(meal, changeKey);
 
   if (isLoading || !card) return null;
@@ -43,7 +45,7 @@ export const PlannedMeal = ({ meal, changeKey }: Props) => {
       <CardMeal
         style={styles.card}
         title={card.title.slice(0, 24) + (card.title.length > 24 ? "…" : "")}
-        duration={card.minutes === undefined ? undefined : tPlanning("Meal.x_minutes", { count: card.minutes })}
+        duration={card.minutes === undefined ? undefined : durationTextOf(card.minutes, tCommon("minute_unit"))}
         servings={servings}
         slot={slot}
         slotLabel={isCanceled ? `${mealName} · ${t("meal.canceled")}` : `${day} · ${mealName}`}

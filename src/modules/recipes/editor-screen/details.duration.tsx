@@ -6,7 +6,9 @@ import { Text } from "@ui/text";
 import { colors, theme } from "theme";
 import { useTranslations } from "translations";
 
-import { durationTextOf, minutesOf } from "../_model/editor";
+import { durationTextOf } from "@shared/recipes";
+
+import { minutesOf } from "../_model/editor";
 
 type Props = {
   label: string;
