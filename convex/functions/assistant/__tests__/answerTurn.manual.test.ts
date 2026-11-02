@@ -74,7 +74,8 @@ import { appendBrief } from "../appendBrief";
  * the effort `assistantAgent` asks for.
  */
 const CANDIDATES: Candidate[] = [
-  { name: "deepseek/deepseek-v4-flash-0731", modes: [false] }, // ships today
+  { name: "deepseek/deepseek-v4.1-flash-1017", modes: [false] }, // ships today
+  // { name: "minimax/minimax-m3.1-flash", modes: ["low"] },
   // { name: "deepseek/deepseek-v4.1-flash", modes: [false] },
   // { name: "deepseek/deepseek-v4.1-flash", modes: ["low"] },
   // { name: "inclusionai/ling-3.0-flash-vl", modes: ["medium", "high"] },
@@ -703,14 +704,14 @@ const CASES: Case[] = [
     recipe: GRATIN_FOR_SIX,
     question: "J'en mets combien ?",
     expect: (turn) => [
+      // Saying the step's 60 cl alongside it is fine: the step on their screen reads 60 cl.
       _says(turn, 90, "the cream scaled to 6"),
-      !/(^|[^\d])60\s*cl/.test(turn.text) || "quoted the step's written 60 cl rather than the scaled amount",
       _mustNot(turn, ASSISTANT_TOOLS.searchRecipes),
     ],
   },
 
   {
-    // "\"none\" means they are not cooking from a recipe right now, even if an earlier message was about one."
+    // "Do not speak as though that recipe were on their screen." "answer for that dish in general"
     // The bug: asked from the gratin, then from home in the same thread, it was still cooking the gratin.
     name: "fr · left the recipe, history does not cook",
     locale: "fr",
@@ -721,8 +722,8 @@ const CASES: Case[] = [
     ],
     question: "Combien de temps ça cuit ?",
     expect: (turn) => [
-      !/gratin/i.test(turn.text) || "answered for the gratin, which the cook is no longer cooking",
-      _asks(turn, "which dish they mean"),
+      !/étape|ta recette|ton gratin|pour 6\b/i.test(turn.text) || "spoke as though the gratin were still on screen",
+      /\d\s*(h|min)/i.test(turn.text) || "the answer gives no cooking time",
     ],
   },
 

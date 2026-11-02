@@ -210,6 +210,20 @@ describe("planning", () => {
   });
 
   /**
+   * A range of days never says "three", and it comes with the meal and the head count an order
+   * needs: read after "plan it at once", it wrote a plate per evening. So the limit is read first,
+   * and it says how to count a range.
+   */
+  test("counts the days of a range before any rule that plans at once", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt.indexOf("Three days or more, or their week")).toBeLessThan(prompt.indexOf("plan it at once: search"));
+      expect(prompt).toMatch(/Count the days of a range/);
+    }
+  });
+
+  /**
    * "Rajoute dans ma liste de courses de quoi faire des lasagnes pour moi et ma copine demain soir"
    * got "je ne peux pas écrire dans ta liste" and an offer: the cellar section's "you cannot write
    * to their shopping list" won. Planning is how a dish reaches the list, so that order is planned.
@@ -241,6 +255,20 @@ describe("planning", () => {
 });
 
 describe("the cellar brief", () => {
+  /**
+   * Asked from home after a question from the stove, "assume nothing" fought "make a reasonable
+   * assumption". The dish still in the conversation may be answered in general; the recipe that was
+   * on screen may not be spoken of as though it still were.
+   */
+  test("answers a dish from the conversation in general once the recipe has left the screen", () => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const prompt = assistantPrompt(locale);
+
+      expect(prompt).toMatch(/Do not speak as though that recipe were on\s+their screen/);
+      expect(prompt).toMatch(/answer for that dish in general and\s+say so/);
+    }
+  });
+
   /**
    * The dates are estimates from `shelfLifeDays`, not read off a packet, so the model may use them
    * to choose and never say them. Pinned per locale, since the prompt is built per locale.

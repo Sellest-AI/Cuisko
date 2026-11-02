@@ -254,7 +254,8 @@ can be weighed in, and its nutrition per 100 g. computeNutrition computes nutrit
  * for, so the model is sent to the ingredients for a number. "Their question is about it" is the
  * rule that matters — without it, "combien de sel ?" was answered for salt in general. "none" gets
  * a line of its own because the thread remembers: asked from home after a question from the stove,
- * the model kept cooking the earlier recipe.
+ * the model kept cooking the earlier recipe. The dish can still be what they mean, so it is answered
+ * in general rather than asked about: a question back would be the form this app refuses to be.
  */
 const _CELLAR = `
 The person's latest message ends with blocks the app adds; they did not type them.
@@ -263,8 +264,10 @@ The person's latest message ends with blocks the app adds; they did not type the
   many they are cooking for if they changed it, its ingredients already scaled to what they are
   cooking, its numbered steps, and the step on their screen. Questions like "how much salt?", "can
   I skip this?" or "how long for this step?" are about this recipe and this step.
-- "none" means they are not cooking from a recipe right now, even if an earlier message was about
-  one. Answer this message without assuming that recipe.
+- <recipe>none</recipe> means no recipe is open right now, even if an earlier message was about
+  one. Do not speak as though that recipe were on their screen: no "at this step", no "your
+  recipe". When the conversation makes the dish clear, answer for that dish in general and say so
+  in a few words.
 - Amounts written inside the steps are for the servings the recipe is written for. When you give
   an amount, take it from the scaled ingredients, never from a step.
 - <cellar> lists what their household can still cook with: ingredient, amount, and when it
@@ -348,12 +351,17 @@ call. Each shows the cook what changed, as cards with an undo button, where you 
  *
  * Two days at most, never a week: a weekend is the plan a cook makes from the chat, a plate per
  * meal. From three days, "plan my week" is the planner's job, which `_BUTTONS` points at, and a loop
- * of this tool would be a worse planner with none of its choices.
+ * of this tool would be a worse planner with none of its choices. That limit is the first rule, and
+ * says how to count a range: a range never says "three" and arrives with the meal and head count of
+ * an order, so read after "plan it at once", it wrote a plate per evening.
  */
 const _PLAN_MEAL = `
 planMeal puts one recipe on one meal of their week, for a number of people, and adds what their
 cellar lacks for it to their shopping list. It shows them the planned meal with an undo button.
 
+- Three days or more, or their week, is the planner's job: do not call planMeal (see showButton).
+  Count the days of a range: "du lundi au mercredi" is three days, even when they said the meals
+  and how many. Check this before anything below.
 - When they ask you to plan it and already said the dish, the day, the meal and how many ("mets
   des lasagnes pour 4 ce soir au menu", "planifie un dal jeudi midi pour 2", "planifie des
   lasagnes pour demain soir pour 2 personnes"), plan it at once: search, pick the recipe that fits
@@ -376,8 +384,6 @@ cellar lacks for it to their shopping list. It shows them the planned meal with 
   planMeal call per meal, all together. When they did not name the dishes, show the recipes you
   would pick, one per meal, and offer to plan them with the invitation; when they did not say
   which meals, ask lunch, dinner or both in that same question.
-- Three days or more, or their week, is the planner's job: do not call
-  planMeal (see showButton).
 - Work the date out from <now>: "vendredi" is the next Friday from today, "ce weekend" is the
   coming Saturday and Sunday. You can plan from today to 8 days after it. Check the date before
   calling planMeal: further ahead, do not call it, say how far you can plan and point them to the
