@@ -17,11 +17,10 @@ const openrouter = {
 
 /**
  * The assistant's model, because it reads images: a photo sent with a question reaches it as an
- * image part, which `DEEPSEEK_V4_FLASH_0731` cannot take. Uses the same options, which name no model.
+ * image part, which the V4 Flash it replaced could not take.
  */
 const DEEPSEEK_V4_1_FLASH = openrouter.chat("deepseek/deepseek-v4.1-flash-1017");
 
-const DEEPSEEK_V4_FLASH_0731 = openrouter.chat("deepseek/deepseek-v4-flash-0731");
 const DEEPSEEK_V4X_FLASH_OPTIONS = {
   providerOptions: ({ effort }: { effort?: false | "low" | "max" }) => ({
     openrouter: {
@@ -38,7 +37,7 @@ const DEEPSEEK_V4X_FLASH_OPTIONS = {
 
 /**
  * Not used for now. Was the previous model for recipes.
- * A bit less accurate than OPENAI_GPT_5_6_LUNA. Faster than DEEPSEEK_V4_FLASH_0731.
+ * A bit less accurate than OPENAI_GPT_5_6_LUNA. Faster than Deepseek V4 Flash.
  *  */
 // const HY3 = openrouter.chat("tencent/hy3");
 // const HY3_OPTIONS = {
@@ -140,7 +139,7 @@ const Z_AI_GLM_5_3_FLASH_OPTIONS = {
 
 export const models = {
   default: {
-    model: DEEPSEEK_V4_FLASH_0731,
+    model: DEEPSEEK_V4_1_FLASH,
     ...DEEPSEEK_V4X_FLASH_OPTIONS
   },
   recipes: {
@@ -157,11 +156,11 @@ export const models = {
     ...OPENAI_GPT_6_LUNA_OPTIONS
   },
   /**
-   * The assistant a shopper talks to. Deepseek at low effort: it is answering cooking questions,
+   * The assistant a shopper talks to. Deepseek with reasoning off: it is answering cooking questions,
    * not reasoning about a schema, and it is the only model here a person waits on in real time —
    * so the trade runs the other way from `recipes`, where accuracy is worth the extra seconds.
    *
-   * Named rather than pointed at `default`, so retuning the chat cannot move a sanitizer that
+   * Named rather than pointed at `default`, so retuning the chat cannot move `defaultAgent`, which
    * happens to share its model today.
    */
   assistant: {

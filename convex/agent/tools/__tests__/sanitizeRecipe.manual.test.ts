@@ -47,6 +47,7 @@ import { sanitizeRecipePrompt } from "../../config/prompts/sanitizeRecipe";
  */
 const CANDIDATES: Candidate[] = [
   { name: "openai/gpt-6-luna", modes: ["medium"] }, // BEST ONE !
+  // { name: "minimax/minimax-m3.1-flash", modes: ["medium", "high", "xhigh", "max"] }
   // { name: "minimax/minimax-m3.1-flash", modes: ["low"], provider: { only: ["sambanova"] } },
   // { name: "deepseek/deepseek-v4.1-flash-1017", modes: ["low", "high"] },
   // { name: "anthropic/claude-haiku-5.5", modes: ["low", "medium"] },
@@ -263,7 +264,6 @@ describe("sanitizeRecipe — model bake-off", () => {
       // run, however good the prose was.
       answer: { schema: modelRecipeSchema, parse: toSanitizedRecipe, check: CHECKS },
       provider: {
-        ignore: ["open-inference", "morph", "digitalocean", "baidu"],
         sort: "price"
       },
       criteria: CRITERIA,
