@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { isGuess, readIntent } from "@shared/inputIntent";
+import type { Locale } from "@shared/translations";
 
 import { CONFIDENCE_FLOOR, judgeIntent, readIntentAnswer } from "../classifyIntent";
 
@@ -27,12 +28,17 @@ import { CONFIDENCE_FLOOR, judgeIntent, readIntentAnswer } from "../classifyInte
  * asserted rather than printed for decoration: as the trigger and stopword lists grow, a fixture can
  * silently stop arriving here.
  *
+ * **A `not_shopping` row asserts the raw choice, not the routed kind.** Below the floor anything
+ * routes to `unknown`, so "a car" answered `household_product` at 0.55 would pass on the kind alone.
+ * Those rows are reported apart from the two ranges below, because `unknown` is not an answer the
+ * floor can be set from.
+ *
  * **Read the two summary numbers, not just the pass.** A floor is only defensible if it sits above
  * every wrong answer's confidence and below every right one's. When those ranges overlap, no number
  * separates them and the fix is the criteria in `classifyIntent.ts`.
  */
 
-type Expected = "ingredient" | "recipe" | "chat";
+type Expected = "ingredient" | "recipe" | "chat" | "product" | "not_shopping";
 
 /**
  * Real bar inputs, none of which any of `readIntent`'s four written rules answers.
@@ -41,7 +47,7 @@ type Expected = "ingredient" | "recipe" | "chat";
  * decoration: the app's heuristics are per-locale, and a model that reads only English would pass a
  * table of dish names and fail every French cook.
  */
-const FIXTURES: readonly (readonly [string, Expected])[] = [
+const FIXTURES: readonly (readonly [string, Expected, Locale?])[] = [
   // Dishes nobody has imported yet. Today: invented as an ingredient row, which then outranks the
   // import forever.
   ["boeuf bourguignon", "recipe"],
@@ -84,6 +90,39 @@ const FIXTURES: readonly (readonly [string, Expected])[] = [
   ["mets des lasagnes au menu vendredi", "chat"],
   ["lasagna tonight for four", "chat"],
   ["lasagnes", "recipe"],
+
+  // Small things for running the home, which go on the list and never reach the cellar. The locale is
+  // stated: `localeOf` reads most bare French words as English, and "dentifrice" would be judged as one.
+  // "ampoules LED" and not the bare word, which also means blisters: no criterion can settle that
+  // without context, so it is checked on a device instead. "piles" is named in the criterion, because
+  // the model does not connect it to batteries on its own, even as "piles AA".
+  ["shampoing", "product", "fr"],
+  ["dentifrice", "product", "fr"],
+  ["3 rouleaux papier toilette", "product", "fr"],
+  ["lessive liquide bébé", "product", "fr"],
+  ["piles", "product", "fr"],
+  ["ampoules LED", "product", "fr"],
+  ["poêle", "product", "fr"],
+  ["croquettes pour chat", "product", "fr"],
+  ["toothpaste", "product", "en"],
+  ["2 bin bags", "product", "en"],
+  ["cat litter", "product", "en"],
+  ["baking paper", "product", "en"],
+  ["a wooden spoon", "product", "en"],
+
+  // Everything else that is not food, which must not become a card. The piano and the plane ticket are
+  // there because the criterion does not name them: it has to hold past the categories it lists.
+  ["fusil", "not_shopping", "fr"],
+  ["voiture", "not_shopping", "fr"],
+  ["appartement", "not_shopping", "fr"],
+  ["chaussettes", "not_shopping", "fr"],
+  ["a gun", "not_shopping", "en"],
+  ["a car", "not_shopping", "en"],
+  // Not "a flat", which is a shoe or a tyre too, and ends on the resolver whichever way it reads.
+  ["an apartment", "not_shopping", "en"],
+  ["a phone", "not_shopping", "en"],
+  ["a piano", "not_shopping", "en"],
+  ["a plane ticket", "not_shopping", "en"],
 ];
 
 /** Crude on purpose: it picks the `locale` field of the state, not a user's setting. */
@@ -113,12 +152,13 @@ describe("judgeIntent against the real model", () => {
     ).not.toMatch(/^test-/);
 
     const rows = await Promise.all(
-      FIXTURES.map(async ([input, expected]) => {
+      FIXTURES.map(async ([input, expected, locale]) => {
         const via = branchOf(input);
-        const answer = await judgeIntent({ text: input, locale: localeOf(input) });
+        const answer = await judgeIntent({ text: input, locale: locale ?? localeOf(input) });
         const routed = readIntentAnswer(answer);
+        const right = expected === "not_shopping" ? answer.choice === "not_shopping" : routed.kind === expected;
 
-        return { input, expected, via, answer, got: routed.kind, right: routed.kind === expected };
+        return { input, expected, via, answer, got: routed.kind, right };
       }),
     );
 
@@ -135,18 +175,25 @@ describe("judgeIntent against the real model", () => {
           .join("\n"),
     );
 
-    const right = rows.filter((row) => row.right);
-    const wrong = rows.filter((row) => !row.right);
+    const measured = rows.filter((row) => row.expected !== "not_shopping");
+    const right = measured.filter((row) => row.right);
+    const wrong = measured.filter((row) => !row.right);
+    const notShopping = rows.filter((row) => row.expected === "not_shopping");
+    const missed = notShopping.filter((row) => !row.right);
 
     console.log(
       `\nconfidence on the ${right.length} right: ${extremes(right.map((r) => r.answer.confidence))}` +
         `\nconfidence on the ${wrong.length} wrong: ${extremes(wrong.map((r) => r.answer.confidence))}` +
-        `\nCONFIDENCE_FLOOR is ${CONFIDENCE_FLOOR}. A defensible floor sits between those two ranges.`,
+        `\nCONFIDENCE_FLOOR is ${CONFIDENCE_FLOOR}. A defensible floor sits between those two ranges.` +
+        `\nnot shopping, apart from those: ${notShopping.length - missed.length} of ${notShopping.length} chose it, ` +
+        `confidence ${extremes(notShopping.map((r) => r.answer.confidence))}`,
     );
 
     const stray = rows.filter((row) => row.via.startsWith("RULE"));
     expect(stray.map((row) => `${row.input} — answered by ${row.via}, never reaches the model`)).toEqual([]);
 
-    expect(wrong.map((row) => `${row.input} — wanted ${row.expected}, got ${row.got}`)).toEqual([]);
+    expect(
+      [...wrong, ...missed].map((row) => `${row.input} — wanted ${row.expected}, got ${row.got} (${row.answer.choice})`),
+    ).toEqual([]);
   });
 });

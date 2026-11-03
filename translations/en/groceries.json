@@ -11,7 +11,8 @@
     "by_category": "By aisle"
   },
   "Groups": {
-    "unplanned": "Not planned"
+    "unplanned": "Not planned",
+    "products": "Non-food"
   },
   "Empty": {
     "title": "Nothing to buy, nothing in stock",

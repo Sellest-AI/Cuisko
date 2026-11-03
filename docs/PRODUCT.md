@@ -306,6 +306,11 @@ and back into the cellar. Grouped by the beat it serves.
 - **The cellar on the same screen.** Its cards show what the household owns, and a clock appears on
   anything close to its date. Taking food out of the cellar puts it back on the list if a planned
   plate still needs it.
+- **Not only food.** Small things for running the home (shampoo, batteries, a frying pan) go on the
+  same list, with a box for a picture and the quantity typed. One tap and they are gone: they never
+  reach the cellar and open no sheet. In the plain list they mix with the food by name; by aisle or
+  by meal they get their own group at the very top. Anything else that is not food (a car, socks, a
+  phone) stays off the list.
 
 ### Cook
 
@@ -336,8 +341,8 @@ and back into the cellar. Grouped by the beat it serves.
 
 ### Talk to Cuisko
 
-- **The navigation bar** takes typing or voice, from any screen. An ingredient goes straight onto
-  the list; a dish name offers recipes; whatever the bar cannot tell apart on its own is classified
+- **The navigation bar** takes typing or voice, from any screen. An ingredient or a household product
+  goes straight onto the list; a dish name offers recipes; whatever the bar cannot tell apart on its own is classified
   by a model.
 - **The assistant chat** answers from the household's available stock and the real catalogue:
   what to cook with what is left, nutrition questions, what to swap for a missing ingredient (shown

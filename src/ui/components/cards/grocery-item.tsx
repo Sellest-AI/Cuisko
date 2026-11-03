@@ -18,7 +18,7 @@ import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { Image, type ImageProps } from "../image";
-import { ClockAlertIcon } from "../icons";
+import { ClockAlertIcon, Loader } from "../icons";
 
 /**
  * One line of a grocery list — something to buy, or something already owned.
@@ -99,6 +99,11 @@ type Props = {
   expiresSoon?: boolean;
   width?: number;
   onPress?: () => void;
+  /**
+   * A tap is on its way to the server: a spinner where the picture was, and further taps ignored. For
+   * a real row being acted on, where `resolving` is a card that is not real yet.
+   */
+  isBusy?: boolean;
   /** Left unset, a long press does nothing, not even the haptic: there is nothing to feel for. */
   onLongPress?: () => void;
   style?: ViewStyle;
@@ -134,7 +139,7 @@ const usePulse = (active: boolean) => {
   return useAnimatedStyle(() => ({ opacity: opacity.value }));
 };
 
-export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", expiresSoon, width, onPress, onLongPress, style }: Props) => {
+export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageSrc, variant = "pending", expiresSoon, width, isBusy, onPress, onLongPress, style }: Props) => {
   /** Off, the card neither flies, fades nor breathes: it is drawn where and how it ends up. */
   const isMotionAllowed = useIsMotionAllowed();
   const pulse = usePulse(isMotionAllowed && variant === "resolving");
@@ -155,6 +160,8 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageS
       <Pressable
         intensity={0.95}
         onPress={() => {
+          if (isBusy) return;
+
           void Haptics.selectionAsync();
           onPress?.();
         }}
@@ -166,12 +173,13 @@ export const GroceryItem = ({ name, quantity, emoji, markerSrc, imageUrl, imageS
           ...style
         }}
       >
-        {picture && <Image
+        {isBusy && <View style={styles.busy}><Loader size={24} color={theme.colors.muted} /></View>}
+        {!isBusy && picture && <Image
           source={picture}
           style={styles.icon}
           contentFit="contain"
         />}
-        {!picture && <Text.H4 style={styles.emoji}>{emoji}</Text.H4>}
+        {!isBusy && !picture && <Text.H4 style={styles.emoji}>{emoji}</Text.H4>}
         <Text.Base
           color={theme.colors.muted}
           numberOfLines={2}
@@ -283,6 +291,13 @@ const styles = StyleSheet.create({
   icon: {
     width: 48,
     height: 48,
+  },
+  /** The picture's box, so the card keeps its height while the spinner stands in. */
+  busy: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
   },
   quantity: {
     flexDirection: "row",

@@ -92,6 +92,12 @@ describe("the two guesses", () => {
     expect(state.calls[0]?.text).toBe("500g yuzu");
   });
 
+  test("a product answer is returned as it came", async () => {
+    answering({ kind: "product" });
+
+    await expect(resolve("toothpaste", NOTHING)).resolves.toEqual({ kind: "product" });
+  });
+
   test("an empty box asks nothing", async () => {
     await expect(resolve("   ", NOTHING)).resolves.toEqual({ kind: "unknown" });
     expect(state.calls).toEqual([]);

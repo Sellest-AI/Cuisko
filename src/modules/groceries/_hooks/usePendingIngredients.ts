@@ -1,4 +1,3 @@
-import { useAtom } from "jotai";
 import { useCallback } from "react";
 
 import { isRateLimited } from "@shared/errors";
@@ -8,12 +7,9 @@ import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
-import { pendingIngredientsAtom } from "./atoms";
+import { useGhosts } from "./useGhosts";
 import { useStockActions } from "./useStockActions";
-import type { PendingFailure, PendingIntent, StockRef } from "../_model/model";
-
-/** Enough for a list that only ever holds a handful of live ghosts. */
-const _mintId = () => `pending:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+import type { PendingIntent, StockRef } from "../_model/model";
 
 /**
  * The placeholder a shopper sees while the server works out what they typed.
@@ -40,32 +36,16 @@ const _mintId = () => `pending:${Date.now()}:${Math.random().toString(36).slice(
  * is the first moment a row exists to read the answer off.
  */
 export const usePendingIngredients = () => {
-  const [pending, setPending] = useAtom(pendingIngredientsAtom);
+  const { pending, raise, drop, fail } = useGhosts();
   const locale = useLocale();
   const { apply } = useStockActions();
   const { action: resolve } = useAction(api.router.ingredients.resolve.authed);
-
-  const _drop = useCallback(
-    (id: string) => setPending((ghosts) => ghosts.filter((ghost) => ghost.id !== id)),
-    [setPending],
-  );
-
-  const _fail = useCallback(
-    (id: string, reason: PendingFailure) =>
-      setPending((ghosts) =>
-        ghosts.map((ghost) =>
-          ghost.id === id ? { ...ghost, state: "failed" as const, reason } : ghost,
-        ),
-      ),
-    [setPending],
-  );
 
   const add = useCallback(
     async (text: string, intent: PendingIntent, unit: Unit | null, amount: number | null) => {
       const name = text.trim();
       if (!name) return;
 
-      const id = _mintId();
       // The intent is stored, not just closed over: it decides which section draws the card while
       // it resolves, and the card has to be under the heading the shopper aimed it at.
       //
@@ -74,10 +54,7 @@ export const usePendingIngredients = () => {
       // card that simply does not claim one yet.
       // `?? undefined` because the ghost's own type already says both are optional — it was
       // written for a card that does not know yet, which is exactly what this is.
-      setPending((ghosts) => [
-        ...ghosts,
-        { id, name, unit: unit ?? undefined, amount: amount ?? undefined, intent, state: "resolving" },
-      ]);
+      const id = raise({ name, unit: unit ?? undefined, amount: amount ?? undefined, intent });
 
       let resolved;
       try {
@@ -86,12 +63,12 @@ export const usePendingIngredients = () => {
         // The resolve never returned a judgement, so the card must not claim one was made. The
         // ghost stays on screen as a failure the shopper can dismiss and retype. A refusal for
         // having asked too often is worded apart: it is not our outage, and retyping later works.
-        _fail(id, isRateLimited(error) ? "limited" : "error");
+        fail(id, isRateLimited(error) ? "limited" : "error");
         return;
       }
 
       if (resolved.status === "refused") {
-        _fail(id, resolved.reason);
+        fail(id, resolved.reason);
         return;
       }
 
@@ -111,17 +88,17 @@ export const usePendingIngredients = () => {
       // exists to prevent. A write that failed is our failure, not their word: same card as a
       // resolve that never returned.
       if (!(await apply(intent, ref, quantity.amount))) {
-        _fail(id, "error");
+        fail(id, "error");
         return;
       }
 
-      _drop(id);
+      drop(id);
     },
-    [_drop, _fail, apply, locale, resolve, setPending],
+    [raise, drop, fail, apply, locale, resolve],
   );
 
   /** The shopper striking off a ghost that failed. There is nothing to delete but this atom. */
-  const dismiss = useCallback((id: string) => _drop(id), [_drop]);
+  const dismiss = useCallback((id: string) => drop(id), [drop]);
 
   return { pending, add, dismiss };
 };

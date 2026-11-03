@@ -25,19 +25,20 @@ import type { Locale } from "@shared/translations";
  */
 
 /**
- * The three things the bar can do, as the model is asked about them.
+ * What the input can be, as the model is asked about it.
  *
  * `request` rather than `chat`: the option names are read by the model and nothing else, so they say
  * what the input *is* rather than which screen it opens. `readIntentAnswer` maps them to the kinds
  * the bar routes on.
  *
- * Three options and not two plus a probability, because the third IS the no-match outcome — nothing
- * has to be forced into a food shape, which is the failure mode the fall-through has today.
+ * `not_shopping` IS the no-match outcome, rather than a probability under some floor: nothing has to
+ * be forced into a food or a household shape, and `household_product` is otherwise the nearest thing
+ * to a car.
  *
  * A type and not a const array: `QUESTION.criteria` is where the options exist at runtime, and the
  * transport reads the option set off its keys. A second list would be one that could disagree.
  */
-type Option = "ingredient" | "recipe" | "request";
+type Option = "ingredient" | "recipe" | "household_product" | "request" | "not_shopping";
 
 /**
  * How concentrated the distribution has to be before we act on the pick.
@@ -45,17 +46,15 @@ type Option = "ingredient" | "recipe" | "request";
  * Below it the answer is discarded and `{ kind: "unknown" }` goes back, which the caller reads as
  * "no opinion, keep what you decided" — so an unconfident judgment costs a call and changes
  * nothing. A number picked by feel would be a number nothing could defend, so this one is measured:
- * `__tests__/classifyIntent.manual.test.ts` runs the real model over 28 real bar inputs and prints
+ * `__tests__/classifyIntent.manual.test.ts` runs the real model over 51 real bar inputs and prints
  * the two ranges a floor has to sit between.
  *
- * **Measured 2026-10-01: right answers 0.79–1.00, wrong answers none**, after the `request`
- * criterion learned that a dish said with a day, a meal or a head count is a request (the four
- * "lasagnes ce soir pour 4" rows landed at 0.97–0.99). The low end is the bare dish those rows lean
- * against: "lasagnes" still reads as a recipe, at 0.79, and 0.6 keeps headroom under it. The
- * floor's job in that picture is the long tail rather than the fixture: an earlier run's least
- * confident correct answer was 0.72, which is the margin, not the answer. Re-run the file when the criteria
- * change: the one miss the fixture ever had was a criteria gap at 0.53, and widening the `request`
- * criterion took it to 0.94 without moving anything else.
+ * **Measured 2026-11-03, with household products: right answers 0.71–1.00, no wrong answers.** The
+ * lowest are "croquettes pour chat" at 0.71 and the bare keywords "calories pomme golden" at 0.76.
+ * The 10 not-shopping rows all chose it, at 0.56–1.00, and are reported apart because their outcome
+ * is the same on either side of the floor: "fusil" at 0.56 is no opinion both ways. Bare "ampoules"
+ * is not a row, since it also means blisters and no criterion can settle that without context.
+ * Re-run the file when the criteria change.
  */
 export const CONFIDENCE_FLOOR = 0.6;
 
@@ -63,15 +62,23 @@ const QUESTION: ChoiceQuestion<Option> = {
   type: "choice",
   instructions:
     "A shopper typed this into the search bar of a cooking app that plans meals from the food " +
-    "they already own. The bar can do three things with it. Which one did they mean?",
+    "they already own. What is it?",
   criteria: {
     ingredient:
-      "A single food, drink or grocery product, possibly with a quantity or a brand — something " +
-      "that goes on a shopping list or into a cupboard. Includes foods written as several words " +
-      "(\"extra virgin olive oil\", \"plain greek yoghurt\") and foods nobody has heard of.",
+      "A single food or drink, possibly with a quantity or a brand — something a person eats or " +
+      "drinks. Includes foods written as several words (\"extra virgin olive oil\", \"plain greek " +
+      "yoghurt\") and foods nobody has heard of. It has to be edible: being typed into a cooking " +
+      "app does not make a word a food.",
     recipe:
       "The name of a dish or a prepared meal — something you cook from several ingredients, not " +
       "something you buy as one item. \"beef bourguignon\", \"carbonara\", \"lemon tart\".",
+    household_product:
+      "A single small item for running the home that nobody in the household eats or drinks, " +
+      "possibly with a quantity or a brand, consumable or not, in whichever language the input is " +
+      "written. It has to fall in one of these categories: hygiene and toiletries, cleaning and " +
+      "laundry, paper goods, kitchen supplies and utensils, light bulbs and batteries/piles, baby care, " +
+      "pet care, including anything made for a pet to eat. Food for a baby is food, not this. " +
+      "Outside these categories, being for sale is not enough.",
     request:
       "Anything addressed to an assistant: a question, an instruction, a problem to solve, or a " +
       "request for ideas. It may well mention foods or dishes — what makes it this option is that " +
@@ -83,6 +90,10 @@ const QUESTION: ChoiceQuestion<Option> = {
       "said with when it will be cooked or eaten, or for how many: the shopper wants it planned, " +
       "not looked up. \"je veux faire des lasagnes ce soir\", \"curry jeudi midi\", \"lasagna " +
       "tonight for four\".",
+    not_shopping:
+      "A thing that is neither food nor one of the household categories above, and not a request: " +
+      "clothing, phones and electronics, weapons, vehicles, homes, furniture, or anything else that " +
+      "is not picked up along with the groceries.",
   },
 };
 
@@ -94,6 +105,9 @@ const KEY = "intent";
  *
  * Pure and exported so the mapping and the floor are pinned by a unit test rather than by a live
  * call: what the model says is its business, but what we DO with a 0.58 is ours.
+ *
+ * `not_shopping` is no opinion rather than a kind of its own, so the word falls back to the local
+ * answer. The resolver refuses it, or the assistant takes it when it runs to four content words.
  */
 export const readIntentAnswer = (answer: ChoiceAnswer<Option>): Intent => {
   if (answer.confidence < CONFIDENCE_FLOOR) return { kind: "unknown" };
@@ -103,8 +117,12 @@ export const readIntentAnswer = (answer: ChoiceAnswer<Option>): Intent => {
       return { kind: "ingredient" };
     case "recipe":
       return { kind: "recipe" };
+    case "household_product":
+      return { kind: "product" };
     case "request":
       return { kind: "chat", reason: "model" };
+    case "not_shopping":
+      return { kind: "unknown" };
   }
 };
 

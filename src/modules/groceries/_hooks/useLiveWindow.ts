@@ -21,7 +21,7 @@ const MAX_TIMEOUT_MS = 2 ** 31 - 1;
  * **Deadlines, not the things they belong to.** It used to take `Receipt[]` and derive the expiry
  * itself, which quietly made undo the only rule that could move the clock: a shopper who added
  * lines and bought nothing armed no timer at all, so `now` stayed at mount for the whole session
- * and every age `_compare` measured against it was frozen. Rows never crossed the settling
+ * and every age `compareRows` measured against it was frozen. Rows never crossed the settling
  * threshold, and a line added after mount reported a *negative* age — later than "now" — pinning
  * it to the head of its section for good. A list of numbers has no such preference about which
  * rule matters.

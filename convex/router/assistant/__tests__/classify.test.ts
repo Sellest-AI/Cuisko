@@ -52,7 +52,10 @@ beforeEach(() => {
 });
 
 /** What TypeSafe answers, as the transport expects to read it. */
-const answering = (choice: "ingredient" | "recipe" | "request", confidence: number) =>
+const answering = (
+  choice: "ingredient" | "recipe" | "household_product" | "request" | "not_shopping",
+  confidence: number,
+) =>
   vi.stubGlobal(
     "fetch",
     vi.fn(
@@ -109,6 +112,23 @@ describe("router/assistant/classify", () => {
     await expect(
       (await signIn()).action(api.router.assistant.classify.authed, { text: "calories pomme golden", locale: "fr" }),
     ).resolves.toEqual({ kind: "chat", reason: "model" });
+  });
+
+  /** Through the real validator: `returns: vIntent` rejects a kind it does not know. */
+  test("hands back the product the model settled on", async () => {
+    answering("household_product", 0.94);
+
+    await expect(
+      (await signIn()).action(api.router.assistant.classify.authed, { text: "toothpaste", locale: "en" }),
+    ).resolves.toEqual({ kind: "product" });
+  });
+
+  test("not shopping comes back as no opinion", async () => {
+    answering("not_shopping", 0.94);
+
+    await expect(
+      (await signIn()).action(api.router.assistant.classify.authed, { text: "a car", locale: "en" }),
+    ).resolves.toEqual({ kind: "unknown" });
   });
 
   /** What PostHog averages for this route: the one Jev call, billed, filed under it, for the cook. */

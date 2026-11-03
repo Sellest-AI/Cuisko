@@ -15,6 +15,8 @@ const state = vi.hoisted(() => ({
   cellar: [] as Record<string, unknown>[],
   /** `undefined` is the catalog still in flight, which is how the first zero must not be printed. */
   ingredients: undefined as Record<string, unknown>[] | undefined,
+  /** `undefined` is the products still in flight. */
+  products: [] as Record<string, unknown>[] | undefined,
 }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
@@ -32,6 +34,7 @@ const answer = (fn: unknown) => {
   if (name.includes("getCellar")) return { data: state.cellar, isPending: false, isStale: false };
   if (name.includes("getRecentlyUsed")) return { data: [], isPending: false, isStale: false };
   if (name.includes("getPlatesOnList")) return { data: [], isPending: false, isStale: false };
+  if (name.includes("getGroceryProducts")) return { data: state.products, isPending: state.products === undefined, isStale: false };
   if (name.includes("ingredients/list")) return { data: state.ingredients, isPending: state.ingredients === undefined, isStale: false };
 
   throw new Error(`Unmocked query: ${name}`);
@@ -77,6 +80,7 @@ beforeEach(() => {
   state.groceryList = [];
   state.cellar = [];
   state.ingredients = INGREDIENTS;
+  state.products = [];
 });
 
 describe("useStockCounts", () => {
@@ -97,6 +101,23 @@ describe("useStockCounts", () => {
     state.cellar = [row("cellar", ONION, 2)];
 
     expect(counts().result.current).toEqual({ toBuy: 1, inStock: 1, isLoading: false });
+  });
+
+  /** The number Home prints is the number of cards the shopper lands on, and a product is a card. */
+  it("counts products with what is to buy, and never with the cellar", () => {
+    state.groceryList = [row("line", CARROT, 3)];
+    state.products = [
+      { _id: "shampoo", name: "shampoo", emoji: "📦", quantity: 2, unit: "pcs", updatedAt: at },
+      { _id: "soap", name: "soap", emoji: "📦", quantity: 1, unit: "pcs", updatedAt: at },
+    ];
+
+    expect(counts().result.current).toEqual({ toBuy: 3, inStock: 0, isLoading: false });
+  });
+
+  it("is still loading while the products have not answered", () => {
+    state.products = undefined;
+
+    expect(counts().result.current).toMatchObject({ toBuy: 0, isLoading: true });
   });
 
   /**

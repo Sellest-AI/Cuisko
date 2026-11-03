@@ -53,12 +53,12 @@ export const pendingIngredientsAtom = householdAtom<PendingIngredient[]>([]);
 /**
  * How "To Buy" is being read: plain, per plate, or per aisle.
  *
- * The third set in this domain that is not in the database, and the simplest case of the three:
+ * Another set in this domain that is not in the database, and the simplest case of them:
  * a sort is a way of looking at the list, not a fact about the household, and the other person in
  * the kitchen has no reason to see it change. Session-only, on purpose — it opens plain, and a
  * reload opens it plain again.
  *
- * Jotai rather than component state for the same reason as the other two: the grid reads it, and
+ * Jotai rather than component state for the same reason as the others: the grid reads it, and
  * the navigation bar — a different route — resets it when the shopper adds something, so the new
  * card lands on the list they expect and not under a heading three screens down.
  */

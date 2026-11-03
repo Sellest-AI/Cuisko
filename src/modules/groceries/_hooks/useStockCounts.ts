@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { buildSections } from "../_model/model";
+import { useGroceryProducts } from "./useGroceryProducts";
 import { useSnapshot } from "./useSnapshot";
 
 /**
@@ -17,14 +18,15 @@ import { useSnapshot } from "./useSnapshot";
  */
 export const useStockCounts = () => {
   const snapshot = useSnapshot();
+  const { products, isLoading: isLoadingProducts } = useGroceryProducts();
   const sections = useMemo(() => buildSections(snapshot), [snapshot]);
 
   /** Rows on the table, none named yet: the first catalog answer is still in flight. */
   const isNaming = snapshot.ingredients.length === 0 && (snapshot.lines.length > 0 || snapshot.cellar.length > 0);
 
   return {
-    toBuy: sections["to-buy"].length,
+    toBuy: sections["to-buy"].length + products.length,
     inStock: sections.cellar.length,
-    isLoading: snapshot.isLoading || isNaming,
+    isLoading: snapshot.isLoading || isNaming || isLoadingProducts,
   };
 };

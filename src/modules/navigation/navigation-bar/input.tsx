@@ -14,10 +14,11 @@ import { Suggestions } from "../_components/suggestions";
 import { StagedPhoto } from "./staged-photo";
 import { pickQuantity, type Unit } from "@shared/ingredients";
 import { useBarSuggestions } from "../_hooks/useBarSuggestions";
+import { productNameOf } from "../_hooks/useSuggestions";
 import { useNavigationBar } from "../_hooks/useNavigationBar";
 import { useStagedPhoto } from "../_hooks/useStagedPhoto";
 import { useAskCuisko } from "~/modules/assistant/hooks";
-import { useGrocerySort, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
+import { useGrocerySort, useProductActions, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
 import { type Intent } from "@shared/inputIntent";
 import { useInputIntent } from "../_hooks/useInputIntent";
@@ -100,6 +101,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
 
   const { apply } = useStockActions();
   const { add: addUnknown } = usePendingIngredients();
+  const { add: addProduct } = useProductActions();
   const { setSort } = useGrocerySort();
 
   const { resolve, isChecking } = useInputIntent();
@@ -174,7 +176,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
   }
 
   /**
-   * Where a settled intent goes. Three destinations, and they have not changed.
+   * Where a settled intent goes.
    *
    * Its own function because the decision is no longer in the same breath as the routing: an
    * intent arrives from `useInputIntent` settled, whether it was settled by a rule or by the model,
@@ -201,6 +203,24 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
     // whatever the resolver comes back with.
     else if ((intent.kind === "unknown" || intent.kind === "ingredient") && rest)
       submitUnknown(rest, unit, amount);
+    /**
+     * Always the list, whatever the mode: a product is never owned, so even a shopper who reached
+     * the bar from the cellar is writing it down to buy.
+     *
+     * @limitation A product's name is `rest`, which was built as a search term and keeps less than
+     * was typed. It drops every quantity wherever it sits, so "shampoo 2 in 1" reads as 2 of "shampoo
+     * in". It drops unit words, so "cc cream" is stored as "cream". It lowercases, so "Ampoules LED"
+     * is stored as "ampoules led".
+     * Accepted because ordinary products come through whole and the fix is a second parser beside
+     * `readInput`.
+     */
+    else if (intent.kind === "product") {
+      const name = productNameOf(value);
+      if (!name) return;
+
+      void addProduct(name, unit, amount);
+      showGroceries("relist");
+    }
     else if (intent.kind === "chat")
       // The whole input, not `rest`: a question is not a quantity, and `rest` has had any leading
       // amount stripped out of it.
@@ -222,8 +242,8 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
   /**
    * Enter, on the assistant screen: straight into the thread.
    *
-   * **Neither `route` nor `useInputIntent` is involved.** That decision exists to pick between
-   * three destinations, and the shopper picked one by being here — so running it would spend a
+   * **Neither `route` nor `useInputIntent` is involved.** That decision exists to pick a
+   * destination, and the shopper picked one by being here — so running it would spend a
    * model call to be told "chat", and could come back with "ingredient" for a one-word message
    * and put it on the grocery list instead of sending it. A question typed into a conversation is
    * a message, whatever the words look like in isolation.

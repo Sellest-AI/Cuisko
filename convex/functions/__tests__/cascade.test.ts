@@ -388,6 +388,27 @@ describe("cascadeDelete — planning", () => {
   });
 });
 
+describe("cascadeDelete — grocery products", () => {
+  test("deletes a household's products", async () => {
+    const householdId = await insertHousehold();
+    const productId = await t.run((ctx) =>
+      ctx.db.insert("groceryProducts", {
+        householdId,
+        name: "shampoo",
+        nameKey: "shampoo",
+        emoji: "📦",
+        unit: "pcs",
+        quantity: 1,
+        updatedAt: Date.now(),
+      }),
+    );
+
+    await t.run((ctx) => cascadeDelete(ctx, "households", householdId));
+
+    expect(await t.run((ctx) => ctx.db.get(productId))).toBeNull();
+  });
+});
+
 describe("cascadeDelete — household membership", () => {
   const insertAccount = (currentHouseholdId?: Id<"households">) =>
     t.run(async (ctx) => {

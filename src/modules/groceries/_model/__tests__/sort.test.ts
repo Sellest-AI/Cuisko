@@ -4,11 +4,13 @@ import {
   ALPHABETICAL_ORDERING_DELAY_MS,
   buildSections,
   type GroceryLine,
+  type PendingIngredient,
   type Plate,
   type Snapshot,
   type StockRef,
 } from "../model";
-import { groupToBuy, isSort, recipeFor, SORTS } from "../sort";
+import type { ProductRow } from "../products";
+import { groupToBuy, isSort, recipeFor, SORTS, toBuyEntries, type Sort, type ToBuyEntry } from "../sort";
 
 const NOW = new Date("2026-08-10T12:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms);
@@ -223,5 +225,148 @@ describe("by category", () => {
     expect(outline(groupToBuy(toBuyOf(snapshot), "by-category", snapshot))).toEqual([
       ["category:VEGETABLE", [["leeks:pcs", 2], ["carrots:pcs", 4]]],
     ]);
+  });
+});
+
+describe("toBuyEntries", () => {
+  const SETTLED = ALPHABETICAL_ORDERING_DELAY_MS + 1_000;
+
+  const product = (name: string, age = SETTLED): ProductRow =>
+    ({ id: name, name, emoji: "📦", amount: 1, unit: "pcs", updatedAt: ago(age) });
+
+  const GHOST: PendingIngredient = { id: "ghost", name: "yuzu", intent: "relist", state: "resolving" };
+
+  /** Each entry as one readable word: a heading is `#kind`, with `^` when it opens the section. */
+  const read = (entry: ToBuyEntry) => {
+    if (entry.kind === "subheader") return `#${entry.heading.kind}${entry.first ? "^" : ""}`;
+    if (entry.kind === "item") return entry.stock.name;
+    if (entry.kind === "ghost") return entry.ghost.name;
+
+    return entry.product.name;
+  };
+
+  const layout = (
+    sort: Sort,
+    { snapshot = base, products = [], ghosts = [] }: { snapshot?: Snapshot; products?: ProductRow[]; ghosts?: PendingIngredient[] },
+  ) =>
+    toBuyEntries({ groups: groupToBuy(toBuyOf(snapshot), sort, snapshot), ghosts, products, sort, now: NOW }).map(read);
+
+  const NO_FOOD: Snapshot = { ...base, lines: [], plates: [] };
+
+  describe("the plain list", () => {
+    it("mixes a settled product into the food by name, with no heading", () => {
+      expect(layout("standard", { products: [product("Detergent")] })).toEqual(["Carottes", "Detergent", "Parmesan"]);
+    });
+
+    it("puts a product typed just now ahead of the settled food", () => {
+      expect(layout("standard", { products: [product("Zinc", 1_000)] })).toEqual(["Zinc", "Carottes", "Parmesan"]);
+    });
+
+    it("keeps ghosts in front of the mixed rows", () => {
+      expect(layout("standard", { products: [product("Detergent")], ghosts: [GHOST] })).toEqual([
+        "yuzu",
+        "Carottes",
+        "Detergent",
+        "Parmesan",
+      ]);
+    });
+
+    it("draws products alone with no heading when there is no food", () => {
+      expect(layout("standard", { snapshot: NO_FOOD, products: [product("Soap"), product("Detergent")] })).toEqual([
+        "Detergent",
+        "Soap",
+      ]);
+    });
+  });
+
+  describe.each(["by-plan", "by-category"] as const)("%s", (sort) => {
+    it("opens on the products' heading, above every food heading", () => {
+      const entries = layout(sort, { products: [product("Soap"), product("Detergent")] });
+
+      expect(entries.slice(0, 3)).toEqual(["#products^", "Detergent", "Soap"]);
+      expect(entries.slice(3).filter((entry) => entry.endsWith("^"))).toEqual([]);
+    });
+
+    it("leaves ghosts on the first food group, never under the products' heading", () => {
+      const entries = layout(sort, { products: [product("Detergent")], ghosts: [GHOST] });
+
+      expect(entries.slice(0, 3)).toEqual(["#products^", "Detergent", expect.stringMatching(/^#/)]);
+      expect(entries[3]).toBe("yuzu");
+    });
+
+    /** Under that heading a ghost would read as non-food, and nobody has read the word yet. */
+    it("draws ghosts first when there is no food for them to lead", () => {
+      expect(layout(sort, { snapshot: NO_FOOD, products: [product("Detergent")], ghosts: [GHOST] })).toEqual([
+        "yuzu",
+        "#products",
+        "Detergent",
+      ]);
+    });
+
+    it("draws no products' heading with no product", () => {
+      expect(layout(sort, { ghosts: [GHOST] })).not.toContain("#products");
+    });
+
+    it("draws ghosts alone, with no heading over them, when nothing else is there", () => {
+      expect(layout(sort, { snapshot: NO_FOOD, ghosts: [GHOST] })).toEqual(["yuzu"]);
+    });
+  });
+
+  it("reads by plan as products, then the plates soonest first, then what no plate asked for", () => {
+    expect(layout("by-plan", { products: [product("Detergent")] })).toEqual([
+      "#products^",
+      "Detergent",
+      "#plate",
+      "Parmesan",
+      "#plate",
+      "Parmesan",
+      "#unplanned",
+      "Carottes",
+    ]);
+  });
+
+  it("reads by aisle as products, then the aisles", () => {
+    const entries = layout("by-category", { products: [product("Detergent")] });
+
+    expect(entries.slice(0, 2)).toEqual(["#products^", "Detergent"]);
+    expect(entries.filter((entry) => entry === "#category")).toHaveLength(2);
+  });
+
+  describe("with no product, today's order", () => {
+    it("reads the plain list as ghosts, then the food in its order", () => {
+      expect(layout("standard", { ghosts: [GHOST] })).toEqual(["yuzu", "Carottes", "Parmesan"]);
+    });
+
+    it("reads by plan with the first heading opening the section and the ghosts under it", () => {
+      expect(layout("by-plan", { ghosts: [GHOST] })).toEqual([
+        "#plate^",
+        "yuzu",
+        "Parmesan",
+        "#plate",
+        "Parmesan",
+        "#unplanned",
+        "Carottes",
+      ]);
+    });
+
+    it("does not re-sort the food, whatever clock it is handed", () => {
+      const groups = groupToBuy(toBuyOf(base), "standard", base);
+      const entries = toBuyEntries({ groups, ghosts: [], products: [], sort: "standard", now: ago(1_000_000_000) });
+
+      expect(entries.map(read)).toEqual(["Carottes", "Parmesan"]);
+    });
+  });
+
+  it("is nothing at all when nothing is to buy", () => {
+    expect(layout("standard", { snapshot: NO_FOOD })).toEqual([]);
+    expect(layout("by-plan", { snapshot: NO_FOOD })).toEqual([]);
+  });
+
+  it("carries the group's heading on an item, for the long press", () => {
+    const groups = groupToBuy(toBuyOf(base), "by-plan", base);
+    const entries = toBuyEntries({ groups, ghosts: [], products: [], sort: "by-plan", now: NOW });
+    const item = entries.find((entry) => entry.kind === "item");
+
+    expect(item).toMatchObject({ heading: { kind: "plate" } });
   });
 });

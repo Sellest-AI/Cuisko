@@ -21,17 +21,19 @@ import { useUnitLabel } from "~/hooks/useUnitLabel";
 import {
   formatGroceryQuantity,
   orderSections,
+  ghostsFor,
   rowsOf,
   type GroceryRow,
   type PendingFailure,
-  type PendingIngredient,
   type Section,
   type StockRow,
 } from "./_model/model";
-import { SORTS, type Sort, type ToBuyGroup, type ToBuyHeading } from "./_model/sort";
+import type { ProductRow } from "./_model/products";
+import { SORTS, toBuyEntries, type Sort, type ToBuyEntry, type ToBuyHeading } from "./_model/sort";
 import { useGroceryList } from "./_hooks/useGroceryList";
 import { useGrocerySort } from "./_hooks/useGrocerySort";
 import { usePendingIngredients } from "./_hooks/usePendingIngredients";
+import { useStrikeProduct } from "./_hooks/useStrikeProduct";
 
 const COLUMNS = 3;
 const GAP = theme.spacing[8];
@@ -101,10 +103,7 @@ const REASON_KEY: Record<PendingFailure, TranslationKeys<"Groceries">> = {
 
 type Row =
   | { kind: "header"; id: string; label: string; icon?: IconComponent; color: string }
-  | { kind: "subheader"; id: string; heading: NonNullable<ToBuyHeading>; first: boolean }
-  /** `heading` is the "To Buy" group the card sits under: it decides which recipe a long press opens. */
-  | { kind: "item"; stock: StockRow; heading?: ToBuyHeading }
-  | { kind: "ghost"; ghost: PendingIngredient };
+  | ToBuyEntry;
 
 /**
  * Full width, so it breaks the row it lands on and the next card starts a fresh line.
@@ -134,13 +133,13 @@ const SectionHeader = ({
 };
 
 /**
- * A heading inside "To Buy": the plate, the aisle, or what no plate asked for.
+ * A heading inside "To Buy": the plate, the aisle, what no plate asked for, or what is not food.
  *
  * A plate is named by its dish and dated by its day and slot: "Lasagna" alone would not tell
  * Monday's from Friday's, and telling them apart is the whole reason the view exists.
  *
  * A plate's name opens its recipe: a shopper wondering why the list wants thyme for the lasagna
- * has the answer one tap away, on the page that lists it. The other two headings name nothing
+ * has the answer one tap away, on the page that lists it. The other headings name nothing
  * that has a page.
  *
  * A long press opens the plate's meal sheet instead, where it can be swapped: the shopper who sees
@@ -157,7 +156,8 @@ const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; sty
   const title =
     heading.kind === "plate" ? heading.title
       : heading.kind === "category" ? tVocabulary(`Categories.${heading.category}`)
-        : t("Groups.unplanned");
+        : heading.kind === "products" ? t("Groups.products")
+          : t("Groups.unplanned");
 
   const day = heading.kind === "plate"
     ? heading.date.toLocaleDateString(locale, { weekday: "long", day: "numeric" })
@@ -193,6 +193,27 @@ const SubHeader = ({ heading, style }: { heading: NonNullable<ToBuyHeading>; sty
   );
 };
 
+/**
+ * One tap and it is gone: a product opens no sheet, and no plate asks for it. Its own component
+ * because each card has its own write to wait on.
+ */
+const ProductCard = ({ product, width }: { product: ProductRow; width: number }) => {
+  const { strike, isStriking } = useStrikeProduct();
+  const unit = useUnitLabel();
+
+  return (
+    <GroceryItem
+      name={product.name}
+      quantity={formatGroceryQuantity(product.amount, product.unit, unit)}
+      emoji={product.emoji}
+      variant="pending"
+      width={width}
+      isBusy={isStriking}
+      onPress={() => void strike(product.id)}
+    />
+  );
+};
+
 /** `lead` is the section the shopper arrived asking for — promoted to the top, if it has anything to show. */
 type GroceryGridProps = { lead?: Section };
 
@@ -225,7 +246,7 @@ type GroceryGridProps = { lead?: Section };
  */
 export const GroceryGrid = ({ lead }: GroceryGridProps) => {
   const { width } = useWindowDimensions();
-  const { sections, toBuy, submit, recipeFor, isEmpty } = useGroceryList();
+  const { sections, toBuy, products, now, submit, recipeFor, isEmpty } = useGroceryList();
   const { sort, setSort } = useGrocerySort();
   const { pending, dismiss } = usePendingIngredients();
   const t = useTranslations("Groceries");
@@ -265,25 +286,15 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
       ? { kind: "ghost" as const, ghost: row.ghost }
       : { kind: "item" as const, stock: row.stock };
 
-  /**
-   * "To Buy", grouped. Ghosts lead the first group — they have neither a plate nor an aisle yet —
-   * and when there is nothing but ghosts, one plain group is drawn for them to lead.
-   */
-  const toBuyRows = (): Row[] => {
-    const ghosts = rowsOf("to-buy", { ...sections, "to-buy": [] }, pending).map(toRow);
-    const groups: ToBuyGroup[] =
-      toBuy.length === 0 && ghosts.length > 0 ? [{ id: "to-buy", heading: null, rows: [] }] : toBuy;
-
-    // `first` is the first group of "To Buy", not the first row of the grid: a promoted `lead`
-    // can push this section down, and its opening sub-header still sits under its own header.
-    return groups.flatMap((group, index): Row[] => [
-      ...(group.heading
-        ? [{ kind: "subheader" as const, id: `header:to-buy:${group.id}`, heading: group.heading, first: index === 0 }]
-        : []),
-      ...(index === 0 ? ghosts : []),
-      ...group.rows.map((stock): Row => ({ kind: "item", stock, heading: group.heading })),
-    ]);
-  };
+  /** "To Buy", as the model lays it out. The ghosts are the ones headed there. */
+  const toBuyRows = (): Row[] =>
+    toBuyEntries({
+      groups: toBuy,
+      ghosts: ghostsFor("to-buy", pending),
+      products,
+      sort,
+      now,
+    });
 
   const rows: Row[] = orderSections(DEFAULT_ORDER, lead).flatMap((section) => {
     const { labelKey, icon, color } = SECTION_DEFS[section];
@@ -364,6 +375,12 @@ export const GroceryGrid = ({ lead }: GroceryGridProps) => {
             />
           );
         }
+
+        if (row.kind === "product") return <ProductCard
+          key={`product:${row.product.id}`}
+          product={row.product}
+          width={itemWidth - 1}
+        />
 
         /**
          * A long press answers "why is this on my list?" with the recipe asking for it. Only in

@@ -6,7 +6,7 @@ import { usersExtended } from "./schema/users";
 import { userPreferences } from "./schema/preferences";
 import { households, householdFormerMembers, householdUsers } from "./schema/households";
 import { ingredients } from "./schema/ingredients";
-import { groceryListItems, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
+import { groceryListItems, groceryProducts, cellarItems, recentlyUsedIngredients } from "./schema/cellars";
 import { recipeContents, recipeFavorites, recipeIngredients, recipes } from "./schema/recipes";
 import { mealPlans, plannedMealIngredients, plannedMeals } from "./schema/planning";
 import { imageSizes, imageObjects, images, userImages } from "./schema/media";
@@ -30,6 +30,7 @@ export default defineSchema({
   plannedMealIngredients,
   ingredients,
   groceryListItems,
+  groceryProducts,
   cellarItems,
   recentlyUsedIngredients,
   recipes,

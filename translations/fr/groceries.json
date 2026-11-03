@@ -11,7 +11,8 @@
     "by_category": "Par rayon"
   },
   "Groups": {
-    "unplanned": "Hors repas"
+    "unplanned": "Hors repas",
+    "products": "Hors alimentaire"
   },
   "Empty": {
     "title": "Rien à acheter, rien en stock",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { coversTitle, rankSuggestions, readInput, type Suggestion } from "../useSuggestions";
+import { coversTitle, productNameOf, rankSuggestions, readInput, type Suggestion } from "../useSuggestions";
 
 /**
  * The ranking, tested against a fixture rather than against the catalog.
@@ -248,5 +248,23 @@ describe("coversTitle", () => {
 
   it("refuses everything when nothing was typed", () => {
     expect(coversTitle("", "Boeuf bourguignon")).toBe(false);
+  });
+});
+
+describe("productNameOf", () => {
+  it("is the input with its quantity taken out", () => {
+    expect(productNameOf("3 rasoirs")).toBe("rasoirs");
+    expect(productNameOf("500 ml de shampoing")).toBe("de shampoing");
+  });
+
+  /** A word that is also a unit leaves `rest` empty, and the box would clear with no card. */
+  it("keeps an input made only of unit words", () => {
+    expect(productNameOf("cc")).toBe("cc");
+    expect(productNameOf(" oz ")).toBe("oz");
+  });
+
+  it("has no name for a quantity alone", () => {
+    expect(productNameOf("500 ml")).toBe("");
+    expect(productNameOf("3")).toBe("");
   });
 });

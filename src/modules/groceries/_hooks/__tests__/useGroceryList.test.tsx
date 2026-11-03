@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { getFunctionName } from "convex/server";
 import { Provider } from "jotai";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetHouseholdAtoms } from "~/modules/households/household-atom";
 
@@ -27,6 +27,8 @@ const state = vi.hoisted(() => ({
   cellar: [] as Record<string, unknown>[],
   recentlyUsed: [] as Record<string, unknown>[],
   plates: [] as Record<string, unknown>[],
+  /** `undefined` is the products still in flight. */
+  products: [] as Record<string, unknown>[] | undefined,
   ingredients: undefined as Record<string, unknown>[] | undefined,
   calls: [] as { name: string; args: Record<string, unknown> }[],
   /** What `useQueryHeld` is holding, so a re-render can outlive a query going back in flight. */
@@ -58,6 +60,7 @@ const answer = (fn: unknown) => {
   if (name.includes("getCellar")) return { data: state.cellar, isPending: false };
   if (name.includes("getRecentlyUsed")) return { data: state.recentlyUsed, isPending: false };
   if (name.includes("getPlatesOnList")) return { data: state.plates, isPending: false };
+  if (name.includes("getGroceryProducts")) return { data: state.products, isPending: state.products === undefined };
   if (name.includes("ingredients/list")) return { data: state.ingredients, isPending: false };
 
   throw new Error(`Unmocked query: ${name}`);
@@ -144,11 +147,21 @@ const rowIn = (rows: StockRow[], id: string): StockRow => {
 
 const lastCall = () => state.calls[state.calls.length - 1];
 
+const product = (updatedAt = at) => ({
+  _id: "shampoo",
+  name: "shampoo",
+  emoji: "📦",
+  quantity: 2,
+  unit: "pcs",
+  updatedAt,
+});
+
 beforeEach(() => {
   state.groceryList = [];
   state.cellar = [];
   state.recentlyUsed = [];
   state.plates = [];
+  state.products = [];
   state.ingredients = [{ _id: CARROT, name: "Carottes", emoji: "🥕", category: "VEGETABLE" }];
   state.calls = [];
   state.held = undefined;
@@ -220,7 +233,56 @@ describe("useGroceryList", () => {
   });
 });
 
+describe("useGroceryList — products", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns them beside the food, and leaves the food's sections alone", () => {
+    state.groceryList = [line(4)];
+    state.products = [product()];
+
+    const { result } = groceries();
+
+    expect(result.current.products).toEqual([
+      { id: "shampoo", name: "shampoo", emoji: "📦", amount: 2, unit: "pcs", updatedAt: new Date(at) },
+    ]);
+    expect(result.current.sections["to-buy"]).toHaveLength(1);
+    expect(result.current.sections.cellar).toEqual([]);
+    expect(result.current.sections["recently-bought"]).toEqual([]);
+  });
+
+  /** The food's clock has no deadline here, so only the products' can move the time the grid sorts by. */
+  it("hands the grid the later of the two clocks", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(at);
+    state.products = [product()];
+
+    const { result } = groceries();
+    expect(result.current.now.getTime()).toBe(at);
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+
+    expect(result.current.now.getTime()).toBe(at + 60_000);
+  });
+});
+
 describe("useGroceryList — isEmpty", () => {
+  it("is not empty when all the household has is a product", () => {
+    state.products = [product()];
+
+    expect(groceries().result.current.isEmpty).toBe(false);
+  });
+
+  /** Or a household holding only products is told to plan its week for a round trip. */
+  it("is not empty while the products are still in flight", () => {
+    state.products = undefined;
+
+    expect(groceries().result.current.isEmpty).toBe(false);
+  });
+
   it("is empty with nothing on the list and nothing in the cellar", () => {
     expect(groceries().result.current.isEmpty).toBe(true);
   });

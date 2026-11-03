@@ -11,7 +11,8 @@
 import { CATEGORIES, type Category } from "@shared/categories";
 import { MEAL_SLOTS, type MealSlot } from "@shared/mealSlots";
 
-import { matchesRef, type Plate, type Snapshot, type StockRow } from "./model";
+import { compareRows, matchesRef, type PendingIngredient, type Plate, type Snapshot, type StockRow } from "./model";
+import type { ProductRow } from "./products";
 
 export const SORTS = ["standard", "by-category", "by-plan"] as const;
 export type Sort = (typeof SORTS)[number];
@@ -20,14 +21,16 @@ export const isSort = (value: string): value is Sort => SORTS.some((sort) => sor
 
 /**
  * What a group is headed by. `null` is the plain list, which has the section heading and nothing
- * under it. The other three are sub-headings the grid draws inside "To Buy".
+ * under it. The others are sub-headings the grid draws inside "To Buy".
  */
 export type ToBuyHeading =
   | null
   /** `mealId` is the plate itself, which the meal sheet opens on; `recipeId` is the page it is of. */
   | { kind: "plate"; mealId: string; recipeId: string; title: string; date: Date; slot: MealSlot }
   | { kind: "category"; category: Category }
-  | { kind: "unplanned" };
+  | { kind: "unplanned" }
+  /** Not a category: `CATEGORIES` is the vocabulary of the ingredients column, and a product has none. */
+  | { kind: "products" };
 
 export type ToBuyGroup = {
   /** Stable across re-renders, so a sub-heading keeps its mounted instance while its rows move. */
@@ -159,4 +162,84 @@ export const groupToBuy = (rows: StockRow[], sort: Sort, snapshot: Snapshot): To
   if (sort === "by-category") return _byCategory(rows, snapshot);
 
   return rows.length > 0 ? [{ id: "to-buy", heading: null, rows }] : [];
+};
+
+/** One thing the grid draws inside "To Buy". `heading` on an item decides which recipe a long press opens. */
+export type ToBuyEntry =
+  | { kind: "subheader"; id: string; heading: NonNullable<ToBuyHeading>; first: boolean }
+  | { kind: "item"; stock: StockRow; heading?: ToBuyHeading }
+  | { kind: "ghost"; ghost: PendingIngredient }
+  | { kind: "product"; product: ProductRow };
+
+type MixedEntry = Extract<ToBuyEntry, { kind: "item" | "product" }>;
+
+const _orderableOf = (entry: MixedEntry) => (entry.kind === "item" ? entry.stock : entry.product);
+
+const _itemsOf = (group: ToBuyGroup): MixedEntry[] =>
+  group.rows.map((stock) => ({ kind: "item", stock, heading: group.heading }));
+
+/** The plain list: ghosts lead, then food and products by one rule. With no product, the food's order stands. */
+const _mixed = (groups: ToBuyGroup[], ghosts: ToBuyEntry[], products: ProductRow[], now: Date): ToBuyEntry[] => {
+  const items = groups.flatMap(_itemsOf);
+  if (products.length === 0) return [...ghosts, ...items];
+
+  const rows = [...items, ...products.map((product): MixedEntry => ({ kind: "product", product }))];
+
+  return [...ghosts, ...rows.sort((a, b) => compareRows(_orderableOf(a), _orderableOf(b), now))];
+};
+
+/**
+ * "To Buy", laid out: what the grid draws, in order.
+ *
+ * In the plain list products mix with the food. In a grouped view they take a group of their own
+ * at the very top, since they belong to neither a plate nor an aisle.
+ *
+ * Ghosts lead the first food group, having neither a plate nor an aisle yet. With no food to lead
+ * they come before the products' heading and never under it: a ghost is a word nobody has read yet,
+ * and that heading would be calling it non-food.
+ *
+ * `first` is the first sub-heading of "To Buy", not of the grid: a promoted section can push this
+ * one down, and its opening sub-header still sits under its own header.
+ */
+export const toBuyEntries = ({
+  groups,
+  ghosts,
+  products,
+  sort,
+  now,
+}: {
+  groups: ToBuyGroup[];
+  ghosts: PendingIngredient[];
+  products: ProductRow[];
+  sort: Sort;
+  now: Date;
+}): ToBuyEntry[] => {
+  const ghostEntries = ghosts.map((ghost): ToBuyEntry => ({ kind: "ghost", ghost }));
+
+  if (sort === "standard") return _mixed(groups, ghostEntries, products, now);
+
+  const leadsWithGhosts = groups.length === 0 && ghosts.length > 0;
+  const productEntries: ToBuyEntry[] = products.length === 0 ? [] : [
+    { kind: "subheader", id: "header:to-buy:products", heading: { kind: "products" }, first: !leadsWithGhosts },
+    ...[...products]
+      .sort((a, b) => compareRows(a, b, now))
+      .map((product): ToBuyEntry => ({ kind: "product", product })),
+  ];
+
+  return [
+    ...(leadsWithGhosts ? ghostEntries : []),
+    ...productEntries,
+    ...groups.flatMap((group, index): ToBuyEntry[] => [
+      ...(group.heading
+        ? [{
+          kind: "subheader" as const,
+          id: `header:to-buy:${group.id}`,
+          heading: group.heading,
+          first: index === 0 && products.length === 0,
+        }]
+        : []),
+      ...(index === 0 ? ghostEntries : []),
+      ..._itemsOf(group),
+    ]),
+  ];
 };

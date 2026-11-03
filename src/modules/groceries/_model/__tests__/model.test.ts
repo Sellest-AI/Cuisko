@@ -12,6 +12,8 @@ import {
   quantityOptions,
   reduceLines,
   rememberStock,
+  compareRows,
+  ghostsFor,
   rowsOf,
   sectionFromParam,
   stockFor,
@@ -871,6 +873,13 @@ describe("folding ghosts into a section", () => {
   const ghostsIn = (section: Section, pending: PendingIngredient[]) =>
     rowsOf(section, sections, pending).filter((row) => row.kind === "ghost");
 
+  it("hands back only the ghosts headed for a section", () => {
+    const relisted = ghost("g1", "relist");
+
+    expect(ghostsFor("to-buy", [relisted])).toEqual([relisted]);
+    expect(ghostsFor("cellar", [relisted])).toEqual([]);
+  });
+
   /**
    * The card has to appear under the heading the shopper aimed it at. Drawing every ghost in
    * "to-buy" would put the cellar button's card in the wrong section and then move it once it
@@ -986,5 +995,16 @@ describe("the cellar card's clock", () => {
       { ...entry, id: "c1", expirationDate: inDays(10) },
       { ...entry, id: "c2", amount: 0, expirationDate: inDays(2) },
     ])).cellar).toEqual([false]);
+  });
+});
+
+describe("compareRows", () => {
+  /** The clock wakes on the deadline itself and not again, so this moment has to count as settled. */
+  it("settles a row whose age is exactly the delay", () => {
+    const now = new Date("2026-08-10T12:01:00Z");
+    const shampoo = { name: "shampoo", updatedAt: new Date(now.getTime() - ALPHABETICAL_ORDERING_DELAY_MS) };
+    const butter = { name: "butter", updatedAt: new Date(now.getTime() - 5 * 60 * 60 * 1000) };
+
+    expect([shampoo, butter].sort((a, b) => compareRows(a, b, now)).map((row) => row.name)).toEqual(["butter", "shampoo"]);
   });
 });

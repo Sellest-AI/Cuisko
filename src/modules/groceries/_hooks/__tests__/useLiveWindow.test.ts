@@ -7,7 +7,7 @@ import { useLiveWindow } from "../useLiveWindow";
 /**
  * The clock has to move for anything measured against it to be true.
  *
- * `_compare` settles a row into alphabetical order once it is `ALPHABETICAL_ORDERING_DELAY_MS`
+ * `compareRows` settles a row into alphabetical order once it is `ALPHABETICAL_ORDERING_DELAY_MS`
  * old, but it measures that age against the clock this hook holds — so a clock that only wakes
  * for an undo receipt makes the settling unreachable on any screen where nothing was bought. That
  * is not a corner: adding lines without buying is the ordinary use of a grocery list.
@@ -61,7 +61,7 @@ describe("useLiveWindow", () => {
     act(() => void vi.advanceTimersByTime(10_000));
 
     expect(result.current.getTime()).toBe(settlesAt);
-    /** The age `_compare` now measures is positive and past the threshold, not in the future. */
+    /** The age `compareRows` now measures is positive and past the threshold, not in the future. */
     expect(result.current.getTime() - touchedAt).toBe(ALPHABETICAL_ORDERING_DELAY_MS);
   });
 

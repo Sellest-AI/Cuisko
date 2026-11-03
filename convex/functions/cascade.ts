@@ -91,6 +91,7 @@ export const CASCADE: Partial<Record<TableNames, CascadeRule[]>> = {
     // fall back to their oldest membership when the pointer is unset.
     { table: "usersExtended", index: "by_current_household", field: "currentHouseholdId", onDelete: "detach" },
     { table: "groceryListItems", index: "by_household", field: "householdId" },
+    { table: "groceryProducts", index: "by_household_and_name_key", field: "householdId" },
     { table: "cellarItems", index: "by_household", field: "householdId" },
     { table: "recentlyUsedIngredients", index: "by_household", field: "householdId" },
     { table: "mealPlans", index: "by_household", field: "householdId" },

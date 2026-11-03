@@ -4,10 +4,11 @@ import { foldAccents, STOPWORDS, type Locale } from "./translations";
 /**
  * What the shopper meant by what they typed into the navigation bar.
  *
- * Three kinds and not a boolean, because the bar has to *do* three different things: send it to
- * the assistant, add the ingredient it already knows, or hand the words to the resolver and hold a
- * placeholder until it answers. A two-way fork — the one this replaces — collapsed the last two
- * into "not a match", and everything the catalog did not already hold was simply lost.
+ * Several kinds and not a boolean, because the bar has to *do* different things: send it to the
+ * assistant, add the ingredient it already knows, hand the words to the resolver and hold a
+ * placeholder until it answers, or put a non-food product on the list. A two-way fork — the one this
+ * replaces — collapsed the middle two into "not a match", and everything the catalog did not already
+ * hold was simply lost.
  *
  * `chat` carries WHY it is a chat because the reasons have different confidence: a trigger word and
  * a question mark are things the shopper wrote on purpose, while `sentence` is a guess made from
@@ -16,11 +17,15 @@ import { foldAccents, STOPWORDS, type Locale } from "./translations";
  * `model` is never returned by `readIntent` — it is what `classifyIntent` stamps on the answer it
  * sends back, so a route that reads wrong can be traced to the rule that chose it without asking
  * which layer was speaking.
+ *
+ * `product` is the same: only `classifyIntent` returns it, since no written rule can tell shampoo
+ * from a food nobody has heard of.
  */
 export type Intent =
   | { kind: "chat"; reason: "trigger" | "question" | "sentence" | "model" }
   | { kind: "ingredient" }
   | { kind: "recipe" }
+  | { kind: "product" }
   | { kind: "unknown" };
 
 /**

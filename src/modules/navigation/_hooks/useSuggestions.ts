@@ -263,6 +263,16 @@ export const readInput = (text: string) => {
 };
 
 /**
+ * What a non-food product is called: `rest`, or the words themselves when all of them read as units,
+ * so "cc" is not lost. A quantity alone names nothing.
+ */
+export const productNameOf = (text: string) => {
+  const { rest, amount } = readInput(text);
+
+  return rest || (amount === null ? text.trim() : "");
+};
+
+/**
  * Whether every word typed is accounted for by this one title — the rule `bestLabel` applies to a
  * catalog label, applied to a recipe's name.
  *

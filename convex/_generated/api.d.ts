@@ -64,6 +64,7 @@ import type * as functions_assistant_threadMessages from "../functions/assistant
 import type * as functions_assistant_turnBrief from "../functions/assistant/turnBrief.js";
 import type * as functions_auth_reviewAccount from "../functions/auth/reviewAccount.js";
 import type * as functions_cascade from "../functions/cascade.js";
+import type * as functions_cellars_addGroceryProduct from "../functions/cellars/addGroceryProduct.js";
 import type * as functions_cellars_addToCellar from "../functions/cellars/addToCellar.js";
 import type * as functions_cellars_addToGroceryList from "../functions/cellars/addToGroceryList.js";
 import type * as functions_cellars_consumeFromCellar from "../functions/cellars/consumeFromCellar.js";
@@ -71,6 +72,7 @@ import type * as functions_cellars_platesOnList from "../functions/cellars/plate
 import type * as functions_cellars_removeFromCellar from "../functions/cellars/removeFromCellar.js";
 import type * as functions_cellars_removeFromGroceryList from "../functions/cellars/removeFromGroceryList.js";
 import type * as functions_cellars_removeFromRecentlyUsed from "../functions/cellars/removeFromRecentlyUsed.js";
+import type * as functions_cellars_removeGroceryProduct from "../functions/cellars/removeGroceryProduct.js";
 import type * as functions_config_setVersions from "../functions/config/setVersions.js";
 import type * as functions_health_weekSummary from "../functions/health/weekSummary.js";
 import type * as functions_households_createHousehold from "../functions/households/createHousehold.js";
@@ -244,14 +246,17 @@ import type * as router_assistant_classify from "../router/assistant/classify.js
 import type * as router_assistant_listMessages from "../router/assistant/listMessages.js";
 import type * as router_assistant_sendMessage from "../router/assistant/sendMessage.js";
 import type * as router_auth_getReviewAccount from "../router/auth/getReviewAccount.js";
+import type * as router_cellars_addGroceryProduct from "../router/cellars/addGroceryProduct.js";
 import type * as router_cellars_addToCellar from "../router/cellars/addToCellar.js";
 import type * as router_cellars_addToGroceryList from "../router/cellars/addToGroceryList.js";
 import type * as router_cellars_getCellar from "../router/cellars/getCellar.js";
 import type * as router_cellars_getGroceryList from "../router/cellars/getGroceryList.js";
+import type * as router_cellars_getGroceryProducts from "../router/cellars/getGroceryProducts.js";
 import type * as router_cellars_getPlatesOnList from "../router/cellars/getPlatesOnList.js";
 import type * as router_cellars_getRecentlyUsed from "../router/cellars/getRecentlyUsed.js";
 import type * as router_cellars_removeFromCellar from "../router/cellars/removeFromCellar.js";
 import type * as router_cellars_removeFromGroceryList from "../router/cellars/removeFromGroceryList.js";
+import type * as router_cellars_removeGroceryProduct from "../router/cellars/removeGroceryProduct.js";
 import type * as router_config_setVersions from "../router/config/setVersions.js";
 import type * as router_health_getWeekSummary from "../router/health/getWeekSummary.js";
 import type * as router_households_create from "../router/households/create.js";
@@ -407,6 +412,7 @@ declare const fullApi: ApiFromModules<{
   "functions/assistant/turnBrief": typeof functions_assistant_turnBrief;
   "functions/auth/reviewAccount": typeof functions_auth_reviewAccount;
   "functions/cascade": typeof functions_cascade;
+  "functions/cellars/addGroceryProduct": typeof functions_cellars_addGroceryProduct;
   "functions/cellars/addToCellar": typeof functions_cellars_addToCellar;
   "functions/cellars/addToGroceryList": typeof functions_cellars_addToGroceryList;
   "functions/cellars/consumeFromCellar": typeof functions_cellars_consumeFromCellar;
@@ -414,6 +420,7 @@ declare const fullApi: ApiFromModules<{
   "functions/cellars/removeFromCellar": typeof functions_cellars_removeFromCellar;
   "functions/cellars/removeFromGroceryList": typeof functions_cellars_removeFromGroceryList;
   "functions/cellars/removeFromRecentlyUsed": typeof functions_cellars_removeFromRecentlyUsed;
+  "functions/cellars/removeGroceryProduct": typeof functions_cellars_removeGroceryProduct;
   "functions/config/setVersions": typeof functions_config_setVersions;
   "functions/health/weekSummary": typeof functions_health_weekSummary;
   "functions/households/createHousehold": typeof functions_households_createHousehold;
@@ -587,14 +594,17 @@ declare const fullApi: ApiFromModules<{
   "router/assistant/listMessages": typeof router_assistant_listMessages;
   "router/assistant/sendMessage": typeof router_assistant_sendMessage;
   "router/auth/getReviewAccount": typeof router_auth_getReviewAccount;
+  "router/cellars/addGroceryProduct": typeof router_cellars_addGroceryProduct;
   "router/cellars/addToCellar": typeof router_cellars_addToCellar;
   "router/cellars/addToGroceryList": typeof router_cellars_addToGroceryList;
   "router/cellars/getCellar": typeof router_cellars_getCellar;
   "router/cellars/getGroceryList": typeof router_cellars_getGroceryList;
+  "router/cellars/getGroceryProducts": typeof router_cellars_getGroceryProducts;
   "router/cellars/getPlatesOnList": typeof router_cellars_getPlatesOnList;
   "router/cellars/getRecentlyUsed": typeof router_cellars_getRecentlyUsed;
   "router/cellars/removeFromCellar": typeof router_cellars_removeFromCellar;
   "router/cellars/removeFromGroceryList": typeof router_cellars_removeFromGroceryList;
+  "router/cellars/removeGroceryProduct": typeof router_cellars_removeGroceryProduct;
   "router/config/setVersions": typeof router_config_setVersions;
   "router/health/getWeekSummary": typeof router_health_getWeekSummary;
   "router/households/create": typeof router_households_create;

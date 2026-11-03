@@ -11,10 +11,13 @@ import { CONFIDENCE_FLOOR, classifyIntent, readIntentAnswer } from "../classifyI
  * the navigation bar.
  */
 
-const answer = (choice: "ingredient" | "recipe" | "request", confidence: number) => ({
+const answer = (
+  choice: "ingredient" | "recipe" | "household_product" | "request" | "not_shopping",
+  confidence: number,
+) => ({
   type: "choice" as const,
   choice,
-  probabilities: { ingredient: 0, recipe: 0, request: 0, [choice]: confidence },
+  probabilities: { ingredient: 0, recipe: 0, household_product: 0, request: 0, not_shopping: 0, [choice]: confidence },
   confidence,
 });
 
@@ -35,6 +38,19 @@ describe("readIntentAnswer", () => {
   /** `reason: "model"` and not `"sentence"`: a route that reads wrong has to name the rule that chose it. */
   test("a request becomes a chat that says the model chose it", () => {
     expect(readIntentAnswer(answer("request", 0.99))).toEqual({ kind: "chat", reason: "model" });
+  });
+
+  test("a household product becomes a product", () => {
+    expect(readIntentAnswer(answer("household_product", 0.99))).toEqual({ kind: "product" });
+  });
+
+  /** A car is no product, and no ingredient either. */
+  test("not shopping is no opinion", () => {
+    expect(readIntentAnswer(answer("not_shopping", 0.99))).toEqual({ kind: "unknown" });
+  });
+
+  test("below the floor a household product is no opinion", () => {
+    expect(readIntentAnswer(answer("household_product", CONFIDENCE_FLOOR - 0.01))).toEqual({ kind: "unknown" });
   });
 
   test("below the floor there is no opinion, whatever was picked", () => {

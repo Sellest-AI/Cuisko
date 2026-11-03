@@ -83,7 +83,7 @@ export { UNDO_WINDOW_MS };
  * Rows stop reordering by recency this long after their last touch, and go alphabetical.
  *
  * Exported because a threshold nothing wakes up for is a threshold that is never crossed: the
- * clock `_compare` reads is state, and `useLiveWindow` has to be told to advance it at this
+ * clock `compareRows` reads is state, and `useLiveWindow` has to be told to advance it at this
  * distance from each touch. The two would otherwise agree only by coincidence.
  */
 export const ALPHABETICAL_ORDERING_DELAY_MS = 60 * 1000;
@@ -280,7 +280,7 @@ const _total = (lines: GroceryLine[]) => lines.reduce((sum, line) => sum + line.
  * The fallback is a floor for the empty case only, never a starting value — seeding the reduce
  * with it made `snapshot.now` the answer every time, since nothing here is ever touched in the
  * future. Every row then reported the same `touchedAt`, which silently retired the recency sort
- * in `_compare`: every age was zero, so both of its branches were no-ops and rows came out in
+ * in `compareRows`: every age was zero, so both of its branches were no-ops and rows came out in
  * whatever order `_stockKeys` happened to build them.
  */
 const _newest = (dates: Date[], fallback: Date) =>
@@ -472,6 +472,8 @@ export type StockRow = {
   expiresSoon: boolean;
 };
 
+type Orderable = { name: string; updatedAt: Date };
+
 /**
  * Recency first, then alphabetical.
  *
@@ -479,12 +481,14 @@ export type StockRow = {
  * a row only rides the recency sort while it is fresh; after that it settles into its name and
  * stays put. The newest touch sorts first — a smaller age is a more recent touch — so a row just
  * added or bumped rises to the top of its section instead of settling wherever the key walk left it.
+ *
+ * Narrowed to the two fields it reads, so a product orders exactly as a food does.
  */
-const _compare = (a: StockRow, b: StockRow, now: Date) => {
-  const ageOf = (row: StockRow) => now.getTime() - row.updatedAt.getTime();
+export const compareRows = (a: Orderable, b: Orderable, now: Date) => {
+  const ageOf = (row: Orderable) => now.getTime() - row.updatedAt.getTime();
   const [aAge, bAge] = [ageOf(a), ageOf(b)];
 
-  if (aAge > ALPHABETICAL_ORDERING_DELAY_MS && bAge > ALPHABETICAL_ORDERING_DELAY_MS) {
+  if (aAge >= ALPHABETICAL_ORDERING_DELAY_MS && bAge >= ALPHABETICAL_ORDERING_DELAY_MS) {
     return a.name.localeCompare(b.name);
   }
 
@@ -597,6 +601,10 @@ const SECTION_FOR: Record<PendingIntent, Section> = {
   relist: "to-buy",
 };
 
+/** The ghosts waiting under one section. */
+export const ghostsFor = (section: Section, pending: PendingIngredient[]) =>
+  pending.filter((ghost) => SECTION_FOR[ghost.intent] === section);
+
 /**
  * One section's rows, ghosts folded in.
  *
@@ -618,9 +626,7 @@ export const rowsOf = (
 ): GroceryRow[] => {
   const stock = sections[section].map((row): GroceryRow => ({ kind: "stock", stock: row }));
 
-  const ghosts = pending
-    .filter((ghost) => SECTION_FOR[ghost.intent] === section)
-    .map((ghost): GroceryRow => ({ kind: "ghost", ghost }));
+  const ghosts = ghostsFor(section, pending).map((ghost): GroceryRow => ({ kind: "ghost", ghost }));
 
   return [...ghosts, ...stock];
 };
@@ -689,7 +695,7 @@ export function buildSections(snapshot: Snapshot): Sections {
   });
 
   const section = (name: Section) =>
-    rows.filter((row) => row.section === name).sort((a, b) => _compare(a, b, snapshot.now));
+    rows.filter((row) => row.section === name).sort((a, b) => compareRows(a, b, snapshot.now));
 
   return {
     "to-buy": section("to-buy"),

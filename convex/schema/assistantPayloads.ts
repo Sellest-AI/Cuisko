@@ -32,6 +32,7 @@ export const vIntent = v.union(
   }),
   v.object({ kind: v.literal("ingredient") }),
   v.object({ kind: v.literal("recipe") }),
+  v.object({ kind: v.literal("product") }),
   v.object({ kind: v.literal("unknown") }),
 );
 

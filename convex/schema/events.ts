@@ -99,6 +99,13 @@ export type EventProperties = Flat<{
    * `addToGroceryList` deliberately merges. The removal counts themselves are exact.
    */
   "grocery item removed": ReportedIngredient & { lines: number };
+  /**
+   * A non-food product typed into the bar (`cellars/addGroceryProduct`). The name stays out: what a
+   * shopper typed is not sent to PostHog.
+   */
+  "grocery product added": { groceryProductId: Id<"groceryProducts">; merged: boolean };
+  /** A tap taking a product off the list (`cellars/removeGroceryProduct`). Already gone reports nothing. */
+  "grocery product removed": { groceryProductId: Id<"groceryProducts"> };
   /** A purchase on the shelf, struck off the list or not (`cellars/addToCellar`). An undo is not one. */
   "food added to cellar": ReportedIngredient & { cellarItemId: Id<"cellarItems">; struckLines: number };
   /**

@@ -1,9 +1,11 @@
 import { useAtomValue } from "jotai";
 import { useCallback, useMemo } from "react";
 
-import { buildSections, type StockRow } from "../_model/model";
+import { ALPHABETICAL_ORDERING_DELAY_MS, buildSections, type StockRow } from "../_model/model";
 import { groupToBuy, recipeFor, type ToBuyHeading } from "../_model/sort";
 import { sortAtom } from "./atoms";
+import { useGroceryProducts } from "./useGroceryProducts";
+import { useLiveWindow } from "./useLiveWindow";
 import { useSnapshot } from "./useSnapshot";
 import { useStockActions } from "./useStockActions";
 
@@ -24,9 +26,21 @@ import { useStockActions } from "./useStockActions";
  *
  * `recipeFor` is the recipe a to-buy card is on the list for, given the heading it sits under
  * (`null` in the plain list) — what a long press on the card opens.
+ *
+ * `products` travel beside `toBuy` rather than inside it: a product is no `StockRow`, and the model's
+ * sections never see one, so no food number can move because of it. `now` is the later of the
+ * food's clock and the products', which is always the most recent wake, so neither kind sorts
+ * against a stale time. The second clock lives here, since `useSnapshot`'s wakes on food deadlines
+ * only, and Home's count reads products without ever sorting them.
  */
 export const useGroceryList = () => {
   const snapshot = useSnapshot();
+  const { products, isLoading: isLoadingProducts } = useGroceryProducts();
+  const productDeadlines = useMemo(
+    () => products.map((product) => product.updatedAt.getTime() + ALPHABETICAL_ORDERING_DELAY_MS),
+    [products],
+  );
+  const productsNow = useLiveWindow(productDeadlines);
   const sort = useAtomValue(sortAtom);
   const { apply, error } = useStockActions();
 
@@ -47,6 +61,8 @@ export const useGroceryList = () => {
   return {
     sections,
     toBuy,
+    products,
+    now: snapshot.now > productsNow ? snapshot.now : productsNow,
     submit,
     recipeFor: recipeOf,
     error,
@@ -57,8 +73,10 @@ export const useGroceryList = () => {
      * Read off the raw rows rather than off `sections`, because `buildSections` drops a row it
      * cannot name yet: on the first load the names arrive after the rows, and a check on the drawn
      * sections would tell a shopper with a full list that it is empty for that round trip. False
-     * while loading, for the same reason.
+     * while loading, for the same reason, and that goes for the products too: a household holding
+     * nothing else would otherwise be told to plan its week for a round trip.
      */
-    isEmpty: !snapshot.isLoading && snapshot.lines.length === 0 && snapshot.cellar.length === 0,
+    isEmpty: !snapshot.isLoading && !isLoadingProducts
+      && snapshot.lines.length === 0 && snapshot.cellar.length === 0 && products.length === 0,
   };
 };
