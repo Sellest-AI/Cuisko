@@ -379,7 +379,7 @@ result as if it had returned.
 
 - `pnpm verify` is green.
 - **Only when you are asked to commit**: The architecture review above ran and reported clean, or the user approved the exceptions.
-- Every new non-`anon` Convex export has a test asserting the wrong caller is rejected.
+- Every new non-`anon`, non-`_internal` Convex export has a test asserting the wrong caller is rejected (C5).
 - Every new `_model/` file has a test in its `__tests__/`, every test file sits in a `__tests__/`, none sits where nothing runs it, and every `convex-test` file calling through `api.` / `internal.` warms its module in a `beforeAll` (C10).
 - Every bug or edge case the user reported has its test, and no existing assertion changed without the user's approval (see Tests).
 - Any `docs/` page the change invalidated has been updated.
