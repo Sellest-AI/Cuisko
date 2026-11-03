@@ -1,5 +1,6 @@
 "use node";
 import { generateRecipeFromVideo } from "@convex/functions/recipes/generateRecipeFromVideo";
+import { readVideoPost, type VideoPost } from "@convex/functions/recipes/readVideoPost";
 import { fetchSocialVideo } from "@convex/lib/socialVideo/fetchSocialVideo";
 import { resolveShortLink } from "@convex/lib/socialVideo/resolveShortLink";
 import { socialVideoSourceOf } from "@convex/lib/socialVideo/sources";
@@ -34,6 +35,24 @@ export const _internal = internalAction({
     const { caption, videoUrl, videoHeaders } = await fetchSocialVideo(source);
 
     return await generateRecipeFromVideo({ ...ctx, userId }, { locale, caption, videoUrl, videoHeaders });
+  },
+});
+
+/**
+ * A post's caption and what is said in its video, for a verifier that cannot watch it
+ * (`tools/verifyRecipe.ts`). No test of its own, like `importOneNode`: the work is `readVideoPost`'s
+ * and is tested there, and what is left here is the wiring.
+ *
+ * @costly
+ */
+export const _internal_readPost = internalAction({
+  args: { url: v.string() },
+  returns: v.object({ caption: v.string(), transcript: v.string() }),
+  handler: async (ctx, { url }): Promise<VideoPost> => {
+    const source = socialVideoSourceOf(url);
+    if (!source) throw new ConvexError({ code: "INVALID_INPUT" as const, message: "Not a video link we can read" });
+
+    return await readVideoPost(ctx, { source });
   },
 });
 

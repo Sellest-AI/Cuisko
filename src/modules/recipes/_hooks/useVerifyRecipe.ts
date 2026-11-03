@@ -9,8 +9,8 @@ import { useAuth } from "~/modules/auth/hooks";
 import { verificationsAtom, type Verification } from "./atoms";
 
 /**
- * An admin's "Verify the recipe": the recipe checked against the page it was imported from, and
- * rewritten by the server when it was wrong.
+ * An admin's "Verify the recipe": the recipe checked against the page or video it was imported from,
+ * and rewritten by the server when it was wrong.
  *
  * `canVerify` is a convenience, not the gate — `verifyOne.admin` refuses anyone who is not an admin
  * whatever this says. It exists so a cook never sees a button that could only fail for them.

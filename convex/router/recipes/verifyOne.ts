@@ -19,8 +19,8 @@ const vOutcome = v.union(
 type Outcome = typeof vOutcome.type;
 
 /**
- * An admin's "Verify the recipe": the stored recipe checked by the verifier against its page, which
- * the tool scrapes again, and the row rewritten through the edit's own persist when it was wrong.
+ * An admin's "Verify the recipe": the stored recipe checked by the verifier against its page or
+ * video post, which the tool reads again, and the row rewritten through the edit's own persist when it was wrong.
  *
  * Either verdict ends the recipe `reviewed` (see `recipes.status`): a rewrite through that persist,
  * an acceptance through `_internal_accept`, which writes the status alone. Both are refused when a
@@ -32,7 +32,7 @@ type Outcome = typeof vOutcome.type;
  * server code — any internal caller can rewrite any recipe through it.
  *
  * Rate limited like a cook's edit (`recipeWrite`), whose work it repeats — a model call and a
- * resolve of every line — plus a scrape. ADR 0018 does not exempt admins: they get
+ * resolve of every line — plus a scrape, or a download and a transcription. ADR 0018 does not exempt admins: they get
  * `ADMIN_MULTIPLIER` times the allowance, so a leaked admin session still has a ceiling.
  *
  * @limitation `admin` checks in the app's language, like `updateOne`, not in the recipe's own. A
@@ -43,7 +43,7 @@ type Outcome = typeof vOutcome.type;
 const _load = async (ctx: TracedActionCtx, { recipeId, locale }: Args): Promise<RecipeDetail & { sourceUrl: string }> => {
   const stored = await ctx.runQuery(internal.router.recipes.getOne._internal, { id: recipeId, locale });
   if (!stored.sourceUrl)
-    throw new ConvexError({ code: "INVALID_INPUT" as const, message: "This recipe was not imported from a page" });
+    throw new ConvexError({ code: "INVALID_INPUT" as const, message: "This recipe was not imported from a page or a video" });
 
   return { ...stored, sourceUrl: stored.sourceUrl };
 };
@@ -89,7 +89,7 @@ export const admin = adminActionI18n({
   handler: async (ctx, { recipeId }): Promise<Outcome> => {
     const args = { recipeId, locale: ctx.i18n.locale };
     const stored = await _load(ctx, args);
-    // After the refusal that costs nothing, before the tool's scrape and model, which cost something.
+    // After the refusal that costs nothing, before the tool's reading and model, which cost something.
     await enforceRateLimit(ctx, "recipeWrite");
     return _verify(ctx, args, stored);
   },

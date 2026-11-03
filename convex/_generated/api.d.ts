@@ -168,6 +168,7 @@ import type * as functions_recipes_markRecipeReviewed from "../functions/recipes
 import type * as functions_recipes_mergeDuplicateLinks from "../functions/recipes/mergeDuplicateLinks.js";
 import type * as functions_recipes_missingRecipeIds from "../functions/recipes/missingRecipeIds.js";
 import type * as functions_recipes_persistRestoredRecipe from "../functions/recipes/persistRestoredRecipe.js";
+import type * as functions_recipes_readVideoPost from "../functions/recipes/readVideoPost.js";
 import type * as functions_recipes_recipeCard from "../functions/recipes/recipeCard.js";
 import type * as functions_recipes_recipeChangesOf from "../functions/recipes/recipeChangesOf.js";
 import type * as functions_recipes_recipeContent from "../functions/recipes/recipeContent.js";
@@ -510,6 +511,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/mergeDuplicateLinks": typeof functions_recipes_mergeDuplicateLinks;
   "functions/recipes/missingRecipeIds": typeof functions_recipes_missingRecipeIds;
   "functions/recipes/persistRestoredRecipe": typeof functions_recipes_persistRestoredRecipe;
+  "functions/recipes/readVideoPost": typeof functions_recipes_readVideoPost;
   "functions/recipes/recipeCard": typeof functions_recipes_recipeCard;
   "functions/recipes/recipeChangesOf": typeof functions_recipes_recipeChangesOf;
   "functions/recipes/recipeContent": typeof functions_recipes_recipeContent;

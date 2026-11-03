@@ -101,7 +101,8 @@ export type FetchedVideo = { base64: string; mediaType: string; part: VideoPart 
  * cost +490 MB for a 13 MB video and crashed the action at Node's 512 MB. As a string it costs
  * about +35 MB.
  *
- * Exported for `extractVideoRecipe.manual.test.ts`, so the run you pay for sends what the tool sends.
+ * Exported for `readVideoPost`, and for `extractVideoRecipe.manual.test.ts`, so the run you pay for
+ * sends what the tool sends.
  */
 export const fetchVideo = async ({
   videoUrl,

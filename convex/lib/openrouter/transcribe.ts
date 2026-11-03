@@ -12,7 +12,7 @@ const ENDPOINT = "https://openrouter.ai/api/v1/audio/transcriptions";
  */
 const DEFAULT_MODEL = "openai/whisper-large-v3-turbo";
 
-/** A minute-long reel took 9 s. Past a minute, the import is better off without the transcript. */
+/** A minute-long reel took 9 s. Past a minute, the import is better off without the transcript, and a verify (`readVideoPost`) refuses. */
 const TIMEOUT_MS = 60_000;
 
 /**

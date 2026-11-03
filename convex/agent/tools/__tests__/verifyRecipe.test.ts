@@ -1,4 +1,5 @@
 import { NoOutputGeneratedError } from "ai";
+import { type FunctionReference, getFunctionName } from "convex/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { searchTerms } from "@shared/ingredientMatch";
@@ -6,7 +7,15 @@ import { searchTerms } from "@shared/ingredientMatch";
 import { verifierAgent } from "../../agents";
 import { type TracedToolCtx, wrapAgent } from "../../utils";
 import { modelRecipeSchema } from "../sanitizeRecipe";
-import { pageIngredientQueries, toRecipeVerification, verifyRecipe, verifyRecipeUserPrompt } from "../verifyRecipe";
+import { verifyRecipePrompt, verifyVideoRecipePrompt } from "../../config/prompts/verifyRecipe";
+import { searchIngredients } from "../searchIngredients";
+import {
+  pageIngredientQueries,
+  toRecipeVerification,
+  verifyRecipe,
+  verifyRecipeUserPrompt,
+  verifyVideoRecipeUserPrompt,
+} from "../verifyRecipe";
 
 /** The model call and the catalog index leave the process; what is tested is what the tool does with their answers. */
 vi.mock("../../utils", async (importOriginal) => ({ ...(await importOriginal<object>()), wrapAgent: vi.fn() }));
@@ -118,6 +127,41 @@ describe("verifyRecipeUserPrompt", () => {
   });
 });
 
+describe("verifyVideoRecipeUserPrompt", () => {
+  const stored = modelRecipeSchema.parse(_recipe());
+
+  it("shows the caption and what is said", () => {
+    const prompt = verifyVideoRecipeUserPrompt({ stored, post: { caption: "400 g de gnocchis", transcript: "Douze minutes à la poêle." } });
+
+    expect(prompt).toContain("400 g de gnocchis");
+    expect(prompt).toContain("Douze minutes à la poêle.");
+  });
+});
+
+describe("what the verifier is told about a stored name", () => {
+  /** "Spelling is never a fault", alone, reads as "a stored name is never wrong", and a line linked to another product stays. */
+  it.each([
+    ["a page", verifyRecipePrompt],
+    ["a video", verifyVideoRecipePrompt],
+  ])("says the row itself can be wrong, on %s", (_source, prompt) => {
+    expect(prompt("en")).toMatch(/linked to the wrong row/);
+  });
+});
+
+describe("verifyVideoRecipePrompt", () => {
+  /** Nothing is searched before a video's model call, so a sentence kept from the page prompt points at nothing. */
+  it.each(["fr", "en"] as const)("points at no pre-searched list and no page, in %s", (locale) => {
+    const prompt = verifyVideoRecipePrompt(locale);
+
+    expect(prompt).not.toMatch(/\bpage\b/i);
+    expect(prompt).not.toMatch(/listed rows|rows listed|already been searched/i);
+  });
+
+  it("holds a rewrite to never mentioning the video, as the import is", () => {
+    expect(verifyVideoRecipePrompt("en")).toContain("# The recipe never mentions the video");
+  });
+});
+
 describe("verifyRecipe", () => {
   const PAGE = { title: "Poulet frit", description: "", servings: 4, ingredients: "600 g de blancs de poulet", instructions: "Faites frire le poulet" };
   const _ctx = () => ({ runTracedAction: vi.fn(async () => PAGE) }) as unknown as TracedToolCtx;
@@ -147,6 +191,50 @@ describe("verifyRecipe", () => {
 
     await expect(verifyRecipe.run!(_ctx(), _input())).resolves.toEqual({ corrections: [], recipe: null });
     expect(generateText).toHaveBeenCalledTimes(2);
+  });
+
+  describe("the source its address names", () => {
+    const REEL = "https://www.instagram.com/reel/abc/";
+    const POST = { caption: "400 g de gnocchis", transcript: "Douze minutes à la poêle." };
+    const _ctxOf = (answer: unknown) => ({
+      runTracedAction: vi.fn<(action: FunctionReference<"action", "internal">, args: unknown) => Promise<unknown>>(async () => answer),
+    });
+    const _run = (ctx: ReturnType<typeof _ctxOf>, url: string) =>
+      verifyRecipe.run!(ctx as unknown as TracedToolCtx, { ..._input(), url });
+    /** By name: Vitest reads any two function references as equal, so `toHaveBeenCalledWith` proves nothing about which. */
+    const _called = (ctx: ReturnType<typeof _ctxOf>) => {
+      const [action, args] = ctx.runTracedAction.mock.calls[0]!;
+
+      return [getFunctionName(action), args];
+    };
+
+    beforeEach(() => {
+      vi.mocked(searchIngredients).mockClear();
+    });
+
+    it("reads a video's post rather than scraping it, and searches nothing before the model", async () => {
+      const generateText = _replies(NOTHING_TO_FIX);
+      const ctx = _ctxOf(POST);
+
+      await _run(ctx, REEL);
+
+      expect(ctx.runTracedAction).toHaveBeenCalledTimes(1);
+      expect(_called(ctx)).toEqual(["router/recipes/importVideoNode:_internal_readPost", { url: REEL }]);
+      expect(searchIngredients).not.toHaveBeenCalled();
+      expect(generateText.mock.calls[0]![2]).toMatchObject({ system: verifyVideoRecipePrompt("fr") });
+      expect(generateText.mock.calls[0]![2].prompt).toContain(POST.transcript);
+    });
+
+    it("scrapes a page, searches its lines, and answers from the page prompt", async () => {
+      const generateText = _replies(NOTHING_TO_FIX);
+      const ctx = _ctxOf(PAGE);
+
+      await _run(ctx, "https://example.com/poulet");
+
+      expect(_called(ctx)).toEqual(["router/recipes/importOneNode:_internal", { url: "https://example.com/poulet" }]);
+      expect(searchIngredients).toHaveBeenCalledTimes(1);
+      expect(generateText.mock.calls[0]![2]).toMatchObject({ system: verifyRecipePrompt("fr") });
+    });
   });
 
   it("asks again when the reply lists corrections but no recipe", async () => {

@@ -159,7 +159,7 @@ describe("router/recipes/verifyOne", () => {
     expect(verifyRun).not.toHaveBeenCalled();
   });
 
-  test("refuses a recipe that was not imported from a page", async () => {
+  test("refuses a recipe that was not imported from a page or a video", async () => {
     const adminId = await seedUser("Admin", "ADMIN");
     const recipeId = await seedRecipe();
 
@@ -335,7 +335,7 @@ describe("router/recipes/verifyOne._internal", () => {
   const verifyInternal = (recipeId: Id<"recipes">, locale: "fr" | "en" = "fr") =>
     t.action(internal.router.recipes.verifyOne._internal, { recipeId, locale });
 
-  test("refuses a recipe that was not imported from a page", async () => {
+  test("refuses a recipe that was not imported from a page or a video", async () => {
     const recipeId = await seedRecipe();
 
     await expect(verifyInternal(recipeId)).rejects.toMatchObject({ data: { code: "INVALID_INPUT" } });

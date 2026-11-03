@@ -11,7 +11,7 @@ import { toModelRecipe } from "./toModelRecipe";
 type Args = {
   /** The row as `getOne._internal` returns it — loaded by the caller, not here. */
   stored: RecipeDetail;
-  /** The page it was imported from, canonical — `recipes.sourceUrl`. The tool scrapes it again. */
+  /** The page or video post it was imported from, canonical — `recipes.sourceUrl`. The tool reads it again. */
   url: string;
   locale: Locale;
 };
@@ -32,7 +32,7 @@ export type Verification =
   };
 
 /**
- * A stored recipe checked against the page it came from, and the recipe to write when it was wrong.
+ * A stored recipe checked against the page or video it came from, and the recipe to write when it was wrong.
  *
  * Only a correction pays for a resolve. "Nothing to fix" returns before any ingredient is walked,
  * so a recipe that was imported well costs one model call, and its caller writes only its status.

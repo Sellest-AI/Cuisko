@@ -3,20 +3,22 @@ import { Output } from "ai";
 import * as z from "zod/v4";
 
 import { internal } from "@convex/_generated/api";
+import type { VideoPost } from "@convex/functions/recipes/readVideoPost";
 import type { RecipeDraft } from "@convex/lib/scraping/toRecipeDraft";
+import { socialVideoSourceOf } from "@convex/lib/socialVideo/sources";
 import { searchTerms } from "@shared/ingredientMatch";
 import { type Locale, SUPPORTED_LOCALES } from "@shared/translations";
 import { retryPromise } from "@shared/helpers";
 
 import { createTool, parseModelOutput, providerSchema, wrapAgent, type TracedToolCtx } from "../utils";
 import { verifierAgent } from "../agents";
-import { VERIFY_TOOLS, verifyRecipePrompt } from "../config/prompts/verifyRecipe";
+import { VERIFY_TOOLS, verifyRecipePrompt, verifyVideoRecipePrompt } from "../config/prompts/verifyRecipe";
 import { modelRecipeSchema, type SanitizedRecipe, toSanitizedRecipe } from "./sanitizeRecipe";
 import { type FoundIngredient, searchIngredients, searchIngredientsTool } from "./searchIngredients";
 
 /**
  * What the verifier found: the fixes, and the recipe they produce — or `null` when the stored one
- * already matches its page.
+ * already matches its source.
  *
  * `recipe` is `null` rather than the stored recipe sent back, because "nothing to fix" must not
  * cost a write: the caller reads `null` as "leave the row alone", and a recipe echoed back would be
@@ -69,8 +71,10 @@ export const toRecipeVerification = (raw: unknown): RecipeVerification => {
 export const verifyRecipeInputSchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES).describe("The language the app shows the recipe in, and the one to write it in."),
   stored: modelRecipeSchema.describe("The recipe as the app stored it."),
-  url: z.string().describe("The canonical address of the page the recipe was imported from."),
+  url: z.string().describe("The canonical address of the page or video post the recipe was imported from."),
 });
+
+type VerifyInput = z.infer<typeof verifyRecipeInputSchema>;
 
 /** The page as the scraper reads it — the editor draft `importOneNode` returns, minus the URL. */
 type ScrapedPage = Omit<RecipeDraft, "sourceUrl">;
@@ -117,14 +121,18 @@ const _catalogLine = ({ line, rows }: PageCatalog[number]) =>
     : "nothing found"}`;
 
 /**
+ * `stored` goes through `modelRecipeSchema.parse` on its way in, which strips what is not the
+ * model's to see — the row's `userId` rides along from `toModelRecipe`.
+ */
+const _storedSection = (stored: z.infer<typeof modelRecipeSchema>) =>
+  `The recipe as the app stored it:\n${JSON.stringify(modelRecipeSchema.parse(stored), null, 2)}`;
+
+/**
  * What the model is shown: the stored recipe first, because it is the thing being corrected, then
  * the page it is checked against, then the catalog rows the page's lines found.
  *
  * Takes the page already scraped and searched rather than the URL, so it stays pure: the bake-off
  * (`verifyRecipe.manual.test.ts`) scores this exact prompt against a fixed page, without a fetch.
- *
- * `stored` goes through `modelRecipeSchema.parse` on its way in, which strips what is not the
- * model's to see — the row's `userId` rides along from `toModelRecipe`.
  */
 export const verifyRecipeUserPrompt = ({ stored, source, catalog }: {
   stored: z.infer<typeof modelRecipeSchema>;
@@ -132,7 +140,7 @@ export const verifyRecipeUserPrompt = ({ stored, source, catalog }: {
   catalog: PageCatalog;
 }) =>
   [
-    `The recipe as the app stored it:\n${JSON.stringify(modelRecipeSchema.parse(stored), null, 2)}`,
+    _storedSection(stored),
     `The page it was imported from.`,
     `Title: ${source.title}`,
     source.description && `Description: ${source.description}`,
@@ -145,10 +153,40 @@ export const verifyRecipeUserPrompt = ({ stored, source, catalog }: {
     .join("\n\n");
 
 /**
- * A stored recipe checked against the page it came from, by a stronger pass than the one that
- * wrote it, and corrected where it got the page wrong.
+ * What the model is shown for a video: the stored recipe, then the post's words, both present
+ * (`readVideoPost` refuses a post missing either). Pure for the same reason as `verifyRecipeUserPrompt`.
+ */
+export const verifyVideoRecipeUserPrompt = ({ stored, post: { caption, transcript } }: {
+  stored: z.infer<typeof modelRecipeSchema>;
+  post: VideoPost;
+}) =>
+  [
+    _storedSection(stored),
+    `The words of the video it was imported from.`,
+    `The creator's caption, as posted:\n${caption}`,
+    `What is said in the video, transcribed by machine:\n${transcript}`,
+  ].join("\n\n");
+
+/** What the model is shown for a page: scraped, and its lines searched in the catalog. */
+const _pageTurn = async (ctx: TracedToolCtx, { locale, stored, url }: VerifyInput) => {
+  const source = await ctx.runTracedAction(internal.router.recipes.importOneNode._internal, { url });
+  const catalog = await _searchPage(ctx, { locale, ingredients: source.ingredients });
+
+  return { system: verifyRecipePrompt(locale), prompt: verifyRecipeUserPrompt({ stored, source, catalog }) };
+};
+
+/** What the model is shown for a video: its words, with nothing searched. */
+const _videoTurn = async (ctx: TracedToolCtx, { locale, stored, url }: VerifyInput) => {
+  const post = await ctx.runTracedAction(internal.router.recipes.importVideoNode._internal_readPost, { url });
+
+  return { system: verifyVideoRecipePrompt(locale), prompt: verifyVideoRecipeUserPrompt({ stored, post }) };
+};
+
+/**
+ * A stored recipe checked against what it was imported from, by a stronger pass than the one that
+ * wrote it, and corrected where it got that source wrong.
  *
- * The page is scraped here, from the URL, through `importOneNode._internal`: the scraper needs Node
+ * The address decides the source. A page is scraped here, from the URL, through `importOneNode._internal`: the scraper needs Node
  * and this tool runs in the Convex runtime, so it is reached as an action rather than imported.
  * A page that cannot be read throws its own `UNREADABLE_PAGE` before any token is spent.
  *
@@ -166,17 +204,33 @@ export const verifyRecipeUserPrompt = ({ stored, source, catalog }: {
  * language its names are written in and the catalog index each locale is searched by. Not the
  * recipe's original language: see `verifyOne`'s @limitation.
  *
+ * A video post is read through `importVideoNode._internal_readPost`, down to its caption and a
+ * transcript, because this model cannot watch a video. Nothing is searched before the model: a
+ * caption is free text rather than ingredient lines, and only a rewrite needs a name. It costs a
+ * rewrite one step the page path saves.
+ *
+ * @limitation A video verify vouches for what the words can show. A hashtags-only caption over a
+ *   music reel whose lyrics, or words the transcription invented, pass for speech finds nothing to fix
+ *   and ends `reviewed`; code can tell neither from a useful caption or from a cook talking.
+ *
+ * @limitation A caption's amount corrects the stored one when the transcript is silent, though the
+ *   first pass may have read another number on screen, which the verifier cannot see.
+ *
+ * @limitation A food the verifier adds from the transcript alone keeps the spoken amount, though the
+ *   transcription can mishear it: there is no stored amount to keep instead, and the admin reads the
+ *   correction.
+ *
  * Nothing is written down, for the reason `sanitizeRecipe` gives: this is a transformation, not a
  * conversation.
  */
 export const verifyRecipe = createTool({
   description:
-    "Scrape the page a stored recipe was imported from, check the recipe against it, and return " +
-    "the corrected recipe with the list of corrections — or no recipe when nothing was wrong.",
+    "Read the page or video post a stored recipe was imported from, check the recipe against it, and " +
+    "return the corrected recipe with the list of corrections — or no recipe when nothing was wrong.",
   inputSchema: verifyRecipeInputSchema,
-  execute: async (ctx: TracedToolCtx, { locale, stored, url }): Promise<RecipeVerification> => {
-    const source = await ctx.runTracedAction(internal.router.recipes.importOneNode._internal, { url });
-    const catalog = await _searchPage(ctx, { locale, ingredients: source.ingredients });
+  execute: async (ctx: TracedToolCtx, input): Promise<RecipeVerification> => {
+    const { locale, url } = input;
+    const { system, prompt } = await (socialVideoSourceOf(url) ? _videoTurn : _pageTurn)(ctx, input);
 
     // The answer is read INSIDE the attempt. A reply cut at the agent's `maxOutputTokens` does not
     // reject: `generateText` resolves, and only `result.output` throws. Read after the retry, that
@@ -186,8 +240,8 @@ export const verifyRecipe = createTool({
         ctx,
         {},
         {
-          system: verifyRecipePrompt(locale),
-          prompt: verifyRecipeUserPrompt({ stored, source, catalog }),
+          system,
+          prompt,
           tools: { [VERIFY_TOOLS.searchIngredients]: searchIngredientsTool({ locale }) },
           output: Output.object({ schema: providerSchema(verificationSchema) }),
           // 2, not the 3 the other tools use: with the 2 attempts below, at most 6 calls of a model

@@ -51,7 +51,7 @@ export const _internal = internalQuery({
     return {
       ...loadedRecipe,
       userId: recipe.userId,
-      /** The page an admin's verify scrapes again (`verifyOne`). Internal like `userId`, never shipped. */
+      /** The page or post an admin's verify reads again (`verifyOne`). Internal like `userId`, never shipped. */
       sourceUrl: recipe.sourceUrl,
     };
   },
