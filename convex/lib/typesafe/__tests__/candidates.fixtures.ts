@@ -11,7 +11,7 @@ import { MODEL } from "../ask";
 export const CANDIDATES: readonly string[] = [
   MODEL,
   // "typesafe/jev-1.13",
-  "baseten/mammoth-1:free",
+  // "baseten/mammoth-1:free",
   // "liquid/d1-ultra",
   // "respan/span-02",
 ];
