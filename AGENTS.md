@@ -43,6 +43,9 @@ than just glance at — a diff, a log, a test run — goes through it, not Bash.
 Prefer reading the code over the docs when they disagree. **The code is the source of truth** — if
 you find a doc that contradicts it, say so and offer to fix the doc.
 
+**`docs/` is documentation, not a log.** No release notes, changelogs, to-dos or status updates: those
+go in the closing message or the commit.
+
 **A change crossing two layers starts with a plan.** Copy `docs/plans/_template.md` and agree it
 before building: what it settles — file placement, call stack, what a hook returns — is the seam
 between whoever writes the backend and whoever wires the screen, and a seam discovered during wiring
@@ -258,6 +261,7 @@ nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never
 - No new `any` without a comment justifying it.
 - A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
 - Any `docs/` page this change just made wrong.
+- Any `docs/` page carrying release notes, a log or a to-do.
 
 **Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
 
