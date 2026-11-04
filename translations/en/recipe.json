@@ -86,8 +86,8 @@
     "delete_error": "The recipe could not be deleted. Try again."
   },
   "Import": {
-    "url_title": "Import from a web page",
-    "url_placeholder": "Paste a recipe link",
+    "url_title": "Import from a link",
+    "url_placeholder": "Paste a recipe or video link",
     "write_title": "Or write it yourself",
     "write": "Write a recipe",
     "invalid_title": "That does not look like a web address",

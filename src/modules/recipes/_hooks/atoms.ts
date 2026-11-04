@@ -57,7 +57,7 @@ export const servingsAtom = atom<{ id: string; servings: number } | undefined>(u
 export type ImportedRecipe = FunctionReturnType<typeof api.router.recipes.importVideo.authed>;
 
 /**
- * An import this app started (a shared reel, or a web page added from the chat): the link, when,
+ * An import this app started (a shared or pasted reel, or a web page added from the chat): the link, when,
  * how long it is announced to take, and the recipe it will end in.
  *
  * `lost` once the connection dropped under it (`isConnectionLost`): the server is still importing

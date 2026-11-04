@@ -87,8 +87,8 @@
     "delete_error": "La recette n'a pas pu être supprimée. Réessayez."
   },
   "Import": {
-    "url_title": "Importer depuis une page web",
-    "url_placeholder": "Collez le lien d'une recette",
+    "url_title": "Importer depuis un lien",
+    "url_placeholder": "Collez le lien d'une recette ou d'une vidéo",
     "write_title": "Ou saisissez-la vous-même",
     "write": "Saisir ma recette",
     "invalid_title": "Cela ne ressemble pas à une adresse web",

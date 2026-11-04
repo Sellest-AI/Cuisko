@@ -1,25 +1,15 @@
 import { router } from "expo-router";
-import { useStore } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
-import { useLocale } from "~/hooks/useLocale";
-import { api } from "~/lib/convex/api";
-import { useAction } from "~/lib/convex/client";
-
-import { VIDEO_IMPORT_MINUTES } from "../_model/importCountdown";
 import { importFailureOf, type ImportFailure } from "../_model/importFailure";
-import { importKeyOf, importPathOf, type ImportPath } from "../_model/importPath";
+import { importPathOf, type ImportPath } from "../_model/importPath";
 import { recipeRoute } from "../routes";
 
-import { startImport } from "./startImport";
 import { useImportRecipe } from "./useImportRecipe";
-import { useSetRecipeFavorite } from "./useSetRecipeFavorite";
+import { useImportVideo } from "./useImportVideo";
 
 type Status = "importing" | "failed";
-
-/** A reel's announced time, which a lost import also waits out before its card goes. */
-const VIDEO_IMPORT_MS = VIDEO_IMPORT_MINUTES * 60_000;
 
 /**
  * A link someone shared to Cuisko, imported the moment the share sheet opens.
@@ -48,11 +38,8 @@ const VIDEO_IMPORT_MS = VIDEO_IMPORT_MINUTES * 60_000;
  * There is no `done`: success leaves the sheet, so the state it would describe never renders.
  */
 export const useImportSharedLink = (url: string): { path: ImportPath; status: Status; failure?: ImportFailure } => {
-  const locale = useLocale();
-  const store = useStore();
-  const { action } = useAction(api.router.recipes.importVideo.authed);
   const web = useImportRecipe();
-  const favorite = useSetRecipeFavorite().set;
+  const importVideo = useImportVideo();
 
   const path = importPathOf(url);
   const [videoError, setVideoError] = useState<unknown>(null);
@@ -77,17 +64,7 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
     }
 
     // Join the import already running for this reel, or start it. A lost one waits out its minutes.
-    const pending = startImport(store, {
-      url,
-      key: importKeyOf(url),
-      expectedMs: VIDEO_IMPORT_MS,
-      lostMs: VIDEO_IMPORT_MS,
-      run: () => action({ url, locale }),
-      // `set` holds its own failure: an unfavorited recipe still opens, and the heart says so.
-      favorite: (recipeId) => favorite(recipeId, true),
-    });
-
-    pending.then(
+    importVideo(url).then(
       ({ recipeId }) => {
         if (isOpen.current) router.replace(recipeRoute(recipeId));
       },
@@ -95,7 +72,7 @@ export const useImportSharedLink = (url: string): { path: ImportPath; status: St
         if (isOpen.current) setVideoError(caught);
       },
     );
-  }, [action, favorite, locale, path, store, url, web]);
+  }, [importVideo, path, url, web]);
 
   const error = path === "video" ? videoError : web.error;
   const failure = importFailureOf(error, path);

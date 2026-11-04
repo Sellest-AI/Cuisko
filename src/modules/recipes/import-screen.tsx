@@ -10,7 +10,7 @@ import { Text } from "@ui/text";
 import { theme } from "~/global/theme";
 import { useTranslations } from "translations";
 
-import { useImportRecipe } from "./_hooks/useImportRecipe";
+import { useImportPastedLink } from "./_hooks/useImportPastedLink";
 import { importFailureOf } from "./_model/importFailure";
 
 type Props = {
@@ -25,14 +25,14 @@ type Props = {
  * does not work. Every failure below therefore still leaves "write a recipe" on screen: the import
  * is a shortcut past typing, and when the shortcut is closed the road it shortcuts is still open.
  *
- * It fetches nothing itself — `_hooks/useImportRecipe` owns the action, the draft it hands to the
- * editor, and the navigation on success.
+ * It fetches nothing itself — `_hooks/useImportPastedLink` picks the road: a page becomes a draft
+ * for the editor, a reel starts importing and the cook waits on its card in their recipes.
  */
 export const ImportScreen = ({ style, onLayout }: Props) => {
   const t = useTranslations("Recipe");
 
   const [url, setUrl] = useState<string>("");
-  const { importFrom, isImporting, error } = useImportRecipe();
+  const { importFrom, isImporting, error } = useImportPastedLink();
 
   const failure = importFailureOf(error);
 

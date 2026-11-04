@@ -22,8 +22,8 @@ type Options = {
 };
 
 /**
- * Joins the import already running for `key`, or starts it: the one way a shared reel and a web
- * page added from the chat are imported, so one link is never paid for twice at once.
+ * Joins the import already running for `key`, or starts it: the one way a shared or pasted reel and
+ * a web page added from the chat are imported, so one link is never paid for twice at once.
  *
  * **Read and written through the store, synchronously,** rather than through a rendered `useAtom`
  * value: two callers in the same moment would both read an empty map from their last render and
