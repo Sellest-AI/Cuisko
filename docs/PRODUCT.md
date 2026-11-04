@@ -351,6 +351,11 @@ and back into the cellar. Grouped by the beat it serves.
 - **Photos go with the question.** A photo taken in the navigation bar travels with the next
   message, so the cook can show Cuisko the fridge, a cupboard or a product instead of describing
   it. The photo is input to the assistant, nothing else: no feed, nowhere to post it.
+- **Other assistants can plan too.** A cook who already lives in Claude or another assistant can
+  connect it at `cuisko.app/connect` and ask from there: it searches the catalogue, reads a recipe
+  with its photo, and plans it on a meal of the week, adding what the kitchen lacks to the list. It
+  asks before replacing a plate. Nothing in the app advertises this, and a cook disconnects from
+  the same page.
 
 ### Household and account
 

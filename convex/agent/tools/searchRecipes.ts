@@ -41,7 +41,7 @@ import { createTool } from "../utils";
 const SEARCH_LIMIT = 5;
 
 /** How many names one call may search. With `SEARCH_LIMIT`, it caps what one call hands back. */
-const MAX_QUERIES = 5;
+export const MAX_QUERIES = 5;
 
 const _inputSchema = z.object({
   queries: z

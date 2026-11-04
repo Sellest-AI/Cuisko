@@ -23,6 +23,10 @@ export const RATE_LIMITS = {
   // Node action and a request to the platform each, ahead of `recipeVideoImport`. A burst for a cook
   // re-sharing, then a minute apart, so a loop can't.
   videoLinkResolve: { kind: "token bucket", rate: 60, period: HOUR, capacity: 10 },
+  // One tool call from an outside agent (`functions/mcp/runTool`): no model, but the component puts no
+  // limit on `/mcp`, so nothing else stops a looping one. A full week planned, reading three options a
+  // meal, is about 60 calls, hence the burst; then a minute apart, so a loop can't.
+  mcpCall: { kind: "token bucket", rate: 60, period: HOUR, capacity: 60 },
   // The photos a cook sends with a question: today the only thing uploaded, so it copies `assistant`.
   imageUpload: { kind: "token bucket", rate: 50, period: 6 * HOUR, capacity: 20 },
 } as const satisfies Record<string, RateLimitConfig>;

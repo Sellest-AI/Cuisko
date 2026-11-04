@@ -274,6 +274,14 @@ predecessor meant two places to look for an endpoint for no benefit.
 Two patterns worth keeping: **semantic model tiers** (call sites ask for `models.vision.smart`, never
 a model string, so swapping providers is a one-file change).
 
+### Agents outside the app
+
+`convex/mcp.ts` makes Cuisko a remote MCP server, so an assistant such as Claude can search the
+database and act on behalf of the cook who approved it at `/connect` on the showcase website. Every
+tool runs through `runTool` and acts as the cook behind its token. The rules are in
+[ADR 0020](./adr/0020-an-agent-acts-as-a-verified-cook.md), the addresses in
+[deployments](./external/deployments.md#the-connect-page).
+
 ---
 
 ## Frontend

@@ -9,6 +9,7 @@ import { api, components, internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import { REVIEW_ACCOUNT } from "../../../functions/auth/reviewAccount";
 import { loadUser } from "../../../functions/users/loadUser";
+import { registerMcp, warmMcp } from "../../../lib/__tests__/mcp.fixtures";
 import schema from "../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see getAccount.test.ts for why.
@@ -16,7 +17,8 @@ const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * Imports the modules under test before any test is timed — see getMe.test.ts. The agent component
- * is a second lazy glob and is warmed too: the purge deletes threads through it (see listMessages.test.ts).
+ * is a second lazy glob and is warmed too: the purge deletes threads through it (see listMessages.test.ts),
+ * and so is the MCP component, whose connections it revokes.
  */
 beforeAll(() =>
   Promise.all([
@@ -24,6 +26,7 @@ beforeAll(() =>
       .filter(([path]) => /^\/convex\/router\/users\/(purge|requestDeletion)\./.test(path))
       .map(([, load]) => load()),
     ...Object.values(agentTest.modules).map((load) => load()),
+    warmMcp(),
   ]),
 );
 
@@ -36,15 +39,33 @@ const accountEvents = () =>
 beforeEach(() => capture.mockReset());
 afterEach(() => vi.useRealTimers());
 
-/** The purge deletes conversations, which live in the agent component, so every deployment has it. */
+/** The purge reaches the agent and MCP components, for conversations and connections, so every deployment has both. */
 const newDeployment = () => {
   const t = convexTest(schema, modules);
   registerAgent(t);
+  registerMcp(t);
   return t;
 };
 type TestConvex = ReturnType<typeof newDeployment>;
 
 const DAY = 24 * 60 * 60 * 1000;
+
+/** `count` connections an assistant holds on this account, each with its token. */
+const connect = (t: TestConvex, userId: Id<"users">, count = 1) =>
+  t.run(async (ctx) => {
+    for (let index = 0; index < count; index++) {
+      await ctx.runMutation(components.mcp.grants.createApiKey, {
+        userId,
+        name: "Claude",
+        scopes: ["recipes:read"],
+        resource: "https://example.com/mcp",
+        hash: `${userId}-${index}`,
+      });
+    }
+  });
+
+const connectionsOf = (t: TestConvex, userId: Id<"users">) =>
+  t.run((ctx) => ctx.runQuery(components.mcp.grants.list, { userId }));
 
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
@@ -249,6 +270,16 @@ describe("router/users/purge", () => {
     expect((await extendedOf(t, cook.userId))?.deletedAt).toBeUndefined();
   });
 
+  test("leaves a cook's connections alone while the date is still ahead", async () => {
+    const t = newDeployment();
+    const { cook } = await seedFullCook(t, Date.now() + DAY);
+    await connect(t, cook.userId);
+
+    await purge(t, cook.userId);
+
+    expect(await connectionsOf(t, cook.userId)).toHaveLength(1);
+  });
+
   describe("analytics", () => {
     test("reports a due purge as deleted, anonymized", async () => {
       const t = newDeployment();
@@ -290,6 +321,19 @@ describe("router/users/purge", () => {
   });
 
   describe("once due", () => {
+    /** Past 200, which is as many as the component lists at once. */
+    test("revokes every connection they gave an assistant, and nobody else's", async () => {
+      const t = newDeployment();
+      const { cook, other } = await seedFullCook(t, Date.now() - 1);
+      await connect(t, cook.userId, 201);
+      await connect(t, other.userId);
+
+      await purge(t, cook.userId);
+
+      expect(await connectionsOf(t, cook.userId)).toEqual([]);
+      expect(await connectionsOf(t, other.userId)).toHaveLength(1);
+    });
+
     test("leaves a tombstone that names nobody and cannot act", async () => {
       const t = newDeployment();
       const { cook } = await seedFullCook(t, Date.now() - 1);
@@ -497,6 +541,18 @@ describe("router/users/purge", () => {
   });
 
   describe("force", () => {
+    test("revokes their connections too", async () => {
+      const t = newDeployment();
+      const { cook, other } = await seedFullCook(t);
+      await connect(t, cook.userId, 2);
+      await connect(t, other.userId);
+
+      await purge(t, cook.userId, true);
+
+      expect(await connectionsOf(t, cook.userId)).toEqual([]);
+      expect(await connectionsOf(t, other.userId)).toHaveLength(1);
+    });
+
     test("erases everything of theirs, and nothing of anyone else's", async () => {
       const t = newDeployment();
       const { cook, other, recipeId, cookSignIns } = await seedFullCook(t);

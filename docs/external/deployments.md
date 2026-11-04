@@ -22,6 +22,20 @@ where, and only as far as where to look: see [the rule](./README.md#the-rule).
 - A merge into `dev` deploys Convex to dev, so it overwrites whatever a local `pnpm convex:dev` pushed
   from a branch, until that `convex:dev` pushes again.
 
+## The connect page
+
+Assistants reach Cuisko through two addresses, one on each side:
+
+| Who uses it | Address | Dev | Prod |
+| ---------------------- | --------------------------- | ----------------------- | ------------------ |
+| The showcase website on Vercel | `NEXT_PUBLIC_CONVEX_URL`, the `.convex.cloud` address | `.env.local` | Vercel → Environment variables |
+| The cook, in Claude    | `<deployment>.convex.site/mcp` | `successful-goldfish-447` | `content-rook-692` |
+
+- `/connect` lives in the showcase website's repo, and a push to its `main` deploys it. Without the
+  variable the page refuses to render.
+- The backend's `SITE_URL` decides where a cook is sent to approve: `/connect` on it, so
+  `localhost:8081` on dev. Testing a connection locally means running the site there, with Metro off.
+
 ## Secrets
 
 GitHub Actions secrets, by name, read by `.github/workflows/deploy.yml`:

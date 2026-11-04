@@ -39,6 +39,9 @@ importers:
       '@convex-dev/auth':
         specifier: ^0.0.94
         version: 0.0.94(@auth/core@0.41.3)(convex@1.43.0(react@19.2.3))(react@19.2.3)
+      '@convex-dev/mcp':
+        specifier: 0.1.0-alpha.7
+        version: 0.1.0-alpha.7(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)
       '@convex-dev/migrations':
         specifier: ^0.3.6
         version: 0.3.6(convex-helpers@0.1.121(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.6.0))(convex@1.43.0(react@19.2.3))
@@ -977,6 +980,16 @@ packages:
     peerDependencies:
       convex: ^1.43.0
 
+  '@convex-dev/batch-worker@0.3.5':
+    resolution: {integrity: sha512-kTxLGy1TXRN6WLcENcoRWWnvPshv1sIZp2EpPqGqCB4FxDI7m8tEHUr+jCLdhGtSZT1UHkWtb1w8YYuEzTxHWQ==}
+    peerDependencies:
+      convex: ^1.43.0
+
+  '@convex-dev/mcp@0.1.0-alpha.7':
+    resolution: {integrity: sha512-z5GGX9dipVAjWk5p3+LyL7JPW0CVd9IFaBIPO6Pl/gA3MSlom8LnimKQyaM4/oc3spCqDnD3QGF2CKjrLV/bWQ==}
+    peerDependencies:
+      convex: ^1.43.0
+
   '@convex-dev/migrations@0.3.6':
     resolution: {integrity: sha512-cURYG4uy323MDi55QWNF5HAGemS4QspSgJ4uP+gGPAJdBLBbk2KFO7toFlKhacc1NinJQiG6+D/YEFyFyBS1/A==}
     peerDependencies:
@@ -985,6 +998,15 @@ packages:
 
   '@convex-dev/rate-limiter@0.4.0':
     resolution: {integrity: sha512-AEXbo8+pMT1bPlOJiofmue55EoiFp9ygCcEnckx+RENoPjRYEg5jiihAtaD5TKDwdmHJyvLwNQ1h+MbhgvMyOA==}
+    peerDependencies:
+      convex: ^1.43.0
+      react: ^18.2.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+
+  '@convex-dev/rate-limiter@0.4.3':
+    resolution: {integrity: sha512-IXIEGbZBANC5B23pGmIui7p49kSiltNWyJ7wX7nFmkR396X/Oj9ebgScgxSJMAW7DkhpUtt1NAnQHhjB0v6a/A==}
     peerDependencies:
       convex: ^1.43.0
       react: ^18.2.0 || ^19.0.0
@@ -3515,6 +3537,31 @@ packages:
       '@standard-schema/spec':
         optional: true
       hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
+
+  convex-helpers@0.1.133:
+    resolution: {integrity: sha512-No6JKuAOESBsq1RZABU31QwdlfWRNwQKHP0A43u1j+/8Dqt9TJnw7XjkHlHoxRzveVy7PfFV/ZvuKXoh5s8phg==}
+    hasBin: true
+    peerDependencies:
+      '@standard-schema/spec': ^1.0.0
+      convex: ^1.46.0
+      hono: ^4.0.5
+      prettier: ^3.0.0
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@standard-schema/spec':
+        optional: true
+      hono:
+        optional: true
+      prettier:
         optional: true
       react:
         optional: true
@@ -8321,6 +8368,30 @@ snapshots:
       - typescript
       - zod
 
+  '@convex-dev/batch-worker@0.3.5(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)':
+    dependencies:
+      convex: 1.43.0(react@19.2.3)
+      convex-helpers: 0.1.133(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - prettier
+      - react
+      - typescript
+      - zod
+
+  '@convex-dev/mcp@0.1.0-alpha.7(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)':
+    dependencies:
+      '@convex-dev/rate-limiter': 0.4.3(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)
+      convex: 1.43.0(react@19.2.3)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - prettier
+      - react
+      - typescript
+      - zod
+
   '@convex-dev/migrations@0.3.6(convex-helpers@0.1.121(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.6.0))(convex@1.43.0(react@19.2.3))':
     dependencies:
       convex: 1.43.0(react@19.2.3)
@@ -8335,6 +8406,19 @@ snapshots:
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
+      - typescript
+      - zod
+
+  '@convex-dev/rate-limiter@0.4.3(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)':
+    dependencies:
+      '@convex-dev/batch-worker': 0.3.5(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0)
+      convex: 1.43.0(react@19.2.3)
+    optionalDependencies:
+      react: 19.2.3
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - prettier
       - typescript
       - zod
 
@@ -11185,6 +11269,16 @@ snapshots:
       convex: 1.43.0(react@19.2.3)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
+      react: 19.2.3
+      typescript: 6.0.3
+      zod: 4.6.0
+
+  convex-helpers@0.1.133(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(prettier@3.9.6)(react@19.2.3)(typescript@6.0.3)(zod@4.6.0):
+    dependencies:
+      convex: 1.43.0(react@19.2.3)
+    optionalDependencies:
+      '@standard-schema/spec': 1.1.0
+      prettier: 3.9.6
       react: 19.2.3
       typescript: 6.0.3
       zod: 4.6.0

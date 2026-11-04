@@ -109,6 +109,13 @@ import type * as functions_ingredients_restoreIngredient from "../functions/ingr
 import type * as functions_ingredients_searchCatalog from "../functions/ingredients/searchCatalog.js";
 import type * as functions_ingredients_searchWidened from "../functions/ingredients/searchWidened.js";
 import type * as functions_ingredients_seedIngredients from "../functions/ingredients/seedIngredients.js";
+import type * as functions_mcp_cookClock from "../functions/mcp/cookClock.js";
+import type * as functions_mcp_loadCook from "../functions/mcp/loadCook.js";
+import type * as functions_mcp_planPlate from "../functions/mcp/planPlate.js";
+import type * as functions_mcp_revokeConnectionsOf from "../functions/mcp/revokeConnectionsOf.js";
+import type * as functions_mcp_runTool from "../functions/mcp/runTool.js";
+import type * as functions_mcp_toMcpRecipe from "../functions/mcp/toMcpRecipe.js";
+import type * as functions_mcp_withImage from "../functions/mcp/withImage.js";
 import type * as functions_media_deleteImage from "../functions/media/deleteImage.js";
 import type * as functions_media_deleteImageFiles from "../functions/media/deleteImageFiles.js";
 import type * as functions_media_getImage from "../functions/media/getImage.js";
@@ -240,6 +247,7 @@ import type * as lib_webRecipes_imageUrl from "../lib/webRecipes/imageUrl.js";
 import type * as lib_webRecipes_marmiton from "../lib/webRecipes/marmiton.js";
 import type * as lib_webRecipes_marmitonUrl from "../lib/webRecipes/marmitonUrl.js";
 import type * as lib_webRecipes_verdicts from "../lib/webRecipes/verdicts.js";
+import type * as mcp from "../mcp.js";
 import type * as migrations from "../migrations.js";
 import type * as procedures from "../procedures.js";
 import type * as router_assistant_classify from "../router/assistant/classify.js";
@@ -329,6 +337,7 @@ import type * as router_recipes_translateOne from "../router/recipes/translateOn
 import type * as router_recipes_updateOne from "../router/recipes/updateOne.js";
 import type * as router_recipes_verifyOne from "../router/recipes/verifyOne.js";
 import type * as router_users_getAccount from "../router/users/getAccount.js";
+import type * as router_users_getMcpUser from "../router/users/getMcpUser.js";
 import type * as router_users_getMe from "../router/users/getMe.js";
 import type * as router_users_purge from "../router/users/purge.js";
 import type * as router_users_requestDeletion from "../router/users/requestDeletion.js";
@@ -457,6 +466,13 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/searchCatalog": typeof functions_ingredients_searchCatalog;
   "functions/ingredients/searchWidened": typeof functions_ingredients_searchWidened;
   "functions/ingredients/seedIngredients": typeof functions_ingredients_seedIngredients;
+  "functions/mcp/cookClock": typeof functions_mcp_cookClock;
+  "functions/mcp/loadCook": typeof functions_mcp_loadCook;
+  "functions/mcp/planPlate": typeof functions_mcp_planPlate;
+  "functions/mcp/revokeConnectionsOf": typeof functions_mcp_revokeConnectionsOf;
+  "functions/mcp/runTool": typeof functions_mcp_runTool;
+  "functions/mcp/toMcpRecipe": typeof functions_mcp_toMcpRecipe;
+  "functions/mcp/withImage": typeof functions_mcp_withImage;
   "functions/media/deleteImage": typeof functions_media_deleteImage;
   "functions/media/deleteImageFiles": typeof functions_media_deleteImageFiles;
   "functions/media/getImage": typeof functions_media_getImage;
@@ -588,6 +604,7 @@ declare const fullApi: ApiFromModules<{
   "lib/webRecipes/marmiton": typeof lib_webRecipes_marmiton;
   "lib/webRecipes/marmitonUrl": typeof lib_webRecipes_marmitonUrl;
   "lib/webRecipes/verdicts": typeof lib_webRecipes_verdicts;
+  mcp: typeof mcp;
   migrations: typeof migrations;
   procedures: typeof procedures;
   "router/assistant/classify": typeof router_assistant_classify;
@@ -677,6 +694,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/updateOne": typeof router_recipes_updateOne;
   "router/recipes/verifyOne": typeof router_recipes_verifyOne;
   "router/users/getAccount": typeof router_users_getAccount;
+  "router/users/getMcpUser": typeof router_users_getMcpUser;
   "router/users/getMe": typeof router_users_getMe;
   "router/users/purge": typeof router_users_purge;
   "router/users/requestDeletion": typeof router_users_requestDeletion;
@@ -726,6 +744,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  mcp: import("@convex-dev/mcp/_generated/component.js").ComponentApi<"mcp">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   posthog: import("@posthog/convex/_generated/component.js").ComponentApi<"posthog">;

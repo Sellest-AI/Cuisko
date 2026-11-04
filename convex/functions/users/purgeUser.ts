@@ -4,6 +4,7 @@ import type { MutationCtx } from "@convex/procedures";
 import { deleteConversationsOf } from "../assistant/deleteConversationsOf";
 import { cascadeDelete } from "../cascade";
 import { scheduleImageTreeDeletion } from "../media/imageTree";
+import { revokeConnectionsOf } from "../mcp/revokeConnectionsOf";
 import type { AccountHolder } from "./accountEvent";
 import { deleteSignIns } from "./deleteSignIns";
 
@@ -30,7 +31,8 @@ export type Purged = { outcome: "skipped" } | { outcome: Exclude<PurgeOutcome, "
  *   loses its name and invite code, the first because it can name someone, the second so nobody
  *   walks into it.
  * - Their sign-ins go (`deleteSignIns`), so the address is free to register again, and so do their
- *   conversations with the assistant (`deleteConversationsOf`).
+ *   conversations with the assistant (`deleteConversationsOf`) and the connections they gave an
+ *   outside assistant (`revokeConnectionsOf`).
  * - Their photos go, whole trees. Recipes, favorites and preferences stay.
  *
  * `force` is for a bot or a spammer, run by hand: no date check, and the person is erased instead.
@@ -69,6 +71,7 @@ export const purgeUser = async (
 
   await deleteSignIns(ctx, userId, user?.email);
   await deleteConversationsOf(ctx, userId);
+  await revokeConnectionsOf(ctx, userId);
   await _leaveHouseholds(ctx, userId, { force, now });
   await _deletePhotos(ctx, userId);
 

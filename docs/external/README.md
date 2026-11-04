@@ -52,7 +52,7 @@ documentation this project exists to avoid — see the note on drift in [adr/REA
 
 **Deployments** — Convex deployments, EAS channels and the CI secrets: [deployments.md](./deployments.md).
 
-**Website** — cuisko.app is the `cuisko-web` repo (Next.js, a sibling of this one), on Vercel.
+**Website** — cuisko.app, the showcase website, is a repo of its own (Next.js), on Vercel.
 `cuisko.app` is the primary domain and `www` redirects to it; keep it that way, because the app's
 links claim the apex and Apple and Android refuse a verification file behind a redirect. The site
 serves those files from `public/.well-known/`: the Apple Team ID in them is read at

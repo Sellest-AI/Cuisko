@@ -22,7 +22,7 @@ type ListCtx = Pick<QueryCtx, "db">;
  * A membership whose household no longer exists is skipped rather than returned as a hole: the
  * join row can outlive its household, and one dangling row must not blank the list.
  */
-const _householdsOf = async (ctx: ListCtx, userId: Id<"users">): Promise<Doc<"households">[]> => {
+export const householdsOf = async (ctx: ListCtx, userId: Id<"users">): Promise<Doc<"households">[]> => {
   const memberships = await ctx.db
     .query("householdUsers")
     .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -34,6 +34,18 @@ const _householdsOf = async (ctx: ListCtx, userId: Id<"users">): Promise<Doc<"ho
 
   return households.filter((household) => household !== null);
 };
+
+/**
+ * The household the app shops for, out of a user's households: `currentHouseholdId` when it still
+ * names one of them, and the oldest membership otherwise. An account made before sign-up created
+ * households has no pointer, and a pointer the cascade detached is unset. Falling back rather than
+ * failing is what keeps both of them shopping somewhere.
+ */
+export const pickCurrentHousehold = (
+  households: Pick<Doc<"households">, "_id">[],
+  currentHouseholdId: Id<"households"> | undefined,
+): Id<"households"> | undefined =>
+  households.some((household) => household._id === currentHouseholdId) ? currentHouseholdId : households[0]?._id;
 
 /** One household as the account drawer draws it. A projection, so the full row never ships. */
 export type HouseholdCard = {
@@ -48,22 +60,14 @@ export type HouseholdCard = {
 
 /**
  * The caller's households, oldest membership first, with who is in each and which one the app is
- * shopping for.
- *
- * "Current" is `currentHouseholdId` when it still names one of these, and the oldest membership
- * otherwise: an account made before sign-up created households has no pointer, and a pointer the
- * cascade detached is unset. Falling back here rather than failing is what keeps both of them
- * shopping somewhere.
+ * shopping for (`pickCurrentHousehold`).
  */
 export const listForUser = async (
   ctx: ListCtx,
   user: Pick<AppUser, "_id" | "currentHouseholdId">,
 ): Promise<HouseholdCard[]> => {
-  const households = await _householdsOf(ctx, user._id);
-
-  const currentId = households.some((household) => household._id === user.currentHouseholdId)
-    ? user.currentHouseholdId
-    : households[0]?._id;
+  const households = await householdsOf(ctx, user._id);
+  const currentId = pickCurrentHousehold(households, user.currentHouseholdId);
 
   return Promise.all(
     households.map(async (household) => {

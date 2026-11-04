@@ -1,4 +1,5 @@
 import agent from "@convex-dev/agent/convex.config";
+import mcp from "@convex-dev/mcp/convex.config.js";
 import migrations from "@convex-dev/migrations/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import posthog from "@posthog/convex/convex.config";
@@ -19,6 +20,7 @@ const app = defineApp({
 });
 
 app.use(agent);
+app.use(mcp);
 app.use(migrations);
 app.use(rateLimiter);
 app.use(posthog, {

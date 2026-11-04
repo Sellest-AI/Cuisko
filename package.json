@@ -58,6 +58,7 @@
     "@blobatar/react-native": "^2.7.0",
     "@convex-dev/agent": "^0.7.1",
     "@convex-dev/auth": "^0.0.94",
+    "@convex-dev/mcp": "0.1.0-alpha.7",
     "@convex-dev/migrations": "^0.3.6",
     "@convex-dev/rate-limiter": "^0.4.0",
     "@expo/ui": "~57.0.9",

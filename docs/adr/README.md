@@ -24,6 +24,7 @@ carries the command that proves it still holds.
 | [0017](./0017-a-deleted-recipe-is-archived-and-unlisted.md) | A deleted recipe is archived, and no list reaches it | `convex/functions/**`, `convex/router/**`, `convex/agent/**`, `convex/schema/recipes.ts` | `pnpm check:recipes`, `pnpm test` |
 | [0018](./0018-an-expensive-operation-is-rate-limited.md) | An operation that costs money is rate limited per caller | `convex/router/**`, `convex/functions/**`, `convex/lib/rateLimits.ts` | `pnpm check:ratelimits`, `pnpm test` |
 | [0019](./0019-a-paid-call-is-traced.md) | A paid call is traced to the route it was made for, and tracing never throws | `convex/router/**`, `convex/functions/**`, `convex/agent/**`, `convex/lib/**`, `convex/procedures.ts`, `convex/schema/tracing.ts`, `scripts/database/**` | `pnpm check:traces`, `pnpm check:events`, `pnpm typecheck`, `pnpm test` |
+| [0020](./0020-an-agent-acts-as-a-verified-cook.md) | An outside agent acts as a verified cook, and never says who that is | `convex/mcp.ts`, `convex/functions/mcp/**`, `convex/router/users/getMcpUser.ts`, `convex/functions/users/purgeUser.ts` | `pnpm test` |
 `pnpm verify` runs all of them — on demand, in the pre-commit and pre-merge-commit hooks, and in CI.
 
 ## Format

@@ -1,3 +1,5 @@
+import { ConvexError } from "convex/values";
+
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { PlanMealResult } from "@shared/assistant";
@@ -47,9 +49,9 @@ export const midnightOf = ({ today, now }: Pick<Caller, "today" | "now">, date: 
   const days = (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${now.slice(0, 10)}T00:00:00Z`)) / DAY_MS;
 
   if (!Number.isInteger(days) || days < 0 || days >= PLANNABLE_DAYS) {
-    throw new Error(
-      `${date} cannot be planned from the chat: pick a date from today to ${PLANNABLE_DAYS - 1} days after it. ` +
-      "Further ahead, point the cook to the planning screen.",
+    throw new ConvexError(
+      `${date} cannot be planned here: pick a date from today to ${PLANNABLE_DAYS - 1} days after it. ` +
+      "Further ahead, the cook plans in the app.",
     );
   }
 
@@ -85,8 +87,8 @@ export const planMealTool = ({ householdId, userId, locale, today, now }: Caller
     execute: async (ctx, { recipeId, date, slot, servings, replace }: Input): Promise<PlanMealResult> => {
       const missing = await ctx.runQuery(internal.router.recipes.missingIds._internal, { ids: [recipeId] });
       if (missing.length > 0) {
-        throw new Error(
-          `This recipe id does not exist: ${recipeId}. Pass only ids searchRecipes returned in this conversation, copied exactly.`,
+        throw new ConvexError(
+          `This recipe id does not exist: ${recipeId}. Pass only ids the recipe search returned in this conversation, copied exactly.`,
         );
       }
 
@@ -101,7 +103,7 @@ export const planMealTool = ({ householdId, userId, locale, today, now }: Caller
       const current = onThatDay.find((meal) => meal.date === midnight && meal.slot === slot);
 
       if (current && (current.status === "cooked" || current.status === "skipped")) {
-        throw new Error(`The ${slot} of ${date} is already ${current.status}: nothing can be planned on it.`);
+        throw new ConvexError(`The ${slot} of ${date} is already ${current.status}: nothing can be planned on it.`);
       }
 
       if (current && !replace) {
