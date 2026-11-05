@@ -32,8 +32,8 @@
     "empty": "Assiette libre"
   },
   "PlanRecipe": {
-    "intro_title": "Planifiez votre repas",
-    "intro_body": "Les ingrédients qui vous manquent seront ajoutés automatiquement à votre liste de courses.",
+    "intro_title": "Planifier mon repas",
+    "intro_body": "Les ingrédients qui te manquent seront ajoutés automatiquement à ta liste de courses.",
     "portions": "Combien à table ?",
     "meal": "Quel repas ?",
     "day": "Quel jour ?",
@@ -45,7 +45,7 @@
     "confirm": "Je change",
     "cancel": "Je garde",
     "failed_title": "L'assiette n'a pas pu être planifiée",
-    "failed_body": "Réessayez dans un instant. Un repas déjà cuisiné ne peut pas être remplacé.",
+    "failed_body": "Réessaie dans un instant. Un repas déjà cuisiné ne peut pas être remplacé.",
     "missing": "Cette recette n'est plus là"
   },
   "Tunnel": {
@@ -54,10 +54,10 @@
       "title": "Qui mange cette semaine ?",
       "loading": "Je regarde ta cuisine…",
       "placeholder": "Envie de pâtes ? Peu de temps ? Dis-moi tout.",
-      "people": "Vous êtes combien à table ?",
+      "people": "Combien de personnes à table ?",
       "days": "Sur combien de jours ?",
       "meals": "Quels repas ?",
-      "subtitle": "Combien vous êtes, sur combien de jours, et quels repas."
+      "subtitle": "Combien de personnes, sur combien de jours, et quels repas."
     },
     "Diet": {
       "title": "Tu manges comment ?",
@@ -80,7 +80,7 @@
     },
     "Focus": {
       "title": "Un objectif particulier ?",
-      "subtitle": "Enregistré dans vos préférences, on ne le demande qu'une fois.",
+      "subtitle": "Enregistré dans tes préférences, on ne le demande qu'une fois.",
       "loading": "Je relis tes objectifs…"
     },
     "Time": {

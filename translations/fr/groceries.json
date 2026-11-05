@@ -20,12 +20,12 @@
     "action": "Planifier ma semaine"
   },
   "Quantity": {
-    "custom_amount": "Entrez votre quantité",
+    "custom_amount": "Saisir une quantité",
     "nothing_to_adjust": "Rien à ajuster.",
     "Prompts": {
-      "buy": "Vous en avez acheté combien ?",
-      "remove": "Vous en avez sorti combien ?",
-      "relist": "Il vous en faut combien ?"
+      "buy": "Tu en as acheté combien ?",
+      "remove": "Tu en as retiré combien ?",
+      "relist": "Il t'en faut combien ?"
     },
     "Captions": {
       "needed": "Nécessaire",

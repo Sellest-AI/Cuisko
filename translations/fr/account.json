@@ -6,7 +6,7 @@
   },
   "Households": {
     "title": "Tes foyers",
-    "join_placeholder": "Écris un code d’invitation ici",
+    "join_placeholder": "Saisir un code d’invitation",
     "share_code_x_code": "Rejoins mon foyer sur Cuisko avec le code {{code}}",
     "create": "Créer un nouveau foyer",
     "join_error_not_found_title": "Code inconnu",

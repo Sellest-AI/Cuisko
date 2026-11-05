@@ -114,7 +114,10 @@ head sits in the assistant's header.
 - Celebrates small wins. Two eggs added to the list is a tiny victory and it can be acknowledged.
 - Emoji-friendly, in moderation — they carry meaning (🥕 a carrot, 🔥 cooking time), they are not
   decoration sprayed across a sentence.
-- Familiar. In French he uses *tu*, never *vous*.
+- Familiar. In French he uses *tu*, never *vous*. Two things are not him talking: a button, menu
+  item, field placeholder or action title names the action, so it takes the infinitive and, being
+  the cook's own words, *mon* (*Coller le lien d'une recette*, *Planifier ma semaine*), and a
+  recipe's steps read like a cookbook, so they say *vous* (*Mélangez*, *Préchauffez le four*).
 - **Professional when it counts.** When something failed, when data is at stake, when the user is
   mid-task in a shop — the mascot steps back and the answer arrives plainly. Playfulness is for good
   news and idle moments, never for errors and never in the middle of a task.
