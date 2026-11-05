@@ -358,7 +358,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
         <Input
           ref={ref}
           elevated
-          placeholder={t("ask_anything").slice(0, 15).trim().concat("…")}
+          placeholder={t("ask_anything")}
           leftIcon={photo ? Trash2 : (isLongEnough ? X : Camera)}
           onLeftPress={(frame, measure) => {
             if (photo) discardPhoto();

@@ -4,6 +4,7 @@ import { theme } from "theme";
 import { ButtonIcon } from "./button-icon";
 import { Icon } from "./icons";
 import { BlurScope, BlurView } from "./blur-view";
+import { Text } from "./text";
 
 /** A rectangle in window coordinates. */
 export type Frame = { x: number, y: number, width: number, height: number };
@@ -118,43 +119,55 @@ export const Input = ({ type = "text", ref, style, elevated, highlightOnFocus, p
             {leftIcon}
           </ButtonIcon>
         </View>}
-        {centerContent ?? <TextInput
-          ref={ref}
-          inputMode={type === "numeric" ? "numeric" :
-            type === "decimal" ? "decimal" :
-              type === "email" ? "email" : "text"}
-          placeholder={placeholder}
-          placeholderTextColor={placeholderColor}
-          onFocus={() => { setIsFocused(true); onFocus?.(); }}
-          onBlur={() => { setIsFocused(false); onBlur?.(); }}
-          value={value}
-          onChangeText={onChangeText}
-          onSubmitEditing={(e) => {
-            // Necessary for native + web platforms
-            const _value = (e.nativeEvent as unknown as { text: string }).text ??
-              e.currentTarget.nodeValue ?? value;
-            onSubmit?.(_value);
-          }}
-          /**
-           * One line, placeholder included. Android lays the hint out as multi-line even on a
-           * single-line field, so a placeholder wider than the field wrapped onto a second line the
-           * cook could scroll to inside a box one line tall. A multiline field keeps its
-           * placeholder short instead.
-           */
-          numberOfLines={multiline ? undefined : 1}
-          multiline={multiline}
-          submitBehavior={multiline ? "submit" : undefined}
-          autoCorrect={false}
-          autoCapitalize="sentences"
-          returnKeyType="search"
-          style={[
-            styles.input,
-            theme.font.base,
-            { fontWeight: 400 },
-            { color: color.color },
-            multiline && styles.multiline,
-          ]}
-        />}
+        {centerContent ?? <View style={styles.field}>
+          <TextInput
+            ref={ref}
+            inputMode={type === "numeric" ? "numeric" :
+              type === "decimal" ? "decimal" :
+                type === "email" ? "email" : "text"}
+            accessibilityLabel={placeholder}
+            onFocus={() => { setIsFocused(true); onFocus?.(); }}
+            onBlur={() => { setIsFocused(false); onBlur?.(); }}
+            value={value}
+            onChangeText={onChangeText}
+            onSubmitEditing={(e) => {
+              // Necessary for native + web platforms
+              const _value = (e.nativeEvent as unknown as { text: string }).text ??
+                e.currentTarget.nodeValue ?? value;
+              onSubmit?.(_value);
+            }}
+            numberOfLines={multiline ? undefined : 1}
+            multiline={multiline}
+            submitBehavior={multiline ? "submit" : undefined}
+            autoCorrect={false}
+            autoCapitalize="sentences"
+            returnKeyType="search"
+            style={[
+              styles.input,
+              theme.font.base,
+              { fontWeight: 400 },
+              { color: color.color },
+              multiline && styles.multiline,
+            ]}
+          />
+          {/*
+            * Drawn here rather than through `TextInput`'s `placeholder`. Android wraps its hint
+            * whatever the field: `numberOfLines` only sets the box's height, so a long hint left a
+            * second line cut off under the first, and it refuses to ellipsize an editable view.
+            * Text can do both, and the field's width decides where the ellipsis lands on every
+            * device and font scale. Gone on the first character, not on focus, as a native one is.
+            */}
+          {placeholder && !value && <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[StyleSheet.absoluteFill, styles.placeholder]}
+          >
+            <Text.Base weight={400} color={placeholderColor} numberOfLines={1}>
+              {placeholder}
+            </Text.Base>
+          </View>}
+        </View>}
         {rightIcon && <ButtonIcon
           variant={"neutral-subtle"}
           elevated={true}
@@ -194,16 +207,24 @@ const styles = StyleSheet.create({
       },
     ],
   },
+  field: {
+    width: "100%",
+    flexShrink: 1,
+  },
   input: {
     position: "relative",
     width: "100%",
-    flexShrink: 1,
     outlineWidth: 0,
     /**
-     * Android's `EditText` ships its own vertical padding, which made the content a few pixels
-     * taller than the line and so scrollable. The container already centres and pads the field.
+     * Android's `EditText` ships its own padding. Vertically it made the content a few pixels taller
+     * than the line and so scrollable; horizontally it would start typed text to the right of the
+     * placeholder drawn over it. The container already centres and pads the field.
      */
     paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  placeholder: {
+    justifyContent: "center",
   },
   multiline: {
     maxHeight: theme.font.base.lineHeight * MAX_LINES,

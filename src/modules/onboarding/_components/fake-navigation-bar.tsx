@@ -172,7 +172,7 @@ export const FakeNavigationBar = ({ hints, used, onSend, isAnswering = false }: 
             leftIcon={Camera}
             centerContent={
               <Text.Base color={typing ? colors.foreground : colors.muted} numberOfLines={1} style={styles.text}>
-                {typing ? text : t("ask_anything").slice(0, 15).trim().concat("…")}
+                {typing ? text : t("ask_anything")}
               </Text.Base>
             }
             rightContent={
