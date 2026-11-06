@@ -73,12 +73,15 @@ copy of is cheaper to spot here than in review.
 **Files created or changed:**
 
 ```
-convex/schema/recipes.ts              recipes table + by_user, by_user_and_public
-convex/functions/recipes/getOne.ts    (ctx, { recipeId }) => Recipe | null
-convex/router/recipes/getOne.ts       export const authed
-src/modules/recipes/_hooks/useRecipes.ts
-app/(tabs)/recipes.tsx
++ convex/functions/recipes/getOne.ts    (ctx, { recipeId }) => Recipe | null
++ convex/router/recipes/getOne.ts       export const authed
++ src/modules/recipes/_hooks/useRecipes.ts
+○ convex/schema/recipes.ts              recipes table + by_user, by_user_and_public
+○ app/(tabs)/recipes.tsx
+- src/modules/recipes/_hooks/useRecipeList.ts
 ```
+
+Each line starts with its marker: `+` created, `○` changed, `-` deleted.
 
 Name a file that does not exist yet inside a code block like this one, not in single backticks:
 C6 checks every backticked path in `docs/` against the disk, this plan included.
