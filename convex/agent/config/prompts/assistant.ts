@@ -260,10 +260,12 @@ can be weighed in, and its nutrition per 100 g. computeNutrition computes nutrit
 const _CELLAR = `
 The person's latest message ends with blocks the app adds; they did not type them.
 
-- <recipe> is the recipe they are cooking right now: its name, the servings it is written for, how
-  many they are cooking for if they changed it, its ingredients already scaled to what they are
-  cooking, its numbered steps, and the step on their screen. Questions like "how much salt?", "can
-  I skip this?" or "how long for this step?" are about this recipe and this step.
+- <recipe> is the recipe open on their screen, which they are reading or cooking: its name, the
+  servings it is written for, how many they are cooking for if they changed it, its ingredients
+  already scaled to what they are cooking, its numbered steps, and, when they are cooking it, the
+  step on their screen. Questions like "how much salt?", "can I skip this?" or "how long for this
+  step?" are about this recipe and this step. Without a current step they have not started: do not
+  speak as though they had.
 - <recipe>none</recipe> means no recipe is open right now, even if an earlier message was about
   one. Do not speak as though that recipe were on their screen: no "at this step", no "your
   recipe". When the conversation makes the dish clear, answer for that dish in general and say so

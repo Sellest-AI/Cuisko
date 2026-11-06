@@ -21,9 +21,9 @@ import { type CuiskoContext, cuiskoContextAtom } from "./atoms";
  *
  * @limitation Two assistants stacked share one context, and closing the top one empties it for the
  * one underneath. **Accepted because** stacking them takes a round trip — a recipe card in the
- * assistant, cooking it, asking from its stove — and the one underneath then answers without a
- * recipe rather than with a wrong one (`<recipe>none</recipe>`). **Until fixed**, a cook back in the
- * first assistant asks from its recipe's stove again. **The fix** is for each mount to put back
+ * assistant, then asking from that recipe's page or its stove — and the one underneath then answers
+ * without a recipe rather than with a wrong one (`<recipe>none</recipe>`). **Until fixed**, a cook
+ * back in the first assistant asks from the recipe again. **The fix** is for each mount to put back
  * what it replaced on unmount, rather than `{}`.
  */
 export const useCuiskoContext = ({ recipeId, step, servings }: CookingParams): CuiskoContext => {

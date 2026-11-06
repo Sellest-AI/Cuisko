@@ -23,7 +23,7 @@ supersedes: []
   is still a slice of its own: an author ships as a name (ADR 0010), not as a `userId`.
 - The editor MUST guard itself, since its read is no longer owner-only: `useRecipeDraft` folds
   `isOwned === false` into the missing state, so a crafted `/recipe/edit/[foreignId]` deep link
-  renders as missing, not as an editable form. The detail header hides the pencil unless
+  renders as missing, not as an editable form. The detail header offers Edit only when
   `isOwned === true`.
 - A favorite MAY point at any existing recipe, whoever owns it, and is private to the cook who set
   it: nothing counts favorites and no surface shows another cook's shelf. Favorites are curation,

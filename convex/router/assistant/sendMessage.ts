@@ -35,7 +35,7 @@ export const authed = householdMutationI18n({
     threadId: v.optional(v.string()),
     /** A photo already uploaded by the caller (`media/images/uploadOne`), sent with the question. */
     imageId: v.optional(v.id("images")),
-    /** Asked while cooking (`recipeBrief`). Any cook's recipe: one is readable by id (ADR 0014). */
+    /** Asked from a recipe (`recipeBrief`). Any cook's recipe: one is readable by id (ADR 0014). */
     recipe: v.optional(vCookingRecipe),
     today: v.number(),
     now: v.string(),

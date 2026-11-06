@@ -44,6 +44,8 @@ type Props = {
   onFinish: () => void;
   /** What the cook asked Cuisko, and the step on screen when they asked (`FlatStep.position`). */
   onListened?: (text: string, step?: number) => void;
+  /** The voice button was held: the assistant opens with no question, on the step on screen. */
+  onCuiskoPress?: (step?: number) => void;
   /** The finish is in flight: the button waits, so a second tap cannot spend the cellar twice. */
   isFinishing?: boolean;
   /** The finish was refused, and the cook is still here to be told so. */
@@ -69,6 +71,7 @@ export const StepByStepView = ({
   servings,
   onClose,
   onListened,
+  onCuiskoPress,
   onFinish,
   isFinishing = false,
   finishFailed = false,
@@ -201,7 +204,10 @@ export const StepByStepView = ({
               transition={{ type: "timing", duration: 220 }}
               style={{ position: "absolute", right: 0 }}
             >
-              <VoiceListener onListened={(text) => onListened(text, step?.position)} />
+              <VoiceListener
+                onLongPress={onCuiskoPress && (() => onCuiskoPress(step?.position))}
+                onListened={(text) => onListened(text, step?.position)}
+              />
             </m.View>}
             {index === 0 && servings && <m.View
               key={"servings"}

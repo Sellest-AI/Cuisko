@@ -6,6 +6,8 @@
   "empty_title": "Demande-moi ce que tu veux",
   "empty_body": "Quoi cuisiner ce soir, que faire de ce qu'il reste dans le frigo, par quoi remplacer un ingrédient. Pose ta question en bas.",
   "empty_action": "Planifier ma semaine",
+  "empty_recipe_title": "Demande-moi ce que tu veux sur cette recette",
+  "empty_recipe_body": "Un ingrédient à remplacer, un temps de cuisson, quoi servir avec. Pose ta question en bas.",
   "steps": {
     "searchRecipes": {
       "running": "Je cherche des recettes…",

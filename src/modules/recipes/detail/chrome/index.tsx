@@ -44,7 +44,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
    * The chrome is the one caller that seeds the count: it mounts once for all three tabs, before
    * any of them, so the choice is in the atom by the time a tab draws a quantity.
    */
-  const { recipe, isLoading, isMissing } = useRecipe(id, servingsParamOf(servings));
+  const { recipe, servings: chosenServings, isLoading, isMissing } = useRecipe(id, servingsParamOf(servings));
 
   const active = path.startsWith(`/recipe/${id}/ingredients`) ? "ingredients"
     : path.startsWith(`/recipe/${id}/instructions`) ? "instructions"
@@ -119,6 +119,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
             isOwned={recipe?.isOwned}
             isFavorited={recipe?.isFavorited}
             sourceUrl={recipe?.sourceUrl}
+            servings={recipe && chosenServings}
           />
         }
         contentHeader={

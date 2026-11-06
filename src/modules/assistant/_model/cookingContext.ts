@@ -2,9 +2,10 @@
  * The recipe a question is asked from, read off the assistant's route.
  *
  * The cooking screen opens `/assistant` with the recipe beside the question (`q`): its id, the step
- * on screen and the servings on the stepper. They stay in the URL for as long as the modal is open,
- * so every question asked there — the first one and every follow-up typed in the bar — goes out
- * with the same recipe, and closing the assistant is what forgets it.
+ * on screen and the servings on the stepper. A recipe's page opens it with the id and the servings,
+ * and no question yet. They stay in the URL for as long as the modal is open, so every question asked
+ * there — the first one and every follow-up typed in the bar — goes out with the same recipe, and
+ * closing the assistant is what forgets it.
  *
  * Route params arrive as text, and as an array when a key repeats; this turns them back into the
  * shape `sendMessage` takes. A number that does not parse is dropped, not sent: the server would

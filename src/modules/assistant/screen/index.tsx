@@ -29,9 +29,11 @@ type Props = {
    * Enter — asking them to press it again would be the screen forgetting what it was opened with.
    */
   question?: string;
+  /** The recipe the assistant was opened from, which the greeting is then about. */
+  recipeId?: string;
 };
 
-export const AssistantScreen = ({ style, question }: Props) => {
+export const AssistantScreen = ({ style, question, recipeId }: Props) => {
   const t = useTranslations("Assistant");
   const { messages, ask, isThinking, isReplying, hasConversation, hasRefusal } = useAssistantChat();
 
@@ -118,7 +120,7 @@ export const AssistantScreen = ({ style, question }: Props) => {
             * a notice with no conversation behind it. Testing `messages.length` alone would greet
             * a reader for the frame before any of them lands.
             */}
-          {isEmpty && <AssistantEmpty />}
+          {isEmpty && <AssistantEmpty recipeId={recipeId} />}
         </>
       }
       /*

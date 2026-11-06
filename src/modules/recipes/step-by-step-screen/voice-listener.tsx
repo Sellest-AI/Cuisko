@@ -32,6 +32,8 @@ const OPEN_TIMING = { type: "timing", duration: 280, easing: Easing.out(Easing.c
 type Props = {
   /** What the cook said, once they sent it — by tapping again or by going quiet. Never empty. */
   onListened: (text: string) => void,
+  /** The button was held rather than tapped. Ignored while listening: a tap then sends. */
+  onLongPress?: () => void,
   style?: ViewProps["style"],
 }
 
@@ -68,7 +70,7 @@ const ListeningWave = ({ onDone, finishRef }: WaveProps) => {
  * session open for the exit animation would let a quick third tap mount a second recognizer while
  * the first one's cleanup is about to abort the platform's only one.
  */
-export const VoiceListener = ({ onListened, style }: Props) => {
+export const VoiceListener = ({ onLongPress, onListened, style }: Props) => {
   const t = useTranslations("Recipe");
   const [isListening, setIsListening] = useState(false);
   const finishRef = useRef<(() => void) | null>(null);
@@ -85,6 +87,8 @@ export const VoiceListener = ({ onListened, style }: Props) => {
       accessibilityRole="button"
       accessibilityLabel={isListening ? t("Cooking.send_to_cuisko") : t("Cooking.ask_cuisko")}
       style={[styles.container, style]}
+      onLongPress={isListening ? undefined : onLongPress}
+      delayLongPress={300}
       onPress={() => {
         if (isListening) finishRef.current?.();
         else setIsListening(true);

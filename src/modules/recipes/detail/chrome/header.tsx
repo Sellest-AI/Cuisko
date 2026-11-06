@@ -1,6 +1,7 @@
 import { View, StyleSheet, Platform } from "react-native";
 import { router } from "expo-router";
 
+import { Image } from "@ui/image";
 import { Popover } from "@ui/popover";
 import { Pressable } from "@ui/pressable";
 import { Text } from "@ui/text";
@@ -14,13 +15,13 @@ import {
   Heart,
   Share2,
   Share2Icon,
-  SquarePen,
   SquarePenIcon,
 } from "@ui/icons";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
 import type { Id } from "~/lib/convex/api";
+import { CUISKO_HEAD } from "~/lib/mascots";
 import { openInBrowser } from "~/lib/openInBrowser";
 
 import { useSetRecipeFavorite } from "../../_hooks/useSetRecipeFavorite";
@@ -39,6 +40,8 @@ type Props = {
   isFavorited?: boolean;
   /** From the `getOne` payload, which ships it only to the owner and to an admin. */
   sourceUrl?: string;
+  /** The count on the ingredients tab's stepper, so Cuisko quotes the amounts the cook is reading. */
+  servings?: number;
 };
 
 /**
@@ -55,13 +58,12 @@ type Props = {
  * share and verify WRITES are called from here, though: a mutation is not a subscription, and each
  * control is the only thing that sends its own.
  *
- * The `…` menu holds what only some cooks may do: edit for the author, the original page for the
- * author and an admin (the only ones the server ships it to), the check against it for an admin.
- * When it would hold only Edit, which the pencil already offers, the button is not drawn. The
- * check's bar and its results stay at the bottom of the overview (`overview/verify.tsx`), which
- * reads the same entry.
+ * The `…` menu holds what any cook may do, such as asking Cuisko about this recipe, and what only some
+ * may: edit for the author, the original page for the author and an admin (the only ones the server
+ * ships it to), the check against it for an admin. The check's bar and its results stay at the
+ * bottom of the overview (`overview/verify.tsx`), which reads the same entry.
  */
-export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl }: Props) => {
+export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl, servings }: Props) => {
   const t = useTranslations("Recipe");
   const { set } = useSetRecipeFavorite();
   const { share } = useShareRecipe();
@@ -80,7 +82,6 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
       : undefined;
 
   const canEdit = recipeId !== undefined && isOwned === true;
-  const hasMenu = sourceUrl !== undefined || (recipeId !== undefined && canVerify);
 
   return (
     <View style={styles.header}>
@@ -116,22 +117,7 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
         <ButtonIcon onPress={onShare} disabled={onShare === undefined} variant="neutral" size="sm">
           {Share2}
         </ButtonIcon>
-        {/*
-          * Only the author gets the pencil. The read no longer proves ownership, and offering to
-          * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit.
-          * Whenever the `…` menu shows, it holds Edit, so the pencil steps aside for it rather
-          * than offering the same thing twice.
-          */}
-        {!hasMenu && canEdit && (
-          <ButtonIcon
-            onPress={() => router.push(`/recipe/edit/${recipeId}`)}
-            variant="neutral"
-            size="sm"
-          >
-            {SquarePen}
-          </ButtonIcon>
-        )}
-        {hasMenu && (
+        {recipeId !== undefined && (
           <Popover
             minWidth={232}
             trigger={(open, isOpen) => (
@@ -153,6 +139,10 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
               */}
             {(close) => (
               <View style={styles.popover}>
+                {/*
+                  * Only the author gets Edit. The read no longer proves ownership, and offering to
+                  * edit a recipe whose save `updateOne` will refuse is a form the cook cannot submit.
+                  */}
                 {canEdit && (
                   <Pressable
                     style={styles.popoverItem}
@@ -162,15 +152,13 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
                     <Text.Base>{t("Chrome.menu_edit")}</Text.Base>
                   </Pressable>
                 )}
-                {recipeId && (
-                  <Pressable
-                    style={styles.popoverItem}
-                    onPress={() => close(() => router.push({ pathname: "/plan-recipe", params: { recipeId } }))}
-                  >
-                    <CalendarPlusIcon size={22} />
-                    <Text.Base>{t("Chrome.menu_plan")}</Text.Base>
-                  </Pressable>
-                )}
+                <Pressable
+                  style={styles.popoverItem}
+                  onPress={() => close(() => router.push({ pathname: "/plan-recipe", params: { recipeId } }))}
+                >
+                  <CalendarPlusIcon size={22} />
+                  <Text.Base>{t("Chrome.menu_plan")}</Text.Base>
+                </Pressable>
                 {sourceUrl !== undefined && (
                   <Pressable
                     style={styles.popoverItem}
@@ -206,10 +194,26 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl 
                   </Pressable>
                 )}
                 {/*
+                  * Opened with no question: the cook has not said what they want to know, and the
+                  * id in the URL goes with whatever they type (`cookingContextOf`).
+                  */}
+                <Pressable
+                  style={styles.popoverItem}
+                  onPress={() => close(() => router.push({
+                    pathname: "/assistant",
+                    params: { recipeId, ...(servings !== undefined && { servings }) },
+                  }))}
+                >
+                  <View style={styles.cuiskoIcon}>
+                    <Image source={CUISKO_HEAD} style={styles.cuiskoHead} contentFit="contain" />
+                  </View>
+                  <Text.Base>{t("Chrome.menu_ask_cuisko")}</Text.Base>
+                </Pressable>
+                {/*
                   * A running check keeps its row, disabled and saying so, rather than vanishing:
                   * the bar is at the bottom of the overview, out of sight from up here.
                   */}
-                {recipeId !== undefined && canVerify && (
+                {canVerify && (
                   <Pressable
                     style={styles.popoverItem}
                     disabled={isVerifying}
@@ -263,5 +267,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[20],
-  }
+  },
+  /** The head sits in an icon's box and overflows it a little: a face reads smaller than a glyph. */
+  cuiskoIcon: {
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cuiskoHead: {
+    width: 26,
+    height: 26,
+  },
 });

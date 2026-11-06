@@ -31,14 +31,15 @@ export default function Assistant() {
   const question = Array.isArray(q) ? q[0] : q;
 
   /**
-   * The recipe the question was asked from, when the cooking screen opened this: held for every
-   * question asked here, the bar's follow-ups included, and forgotten when the modal closes.
+   * The recipe the question was asked from, when a recipe's page or its cooking screen opened this:
+   * held for every question asked here, the bar's follow-ups included, and forgotten when the modal
+   * closes.
    */
-  useCuiskoContext({ recipeId, step, servings });
+  const { recipe } = useCuiskoContext({ recipeId, step, servings });
 
   if (Platform.OS === "ios")
     return <>
-      <AssistantScreen question={question} />
+      <AssistantScreen question={question} recipeId={recipe?.id} />
       <NavigationBar />
     </>;
 
@@ -49,6 +50,6 @@ export default function Assistant() {
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
     />
-    <AssistantScreen question={question} />
+    <AssistantScreen question={question} recipeId={recipe?.id} />
   </>
 }

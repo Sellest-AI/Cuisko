@@ -11,9 +11,9 @@ import { loadRecipeContent } from "../recipes/recipeContent";
 import { loadRecipeLines } from "../recipes/recipeNutrition";
 
 /**
- * The recipe a cook is in the middle of: its id, the step on screen (numbered from 1 across groups,
- * as the cooking screen numbers it), and how many they are making, which the stepper may have moved
- * off the recipe's own.
+ * The recipe a cook has open: its id, the step on screen when they are cooking it (numbered from 1
+ * across groups, as the cooking screen numbers it), and how many they are making, which the stepper
+ * may have moved off the recipe's own.
  */
 export type CookingRecipe = Infer<typeof vCookingRecipe>;
 

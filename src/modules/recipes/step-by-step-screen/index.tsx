@@ -31,6 +31,16 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
   const { cook, isCooking, failed } = useCookRecipe();
 
+  /**
+   * Opens the assistant with the recipe beside the question, if there is one yet: the step on
+   * screen and the servings on the stepper ride in the URL, and every question asked before the
+   * assistant is closed goes out with them (`cookingContextOf`).
+   */
+  const openAssistant = (step?: number, q?: string) => router.push({
+    pathname: "/assistant",
+    params: { ...(q && { q }), ...(id && { recipeId: id }), ...(step !== undefined && { step }), servings },
+  });
+
   return (
     <StepByStepView
       /**
@@ -51,15 +61,8 @@ export const StepByStepScreen = ({ id, onClose, onCooked }: Props) => {
       ingredients={ingredients}
       servings={{ value: servings, onChange: setServings }}
       onClose={onClose}
-      /**
-       * The question opens the assistant with the recipe beside it: the step on screen and the
-       * servings on the stepper ride in the URL, and every question asked before the assistant is
-       * closed goes out with them (`cookingContextOf`).
-       */
-      onListened={(text, step) => router.push({
-        pathname: "/assistant",
-        params: { q: text, ...(id && { recipeId: id }), ...(step !== undefined && { step }), servings },
-      })}
+      onListened={(text, step) => openAssistant(step, text)}
+      onCuiskoPress={(step) => openAssistant(step)}
       /**
        * The screen leaves only once the server has agreed: a modal dismissed over a write that
        * then fails would leave the cook believing their cellar moved when it did not.

@@ -6,6 +6,8 @@
   "empty_title": "Ask me anything",
   "empty_body": "What to cook tonight, what to do with what is left in the fridge, how to swap an ingredient. Type your question below.",
   "empty_action": "Plan my week",
+  "empty_recipe_title": "Ask me about this recipe",
+  "empty_recipe_body": "An ingredient to swap, a cooking time, what to serve with it. Type your question below.",
   "steps": {
     "searchRecipes": {
       "running": "Searching recipes…",
