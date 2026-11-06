@@ -22,6 +22,7 @@ const state = vi.hoisted(() => ({
   settles: [] as { resolve: (imported: Imported) => void; reject: (reason: unknown) => void }[],
   replaced: [] as unknown[],
   favorited: [] as { id: string; liked: boolean }[],
+  reviewAsks: 0,
 }));
 
 vi.mock("expo-router", () => ({
@@ -29,6 +30,12 @@ vi.mock("expo-router", () => ({
 }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
+
+vi.mock("~/lib/askForReview", () => ({
+  askForReview: () => {
+    state.reviewAsks += 1;
+  },
+}));
 
 /** The app moving to the background or back, as `AppState` reports it, to the sheets still listening. */
 const appState = vi.hoisted(() => ({ listeners: new Set<(state: string) => void>() }));
@@ -84,6 +91,7 @@ beforeEach(() => {
   state.settles = [];
   state.replaced = [];
   state.favorited = [];
+  state.reviewAsks = 0;
   appState.listeners.clear();
 });
 
@@ -221,5 +229,22 @@ describe("useImportSharedLink", () => {
     await act(async () => state.settles[0]!.resolve(MINE));
 
     expect(state.favorited).toHaveLength(0);
+  });
+
+  it("asks for a review once when a reel lands, however many sheets wait on it", async () => {
+    openSheet(REEL);
+    openSheet(SAME_REEL_RESHARED);
+
+    await act(async () => state.settles[0]!.resolve(MINE));
+
+    expect(state.reviewAsks).toBe(1);
+  });
+
+  it("does not ask for a review when the reel fails", async () => {
+    openSheet(REEL);
+
+    await act(async () => state.settles[0]!.reject(new Error("a private post")));
+
+    expect(state.reviewAsks).toBe(0);
   });
 });

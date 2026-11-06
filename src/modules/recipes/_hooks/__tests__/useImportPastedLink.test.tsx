@@ -34,6 +34,8 @@ vi.mock("expo-router", () => ({
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
 
+vi.mock("~/lib/askForReview", () => ({ askForReview: () => undefined }));
+
 vi.mock("~/lib/convex/client", () => ({
   useAction: () => ({
     action: (args: { url: string; locale?: string }) => {
