@@ -1,6 +1,6 @@
 import { loadRecipe } from "@convex/functions/recipes/loadRecipe";
-import { authQueryI18n, internalQuery } from "@convex/procedures";
-import { vLocale } from "@convex/schema/i18n";
+import { authQueryI18n, internalQuery, serverQuery } from "@convex/procedures";
+import { DEFAULT_LOCALE, vLocale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
 
 /**
@@ -21,6 +21,27 @@ export const authed = authQueryI18n({
       locale: ctx.i18n.locale,
       viewer: { id: ctx.userId, isAdmin: ctx.user.role === "ADMIN" },
     }),
+});
+
+/**
+ * The same recipe, for the showcase website's server, which builds a shared link's preview from it.
+ *
+ * No viewer, so the payload carries no `isOwned`, `isFavorited` or `sourceUrl`, and never `userId`:
+ * nobody in particular is reading. The website publishes only the title, description and cover (ADR 0014).
+ *
+ * `id` is a string rather than a `v.id` because it comes from a URL: a `v.id` would reject
+ * `/r/hello` with a validation error the website cannot tell from an outage. A malformed id throws
+ * the same `NOT_FOUND` as an unknown one, so the caller reads one code for both. `locale` is
+ * optional because the image the website renders has no words; the title defaults to English.
+ */
+export const server = serverQuery({
+  args: { id: v.string(), locale: v.optional(vLocale) },
+  handler: (ctx, { id, locale }) => {
+    const recipe = ctx.db.normalizeId("recipes", id);
+    if (!recipe) throw new ConvexError({ code: "NOT_FOUND", message: "Recipe not found" });
+
+    return loadRecipe(ctx, { recipe, locale: locale ?? DEFAULT_LOCALE });
+  },
 });
 
 /**

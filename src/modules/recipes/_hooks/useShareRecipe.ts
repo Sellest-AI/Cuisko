@@ -3,6 +3,7 @@ import { Platform, Share } from "react-native";
 
 import { useTranslations } from "translations";
 
+import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
 import { useMutation } from "~/lib/convex/client";
 
@@ -25,11 +26,13 @@ import { recipeLink } from "../routes";
  */
 export const useShareRecipe = () => {
   const t = useTranslations("Recipe");
+  const locale = useLocale();
   const { mutate } = useMutation(api.router.recipes.recordShare.authed);
 
   const share = useCallback(
     async ({ id, title }: { id: string; title: string }) => {
-      const url = recipeLink(id);
+      /** In the language the message is written in, so the link preview's title matches it. */
+      const url = recipeLink(id, locale);
       const text = t("Chrome.share_message_x_title", { title });
 
       try {
@@ -45,7 +48,7 @@ export const useShareRecipe = () => {
         console.error("[recipes] share failed", cause);
       }
     },
-    [mutate, t],
+    [locale, mutate, t],
   );
 
   return { share };

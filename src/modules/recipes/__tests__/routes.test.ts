@@ -42,6 +42,15 @@ describe("recipeLink", () => {
     expect(link).toBe("https://cuisko.app/r/k57abc");
     expect(recipeIdOfLink(link)).toBe("k57abc");
   });
+
+  /** The website titles the link preview in this language, so it matches the message above it. */
+  it("carries the sharer's language, and the reader still reads the id back", () => {
+    const link = recipeLink("k57abc", "fr");
+
+    expect(link).toBe("https://cuisko.app/r/k57abc?lang=fr");
+    expect(recipeIdOfLink(link)).toBe("k57abc");
+    expect(recipeIdOfLink(`Poulet au curry sur Cuisko : ${link}`)).toBe("k57abc");
+  });
 });
 
 describe("recipeIdOfLink", () => {

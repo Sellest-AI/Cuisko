@@ -14,6 +14,11 @@ supersedes: []
   what to show; it never compares ids. Today the payload withholds the owner's `userId` because no
   surface shows an author yet; when one does, the author ships as a name (ADR 0010), and `isOwned`
   stays the flag the screen reads.
+- A shared link previews the recipe to anyone holding it, signed in or not. `getOne.server` hands
+  the showcase website's server the viewer-less payload (no `isOwned`, `isFavorited`, `sourceUrl`
+  or `userId`), and the website MUST publish only its title, description and cover. Anything more on that page,
+  such as the ingredients or the author, would make it a public recipe page: a product decision, not
+  a preview change.
 - The write gate MUST NOT move. `updateOne` keeps its ownership check before a write, and every
   future mutation on a recipe document does the same (ADR 0003).
 - Discovery follows the read. `search` spans every recipe — the caller's, the seeded catalog's and
@@ -44,6 +49,7 @@ but that they cannot change it.
 ## Verify
 
 `pnpm test` — `convex/router/recipes/__tests__/getOne.test.ts` pins that a stranger's recipe is
-returned with `isOwned: false` and without `userId`; `setFavorite.test.ts` pins that a foreign
+returned with `isOwned: false` and without `userId`, and that `server` ships no owner id, viewer flag
+or source page; `setFavorite.test.ts` pins that a foreign
 recipe can be favorited and a missing one cannot; `getFavorites.test.ts` pins that one cook never
 sees another's shelf.

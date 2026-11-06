@@ -351,6 +351,107 @@ describe("router/recipes/getOne", () => {
   });
 
   /**
+   * What the showcase website reads to preview a shared link. The id arrives from a URL, so a
+   * malformed one is ordinary, and must fail the same way an unknown one does.
+   */
+  describe("server", () => {
+    /** Matches the placeholder in vitest.config.mts — the same value `serverQuery` compares against. */
+    const SERVER_KEY = "test-server-private-key-0123456789abcdef";
+
+    /** `large` is the original image row: no rendition sits above it on the ladder. */
+    const seedCover = (recipeId: Id<"recipes">) =>
+      t.run(async (ctx) => {
+        const coverImageId = await ctx.db.insert("images", {
+          hasAlpha: false,
+          key: "public/cover.webp",
+          url: "cover.webp",
+          width: 1536,
+          height: 1024,
+          size: 400_000,
+          mimeType: "image/webp",
+          tags: ["IMAGE"],
+          updatedAt: Date.now(),
+        });
+        await ctx.db.patch(recipeId, { coverImageId });
+      });
+
+    test("rejects a wrong server key", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+
+      await expect(
+        t.query(api.router.recipes.getOne.server, { _serverKey: "not-the-key", id: recipeId }),
+      ).rejects.toThrow(/FORBIDDEN/);
+    });
+
+    test("gives the title in the asked locale and the large cover", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+      await seedCover(recipeId);
+
+      const recipe = await t.query(api.router.recipes.getOne.server, {
+        _serverKey: SERVER_KEY,
+        id: recipeId,
+        locale: "fr",
+      });
+
+      expect(recipe.title).toBe("Soupe à l'oignon");
+      expect(recipe.coverImageLargeUrl).toBe("cover.webp");
+    });
+
+    test("answers in English when no locale is given", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+
+      const recipe = await t.query(api.router.recipes.getOne.server, { _serverKey: SERVER_KEY, id: recipeId });
+
+      expect(recipe.title).toBe("Onion soup");
+    });
+
+    test("leaves the cover absent for a recipe that has none", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+
+      const recipe = await t.query(api.router.recipes.getOne.server, { _serverKey: SERVER_KEY, id: recipeId });
+
+      expect(recipe.coverImageLargeUrl).toBeUndefined();
+    });
+
+    test("still gives an archived recipe", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+      await t.run((ctx) => ctx.db.patch(recipeId, { isArchived: true }));
+
+      const recipe = await t.query(api.router.recipes.getOne.server, { _serverKey: SERVER_KEY, id: recipeId });
+
+      expect(recipe.title).toBe("Onion soup");
+    });
+
+    test("reports a malformed id as NOT_FOUND, not as a validation error", async () => {
+      await expect(
+        t.query(api.router.recipes.getOne.server, { _serverKey: SERVER_KEY, id: "hello" }),
+      ).rejects.toThrow(/NOT_FOUND/);
+    });
+
+    test("reports an unknown id as NOT_FOUND", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+      await t.run((ctx) => ctx.db.delete(recipeId));
+
+      await expect(
+        t.query(api.router.recipes.getOne.server, { _serverKey: SERVER_KEY, id: recipeId }),
+      ).rejects.toThrow(/NOT_FOUND/);
+    });
+
+    /** Nobody in particular is reading, and the website must have nothing about the author to leak. */
+    test("ships no owner id, no viewer flags and no source page", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+      await t.run((ctx) => ctx.db.patch(recipeId, { sourceUrl: "https://example.com/onion-soup" }));
+
+      const recipe = await t.query(api.router.recipes.getOne.server, { _serverKey: SERVER_KEY, id: recipeId });
+
+      expect(recipe).not.toHaveProperty("userId");
+      expect(recipe).not.toHaveProperty("isOwned");
+      expect(recipe).not.toHaveProperty("isFavorited");
+      expect(recipe).not.toHaveProperty("sourceUrl");
+    });
+  });
+
+  /**
    * `_internal` deliberately does NOT check ownership — see the ⚠️ on the export, and ADR 0003
    * §"Actions". These pin that as intended behaviour rather than an oversight: a reader who assumes
    * an unchecked internal read must be a bug would otherwise "fix" it and break every system job

@@ -1,6 +1,7 @@
 import type { Href } from "expo-router";
 
 import { isServings } from "@shared/servings";
+import type { Locale } from "@shared/translations";
 import { httpUrlOf } from "@shared/urls";
 
 import { WEBSITE } from "~/global/website";
@@ -55,8 +56,13 @@ const _SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
  *
  * The id is the Convex id itself: any signed-in cook can read any recipe (ADR 0014), so it grants
  * nothing the link does not, and a slug or short code would need a table of its own.
+ *
+ * `?lang=` is the sharer's language. The website titles the link preview in it, so the card under
+ * the share message names the dish in the message's language; without it the website falls back
+ * to English. It names no recipe, so `recipeIdOfLink` ignores it.
  */
-export const recipeLink = (id: string): string => `${WEBSITE.URL}/r/${encodeURIComponent(id)}`;
+export const recipeLink = (id: string, locale?: Locale): string =>
+  `${WEBSITE.URL}/r/${encodeURIComponent(id)}${locale ? `?lang=${locale}` : ""}`;
 
 /**
  * The recipe id a link names, or nothing when it names none.
