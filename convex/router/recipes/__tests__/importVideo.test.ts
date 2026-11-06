@@ -8,6 +8,7 @@ import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -59,14 +60,20 @@ const RECIPE = {
  * cheap), `createOne` (where the persist lives) and the two follow-ups it schedules. Left cold they
  * cost the first import ~1 s alone, against ~5 ms for the next, and past the 5 s timeout in a full
  * `pnpm verify`. Warming does not let a refusal reach them: that is still what those tests assert.
+ *
+ * Spelled out because that is what C10 reads: as a regex, this list lost
+ * `findBySource` and `ingredients/resolve`, and nothing said so.
  */
-const WARM = /^\/convex\/router\/recipes\/(importVideo|importVideoNode|createOne|translateOne|generateImages)\./;
-
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => WARM.test(path))
-      .map(([, load]) => load()),
+  warmActions(
+    modules,
+    "/convex/router/recipes/importVideo.",
+    "/convex/router/recipes/importVideoNode.",
+    "/convex/router/recipes/findBySource.",
+    "/convex/router/recipes/createOne.",
+    "/convex/router/recipes/translateOne.",
+    "/convex/router/recipes/generateImages.",
+    "/convex/router/ingredients/resolve.",
   ).then(warmRateLimiter),
 );
 

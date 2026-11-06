@@ -37,18 +37,13 @@ import {
 import schema from "../schema";
 import type { TraceContext } from "../schema/tracing";
 import { calleeRef, type Seen } from "./tracing.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
-beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/__tests__/tracing.fixtures.") || path.startsWith("/convex/procedures."))
-      .map(([, load]) => load()),
-  ),
-);
+beforeAll(() => warmActions(modules, "/convex/__tests__/tracing.fixtures.", "/convex/procedures."));
 
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });
 

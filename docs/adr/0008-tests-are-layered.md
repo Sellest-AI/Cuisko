@@ -163,7 +163,17 @@ prose is not read as one.
 
 Exempt: a scheduled target (`runAfter`, `scheduleTracedAfter`), which loads only when the scheduler
 fires and the tests fake the timers; a `"use node"` target, which the edge-runtime project must
-never load; and any file the test `vi.mock`s, whose calls never run. A call through a variable
+never load, unless the test mocks something beneath it and so crosses into it on purpose; and any
+file the test `vi.mock`s, whose calls never run. `recipes/importOne.test.ts` is why that exception
+exists: it mocked the fetch below `importOneNode`, left it cold, and timed out at 5s in about half of
+the full runs on 6 November 2026 for a call that takes 3ms.
+
+The rule also asks for `router/users/getAccount` from an `auth*Action` or `admin*Action`: an action
+has no `ctx.db`, so `procedures.ts` runs it through a string reference no `ctx.run*` names.
+`warmActions` (`lib/__tests__/warmUp.fixtures.ts`) is the warm-up for those files: it loads
+`getAccount` and takes the rest as prefixes, which the rule reads. A warm-up must filter with
+`startsWith` or go through `warmActions`: a regex is refused, because this rule cannot read one, and
+`recipes/importVideo.test.ts` lost two modules behind one without anything saying so. A call through a variable
 rather than a literal reference is not seen. The rule works per module and per file, not per code
 path: it asks for every module a test *could* reach, so it can ask for one the tests never touch —
 of the five files it has flagged, only `verifyOne` was slow; the other four measured under 50ms

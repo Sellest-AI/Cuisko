@@ -8,6 +8,7 @@ import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 import { parseInstructions, serializeInstructions } from "../../../../shared/recipes";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -135,10 +136,10 @@ const RECIPE = {
  * globs `convex/` would then import the entire backend rather than the part it uses.
  */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/updateOne.") || path.startsWith("/convex/router/recipes/getOne."))
-      .map(([, load]) => load()),
+  warmActions(
+    modules,
+    "/convex/router/recipes/updateOne.",
+    "/convex/router/recipes/getOne.",
   ).then(warmRateLimiter),
 );
 

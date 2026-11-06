@@ -12,20 +12,17 @@ import schema from "../../../schema";
 import { exportCatalog } from "../exportCatalog";
 import { recipeSearchText } from "../recipeSearchText";
 import type { RecipeLink } from "../resolveRecipeIngredients";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(
-        ([path]) =>
-          path.startsWith("/convex/router/recipes/restoreOne.") ||
-          path.startsWith("/convex/router/recipes/importOne.") ||
-          path.startsWith("/convex/router/ingredients/resolve."),
-      )
-      .map(([, load]) => load()),
+  warmActions(
+    modules,
+    "/convex/router/recipes/restoreOne.",
+    "/convex/router/recipes/importOne.",
+    "/convex/router/ingredients/resolve.",
   ),
 );
 

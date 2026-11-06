@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -37,13 +38,7 @@ const signIn = async () => {
  * that should cost microseconds. Narrow on purpose: warming the whole glob imports the entire
  * backend into every file that globs it.
  */
-beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/assistant/classify"))
-      .map(([, load]) => load()),
-  ).then(warmRateLimiter),
-);
+beforeAll(() => warmActions(modules, "/convex/router/assistant/classify").then(warmRateLimiter));
 
 beforeEach(() => {
   t = convexTest(schema, modules);

@@ -11,6 +11,7 @@ import type { RecipeStatus } from "../../../schema/recipes";
 import { enforceRateLimit } from "../../../functions/rateLimits/enforceRateLimit";
 import { rateLimitFor } from "../../../lib/rateLimits";
 import { registerRateLimiter, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -96,15 +97,11 @@ const CORRECTED = {
  * import was billed to that last test, and it timed out under `pnpm verify`.
  */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(
-        ([path]) =>
-          path.startsWith("/convex/router/recipes/verifyOne.") ||
-          path.startsWith("/convex/router/recipes/getOne.") ||
-          path.startsWith("/convex/router/recipes/updateOne."),
-      )
-      .map(([, load]) => load()),
+  warmActions(
+    modules,
+    "/convex/router/recipes/verifyOne.",
+    "/convex/router/recipes/getOne.",
+    "/convex/router/recipes/updateOne.",
   ).then(warmRateLimiter),
 );
 

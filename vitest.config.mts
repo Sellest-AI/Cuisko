@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vitest/config";
@@ -269,5 +270,14 @@ export default defineConfig({
       },
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.expo/**", "**/.history/**", "**/.claude/worktrees/**"],
+
+    /**
+     * One main process hands every worker its modules, so past a point more workers only queue for
+     * it. At Vitest's default of one per logical core but one (19 here), `sendMessage`'s warm-up took
+     * 6-25 s against its 30 s limit and three tiny files took 3-5 s to reach one test; at 10 the same
+     * warm-up took 2 s, the whole run took no longer (70 s against 72-90 s), and at 6 it took 85 s.
+     * Below the cap this is that default, so a smaller machine, CI included, is left as it was.
+     */
+    maxWorkers: Math.max(1, Math.min(10, availableParallelism() - 1)),
   },
 });

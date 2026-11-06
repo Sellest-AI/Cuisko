@@ -313,6 +313,164 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
       expect(code).toBe(0);
     });
 
+    /**
+     * recipes/importOne.test.ts mocks the fetch two imports below `importOneNode` so that its last
+     * test can cross into it. That test paid for the import: 3 ms of work, timed out at 5 s.
+     */
+    describe("a \"use node\" target the test mocks beneath", () => {
+      const crossing = {
+        [router]: "await ctx.runAction(internal.router.recipes.verifyOneNode._internal, {});",
+        "convex/router/recipes/verifyOneNode.ts": `"use node"\n\nimport { readPage } from "@convex/lib/readPage";`,
+        "convex/lib/readPage.ts": `import { fetchPage } from "./fetchPage";`,
+        "convex/lib/fetchPage.ts": "export const fetchPage = () => {};",
+      };
+      const mock = `vi.mock("@convex/lib/fetchPage", () => ({}));`;
+
+      it("asks for it: a mock beneath it is the test saying it means to load it", () => {
+        const { code, output } = runC10(
+          { ...crossing, [test]: warming("/convex/router/recipes/verifyOne.") + mock },
+          [test],
+        );
+
+        expect(code).toBe(1);
+        expect(output).toContain("/convex/router/recipes/verifyOneNode.");
+      });
+
+      it("accepts it once that module is warmed too", () => {
+        const { code } = runC10(
+          {
+            ...crossing,
+            [test]: warming("/convex/router/recipes/verifyOne.", "/convex/router/recipes/verifyOneNode.") + mock,
+          },
+          [test],
+        );
+
+        expect(code).toBe(0);
+      });
+    });
+
+    /**
+     * `procedures.ts` loads the caller through a string reference, because an action has no `ctx.db`,
+     * so no `ctx.run*` in the router names it. recipes/importVideo.test.ts paid for it inside a test.
+     */
+    describe("an action behind an identity check", () => {
+      const action = { [router]: "export const authed = authActionI18n({});" };
+
+      it("asks for `getAccount`, which the builder runs and the source never names", () => {
+        const { code, output } = runC10(
+          { ...action, [test]: warming("/convex/router/recipes/verifyOne.") },
+          [test],
+        );
+
+        expect(code).toBe(1);
+        expect(output).toContain("/convex/router/users/getAccount.");
+      });
+
+      it("accepts it once `getAccount` is warmed too", () => {
+        const { code } = runC10(
+          {
+            ...action,
+            [test]: warming("/convex/router/recipes/verifyOne.", "/convex/router/users/getAccount."),
+          },
+          [test],
+        );
+
+        expect(code).toBe(0);
+      });
+
+      it("does not ask for it from a query or a mutation, which read the caller through `ctx.db`", () => {
+        const { code } = runC10(
+          {
+            [router]: "export const authed = authQuery({}); export const other = authMutation({});",
+            [test]: warming("/convex/router/recipes/verifyOne."),
+          },
+          [test],
+        );
+
+        expect(code).toBe(0);
+      });
+    });
+
+    /** recipes/importVideo.test.ts warmed through a regex, and lost two modules without a word. */
+    describe("a warm-up C10 cannot read", () => {
+      const filtered = (filter: string) => `
+        const modules = import.meta.glob("/convex/**/*.*s");
+        beforeAll(() => Promise.all(Object.entries(modules).filter(${filter}).map(([, load]) => load())));
+        const t = convexTest(schema, modules);
+        it('x', () => t.action(api.router.recipes.verifyOne.admin, {}));
+      `;
+
+      it("rejects a regex written in the filter", () => {
+        const { code, output } = runC10(
+          { [test]: filtered(String.raw`([path]) => /^\/convex\/router\/recipes\/verifyOne\./.test(path)`) },
+          [test],
+        );
+
+        expect(code).toBe(1);
+        expect(output).toContain("startsWith");
+      });
+
+      it("rejects a regex held in a constant", () => {
+        const { code } = runC10({ [test]: filtered("([path]) => WARM.test(path)") }, [test]);
+
+        expect(code).toBe(1);
+      });
+
+      it("rejects one beside a `startsWith`, whatever the parameter is called", () => {
+        const { code } = runC10(
+          { [test]: filtered(`([key]) => key.startsWith("/convex/router/recipes/verifyOne.") || warmSet.test(key)`) },
+          [test],
+        );
+
+        expect(code).toBe(1);
+      });
+
+      it("leaves a regex over anything but the glob alone", () => {
+        const { code } = runC10(
+          {
+            [test]: `${warming("/convex/router/recipes/verifyOne.")}
+              const titles = rows.filter((row) => /tarte/.test(row));`,
+          },
+          [test],
+        );
+
+        expect(code).toBe(0);
+      });
+    });
+
+    /** The wrapper loads `getAccount` itself, so C10 reads what it is handed and adds that. */
+    describe("a warm-up through `warmActions`", () => {
+      const through = (...prefixes: string[]) => `
+        const modules = import.meta.glob("/convex/**/*.*s");
+        beforeAll(() => warmActions(modules, ${prefixes.map((p) => `"${p}"`).join(", ")}).then(warmRateLimiter));
+        const t = convexTest(schema, modules);
+        it('x', () => t.action(api.router.recipes.verifyOne.authed, {}));
+      `;
+      const action = {
+        [router]: `export const authed = authAction({});
+          await ctx.runQuery(internal.router.recipes.getOne._internal, {});`,
+      };
+
+      it("counts `getAccount` and every prefix it is handed as warmed", () => {
+        const { code } = runC10(
+          { ...action, [test]: through("/convex/router/recipes/verifyOne.", "/convex/router/recipes/getOne.") },
+          [test],
+        );
+
+        expect(code).toBe(0);
+      });
+
+      it("still rejects a module it was not handed", () => {
+        const { code, output } = runC10(
+          { ...action, [test]: through("/convex/router/recipes/verifyOne.") },
+          [test],
+        );
+
+        expect(code).toBe(1);
+        expect(output).toContain("/convex/router/recipes/getOne.");
+      });
+    });
+
     /** media/images/uploadMany reaches `saveMany` only through functions/media/uploadImage.ts. */
     it("follows the router into the helpers it imports, by alias and by relative path", () => {
       const files = {

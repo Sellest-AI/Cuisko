@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 import schema from "../../../../schema";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
@@ -13,13 +14,7 @@ const modules = import.meta.glob("/convex/**/*.*s");
  * backend graph beneath it against Vitest's 5s timeout. See router/ingredients/__tests__/resolve.test.ts
  * for the measurement. Stops at the `.` so a `"use node"` sibling stays out.
  */
-beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/media/images/uploadOne."))
-      .map(([, load]) => load()),
-  ).then(warmRateLimiter),
-);
+beforeAll(() => warmActions(modules, "/convex/router/media/images/uploadOne.").then(warmRateLimiter));
 
 /**
  * Only the gate is exercised here. Past it, `uploadOne` delegates to the `uploadMany` action,

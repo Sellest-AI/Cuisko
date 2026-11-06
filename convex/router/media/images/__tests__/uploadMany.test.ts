@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 import { RATE_LIMITS } from "../../../../lib/rateLimits";
 import schema from "../../../../schema";
 
@@ -15,14 +16,10 @@ const modules = import.meta.glob("/convex/**/*.*s");
  * for the measurement. Stops at the `.` so a `"use node"` sibling stays out.
  */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(
-        ([path]) =>
-          path.startsWith("/convex/router/media/images/uploadMany.") ||
-          path.startsWith("/convex/router/media/images/saveMany."),
-      )
-      .map(([, load]) => load()),
+  warmActions(
+    modules,
+    "/convex/router/media/images/uploadMany.",
+    "/convex/router/media/images/saveMany.",
   ).then(warmRateLimiter),
 );
 

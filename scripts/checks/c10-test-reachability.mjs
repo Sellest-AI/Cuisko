@@ -180,6 +180,36 @@ const resolveImport = (from, specifier) => {
 };
 
 /**
+ * An action has no `ctx.db`, so its identity check runs `getAccount` through a string reference in
+ * `procedures.ts`, which no `RUN_CALL` can read. A query or a mutation reads the caller directly.
+ */
+const IDENTITY_ACTION = /\b(?:auth|admin)Action(?:I18n)?\(/;
+const GET_ACCOUNT = "/convex/router/users/getAccount.";
+
+/** A glob filtered by a regex, whatever holds it: the `modules` filter's parameter is what it tests. */
+const REGEX_WARM_UP = /\bmodules\)?\s*\.filter\(\s*\(?\[?\s*(\w+)\s*\]?\)?\s*=>[\s\S]{0,300}?\.test\(\1\)/;
+
+/** The backend files `file` imports. */
+const importsOf = (file) =>
+  [...(codeOf(file) ?? "").matchAll(IMPORT)].flatMap(([, specifier]) => resolveImport(file, specifier) ?? []);
+
+/** Whether `file`'s imports lead to a mocked file: the test replaced something beneath it, on purpose. */
+const importsMock = (file, mocked) => {
+  const visited = new Set();
+  const pending = [file];
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (mocked.has(current)) return true;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    pending.push(...importsOf(current));
+  }
+
+  return false;
+};
+
+/**
  * The modules loaded lazily once `module` runs: every `ctx.runQuery` / `runMutation` / `runAction`
  * target reached from its source, from the helpers it imports, and from those targets in turn.
  * recipes/verifyOne.test.ts warmed every module it named and still billed its last test for
@@ -188,8 +218,9 @@ const resolveImport = (from, specifier) => {
  *
  * Left out on purpose: a scheduled target (`runAfter`, `scheduleTracedAfter`), which loads only when
  * the scheduler fires and the tests fake it; a `"use node"` target, which the edge-runtime project
- * must never load (ADR 0008, the trailing dot); and any file the test mocks, whose calls never run.
- * A call through a variable rather than a literal reference is not seen.
+ * must never load (ADR 0008, the trailing dot), unless the test mocks something beneath it and so
+ * crosses into it; and any file the test mocks, whose calls never run. A call through a variable
+ * rather than a literal reference is not seen.
  */
 const reachedBy = (module, mocked) => {
   const reached = new Set();
@@ -204,17 +235,20 @@ const reachedBy = (module, mocked) => {
     const code = codeOf(file);
     if (code === null) continue;
 
+    if (IDENTITY_ACTION.test(code)) {
+      reached.add(GET_ACCOUNT);
+      pending.push(fileOf(GET_ACCOUNT));
+    }
+
     for (const [, reference] of code.matchAll(RUN_CALL)) {
       const target = moduleOf(reference);
-      if (reached.has(target) || mocked.has(fileOf(target)) || isNodeModule(target)) continue;
+      const isExemptNode = isNodeModule(target) && !importsMock(fileOf(target), mocked);
+      if (reached.has(target) || mocked.has(fileOf(target)) || isExemptNode) continue;
       reached.add(target);
       pending.push(fileOf(target));
     }
 
-    for (const [, specifier] of code.matchAll(IMPORT)) {
-      const imported = resolveImport(file, specifier);
-      if (imported !== null) pending.push(imported);
-    }
+    pending.push(...importsOf(file));
   }
 
   return reached;
@@ -249,7 +283,22 @@ for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
     continue;
   }
 
-  const warmed = [...source.matchAll(/startsWith\(\s*["'`](\/convex\/[^"'`]*)["'`]/g)].map((match) => match[1]);
+  if (REGEX_WARM_UP.test(source)) {
+    findings.push({
+      file: relative(file),
+      message: "Its beforeAll filters with a regex, which this check cannot read, so a cold module goes unseen.",
+      fix: `Filter with one \`startsWith\` per module: ${WARM_UP_FIX}`,
+    });
+    continue;
+  }
+
+  const warmed = [
+    ...[...source.matchAll(/startsWith\(\s*["'`](\/convex\/[^"'`]*)["'`]/g)].map((match) => match[1]),
+    ...[...source.matchAll(/\bwarmActions\(([^)]*)\)/g)].flatMap(([, args]) => [
+      GET_ACCOUNT,
+      ...[...args.matchAll(/["'`](\/convex\/[^"'`]*)["'`]/g)].map((match) => match[1]),
+    ]),
+  ];
   if (warmed.length === 0) continue;
 
   const isCold = (module) => !warmed.some((prefix) => module.startsWith(prefix));

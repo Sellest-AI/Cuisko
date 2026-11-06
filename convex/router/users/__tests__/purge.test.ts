@@ -23,7 +23,11 @@ const modules = import.meta.glob("/convex/**/*.*s");
 beforeAll(() =>
   Promise.all([
     ...Object.entries(modules)
-      .filter(([path]) => /^\/convex\/router\/users\/(purge|requestDeletion)\./.test(path))
+      .filter(
+        ([path]) =>
+          path.startsWith("/convex/router/users/purge.") ||
+          path.startsWith("/convex/router/users/requestDeletion."),
+      )
       .map(([, load]) => load()),
     ...Object.values(agentTest.modules).map((load) => load()),
     warmMcp(),

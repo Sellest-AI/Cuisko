@@ -6,6 +6,7 @@ import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -75,13 +76,7 @@ const RECIPE = {
  * Narrow on purpose: warming the whole glob measures four times slower, because every file that
  * globs `convex/` would then import the entire backend rather than the part it uses.
  */
-beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/createOne"))
-      .map(([, load]) => load()),
-  ).then(warmRateLimiter),
-);
+beforeAll(() => warmActions(modules, "/convex/router/recipes/createOne").then(warmRateLimiter));
 
 /** The recipe's text as every reader sees it, wherever it is stored. */
 const textOf = (recipeId: Id<"recipes">) => t.run((ctx) => loadRecipeContent(ctx, recipeId));

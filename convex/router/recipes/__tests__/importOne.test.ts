@@ -6,6 +6,7 @@ import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fi
 import { api, internal } from "../../../_generated/api";
 import schema from "../../../schema";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -28,15 +29,16 @@ vi.mock("@convex/lib/scraping/scrapePage", () => ({ scrapePage }));
 let t: ReturnType<typeof convexTest>;
 
 /**
- * Deliberately narrow — see resolve.test.ts for the measurement. `importOneNode` is left out of the
- * warm set on purpose: it is a `"use node"` module and the refusal tests must never reach it, which
- * is half of what they prove. Only the last test crosses into it, over the mocks above.
+ * Narrow, as in `resolve.test.ts`, but it takes the Node half too: its paid graph is mocked out
+ * above, so loading it here costs no `recipe-scrapers`. Left cold, the one test that crosses into it
+ * paid for that import against its own 5 s timeout, up to 5005 ms in a full `pnpm verify` for a call
+ * that takes 3 ms. Warming does not let a refusal reach it: `fetchPage` is what those tests assert.
  */
 beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/recipes/importOne."))
-      .map(([, load]) => load()),
+  warmActions(
+    modules,
+    "/convex/router/recipes/importOne.",
+    "/convex/router/recipes/importOneNode.",
   ).then(warmRateLimiter),
 );
 

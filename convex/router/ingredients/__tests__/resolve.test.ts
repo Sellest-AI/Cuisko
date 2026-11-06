@@ -9,6 +9,7 @@ import type { Id } from "../../../_generated/dataModel";
 import { createIngredient } from "../../../functions/ingredients/createIngredient";
 import schema from "../../../schema";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 
 // Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
 const modules = import.meta.glob("/convex/**/*.*s");
@@ -120,13 +121,7 @@ const signIn = async () => {
  * the 50 test files that globs convex/ would then import the entire backend rather than the part
  * it uses.
  */
-beforeAll(() =>
-  Promise.all(
-    Object.entries(modules)
-      .filter(([path]) => path.startsWith("/convex/router/ingredients/resolve"))
-      .map(([, load]) => load()),
-  ).then(warmRateLimiter),
-);
+beforeAll(() => warmActions(modules, "/convex/router/ingredients/resolve").then(warmRateLimiter));
 
 beforeEach(() => {
   t = convexTest(schema, modules);
