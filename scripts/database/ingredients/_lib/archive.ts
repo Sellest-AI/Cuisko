@@ -17,8 +17,8 @@ import type { PortableIngredient } from "@convex/schema/ingredientPayloads";
 import { imageFileNameOf, slugOf } from "../../_lib/folders";
 import { openZip, zipNameOf, zipOf } from "../../_lib/zip";
 
-export const MANIFEST_FILE = "ingredients.json";
-export const INGREDIENT_FILE = "ingredient.json";
+const MANIFEST_FILE = "ingredients.json";
+const INGREDIENT_FILE = "ingredient.json";
 
 export type IngredientsManifest = {
   version: 1;

@@ -42,9 +42,9 @@ const _askedSchema = z.object({
 type _AskedPinned = AssertTrue<Exact<z.infer<typeof _askedSchema>, DishConstraints>>;
 
 /** Where a recipe was found. It decides the locale the import reads the page in. */
-export const SOURCES = ["marmiton", "bbcgoodfood"] as const;
+const SOURCES = ["marmiton", "bbcgoodfood"] as const;
 
-export type Source = (typeof SOURCES)[number];
+type Source = (typeof SOURCES)[number];
 
 const _recipeSchema = z.object({
   source: z.enum(SOURCES),

@@ -413,8 +413,7 @@ calls into screens.
 ```
 src/lib/convex/
 ├── api.ts          re-exports api, Doc, Id from convex/_generated  ← the ONLY file that may
-├── client.ts       useQueryCached, useQueryHeld, useQueryDevice, useQuery, useMutation, useAction,
-│                   useQueryCachedData
+├── client.ts       useQueryCached, useQueryHeld, useQueryDevice, useQuery, useMutation, useAction
 ├── deviceCache.ts  the device copy of query results (MMKV), keyed by bundle — read by useQueryDevice
 ├── session.ts      useAuthenticated: isAuthenticated (confirmed) and hasSession (a token is stored)
 ├── auth.ts         useAuthActions (sign in / sign out); re-exports useAuthenticated
@@ -422,7 +421,7 @@ src/lib/convex/
                     prefetchAuthToken starts the JWT read before the first render
 ```
 
-`client.ts` earns its place over raw `convex/react` four times over:
+`client.ts` earns its place over raw `convex/react` three times over:
 
 - **`useQueryCached`** (`makeUseQueryWithStatus` over the helpers cache) returns a discriminated
   `{ status, data, error }` instead of `undefined`-means-loading, **and** holds results across
@@ -437,8 +436,6 @@ src/lib/convex/
   included. Keys carry the bundle id, so an OTA update never reads a shape it did not write, and
   the whole store is wiped when a session ends. Only the queries a cold start or an offline route
   needs use it; everything else stays on `useQueryCached`.
-- **`useQueryCachedData`** caches **action** results. Queries are reactive and cached by Convex;
-  actions are neither, so without this a screen re-runs its action on every mount.
 
 `session.ts` and `auth.ts` hold no domain queries — `useAuthenticated` and sign-in/out only. Who the user *is*
 belongs to a module hook (ADR 0006). Its `isAuthenticated` requires the token **and** the client's
@@ -534,6 +531,7 @@ contact with a growing codebase.
 | Every costly operation a cook can call is rate limited (ADR 0018)      | script C16                                        | `pnpm check:ratelimits`  |
 | Every paid call is traced to the route it was made for (ADR 0019)      | script C17                                        | `pnpm check:traces`    |
 | Product events are sent by entry points, never the domain (ADR 0019)   | script C18                                        | `pnpm check:events`    |
+| Nothing unused: files, dependencies, exports, types (not `convex/`)    | knip (`knip.jsonc`)                               | `pnpm check:unused`    |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
@@ -547,7 +545,8 @@ what catches a `--no-verify` bypass.
 A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4, C6 and C8 against
 the working set at the end of an agent turn, so a violation surfaces one turn after it is written
 rather than at commit time. C5 and C7 are excluded — C5 is legitimately unsatisfied mid-slice, and
-C7 needs codegen that cannot be run from an editing turn. **Adding a check means adding it there
+C7 needs codegen that cannot be run from an editing turn. knip is excluded too: code written for the
+next step of a slice is legitimately unused. **Adding a check means adding it there
 too**; nothing links the two, and a check missing from that list simply stops running early.
 
 Rules that remain human judgement are listed, with the reason, in

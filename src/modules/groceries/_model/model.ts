@@ -66,7 +66,7 @@ import { expiresSoon } from "./expiresSoon";
 export { formatGroceryQuantity, normalizeUnit, roundGroceryQuantity, UNITS, type Unit } from "@shared/ingredients";
 
 /** Which section a tap came from. Each one can only move stock its own way. */
-export const INTENTS = ["buy", "remove", "relist"] as const;
+const INTENTS = ["buy", "remove", "relist"] as const;
 export type Intent = (typeof INTENTS)[number];
 
 export const isIntent = (value: string | undefined): value is Intent =>
@@ -232,9 +232,9 @@ export type Snapshot = {
  * Ingredient plus unit, because that is the only pair that can legally be added up — 500 g and
  * 3 pcs of the same carrot are two rows, not one. Name is never a key: it is display text.
  */
-export const stockKey = (ingredientId: string, unit: Unit) => `${ingredientId}:${unit}`;
+const stockKey = (ingredientId: string, unit: Unit) => `${ingredientId}:${unit}`;
 
-export const isLive = (receipt: Receipt, now: Date) =>
+const isLive = (receipt: Receipt, now: Date) =>
   now.getTime() - receipt.at.getTime() < UNDO_WINDOW_MS;
 
 export type StockRef = { ingredientId: string; unit: Unit };
@@ -1048,6 +1048,6 @@ export const reduceLines = (lines: GroceryLine[], ref: StockRef, amount: number,
  * Oldest first, and it never reaches a meal-bound line: buying bread cannot quietly settle the
  * ratatouille's claim on it, which would leave a dish being cooked with nothing shopping for it.
  */
-export const reduceOwnLines = (lines: GroceryLine[], ref: StockRef, amount: number, at: Date): GroceryLine[] =>
+const reduceOwnLines = (lines: GroceryLine[], ref: StockRef, amount: number, at: Date): GroceryLine[] =>
   _discharge(lines, (line) => matchesRef(ref)(line) && !line.meal, amount, at);
 

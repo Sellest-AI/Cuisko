@@ -210,7 +210,7 @@ export type GroceryRow = {
   covered: boolean;
 };
 
-export type GroceryCategory = { id: string; rows: GroceryRow[] };
+type GroceryCategory = { id: string; rows: GroceryRow[] };
 
 /**
  * What a week's plates add up to, split by whether the kitchen already has it.
@@ -248,7 +248,7 @@ export { MAX_SERVINGS };
  * a list that reshuffles under the finger is a list nobody trusts. A category absent from here
  * sorts last, alphabetically, rather than disappearing.
  */
-export const CATEGORY_ORDER = ["vegetables", "meats", "fish", "dairy", "grains", "other"] as const;
+const CATEGORY_ORDER = ["vegetables", "meats", "fish", "dairy", "grains", "other"] as const;
 
 /**
  * The categories this file can emit.

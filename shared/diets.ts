@@ -26,9 +26,7 @@ export type Diet = (typeof DIETS)[number];
  *
  * What a BBC Good Food page can declare (`suitableForDiet`), which has no pescatarian marker.
  */
-export const VEGETARIAN_DIETS = ["vegan", "vegetarian"] as const satisfies readonly Diet[];
-
-export type VegetarianDiet = (typeof VEGETARIAN_DIETS)[number];
+export type VegetarianDiet = Extract<Diet, "vegan" | "vegetarian">;
 
 /**
  * The diets that rule something out, which `omnivore` does not: what the catalog import may ask

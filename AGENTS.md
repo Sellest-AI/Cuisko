@@ -16,7 +16,7 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C18 + test — the pre-commit and pre-merge-commit hooks
+pnpm verify        # typecheck + lint + C1–C18 + knip + test — the pre-commit and pre-merge-commit hooks
                    # run this and refuse the commit if it fails. `--no-verify` bypasses them; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
@@ -170,7 +170,7 @@ How to write the test itself, and where each file goes: `docs/CONVENTIONS.md` §
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C18 scripts + tests).
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C18 scripts + knip + tests).
 
 **Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
 `git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the

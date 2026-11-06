@@ -68,7 +68,7 @@ export type ButtonDestination = (typeof BUTTON_DESTINATIONS)[number];
 /** The pill's colour, named as `ButtonPill` names it. */
 export const BUTTON_VARIANTS = ["primary", "secondary", "neutral"] as const;
 
-export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
+type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 
 /**
  * What the showButton tool stores in a message: the sentence Cuisko leads into it with, and where
@@ -84,7 +84,7 @@ export type AssistantButton = {
 /** Which way a cellar change went: stock put on the shelf, or taken off it. */
 export const CELLAR_ACTIONS = ["add", "remove"] as const;
 
-export type CellarAction = (typeof CELLAR_ACTIONS)[number];
+type CellarAction = (typeof CELLAR_ACTIONS)[number];
 
 /** One ingredient a cellar tool changed, and what it takes to undo it. */
 export type CellarChangeLine = {
@@ -149,7 +149,7 @@ export type MealPlanned = {
  * What the planMeal tool answers when a planned plate already holds the slot and the cook has not
  * said to replace it. Nothing was written. Read by the model, which asks; never drawn.
  */
-export type MealSlotTaken = {
+type MealSlotTaken = {
   v: 1;
   status: "occupied";
   current: { title: string; servings: number };

@@ -1,0 +1,29 @@
+// `pnpm check:unused`: fails on an unused file, dependency, export or type.
+//
+// @limitation Nothing under convex/ is checked: every file there is an entry point, because the
+// generated `api` object reaches them by path. A Convex function no screen calls stays invisible.
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "entry": [
+    // Read by the tool that owns them, never imported.
+    "fingerprint.config.js",
+    // Run by hand, so no package.json script names them.
+    "scripts/*.mjs",
+    "scripts/images/*.ts",
+    "scripts/videos/*.ts",
+    // The Android and web half of a platform pair: knip resolves the import to `index.ios.tsx`.
+    "src/ui/components/more-button/index.tsx"
+  ],
+  // Run by Claude Code from .claude/settings.json.
+  "ignoreFiles": [".claude/hooks/**"],
+  "ignoreDependencies": [
+    // Run by .githooks/commit-msg as a binary.
+    "@commitlint/cli",
+    // Optional peers of expo-router, which the lockfile resolves against these copies.
+    "@react-native-masked-view/masked-view",
+    "@testing-library/user-event",
+    "expo-glass-effect",
+    // Nothing imports it, and removing it needs a new native build: an open decision.
+    "expo-apple-authentication"
+  ]
+}

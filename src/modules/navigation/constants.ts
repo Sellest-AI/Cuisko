@@ -7,8 +7,7 @@ export const NAVIGATION_BAR_OFFSET = NAVIGATION_BAR_HEIGHT + 24;
  * How far a modal screen pads its content down so it starts below the close and action buttons,
  * which `app/(modals)/_layout.tsx` floats over the top of every screen.
  */
-export const MODAL_CHROME_HEIGHT = 6 + 44 + Platform.select({ ios: 4, default: 2 });
-export const MODAL_CHROME_OFFSET = MODAL_CHROME_HEIGHT;
+export const MODAL_CHROME_OFFSET = 6 + 44 + Platform.select({ ios: 4, default: 2 });
 
 /** The grabber `app/(modals)/_layout.tsx` draws above the screen, in the flow, and its margins. */
 export const MODAL_GRABBER_HEIGHT = 6;

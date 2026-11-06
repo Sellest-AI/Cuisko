@@ -10,7 +10,7 @@ export const ARM_RESET_WINDOW_MS = 5000;
  * change to "Tap again" at once, and a cook who reads them and taps is answering the button: a longer
  * window swallowed that tap without a sign, and only a third one confirmed.
  */
-export const ARMING_DELAY_MS = 350;
+const ARMING_DELAY_MS = 350;
 
 /**
  * A press that has to be made twice, for an action that cannot be taken back.

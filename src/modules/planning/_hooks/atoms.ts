@@ -24,7 +24,7 @@ import { MAX_DAYS, planDates, type CookingTime, type DraftMeal, type MealSlot } 
  * back to the same values the atom started on and there is one place that says what an unanswered
  * kitchen looks like.
  */
-export const TUNNEL_OFFERS = {
+const TUNNEL_OFFERS = {
   people: 2,
   /**
    * One day short of the full week, so the offer reads as an offer rather than as a ceiling: a

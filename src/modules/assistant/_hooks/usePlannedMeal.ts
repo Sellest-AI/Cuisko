@@ -12,7 +12,7 @@ import { undoneChangesAtom } from "./atoms";
 /** The one line a planned plate has, in `undoneChangesAtom`'s terms. */
 const PLATE = 0;
 
-export type PlannedMealCard = {
+type PlannedMealCard = {
   title: string;
   imageUrl?: string;
   minutes?: number;

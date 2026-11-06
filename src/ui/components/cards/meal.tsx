@@ -17,7 +17,7 @@ import plateShadow from "assets/images/ui/plate-shadow.webp";
  * Neither `empty` nor `skipped` is a failure — one is a plate nobody has filled yet and reads as an
  * invitation, the other a plate nobody cooked, drawn as quietly as an empty one.
  */
-export type MealStatus = "cooked" | "skipped" | "ready" | "shopping-needed" | "empty";
+type MealStatus = "cooked" | "skipped" | "ready" | "shopping-needed" | "empty";
 
 type Props = {
   title: string;

@@ -48,6 +48,3 @@ export const CUISINES = [
 ] as const;
 
 export type Cuisine = (typeof CUISINES)[number];
-
-export const isCuisine = (value: string): value is Cuisine =>
-  CUISINES.some((cuisine) => cuisine === value);

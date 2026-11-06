@@ -132,7 +132,7 @@ const UNIT_LABELS: Record<RecipeUnit, string> = {
  * locale files holds the one they expect, and `formatQuantity` takes a resolver so the module
  * layer can supply it. This stays as the fallback for text nobody localises.
  */
-export const unitLabel = (unit: RecipeUnit) => UNIT_LABELS[unit];
+const unitLabel = (unit: RecipeUnit) => UNIT_LABELS[unit];
 
 /**
  * How many decimals an amount in each unit carries on screen — the precision a kitchen scale or a
@@ -259,7 +259,7 @@ export const formatGroceryQuantity = (
  * it wanted. Two names is the point: reusing the display formatter for data is the mistake this
  * split exists to make visible, and it is the mistake `serializeIngredients` originally made.
  */
-export const exactQuantity = (amount: number, unit: RecipeUnit) => `${amount} ${unit}`;
+const exactQuantity = (amount: number, unit: RecipeUnit) => `${amount} ${unit}`;
 
 /**
  * A quantity is a NUMBER AND ITS UNIT, and the two are answered together or not at all.

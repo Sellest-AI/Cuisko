@@ -6,7 +6,7 @@ import { fitLongSide } from "./fitLongSide";
  * The most a photo may weigh, in bytes. The same 200 KB cooture aims at on the phone, under the
  * 300 KB the server's own 1024px tier would settle for, so the server finds nothing left to do.
  */
-export const UPLOAD_MAX_BYTES = 200 * 1024;
+const UPLOAD_MAX_BYTES = 200 * 1024;
 
 /**
  * Where quality starts: the server ladder's value for a multi-megabyte input, which is what a

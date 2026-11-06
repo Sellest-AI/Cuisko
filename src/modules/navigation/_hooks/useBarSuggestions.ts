@@ -5,7 +5,7 @@ import { useRecipeMatches } from "~/modules/recipes/hooks";
 import { coversTitle, useSuggestions } from "./useSuggestions";
 
 /** What the bar is offering: a food to put on a list, or a dish to go and look at. */
-export type SuggestionKind = "ingredient" | "recipe";
+type SuggestionKind = "ingredient" | "recipe";
 
 /**
  * Which of the two lists the navigation bar shows, and never both.

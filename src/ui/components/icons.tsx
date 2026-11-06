@@ -22,27 +22,22 @@ export type { LucideIcon as IconComponent } from "lucide-react-native";
 
 export {
   ArrowRight, LoaderCircle, Check, CircleDashed, ChevronDown, ChevronUp, ArrowLeftRight,
-  CalendarPlus, Eye, Star, Bell, Camera, Mic, ForkKnife, Plus, ListPlus, Store, ReceiptText,
-  BadgePercent, X, ArrowLeft, Sparkles, Sun, Moon, Minus, Calendar, CircleAlert, CircleCheck, CircleMinus,
-  ThumbsUp, Ellipsis, EllipsisVertical, SlidersHorizontal, Smile, Search, Trash2, MessageCircleWarning, Heart, Share2, SquarePen,
-  FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, Info, DatabaseX, Image, Lightbulb, Pencil, Globe, Lock,
-  LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat, ShoppingBasket, Undo2, Book, Mail, WifiOff, Clipboard
+  CalendarPlus, Camera, Mic, ForkKnife, Plus, ListPlus, Store, X, ArrowLeft, Sparkles, Minus,
+  CircleAlert, CircleCheck, Ellipsis, EllipsisVertical, SlidersHorizontal, Search, Trash2, Heart,
+  Share2, FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, DatabaseX, Image, Lightbulb,
+  Pencil, Globe, Lock, LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat,
+  ShoppingBasket, Undo2, Book, Mail, WifiOff, Clipboard
 } from "lucide";
 export {
-  ArrowRight as ArrowRightIcon, Check as CheckIcon, CircleDashed as CircleDashedIcon,
-  ArrowLeftRight as ArrowLeftRightIcon, CalendarPlusIcon, Eye as EyeIcon,
-  Star as StarIcon, Bell as BellIcon, Camera as CameraIcon, Mic as MicIcon, ForkKnife as ForkKnifeIcon,
-  Plus as PlusIcon, ListPlus as ListPlusIcon, Store as StoreIcon, ReceiptText as ReceiptTextIcon,
-  BadgePercent as BadgePercentIcon, X as XIcon, ArrowLeft as ArrowLeftIcon, Sparkles as SparklesIcon,
-  Sun as SunIcon, Moon as MoonIcon, Minus as MinusIcon, Calendar as CalendarIcon,
-  CircleAlert as CircleAlertIcon, CircleCheck as CircleCheckIcon, CircleMinus as CircleMinusIcon, ThumbsUp as ThumbsUpIcon,
-  EllipsisVertical as EllipsisVerticalIcon, SlidersHorizontal as SlidersHorizontalIcon,
-  Smile as SmileIcon, Search as SearchIcon, Trash2 as Trash2Icon, MessageCircleWarning as MessageCircleWarningIcon,
-  Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon, FileText as FileTextIcon, ListOrdered as ListOrderedIcon,
-  Play as PlayIcon, Pause as PauseIcon, SkipBack as SkipBackIcon, SkipForward as SkipForwardIcon,
-  DatabaseX as DatabaseXIcon, Info as InfoIcon, Image as ImageIcon, LightbulbIcon, PencilIcon, GlobeIcon,
-  ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, FlameIcon, BugOffIcon, ExternalLinkIcon,
-  WifiOff as WifiOffIcon
+  ArrowRight as ArrowRightIcon, Check as CheckIcon,
+  CircleDashed as CircleDashedIcon, ArrowLeftRight as ArrowLeftRightIcon, CalendarPlusIcon,
+  Eye as EyeIcon, Star as StarIcon, ForkKnife as ForkKnifeIcon, Plus as PlusIcon,
+  Store as StoreIcon, ReceiptText as ReceiptTextIcon, Sparkles as SparklesIcon, Sun as SunIcon,
+  Moon as MoonIcon, Calendar as CalendarIcon, CircleAlert as CircleAlertIcon,
+  CircleCheck as CircleCheckIcon, CircleMinus as CircleMinusIcon, ThumbsUp as ThumbsUpIcon,
+  Smile as SmileIcon, Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon,
+  Image as ImageIcon, ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, FlameIcon,
+  BugOffIcon, ExternalLinkIcon
 } from "lucide-react-native";
 
 export { GoogleLogo, AppleLogo, InstagramTile, TikTokTile, WebTile } from "./icons.logos";

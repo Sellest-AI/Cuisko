@@ -23,7 +23,7 @@ import type { AggregatedConstraints, PreferenceValues } from "@shared/preference
 export type ConstraintValue = Diet | Allergen;
 
 /** Whose stored row holds this constraint. `undefined` means nobody has ticked it. */
-export type ConstraintSource = "mine" | "inherited" | "both";
+type ConstraintSource = "mine" | "inherited" | "both";
 
 export type Constraint = {
   value: ConstraintValue;

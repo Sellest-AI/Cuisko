@@ -4,8 +4,6 @@ import { ComponentRef, forwardRef } from "react";
 /** Long enough to read as a fade rather than a pop, short enough not to feel like latency. */
 const TRANSITION_MS = 300;
 
-export const prefetch = ExpoImage.prefetch;
-
 /** `true` and an absent value both mean the default fade; `false` means none; a number is its own. */
 const _transitionMs = (transition: ImageProps["transition"]) => {
   if (transition === false) return 0;
@@ -44,7 +42,7 @@ type ImageSize = {
   hasAlpha?: boolean;
 }
 
-export type ImageObject = ImageSize & {
+type ImageObject = ImageSize & {
   sizes?: {
     thumbnail: ImageSize;
     small: ImageSize;

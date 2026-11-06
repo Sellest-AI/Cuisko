@@ -8,8 +8,6 @@
 export const NOT_HOUSEHOLD = {
   "src/lib/convex/session.ts:authenticatingAtom":
     "whether a sign-in is in flight: about the session, before any household is known",
-  "src/lib/convex/client.ts:cachedAtom":
-    "action results keyed by their arguments, which already carry any householdId they depend on",
   "src/modules/assistant/_hooks/atoms.ts:conversationAtom":
     "the cook's own conversation with Cuisko; every cellar change inside it names its household",
   "src/modules/assistant/_hooks/atoms.ts:pendingQuestionAtom":

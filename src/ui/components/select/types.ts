@@ -7,7 +7,7 @@ import type { ViewStyle } from "react-native";
  * ignores it rather than mapping it onto the nearest lucide glyph — the two sets do not overlap
  * cleanly, and a near-miss icon reads worse than no icon at all.
  */
-export type SelectOption<T extends string = string> = {
+type SelectOption<T extends string = string> = {
   value: T;
   label: string;
   systemImage?: string;

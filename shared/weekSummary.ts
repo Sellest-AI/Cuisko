@@ -13,22 +13,22 @@ import type { IngredientFacts } from "./nutrition";
 export const PERIOD_DAYS = 7;
 
 /** How many of the latest cooked plates the Progress tile draws a bar for. */
-export const RECENT_SCORES = 7;
+const RECENT_SCORES = 7;
 
 /**
  * The share of a day's intake lunch and dinner bring — the two meals Cuisko plans. Breakfast and a
  * snack bring the rest, which is why a plate is not measured against a whole day's needs.
  */
-export const LUNCH_DINNER_SHARE = 0.7;
+const LUNCH_DINNER_SHARE = 0.7;
 
-export const SUMMARY_NUTRIENTS = ["protein", "fat", "carbohydrates", "fiber", "iron"] as const;
-export type SummaryNutrient = (typeof SUMMARY_NUTRIENTS)[number];
+const SUMMARY_NUTRIENTS = ["protein", "fat", "carbohydrates", "fiber", "iron"] as const;
+type SummaryNutrient = (typeof SUMMARY_NUTRIENTS)[number];
 
 /**
  * The EU Reference Intakes for an adult, per day (Regulation 1169/2011, Annex XIII) — fiber from
  * EFSA, which the regulation does not set. Iron in milligrams, the rest in grams.
  */
-export const DAILY_REFERENCE: Record<SummaryNutrient, number> = {
+const DAILY_REFERENCE: Record<SummaryNutrient, number> = {
   iron: 14,
   fat: 70,
   protein: 50,
@@ -41,12 +41,12 @@ export const DAILY_REFERENCE: Record<SummaryNutrient, number> = {
  * not a fault, and a gauge far past its end would read as one (PRODUCT.md §1). Fat is left uncapped:
  * past the reference is the one thing this row exists to show.
  */
-export const CAPPED_NUTRIENTS: readonly SummaryNutrient[] = ["iron", "protein", "fiber", "carbohydrates"];
+const CAPPED_NUTRIENTS: readonly SummaryNutrient[] = ["iron", "protein", "fiber", "carbohydrates"];
 
 /** Where a capped nutrient stops, in percent of its reference: a little past it, never far past. */
-export const CAP_VALUE = 110;
+const CAP_VALUE = 110;
 
-export type WeekSummaryDish = {
+type WeekSummaryDish = {
   plateId: string;
   recipeId: string;
   title: string;

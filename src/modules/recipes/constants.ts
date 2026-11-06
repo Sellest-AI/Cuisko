@@ -24,7 +24,7 @@ export const CONTENT_NEGATIVE_SPACE = 20;
 export const SERVINGS_RESET_DELAY = 500;
 
 /** The gap between the columns of an ingredient grid — the grid itself lays out on the same value. */
-export const COLUMN_GAP = theme.spacing[8];
+const COLUMN_GAP = theme.spacing[8];
 
 /**
  * How wide one column of an ingredient grid is on a screen this wide.

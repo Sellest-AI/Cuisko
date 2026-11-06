@@ -46,7 +46,8 @@
     "check:ratelimits": "node scripts/checks/c16-rate-limits.mjs",
     "check:traces": "node scripts/checks/c17-traces.mjs",
     "check:events": "node scripts/checks/c18-event-senders.mjs",
-    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads && pnpm check:households && pnpm check:recipes && pnpm check:ratelimits && pnpm check:traces && pnpm check:events",
+    "check:unused": "knip",
+    "check": "pnpm check:exports && pnpm check:routers && pnpm check:queries && pnpm check:schema && pnpm check:authtests && pnpm check:docs && pnpm check:codegen && pnpm check:i18n && pnpm check:cycles && pnpm check:tests && pnpm check:search && pnpm check:vocabulary && pnpm check:threads && pnpm check:households && pnpm check:recipes && pnpm check:ratelimits && pnpm check:traces && pnpm check:events && pnpm check:unused",
     "release": "node scripts/release/bump-version.mjs",
     "verify": "pnpm typecheck && pnpm lint && pnpm check && pnpm test",
     "prepare": "git config core.hooksPath .githooks"
@@ -151,6 +152,7 @@
     "fflate": "^0.8.3",
     "ffmpeg-static": "^5.3.0",
     "jsdom": "^30.0.1",
+    "knip": "^6.44.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vitest": "^4.1.12"
