@@ -47,7 +47,7 @@ cuisko/
 │   ├── external/         What lives outside the repo: hosting, accounts, design source.
 │   └── _reference/       Frozen audit of the predecessor. History, not documentation.
 ├── scripts/              Everything run outside the app.
-│   ├── checks/          C1–C18 architectural checks + the `_lib.mjs` they share (`_costs.mjs`: C16's and C17's "what costs money").
+│   ├── checks/          C1–C19 architectural checks + the `_lib.mjs` they share (`_costs.mjs`: C16's and C17's "what costs money").
 │   ├── database/        Scripts that talk to a deployment through a deploy key.
 │   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
@@ -534,6 +534,7 @@ contact with a growing codebase.
 | Every costly operation a cook can call is rate limited (ADR 0018)      | script C16                                        | `pnpm check:ratelimits`  |
 | Every paid call is traced to the route it was made for (ADR 0019)      | script C17                                        | `pnpm check:traces`    |
 | Product events are sent by entry points, never the domain (ADR 0019)   | script C18                                        | `pnpm check:events`    |
+| Every router export has a caller, or a stated reason to have none      | script C19, kept list printed on pass             | `pnpm check:callers`   |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
@@ -546,7 +547,7 @@ what catches a `--no-verify` bypass.
 
 A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4, C6 and C8 against
 the working set at the end of an agent turn, so a violation surfaces one turn after it is written
-rather than at commit time. C5 and C7 are excluded — C5 is legitimately unsatisfied mid-slice, and
+rather than at commit time. C5, C7 and C19 are excluded — C5 and C19 are legitimately unsatisfied mid-slice, and
 C7 needs codegen that cannot be run from an editing turn. **Adding a check means adding it there
 too**; nothing links the two, and a check missing from that list simply stops running early.
 
