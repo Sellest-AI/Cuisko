@@ -16,5 +16,8 @@ export const OFFLINE_ROUTES: readonly string[] = [
   "/offline"
 ];
 
-/** How long the socket must stay down before the app counts as offline: a blip under it is nothing. */
+/**
+ * How long the socket must stay down, with the app in the foreground, before the app counts as
+ * offline: a blip under it is nothing, and neither is the reconnect on the way back from the background.
+ */
 export const OFFLINE_GRACE_MS = 2_000;

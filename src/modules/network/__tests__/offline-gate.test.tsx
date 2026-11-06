@@ -49,6 +49,29 @@ vi.mock("~/modules/auth/hooks", () => ({ useAuth: () => state.auth }));
 
 vi.mock("convex/react", () => ({ useConvexConnectionState: () => state.socket }));
 
+/** The app moving to the background or back, as `AppState` reports it. */
+const appState = vi.hoisted(() => ({
+  current: "active",
+  listeners: new Set<() => void>(),
+}));
+
+vi.mock("react-native", () => ({
+  AppState: {
+    get currentState() {
+      return appState.current;
+    },
+    addEventListener: (_: "change", listener: () => void) => {
+      appState.listeners.add(listener);
+      return { remove: () => appState.listeners.delete(listener) };
+    },
+  },
+}));
+
+const moveAppTo = (next: string) => act(() => {
+  appState.current = next;
+  appState.listeners.forEach((listener) => listener());
+});
+
 /** Opens a route on top of the stack, as a push does. */
 const open = (route: Route) => {
   state.route = route;
@@ -74,6 +97,7 @@ const blockedWith = (from: { pathname: string; params: Record<string, string> })
 
 beforeEach(() => {
   vi.useFakeTimers();
+  appState.current = "active";
   // The app-wide reading lives in Jotai's default store, which outlives a test.
   getDefaultStore().set(isOfflineAtom, false);
   state.route = HOME;
@@ -202,6 +226,24 @@ describe("OfflineGate, mid-session", () => {
     open(RECIPES);
     view.rerender(<OfflineGate />);
 
+    state.socket = { ...state.socket, isWebSocketConnected: true };
+    view.rerender(<OfflineGate />);
+    await pass(OFFLINE_GRACE_MS);
+
+    expect(state.reset).not.toHaveBeenCalled();
+  });
+
+  it("lets a route open on the way back from the background while the socket reconnects", async () => {
+    const view = render(<OfflineGate />);
+    moveAppTo("background");
+    dropSignal();
+    view.rerender(<OfflineGate />);
+    await pass(60_000);
+
+    moveAppTo("active");
+    open(RECIPES);
+    view.rerender(<OfflineGate />);
+    await pass(OFFLINE_GRACE_MS - 500);
     state.socket = { ...state.socket, isWebSocketConnected: true };
     view.rerender(<OfflineGate />);
     await pass(OFFLINE_GRACE_MS);
