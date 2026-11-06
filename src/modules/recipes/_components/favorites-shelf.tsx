@@ -8,7 +8,7 @@ import { theme } from "theme";
 import { COVER_PLACEHOLDER } from "../constants";
 
 /** What a card on the shelf needs, and nothing the row does not draw. Structural — see ADR 0002. */
-export type ShelfRecipe = {
+type ShelfRecipe = {
   id: string;
   title: string;
   /** Already a word, not a key: the shelf does not own the cuisine vocabulary, the screen does. */

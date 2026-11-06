@@ -105,7 +105,7 @@ export const importsInFlightAtom = atom<ReadonlyMap<string, ImportInFlight>>(new
 export const addedWebRecipesAtom = atom<ReadonlyMap<string, ImportedRecipe["recipeId"]>>(new Map());
 
 /** What a verify said: the fixes it made, or that there were none. Read off the action like `ImportedDraft`. */
-export type VerifyOutcome = FunctionReturnType<typeof api.router.recipes.verifyOne.admin>;
+type VerifyOutcome = FunctionReturnType<typeof api.router.recipes.verifyOne.admin>;
 
 /** One recipe's last verify: running since `startedAt`, or what it said, or how it failed. */
 export type Verification =

@@ -8,7 +8,7 @@ import type { Icon } from "../icons";
  * Symbol for the iOS menu, `icon` a lucide glyph for the shared fallback. Either may be left out,
  * and that platform's row then shows its label alone.
  */
-export type MoreAction = {
+type MoreAction = {
   key: string;
   label: string;
   onPress: () => void;

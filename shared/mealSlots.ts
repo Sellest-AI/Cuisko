@@ -13,9 +13,6 @@ export const MEAL_SLOTS = ["lunch", "dinner"] as const;
 
 export type MealSlot = (typeof MEAL_SLOTS)[number];
 
-export const isMealSlot = (value: string): value is MealSlot =>
-  MEAL_SLOTS.some((slot) => slot === value);
-
 /**
  * The local hour a slot is eaten at — the clock a cook is measured against, not a schedule.
  *

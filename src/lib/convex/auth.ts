@@ -1,5 +1,4 @@
-import { useAuthActions as useConvexAuthActions, useAuthToken } from "@convex-dev/auth/react";
-import { useConvexAuth } from "convex/react";
+import { useAuthActions as useConvexAuthActions } from "@convex-dev/auth/react";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useState } from "react";
@@ -106,4 +105,4 @@ export const useAuthActions = () => {
   return { isSubmitting, signIn, signInWithProvider, signOut };
 };
 
-export { useAuthenticated, useAuthToken, useConvexAuth };
+export { useAuthenticated };

@@ -19,8 +19,8 @@ import type { PortableRecipe } from "@convex/schema/recipePayloads";
 import { imageFileNameOf, slugOf } from "../../_lib/folders";
 import { openZip, zipNameOf, zipOf } from "../../_lib/zip";
 
-export const MANIFEST_FILE = "catalog.json";
-export const RECIPE_FILE = "recipe.json";
+const MANIFEST_FILE = "catalog.json";
+const RECIPE_FILE = "recipe.json";
 
 export type CatalogManifest = {
   version: 1;

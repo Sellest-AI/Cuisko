@@ -1,6 +1,7 @@
 import { useAtomValue } from "jotai";
 import { useCallback } from "react";
 
+import { askForReview } from "~/lib/askForReview";
 import { api, type Id } from "~/lib/convex/api";
 import { useMutation } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
@@ -27,6 +28,10 @@ const _ingredient = (id: string) => id as Id<"ingredients">;
  *
  * It resolves `false` rather than throwing, because the only caller is a button in the tunnel bar and
  * a failed write must leave the user on the step with their week intact, not advance them past it.
+ *
+ * A week kept is the moment the app has just done its job, so it is one of the two that ask for a
+ * store review (`askForReview`). After the write and here, not in the tunnel's button: `commit` also
+ * resolves `true` when there was nothing to keep.
  */
 export const usePlanCommit = () => {
   const { householdId } = useHousehold();
@@ -68,6 +73,8 @@ export const usePlanCommit = () => {
           unit: line.unit,
         })),
       });
+
+      askForReview();
 
       return true;
     } catch (error) {

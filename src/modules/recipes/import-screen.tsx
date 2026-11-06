@@ -3,13 +3,14 @@ import { useState } from "react";
 import { Keyboard, LayoutChangeEvent, Platform, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 
 import { ButtonPill } from "@ui/button-pill";
-import { CircleAlert, Globe, Pencil } from "@ui/icons";
+import { CircleAlert, Clipboard, Globe, Pencil } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { Input } from "@ui/input";
 import { Text } from "@ui/text";
 import { theme } from "~/global/theme";
 import { useTranslations } from "translations";
 
+import { useClipboardLink } from "./_hooks/useClipboardLink";
 import { useImportPastedLink } from "./_hooks/useImportPastedLink";
 import { importFailureOf } from "./_model/importFailure";
 
@@ -27,14 +28,25 @@ type Props = {
  *
  * It fetches nothing itself — `_hooks/useImportPastedLink` picks the road: a page becomes a draft
  * for the editor, a reel starts importing and the cook waits on its card in their recipes.
+ *
+ * While the field is empty and the clipboard holds a link, its button pastes that link instead of
+ * importing: an empty field has nothing to import. The paste fills the field and hands the button
+ * back, so the cook sees the address before anything is fetched.
  */
 export const ImportScreen = ({ style, onLayout }: Props) => {
   const t = useTranslations("Recipe");
 
   const [url, setUrl] = useState<string>("");
   const { importFrom, isImporting, error } = useImportPastedLink();
+  const { hasLink, readLink } = useClipboardLink();
 
   const failure = importFailureOf(error);
+  const offersPaste = hasLink && !url;
+
+  const paste = async () => {
+    const link = await readLink();
+    if (link) setUrl(link);
+  };
 
   return (
     <View
@@ -60,8 +72,8 @@ export const ImportScreen = ({ style, onLayout }: Props) => {
       <Text.Lg style={styles.title}>{t("Import.url_title")}</Text.Lg>
       <Input
         isLoading={isImporting}
-        rightIcon={Globe}
-        onRightPress={() => importFrom(url)}
+        rightIcon={offersPaste ? Clipboard : Globe}
+        onRightPress={offersPaste ? paste : () => importFrom(url)}
         onSubmit={() => importFrom(url)}
         onChangeText={setUrl}
         placeholder={t("Import.url_placeholder")}

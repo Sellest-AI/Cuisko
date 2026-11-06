@@ -183,6 +183,4 @@ export const theme = {
   icon: { titleStrokeWidth: 2.3 },
 } as const;
 
-export type Theme = typeof theme;
-
 export const colors = theme.colors;

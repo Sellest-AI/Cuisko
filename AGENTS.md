@@ -16,14 +16,14 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C18 + test — the pre-commit and pre-merge-commit hooks
+pnpm verify        # typecheck + lint + C1–C19 + knip + test — the pre-commit and pre-merge-commit hooks
                    # run this and refuse the commit if it fails. `--no-verify` bypasses them; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
 pnpm test -- <file>  # single test file
 pnpm test:app      # jsdom project only — components, hooks, _model/
 pnpm test:convex   # edge-runtime project only — Convex functions
-pnpm test:scripts  # node project only — the C1–C18 checks, and the database and release scripts
+pnpm test:scripts  # node project only — the C1–C19 checks, and the database and release scripts
 ```
 
 Use the `context-mode` plugin when available: any command whose output you will process rather
@@ -64,28 +64,28 @@ copy silently.
 
 ## Never
 
-| Rule                                                                                     | ADR  |
-| ---------------------------------------------------------------------------------------- | ---- |
-| Never import `convex/_generated/server` outside `convex/procedures.ts`                   | 0001 |
-| Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle)      | 0001 |
-| Never import Convex, `~/modules/*` or `translations` from `src/ui/**`                    | 0002 |
-| Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook           | 0006 |
-| Never import another module's `_hooks/` or `_components/` — use its root or `hooks.ts`   | 0006 |
-| Never define a webhook with bare `httpAction` — use `verifiedWebhook`                    | 0004 |
-| Never default a secret to `''` — env is Zod-validated and throws at boot                 | 0005 |
-| Never gate a security check on its secret being truthy (`if (secret) verify()`)          | 0005 |
-| Never combine `.filter()` with `.paginate()` — put the predicate in the index            | 0007 |
-| Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                     | 0007 |
-| Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`            | 0003 |
-| Never add a `v.id()` field without its cascade index **and** `CASCADE` entry             | 0007 |
-| Never leave a test file no Vitest project collects — a `.tsx` under `convex/` never runs | 0008 |
-| Never add a `_model/` file without its test in that folder's `__tests__/`                | 0008 |
-| Never recompute on the client a derived value the server already ships                   | 0015 |
-| Never hold session state about a household in a plain `atom` — use `householdAtom`       | 0016 |
+| Rule                                                                                           | ADR  |
+| ---------------------------------------------------------------------------------------------- | ---- |
+| Never import `convex/_generated/server` outside `convex/procedures.ts`                         | 0001 |
+| Never import `convex/_generated/api` **inside** `convex/procedures.ts` (type cycle)            | 0001 |
+| Never import Convex, `~/modules/*` or `translations` from `src/ui/**`                          | 0002 |
+| Never call `useQuery` / `useMutation` in `app/**` — screens call a module hook                 | 0006 |
+| Never import another module's `_hooks/` or `_components/` — use its root or `hooks.ts`         | 0006 |
+| Never define a webhook with bare `httpAction` — use `verifiedWebhook`                          | 0004 |
+| Never default a secret to `''` — env is Zod-validated and throws at boot                       | 0005 |
+| Never gate a security check on its secret being truthy (`if (secret) verify()`)                | 0005 |
+| Never combine `.filter()` with `.paginate()` — put the predicate in the index                  | 0007 |
+| Never `ctx.db.query()` without `.withIndex()` / `.withSearchIndex()`                           | 0007 |
+| Never import `isAuthorized` in `router/` — use `ownedQuery` / `ownedMutation`                  | 0003 |
+| Never add a `v.id()` field without its cascade index **and** `CASCADE` entry                   | 0007 |
+| Never leave a test file no Vitest project collects — a `.tsx` under `convex/` never runs       | 0008 |
+| Never add a `_model/` file without its test in that folder's `__tests__/`                      | 0008 |
+| Never recompute on the client a derived value the server already ships                         | 0015 |
+| Never hold session state about a household in a plain `atom` — use `householdAtom`             | 0016 |
 | Never add an `authed` operation that costs money (a model, storage) without `enforceRateLimit` | 0018 |
-| Never write an empty `catch {}`                                                          | —    |
-| Never commit secrets, force-push, or `git commit` unless asked                           | —    |
-| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                   | —    |
+| Never write an empty `catch {}`                                                                | —    |
+| Never commit secrets, force-push, or `git commit` unless asked                                 | —    |
+| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                         | —    |
 
 ## Non-obvious patterns
 
@@ -128,14 +128,18 @@ worktree (deleting data, force-push, `dev`, `main`, the shared stash).
 could not confirm, with where you looked) · **Blocked on you** (what you need from the user), or
 **Next** when nothing is. When a section is empty, leave its heading out entirely.
 
+**Write replies in the spirit of ASD-STE100, about 80% of the way.** Short sentences, one idea each,
+active voice, the same word for the same thing. Skip its dictionary: technical terms stay, and
+fluency wins when a rule makes a sentence worse. This covers your messages, never the app's copy.
+
 **When the user asks for clarification or says they did not understand, change the form, not the
 wording.** Prose that failed once fails again rephrased. Show it instead, picked by the shape of the
 idea:
 
-| The idea is…                             | Show it as                                                                                     |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| a rule or a behaviour                    | a concrete example — the input, and what comes out                                             |
-| a choice between options, a before/after | a table, one row per option or case                                                            |
+| The idea is…                             | Show it as                                                                                      |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| a rule or a behaviour                    | a concrete example — the input, and what comes out                                              |
+| a choice between options, a before/after | a table, one row per option or case                                                             |
 | a flow, a call stack, layers             | a diagram, drawn with your client's visual tool (the Claude app renders no Mermaid), else ASCII |
 
 Build the example from this project — its files, its data (eggs owned, a recipe needing two) —
@@ -170,7 +174,7 @@ How to write the test itself, and where each file goes: `docs/CONVENTIONS.md` §
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C18 scripts + tests).
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C19 scripts + knip + tests).
 
 **Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
 `git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the

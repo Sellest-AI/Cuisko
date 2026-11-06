@@ -24,9 +24,15 @@ type Call = {
   reject: (reason: unknown) => void;
 };
 
-const state = vi.hoisted(() => ({ calls: [] as Call[] }));
+const state = vi.hoisted(() => ({ calls: [] as Call[], reviewAsks: 0 }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
+
+vi.mock("~/lib/askForReview", () => ({
+  askForReview: () => {
+    state.reviewAsks += 1;
+  },
+}));
 
 vi.mock("~/lib/convex/client", () => ({
   useAction: (ref: Parameters<typeof getFunctionName>[0]) => ({
@@ -70,6 +76,7 @@ beforeEach(() => {
   vi.setSystemTime(STARTED_AT);
   store = createStore();
   state.calls = [];
+  state.reviewAsks = 0;
 });
 
 afterEach(() => vi.useRealTimers());
@@ -104,6 +111,17 @@ describe("useImportWebRecipe", () => {
 
     await act(async () => state.calls[1]!.resolve("recipe-1"));
     expect(card.result.current).toMatchObject({ status: "done", recipeId: "recipe-1" });
+  });
+
+  it("asks for a review once the page is saved, and not after the scrape alone", async () => {
+    const { result } = mountCard();
+
+    act(() => result.current.start());
+    await act(async () => state.calls[0]!.resolve(DRAFT));
+    expect(state.reviewAsks).toBe(0);
+
+    await act(async () => state.calls[1]!.resolve("recipe-1"));
+    expect(state.reviewAsks).toBe(1);
   });
 
   it("does not start a second import of the page while the first runs", () => {

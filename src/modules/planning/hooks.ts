@@ -1,1 +1,1 @@
-export { useWeekIdeas, type WeekIdea } from "./_hooks/useWeekIdeas";
+export { useWeekIdeas } from "./_hooks/useWeekIdeas";

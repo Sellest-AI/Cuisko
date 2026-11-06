@@ -49,7 +49,7 @@ type WebRecipeCardProps = {
  * recipe deleted after its add leaves the card done, opening a recipe that is gone, and the page
  * cannot be added again from this card until the app restarts.
  */
-export const WebRecipeCard = ({ recipe, state, progress, errorText, onAdd, onOpen }: WebRecipeCardProps) => {
+const WebRecipeCard = ({ recipe, state, progress, errorText, onAdd, onOpen }: WebRecipeCardProps) => {
   const t = useTranslations("Assistant");
 
   // By character, not UTF-16 unit, so an emoji is never cut in half.

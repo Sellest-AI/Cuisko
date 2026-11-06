@@ -30,6 +30,10 @@ minimumReleaseAgeExclude:
   - expo-image-picker@57.0.11
   - expo-updates@57.0.15
 patchedDependencies:
+  # iOS raises its paste alert on any read, and the module offers no way to ask whether text holds
+  # a link without one, which the import screen needs to offer its paste button. The patch exposes
+  # UIPasteboard's detectPatterns. Drop once expo-clipboard exposes it itself.
+  expo-clipboard@57.0.2: patches/expo-clipboard@57.0.2.patch
   # Pressability drops a press whose measured region is stale (a pinned sticky header on
   # Fabric Android). Drop once React Native ships the fix: react/react-native#57502.
   react-native@0.86.2: patches/react-native@0.86.2.patch

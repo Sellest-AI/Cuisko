@@ -4,7 +4,7 @@
  * Lives in `shared/` because both runtimes need it: the backend to construct errors,
  * the client to branch on `error.data.code` instead of string-matching a message.
  */
-export const ERROR_CODES = [
+const ERROR_CODES = [
   "UNAUTHENTICATED",
   "FORBIDDEN",
   "NOT_FOUND",
@@ -37,7 +37,7 @@ export const ERROR_CODES = [
   "VIDEO_TOO_LARGE",
 ] as const;
 
-export type ErrorCode = (typeof ERROR_CODES)[number];
+type ErrorCode = (typeof ERROR_CODES)[number];
 
 export type AppErrorData = {
   code: ErrorCode;

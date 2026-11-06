@@ -11,8 +11,39 @@
  * What a paste drags in behind the address. A URL may legally end in most of these, so trimming
  * them is a guess — but the guess is right far more often than not for text a human copied out of
  * a sentence, and the cost of being wrong is a link that still resolves on nearly every site.
+ *
+ * Closing brackets are not on the list: `_cutAtStrayBracket` settles them by whether the address
+ * opened them, which needs no guess.
  */
-const TRAILING_PASTE_ARTEFACTS = /[.,;:!?)\]}'"»<>]+$/;
+const TRAILING_PASTE_ARTEFACTS = /[.,;:!?'"»<>]+$/;
+
+/** Each closing bracket, and the opening one that makes it part of the address. */
+const OPENER_OF: Record<string, string> = { ")": "(", "]": "[", "}": "{" };
+
+/**
+ * The address up to the first closing bracket it never opened. That bracket belongs to the text
+ * around the link (`(voir https://a.fr/r)`, `[tarte](https://a.fr/r)suite`), and so does what follows
+ * it. One the address opened stays, or `…/wiki/Tarte_(cuisine)` would point at another page.
+ */
+const _cutAtStrayBracket = (link: string): string => {
+  const opened = new Map<string, number>();
+
+  for (let index = 0; index < link.length; index += 1) {
+    const char = link.charAt(index);
+    const opener = OPENER_OF[char];
+
+    if (!opener) {
+      opened.set(char, (opened.get(char) ?? 0) + 1);
+      continue;
+    }
+
+    const depth = opened.get(opener) ?? 0;
+    if (depth === 0) return link.slice(0, index);
+    opened.set(opener, depth - 1);
+  }
+
+  return link;
+};
 
 /** An explicit scheme, and its authority. The `//` is what separates it from a `host:port`. */
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
@@ -43,7 +74,7 @@ const LINK_IN_TEXT = /https?:\/\/\S+/i;
  */
 export const httpUrlOf = (text: string): string | undefined => {
   const link = /\s/.test(text.trim()) ? (LINK_IN_TEXT.exec(text)?.[0] ?? text) : text;
-  const trimmed = link.trim().replace(TRAILING_PASTE_ARTEFACTS, "");
+  const trimmed = _cutAtStrayBracket(link.trim()).replace(TRAILING_PASTE_ARTEFACTS, "");
   if (!trimmed) return undefined;
 
   const candidate = HAS_SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`;

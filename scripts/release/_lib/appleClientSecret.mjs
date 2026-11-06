@@ -9,7 +9,11 @@
 import { Buffer } from "node:buffer";
 import { createPrivateKey, sign } from "node:crypto";
 
-/** Apple's cap is 15777000 s, a little over 182 days; 180 keeps clear of it. */
+/**
+ * Apple's cap is 15777000 s, a little over 182 days; 180 keeps clear of it.
+ *
+ * @public read by its test through `import * as`, which knip cannot follow.
+ */
 export const LIFETIME_S = 180 * 24 * 60 * 60;
 
 const AUDIENCE = "https://appleid.apple.com";

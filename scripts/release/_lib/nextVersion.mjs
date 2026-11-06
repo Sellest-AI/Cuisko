@@ -27,6 +27,7 @@ const _bumpOf = (message) => {
  * @param {string[]} messages  full commit messages since the last release
  * @param {"patch" | "minor" | "major"} [forced]  a human's choice, which wins over the commits
  * @returns {string}
+ * @public read by its test through `import * as`, which knip cannot follow.
  */
 export const nextVersion = (current, messages, forced) => {
   const parts = /^(\d+)\.(\d+)\.(\d+)$/.exec(current);

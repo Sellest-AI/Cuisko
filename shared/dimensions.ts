@@ -1,23 +1,11 @@
-export const DEFAULT_RESOLUTIONS = ["480p", "720p", "1080p"] satisfies `${string}p`[];
 
-export const aspectRatiosDimensions = {
-  ["9:21"]: { width: 640, height: 1536 },
-  ["9:16"]: { width: 768, height: 1344 },
-  ["2:3"]: { width: 832, height: 1216 },
-  ["3:4"]: { width: 896, height: 1152 },
-  ["1:1"]: { width: 1024, height: 1024 },
-  ["4:3"]: { width: 1152, height: 896 },
-  ["3:2"]: { width: 1216, height: 832 },
-  ["16:9"]: { width: 1344, height: 768 },
-  ["21:9"]: { width: 1536, height: 640 },
-} as const;
 
 type Dimensions = {
   width: number;
   height: number;
 }
 
-export type AspectRatio = keyof typeof aspectRatiosDimensions;
+export type AspectRatio = "9:21" | "9:16" | "2:3" | "3:4" | "1:1" | "4:3" | "3:2" | "16:9" | "21:9";
 
 const commonRatios = [
   { ratio: 16 / 9, label: "16:9" },

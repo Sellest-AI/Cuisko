@@ -1,5 +1,7 @@
 import type { useStore } from "jotai";
 
+import { askForReview } from "~/lib/askForReview";
+
 import { isConnectionLost } from "../_model/importFailure";
 
 import { type ImportedRecipe, type ImportInFlight, importsInFlightAtom } from "./atoms";
@@ -38,6 +40,14 @@ type Options = {
  * Another cook's recipe (`isOwned: false`) is favorited inside the pending promise, before anyone
  * waiting on it hears the answer, so a recipe that opens is already on this cook's shelf. Once, by
  * the start that ran the import, however many callers joined it. `favorite` holds its own failure.
+ *
+ * A landed import may ask for a store review (`askForReview`), on the same terms: once, by the start
+ * that ran it.
+ *
+ * @limitation A reel lands minutes after it started, so the sheet can open over whatever the cook is
+ * doing by then, step-by-step mode included. **Accepted because** it takes a landing and an available
+ * ask at the same moment, and an ask comes at most once in 122 days. **Until fixed**, it can interrupt
+ * a cook at the stove. **The fix** is to hold the ask until the cook is back on their recipes.
  */
 export const startImport = (
   store: Store,
@@ -48,6 +58,7 @@ export const startImport = (
 
   const recipe = run().then(async (imported) => {
     if (!imported.isOwned) await favorite(imported.recipeId);
+    askForReview();
     return imported;
   });
   const entry: ImportInFlight = { url, startedAt: Date.now(), expectedMs, status: "importing", recipe };

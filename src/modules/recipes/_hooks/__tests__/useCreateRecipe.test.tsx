@@ -17,6 +17,7 @@ const state = vi.hoisted(() => ({
   calls: 0,
   settle: undefined as { resolve: (id: string) => void; reject: (reason: unknown) => void } | undefined,
   replaced: [] as string[],
+  reviewAsks: 0,
 }));
 
 vi.mock("expo-router", () => ({
@@ -24,6 +25,12 @@ vi.mock("expo-router", () => ({
 }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
+
+vi.mock("~/lib/askForReview", () => ({
+  askForReview: () => {
+    state.reviewAsks += 1;
+  },
+}));
 
 vi.mock("~/lib/convex/client", () => ({
   useAction: () => ({
@@ -43,6 +50,7 @@ beforeEach(() => {
   state.calls = 0;
   state.settle = undefined;
   state.replaced = [];
+  state.reviewAsks = 0;
 });
 
 describe("useCreateRecipe", () => {
@@ -100,5 +108,35 @@ describe("useCreateRecipe", () => {
     await waitFor(() => expect(result.current.isCreating).toBe(false));
     expect(result.current.error).toBe(failure);
     expect(state.replaced).toEqual([]);
+  });
+
+  it("asks for a review once a saved draft came from an import", async () => {
+    const { result } = renderHook(() => useCreateRecipe());
+
+    act(() => void result.current.create({ ...DRAFT, sourceUrl: "https://www.marmiton.org/soupe" }));
+    await waitFor(() => expect(result.current.isCreating).toBe(true));
+    await act(async () => state.settle!.resolve("recipe-1"));
+
+    expect(state.reviewAsks).toBe(1);
+  });
+
+  it("does not ask for a review after a recipe typed by hand", async () => {
+    const { result } = renderHook(() => useCreateRecipe());
+
+    act(() => void result.current.create(DRAFT));
+    await waitFor(() => expect(result.current.isCreating).toBe(true));
+    await act(async () => state.settle!.resolve("recipe-1"));
+
+    expect(state.reviewAsks).toBe(0);
+  });
+
+  it("does not ask for a review when the save of an import fails", async () => {
+    const { result } = renderHook(() => useCreateRecipe());
+
+    act(() => void result.current.create({ ...DRAFT, sourceUrl: "https://www.marmiton.org/soupe" }));
+    await waitFor(() => expect(result.current.isCreating).toBe(true));
+    await act(async () => state.settle!.reject(new Error("the agent was unreachable")));
+
+    expect(state.reviewAsks).toBe(0);
   });
 });

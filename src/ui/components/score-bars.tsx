@@ -16,7 +16,7 @@ const SCORE_STEPS: readonly { from: number; color: string }[] = [
 ];
 
 /** The colour a 0–100 score takes, from danger at the bottom to success at the top. */
-export const scoreColor = (score: number) =>
+const scoreColor = (score: number) =>
   SCORE_STEPS.find((step) => score >= step.from)?.color ?? theme.colors.danger.elevated;
 
 type Props = {

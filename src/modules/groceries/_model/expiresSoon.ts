@@ -1,7 +1,7 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Under this many days left, a cellar card shows its clock. */
-export const EXPIRES_SOON_DAYS = 5;
+const EXPIRES_SOON_DAYS = 5;
 
 /**
  * Whether a cellar row is close enough to its date to show the clock: under `EXPIRES_SOON_DAYS`

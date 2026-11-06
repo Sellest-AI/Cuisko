@@ -38,7 +38,7 @@ import { MEAL_SLOTS } from "@shared/mealSlots";
  * A tool part is named `tool-${name}` by the AI SDK, where `name` is the key the tool is registered
  * under in `answerTurn.ts` — which is why both ends read it from `ASSISTANT_TOOLS`.
  */
-export type MessagePart = {
+type MessagePart = {
   type: string;
   /** Present on tool parts: the call's id, stable from the moment the model starts writing it. */
   toolCallId?: string;

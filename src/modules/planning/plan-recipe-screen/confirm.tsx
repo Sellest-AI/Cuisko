@@ -10,7 +10,7 @@ import { useTranslations } from "translations";
 const PLATE_SIZE = 96;
 
 /** A dish as the swap draws it: its plate. The name goes into the sentence, not under the picture. */
-export type Dish = { imageSrc: ImageProps["source"] };
+type Dish = { imageSrc: ImageProps["source"] };
 
 type Props = {
   previous: Dish;

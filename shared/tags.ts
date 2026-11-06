@@ -133,8 +133,6 @@ export type AuthoredTag = (typeof AUTHORED_TAGS)[number];
 /** The half of the vocabulary that is derived from the rows, never written by a model or a cook. */
 export type ComputedTag = (typeof COMPUTED_TAGS)[number];
 
-export const isTag = (value: string): value is Tag => TAGS.some((tag) => tag === value);
-
 /**
  * Which diets a recipe is SUITABLE FOR, from the diet of each of its lines.
  *

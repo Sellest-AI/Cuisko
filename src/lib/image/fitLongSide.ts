@@ -1,5 +1,5 @@
 /** The long side of a photo sent to Cuisko, in pixels. Enough to read a shelf, small enough to send. */
-export const UPLOAD_LONG_SIDE = 1024;
+const UPLOAD_LONG_SIDE = 1024;
 
 /**
  * The size to resize to so the long side is `max`, or `undefined` when it already fits.

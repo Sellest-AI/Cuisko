@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import type { FunctionArgs } from "convex/server";
 
 import { useLocale } from "~/hooks/useLocale";
+import { askForReview } from "~/lib/askForReview";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
@@ -41,6 +42,9 @@ const _omitBlank = (value?: string) => value?.trim() || undefined;
  * nothing left to wait for and nothing for the editor to decide. `replace` rather than `push`, so
  * Back returns to the list and not to a form that has already been submitted.
  *
+ * A draft with a `sourceUrl` came from an import, and this save is where that import lands: it may
+ * ask for a store review (`askForReview`), which a recipe typed by hand does not.
+ *
  * A failure leaves the cook on their own typed text with nothing lost. That is also why the overlay
  * covers the editor rather than replacing it, and why there is no `creating` route.
  */
@@ -76,6 +80,7 @@ export const useCreateRecipe = () => {
 
         setStatus("done");
         router.replace(`/recipe/${recipeId}`);
+        if (draft.sourceUrl) askForReview();
       } catch (caught) {
         setError(caught);
         setStatus("failed");
