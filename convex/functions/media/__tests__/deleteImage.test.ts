@@ -4,9 +4,7 @@ import { describe, expect, test } from "vitest";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { deleteImageRowsAfterFilesRemoved } from "../deleteImage";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 const imageRow = (url: string) => ({
   hasAlpha: false,

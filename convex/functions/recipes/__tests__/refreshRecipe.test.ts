@@ -2,14 +2,12 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Tag } from "@shared/tags";
 
 import schema from "../../../schema";
 import { refreshRecipe } from "../refreshRecipe";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 let t: ReturnType<typeof convexTest>;
 

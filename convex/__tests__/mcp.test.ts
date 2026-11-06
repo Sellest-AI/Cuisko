@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { api, components, internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { planPlate } from "../functions/mcp/planPlate";
 import { enforceRateLimit } from "../functions/rateLimits/enforceRateLimit";
 import { registerMcp, warmMcp } from "../lib/__tests__/mcp.fixtures";
@@ -12,9 +13,6 @@ import { registerRateLimiter, warmRateLimiter } from "../lib/__tests__/rateLimit
 import { RATE_LIMITS } from "../lib/rateLimits";
 import { mcp } from "../mcp";
 import schema from "../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Imports the routes, the mount file, what a tool runs and the components before any test is timed (C10 rule 4). */
 beforeAll(() =>

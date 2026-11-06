@@ -256,6 +256,15 @@ const reachedBy = (module, mocked) => {
 
 for (const file of listFiles(path.join(ROOT, "convex"), ".test.ts")) {
   const source = readFileSync(file, "utf8");
+
+  if (/\bimport\.meta\.glob\(/.test(codeOf(file) ?? "")) {
+    findings.push({
+      file: relative(file),
+      message: "Expands its own glob. One copy per test file took a full run from 52 s to 75 s.",
+      fix: 'Import the shared one: `import { modules } from "@convex/lib/__tests__/modules.fixtures";`.',
+    });
+  }
+
   if (!source.includes("convexTest(")) continue;
 
   const references = [...source.matchAll(new RegExp(REFERENCE, "g"))].map((match) => match[0].split("."));

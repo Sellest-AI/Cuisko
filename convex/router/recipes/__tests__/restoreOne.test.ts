@@ -7,9 +7,7 @@ import { facetsOf } from "@shared/tags";
 
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /**
  * The resolver is mocked, as `createOne.test.ts` mocks it: what it does with a name is its own

@@ -2,13 +2,11 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 import { api } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 const capture = vi.hoisted(() => vi.fn());
 vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));

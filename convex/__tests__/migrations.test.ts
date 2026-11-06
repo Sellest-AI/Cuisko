@@ -4,6 +4,7 @@ import { defineSchema } from "convex/server";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { internal } from "@convex/_generated/api";
 import schema from "../schema";
 import { cascadeDelete } from "../functions/cascade";
@@ -13,9 +14,6 @@ import { ingredients } from "../schema/ingredients";
 import { plannedMealIngredients } from "../schema/planning";
 import type { RecipeStatus } from "../schema/recipes";
 import { recipeContents, recipeIngredients, recipes } from "../schema/recipes";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts.

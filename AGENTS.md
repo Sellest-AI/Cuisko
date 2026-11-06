@@ -175,6 +175,8 @@ Run this **every time**, before staging, on every changed file. Do not skip it b
 small — most defects this catches are one-line changes.
 
 **Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C19 scripts + knip + tests).
+Run it before the reviews, and do not run it again before committing: the hook does. Run it by
+hand afterwards only when nothing will be committed.
 
 **Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
 `git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the
@@ -285,7 +287,7 @@ duplicated shape). Each round, verify every finding (Step 5), then:
 A fix obeys the rest of this file: one that turns an existing test red stops the loop ([Tests](#tests)).
 Then continue the same reviewer with `SendMessage`: `round n`, each finding marked fixed, left or
 declined, with a reason for the last two. The loop ends on a clean round, after round 3, or when a
-round fixed nothing. Then `pnpm verify` if anything changed, Step 4 on the fixed diff, and report:
+round fixed nothing. Then Step 4 on the fixed diff, and report:
 
 ```
 Architecture review: 3 rounds, 3 fixed, 2 left, 1 declined

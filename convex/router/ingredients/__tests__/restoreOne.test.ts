@@ -5,11 +5,9 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { PortableIngredient } from "@convex/schema/ingredientPayloads";
 
 import { drainScheduled } from "../../../__tests__/scheduler.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * The upload is mocked: past it lie `sharp` and the bucket, real I/O this project does not stub.

@@ -6,10 +6,8 @@ import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { loadRecipeContent } from "../../../functions/recipes/recipeContent";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /** @convex-dev/auth encodes identity as `<userId>|<sessionId>`; getAuthUserId reads the first half. */
 const asUser = (userId: string) => ({ subject: `${userId}|test-session` });

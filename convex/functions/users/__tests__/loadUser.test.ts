@@ -3,9 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import schema from "../../../schema";
 import { loadUser } from "../loadUser";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 describe("functions/users/loadUser", () => {
   test("merges the auth row and the extended row", async () => {

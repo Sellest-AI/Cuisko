@@ -8,9 +8,7 @@ import {
   loadCatalogIngredients,
   toCatalogIngredient,
 } from "../catalogIngredient";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 const ingredientRow = (over: Partial<Doc<"ingredients">> = {}) => ({
   name: { values: { en: "Potato", fr: "Pomme de terre" }, meta: {} },

@@ -4,9 +4,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { REVIEW_ACCOUNT } from "../../../functions/auth/reviewAccount";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/__tests__/getAccount.test.ts.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /** See router/users/__tests__/getMe.test.ts for why the module graph is loaded before the first test. */
 beforeAll(() =>

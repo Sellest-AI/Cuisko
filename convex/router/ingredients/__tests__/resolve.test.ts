@@ -3,6 +3,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { drainScheduled } from "../../../__tests__/scheduler.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { api, internal } from "../../../_generated/api";
 import { wrapAgent } from "../../../agent/utils";
 import type { Id } from "../../../_generated/dataModel";
@@ -10,9 +11,6 @@ import { createIngredient } from "../../../functions/ingredients/createIngredien
 import schema from "../../../schema";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
 import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * The model calls this action can make, mocked so a test can assert on WHETHER each ran and on

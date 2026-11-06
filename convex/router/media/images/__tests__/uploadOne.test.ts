@@ -3,11 +3,9 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { api } from "../../../../_generated/api";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../../lib/__tests__/rateLimiter.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 import schema from "../../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * Imports the module under test before any test is timed, so the first one is not billed for the

@@ -2,13 +2,11 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { draftMeal } from "../draftMeal";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 const DAY = 86_400_000;
 const TODAY = 1_700_000_000_000;

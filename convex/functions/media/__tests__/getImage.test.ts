@@ -4,9 +4,7 @@ import { describe, expect, test } from "vitest";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { getImage, getImageWithObjects } from "../getImage";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 const image = (over: Partial<{ url: string; width: number; height: number; size: number }> = {}) => ({
   hasAlpha: false,

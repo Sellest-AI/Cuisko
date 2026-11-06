@@ -2,13 +2,12 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { RecipeStatus } from "@convex/schema/recipes";
 
 import schema from "../../../schema";
 import { listUnreviewedCatalog } from "../listUnreviewedCatalog";
-
-const modules = import.meta.glob("/convex/**/*.*s");
 
 let t: ReturnType<typeof convexTest>;
 

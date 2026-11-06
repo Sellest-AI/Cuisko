@@ -4,9 +4,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
 import { CATALOG } from "../../../functions/ingredients/ingredientCatalog";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /**
  * Imports the module under test before any test is timed, so the first one is not billed for the

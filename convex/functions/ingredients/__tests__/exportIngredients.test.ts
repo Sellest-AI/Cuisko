@@ -5,8 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 
 import schema from "../../../schema";
 import { exportIngredients } from "../exportIngredients";
-
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 let t: ReturnType<typeof convexTest>;
 

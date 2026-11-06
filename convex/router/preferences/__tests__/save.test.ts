@@ -5,9 +5,7 @@ import type { PreferenceValues } from "@shared/preferences";
 
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /**
  * Imports the module under test before any test is timed, so the first one is not billed for the

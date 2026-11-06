@@ -4,9 +4,7 @@ import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../../../_generated/api";
 import type { FindWebRecipeOutcome } from "../../../functions/webRecipes/findWebRecipe";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /**
  * The search itself, replaced: it reaches `cheerio` and `recipe-scrapers`, and its steps, bar and

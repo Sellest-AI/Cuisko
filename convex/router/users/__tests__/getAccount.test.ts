@@ -4,13 +4,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 
 import { internal } from "../../../_generated/api";
 import schema from "../../../schema";
-
-// Root-anchored on purpose. A relative pattern (`../../../**`) makes Vite emit shortest-relative
-// keys — `../getAccount.ts` for a near file but `../../../_generated/api.js` for a far one — and
-// convex-test resolves functions by gluing one prefix onto the function path, so the near files
-// silently go missing. A leading `/` is resolved against the Vite root, giving every key the same
-// `/convex/` prefix. `*.*s` (not `*.ts`) so the generated `.js` modules come along too.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
 beforeAll(() =>

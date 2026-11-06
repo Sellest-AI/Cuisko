@@ -2,14 +2,12 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 import type { Id } from "../../../_generated/dataModel";
 import { api, internal } from "../../../_generated/api";
 import { skipAt } from "../../../functions/planning/skipMeal";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Imports the module under test before any test is timed — see commit.test.ts. */
 beforeAll(() =>

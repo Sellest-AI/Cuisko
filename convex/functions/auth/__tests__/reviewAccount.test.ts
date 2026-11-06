@@ -5,9 +5,7 @@ import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { REVIEW_ACCOUNT, reviewWindow } from "../reviewAccount";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 /** Warms `auth.ts` before anything is timed: the sign-in tests go through its `store` (C10). */
 beforeAll(() =>

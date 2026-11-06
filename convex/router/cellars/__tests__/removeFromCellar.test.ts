@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { UNDO_WINDOW_MS } from "@shared/groceries";
 import type { Unit } from "@shared/ingredients";
 
@@ -11,9 +12,6 @@ import schema from "../../../schema";
 
 const capture = vi.hoisted(() => vi.fn());
 vi.mock("@convex/lib/posthog/client", () => ({ posthog: { capture } }));
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * Imports the module under test before any test is timed, so the first one is not billed for the

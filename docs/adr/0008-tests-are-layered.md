@@ -106,7 +106,9 @@ check beats a rule that reads better.
 
 ## The first test pays for the import
 
-Every `convex-test` file hands the runner `import.meta.glob("/convex/**/*.*s")` — **lazy** loaders,
+Every `convex-test` file hands the runner `modules` from `lib/__tests__/modules.fixtures.ts`, the
+one `import.meta.glob("/convex/**/*.*s")` — C10 refuses a test file expanding its own, because 127
+copies took a full run from 52s to 75s. They are **lazy** loaders,
 one per backend module. A test that calls a function through `api.` / `internal.` makes the runner
 resolve that path, and the module graph beneath it is transformed and instantiated on that call:
 charged to whichever test made it, against that test's own 5s timeout. Almost always the first test

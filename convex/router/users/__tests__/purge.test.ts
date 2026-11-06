@@ -3,6 +3,7 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 import { assistantAgent } from "../../../agent/agents";
 import { api, components, internal } from "../../../_generated/api";
@@ -11,9 +12,6 @@ import { REVIEW_ACCOUNT } from "../../../functions/auth/reviewAccount";
 import { loadUser } from "../../../functions/users/loadUser";
 import { registerMcp, warmMcp } from "../../../lib/__tests__/mcp.fixtures";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /**
  * Imports the modules under test before any test is timed — see getMe.test.ts. The agent component

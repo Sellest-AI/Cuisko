@@ -8,9 +8,7 @@ import {
   INVITE_CODE_LENGTH,
   normalizeInviteCode,
 } from "../inviteCode";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 describe("functions/households/inviteCode", () => {
   test("the alphabet has none of the glyphs that read as another", () => {

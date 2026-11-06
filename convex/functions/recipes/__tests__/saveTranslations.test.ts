@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { TranslatedRecipe } from "@convex/agent/tools/translateRecipe";
 import { hashText } from "@convex/lib/i18n";
@@ -9,9 +10,6 @@ import type { Localized } from "@convex/schema/i18n";
 
 import schema from "../../../schema";
 import { saveTranslations } from "../saveTranslations";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 let t: ReturnType<typeof convexTest>;
 

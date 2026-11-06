@@ -4,11 +4,9 @@ import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 import type { Id } from "../../../_generated/dataModel";
 import { ADMIN_MULTIPLIER, RATE_LIMITS } from "../../../lib/rateLimits";
 import { registerRateLimiter, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import schema from "../../../schema";
 import { enforceRateLimit } from "../enforceRateLimit";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 beforeAll(warmRateLimiter);
 

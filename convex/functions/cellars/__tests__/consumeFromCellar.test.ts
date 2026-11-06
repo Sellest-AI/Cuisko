@@ -8,9 +8,7 @@ import schema from "../../../schema";
 import { scaleLines } from "../../planning/scaleLines";
 import type { Need } from "../../planning/selectMeals";
 import { consumeFromCellar } from "../consumeFromCellar";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 let t: ReturnType<typeof convexTest>;
 

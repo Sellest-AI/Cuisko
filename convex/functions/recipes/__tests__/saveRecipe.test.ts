@@ -7,9 +7,7 @@ import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import schema from "../../../schema";
 import type { RecipeLink } from "../resolveRecipeIngredients";
 import { saveRecipe } from "../saveRecipe";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 let t: ReturnType<typeof convexTest>;
 let userId: string;

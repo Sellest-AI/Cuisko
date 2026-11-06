@@ -4,9 +4,7 @@ import { describe, expect, test } from "vitest";
 import type { Id } from "../../../_generated/dataModel";
 import schema from "../../../schema";
 import { saveImage, saveImageSize } from "../saveImage";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 const args = (over: Record<string, unknown> = {}) => ({
   url: "https://cdn.test/a.webp",

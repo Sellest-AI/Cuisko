@@ -150,10 +150,27 @@ describe("3 — every test sits in a __tests__/ folder", () => {
 describe("4 — a convex-test file calling through the lazy glob warms its module first", () => {
   const file = "convex/router/recipes/__tests__/getOne.test.ts";
   const viaGlob = `
-    const modules = import.meta.glob("/convex/**/*.*s");
+    import { modules } from "@convex/lib/__tests__/modules.fixtures";
     const t = convexTest(schema, modules);
     it('x', () => t.query(api.router.recipes.getOne.authed, {}));
   `;
+
+  /** 127 files each expanding the glob took a full run from 52 s to 75 s. One paste starts that again. */
+  it("rejects a test file that expands its own glob", () => {
+    const { code, output } = runC10(
+      { [file]: `const modules = import.meta.glob("/convex/**/*.*s"); beforeAll(() => {});` },
+      [file],
+    );
+
+    expect(code).toBe(1);
+    expect(output).toContain("modules.fixtures");
+  });
+
+  it("does not read a glob named in a comment as one", () => {
+    const { code } = runC10({ [file]: `/* import.meta.glob("/convex/**") is lazy. */ const x = 1;` }, [file]);
+
+    expect(code).toBe(0);
+  });
 
   it("rejects a file that calls api.* with no beforeAll", () => {
     const { code, output } = runC10({ [file]: viaGlob }, [file]);
@@ -183,7 +200,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
   describe("a warm-up filtered by path covers every module the file calls", () => {
     const leave = "convex/router/households/__tests__/leave.test.ts";
     const warming = (...prefixes: string[]) => `
-      const modules = import.meta.glob("/convex/**/*.*s");
+      import { modules } from "@convex/lib/__tests__/modules.fixtures";
       beforeAll(() => Promise.all(Object.entries(modules)
         .filter(([path]) => ${prefixes.map((p) => `path.startsWith("${p}")`).join(" || ")})
         .map(([, load]) => load())));
@@ -249,7 +266,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
       await ctx.scheduler.runAfter(0, internal.router.recipes.importOne._internal, {});
     `;
     const warming = (...prefixes: string[]) => `
-      const modules = import.meta.glob("/convex/**/*.*s");
+      import { modules } from "@convex/lib/__tests__/modules.fixtures";
       beforeAll(() => Promise.all(Object.entries(modules)
         .filter(([path]) => ${prefixes.map((p) => `path.startsWith("${p}")`).join(" || ")})
         .map(([, load]) => load())));
@@ -394,7 +411,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
     /** recipes/importVideo.test.ts warmed through a regex, and lost two modules without a word. */
     describe("a warm-up C10 cannot read", () => {
       const filtered = (filter: string) => `
-        const modules = import.meta.glob("/convex/**/*.*s");
+        import { modules } from "@convex/lib/__tests__/modules.fixtures";
         beforeAll(() => Promise.all(Object.entries(modules).filter(${filter}).map(([, load]) => load())));
         const t = convexTest(schema, modules);
         it('x', () => t.action(api.router.recipes.verifyOne.admin, {}));
@@ -441,7 +458,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
     /** The wrapper loads `getAccount` itself, so C10 reads what it is handed and adds that. */
     describe("a warm-up through `warmActions`", () => {
       const through = (...prefixes: string[]) => `
-        const modules = import.meta.glob("/convex/**/*.*s");
+        import { modules } from "@convex/lib/__tests__/modules.fixtures";
         beforeAll(() => warmActions(modules, ${prefixes.map((p) => `"${p}"`).join(", ")}).then(warmRateLimiter));
         const t = convexTest(schema, modules);
         it('x', () => t.action(api.router.recipes.verifyOne.authed, {}));
@@ -549,7 +566,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
       beforeAll(() => Promise.all(Object.entries(modules)
         .filter(([path]) => path.startsWith("/convex/router/"))
         .map(([, load]) => load())));
-      const modules = import.meta.glob("/convex/**/*.*s");
+      import { modules } from "@convex/lib/__tests__/modules.fixtures";
       const t = convexTest(schema, modules);
       it('x', () => ${call});
     `;
@@ -588,7 +605,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
             beforeAll(() => Promise.all(Object.entries(modules)
               .filter(([path]) => path.startsWith("/convex/migrations."))
               .map(([, load]) => load())));
-            const modules = import.meta.glob("/convex/**/*.*s");
+            import { modules } from "@convex/lib/__tests__/modules.fixtures";
             const t = convexTest(schema, modules);
             it('x', () => t.mutation(internal.migrations.runScheduleSkips, {}));
           `,
@@ -605,7 +622,7 @@ describe("4 — a convex-test file calling through the lazy glob warms its modul
     const { code } = runC10(
       {
         [direct]: `
-          const modules = import.meta.glob("/convex/**/*.*s");
+          import { modules } from "@convex/lib/__tests__/modules.fixtures";
           const t = convexTest(schema, modules);
           it('x', () => t.run((ctx) => loadRecipe(ctx, {})));
         `,

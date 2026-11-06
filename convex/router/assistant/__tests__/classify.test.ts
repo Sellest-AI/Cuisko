@@ -4,10 +4,8 @@ import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
 import { registerRateLimiter, rateLimitedCook, warmRateLimiter } from "../../../lib/__tests__/rateLimiter.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Where a recorded call ends up. Mocked so a test can read the events and nothing is scheduled. */
 const capture = vi.hoisted(() => vi.fn());

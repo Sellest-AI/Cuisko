@@ -5,8 +5,7 @@ import type { PortableIngredient } from "@convex/schema/ingredientPayloads";
 
 import schema from "../../../schema";
 import { persistRestoredIngredient } from "../persistRestoredIngredient";
-
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 const portable: PortableIngredient = {
   origin: { ingredientId: "other-deployment-id", creationTime: 1 },

@@ -2,6 +2,7 @@ import { convexTest, type TestConvex } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { PortableRecipe } from "@convex/schema/recipePayloads";
@@ -13,8 +14,6 @@ import { exportCatalog } from "../exportCatalog";
 import { recipeSearchText } from "../recipeSearchText";
 import type { RecipeLink } from "../resolveRecipeIngredients";
 import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
-
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
 beforeAll(() =>

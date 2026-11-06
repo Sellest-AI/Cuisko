@@ -3,9 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import schema from "../../../schema";
 import { scheduleImageTreeDeletion } from "../imageTree";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 
 const imageRow = (url: string) => ({
   hasAlpha: false,

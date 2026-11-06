@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
+import { modules } from "@convex/lib/__tests__/modules.fixtures";
 import type { Equipment } from "@shared/equipments";
 import type { NutritionPreference } from "@shared/preferences";
 import type { Tag } from "@shared/tags";
@@ -9,9 +10,6 @@ import type { Tag } from "@shared/tags";
 import type { Id } from "../../../_generated/dataModel";
 import { api } from "../../../_generated/api";
 import schema from "../../../schema";
-
-// Root-anchored so every key shares one `/convex/` prefix — see users/getAccount.test.ts for why.
-const modules = import.meta.glob("/convex/**/*.*s");
 
 /** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
 beforeAll(() =>
