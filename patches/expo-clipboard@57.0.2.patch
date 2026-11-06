@@ -1,0 +1,80 @@
+diff --git a/build/Clipboard.d.ts b/build/Clipboard.d.ts
+--- a/build/Clipboard.d.ts
++++ b/build/Clipboard.d.ts
+@@ -40,6 +40,13 @@ export declare function hasStringAsync(): Promise<boolean>;
+  * @platform macos
+  */
+ export declare function getUrlAsync(): Promise<string | null>;
++/**
++ * Whether the clipboard holds a web link, alone or inside text, without reading it, so without
++ * raising the system's paste alert.
++ *
++ * @platform ios
++ */
++export declare function hasWebLinkAsync(): Promise<boolean>;
+ /**
+  * Sets a URL in the user's clipboard.
+  *
+diff --git a/build/Clipboard.js b/build/Clipboard.js
+--- a/build/Clipboard.js
++++ b/build/Clipboard.js
+@@ -43,6 +43,18 @@ export function hasStringAsync() {
+     }
+     return ExpoClipboard.hasStringAsync();
+ }
++/**
++ * Whether the clipboard holds a web link, alone or inside text, without reading it, so without
++ * raising the system's paste alert.
++ *
++ * @platform ios
++ */
++export async function hasWebLinkAsync() {
++    if (!ExpoClipboard.hasWebLinkAsync) {
++        throw new UnavailabilityError('Clipboard', 'hasWebLinkAsync');
++    }
++    return await ExpoClipboard.hasWebLinkAsync();
++}
+ /**
+  * Gets the URL from the user's clipboard.
+  *
+diff --git a/ios/ClipboardModule.swift b/ios/ClipboardModule.swift
+--- a/ios/ClipboardModule.swift
++++ b/ios/ClipboardModule.swift
+@@ -1,6 +1,9 @@
+ // Copyright 2018-present 650 Industries. All rights reserved.
+ 
+ import ExpoModulesCore
++#if os(iOS)
++import DataDetection
++#endif
+ 
+ let onClipboardChanged = "onClipboardChanged"
+ 
+@@ -48,6 +51,27 @@ public class ClipboardModule: Module {
+       return UIPasteboard.general.hasURLs
+     }
+ 
++    #if os(iOS)
++    // Metadata only: unlike reading the content, this raises no "Allow Paste" alert. `links` is the
++    // one that finds an address inside a sentence, as `probableWebURL` is a string that is a URL.
++    AsyncFunction("hasWebLinkAsync") { (promise: Promise) in
++      if UIPasteboard.general.hasURLs {
++        promise.resolve(true)
++        return
++      }
++
++      let patterns: Set<PartialKeyPath<UIPasteboard.DetectedValues>> = [\.probableWebURL, \.links]
++      UIPasteboard.general.detectPatterns(for: patterns) { result in
++        switch result {
++        case .success(let detected):
++          promise.resolve(!detected.isEmpty)
++        case .failure:
++          promise.resolve(false)
++        }
++      }
++    }
++    #endif
++
+     // MARK: - Images
+ 
+     AsyncFunction("setImageAsync") { (content: String) in

@@ -13,6 +13,7 @@ overrides:
   vite@>=8.2.0 <8.2.4: ^8.2.4
 
 patchedDependencies:
+  expo-clipboard@57.0.2: 51d249720895e2117a943123517db6bd8985260d6b09b46cd838b93bd8fc4570
   expo-share-intent@8.0.1: 181cda459560cd93fd06943a78ed0603e0acc15d6acf3eb80aaddc06952cb42f
   react-native-screens@4.26.2: 74fa7ce261c7f49f4f6337d73df54d18d2e224d5dd8cfc467e4f7bef63c9c83d
   react-native@0.86.2: 639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c
@@ -98,7 +99,7 @@ importers:
         version: 57.0.3(@types/emscripten@1.41.5)(expo@57.0.26)(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo-clipboard:
         specifier: ~57.0.2
-        version: 57.0.2(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+        version: 57.0.2(patch_hash=51d249720895e2117a943123517db6bd8985260d6b09b46cd838b93bd8fc4570)(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo-constants:
         specifier: ~57.0.9
         version: 57.0.9(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -12105,7 +12106,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/emscripten'
 
-  expo-clipboard@57.0.2(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+  expo-clipboard@57.0.2(patch_hash=51d249720895e2117a943123517db6bd8985260d6b09b46cd838b93bd8fc4570)(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
     dependencies:
       expo: 57.0.26(152179dadaacf4b6ee0e3b3a8ee0e622)
       react: 19.2.3

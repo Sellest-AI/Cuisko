@@ -42,6 +42,21 @@ describe("httpUrlOf", () => {
     expect(httpUrlOf("https://example.com/tarte,")).toBe("https://example.com/tarte");
   });
 
+  it("keeps a closing bracket the address opened itself", () => {
+    expect(httpUrlOf("https://fr.wikipedia.org/wiki/Tarte_(cuisine)")).toBe(
+      "https://fr.wikipedia.org/wiki/Tarte_(cuisine)",
+    );
+    expect(httpUrlOf("https://fr.wikipedia.org/wiki/Tarte_(cuisine).")).toBe(
+      "https://fr.wikipedia.org/wiki/Tarte_(cuisine)",
+    );
+  });
+
+  it("cuts the address at a closing bracket it never opened", () => {
+    expect(httpUrlOf("https://example.com/tarte)")).toBe("https://example.com/tarte");
+    expect(httpUrlOf("https://example.com/tarte)suite")).toBe("https://example.com/tarte");
+    expect(httpUrlOf("https://example.com/tarte]).")).toBe("https://example.com/tarte");
+  });
+
   it("reads the address out of the sentence a share sheet wraps it in", () => {
     expect(httpUrlOf("Check out this video! https://vm.tiktok.com/ZMabc123/ #tiktok")).toBe(
       "https://vm.tiktok.com/ZMabc123/",
