@@ -12,12 +12,13 @@
  * only once it has been observed not to cry wolf — the same discipline CONVENTIONS §11 applies to
  * enforcement tags, turned on the tooling itself.
  *
- * Two checks are excluded on purpose:
+ * Three checks are excluded on purpose:
  *
  *   C5  authorization tests — legitimately unsatisfied mid-slice, since the router file exists
  *       before its test does. A commit-time rule; the pre-commit hook already owns it.
  *   C7  generated API drift — needs `convex dev` to have run codegen. Nothing the model can fix by
  *       editing, so surfacing it every turn is pure noise.
+ *   C19 router callers — unsatisfied mid-slice like C5: a router file exists before its screen does.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";

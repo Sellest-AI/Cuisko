@@ -163,7 +163,7 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C18 scripts, which had no runner at all until this project existed, the scripts
+       * The C1-C19 scripts, which had no runner at all until this project existed, the scripts
        * under `scripts/database/` that talk to a deployment, and the release version logic under
        * `scripts/release/`.
        *

@@ -1,7 +1,7 @@
 // `pnpm check:unused`: fails on an unused file, dependency, export or type.
 //
 // @limitation Nothing under convex/ is checked: every file there is an entry point, because the
-// generated `api` object reaches them by path. A Convex function no screen calls stays invisible.
+// generated `api` object reaches them by path. C19 covers router exports; `functions/` is uncovered.
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "entry": [
