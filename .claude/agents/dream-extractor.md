@@ -38,8 +38,16 @@ One candidate per fact, each with its source:
 
 - **The last word wins within a conversation.** A fact corrected or cancelled later is dropped or
   updated, not listed twice.
-- **Skip what the repo already says.** If `docs/` or the code states it, it is not a candidate. Use
-  Grep and Read to check before you list something that looks like documentation.
+- **Skip what the repo already says.** The test: could a session learn it by reading the code, its
+  comments, `docs/` or `git log` for a few minutes? Then it is not a candidate, even when the
+  conversation is where you met it and even when it is true. Use Grep and Read to check before you
+  list a candidate. A conversation that builds a feature mostly produces such facts: how the new
+  code behaves, which file holds what, which option a command takes, what a hook prints, which
+  model runs which agent. All of that is code. Drop it.
+- **Keep what reading cannot give**: why something was chosen or refused, a trap met while running
+  or using a tool (an error, a platform quirk, a CLI that behaves unlike its documentation), an
+  attempt that failed and why, a rule or preference the owner stated, a fact about something
+  outside the repo. If a conversation about building a feature yields two such facts, list two.
 - **Skip the state of one task**, an abandoned attempt's code, and anything only true today.
 - **No personal data, without exception.** Not a name, an email, a phone number, an identifier, a
   secret. A first name typed in a message is personal data even though no mask covers it: leave it
