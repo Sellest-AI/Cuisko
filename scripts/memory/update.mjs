@@ -11,11 +11,13 @@
  *     the dream lock; finish a pending commit if one is waiting
  * U2  git pull (not in --dry-run: a pull cannot be undone)
  * U3  select the unread lines; none: "Nothing to read", and nothing changes
- * U4  make .tmp/memory/dream-<stamp>/, copy the memory into it, count the reads, refresh the index
+ * U4  make .tmp/memory/dream-<stamp>/, copy the memory into it, count the reads and the sessions
+ *     since each file's last read, refresh the index
  * U5  P2–P6 (dream.mjs) on the copy
  * U6  the repo's memory is made equal to the copy only when the owner accepts — deviation from the
  *     spec's order: the diff is taken between the repo and the copy, so nothing needs undoing
- * U7  show the diff, the ranking changes and every alert; no change in memories/ is "nochange"
+ * U7  show the diff, the ranking changes and every alert, and the candidates the planner left out;
+ *     no change in memories/ is "nochange", and still shows that report
  * U8  [o] accept · [m] modify (an instruction, or :e to edit by hand; the checks run again) ·
  *     [i] ignore (stamps written, nothing kept) · [a] abort (nothing written)
  * U9  git commit limited to .claude/memory, with MEMORY_UPDATE=1 and the trailer Memory-Update: yes
@@ -43,10 +45,11 @@ import { isEncrypted, readMemoryFiles } from "./_lib/memoryFiles.mjs";
 import { dreamDirs, findPending, pairsOf, writePending } from "./_lib/pending.mjs";
 import { ownerIdentity } from "./_lib/pii.mjs";
 import { formatReport, memoryDiff, rankingChanges } from "./_lib/review.mjs";
+import { droppedCandidates } from "./_lib/responses.mjs";
 import { runAgent } from "./_lib/runAgent.mjs";
 import { acquireDreamLock, pruneStamps, readStamps, recordReview, StampsError, stampsPath, writeStamps } from "./_lib/stamps.mjs";
 import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
-import { applyReads, countReads } from "./_lib/usage.mjs";
+import { applyReads, applySessions, countReads, sessionStarts } from "./_lib/usage.mjs";
 
 const MEMORY = ".claude/memory";
 const TMP = ".tmp/memory";
@@ -234,7 +237,11 @@ const _decide = async ({ io, top, memoryDir, dreamDir, report, passages, run, ch
   let corrections = 0;
   for (;;) {
     const changes = compareMemories(memoryDir, copy);
-    if (changes.created.length + changes.modified.length + changes.deleted.length === 0) return { choice: "nochange", changes };
+    if (changes.created.length + changes.modified.length + changes.deleted.length === 0) {
+      const text = formatReport(report);
+      if (text !== "") io.out(text);
+      return { choice: "nochange", changes };
+    }
     _show({ io, top, memoryDir, dreamDir, report });
     io.out(`Changes:\n${_listChanges(changes)}\n`);
     const answer = (await io.ask("[o] accept   [m] modify   [i] ignore   [a] abort  > ")).toLowerCase();
@@ -355,14 +362,10 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     const copy = path.join(dreamDir, "memory");
     mkdirSync(path.join(dreamDir, "logs"), { recursive: true });
     copyMemory(memoryDir, copy);
-    const counts = countReads({
-      lines,
-      repoRoot,
-      memoryFiles: readMemoryFiles(copy).files.map((file) => file.path),
-      since: stamps.readsCountedUntil ?? stamps.initializedAt,
-      until: now.toISOString(),
-    });
-    refreshIndex(copy, now, (usage) => applyReads(usage, counts));
+    const window = { since: stamps.readsCountedUntil ?? stamps.initializedAt, until: now.toISOString() };
+    const counts = countReads({ lines, repoRoot, memoryFiles: readMemoryFiles(copy).files.map((file) => file.path), ...window });
+    const starts = sessionStarts({ lines, repoRoot, ...window });
+    refreshIndex(copy, now, (usage) => applySessions(applyReads(usage, counts), counts, starts));
 
     // U5
     const run = deps.run ?? ((call) => runAgent({ ...call, cwd: dreamDir, repoRoot: top, logDir: path.join(dreamDir, "logs") }));
@@ -386,6 +389,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       alerts: [...result.alerts],
       docsIssues: result.plan.docsIssues,
       deletions: result.plan.files.filter((file) => file.action === "delete"),
+      dropped: droppedCandidates(result.plan, result.candidates),
     };
     if (dryRun) {
       const changes = compareMemories(memoryDir, copy);

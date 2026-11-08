@@ -51,10 +51,10 @@ const _section = (title, rows) => (rows.length === 0 ? [] : [`${title}`, ...rows
 
 /**
  * The alerts the owner reads next to the diff: what the reviewer flagged and left open, then what it
- * fixed (each worst first), what the writers raised, the docs the planner thinks are wrong, and the
- * deletions it proposes.
+ * fixed (each worst first), what the writers raised, the docs the planner thinks are wrong, the
+ * deletions it proposes, and the candidates it left out, with why.
  */
-export const formatReport = ({ flags, alerts, docsIssues, deletions }) => {
+export const formatReport = ({ flags, alerts, docsIssues, deletions, dropped = [] }) => {
   const order = { high: 0, medium: 1, low: 2 };
   const sorted = [...flags].sort((a, b) => order[a.severity] - order[b.severity]);
   const line = (flag) => `[${flag.severity}] ${flag.path}: ${flag.problem} — "${flag.fact}" (evidence: ${flag.evidence})`;
@@ -64,5 +64,6 @@ export const formatReport = ({ flags, alerts, docsIssues, deletions }) => {
     ..._section("Writer alerts", alerts.map((alert) => `[${alert.kind}] ${alert.message}`)),
     ..._section("Docs that look wrong", docsIssues.map((issue) => `${issue.doc}: ${issue.issue}`)),
     ..._section("Deletions proposed", deletions.map((entry) => `${entry.path}: ${entry.reason ?? "no reason given"}`)),
+    ..._section("Left out by the planner", dropped.map((entry) => `${entry.id}: ${entry.fact} — ${entry.reason}`)),
   ].join("\n");
 };

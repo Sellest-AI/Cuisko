@@ -32,7 +32,11 @@ const alert = z.object({ kind: alertKind, message: z.string().min(1) });
 /** P2: the candidates of one conversation. */
 export const extractorReply = z.object({ status, error: z.string().optional(), candidates: z.array(candidate) });
 
-/** P3: which files to create, update or delete, from which candidates. */
+/**
+ * P3: which files to create, update or delete, from which candidates, and why each candidate left
+ * out was left out. `dropped` is required in the JSON Schema the model gets; a reply without it
+ * parses as an empty list.
+ */
 export const plannerReply = z.object({
   status,
   error: z.string().optional(),
@@ -42,8 +46,10 @@ export const plannerReply = z.object({
       action: z.enum(["create", "update", "delete"]),
       candidates: z.array(z.string()),
       reason: z.string().optional(),
+      because: z.enum(["unused", "obsolete"]).optional(),
     }),
   ),
+  dropped: z.array(z.object({ candidate: z.string().min(1), reason: z.string().min(1) })).default([]),
   docsIssues: z.array(z.object({ doc: z.string().regex(/^docs\//), issue: z.string().min(1) })),
 });
 
@@ -110,7 +116,47 @@ export const checkPlan = (plan, { candidateIds, existing }) => {
       assigned.add(id);
     }
   }
+  for (const { candidate } of plan.dropped ?? []) {
+    if (!candidateIds.has(candidate)) problems.push(`the plan drops candidate ${candidate}, which no extractor returned`);
+    else if (assigned.has(candidate)) problems.push(`candidate ${candidate} is both assigned to a file and dropped`);
+  }
   return problems;
+};
+
+/** A memory file may be deleted as unused once this many sessions started without reading it. */
+export const UNUSED_AFTER_SESSIONS = 60;
+
+/**
+ * The plan without the deletions the usage does not support, and an alert for each one removed. A
+ * deletion `because: "unused"` (or with no `because`) needs UNUSED_AFTER_SESSIONS sessions since
+ * the file's last read or creation. A deletion `because: "obsolete"` (its subject is gone) passes:
+ * the owner judges its reason in the diff. A removed deletion does not stop the dream; the file is
+ * kept.
+ */
+export const screenDeletions = (plan, usage) => {
+  const alerts = [];
+  const files = plan.files.filter((file) => {
+    if (file.action !== "delete" || file.because === "obsolete") return true;
+    const sessions = usage.files[file.path]?.sessionsSinceRead ?? 0;
+    if (sessions >= UNUSED_AFTER_SESSIONS) return true;
+    alerts.push({
+      kind: "planner",
+      message: `kept ${file.path}: the planner wants to delete it as unused, but only ${sessions} session(s) started since it was last read (${UNUSED_AFTER_SESSIONS} needed)`,
+    });
+    return false;
+  });
+  return { plan: { ...plan, files }, alerts };
+};
+
+/**
+ * Every candidate no file of the plan uses, with its fact and the planner's reason. The list comes
+ * from the candidates, not from `plan.dropped`: a candidate the planner forgot to explain is still
+ * shown, with no reason.
+ */
+export const droppedCandidates = (plan, candidates) => {
+  const used = new Set(plan.files.flatMap((file) => file.candidates));
+  const reasons = new Map((plan.dropped ?? []).map((entry) => [entry.candidate, entry.reason]));
+  return candidates.filter(({ id }) => !used.has(id)).map(({ id, fact }) => ({ id, fact, reason: reasons.get(id) ?? "no reason given" }));
 };
 
 /** What is wrong with a writer's reply for the plan entry it was given. */

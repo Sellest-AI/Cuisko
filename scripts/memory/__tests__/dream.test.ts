@@ -10,6 +10,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import * as lib from "../_lib/dream.mjs";
+import * as responses from "../_lib/responses.mjs";
 
 type Line = {
   uuid: string;
@@ -34,6 +35,7 @@ type Result = {
   alerts: { kind: string; message: string }[];
   passages: string;
 };
+const { UNUSED_AFTER_SESSIONS } = responses as unknown as { UNUSED_AFTER_SESSIONS: number };
 const { correct, dream } = lib as unknown as {
   dream: (input: Record<string, unknown>) => Promise<Result>;
   correct: (input: Record<string, unknown>) => Promise<{ reply: unknown; verdict: { ok: boolean; output: string } }>;
@@ -59,7 +61,16 @@ const makeCopy = (memories: Record<string, string> = { "api.md": FILE("API", "Ab
   writeFileSync(path.join(copy, "index.md"), "stale\n");
   writeFileSync(
     path.join(copy, "usage.json"),
-    JSON.stringify({ version: 1, files: Object.fromEntries(Object.keys(memories).map((name) => [`memories/${name}`, { created: "2026-09-01", reads: 4, lastRead: "2026-11-01T00:00:00.000Z" }])) }),
+    JSON.stringify({
+      version: 1,
+      files: Object.fromEntries(
+        Object.keys(memories).map((name) => {
+          const entry = { created: "2026-09-01", reads: 4, lastRead: "2026-11-01T00:00:00.000Z" };
+          // old.md is the file the plans delete as unused: enough sessions ran without reading it.
+          return [`memories/${name}`, name === "old.md" ? { ...entry, sessionsSinceRead: UNUSED_AFTER_SESSIONS } : entry];
+        }),
+      ),
+    }),
   );
   for (const [name, text] of Object.entries(memories)) writeFileSync(path.join(copy, "memories", name), text);
   return { dir, copy, inputsDir: path.join(dir, "inputs") };

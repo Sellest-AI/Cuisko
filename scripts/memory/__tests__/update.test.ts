@@ -60,7 +60,8 @@ const API_NEW = FILE("API", "About the API.", "Convex needs millisecond timestam
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
 /** A repo on `dev` with one memory file and one finished session that read it. */
-const makeRepo = (memories: Record<string, string> = { "api.md": API_OLD }) => {
+/** `sessions`: the sessionsSinceRead of each file that has one, by file name. */
+const makeRepo = (memories: Record<string, string> = { "api.md": API_OLD }, sessions: Record<string, number> = {}) => {
   const base = mkdtempSync(path.join(os.tmpdir(), "memory-update-"));
   dirs.push(base);
   execFileSync("git", ["init", "-q", "-b", "dev", base]);
@@ -70,7 +71,7 @@ const makeRepo = (memories: Record<string, string> = { "api.md": API_OLD }) => {
   mkdirSync(path.join(memory, "memories"), { recursive: true });
   writeFileSync(path.join(memory, "README.md"), "# Rules\n");
   writeFileSync(path.join(memory, "_template.md"), "# Template\n");
-  const usage = { version: 1, files: Object.fromEntries(Object.keys(memories).map((name) => [`memories/${name}`, { created: "2026-09-01", reads: 0, lastRead: null }])) };
+  const usage = { version: 1, files: Object.fromEntries(Object.keys(memories).map((name) => [`memories/${name}`, { created: "2026-09-01", reads: 0, lastRead: null, ...(name in sessions ? { sessionsSinceRead: sessions[name] } : {}) }])) };
   writeFileSync(path.join(memory, "usage.json"), `${JSON.stringify(usage, null, 2)}\n`);
   for (const [name, text] of Object.entries(memories)) writeFileSync(path.join(memory, "memories", name), text);
   const files = Object.entries(memories).map(([name, text]) => ({ path: `memories/${name}`, title: /^# (.+)$/m.exec(text)?.[1] ?? "", summary: /^summary: (.+)$/m.exec(text)?.[1] ?? "" }));
@@ -328,8 +329,18 @@ describe("the choices", () => {
     expect(usage.files["memories/api.md"]?.reads).toBe(1);
   });
 
+  it("[o] records in usage.json the sessions started since each file's last read", async () => {
+    const repo = makeRepo({ "api.md": API_OLD, "idle.md": FILE("Idle", "Idle.", "Never read. (source: 2026-09-01)") });
+
+    await update(repo, makeIo(["o"]).io, makeModels());
+
+    const usage = JSON.parse(memoryFile(repo, "usage.json")) as { files: Record<string, { sessionsSinceRead?: number }> };
+    expect(usage.files["memories/api.md"]?.sessionsSinceRead).toBe(0); // read by the one session
+    expect(usage.files["memories/idle.md"]?.sessionsSinceRead).toBe(1);
+  });
+
   it("[o] mirrors a deletion and a new file into the repo's memory", async () => {
-    const repo = makeRepo({ "api.md": API_OLD, "old.md": FILE("Old", "Old.", "Gone soon. (source: 2026-09-01)") });
+    const repo = makeRepo({ "api.md": API_OLD, "old.md": FILE("Old", "Old.", "Gone soon. (source: 2026-09-01)") }, { "old.md": 60 });
     const models = makeModels({
       plan: {
         status: "ok",
@@ -393,6 +404,17 @@ describe("the choices", () => {
     expect(stampsOf(repo).readsCountedUntil).toBeUndefined();
     expect(t.text()).toContain("No change needed");
     expect(t.asked).toEqual([]);
+  });
+
+  it("nochange still shows what the planner left out, and the docs it thinks are wrong", async () => {
+    const plan = { status: "ok", files: [], dropped: [{ candidate: "s1-01", reason: "AGENTS.md already says it." }], docsIssues: [{ doc: "docs/ARCHITECTURE.md", issue: "Stale." }] };
+    const t = makeIo();
+
+    expect(await update(makeRepo(), t.io, makeModels({ plan }))).toBe(0);
+
+    expect(t.text()).toContain("Left out by the planner\n  s1-01: Convex needs ms timestamps. — AGENTS.md already says it.");
+    expect(t.text()).toContain("Docs that look wrong\n  docs/ARCHITECTURE.md: Stale.");
+    expect(t.text()).toContain("No change needed");
   });
 
   it("[m] applies the owner's instruction, runs the checks again, and records the dream as edited", async () => {

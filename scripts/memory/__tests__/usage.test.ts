@@ -24,11 +24,13 @@ type Line = {
   toolCalls: { name: string; input: Record<string, unknown> }[];
   transcript: string;
 };
-type Entry = { created: string; reads: number; lastRead: string | null };
+type Entry = { created: string; reads: number; lastRead: string | null; sessionsSinceRead?: number };
 type Usage = { version: 1; files: Record<string, Entry> };
 type Counts = Map<string, { reads: number; lastRead: string | null }>;
-const { applyReads, countReads, readUsage, syncFiles, writeUsage } = lib as unknown as {
+const { applyReads, applySessions, countReads, readUsage, sessionStarts, syncFiles, writeUsage } = lib as unknown as {
   applyReads: (usage: Usage, counts: Counts) => Usage;
+  applySessions: (usage: Usage, counts: Counts, starts: string[]) => Usage;
+  sessionStarts: (input: { lines: Line[]; repoRoot: string; since: string; until: string }) => string[];
   countReads: (input: { lines: Line[]; repoRoot: string; memoryFiles: string[]; since: string; until: string }) => Counts;
   readUsage: (dir: string) => Usage;
   syncFiles: (usage: Usage, memoryFiles: string[], today: string) => Usage;
@@ -162,6 +164,57 @@ describe("applyReads and syncFiles", () => {
       [AUTH]: usage.files[AUTH],
       "memories/upload.md": { created: "2026-11-08", reads: 0, lastRead: null },
     });
+  });
+});
+
+describe("sessionStarts", () => {
+  const at = (sessionId: string, timestamp: string, cwd = String.raw`C:\work\cuisko`) => call("Read", { file_path: "x" }, { sessionId, timestamp, cwd, role: "user" });
+
+  it("dates each session by its first line, and keeps those that started in the window", () => {
+    const lines = [
+      at("old", "2026-10-30T09:00:00.000Z"),
+      at("old", "2026-11-02T09:00:00.000Z"),
+      at("b", "2026-11-04T09:00:00.000Z"),
+      at("a", "2026-11-03T09:00:00.000Z"),
+      at("a", "2026-11-06T09:00:00.000Z"),
+      at("later", "2026-11-09T09:00:00.000Z"),
+    ];
+
+    expect(sessionStarts({ lines, repoRoot: ROOT, ...WINDOW })).toEqual(["2026-11-03T09:00:00.000Z", "2026-11-04T09:00:00.000Z"]);
+  });
+
+  it("does not count a dream's own session, nor another repo's", () => {
+    const lines = [at("dream", "2026-11-03T09:00:00.000Z", String.raw`C:\work\cuisko\.tmp\memory\dream-1`), at("other", "2026-11-03T09:00:00.000Z", String.raw`C:\work\cuisko-web`)];
+
+    expect(sessionStarts({ lines, repoRoot: ROOT, ...WINDOW })).toEqual([]);
+  });
+});
+
+describe("applySessions", () => {
+  const usage: Usage = {
+    version: 1,
+    files: {
+      [AUTH]: { created: "2026-10-01", reads: 4, lastRead: "2026-10-20T00:00:00.000Z", sessionsSinceRead: 7 },
+      [TESTS]: { created: "2026-10-02", reads: 0, lastRead: null },
+    },
+  };
+  const starts = ["2026-11-02T00:00:00.000Z", "2026-11-04T00:00:00.000Z", "2026-11-06T00:00:00.000Z"];
+
+  it("adds the window's sessions to a file nobody read, starting from 0 when the field is absent", () => {
+    const files = applySessions(usage, new Map(), starts).files;
+
+    expect(files[AUTH]?.sessionsSinceRead).toBe(10);
+    expect(files[TESTS]?.sessionsSinceRead).toBe(3);
+  });
+
+  it("counts only the sessions that started after the newest read of a file read in the window", () => {
+    const counts: Counts = new Map([[AUTH, { reads: 1, lastRead: "2026-11-05T00:00:00.000Z" }]]);
+
+    expect(applySessions(usage, counts, starts).files[AUTH]).toEqual({ ...usage.files[AUTH], sessionsSinceRead: 1 });
+  });
+
+  it("ages nothing when no session ran, however long ago the last read was", () => {
+    expect(applySessions(usage, new Map(), []).files[AUTH]?.sessionsSinceRead).toBe(7);
   });
 });
 

@@ -18,6 +18,7 @@ const { formatReport, memoryDiff, rankingChanges } = lib as unknown as {
     alerts: { kind: string; message: string }[];
     docsIssues: { doc: string; issue: string }[];
     deletions: { path: string; reason?: string }[];
+    dropped?: { id: string; fact: string; reason: string }[];
   }) => string;
   memoryDiff: (input: { cwd: string; from: string; to: string }) => string;
   rankingChanges: (before: string, after: string, limit?: number) => string[];
@@ -118,6 +119,12 @@ describe("formatReport", () => {
 
     expect(text).toContain('Reviewer flags\n  [high] memories/api.md: Wrong. — "A fact." (evidence: sA-01)\n');
     expect(text).toContain('Fixed by the reviewer\n  [medium] memories/api.md: A name. — "A fact." (evidence: sA-01) → removed the name\n');
+  });
+
+  it("lists the candidates the planner left out, with the fact and the reason", () => {
+    const text = formatReport({ flags: [], alerts: [], docsIssues: [], deletions: [], dropped: [{ id: "sA-02", fact: "Rekey after a key change.", reason: "Setup already warns." }] });
+
+    expect(text).toContain("Left out by the planner\n  sA-02: Rekey after a key change. — Setup already warns.");
   });
 
   it("is empty when there is nothing to say", () => {

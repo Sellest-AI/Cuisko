@@ -11,7 +11,8 @@
  * and the mechanical checks run again on what it changed.
  *
  *   P2  one extractor per conversation, in parallel   → candidates, each citing a line
- *   P3  one planner                                   → which files to create, update, delete
+ *   P3  one planner                                   → which files to create, update, delete;
+ *                                                       an unused file too recently read is kept
  *   P4  one writer per file, in parallel              → the files; a delete is done by the script
  *   --  the script refreshes usage.json and index.md
  *   P5  mechanical checks (C20 --full)                → errors stop the dream
@@ -24,7 +25,7 @@ import path from "node:path";
 import { condense, excerpts } from "./condense.mjs";
 import { changedPaths, refreshIndex, snapshotMemory } from "./memoryDir.mjs";
 import { readMemoryFiles } from "./memoryFiles.mjs";
-import { checkPlan, checkWriterReply, correctionReply, extractorReply, plannerReply, reviewerReply, writerReply } from "./responses.mjs";
+import { checkPlan, checkWriterReply, correctionReply, extractorReply, plannerReply, reviewerReply, screenDeletions, UNUSED_AFTER_SESSIONS, writerReply } from "./responses.mjs";
 import { mapLimit } from "./runAgent.mjs";
 import { readUsage } from "./usage.mjs";
 
@@ -73,7 +74,9 @@ const plannerPrompt = ({ candidates, files, usage }) =>
     ),
     "</memory-files>",
     "",
-    "A memory file is read as `.claude/memory/<path>`. The usage fields: created, reads, lastRead.",
+    "A memory file is read as `.claude/memory/<path>`. The usage fields: created, reads, lastRead, and",
+    "sessionsSinceRead: the sessions that started since the file was last read or created (absent is 0).",
+    `A deletion because "unused" needs sessionsSinceRead of ${UNUSED_AFTER_SESSIONS} or more; the script keeps the file otherwise.`,
     "",
   ].join("\n");
 
@@ -197,15 +200,17 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
 
   progress(`P3  planning from ${candidates.length} candidate(s)`);
   const memoryFiles = readMemoryFiles(copy).files;
-  const plan = await run({
+  const usage = readUsage(copy);
+  const proposed = await run({
     agent: "dream-planner",
     name: "planner",
-    prompt: plannerPrompt({ candidates, files: memoryFiles, usage: readUsage(copy) }),
+    prompt: plannerPrompt({ candidates, files: memoryFiles, usage }),
     schema: plannerReply,
     writable: [],
   });
-  const planProblems = checkPlan(plan, { candidateIds: new Set(candidates.map(({ id }) => id)), existing: new Set(memoryFiles.map(({ path: name }) => name)) });
+  const planProblems = checkPlan(proposed, { candidateIds: new Set(candidates.map(({ id }) => id)), existing: new Set(memoryFiles.map(({ path: name }) => name)) });
   if (planProblems.length > 0) _stop("the plan cannot be used", planProblems);
+  const { plan, alerts: deletionAlerts } = screenDeletions(proposed, usage);
 
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   const passagesOf = (entry) => excerpts({ lines, candidates: entry.candidates.map((id) => byId.get(id)), context });
@@ -268,7 +273,7 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
     candidates,
     writerReplies,
     flags: review.flags,
-    alerts: [...writerReplies.flatMap((reply) => reply.alerts), ..._fixMismatches(review.flags, fixed)],
+    alerts: [...deletionAlerts, ...writerReplies.flatMap((reply) => reply.alerts), ..._fixMismatches(review.flags, fixed)],
     passages,
   };
 };

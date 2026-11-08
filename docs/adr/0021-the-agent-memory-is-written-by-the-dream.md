@@ -27,6 +27,10 @@ MUST: write a statement about the code as a fact only if it holds in the repo to
       `Hypothesis: ` bullet, and end every fact with its source date.
 MUST: show the owner the whole diff, the reviewer's fixes and its open flags before anything reaches
       the repo. Nothing is written without `[o]` or a `[m]` correction.
+MUST NOT: delete a memory as unused before `UNUSED_AFTER_SESSIONS` (in
+          [responses.mjs](../../scripts/memory/_lib/responses.mjs)) sessions started without
+          reading it. Staleness is counted in sessions, never in days, so a repo nobody works on
+          ages nothing. A memory whose subject is gone may go sooner; the owner judges its reason.
 MUST: refuse a branch push while a finished Claude session on it is unread by a dream.
       `MEMORY_SKIP=1 git push` is the owner's escape, for one push.
 MUST NOT: set `cleanupPeriodDays` to 0. Setup refuses it: transcripts the dream has not read

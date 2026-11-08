@@ -36,6 +36,8 @@ const usageSchema = z.strictObject({
       created: z.iso.date(),
       reads: z.int().nonnegative(),
       lastRead: z.iso.datetime({ offset: true }).nullable(),
+      /** Sessions started since the last read, or since the file was created; absent is 0. */
+      sessionsSinceRead: z.int().nonnegative().optional(),
     }),
   ),
 });
@@ -115,6 +117,41 @@ export const applyReads = (usage, counts) => {
     if (entry === undefined) continue;
     const newer = entry.lastRead === null || (lastRead !== null && Date.parse(lastRead) > Date.parse(entry.lastRead));
     files[file] = { ...entry, reads: entry.reads + reads, lastRead: newer ? lastRead : entry.lastRead };
+  }
+  return { ...usage, files };
+};
+
+/**
+ * When each session of this repo that started between `since` (excluded) and `until` (included)
+ * started, as ISO times, oldest first. A session starts at its first line. Staleness is counted in
+ * sessions, not days: a repo nobody works on for months ages none of its memories.
+ */
+export const sessionStarts = ({ lines, repoRoot, since, until }) => {
+  const from = Date.parse(since);
+  const to = Date.parse(until);
+  const first = new Map();
+  for (const line of lines) {
+    if (!isRepoCwd(line.cwd, repoRoot)) continue;
+    const at = Date.parse(line.timestamp);
+    if (!first.has(line.sessionId) || at < first.get(line.sessionId)) first.set(line.sessionId, at);
+  }
+  return [...first.values()]
+    .filter((at) => at > from && at <= to)
+    .sort((a, b) => a - b)
+    .map((at) => new Date(at).toISOString());
+};
+
+/**
+ * `usage` with `sessionsSinceRead` brought up to date. A file read in the window counts the sessions
+ * that started after its newest read; a file not read adds every session of the window. `counts`
+ * comes from countReads, `starts` from sessionStarts, over the same window. Pure.
+ */
+export const applySessions = (usage, counts, starts) => {
+  const files = {};
+  for (const [file, entry] of Object.entries(usage.files)) {
+    const read = counts.get(file)?.lastRead ?? null;
+    const sessionsSinceRead = read === null ? (entry.sessionsSinceRead ?? 0) + starts.length : starts.filter((start) => Date.parse(start) > Date.parse(read)).length;
+    files[file] = { ...entry, sessionsSinceRead };
   }
   return { ...usage, files };
 };

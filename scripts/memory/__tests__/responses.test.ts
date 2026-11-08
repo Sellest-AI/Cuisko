@@ -8,12 +8,15 @@ import type { ZodType } from "zod";
 
 import * as lib from "../_lib/responses.mjs";
 
-type Plan = { files: { path: string; action: string; candidates: string[]; reason?: string }[] };
+type Plan = { files: { path: string; action: string; candidates: string[]; reason?: string; because?: string }[]; dropped?: { candidate: string; reason: string }[] };
 type Reply = { path: string; facts: { text: string; candidates: string[] }[] };
-const { checkPlan, checkWriterReply, correctionReply, extractorReply, jsonSchemaOf, plannerReply, reviewerReply, writerReply } =
+const { checkPlan, checkWriterReply, correctionReply, droppedCandidates, extractorReply, jsonSchemaOf, plannerReply, reviewerReply, screenDeletions, UNUSED_AFTER_SESSIONS, writerReply } =
   lib as unknown as {
+    screenDeletions: (plan: Plan, usage: { files: Record<string, { sessionsSinceRead?: number }> }) => { plan: Plan; alerts: { kind: string; message: string }[] };
+    UNUSED_AFTER_SESSIONS: number;
     checkPlan: (plan: Plan, known: { candidateIds: Set<string>; existing: Set<string> }) => string[];
     checkWriterReply: (reply: Reply, entry: Plan["files"][number]) => string[];
+    droppedCandidates: (plan: Plan, candidates: { id: string; fact: string }[]) => { id: string; fact: string; reason: string }[];
     correctionReply: ZodType;
     extractorReply: ZodType;
     jsonSchemaOf: (schema: ZodType) => string;
@@ -49,6 +52,14 @@ describe("the schemas", () => {
     const flag = (fix: string) => ({ path: "memories/api.md", fact: "f", problem: "p", evidence: "e", severity: "high", fix });
     expect(reviewerReply.safeParse({ status: "ok", flags: [flag("removed the name")] }).success).toBe(true);
     expect(reviewerReply.safeParse({ status: "ok", flags: [flag("")] }).success).toBe(false);
+  });
+
+  it("tell the planner dropped is required, and read a plan without it as nothing dropped", () => {
+    const schema = JSON.parse(jsonSchemaOf(plannerReply)) as { required: string[] };
+
+    expect(schema.required).toContain("dropped");
+    expect(plannerReply.parse({ status: "ok", files: [], docsIssues: [] })).toMatchObject({ dropped: [] });
+    expect(plannerReply.safeParse({ status: "ok", files: [], dropped: [{ candidate: "a", reason: "" }], docsIssues: [] }).success).toBe(false);
   });
 
   it("refuse a path outside memories/, a nested one, and a candidate kind that does not exist", () => {
@@ -102,6 +113,58 @@ describe("checkPlan", () => {
     expect(plan({ path: "memories/api.md", action: "update", candidates: ["a"] }, { path: "memories/api.md", action: "update", candidates: ["b"] })).toContain("memories/api.md appears twice in the plan");
     expect(plan({ path: "memories/api.md", action: "update", candidates: [] })).toEqual(["memories/api.md has no candidate to write from"]);
     expect(plan({ path: "memories/api.md", action: "delete", candidates: [] })).toEqual(["memories/api.md is deleted without a reason"]);
+  });
+
+  it("refuses dropping a candidate no extractor returned, or one a file uses", () => {
+    const files = [{ path: "memories/api.md", action: "update", candidates: ["a"] }];
+
+    expect(checkPlan({ files, dropped: [{ candidate: "zzz", reason: "r" }] }, known)).toEqual(["the plan drops candidate zzz, which no extractor returned"]);
+    expect(checkPlan({ files, dropped: [{ candidate: "a", reason: "r" }] }, known)).toEqual(["candidate a is both assigned to a file and dropped"]);
+  });
+});
+
+describe("screenDeletions", () => {
+  const remove = (path: string, because?: string) => ({ path, action: "delete", candidates: [], reason: "r", ...(because === undefined ? {} : { because }) });
+  const usage = { files: { "memories/stale.md": { sessionsSinceRead: UNUSED_AFTER_SESSIONS }, "memories/fresh.md": { sessionsSinceRead: UNUSED_AFTER_SESSIONS - 1 }, "memories/new.md": {} } };
+
+  it("keeps a deletion as unused once enough sessions ran without reading the file", () => {
+    const plan = { files: [remove("memories/stale.md", "unused")] };
+
+    expect(screenDeletions(plan, usage)).toEqual({ plan, alerts: [] });
+  });
+
+  it("removes a deletion as unused, or without a because, when too few sessions ran, and says so", () => {
+    const update = { path: "memories/api.md", action: "update", candidates: ["a"] };
+    const { plan, alerts } = screenDeletions({ files: [update, remove("memories/fresh.md", "unused"), remove("memories/new.md")] }, usage);
+
+    expect(plan.files).toEqual([update]);
+    expect(alerts.map((alert) => alert.message)).toEqual([
+      `kept memories/fresh.md: the planner wants to delete it as unused, but only ${UNUSED_AFTER_SESSIONS - 1} session(s) started since it was last read (${UNUSED_AFTER_SESSIONS} needed)`,
+      `kept memories/new.md: the planner wants to delete it as unused, but only 0 session(s) started since it was last read (${UNUSED_AFTER_SESSIONS} needed)`,
+    ]);
+  });
+
+  it("lets an obsolete file go whatever its reads, for the owner to judge", () => {
+    const plan = { files: [remove("memories/new.md", "obsolete")] };
+
+    expect(screenDeletions(plan, usage).plan).toEqual(plan);
+  });
+});
+
+describe("droppedCandidates", () => {
+  const candidates = [
+    { id: "a", fact: "Kept." },
+    { id: "b", fact: "Already in AGENTS.md." },
+    { id: "c", fact: "A one-off command." },
+  ];
+
+  it("lists every candidate no file uses, with the planner's reason, or none when it forgot one", () => {
+    const plan = { files: [{ path: "memories/api.md", action: "update", candidates: ["a"] }], dropped: [{ candidate: "b", reason: "AGENTS.md says it." }] };
+
+    expect(droppedCandidates(plan, candidates)).toEqual([
+      { id: "b", fact: "Already in AGENTS.md.", reason: "AGENTS.md says it." },
+      { id: "c", fact: "A one-off command.", reason: "no reason given" },
+    ]);
   });
 });
 
