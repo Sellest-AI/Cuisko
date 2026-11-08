@@ -33,8 +33,15 @@ class AgentError extends Error {
   }
 }
 
-/** A path as a permission rule writes an absolute one: `//` then the path, slashes forward. */
-const _rulePath = (file) => `//${path.resolve(file).replace(/\\/g, "/").replace(/^\/+/, "")}`;
+/**
+ * A path as a permission rule writes an absolute one: `//` then the path, slashes forward. On
+ * Windows the CLI matches the POSIX form of the path, so `C:\Users\x` is written `//c/Users/x`
+ * (a rule written `//C:/Users/x` matched nothing: the first real dream had every read refused).
+ */
+const _rulePath = (file) => {
+  const forward = path.resolve(file).replace(/\\/g, "/");
+  return `//${forward.replace(/^([A-Za-z]):/, (_match, drive) => `/${drive.toLowerCase()}`).replace(/^\/+/, "")}`;
+};
 
 /**
  * The arguments of the call. The agent reads anywhere in the repo, except the files that hold
@@ -55,6 +62,10 @@ const agentArguments = ({ agent, repoRoot, writable, schema }) => {
     "json",
     "--json-schema",
     jsonSchemaOf(schema),
+    // The CLI did not return a structured output in the first real dream, and a model given the
+    // schema only by name wrote `source` as a string: the shape is spelled out in the instructions.
+    "--append-system-prompt",
+    `Your final message is one JSON object and nothing else: no text before or after it, no code fence. It must match this JSON Schema exactly, field names and nesting included:\n${jsonSchemaOf(schema)}`,
     "--allowedTools",
     `Read(${everything})`,
     `Grep(${everything})`,
@@ -70,7 +81,26 @@ const agentArguments = ({ agent, repoRoot, writable, schema }) => {
   ];
 };
 
-const _fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
+const _fenced = /```(?:json)?\s*([\s\S]*?)\s*```/g;
+
+/**
+ * The JSON in a reply the CLI gave as text. The model may add a sentence before or after it
+ * (`--json-schema` did not return a structured output in the first real dream): try the whole
+ * text, then the last fenced block, then the outermost braces.
+ */
+const _jsonIn = (text) => {
+  const trimmed = text.trim();
+  const candidates = [trimmed, [...trimmed.matchAll(_fenced)].at(-1)?.[1], trimmed.slice(trimmed.indexOf("{"), trimmed.lastIndexOf("}") + 1)];
+  for (const candidate of candidates) {
+    if (candidate === undefined || candidate === "") continue;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Not this one: try the next reading.
+    }
+  }
+  throw new Error(`the reply holds no JSON object: ${trimmed.slice(0, 200)}`);
+};
 
 /** The reply as an object: the structured output when the CLI gives one, else the result text read as JSON. */
 const _payload = (stdout) => {
@@ -78,7 +108,7 @@ const _payload = (stdout) => {
   if (Array.isArray(outer)) outer = outer.findLast((event) => event?.type === "result") ?? {};
   if (outer.is_error === true) throw new Error(`the CLI reported an error: ${String(outer.result ?? "").slice(0, 300)}`);
   const body = outer.structured_output ?? outer.result;
-  if (typeof body === "string") return JSON.parse(_fenced.exec(body.trim())?.[1] ?? body);
+  if (typeof body === "string") return _jsonIn(body);
   if (body !== null && typeof body === "object") return body;
   throw new Error("the CLI returned neither a structured output nor a result");
 };

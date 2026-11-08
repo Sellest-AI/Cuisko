@@ -37,6 +37,8 @@ const ok = { status: "ok", names: ["a"] };
 const modes = {
   structured: () => console.log(JSON.stringify({ type: "result", is_error: false, result: "", structured_output: ok })),
   fenced: () => console.log(JSON.stringify({ type: "result", is_error: false, result: "\`\`\`json\\n" + JSON.stringify(ok) + "\\n\`\`\`" })),
+  prose: () => console.log(JSON.stringify({ type: "result", is_error: false, result: "I could not read the README.\\n\\n\`\`\`json\\n" + JSON.stringify(ok) + "\\n\`\`\`\\nDone." })),
+  bareProse: () => console.log(JSON.stringify({ type: "result", is_error: false, result: "Here it is: " + JSON.stringify(ok) + " Hope it helps." })),
   events: () => console.log(JSON.stringify([{ type: "system" }, { type: "result", is_error: false, structured_output: ok }])),
   agentError: () => console.log(JSON.stringify({ type: "result", structured_output: { status: "error", error: "no data to read" } })),
   cliError: () => console.log(JSON.stringify({ type: "result", is_error: true, result: "credit balance too low" })),
@@ -89,10 +91,16 @@ const call = async (mode: string, over: Partial<Call> = {}) => {
   return { ...result, out, input };
 };
 const recorded = (out: string) => JSON.parse(readFileSync(path.join(out, "call.json"), "utf8")) as { args: string[]; stdin: string; cwd: string };
-const slashes = (file: string) => path.resolve(file).replace(/\\/g, "/");
+/** A path as a permission rule spells it after `//`: forward slashes, and `C:` as `c` (the CLI matches POSIX paths). */
+const slashes = (file: string) =>
+  path
+    .resolve(file)
+    .replace(/\\/g, "/")
+    .replace(/^([A-Za-z]):/, (_match, drive: string) => `/${drive.toLowerCase()}`)
+    .replace(/^\/+/, "");
 
 describe("the reply", () => {
-  it.each([["structured"], ["fenced"], ["events"]])("is read from a %s answer and validated", async (mode) => {
+  it.each([["structured"], ["fenced"], ["prose"], ["bareProse"], ["events"]])("is read from a %s answer and validated", async (mode) => {
     const { value, error } = await call(mode);
 
     expect(error).toBeUndefined();
@@ -182,6 +190,14 @@ describe("the call", () => {
 
     expect(given.type).toBe("object");
     expect(Object.keys(given.properties)).toEqual(["status", "error", "names"]);
+  });
+
+  it("spells the schema out in the instructions too, since the CLI returned no structured output", async () => {
+    const { args } = recorded((await call("structured")).out);
+    const instructions = args[args.indexOf("--append-system-prompt") + 1] as string;
+
+    expect(instructions).toContain("one JSON object and nothing else");
+    expect(instructions).toContain(args[args.indexOf("--json-schema") + 1] as string);
   });
 
   it("grants no write at all when nothing is writable", async () => {
