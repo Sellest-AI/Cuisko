@@ -14,7 +14,8 @@ import * as lib from "../_lib/pii.mjs";
 /** `pii.mjs` is plain JavaScript; the contract is restated here so a drift stops compiling. */
 type Identity = { userName?: string; home?: string; gitName?: string; gitEmail?: string };
 type Hit = { kind: "email" | "phone" | "secret" | "owner"; match: string; line: number };
-const { mask, ownerIdentity, scan } = lib as unknown as {
+const { mask, ownerIdentity, scan, shortenRoot } = lib as unknown as {
+  shortenRoot: (text: string, root: string) => string;
   mask: (text: string, identity: Identity) => string;
   ownerIdentity: (cwd?: string) => Identity;
   scan: (text: string, identity: Identity) => Hit[];
@@ -140,5 +141,26 @@ describe("ownerIdentity", () => {
   it("never throws outside a repository, and drops nothing but short or missing values", () => {
     const identity = ownerIdentity(os.tmpdir());
     for (const value of Object.values(identity)) expect(value?.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("shortenRoot", () => {
+  const root = "C:/work/cuisko";
+
+  it("writes the root as <repo> in each spelling, eating one separator after it", () => {
+    expect(
+      shortenRoot(String.raw`C:\work\cuisko\src\a.ts C:\\work\\cuisko\\b.ts c:/WORK/cuisko/c.ts /c/work/cuisko/d.ts`, root),
+    ).toBe(String.raw`<repo>/src\a.ts <repo>/b.ts <repo>/c.ts <repo>/d.ts`);
+  });
+
+  it("leaves a sibling repo, a longer name and a path that merely contains the root's tail", () => {
+    for (const text of ["C:/work/cuisko-web/a.ts", "C:/work/cuisko2/a.ts", "D:/other/work/cuisko/a.ts", "C:/work/cuisko.git/x"]) {
+      expect(shortenRoot(text, root)).toBe(text);
+    }
+  });
+
+  it("shortens a root at the end of a sentence or a line", () => {
+    expect(shortenRoot("in C:/work/cuisko.", root)).toBe("in <repo>.");
+    expect(shortenRoot("C:/work/cuisko", root)).toBe("<repo>");
   });
 });

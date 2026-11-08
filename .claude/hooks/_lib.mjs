@@ -6,11 +6,30 @@
  * edit twice, in lockstep, with nothing to catch a divergence between them.
  */
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { isDreamCwd } from "../../scripts/memory/_lib/transcripts.mjs";
+
 /** Derived from this file, never from `cwd` — the same reason `scripts/checks/_lib.mjs` does it. */
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+/**
+ * True when the hook input (the JSON Claude Code writes on stdin) says the session runs in a dream
+ * folder, `<root>/.tmp/memory/`: a model the memory:update script started. Such a session gets no
+ * repo state and no end-of-turn checks; its prompt carries everything it needs. Checked here, and
+ * not left to a CLI flag, so the dream never depends on how `claude -p` loads hooks. A hook run by
+ * hand, with no input, is a normal session.
+ */
+export const isDreamSession = (input = process.stdin.isTTY ? "" : readFileSync(0, "utf8")) => {
+  try {
+    const { cwd } = JSON.parse(input);
+    return typeof cwd === "string" && isDreamCwd(cwd, ROOT);
+  } catch {
+    return false;
+  }
+};
 
 /**
  * `core.quotepath=false` is load-bearing, not tidiness. Under git's default, any path containing a

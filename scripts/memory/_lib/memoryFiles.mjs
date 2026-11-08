@@ -41,7 +41,7 @@ const _parseHeader = (text) => {
 
 /**
  * Every file of `<dir>/memories/`: `{ path: "memories/<name>.md", file, text, title, summary,
- * body, headerLines, errors }`, sorted by path, and the entries that are not a `.md` file (a folder, a stray
+ * status, lastVerified, body, headerLines, errors }`, sorted by path, and the entries that are not a `.md` file (a folder, a stray
  * file), since `memories/` stays flat. A missing folder is an empty one.
  */
 export const readMemoryFiles = (dir) => {
@@ -69,6 +69,8 @@ export const readMemoryFiles = (dir) => {
       text,
       title: heading === null ? null : heading[1].trim(),
       summary: header === null ? null : header.summary,
+      status: header === null ? null : header.status,
+      lastVerified: header === null ? null : header.last_verified,
       body,
       headerLines: text.slice(0, text.length - body.length).split("\n").length - 1,
       errors: heading === null ? [...errors, "no `# Title` heading"] : errors,

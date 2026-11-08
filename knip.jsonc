@@ -17,17 +17,12 @@
     "scripts/memory/pre-commit.mjs",
     "scripts/memory/pre-push.mjs",
     // Run by Claude Code from .claude/settings.json; an entry so knip sees what it imports.
-    ".claude/hooks/session-start-memory.mjs",
-    // Agent memory modules built before their callers. Each line goes when memory:update (or,
-    // for pii.mjs, condense.mjs, which is the first caller of `mask`; C20 only uses `scan`)
-    // imports it (docs/plans/agent-memory.md, slice 7).
-    "scripts/memory/_lib/stamps.mjs",
-    "scripts/memory/_lib/pii.mjs",
-    "scripts/memory/_lib/usage.mjs",
-    "scripts/memory/_lib/memoryIndex.mjs"
+    ".claude/hooks/session-start-memory.mjs"
   ],
   // Run by Claude Code from .claude/settings.json.
   "ignoreFiles": [".claude/hooks/**"],
+  // The index's tuning constants and `score` are its tested contract; nothing else imports them.
+  "ignoreIssues": { "scripts/memory/_lib/memoryIndex.mjs": ["exports"] },
   "ignoreDependencies": [
     // Run by .githooks/commit-msg as a binary.
     "@commitlint/cli",

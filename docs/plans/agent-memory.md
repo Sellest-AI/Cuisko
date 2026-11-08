@@ -315,9 +315,11 @@ isDreamCwd(cwd, root) → boolean
 isRepoCwd(cwd, root) → boolean                                 // condition 1, shared by select and countReads
 
 // condense.mjs
-condense(lines) → { sessionId, text: string, signaled: boolean }   // tool calls one line each,
-                                                                   // results dropped, PII masked
-excerpts(lines, candidateIds, contextLines = 3) → string
+condense(lines, { identity, repoRoot }) → { sessionId, text: string, signaled: boolean }
+                                                                   // tool calls one line each, results and
+                                                                   // isSynthetic user lines dropped; repo root
+                                                                   // → <repo>, then PII masked
+excerpts({ lines, candidates, context, contextLines = 3 }) → string   // candidates: { id, source }[]
 
 // stamps.mjs
 stampsPath(cwd?) → string                                      // <git common dir>/dream-stamps.json
@@ -358,7 +360,9 @@ mask(text, identity) → string                                  // [email maske
                                                                // [secret masked] · [owner] · home → ~
 
 // runAgent.mjs
-runAgent({ agent, prompt, schema, cwd, writableDir, logDir }) → Promise<object>    // throws AgentError with the log path
+runAgent({ agent, name, prompt, schema, cwd, repoRoot, writable, logDir, command?, timeoutMs? }) → Promise<object>
+                                                               // writable: absolute files or globs; throws AgentError
+                                                               // naming a log; mapLimit(items, limit, fn) beside it
 
 // Entry scripts
 pre-push.mjs    stdin as git gives it; MEMORY_SKIP; exit 1 + §8.2 message
@@ -644,11 +648,31 @@ commit made before the filter is active stores it in plaintext forever.
       check to be named there. The knip entry for `_lib/pii.mjs` **stays**: C20 only calls
       `scan`, and `mask` has no caller until condense.mjs (slice 7). The Stop hook's comment and
       ARCHITECTURE.md list C20 among the checks it does not run
-- [ ] 7. The four CLI checks of §3 first; then `condense.mjs`, `responses.mjs`, `runAgent.mjs`,
-      the four `dream-*` agents, `update.mjs` and the memory:update script in package.json, with
-      the pipeline stubbed first (spec §14 row 8), then wired; `--dry-run`, `--reindex`, the
-      pending commit; [m] and `:e`; the knip entries for `_lib/stamps.mjs`, `_lib/usage.mjs` and
-      `_lib/memoryIndex.mjs` go once update.mjs imports them
+- [x] 7. `condense.mjs`, `responses.mjs`, `runAgent.mjs`, the four `dream-*` agents, `update.mjs` and
+      the memory:update script, with the pipeline stubbed in the tests (the model is injected);
+      `--dry-run`, `--reindex`, the pending commit; [m] and `:e`; the knip entries for stamps,
+      usage, memoryIndex and pii go. Changes from the plan:
+      · **The four CLI checks were not run**: each one needs a model call, which is paid, and the
+        owner runs those. Two stopped mattering: `runAgent` passes `--no-session-persistence`, so a
+        dream leaves no transcript to select (check 2), and both repo hooks (`session-start.mjs`,
+        `stop-checks.mjs`) now return at once for a session under `.tmp/memory/`, through
+        `isDreamSession` in `.claude/hooks/_lib.mjs` (check 3). Still unconfirmed against the real
+        CLI: that `--agent` finds `.claude/agents/` from the dream folder (1), that the deny rules
+        refuse `.env.local`, a worktree's copy and `git log --output` (4), and that each pinned model
+        id resolves (5). The flag set comes from `claude --help` (2.1.319). The first dry run is the
+        test; a failed call keeps its prompt, stdout and stderr in the dream's `logs/`
+      · **Diff before mirror**: the repo's memory is made equal to the copy only on [o] (or after [m]),
+        and the diff is `git diff --no-index` between the repo's `memories/` and the copy's, so a
+        new file shows and an [a], [i] or nochange has nothing to restore (the spec mirrors first)
+      · A `delete` in the plan is done by the script, with no writer; a writer may write its own
+        file only (the grant), and the copy is compared before and after the writers
+      · New modules: `memoryDir.mjs` (copy, mirror, compare, refresh the index), `dream.mjs` (P2–P6),
+        `review.mjs` (diff, ranking changes, the alert report), `pending.mjs`; `shortenRoot` in
+        `pii.mjs`; `isSynthetic` on a Line; `projectsDir` and `mayHoldUnread` moved from pre-push
+        into `transcripts.mjs`; the readers of a memory file also return `status` and `lastVerified`
+      · `--dry-run` keeps the dream folder (its logs are what tuning prompts needs); the next run
+        purges it
+      · Not tested: the SIGINT handler itself (the callback it runs is, through an injected one)
 - [ ] 8. Remaining spec §14 tests; the owner runs the first real dry-run dream (command handed over)
 
 ---

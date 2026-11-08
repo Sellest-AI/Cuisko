@@ -10,7 +10,8 @@
  * Paths are compared after `_normalize`: transcripts written on Windows spell the cwd
  * `C:\Users\…`, git spells the root `C:/Users/…`, and the drive letter's case varies between them.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { gitIn, gitInOrNull } from "./git.mjs";
@@ -79,6 +80,9 @@ export const findTranscripts = ({ projectsDir, repoRoot }) => {
 
 const _isText = (value) => typeof value === "string" && value !== "";
 
+/** Where Claude Code keeps its transcripts: its config folder's `projects/`. */
+export const projectsDir = () => path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "projects");
+
 /** One parsed event as a Line, or null when it is not a message or lacks a field. */
 const _toLine = (entry, transcript) => {
   if (entry?.type !== "user" && entry?.type !== "assistant") return null;
@@ -114,6 +118,8 @@ const _toLine = (entry, transcript) => {
     role: entry.type,
     isToolResult,
     text: isToolResult ? "" : text,
+    // Hook output, command caveats and compaction summaries sit in `user` lines but are not the owner's words.
+    isSynthetic: entry.isMeta === true || entry.isCompactSummary === true,
     toolCalls,
     transcript,
   };
@@ -197,6 +203,21 @@ export const select = ({ lines, repoRoot, openBranches: open, stamps, referenceD
     const reviewed = _reviewedUntil(stamps, line.sessionId, line.branch);
     return reviewed === undefined || reviewed === null || at > Date.parse(reviewed);
   });
+};
+
+/**
+ * False when no line of the file can still be unread: it was last written before setup, or every
+ * (session, branch) pair of its session was reviewed past that write. A pair with a null stamp (its
+ * branch was open) always forces the read. This keeps a push fast as transcripts pile up.
+ */
+export const mayHoldUnread = (transcript, stamps) => {
+  const written = statSync(transcript).mtimeMs;
+  if (written < Date.parse(stamps.initializedAt)) return false;
+  const sessionId = path.basename(transcript, ".jsonl");
+  const session = Object.hasOwn(stamps.sessions, sessionId) ? stamps.sessions[sessionId] : undefined;
+  const pairs = session === undefined ? [] : Object.values(session.branches);
+  if (pairs.length === 0) return true;
+  return pairs.some(({ reviewedUntil }) => reviewedUntil === null || Date.parse(reviewedUntil) < written);
 };
 
 /** How many sessions the lines come from (the pre-push message counts sessions, not lines). */

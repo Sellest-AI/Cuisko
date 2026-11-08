@@ -59,20 +59,37 @@ export const ownerIdentity = (cwd = process.cwd()) => {
 };
 
 /**
- * The home folder in every spelling: `C:\Users\x`, `C:\\Users\\x`, `c:/users/x`, `/c/Users/x`,
- * and `/home/x` on Linux. A separator after it is eaten, so `…\x\Documents` reads `~/Documents`.
+ * A folder in every spelling: `C:\Users\x`, `C:\\Users\\x`, `c:/users/x`, `/c/Users/x`, and
+ * `/home/x` on Linux. A separator after it is eaten, so `…\x\Documents` reads `<name>/Documents`.
+ * The home must not be followed by a name character. A project root must not be followed by one
+ * either, nor by `-`, so a sibling repo (`cuisko-web`) is left alone: `sibling` selects that end.
  */
-const _homeRule = (home) => {
-  const parts = home.split(/[\\/]+/).filter(Boolean);
+const _folderPattern = (folder, { sibling }) => {
+  const parts = folder.split(/[\\/]+/).filter(Boolean);
   const drive = /^[A-Za-z]:$/.test(parts[0] ?? "") ? parts.shift()[0] : null;
   const start = drive === null ? "" : `(?:${drive}:|/${drive})`;
   const body = parts.map(_escape).join(SEP);
-  return {
-    kind: "owner",
-    pattern: new RegExp(`${start}${SEP}${body}(?:(${SEP})|(?!${WORD}))`, "giu"),
-    replace: (_match, separator) => (separator === undefined ? "~" : "~/"),
-  };
+  const end = sibling ? String.raw`(?![\p{L}\p{N}_-]|\.[\p{L}\p{N}])` : `(?!${WORD})`;
+  return new RegExp(`${start}${SEP}${body}(?:(${SEP})|${end})`, "giu");
 };
+
+const _homeRule = (home) => ({
+  kind: "owner",
+  pattern: _folderPattern(home, { sibling: false }),
+  replace: (_match, separator) => (separator === undefined ? "~" : "~/"),
+});
+
+/**
+ * `text` with the project root written `<repo>`, in every spelling. Run it before `mask`: the root
+ * sits under the home folder, which `mask` would turn into `~/Documents\…\cuisko`, unrecognisable
+ * as the root. The root is not personal; a path is shorter and the same on every machine.
+ */
+export const shortenRoot = (text, root) =>
+  text
+    .normalize("NFC")
+    .replace(_folderPattern(root.normalize("NFC"), { sibling: true }), (_match, separator) =>
+      separator === undefined ? "<repo>" : "<repo>/",
+    );
 
 /** The OS user name, only right after `Users` or `home` and a separator, or in a project folder name (`C--Users-x-`). */
 const _userNameRule = (userName) => ({

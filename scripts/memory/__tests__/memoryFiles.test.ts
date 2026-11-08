@@ -14,6 +14,8 @@ type MemoryFile = {
   path: string;
   title: string | null;
   summary: string | null;
+  status: string | null;
+  lastVerified: string | null;
   body: string;
   headerLines: number;
   errors: string[];
@@ -46,7 +48,7 @@ describe("readMemoryFiles", () => {
   it("reads the title and the summary the index prints", () => {
     const { files } = readMemoryFiles(folderWith({ "memories/dates.md": `${HEADER}\n# Convex dates\n` }));
 
-    expect(files).toMatchObject([{ path: "memories/dates.md", title: "Convex dates", summary: "Dates are timestamps.", errors: [] }]);
+    expect(files).toMatchObject([{ path: "memories/dates.md", title: "Convex dates", summary: "Dates are timestamps.", status: "volatile", lastVerified: "2026-11-08", errors: [] }]);
   });
 
   it("returns the files in path order, and no files for a missing folder", () => {

@@ -25,7 +25,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { changedFiles, ROOT } from "./_lib.mjs";
+import { changedFiles, isDreamSession, ROOT } from "./_lib.mjs";
+
+if (isDreamSession()) process.exit(0);
 
 const STAMP = path.join(ROOT, "node_modules", ".cache", "cuisko-stop-checks.json");
 

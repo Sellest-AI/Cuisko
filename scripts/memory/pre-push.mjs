@@ -10,27 +10,20 @@
  *   7. nothing selected passes
  *   8. otherwise block, naming each ref and its count of unread sessions (§8.2's message)
  *
- * A transcript is not read at all when its last write predates setup, or when every (session,
- * branch) pair of its session was reviewed past that write: the push stays fast as transcripts pile
- * up. A pair with a null stamp (its branch was open) always forces the read.
+ * A transcript is not read at all when `mayHoldUnread` says nothing in it can be unread.
  *
  * Any other failure blocks too, with MEMORY_SKIP named: the worst case is a postponed review,
  * never a silent one.
  */
-import { readFileSync, statSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { readFileSync } from "node:fs";
 
 import { mainRoot } from "./_lib/git.mjs";
 import { readStamps, StampsError, stampsPath } from "./_lib/stamps.mjs";
-import { countSessions, findTranscripts, openBranches, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
+import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
 
 const ZERO_SHA = /^0+$/;
 const UPDATE_COMMAND = "pnpm memory:update";
 const SKIP_HINT = "(If the dream cannot run: MEMORY_SKIP=1 git push)";
-
-/** Where Claude Code keeps its transcripts: its config folder's `projects/`. */
-const _projectsDir = () => path.join(process.env.CLAUDE_CONFIG_DIR ?? path.join(os.homedir(), ".claude"), "projects");
 
 /** The branch pushes git announced. `HEAD:dev` arrives with `HEAD` as the local ref: the remote one names the branch then. */
 const _pushedBranches = (input) =>
@@ -44,17 +37,6 @@ const _pushedBranches = (input) =>
       ref: localRef.startsWith("refs/heads/") ? localRef : remoteRef,
       sha: localSha,
     }));
-
-/** False when no line of the file can still be unread (see the docblock). */
-const _mayHoldUnread = (transcript, stamps) => {
-  const written = statSync(transcript).mtimeMs;
-  if (written < Date.parse(stamps.initializedAt)) return false;
-  const sessionId = path.basename(transcript, ".jsonl");
-  const session = Object.hasOwn(stamps.sessions, sessionId) ? stamps.sessions[sessionId] : undefined;
-  const pairs = session === undefined ? [] : Object.values(session.branches);
-  if (pairs.length === 0) return true;
-  return pairs.some(({ reviewedUntil }) => reviewedUntil === null || Date.parse(reviewedUntil) < written);
-};
 
 /** "3 days ago", "1 hour ago", "just now". */
 const _ago = (at, now = Date.now()) => {
@@ -94,8 +76,8 @@ const _check = () => {
   }
 
   const repoRoot = mainRoot();
-  const lines = findTranscripts({ projectsDir: _projectsDir(), repoRoot })
-    .filter((transcript) => _mayHoldUnread(transcript, stamps))
+  const lines = findTranscripts({ projectsDir: projectsDir(), repoRoot })
+    .filter((transcript) => mayHoldUnread(transcript, stamps))
     .flatMap(readLines);
 
   const unread = pushed

@@ -53,7 +53,7 @@ cuisko/
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
 │   │   └── recipes/     `seed:catalog` / `catalog:verify` / `catalog:export` / `catalog:restore` (README inside).
 │   ├── images/          Hand-run asset preparation (compress, sanitize).
-│   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone; `prepare` runs it on every install.
+│   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept.
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
 ├── .githooks/            pre-commit (memory lock + branch name + verify), pre-merge-commit (the same, on a merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).

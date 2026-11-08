@@ -22,6 +22,7 @@ type Line = {
   branch: string;
   role: "user" | "assistant";
   isToolResult: boolean;
+  isSynthetic: boolean;
   text: string;
   toolCalls: { name: string; input: unknown }[];
   transcript: string;
@@ -102,6 +103,10 @@ describe("readLines", () => {
     expect(texts).not.toContain("Repeated message text.");
     expect(texts).not.toContain("No gitBranch field.");
     expect(texts).not.toContain("A subagent turn.");
+  });
+
+  it("flags the user lines that are not the owner's words: hook caveats and compaction summaries", () => {
+    expect(fixture("synthetic").map((line) => line.isSynthetic)).toEqual([false, true, true]);
   });
 
   it("records the transcript each line came from", () => {

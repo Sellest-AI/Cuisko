@@ -12,7 +12,9 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { changedFiles, git, ROOT } from "./_lib.mjs";
+import { changedFiles, git, isDreamSession, ROOT } from "./_lib.mjs";
+
+if (isDreamSession()) process.exit(0);
 
 const MAX_FILES = 15;
 
