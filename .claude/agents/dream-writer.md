@@ -23,14 +23,17 @@ the rules. Follow them exactly: the front matter (`summary`, `status`, `last_ver
 3. **Apply the contradiction rule** (README): the most recent source wins and the fact takes the new
    source date, unless the recent passage is about another context or holds an error corrected later
    (keep the old value and raise a `kept-old-value` alert). Before you replace a fact, run
-   `git log -p -- .claude/memory/memories/<file>`; if the fact already flipped (A, then B, then A),
+   `git log -p -- ':/.claude/memory/memories/<file>'`; if the fact already flipped (A, then B, then A),
    keep the current value and raise a `flip-flop` alert instead of deciding.
 4. **Write the `summary` last.** It is the one line a session reads in the index to decide whether
    to open the file: make it precise. Set `last_verified` to the date in your prompt and `status` to
    `stable` or `volatile`.
 5. Link other memory files with relative Markdown links and `docs/` with a path in backticks. A
    link must not be dead.
-6. Bash is for `git log` only; every other command is refused. Link to a `docs/` page only when it
+6. Bash is for `git log` only; every other command is refused. You run from the dream folder, not
+   the repo root: anchor every path at the repo top with `:/`, as above, or `git log` finds
+   nothing and says nothing. A command that starts with `cd`, uses `git -C` or pipes into another
+   command is refused. Link to a `docs/` page only when it
    covers the subject of the file. Be concise. Group related facts. Never copy `docs/`: link to it.
 
 ## The source date

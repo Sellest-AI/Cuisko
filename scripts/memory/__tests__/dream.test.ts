@@ -335,15 +335,18 @@ describe("dream: the reviewer's fixes", () => {
   type Verdict = { ok: boolean; output: string };
   const flag = (over: Record<string, unknown> = {}) => ({ path: "memories/api.md", fact: "A fact.", problem: "Unsupported.", evidence: "sA-01", severity: "medium", ...over });
 
-  /** One file written, then `review(call, copy)` as the reviewer; `verdicts` are the checks' answers, in order. */
-  const reviewing = async (review: (call: Call, copy: string) => unknown, verdicts: Verdict[] = []) => {
+  /**
+   * One file written, then `review(call, copy)` as the reviewer; `verdicts` are the checks' answers,
+   * in order; `planned` is the one plan entry, by default an update of api.md.
+   */
+  const reviewing = async (review: (call: Call, copy: string) => unknown, verdicts: Verdict[] = [], planned = { path: "memories/api.md", action: "update" }) => {
     const { copy, inputsDir } = makeCopy();
     const s = stub({
       extractor: () => ({ status: "ok", candidates: [candidate("sA-01", "sA", lineA.uuid)] }),
-      planner: { status: "ok", files: [{ path: "memories/api.md", action: "update", candidates: ["sA-01"] }], docsIssues: [] },
+      planner: { status: "ok", files: [{ ...planned, candidates: ["sA-01"] }], docsIssues: [] },
       writer: (call) => {
         writeFileSync(call.writable[0] as string, FILE("API", "About the API."));
-        return { status: "ok", path: "memories/api.md", facts: [{ text: "A fact.", candidates: ["sA-01"] }], alerts: [] };
+        return { status: "ok", path: planned.path, facts: [{ text: "A fact.", candidates: ["sA-01"] }], alerts: [] };
       },
       review: (call) => review(call, copy),
     });
@@ -399,6 +402,30 @@ describe("dream: the reviewer's fixes", () => {
 
     expect(error?.message).toContain("the reviewer changed files it must not touch");
     expect(error?.message).toContain("index.md");
+  });
+
+  it("drops a file this dream created when the reviewer names it, and takes it out of the index", async () => {
+    const { result, copy, checks } = await reviewing(
+      () => ({ status: "ok", flags: [flag({ path: "memories/new.md", fix: "dropped the file" })], drop: ["memories/new.md"] }),
+      [],
+      { path: "memories/new.md", action: "create" },
+    );
+
+    expect(existsSync(path.join(copy, "memories", "new.md"))).toBe(false);
+    expect(readFileSync(path.join(copy, "index.md"), "utf8")).not.toContain("memories/new.md");
+    expect(checks()).toBe(2);
+    expect(result?.alerts).toEqual([]);
+  });
+
+  it("keeps a file the dream did not create when the reviewer asks to drop it, and tells the owner", async () => {
+    const { result, copy } = await reviewing(() => ({ status: "ok", flags: [], drop: ["memories/api.md", "memories/old.md"] }));
+
+    expect(existsSync(path.join(copy, "memories", "api.md"))).toBe(true);
+    expect(existsSync(path.join(copy, "memories", "old.md"))).toBe(true);
+    expect(result?.alerts).toEqual([
+      { kind: "reviewer", message: "the reviewer wants to drop memories/api.md, which this dream did not create; it is kept" },
+      { kind: "reviewer", message: "the reviewer wants to drop memories/old.md, which this dream did not create; it is kept" },
+    ]);
   });
 
   it("alerts the owner when the reviewer's account and the copy disagree", async () => {

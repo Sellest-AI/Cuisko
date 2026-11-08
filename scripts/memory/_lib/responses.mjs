@@ -72,7 +72,9 @@ export const correctionReply = z.object({
 
 /**
  * P6: what the reviewer doubts, with its evidence. `fix` says what it changed in the copy when it
- * fixed the flag itself; a flag without it is left for the owner.
+ * fixed the flag itself; a flag without it is left for the owner. `drop` names files this dream
+ * created that the reviewer finds not worth keeping: the script deletes them, since Edit cannot. A
+ * reply without it parses as an empty list.
  */
 export const reviewerReply = z.object({
   status,
@@ -87,6 +89,7 @@ export const reviewerReply = z.object({
       fix: z.string().min(1).optional(),
     }),
   ),
+  drop: z.array(z.string().regex(MEMORY_PATH)).default([]),
 });
 
 /** `schema` as the JSON text `claude -p --json-schema` takes. */

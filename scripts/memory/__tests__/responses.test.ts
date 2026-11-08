@@ -62,6 +62,11 @@ describe("the schemas", () => {
     expect(plannerReply.safeParse({ status: "ok", files: [], dropped: [{ candidate: "a", reason: "" }], docsIssues: [] }).success).toBe(false);
   });
 
+  it("read a reviewer reply without drop as nothing to drop, and refuse a drop outside memories/", () => {
+    expect(reviewerReply.parse({ status: "ok", flags: [] })).toMatchObject({ drop: [] });
+    expect(reviewerReply.safeParse({ status: "ok", flags: [], drop: ["index.md"] }).success).toBe(false);
+  });
+
   it("refuse a path outside memories/, a nested one, and a candidate kind that does not exist", () => {
     const plan = (path: string) => plannerReply.safeParse({ status: "ok", files: [{ path, action: "create", candidates: ["a"] }], docsIssues: [] }).success;
 

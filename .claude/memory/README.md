@@ -82,11 +82,14 @@ Never write "replaces X" in a file: git keeps every version.
 
 ## History
 
-From the repo root:
+From anywhere in the repo, the dream folder included:
 
 ```
-git log -p -- .claude/memory/memories/<file>
+git log -p -- ':/.claude/memory/memories/<file>'
 ```
+
+`:/` anchors the path at the repo top. The dream agents run from `.tmp/memory/dream-*/`, where the
+path without it matches nothing, silently.
 
 The writer runs it before replacing a fact. The reviewer runs it to spot a change that undoes a past
 correction. The planner runs it on `volatile` files and on files that change often.

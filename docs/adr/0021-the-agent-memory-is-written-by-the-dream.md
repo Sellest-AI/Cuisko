@@ -21,7 +21,8 @@ MUST: mask personal data before a transcript enters any prompt (`mask` in
       after: C20 scans the memory in every `pnpm verify` and on the dream's copy.
 MUST: run each dream agent through `runAgent`: it reads the repo but not `.env*` or `.git/`, runs
       no Bash but `git log`, and writes only where the script grants. A writer gets its one file;
-      the reviewer gets `memories/` of the dream's copy. After each step the script compares the
+      the reviewer gets `memories/` of the dream's copy, and the script deletes the files it names
+      in `drop`, only if the dream created them. After each step the script compares the
       copy with what it was and stops the dream on a change outside the grant, then runs C20 again.
 MUST: write a statement about the code as a fact only if it holds in the repo today, else as a
       `Hypothesis: ` bullet, and end every fact with its source date.
@@ -46,7 +47,9 @@ Sessions forget what the owner corrected and decided. A memory a session could w
 hold unreviewed claims, so it is written only after the session, by a pipeline the owner reads
 before it lands: cheap extractors find the candidate facts in each conversation, a planner groups
 them into files, writers word each file from the cited passages, C20 checks the result, and a
-reviewer in a fresh context checks each fact against its source, fixing what the evidence settles.
+reviewer in a fresh context checks each fact against its source and decides: it fixes, trims or
+removes what it flags, and leaves open only a change that undoes an earlier correction and a
+planner deletion whose reason does not hold.
 The steps (U1–U11, P1–P7) are in the docblock of
 [update.mjs](../../scripts/memory/update.mjs).
 

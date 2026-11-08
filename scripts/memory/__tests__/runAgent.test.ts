@@ -4,9 +4,10 @@
  * the grant (what the agent may read and write), the way a reply is read, and that every failure
  * becomes an error naming a log file, never a silent empty result.
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -173,6 +174,20 @@ describe("the call", () => {
       "Bash(git log *)",
       `Edit(//${slashes(input.writable[0] as string)})`,
     ]);
+  });
+
+  it("tells each dream agent a git log that fits the grant and finds the file from the dream folder", () => {
+    const agents = fileURLToPath(new URL("../../../.claude/agents/", import.meta.url));
+    const commands = readdirSync(agents)
+      .filter((name) => name.startsWith("dream-") && name.endsWith(".md"))
+      .flatMap((name) => [...readFileSync(path.join(agents, name), "utf8").matchAll(/`(git log [^`]*-- [^`]*)`/g)].map((match) => ({ name, command: match[1] as string })));
+
+    expect(commands.map(({ name }) => name).sort()).toEqual(["dream-planner.md", "dream-reviewer.md", "dream-writer.md"]);
+    for (const { name, command } of commands) {
+      // A path relative to the dream folder matches nothing, silently; `:/` anchors it at the repo top.
+      expect(command, name).toMatch(/ -- ':\//);
+      expect(command, name).not.toMatch(/\||&&|;|\s-C\s|--output/);
+    }
   });
 
   it("denies the secret files, the git folder, and a git log that writes a file", async () => {

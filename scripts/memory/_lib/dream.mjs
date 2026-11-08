@@ -16,7 +16,7 @@
  *   P4  one writer per file, in parallel              → the files; a delete is done by the script
  *   --  the script refreshes usage.json and index.md
  *   P5  mechanical checks (C20 --full)                → errors stop the dream
- *   P6  one reviewer                                  → flags, and fixes what it can prove;
+ *   P6  one reviewer                                  → flags, fixes, and new files to drop;
  *                                                       C20 --full again if it changed a file
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -116,8 +116,8 @@ const correctionPrompt = ({ instruction, diff, passages, today, folder }) =>
 
 const reviewerPrompt = ({ diff, plan, candidates, passages, writerReplies, folder }) =>
   [
-    "Review the memory changes in this diff against their sources, and fix what you flag when the evidence is clear.",
-    `The files you may edit are in ${folder}. Nothing else is writable.`,
+    "Review the memory changes in this diff against their sources, and fix, trim or remove what you flag.",
+    `The files you may edit are in ${folder}. Nothing else is writable. To drop a file the plan creates, name it in \`drop\`.`,
     "",
     "<diff>",
     diff,
@@ -258,6 +258,12 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
     schema: reviewerReply,
     writable: [path.join(folder, "**")],
   });
+  const created = new Set(plan.files.filter((file) => file.action === "create").map((file) => file.path));
+  const dropAlerts = [];
+  for (const name of review.drop ?? []) {
+    if (created.has(name)) rmSync(path.join(copy, name), { force: true });
+    else dropAlerts.push({ kind: "reviewer", message: `the reviewer wants to drop ${name}, which this dream did not create; it is kept` });
+  }
   const fixed = changedPaths(reviewed, snapshotMemory(copy));
   const outside = fixed.filter((name) => !name.startsWith("memories/"));
   if (outside.length > 0) _stop("the reviewer changed files it must not touch", outside);
@@ -273,7 +279,7 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
     candidates,
     writerReplies,
     flags: review.flags,
-    alerts: [...deletionAlerts, ...writerReplies.flatMap((reply) => reply.alerts), ..._fixMismatches(review.flags, fixed)],
+    alerts: [...deletionAlerts, ...writerReplies.flatMap((reply) => reply.alerts), ..._fixMismatches(review.flags, fixed), ...dropAlerts],
     passages,
   };
 };
