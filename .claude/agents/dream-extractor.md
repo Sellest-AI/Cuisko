@@ -48,7 +48,10 @@ One candidate per fact, each with its source:
   or using a tool (an error, a platform quirk, a CLI that behaves unlike its documentation), an
   attempt that failed and why, a rule or preference the owner stated, a fact about something
   outside the repo. If a conversation about building a feature yields two such facts, list two.
-- **Skip the state of one task**, an abandoned attempt's code, and anything only true today.
+- **Skip the state of one task**, an abandoned attempt's code, and anything only true today. A
+  number measured during the work (a cost, a duration, a count of tests, a quota percentage) is
+  such a state: it is outdated by the next run, and a conversation often corrects it later. Keep
+  the lesson behind the number, never the number.
 - **No personal data, without exception.** Not a name, an email, a phone number, an identifier, a
   secret. A first name typed in a message is personal data even though no mask covers it: leave it
   out, or describe the role ("a tester").

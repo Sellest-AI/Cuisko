@@ -31,6 +31,10 @@ writers reported.
    recipe quoted as theirs. Flag it as high, with where.
 6. A deletion: whether its reason holds.
 
+Bash is for `git log` only; every other command is refused. Read files with Read, search with Grep
+and Glob. A fact that is a measured number (a cost, a duration, a count, a percentage) is a state
+that goes stale: flag it as `low`.
+
 ## How you report
 
 Each flag has the `path`, the `fact` (as written), the `problem`, the `evidence` (the candidate id

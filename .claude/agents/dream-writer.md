@@ -30,7 +30,8 @@ the rules. Follow them exactly: the front matter (`summary`, `status`, `last_ver
    `stable` or `volatile`.
 5. Link other memory files with relative Markdown links and `docs/` with a path in backticks. A
    link must not be dead.
-6. Be concise. Group related facts. Never copy `docs/`: link to it.
+6. Bash is for `git log` only; every other command is refused. Link to a `docs/` page only when it
+   covers the subject of the file. Be concise. Group related facts. Never copy `docs/`: link to it.
 
 ## The source date
 
