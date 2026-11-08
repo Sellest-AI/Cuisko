@@ -4,6 +4,7 @@
  * The memory is encrypted on GitHub by transcrypt. A clone gets ciphertext until transcrypt is
  * configured with the owner's key, which lives in `.env.local` as MEMORY_KEY. This script checks
  * the prerequisites and configures transcrypt once per clone; every worktree shares that config.
+ * It also checks that .claude/settings.json still holds the memory's lines.
  *
  *   node scripts/memory/setup.mjs          by hand: says what it did, exits 1 if something is missing
  *   node scripts/memory/setup.mjs --auto   from `prepare`, so every `pnpm install`
@@ -39,6 +40,16 @@ const MEMORY_DIR = ".claude/memory";
 /** Claude Code's default retention; below it, sessions can be deleted before a dream reads them. */
 const RETENTION_DAYS = 30;
 const KNOWN_FLAGS = new Set(["--auto"]);
+
+/** The memory's lines in .claude/settings.json (spec §5.1, §5.3), checked on every run. */
+const SETTINGS_FILE = ".claude/settings.json";
+const MEMORY_DENIES = [
+  "Edit(/.claude/memory/index.md)",
+  "Edit(/.claude/memory/usage.json)",
+  "Edit(/.claude/memory/memories/**)",
+];
+const MEMORY_HOOK = "session-start-memory.mjs";
+const MEMORY_MATCHER = "startup|resume|clear|compact";
 
 const flags = process.argv.slice(2);
 const auto = flags.includes("--auto");
@@ -102,6 +113,37 @@ const readRetention = () => {
   } catch {
     return undefined; // Claude Code refuses an invalid settings file itself; not ours to report.
   }
+};
+
+/**
+ * What the repo's Claude Code settings lack for the memory, as one line, or null when nothing.
+ * The file is versioned, so a gap means someone removed a line: without it a session agent could
+ * write the memory (the denies), Claude Code would keep its own memory beside it (auto memory), or
+ * the index would never reach a session (the hook).
+ */
+const checkSettings = (root) => {
+  const file = path.join(root, SETTINGS_FILE);
+  if (!existsSync(file)) return `${SETTINGS_FILE} is missing`;
+  let settings;
+  try {
+    settings = JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return `${SETTINGS_FILE} is not valid JSON`;
+  }
+
+  const gaps = [];
+  if (settings.autoMemoryEnabled !== false) gaps.push("autoMemoryEnabled: false");
+  const deny = Array.isArray(settings.permissions?.deny) ? settings.permissions.deny : [];
+  for (const rule of MEMORY_DENIES) if (!deny.includes(rule)) gaps.push(`the deny rule ${rule}`);
+  const entries = Array.isArray(settings.hooks?.SessionStart) ? settings.hooks.SessionStart : [];
+  const hooked = entries.some(
+    (entry) =>
+      entry?.matcher === MEMORY_MATCHER &&
+      Array.isArray(entry.hooks) &&
+      entry.hooks.some((hook) => typeof hook?.command === "string" && hook.command.includes(MEMORY_HOOK)),
+  );
+  if (!hooked) gaps.push(`a SessionStart entry (matcher ${MEMORY_MATCHER}) running ${MEMORY_HOOK}`);
+  return gaps.length > 0 ? `${SETTINGS_FILE} lacks ${gaps.join(", ")}` : null;
 };
 
 const run = async () => {
@@ -177,6 +219,9 @@ const run = async () => {
       }
     }
   }
+
+  const settingsGap = checkSettings(root);
+  if (settingsGap !== null) missing.push(settingsGap);
 
   const retention = readRetention();
   if (retention === 0) {

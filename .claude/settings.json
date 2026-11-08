@@ -4,6 +4,14 @@
     "type": "command",
     "command": "context-mode statusline"
   },
+  "autoMemoryEnabled": false,
+  "permissions": {
+    "deny": [
+      "Edit(/.claude/memory/index.md)",
+      "Edit(/.claude/memory/usage.json)",
+      "Edit(/.claude/memory/memories/**)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -13,6 +21,17 @@
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-start.mjs\"",
             "timeout": 10,
             "statusMessage": "Reading repo state"
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-start-memory.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Loading the memory index"
           }
         ]
       }

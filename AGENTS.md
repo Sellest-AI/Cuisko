@@ -29,6 +29,11 @@ pnpm test:scripts  # node project only — the C1–C19 checks, and the database
 Use the `context-mode` plugin when available: any command whose output you will process rather
 than just glance at — a diff, a log, a test run — goes through it, not Bash.
 
+## Memory
+
+Your memory is in .claude/memory/ and is read-only for you: it is updated after the session, from the conversation. Start by reading index.md.
+If you learn something worth keeping, say it in your reply, on one short line starting with `Memory:`. Never write it to a file.
+
 ## Before writing code
 
 - `docs/PRODUCT.md` — what the app is for, who it serves, what it refuses to be. Read it when a

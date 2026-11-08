@@ -207,7 +207,7 @@ inside the memory becomes English. The spec's structure is unchanged; only the w
 | `(source : 2026-11-08)`, `(source : correction du 2026-11-08)` | `(source: 2026-11-08)`, `(source: correction of 2026-11-08)` |
 | C20's date regex | `\(source: (correction of )?\d{4}-\d{2}-\d{2}\)$` |
 | Index fixed header, README.md, _template.md | English |
-| The two AGENTS.md lines | "Your memory is in .claude/memory/; start by reading index.md." · "If you learn something worth keeping, write one short line starting with `Memory:`." |
+| The two AGENTS.md lines | "Your memory is in .claude/memory/ and is read-only for you: it is updated after the session, from the conversation. Start by reading index.md." · "If you learn something worth keeping, say it in your reply, on one short line starting with `Memory:`. Never write it to a file." The owner's wording: "in your reply" so "write" never reads as "write a file", and the first line says why |
 | The signal `Mémoire :` | `Memory:` — the detector also accepts `Mémoire :`, because the owner talks to the agent in French. It NFC-normalises the line (ADR 0011's rule), strips leading Markdown (`- `, `> `, `**`, `_`), then matches `/^(Memory\|Mémoire)\s*\**\s*:/u`, where `\s` covers the no-break spaces French typography puts before a colon |
 | Hook, pre-push and memory:update messages (§8.2, U11…) | English |
 
@@ -401,6 +401,10 @@ setup.mjs       [--reset-stamps]
                   own realpath needs
                 · the stamps step (spec §13.2 step 6) lands with stamps.mjs in slice 3, the
                   settings check (step 7) with the settings in slice 2
+                settings check (slice 2): .claude/settings.json must hold autoMemoryEnabled false,
+                          the three Edit denies and a SessionStart entry with the memory matcher
+                          running session-start-memory.mjs. A gap is a missing item: one line naming
+                          every gap with --auto, exit 1 by hand. A missing or invalid file is one too
 c20             [--memory-dir <path>] (default .claude/memory) [--full]; CHECK_ROOT as every check
                 [--identity <json>]  tests only: replaces ownerIdentity(), so the test runs the real
                           entry with a fixed identity; run-all passes none, so verify reads the real one
@@ -498,7 +502,10 @@ setup.test.ts         --auto: CI set → no-op, exit 0 · EAS_BUILD set → no-o
                       of setup.mjs in a temp dir whose _lib/stamps.mjs throws at import → one
                       line, exit 0 · second run
                       on a set-up repo → no output · existing stamps never overwritten · --auto with
-                      --reset-stamps → refused · without --auto, a missing key → exit 1
+                      --reset-stamps → refused · without --auto, a missing key → exit 1 · settings
+                      lacking the memory lines → one line naming each gap, exit 1 by hand · settings
+                      file missing or invalid → one line · every case runs on a copy of the repo's
+                      real settings, so they are checked too
 update.test.ts        U1 refusals · nochange path restores usage.json · [a] writes nothing · [i] writes
                       stamps, no commit · commit limited to .claude/memory with the trailer · --dry-run
                       writes no stamps and no lastRun · failure keeps the dream dir and sets lastRun failed ·
@@ -579,10 +586,12 @@ commit made before the filter is active stores it in plaintext forever.
       and the `prepare` hookup in package.json → a
       throwaway memory file shows encrypted in `git show HEAD:…` and plain on disk, in the main
       checkout **and in a worktree under `.claude/worktrees/`**
-- [ ] 2. Memory folder (README, template, header-only index, empty usage), the two AGENTS.md lines
+- [x] 2. Memory folder (README, template, header-only index, empty usage), the two AGENTS.md lines
       (they name the folder and the signal, no command, so C6 has nothing to resolve),
       `.claude/settings.json` (three denies, auto memory off, SessionStart entry pointing at a stub
-      that prints nothing yet) → committed with MEMORY_UPDATE=1
+      that prints nothing yet) → committed with MEMORY_UPDATE=1. The header-only index ends with
+      `## Memories`: slice 5's `FIXED_HEADER` and `renderIndex` with no files must give these bytes.
+      The deny was probed in a live session: an Edit on index.md is refused, one on README.md passes
 - [ ] 3. `git.mjs`, `transcripts.mjs`, `stamps.mjs` (with the dream lock), fixtures and their tests
 - [ ] 4. `pii.mjs`, `pre-commit.mjs` + the pre-commit block + the pre-merge-commit export,
       `pre-push.mjs` + `.githooks/pre-push` (blocks from the start, Q3), knip entries for both,

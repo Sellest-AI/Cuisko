@@ -70,12 +70,26 @@ function cleanEnv(extra: Record<string, string>) {
   return { ...env, PATH: GIT_DIR, ...extra };
 }
 
-/** A git repository with one empty commit; `.env.local` holds the key unless `key` is null. */
+/** This repository's own Claude Code settings, so every case also checks that they pass. */
+const REAL_SETTINGS = readFileSync(path.resolve(path.dirname(SETUP), "..", "..", ".claude", "settings.json"), "utf8");
+
+/** Writes `.claude/settings.json` into a repo: an object as JSON, a string as it is. */
+const writeSettings = (repo: string, settings: object | string) => {
+  mkdirSync(path.join(repo, ".claude"), { recursive: true });
+  const text = typeof settings === "string" ? settings : JSON.stringify(settings);
+  writeFileSync(path.join(repo, ".claude", "settings.json"), text);
+};
+
+/**
+ * A git repository with one empty commit and this repository's `.claude/settings.json`;
+ * `.env.local` holds the key unless `key` is null.
+ */
 const makeRepo = ({ key = KEY as string | null } = {}) => {
   const repo = tempDir("repo");
   git(repo, "init", "-q");
   git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--no-verify", "--allow-empty", "-m", "init");
   if (key !== null) writeFileSync(path.join(repo, ".env.local"), `OTHER=1\nMEMORY_KEY=${key}\n`);
+  writeSettings(repo, REAL_SETTINGS);
   return repo;
 };
 
@@ -178,6 +192,7 @@ describe("setup --auto: never fails the install", () => {
     fakeConfigured(repo, "another-key");
     const worktree = path.join(repo, "wt");
     git(repo, "worktree", "add", "-q", "--detach", worktree);
+    writeSettings(worktree, REAL_SETTINGS);
     const { output } = runSetup(worktree);
     expect(output).toEqual(["memory: MEMORY_KEY in .env.local is not the key this clone was set up with"]);
   });
@@ -208,6 +223,36 @@ describe("setup --auto: never fails the install", () => {
     ]);
   });
 
+  it("names everything the Claude Code settings lack, in one line", () => {
+    const repo = makeRepo();
+    fakeConfigured(repo);
+    const settings = JSON.parse(REAL_SETTINGS);
+    settings.autoMemoryEnabled = true;
+    settings.permissions.deny = ["Edit(/.claude/memory/index.md)"];
+    settings.hooks.SessionStart = settings.hooks.SessionStart.filter(
+      (entry: { matcher?: string }) => entry.matcher === undefined,
+    );
+    writeSettings(repo, settings);
+    expect(runSetup(repo)).toEqual({
+      code: 0,
+      output: [
+        "memory: .claude/settings.json lacks autoMemoryEnabled: false, " +
+          "the deny rule Edit(/.claude/memory/usage.json), " +
+          "the deny rule Edit(/.claude/memory/memories/**), " +
+          "a SessionStart entry (matcher startup|resume|clear|compact) running session-start-memory.mjs",
+      ],
+    });
+  });
+
+  it("names a missing or unreadable settings file", () => {
+    const repo = makeRepo();
+    fakeConfigured(repo);
+    rmSync(path.join(repo, ".claude", "settings.json"));
+    expect(runSetup(repo).output).toEqual(["memory: .claude/settings.json is missing"]);
+    writeSettings(repo, "{ not json");
+    expect(runSetup(repo).output).toEqual(["memory: .claude/settings.json is not valid JSON"]);
+  });
+
   it("refuses an unknown option in one line", () => {
     const repo = makeRepo();
     fakeConfigured(repo);
@@ -230,6 +275,15 @@ describe("setup by hand: loud", () => {
     fakeConfigured(repo);
     const { code } = runSetup(repo, { args: [], home: homeWithRetention(0) });
     expect(code).toBe(1);
+  });
+
+  it("exits 1 when the settings lack the memory lines", () => {
+    const repo = makeRepo();
+    fakeConfigured(repo);
+    writeSettings(repo, {});
+    const { code, output } = runSetup(repo, { args: [] });
+    expect(code).toBe(1);
+    expect(output.some((line) => line.startsWith("✗ .claude/settings.json lacks autoMemoryEnabled: false"))).toBe(true);
   });
 });
 
