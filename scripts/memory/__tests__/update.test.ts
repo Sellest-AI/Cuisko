@@ -551,11 +551,14 @@ describe("failures", () => {
 });
 
 describe("the pending commit", () => {
-  /** A hook directory whose pre-commit refuses: the owner's `pnpm verify` failing. */
+  /**
+   * A hook directory whose pre-commit refuses: the owner's `pnpm verify` failing. The mode matters
+   * on Linux CI: git silently skips a hook that is not executable, and the commit then succeeds.
+   */
   const refuseCommits = (repo: Repo) => {
     const hooks = path.join(repo.root, ".hooks");
     mkdirSync(hooks, { recursive: true });
-    writeFileSync(path.join(hooks, "pre-commit"), "#!/bin/sh\necho 'verify failed (test)' >&2\nexit 1\n");
+    writeFileSync(path.join(hooks, "pre-commit"), "#!/bin/sh\necho 'verify failed (test)' >&2\nexit 1\n", { mode: 0o755 });
     git(repo.root, "config", "core.hooksPath", hooks);
     return () => git(repo.root, "config", "--unset", "core.hooksPath");
   };
