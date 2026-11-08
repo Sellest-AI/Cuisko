@@ -263,7 +263,7 @@ transcript, stamp or PII code exists to reuse.
 + scripts/memory/update.mjs                    memory:update, U1–U11, --dry-run, --reindex, finishes a pending commit
 + scripts/memory/pre-push.mjs                  spec §8.1
 + scripts/memory/pre-commit.mjs                lock: exits 1 with the reason, 0 otherwise
-+ scripts/memory/_lib/git.mjs                  git(...args) → string, throws on failure
++ scripts/memory/_lib/git.mjs                  git helpers that throw on failure, and commonDir (signatures below)
 + scripts/memory/_lib/transcripts.mjs          discovery, parsing, selection (§6.1–6.3)
 + scripts/memory/_lib/condense.mjs             §6.4
 + scripts/memory/_lib/stamps.mjs               Zod schema, read, atomic write, migrate (§7)
@@ -293,15 +293,24 @@ transcript, stamp or PII code exists to reuse.
 write against. Paths are POSIX, repo-relative, dates ISO-8601 UTC.
 
 ```js
+// git.mjs (slice 3: every helper takes an optional directory, so tests use throwaway repos)
+gitIn(cwd, ...args) · gitInOrNull(cwd, ...args) · git(...args) · gitOrNull(...args)
+commonDir(cwd?) → string                                       // absolute (--path-format=absolute)
+mainRoot(cwd?) → string                                        // the main checkout: repoRoot for select (slice 4,
+                                                               // with its first caller)
+
 // transcripts.mjs
 findTranscripts({ projectsDir, repoRoot }) → string[]          // absolute .jsonl paths, subagents excluded
-readLines(file) → Line[]                                       // user/assistant lines only
+readLines(file) → Line[]                                       // user/assistant lines only, side chains dropped
 // Line = { uuid, sessionId, timestamp, cwd, branch, role: "user"|"assistant",
-//          isToolResult: boolean, text: string, toolCalls: { name, input }[] }
-openBranches({ pushedSha, pushedRef }) → Set<string>           // §6.3
-referenceDate(pushedSha) → string                              // §6.2 condition 4
-select({ lines, repoRoot, openBranches, stamps, referenceDate }) → Line[]   // the four conditions
+//          isToolResult: boolean, text: string, toolCalls: { name, input }[],
+//          transcript: string }                               // its file: recordReview stores it (§7.2)
+openBranches({ pushedSha, pushedRef, cwd? }) → Set<string>     // §6.3
+referenceDate(pushedSha, cwd?) → string | null                 // §6.2 condition 4; null: only memory commits
+select({ lines, repoRoot, openBranches, stamps, referenceDate }) → Line[]   // the four conditions;
+                                                               // a null referenceDate selects nothing
 countSessions(lines) → number                                  // distinct sessionIds (§1)
+isDreamCwd(cwd, root) → boolean
 
 // condense.mjs
 condense(lines) → { sessionId, text: string, signaled: boolean }   // tool calls one line each,
@@ -309,14 +318,17 @@ condense(lines) → { sessionId, text: string, signaled: boolean }   // tool cal
 excerpts(lines, candidateIds, contextLines = 3) → string
 
 // stamps.mjs
-stampsPath() → string                                          // <git common dir>/dream-stamps.json
-readStamps() → Stamps                                          // throws StampsError (missing | invalid)
-writeStamps(stamps) → void                                     // temp file + rename; on EPERM/EBUSY
+stampsPath(cwd?) → string                                      // <git common dir>/dream-stamps.json
+createStamps(now?) → Stamps                                    // { version: 1, initializedAt: now, sessions: {} }
+readStamps(file?) → Stamps                                     // throws StampsError (missing | invalid)
+writeStamps(stamps, file?, { rename? }) → void                 // validates first; temp file + rename; on EPERM/EBUSY
                                                                // (Windows, another reader) retries 5× over
                                                                // 1 s, then throws and leaves the old file whole
-acquireDreamLock() → release()                                 // <git common dir>/dream.lock holding the pid;
+acquireDreamLock(dir?) → release()                             // <git common dir>/dream.lock holding the pid;
                                                                // a lock whose pid is dead is taken over
-recordReview(stamps, { selected, openBranches, outcome, run, readsCountedUntil? }) → Stamps   // §7.5, pure
+recordReview(stamps, { selected, onOpenBranches, outcome, run, readsCountedUntil? }) → Stamps   // §7.5, pure;
+                                                               // onOpenBranches: the Lines dropped only by
+                                                               // condition 2, whose pairs get null
 pruneStamps(stamps, exists = fs.existsSync) → Stamps           // §7.7, pure
 
 // usage.mjs
@@ -373,7 +385,9 @@ would refuse here before package.json has it):
   "(no dream yet)"; with lastRun failed, "(last dream: 2 hours ago, failed)"
      Then: git push
      (If the dream cannot run: MEMORY_SKIP=1 git push)
-setup.mjs       [--reset-stamps]
+setup.mjs       [--reset-stamps]  by hand only; with --auto it is an unknown option. Existing stamps are
+                          validated on every run: invalid ones are a missing item naming the reset
+                          command, and are never touched
                 [--auto]  run by `prepare`, i.e. by every `pnpm install` (the owner asked: no extra
                           command on a new machine). Idempotent and quiet: a step already done
                           (transcrypt configured, stamps present) is skipped without output. It
@@ -592,17 +606,23 @@ commit made before the filter is active stores it in plaintext forever.
       that prints nothing yet) → committed with MEMORY_UPDATE=1. The header-only index ends with
       `## Memories`: slice 5's `FIXED_HEADER` and `renderIndex` with no files must give these bytes.
       The deny was probed in a live session: an Edit on index.md is refused, one on README.md passes
-- [ ] 3. `git.mjs`, `transcripts.mjs`, `stamps.mjs` (with the dream lock), fixtures and their tests
+- [x] 3. `git.mjs`, `transcripts.mjs`, `stamps.mjs` (with the dream lock), fixtures and their tests,
+      and setup's stamps step. The real transcripts showed two things for slice 7's condense: user
+      lines flagged `isMeta` (hook output, command caveats) and `isCompactSummary` are not the
+      owner's words, and the main project folder is spelled `C--…` here, not `c--…` (discovery
+      ignores case either way). knip lists `_lib/transcripts.mjs` and `_lib/stamps.mjs` as entries
+      until their callers land, since it fails on an export nothing imports
 - [ ] 4. `pii.mjs`, `pre-commit.mjs` + the pre-commit block + the pre-merge-commit export,
       `pre-push.mjs` + `.githooks/pre-push` (blocks from the start, Q3), knip entries for both,
-      commitlint footer token
+      commitlint footer token, `mainRoot` in git.mjs; the knip entry for `_lib/transcripts.mjs`
+      goes once the pre-push imports it
 - [ ] 5. `usage.mjs`, `memoryIndex.mjs`, the real `session-start-memory.mjs`
 - [ ] 6. C20, its tests, the C1–C20 renumbering, `memory-encryption.yml`
       *(moved before the orchestration: P5 calls C20)*
 - [ ] 7. The four CLI checks of §3 first; then `condense.mjs`, `responses.mjs`, `runAgent.mjs`,
       the four `dream-*` agents, `update.mjs` and the memory:update script in package.json, with
       the pipeline stubbed first (spec §14 row 8), then wired; `--dry-run`, `--reindex`, the
-      pending commit; [m] and `:e`
+      pending commit; [m] and `:e`; the knip entry for `_lib/stamps.mjs` goes once update.mjs imports it
 - [ ] 8. Remaining spec §14 tests; the owner runs the first real dry-run dream (command handed over)
 
 ---

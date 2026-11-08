@@ -1,0 +1,8 @@
+{"type":"api-request-blob","sessionId":"noise","hash":"h1","message":{"role":"user","content":"Repeated message text."}}
+{"type":"attachment","uuid":"noise-a","sessionId":"noise","timestamp":"2026-11-01T09:00:00.000Z","cwd":"C:\\work\\cuisko","gitBranch":"dev"}
+{"parentUuid":null,"isSidechain":false,"type":"user","uuid":"noise-1","timestamp":"2026-11-01T09:00:00.000Z","cwd":"C:\\work\\cuisko","sessionId":"noise","version":"2.1.0","gitBranch":"dev","message":{"role":"user","content":"Kept: a plain user line."}}
+{"parentUuid":null,"isSidechain":false,"type":"assistant","uuid":"noise-2","timestamp":"2026-11-01T09:00:01.000Z","cwd":"C:\\work\\cuisko","sessionId":"noise","version":"2.1.0","gitBranch":"dev","message":{"role":"assistant","content":[{"type":"thinking","thinking":"hidden"},{"type":"text","text":"Reading it."},{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"C:\\work\\cuisko\\AGENTS.md"}}]}}
+{"parentUuid":null,"isSidechain":false,"type":"user","uuid":"noise-3","timestamp":"2026-11-01T09:00:02.000Z","cwd":"C:\\work\\cuisko","sessionId":"noise","version":"2.1.0","gitBranch":"dev","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"file text"}]},"toolUseResult":{"type":"text"},"sourceToolAssistantUUID":"noise-2"}
+{"type":"user","uuid":"noise-x","sessionId":"noise","timestamp":"2026-11-01T09:00:03.000Z","cwd":"C:\\work\\cuisko","message":{"role":"user","content":"No gitBranch field."}}
+{"parentUuid":null,"isSidechain":true,"type":"user","uuid":"noise-4","timestamp":"2026-11-01T09:00:04.000Z","cwd":"C:\\work\\cuisko","sessionId":"noise","version":"2.1.0","gitBranch":"dev","message":{"role":"user","content":"A subagent turn."}}
+{"type":"user","uuid":"cut-off

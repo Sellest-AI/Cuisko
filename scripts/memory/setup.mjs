@@ -4,10 +4,12 @@
  * The memory is encrypted on GitHub by transcrypt. A clone gets ciphertext until transcrypt is
  * configured with the owner's key, which lives in `.env.local` as MEMORY_KEY. This script checks
  * the prerequisites and configures transcrypt once per clone; every worktree shares that config.
- * It also checks that .claude/settings.json still holds the memory's lines.
+ * It also checks that .claude/settings.json still holds the memory's lines, and creates the dream
+ * stamps (spec §7.6), so the first dream reads only sessions newer than the setup.
  *
- *   node scripts/memory/setup.mjs          by hand: says what it did, exits 1 if something is missing
- *   node scripts/memory/setup.mjs --auto   from `prepare`, so every `pnpm install`
+ *   node scripts/memory/setup.mjs                  by hand: says what it did, exits 1 if something is missing
+ *   node scripts/memory/setup.mjs --reset-stamps   by hand only: every session until now counts as read
+ *   node scripts/memory/setup.mjs --auto           from `prepare`, so every `pnpm install`
  *
  * `--auto` never fails the install, whatever happens: it exits 0 and prints at most one line, or
  * nothing when every step is already done. It does nothing in CI or on an EAS build (both run
@@ -39,7 +41,8 @@ const CIPHER = "aes-256-cbc";
 const MEMORY_DIR = ".claude/memory";
 /** Claude Code's default retention; below it, sessions can be deleted before a dream reads them. */
 const RETENTION_DAYS = 30;
-const KNOWN_FLAGS = new Set(["--auto"]);
+/** `--reset-stamps` drops what the stamps know; an install must never do that, so `--auto` takes no other flag. */
+const KNOWN_FLAGS = { auto: new Set(["--auto"]), byHand: new Set(["--reset-stamps"]) };
 
 /** The memory's lines in .claude/settings.json (spec §5.1, §5.3), checked on every run. */
 const SETTINGS_FILE = ".claude/settings.json";
@@ -53,6 +56,7 @@ const MEMORY_MATCHER = "startup|resume|clear|compact";
 
 const flags = process.argv.slice(2);
 const auto = flags.includes("--auto");
+const resetStamps = flags.includes("--reset-stamps");
 
 /** `MEMORY_KEY` from a dotenv file, or null when the file or the key is absent or empty. */
 const readKey = (file) => {
@@ -147,7 +151,7 @@ const checkSettings = (root) => {
 };
 
 const run = async () => {
-  const { git, gitOrNull } = await import("./_lib/git.mjs");
+  const { commonDir: findCommonDir, git, gitOrNull } = await import("./_lib/git.mjs");
 
   /** Blocking: the memory cannot work until it is fixed. */
   const missing = [];
@@ -156,7 +160,8 @@ const run = async () => {
   /** Steps this run actually performed; empty on a clone already set up. */
   const done = [];
 
-  const unknown = flags.filter((flag) => !KNOWN_FLAGS.has(flag));
+  const known = auto ? KNOWN_FLAGS.auto : KNOWN_FLAGS.byHand;
+  const unknown = flags.filter((flag) => !known.has(flag));
   if (unknown.length > 0) return { missing: [`unknown option ${unknown.join(" ")}`], warnings, done };
 
   if (gitOrNull("rev-parse", "--is-inside-work-tree") !== "true") {
@@ -164,7 +169,7 @@ const run = async () => {
     return { missing: ["run this inside the cuisko git repository"], warnings, done };
   }
   const root = git("rev-parse", "--show-toplevel");
-  const commonDir = path.resolve(root, git("rev-parse", "--git-common-dir"));
+  const commonDir = findCommonDir();
   // In a worktree `.env.local` may live only in the main checkout, which owns the common dir.
   const key = readKey(path.join(root, ".env.local")) ?? readKey(path.join(path.dirname(commonDir), ".env.local"));
 
@@ -218,6 +223,23 @@ const run = async () => {
         missing.push(`transcrypt init failed (${reason || `exit ${result.status}`})`);
       }
     }
+  }
+
+  // Created once, never overwritten: they hold which sessions this machine's dreams already read.
+  const { createStamps, readStamps, stampsPath, writeStamps } = await import("./_lib/stamps.mjs");
+  const stampsFile = stampsPath();
+  if (resetStamps) {
+    writeStamps(createStamps(), stampsFile);
+    warnings.push("dream stamps reset: every session until now counts as read");
+  } else if (existsSync(stampsFile)) {
+    try {
+      readStamps(stampsFile);
+    } catch (error) {
+      missing.push(error.message);
+    }
+  } else {
+    writeStamps(createStamps(), stampsFile);
+    done.push("dream stamps created");
   }
 
   const settingsGap = checkSettings(root);

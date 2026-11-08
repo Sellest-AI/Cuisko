@@ -1,0 +1,2 @@
+{"parentUuid":null,"isSidechain":false,"type":"user","uuid":"open-1","timestamp":"2026-11-01T10:00:00.000Z","cwd":"C:\\work\\cuisko","sessionId":"open","version":"2.1.0","gitBranch":"feat/open","message":{"role":"user","content":"Add a cellar filter."}}
+{"parentUuid":null,"isSidechain":false,"type":"assistant","uuid":"open-2","timestamp":"2026-11-01T10:00:05.000Z","cwd":"C:\\work\\cuisko","sessionId":"open","version":"2.1.0","gitBranch":"feat/open","message":{"role":"assistant","content":[{"type":"text","text":"Filter added on the cellar screen."}]}}

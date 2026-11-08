@@ -12,7 +12,12 @@
     "scripts/images/*.ts",
     "scripts/videos/*.ts",
     // The Android and web half of a platform pair: knip resolves the import to `index.ios.tsx`.
-    "src/ui/components/more-button/index.tsx"
+    "src/ui/components/more-button/index.tsx",
+    // The agent memory's selection and stamps, built before their callers: the pre-push imports
+    // transcripts.mjs, memory:update imports both. Each line goes when its caller lands
+    // (docs/plans/agent-memory.md, slices 4 and 7).
+    "scripts/memory/_lib/transcripts.mjs",
+    "scripts/memory/_lib/stamps.mjs"
   ],
   // Run by Claude Code from .claude/settings.json.
   "ignoreFiles": [".claude/hooks/**"],

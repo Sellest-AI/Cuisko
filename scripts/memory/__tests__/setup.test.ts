@@ -93,13 +93,18 @@ const makeRepo = ({ key = KEY as string | null } = {}) => {
   return repo;
 };
 
-/** Marks a repo as already set up, the way a finished transcrypt init leaves it. */
+/** Stamps as setup writes them, from a run on 2026-10-20. */
+const STAMPS = { version: 1, initializedAt: "2026-10-20T09:00:00.000Z", sessions: {} };
+const stampsOf = (repo: string) => JSON.parse(readFileSync(path.join(repo, ".git", "dream-stamps.json"), "utf8"));
+
+/** Marks a repo as already set up, the way a finished transcrypt init and stamps step leave it. */
 const fakeConfigured = (repo: string, key = KEY) => {
   git(repo, "config", "core.hooksPath", ".githooks");
   git(repo, "config", "filter.crypt.clean", "transcrypt clean");
   git(repo, "config", "transcrypt.password", key);
   mkdirSync(path.join(repo, ".git", "crypt"), { recursive: true });
   writeFileSync(path.join(repo, ".git", "crypt", "transcrypt"), "#!/bin/sh\n");
+  writeFileSync(path.join(repo, ".git", "dream-stamps.json"), JSON.stringify(STAMPS));
 };
 
 const runSetup = (
@@ -253,6 +258,30 @@ describe("setup --auto: never fails the install", () => {
     expect(runSetup(repo).output).toEqual(["memory: .claude/settings.json is not valid JSON"]);
   });
 
+  it("creates the dream stamps once, and never overwrites them", () => {
+    const repo = makeRepo({ key: null });
+    runSetup(repo);
+    const first = stampsOf(repo);
+    expect(first).toMatchObject({ version: 1, sessions: {} });
+    expect(Date.now() - Date.parse(first.initializedAt)).toBeLessThan(60_000);
+
+    const older = { ...STAMPS, sessions: { s1: { transcript: "/x/s1.jsonl", branches: { dev: { reviewedUntil: null } } } } };
+    writeFileSync(path.join(repo, ".git", "dream-stamps.json"), JSON.stringify(older));
+    runSetup(repo);
+    expect(stampsOf(repo)).toEqual(older);
+  });
+
+  it("names invalid stamps and the reset command, without touching them", () => {
+    const repo = makeRepo();
+    fakeConfigured(repo);
+    writeFileSync(path.join(repo, ".git", "dream-stamps.json"), '{"version":1}');
+    const { code, output } = runSetup(repo);
+    expect(code).toBe(0);
+    expect(output).toHaveLength(1);
+    expect(output[0]).toMatch(/^memory: .*dream-stamps\.json is invalid: .*pnpm memory:setup --reset-stamps/);
+    expect(stampsOf(repo)).toEqual({ version: 1 });
+  });
+
   it("refuses an unknown option in one line", () => {
     const repo = makeRepo();
     fakeConfigured(repo);
@@ -275,6 +304,14 @@ describe("setup by hand: loud", () => {
     fakeConfigured(repo);
     const { code } = runSetup(repo, { args: [], home: homeWithRetention(0) });
     expect(code).toBe(1);
+  });
+
+  it("resets the stamps on --reset-stamps, with a warning", () => {
+    const repo = makeRepo();
+    fakeConfigured(repo);
+    const { output } = runSetup(repo, { args: ["--reset-stamps"] });
+    expect(output).toContain("! dream stamps reset: every session until now counts as read");
+    expect(Date.parse(stampsOf(repo).initializedAt)).toBeGreaterThan(Date.parse(STAMPS.initializedAt));
   });
 
   it("exits 1 when the settings lack the memory lines", () => {
@@ -312,7 +349,10 @@ describe.skipIf(REAL_TRANSCRYPT === undefined)("setup with a real transcrypt", (
       writeFileSync(path.join(repo, ".claude", "memory", "memories", "early.md"), "drafted before setup\n");
 
       const first = runSetup(repo, { env: withTranscrypt() });
-      expect(first).toEqual({ code: 0, output: ["memory: git hooks enabled; transcrypt configured, memory decrypted"] });
+      expect(first).toEqual({
+        code: 0,
+        output: ["memory: git hooks enabled; transcrypt configured, memory decrypted; dream stamps created"],
+      });
       expect(existsSync(path.join(repo, ".githooks"))).toBe(false);
 
       mkdirSync(path.join(repo, ".claude", "memory", "memories"), { recursive: true });
