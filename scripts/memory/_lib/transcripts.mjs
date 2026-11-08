@@ -45,6 +45,12 @@ const _encode = (dir) => dir.replace(/[^A-Za-z0-9]/g, "-");
 export const isDreamCwd = (cwd, root) => _isUnder(cwd, `${root}/.tmp/memory`);
 
 /**
+ * Condition 1 of the selection (spec §6.2): the session ran in the repo root or under it, and not
+ * under `<root>/.tmp/`, where the dreams run. The read counting applies it too.
+ */
+export const isRepoCwd = (cwd, root) => _isUnder(cwd, root) && !_isUnder(cwd, `${root}/.tmp`);
+
+/**
  * Every top-level transcript of this repo, absolute paths, sorted. A project folder belongs to the
  * repo when its name starts with the encoded root, without case: the main checkout's folder and
  * one per worktree under .claude/worktrees/. A sibling such as cuisko-web shares the prefix; its
@@ -184,7 +190,7 @@ export const select = ({ lines, repoRoot, openBranches: open, stamps, referenceD
   const before = Date.parse(reference);
   const initialized = Date.parse(stamps.initializedAt);
   return lines.filter((line) => {
-    if (!_isUnder(line.cwd, repoRoot) || _isUnder(line.cwd, `${repoRoot}/.tmp`)) return false;
+    if (!isRepoCwd(line.cwd, repoRoot)) return false;
     if (open.has(line.branch)) return false;
     const at = Date.parse(line.timestamp);
     if (at <= initialized || at >= before) return false;

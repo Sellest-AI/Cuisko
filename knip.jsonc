@@ -16,12 +16,15 @@
     // Run by .githooks/pre-commit and .githooks/pre-push, which knip does not read.
     "scripts/memory/pre-commit.mjs",
     "scripts/memory/pre-push.mjs",
+    // Run by Claude Code from .claude/settings.json; an entry so knip sees what it imports.
+    ".claude/hooks/session-start-memory.mjs",
     // Agent memory modules built before their callers. Each line goes when its caller lands
-    // (docs/plans/agent-memory.md): transcripts.mjs's isDreamCwd with the SessionStart memory
-    // hook (slice 5), stamps.mjs with memory:update (slice 7), pii.mjs with C20 (slice 6).
-    "scripts/memory/_lib/transcripts.mjs",
+    // (docs/plans/agent-memory.md): pii.mjs with C20 (slice 6), the others with memory:update
+    // (slice 7).
     "scripts/memory/_lib/stamps.mjs",
-    "scripts/memory/_lib/pii.mjs"
+    "scripts/memory/_lib/pii.mjs",
+    "scripts/memory/_lib/usage.mjs",
+    "scripts/memory/_lib/memoryIndex.mjs"
   ],
   // Run by Claude Code from .claude/settings.json.
   "ignoreFiles": [".claude/hooks/**"],

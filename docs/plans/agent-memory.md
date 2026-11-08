@@ -312,6 +312,7 @@ select({ lines, repoRoot, openBranches, stamps, referenceDate }) → Line[]   //
                                                                // a null referenceDate selects nothing
 countSessions(lines) → number                                  // distinct sessionIds (§1)
 isDreamCwd(cwd, root) → boolean
+isRepoCwd(cwd, root) → boolean                                 // condition 1, shared by select and countReads
 
 // condense.mjs
 condense(lines) → { sessionId, text: string, signaled: boolean }   // tool calls one line each,
@@ -334,13 +335,16 @@ pruneStamps(stamps, exists = fs.existsSync) → Stamps           // §7.7, pure
 
 // usage.mjs
 readUsage(dir) → Usage · writeUsage(dir, usage)
-countReads({ lines, memoryFiles, since, until }) → Map<path, { reads, lastRead }>   // Read, Grep, Bash, PowerShell, ctx_execute_file
+countReads({ lines, repoRoot, memoryFiles, since, until }) → Map<path, { reads, lastRead }>   // Read, Grep, Bash,
+                                                               // PowerShell, ctx_execute_file; repoRoot drops dream
+                                                               // sessions and other repos (isRepoCwd, slice 5)
 applyReads(usage, counts) → Usage · syncFiles(usage, memoryFiles, today) → Usage    // create / drop entries
 
 // memoryIndex.mjs
 GRACE_DAYS = 30 · HALF_LIFE_DAYS = 30 · FIXED_HEADER: string
 score(entry, now) → number
 renderIndex({ files: { path, title, summary }[], usage, now }) → string             // deterministic
+SESSION_LINES = 200 · headOfIndex(text, maxLines?) → string    // what the SessionStart hook prints (slice 5)
 
 // pii.mjs
 ownerIdentity(cwd?) → { userName?, home?, gitName?, gitEmail? } // read at run time, never stored;
@@ -559,7 +563,7 @@ update.test.ts        U1 refusals · nochange path restores usage.json · [a] wr
 | `pnpm install` on a machine already set up (branch switch, dependency bump) | every step skipped, no output | nothing | `setup.test.ts` |
 | `pnpm install` inside a worktree under `.claude/worktrees/` | transcrypt config and stamps live in the shared git dir: already done, skipped | nothing | `setup.test.ts` |
 | setup crashes in `--auto` (a bug, an unreadable file) | the error is caught at top level, printed as one line, exit 0 | "memory setup failed: …", then the memory:setup command to run by hand | `setup.test.ts` |
-| Clone not decrypted | SessionStart prints the "memory encrypted, run setup" line; C20 skips; update refuses at U1 | that line | `session-start-memory` by hand, `c20…test.ts` |
+| Clone not decrypted | SessionStart prints the "memory encrypted, run setup" line; C20 skips; update refuses at U1 | that line | `session-start-memory.test.ts`, `c20…test.ts` |
 | Stamps file missing or invalid | pre-push blocks; update refuses | setup command, or the Zod error and the reset command | `pre-push.test.ts`, `stamps.test.ts` |
 | A Claude Code update renames a JSONL field | the line is skipped; nothing selected | pushes pass, nothing is dreamed | `transcripts.test.ts` (missing field) |
 | Session cwd in another drive-letter case | normalised, kept | — | `transcripts.test.ts` |
@@ -572,7 +576,7 @@ update.test.ts        U1 refusals · nochange path restores usage.json · [a] wr
 | Crash between U9 and U10 | commit exists, stamps unchanged; next dream ends nochange | push still blocked once | spec §9.1, by hand |
 | Conflict in .claude/memory after U2 | update stops before dreaming | "resolve, commit, rerun" | `update.test.ts` |
 | Two pushed refs, one clean | blocks, naming the unread one | ref names | `pre-push.test.ts` |
-| Index over 200 lines | last injected line replaced by the "N more" line | — | `memoryIndex.test.ts` (render), hook by hand |
+| Index over 200 lines | last injected line replaced by the "N more" line | — | `memoryIndex.test.ts` (`headOfIndex`) |
 | Pushing before the dream prompts are tuned | pre-push blocks from the first push of dev after merge (Q3) | the 💭 message; a bad first diff is answered with [a] or [m], or MEMORY_SKIP=1 for that push | `pre-push.test.ts` |
 | A memory file is saved in plaintext on GitHub (`--no-verify`, transcrypt off) | memory-encryption.yml fails | red CI on that push | the workflow, slice 6 by hand |
 | `pnpm verify` runs inside the memory commit (Q6) and fails on unrelated uncommitted work | the commit is refused after the owner chose [o]; the dream dir and pending.json are kept, stamps are not written | the verify error, then "fix it and rerun the memory:update command to finish the commit" | `update.test.ts` |
@@ -620,16 +624,21 @@ commit made before the filter is active stores it in plaintext forever.
       imports it (slice 6). The home mask eats the separator after it (`C:\Users\x\Documents` →
       `~/Documents`); the rest of the path keeps its separators. The real pre-push on this clone
       blocked on 1 session (the build's own) in under a second
-- [ ] 5. `usage.mjs`, `memoryIndex.mjs`, the real `session-start-memory.mjs`; the knip entry for
-      `_lib/transcripts.mjs` goes once the hook imports `isDreamCwd` (`.claude/hooks/**` is in
-      knip's `ignoreFiles`, so the hook itself must become an entry for knip to see that import)
+- [x] 5. `usage.mjs`, `memoryIndex.mjs`, the real `session-start-memory.mjs`; the knip entry for
+      `_lib/transcripts.mjs` is gone, and the hook is an entry instead (`.claude/hooks/**` is in
+      knip's `ignoreFiles`, so only an entry makes knip read its imports). `usage.mjs` and
+      `memoryIndex.mjs` are entries until update.mjs imports them (slice 7). The 200-line cut is
+      `headOfIndex` in memoryIndex.mjs, so it is unit-tested; the hook itself is tested from a
+      copied tree (`session-start-memory.test.ts`), not only by hand. An index line is a list
+      item linking the title to its file, then a colon and the summary
 - [ ] 6. C20, its tests, the C1–C20 renumbering, `memory-encryption.yml`; the knip entry for
       `_lib/pii.mjs` goes
       *(moved before the orchestration: P5 calls C20)*
 - [ ] 7. The four CLI checks of §3 first; then `condense.mjs`, `responses.mjs`, `runAgent.mjs`,
       the four `dream-*` agents, `update.mjs` and the memory:update script in package.json, with
       the pipeline stubbed first (spec §14 row 8), then wired; `--dry-run`, `--reindex`, the
-      pending commit; [m] and `:e`; the knip entry for `_lib/stamps.mjs` goes once update.mjs imports it
+      pending commit; [m] and `:e`; the knip entries for `_lib/stamps.mjs`, `_lib/usage.mjs` and
+      `_lib/memoryIndex.mjs` go once update.mjs imports them
 - [ ] 8. Remaining spec §14 tests; the owner runs the first real dry-run dream (command handed over)
 
 ---
