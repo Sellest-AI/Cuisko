@@ -346,6 +346,10 @@ score(entry, now) → number
 renderIndex({ files: { path, title, summary }[], usage, now }) → string             // deterministic
 SESSION_LINES = 200 · headOfIndex(text, maxLines?) → string    // what the SessionStart hook prints (slice 5)
 
+// memoryFiles.mjs (slice 6: C20 and update.mjs read a memory folder through it)
+readMemoryFiles(dir) → { files: { path, file, text, title, summary, body, headerLines, errors }[], strays: string[] }
+isEncrypted(text) · factBullets(body, offset?) · fileLinks(text) · citedDocs(text)
+
 // pii.mjs
 ownerIdentity(cwd?) → { userName?, home?, gitName?, gitEmail? } // read at run time, never stored;
                                                                // never throws; unset, empty or <3 chars dropped
@@ -424,7 +428,7 @@ setup.mjs       [--reset-stamps]  by hand only; with --auto it is an unknown opt
                           the three Edit denies and a SessionStart entry with the memory matcher
                           running session-start-memory.mjs. A gap is a missing item: one line naming
                           every gap with --auto, exit 1 by hand. A missing or invalid file is one too
-c20             [--memory-dir <path>] (default .claude/memory) [--full]; CHECK_ROOT as every check
+c20             [--memory-dir <path>] (default .claude/memory) [--full] [--now <iso>]; CHECK_ROOT as every check
                 [--identity <json>]  tests only: replaces ownerIdentity(), so the test runs the real
                           entry with a fixed identity; run-all passes none, so verify reads the real one
 ```
@@ -631,9 +635,15 @@ commit made before the filter is active stores it in plaintext forever.
       `headOfIndex` in memoryIndex.mjs, so it is unit-tested; the hook itself is tested from a
       copied tree (`session-start-memory.test.ts`), not only by hand. An index line is a list
       item linking the title to its file, then a colon and the summary
-- [ ] 6. C20, its tests, the C1–C20 renumbering, `memory-encryption.yml`; the knip entry for
-      `_lib/pii.mjs` goes
-      *(moved before the orchestration: P5 calls C20)*
+- [x] 6. C20, its tests, the C1–C20 renumbering, `memory-encryption.yml`
+      *(moved before the orchestration: P5 calls C20)*. Changes from the plan: C20 takes a fourth
+      argument, `--now <iso>` (the dream's clock, so `--full` can rebuild the index at the same
+      instant). The front-matter reader is a new module, `_lib/memoryFiles.mjs` (header, title,
+      Facts bullets, links, cited docs/ paths), reused by update.mjs for the index's titles and
+      summaries. `package.json` gains `check:memory`, since `run-all.test` requires every
+      check to be named there. The knip entry for `_lib/pii.mjs` **stays**: C20 only calls
+      `scan`, and `mask` has no caller until condense.mjs (slice 7). The Stop hook's comment and
+      ARCHITECTURE.md list C20 among the checks it does not run
 - [ ] 7. The four CLI checks of §3 first; then `condense.mjs`, `responses.mjs`, `runAgent.mjs`,
       the four `dream-*` agents, `update.mjs` and the memory:update script in package.json, with
       the pipeline stubbed first (spec §14 row 8), then wired; `--dry-run`, `--reindex`, the
@@ -681,7 +691,7 @@ round 11  READY
 
 ## Landing
 
-- [ ] Plan review loop ended READY, and the user agreed the plan
+- [x] Plan review loop ended READY, and the user agreed the plan
 - [ ] `pnpm verify` green
 - [ ] `architecture-reviewer` clean, or its findings approved
 - [ ] ADR 0021 written (memory written only by the dream, encrypted, reviewed; the memory commit

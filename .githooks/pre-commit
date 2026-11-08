@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R8), C1–C19, knip, tests.
+# Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R8), C1–C20, knip, tests.
 # Refuses first a commit staging the agent memory outside `pnpm memory:update` (the memory lock).
 #
 # CI runs the same command, but CI runs *after* the bad commit exists and after it has been

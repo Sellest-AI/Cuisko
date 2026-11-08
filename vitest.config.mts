@@ -166,7 +166,7 @@ export default defineConfig({
         },
       },
       /**
-       * The C1-C19 scripts, which had no runner at all until this project existed, the scripts
+       * The C1-C20 scripts, which had no runner at all until this project existed, the scripts
        * under `scripts/database/` that talk to a deployment, the release version logic under
        * `scripts/release/`, and the agent memory's tooling under `scripts/memory/`.
        *

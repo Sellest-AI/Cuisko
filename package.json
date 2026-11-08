@@ -50,6 +50,7 @@
     "check:events": "node scripts/checks/c18-event-senders.mjs",
     "check:unused": "knip",
     "check:callers": "node scripts/checks/c19-convex-callers.mjs",
+    "check:memory": "node scripts/checks/c20-memory-integrity.mjs",
     "check": "node scripts/checks/run-all.mjs && knip",
     "release": "node scripts/release/bump-version.mjs",
     "memory:setup": "node scripts/memory/setup.mjs",

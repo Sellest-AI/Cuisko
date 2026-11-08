@@ -51,12 +51,15 @@ export type CheckResult = { code: number; output: string };
  *
  * `at` runs the check against a tree that already exists — this repo, in practice — instead of
  * building one. `tree` is ignored then: the point of that call is that nothing was arranged.
+ *
+ * `args` follow the script's path on its command line, for a check that takes options (C20's
+ * `--full`). `run-all` passes none, which is why a check's default mode is what `verify` runs.
  */
-export const runCheck = (script: string, tree: Tree, at?: string): CheckResult => {
+export const runCheck = (script: string, tree: Tree, at?: string, args: string[] = []): CheckResult => {
   const root = at ?? makeTree(tree);
 
   try {
-    const stdout = execFileSync(process.execPath, [path.join(SCRIPTS, script)], {
+    const stdout = execFileSync(process.execPath, [path.join(SCRIPTS, script), ...args], {
       encoding: "utf8",
       env: { ...process.env, CHECK_ROOT: root },
       stdio: ["ignore", "pipe", "pipe"],

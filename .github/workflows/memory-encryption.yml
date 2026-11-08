@@ -1,0 +1,33 @@
+name: Memory encryption
+
+# The agent memory is encrypted by transcrypt on `git add`. A clone without the key, `--no-verify`,
+# or a machine where transcrypt is not set up commits it in plaintext instead, and git keeps it
+# for good. This job is the gate that catches that, on the push, before anyone merges it.
+# Nothing here needs the key: it reads the stored blobs and looks for the ciphertext header.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  encrypted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every encrypted memory path is ciphertext
+        shell: bash
+        run: |
+          # The same three patterns as .gitattributes. README.md and _template.md stay plain.
+          # `U2FsdGVkX1` is what transcrypt (openssl, salted) writes first in an encrypted file.
+          status=0
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            if [ "$(git cat-file blob ":$file" | head -c 10)" != "U2FsdGVkX1" ]; then
+              echo "::error file=$file::stored in plaintext. Run pnpm install with MEMORY_KEY set, then re-add the file."
+              status=1
+            fi
+          done < <(git ls-files -- .claude/memory/index.md .claude/memory/usage.json '.claude/memory/memories/*')
+          exit "$status"

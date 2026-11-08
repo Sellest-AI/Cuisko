@@ -18,9 +18,9 @@
     "scripts/memory/pre-push.mjs",
     // Run by Claude Code from .claude/settings.json; an entry so knip sees what it imports.
     ".claude/hooks/session-start-memory.mjs",
-    // Agent memory modules built before their callers. Each line goes when its caller lands
-    // (docs/plans/agent-memory.md): pii.mjs with C20 (slice 6), the others with memory:update
-    // (slice 7).
+    // Agent memory modules built before their callers. Each line goes when memory:update (or,
+    // for pii.mjs, condense.mjs, which is the first caller of `mask`; C20 only uses `scan`)
+    // imports it (docs/plans/agent-memory.md, slice 7).
     "scripts/memory/_lib/stamps.mjs",
     "scripts/memory/_lib/pii.mjs",
     "scripts/memory/_lib/usage.mjs",
