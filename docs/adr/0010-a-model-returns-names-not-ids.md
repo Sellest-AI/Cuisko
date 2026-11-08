@@ -85,7 +85,7 @@ and `toInstructionGroups` (`shared/recipes.ts`) is what turns that into the `[]`
 `suggestDishes.ts` pins its output the same way. A return annotation alone is not this check: it
 passes when the hand-written type gains a value the schema never offers the model.
 
-`pnpm test -- convex/functions/ingredients/__tests__/searchWidened.test.ts` — seeds the real catalog
+`pnpm test convex/functions/ingredients/__tests__/searchWidened.test.ts` — seeds the real catalog
 and pins both sides of the thresholds: a realistic line resolves to its row, and an ingredient the
 catalog does not hold does not come back linked to its nearest spelling.
 

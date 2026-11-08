@@ -55,6 +55,6 @@ Narrative and data flow: [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Verify
 
-`pnpm test -- src/modules/groceries/_hooks/useGroceryList.test.tsx` — asserts a purchase's undo
+`pnpm test src/modules/groceries/_hooks/__tests__/useGroceryList.test.tsx` — asserts a purchase's undo
 restores exactly what it struck off, that surplus restores nothing, and that a rejected purchase
 leaves no receipt behind to peel.

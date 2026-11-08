@@ -154,7 +154,7 @@ for (const doc of docs) {
   for (const match of text.matchAll(/\bpnpm (?:run )?([a-z][a-z0-9:-]*)\b/g)) {
     const script = match[1];
     if (scripts.has(script)) continue;
-    // `pnpm install` / `pnpm test -- <file>` style invocations of pnpm's own commands.
+    // `pnpm install` / `pnpm exec <bin>` style invocations of pnpm's own commands.
     if (["install", "add", "remove", "dlx", "exec", "why", "outdated"].includes(script)) continue;
 
     findings.push({

@@ -20,7 +20,7 @@ pnpm verify        # typecheck + lint + C1–C20 + knip + test — the pre-commi
                    # run this and refuse the commit if it fails. `--no-verify` bypasses them; CI does not.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
-pnpm test -- <file>  # single test file
+pnpm test <file>   # single test file — never `pnpm test -- <file>`: vitest then runs every file
 pnpm test:app      # jsdom project only — components, hooks, _model/
 pnpm test:convex   # edge-runtime project only — Convex functions
 pnpm test:scripts  # node project only — the C1–C20 checks, and the database, release and memory scripts
@@ -373,7 +373,7 @@ prompt. Every spawn must therefore include:
 - **Exact file paths** to read — never "look around the codebase".
 - **Which docs apply**: `docs/CONVENTIONS.md`, plus the specific `docs/adr/` files matching the globs
   it will touch.
-- **The commands** it may run (`pnpm verify`, `pnpm test -- <file>`).
+- **The commands** it may run (`pnpm verify`, `pnpm test <file>`).
 - **The output shape** you expect back (a list of `file:line` findings, a diff, a summary), plus
   what it could not confirm and where it looked — a silent gap reads as a clean result.
 - **Boundaries** — read-only vs may-edit, and which paths are off limits.
