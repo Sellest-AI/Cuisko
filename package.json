@@ -52,8 +52,9 @@
     "check:callers": "node scripts/checks/c19-convex-callers.mjs",
     "check": "node scripts/checks/run-all.mjs && knip",
     "release": "node scripts/release/bump-version.mjs",
+    "memory:setup": "node scripts/memory/setup.mjs",
     "verify": "pnpm run \"/^(typecheck:.*|lint|check)$/\" && pnpm test",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git config core.hooksPath .githooks && node scripts/memory/setup.mjs --auto"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",

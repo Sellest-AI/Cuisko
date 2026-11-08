@@ -16,6 +16,10 @@ expo-env.d.ts
 .env.*
 !.env.example
 
+# Scratch space for repo scripts. `pnpm memory:update` builds each dream in
+# .tmp/memory/dream-<stamp>/ and deletes it when the dream ends.
+.tmp/
+
 # Catalog exports — `pnpm catalog:export` writes one here by default. Megabytes of images that
 # the source deployment still holds; a zip worth keeping goes somewhere other than the repo.
 catalog-*.zip

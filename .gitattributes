@@ -20,6 +20,13 @@ convex/_generated/** linguist-generated=true
 
 pnpm-lock.yaml -diff linguist-generated=true
 
+# The agent memory: encrypted by transcrypt on `git add`, decrypted on checkout, merged in
+# plaintext by its merge driver. README.md and _template.md in that folder stay plain. On a
+# machine without the key the files stay ciphertext; `pnpm install` sets the key up.
+.claude/memory/index.md     filter=crypt diff=crypt merge=crypt
+.claude/memory/usage.json   filter=crypt diff=crypt merge=crypt
+.claude/memory/memories/**  filter=crypt diff=crypt merge=crypt
+
 # Binary assets — never transform, never diff.
 *.png binary
 *.jpg binary
