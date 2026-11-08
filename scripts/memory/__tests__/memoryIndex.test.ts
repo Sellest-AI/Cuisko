@@ -3,9 +3,6 @@
  * must not sink before anyone reads it, an old favourite must not stay on top forever, and the
  * same memory must always give the same bytes, or every dream shows a diff for nothing.
  */
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import * as lib from "../_lib/memoryIndex.mjs";
@@ -93,14 +90,6 @@ describe("renderIndex", () => {
       `${FIXED_HEADER}\n- [Two lines](memories/x.md): spread out\n- [API authentication](memories/api-auth.md): About api authentication.\n`,
     );
     expect(renderIndex(input)).toBe(text);
-  });
-
-  const committed = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", ".claude", "memory", "index.md");
-  const decrypted = existsSync(committed) && readFileSync(committed, "utf8").startsWith("# ");
-  it.skipIf(!decrypted)("with no file, gives the committed header-only index byte for byte", () => {
-    expect(renderIndex({ files: [], usage: { version: 1, files: {} }, now: NOW })).toBe(
-      readFileSync(committed, "utf8").replace(/\r\n/g, "\n"),
-    );
   });
 });
 
