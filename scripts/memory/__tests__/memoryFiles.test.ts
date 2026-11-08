@@ -90,6 +90,11 @@ describe("fileLinks and citedDocs", () => {
     expect(fileLinks("[a](a.md) [b](https://x.io) [c](#top) [d](d.md#part) [e](mailto:a@b.co)")).toEqual(["a.md", "d.md"]);
   });
 
+  it("ignores an example link written as code, inline or fenced, and still finds a real one beside it", () => {
+    const text = "An example is `[x](path.md)`.\n\n```md\n[y](other.md)\n```\n\nSee [real](real.md).";
+    expect(fileLinks(text)).toEqual(["real.md"]);
+  });
+
   it("finds docs/ paths in backticks only, without trailing punctuation or globs", () => {
     expect(citedDocs("See `docs/A.md`, and `docs/adr/*.md`, and docs/B.md, and `src/x.ts`.")).toEqual(["docs/A.md"]);
     expect(citedDocs("`docs/A.md.`")).toEqual(["docs/A.md"]);

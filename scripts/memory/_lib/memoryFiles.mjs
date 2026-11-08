@@ -99,9 +99,12 @@ export const factBullets = (body, offset = 0) => {
   return bullets;
 };
 
-/** Targets of the Markdown links in `text` that point at a file: web links and `#anchors` are left out. */
+/**
+ * Targets of the Markdown links in `text` that point at a file: web links and `#anchors` are left
+ * out, and so is code (a fenced block, an inline span), where an example link is not a link.
+ */
 export const fileLinks = (text) =>
-  [...text.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)]
+  [...text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "").matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)]
     .map((match) => match[1].split("#")[0])
     .filter((target) => target !== "" && !/^[a-z][a-z0-9+.-]*:/i.test(target));
 
