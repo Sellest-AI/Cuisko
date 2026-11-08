@@ -1,6 +1,7 @@
 #!/bin/sh
 #
 # Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R8), C1–C19, knip, tests.
+# Refuses first a commit staging the agent memory outside `pnpm memory:update` (the memory lock).
 #
 # CI runs the same command, but CI runs *after* the bad commit exists and after it has been
 # pushed. Every rule in AGENTS.md is only real because something fails when it is broken, and
@@ -35,13 +36,19 @@ if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "dev" ]; then
   fi
 fi
 
-echo "→ pre-commit: pnpm verify"
-
 if ! command -v pnpm >/dev/null 2>&1; then
   echo "✖ pnpm not found on PATH — cannot verify this commit." >&2
   echo "  Install pnpm, or bypass deliberately with: git commit --no-verify" >&2
   exit 1
 fi
+
+# ── Memory lock ──────────────────────────────────────────────────────────────────────────
+# index.md, usage.json and memories/ under .claude/memory are written by `pnpm memory:update`
+# only; this refuses any other commit staging them. Merges and conflicted reverts pass. Before
+# verify, so a refused commit fails in a second, not after the tests.
+node "$(git rev-parse --show-toplevel)/scripts/memory/pre-commit.mjs"
+
+echo "→ pre-commit: pnpm verify"
 
 if ! pnpm verify; then
   echo "" >&2

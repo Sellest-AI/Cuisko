@@ -13,11 +13,15 @@
     "scripts/videos/*.ts",
     // The Android and web half of a platform pair: knip resolves the import to `index.ios.tsx`.
     "src/ui/components/more-button/index.tsx",
-    // The agent memory's selection and stamps, built before their callers: the pre-push imports
-    // transcripts.mjs, memory:update imports both. Each line goes when its caller lands
-    // (docs/plans/agent-memory.md, slices 4 and 7).
+    // Run by .githooks/pre-commit and .githooks/pre-push, which knip does not read.
+    "scripts/memory/pre-commit.mjs",
+    "scripts/memory/pre-push.mjs",
+    // Agent memory modules built before their callers. Each line goes when its caller lands
+    // (docs/plans/agent-memory.md): transcripts.mjs's isDreamCwd with the SessionStart memory
+    // hook (slice 5), stamps.mjs with memory:update (slice 7), pii.mjs with C20 (slice 6).
     "scripts/memory/_lib/transcripts.mjs",
-    "scripts/memory/_lib/stamps.mjs"
+    "scripts/memory/_lib/stamps.mjs",
+    "scripts/memory/_lib/pii.mjs"
   ],
   // Run by Claude Code from .claude/settings.json.
   "ignoreFiles": [".claude/hooks/**"],

@@ -48,6 +48,8 @@ const FOOTER_TOKENS = [
   "signed-off-by",
   "reviewed-by",
   "acked-by",
+  // The trailer of every `pnpm memory:update` commit; the transcript selection skips such commits.
+  "memory-update",
 ];
 
 module.exports = {

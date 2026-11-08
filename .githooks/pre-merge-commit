@@ -12,4 +12,9 @@
 #
 # Genuinely need to bypass it?  git merge --no-verify
 
+# pre-commit cannot tell it runs for a merge: $0 is still `pre-commit` there, and a clean merge has
+# no MERGE_HEAD yet. The memory lock (scripts/memory/pre-commit.mjs) reads this to let a pulled
+# memory commit through.
+export GIT_HOOK_NAME=pre-merge-commit
+
 exec "$(dirname "$0")/pre-commit" "$@"

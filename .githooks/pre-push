@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Refuses a push while a finished Claude session on this repo has not been read by a dream
+# (scripts/memory/pre-push.mjs). The dream, `pnpm memory:update`, writes the memory commit the
+# next push carries.
+#
+# Git writes the pushed refs on stdin; exec hands it to node untouched.
+#
+# The dream cannot run (no network, quota)?  MEMORY_SKIP=1 git push
+# The sessions stay unread, and the next dream reads them. Unlike --no-verify, it skips nothing else.
+
+exec node "$(git rev-parse --show-toplevel)/scripts/memory/pre-push.mjs" "$@"

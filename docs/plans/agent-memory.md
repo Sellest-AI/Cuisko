@@ -155,8 +155,9 @@ against code.claude.com and against this machine's own transcripts):
   (`C:\Users\<name>\…`) and in git output (author name and email). No regex knows those, so
   `mask` takes them as input: the OS user name, the home directory, and `git config user.name` /
   `user.email`, read at run time and never written anywhere. A home path becomes `~`
-  (`C:\Users\<name>\Documents\…\cuisko\src\x.ts` → `~/Documents/…/cuisko/src/x.ts`, and the repo
-  root itself becomes `<repo>`), and the name or email alone becomes `[owner]`. Layer 3 and 5 scan
+  (`C:\Users\<name>\Documents\…\cuisko\src\x.ts` → `~/Documents\…\cuisko\src\x.ts`; shortening
+  the repo root to `<repo>` is condense's job, since `mask` is not given the root), and the name
+  or email alone becomes `[owner]`. Layer 3 and 5 scan
   for the same values, so one that slips past the mask still blocks.
   - *Where each value matches.* The git name and email match as free text (case-insensitive,
     NFC-normalised). The OS user name matches **only in path context**, never as a free word:
@@ -342,7 +343,7 @@ score(entry, now) → number
 renderIndex({ files: { path, title, summary }[], usage, now }) → string             // deterministic
 
 // pii.mjs
-ownerIdentity() → { userName?, home?, gitName?, gitEmail? }     // read at run time, never stored;
+ownerIdentity(cwd?) → { userName?, home?, gitName?, gitEmail? } // read at run time, never stored;
                                                                // never throws; unset, empty or <3 chars dropped
 scan(text, identity) → { kind: "email"|"phone"|"secret"|"owner", match, line }[]
 mask(text, identity) → string                                  // [email masked] · [phone masked] ·
@@ -612,12 +613,18 @@ commit made before the filter is active stores it in plaintext forever.
       owner's words, and the main project folder is spelled `C--…` here, not `c--…` (discovery
       ignores case either way). knip lists `_lib/transcripts.mjs` and `_lib/stamps.mjs` as entries
       until their callers land, since it fails on an export nothing imports
-- [ ] 4. `pii.mjs`, `pre-commit.mjs` + the pre-commit block + the pre-merge-commit export,
+- [x] 4. `pii.mjs`, `pre-commit.mjs` + the pre-commit block + the pre-merge-commit export,
       `pre-push.mjs` + `.githooks/pre-push` (blocks from the start, Q3), knip entries for both,
-      commitlint footer token, `mainRoot` in git.mjs; the knip entry for `_lib/transcripts.mjs`
-      goes once the pre-push imports it
-- [ ] 5. `usage.mjs`, `memoryIndex.mjs`, the real `session-start-memory.mjs`
-- [ ] 6. C20, its tests, the C1–C20 renumbering, `memory-encryption.yml`
+      commitlint footer token, `mainRoot` in git.mjs. The knip entry for `_lib/transcripts.mjs`
+      stays: `isDreamCwd` has no caller until slice 5. `_lib/pii.mjs` is an entry until C20
+      imports it (slice 6). The home mask eats the separator after it (`C:\Users\x\Documents` →
+      `~/Documents`); the rest of the path keeps its separators. The real pre-push on this clone
+      blocked on 1 session (the build's own) in under a second
+- [ ] 5. `usage.mjs`, `memoryIndex.mjs`, the real `session-start-memory.mjs`; the knip entry for
+      `_lib/transcripts.mjs` goes once the hook imports `isDreamCwd` (`.claude/hooks/**` is in
+      knip's `ignoreFiles`, so the hook itself must become an entry for knip to see that import)
+- [ ] 6. C20, its tests, the C1–C20 renumbering, `memory-encryption.yml`; the knip entry for
+      `_lib/pii.mjs` goes
       *(moved before the orchestration: P5 calls C20)*
 - [ ] 7. The four CLI checks of §3 first; then `condense.mjs`, `responses.mjs`, `runAgent.mjs`,
       the four `dream-*` agents, `update.mjs` and the memory:update script in package.json, with

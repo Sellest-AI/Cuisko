@@ -40,3 +40,10 @@ export const gitOrNull = (...args) => gitInOrNull(process.cwd(), ...args);
 export const commonDir = (cwd = process.cwd()) =>
   path.resolve(gitIn(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir"));
 
+/**
+ * The main checkout's root, whichever worktree `cwd` is in: the folder holding the common git
+ * dir. Worktrees live under it (.claude/worktrees/), so the transcript selection tests every
+ * session's cwd against this one root.
+ */
+export const mainRoot = (cwd = process.cwd()) => path.dirname(commonDir(cwd));
+
