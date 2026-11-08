@@ -673,7 +673,12 @@ commit made before the filter is active stores it in plaintext forever.
       · `--dry-run` keeps the dream folder (its logs are what tuning prompts needs); the next run
         purges it
       · Not tested: the SIGINT handler itself (the callback it runs is, through an injected one)
-- [ ] 8. Remaining spec §14 tests; the owner runs the first real dry-run dream (command handed over)
+- [x] 8. Remaining spec §14 tests; the owner runs the first real dry-run dream (command handed over).
+      Audited row by row against the suites: what had no test got one. Added: a dream agent's
+      session and a sibling repo's never block the pre-push · the pre-push answers in under a second
+      over 30 days of sessions · a conflict after `git pull` stops the run before any model and
+      writes nothing · a clean pull is dreamed on. Not testable here: the real SIGINT (Windows
+      kills a child on `kill('SIGINT')` without running its handler); the callback it runs is tested
 
 ---
 

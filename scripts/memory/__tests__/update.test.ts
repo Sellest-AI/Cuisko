@@ -244,6 +244,58 @@ describe("U1: the refusals", () => {
   });
 });
 
+describe("U2: the pull", () => {
+  /** `repo` with a bare upstream, and the upstream's memory file rewritten by someone else. */
+  const withDivergedUpstream = (repo: Repo, upstreamEdit: (clone: string) => void, localText: string) => {
+    const remote = mkdtempSync(path.join(os.tmpdir(), "memory-update-remote-"));
+    const other = mkdtempSync(path.join(os.tmpdir(), "memory-update-other-"));
+    dirs.push(remote, other);
+    execFileSync("git", ["init", "-q", "--bare", "-b", "dev", remote]);
+    git(repo.root, "remote", "add", "origin", remote);
+    git(repo.root, "config", "pull.rebase", "false");
+    git(repo.root, "push", "-q", "-u", "origin", "dev");
+    git(other, "clone", "-q", remote, "clone");
+    const clone = path.join(other, "clone");
+    for (const [key, value] of [["user.name", "Other"], ["user.email", "other@example.test"], ["commit.gpgsign", "false"]] as const) git(clone, "config", key, value);
+    upstreamEdit(clone);
+    git(clone, "add", "-A");
+    git(clone, "commit", "-q", "-m", "chore: change from the other machine");
+    git(clone, "push", "-q", "origin", "dev");
+    writeFileSync(path.join(repo.memory, "memories", "api.md"), localText);
+    git(repo.root, "commit", "-q", "-am", "chore: local memory edit");
+  };
+
+  it("stops before dreaming on a conflict in the memory, naming the way out, and writes nothing", async () => {
+    const repo = makeRepo();
+    withDivergedUpstream(
+      repo,
+      (clone) => writeFileSync(path.join(clone, ".claude", "memory", "memories", "api.md"), API_OLD.replace("Old fact", "Upstream fact")),
+      API_OLD.replace("Old fact", "Local fact"),
+    );
+    const t = makeIo();
+    const models = makeModels();
+
+    expect(await update(repo, t.io, models)).toBe(1);
+
+    expect(t.errors()).toContain("Resolve it (and any conflict in .claude/memory)");
+    expect(models.calls).toHaveLength(0);
+    expect(stampsOf(repo).sessions).toEqual({});
+    expect(stampsOf(repo).lastRun).toBeUndefined();
+    expect(existsSync(path.join(repo.root, ".git", "dream.lock"))).toBe(false);
+  });
+
+  it("dreams on the memory the pull brought, when it merges cleanly", async () => {
+    const repo = makeRepo();
+    withDivergedUpstream(repo, (clone) => writeFileSync(path.join(clone, "elsewhere.txt"), "x"), API_NEW);
+    const t = makeIo(["a"]);
+    const models = makeModels();
+
+    await update(repo, t.io, models);
+
+    expect(models.agents()[0]).toBe("dream-extractor");
+  });
+});
+
 describe("the choices", () => {
   it("[o] commits the memory and only the memory, with the trailer, and keeps other staged work staged", async () => {
     const repo = makeRepo();

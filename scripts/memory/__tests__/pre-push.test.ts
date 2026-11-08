@@ -74,6 +74,7 @@ const writeSession = (
   { repo, config }: { repo: string; config: string },
   sessionId: string,
   lines: { branch: string; timestamp: string }[],
+  cwd: string = repo,
 ) => {
   const folder = path.join(config, "projects", repo.replace(/[^A-Za-z0-9]/g, "-"));
   mkdirSync(folder, { recursive: true });
@@ -83,7 +84,7 @@ const writeSession = (
       uuid: `${sessionId}-${index}`,
       sessionId,
       timestamp,
-      cwd: repo,
+      cwd,
       gitBranch: branch,
       message: { role: "user", content: "rename the planner" },
     }),
@@ -177,6 +178,28 @@ describe("pre-push", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("💭 1 unread Claude session on dev (");
     expect(result.stderr).not.toContain("chore/clean");
+  });
+
+  it("never blocks on a dream agent's own session, nor on a sibling repo's (spec §14 row 9)", () => {
+    const setup = makeRepo();
+    writeSession(setup, "dreamer", UNREAD, path.join(setup.repo, ".tmp", "memory", "dream-2020"));
+    writeSession(setup, "sibling", UNREAD, `${setup.repo}-old`);
+    expect(pushDev(setup)).toEqual({ status: 0, stderr: "" });
+  });
+
+  it("answers within a second over 30 days of sessions (spec §14 row 4)", () => {
+    const setup = makeRepo();
+    for (let day = 1; day <= 30; day += 1) {
+      const date = `2020-06-${String(day).padStart(2, "0")}`;
+      const lines = Array.from({ length: 200 }, (_, n) => ({ branch: "dev", timestamp: `${date}T10:${String(n % 60).padStart(2, "0")}:00.000Z` }));
+      writeSession(setup, `day-${day}`, lines);
+    }
+    const started = performance.now();
+    const result = pushDev(setup);
+    const elapsed = performance.now() - started;
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("30 unread Claude sessions on dev");
+    expect(elapsed).toBeLessThan(1000);
   });
 
   it("reads a transcript written after its session's stamp", () => {
