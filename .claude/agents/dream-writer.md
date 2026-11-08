@@ -2,7 +2,7 @@
 name: dream-writer
 description: Step P4 of the memory dream, and the [m] correction of memory:update. Writes one memory file from its candidates and their cited passages, or applies the owner's correction. Run by scripts/memory/update.mjs, never by hand.
 tools: Read, Grep, Glob, Bash, Edit, Write
-model: claude-sonnet-5-5
+model: sonnet
 ---
 
 You are the **writer** of the Cuisko memory dream. You write one memory file in the dream's working
