@@ -7,13 +7,16 @@
  * their replies are checked (responses.mjs) and then put into the next prompt. Two guards hold the
  * writers to their job: each may write one file only (the grant `runAgent` gives), and after the
  * writers the copy is compared with what it was, so a change outside the plan stops the dream.
+ * The reviewer may edit `memories/` of the copy to fix what it flags; it may touch nothing else,
+ * and the mechanical checks run again on what it changed.
  *
  *   P2  one extractor per conversation, in parallel   → candidates, each citing a line
  *   P3  one planner                                   → which files to create, update, delete
  *   P4  one writer per file, in parallel              → the files; a delete is done by the script
  *   --  the script refreshes usage.json and index.md
  *   P5  mechanical checks (C20 --full)                → errors stop the dream
- *   P6  one reviewer                                  → flags for the owner, never edits
+ *   P6  one reviewer                                  → flags, and fixes what it can prove;
+ *                                                       C20 --full again if it changed a file
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -108,9 +111,10 @@ const correctionPrompt = ({ instruction, diff, passages, today, folder }) =>
     "",
   ].join("\n");
 
-const reviewerPrompt = ({ diff, plan, candidates, passages, writerReplies }) =>
+const reviewerPrompt = ({ diff, plan, candidates, passages, writerReplies, folder }) =>
   [
-    "Review the memory changes in this diff against their sources.",
+    "Review the memory changes in this diff against their sources, and fix what you flag when the evidence is clear.",
+    `The files you may edit are in ${folder}. Nothing else is writable.`,
     "",
     "<diff>",
     diff,
@@ -146,6 +150,19 @@ const _candidateProblems = (candidates, conversations) => {
     else if (!lineIds.get(source.sessionId).has(source.line)) problems.push(`candidate ${id} cites line ${source.line}, which is not in session ${source.sessionId}`);
     return problems;
   });
+};
+
+/**
+ * Where the reviewer's account and the copy disagree: a file it changed that no fixed flag names,
+ * or a flag it says it fixed in a file it did not change. The owner sees both next to the diff.
+ */
+const _fixMismatches = (flags, fixed) => {
+  const claimed = new Set(flags.filter((flag) => flag.fix !== undefined).map((flag) => flag.path));
+  const changed = new Set(fixed);
+  return [
+    ...fixed.filter((name) => !claimed.has(name)).map((name) => ({ kind: "reviewer", message: `the reviewer changed ${name} without a fixed flag saying why` })),
+    ...[...claimed].filter((name) => !changed.has(name)).map((name) => ({ kind: "reviewer", message: `the reviewer says it fixed ${name}, but the file did not change` })),
+  ];
 };
 
 const _stop = (what, problems) => {
@@ -227,20 +244,31 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
 
   progress("P6  review");
   const passages = plan.files.map(passagesOf).join("\n");
+  const folder = path.join(copy, "memories");
+  const reviewed = snapshotMemory(copy);
   const review = await run({
     agent: "dream-reviewer",
     name: "reviewer",
-    prompt: reviewerPrompt({ diff: await diff(), plan, candidates, passages, writerReplies }),
+    prompt: reviewerPrompt({ diff: await diff(), plan, candidates, passages, writerReplies, folder }),
     schema: reviewerReply,
-    writable: [],
+    writable: [path.join(folder, "**")],
   });
+  const fixed = changedPaths(reviewed, snapshotMemory(copy));
+  const outside = fixed.filter((name) => !name.startsWith("memories/"));
+  if (outside.length > 0) _stop("the reviewer changed files it must not touch", outside);
+  if (fixed.length > 0) {
+    refreshIndex(copy, now);
+    progress("P6  checking the reviewer's fixes");
+    const recheck = await check();
+    if (!recheck.ok) _stop("the mechanical checks failed after the reviewer's fixes", recheck.output.split("\n").filter((row) => row.trim() !== ""));
+  }
 
   return {
     plan,
     candidates,
     writerReplies,
     flags: review.flags,
-    alerts: writerReplies.flatMap((reply) => reply.alerts),
+    alerts: [...writerReplies.flatMap((reply) => reply.alerts), ..._fixMismatches(review.flags, fixed)],
     passages,
   };
 };

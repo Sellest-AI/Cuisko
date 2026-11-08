@@ -11,7 +11,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import * as lib from "../_lib/review.mjs";
 
-type Flag = { path: string; fact: string; problem: string; evidence: string; severity: "low" | "medium" | "high" };
+type Flag = { path: string; fact: string; problem: string; evidence: string; severity: "low" | "medium" | "high"; fix?: string };
 const { formatReport, memoryDiff, rankingChanges } = lib as unknown as {
   formatReport: (input: {
     flags: Flag[];
@@ -111,6 +111,13 @@ describe("formatReport", () => {
     expect(text).toContain("Docs that look wrong\n  docs/ARCHITECTURE.md: Stale.");
     expect(text).toContain("Deletions proposed\n  memories/old.md: Never read.");
     expect(text).not.toContain("Reviewer flags");
+  });
+
+  it("lists the flags the reviewer fixed apart from the open ones, with what it changed", () => {
+    const text = formatReport({ flags: [flag("high", "Wrong."), { ...flag("medium", "A name."), fix: "removed the name" }], alerts: [], docsIssues: [], deletions: [] });
+
+    expect(text).toContain('Reviewer flags\n  [high] memories/api.md: Wrong. — "A fact." (evidence: sA-01)\n');
+    expect(text).toContain('Fixed by the reviewer\n  [medium] memories/api.md: A name. — "A fact." (evidence: sA-01) → removed the name\n');
   });
 
   it("is empty when there is nothing to say", () => {

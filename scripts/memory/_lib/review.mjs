@@ -1,7 +1,8 @@
 /**
  * What the owner sees before choosing (spec §9.1 U7): the diff of the memory files, how the index
- * ranking moved, and every alert the agents raised. The reviewer and the writers only point; the
- * owner decides, so this text has to make the doubtful lines hard to miss.
+ * ranking moved, and every alert the agents raised. The reviewer fixes what it can prove, and the
+ * diff already holds its fixes; the owner decides, so this text has to make both what it changed
+ * and what it left open hard to miss.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -49,17 +50,17 @@ export const memoryDiff = ({ cwd, from, to }) => {
 const _section = (title, rows) => (rows.length === 0 ? [] : [`${title}`, ...rows.map((row) => `  ${row}`), ""]);
 
 /**
- * The alerts the owner reads next to the diff: what the reviewer flagged (worst first), what the
- * writers raised, the docs the planner thinks are wrong, and the deletions it proposes.
+ * The alerts the owner reads next to the diff: what the reviewer flagged and left open, then what it
+ * fixed (each worst first), what the writers raised, the docs the planner thinks are wrong, and the
+ * deletions it proposes.
  */
 export const formatReport = ({ flags, alerts, docsIssues, deletions }) => {
   const order = { high: 0, medium: 1, low: 2 };
   const sorted = [...flags].sort((a, b) => order[a.severity] - order[b.severity]);
+  const line = (flag) => `[${flag.severity}] ${flag.path}: ${flag.problem} — "${flag.fact}" (evidence: ${flag.evidence})`;
   return [
-    ..._section(
-      "Reviewer flags",
-      sorted.map((flag) => `[${flag.severity}] ${flag.path}: ${flag.problem} — "${flag.fact}" (evidence: ${flag.evidence})`),
-    ),
+    ..._section("Reviewer flags", sorted.filter((flag) => flag.fix === undefined).map(line)),
+    ..._section("Fixed by the reviewer", sorted.filter((flag) => flag.fix !== undefined).map((flag) => `${line(flag)} → ${flag.fix}`)),
     ..._section("Writer alerts", alerts.map((alert) => `[${alert.kind}] ${alert.message}`)),
     ..._section("Docs that look wrong", docsIssues.map((issue) => `${issue.doc}: ${issue.issue}`)),
     ..._section("Deletions proposed", deletions.map((entry) => `${entry.path}: ${entry.reason ?? "no reason given"}`)),

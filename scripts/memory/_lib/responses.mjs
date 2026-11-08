@@ -64,7 +64,10 @@ export const correctionReply = z.object({
   alerts: z.array(alert),
 });
 
-/** P6: what the reviewer doubts, with its evidence. It never rewrites. */
+/**
+ * P6: what the reviewer doubts, with its evidence. `fix` says what it changed in the copy when it
+ * fixed the flag itself; a flag without it is left for the owner.
+ */
 export const reviewerReply = z.object({
   status,
   error: z.string().optional(),
@@ -75,6 +78,7 @@ export const reviewerReply = z.object({
       problem: z.string().min(1),
       evidence: z.string().min(1),
       severity: z.enum(["low", "medium", "high"]),
+      fix: z.string().min(1).optional(),
     }),
   ),
 });

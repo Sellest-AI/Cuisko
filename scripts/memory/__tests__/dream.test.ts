@@ -1,7 +1,8 @@
 /**
  * The dream with its models replaced by hand-written replies (spec §10, P2–P6). What is pinned:
- * the order and the inputs of the steps, that a reply is checked before it is trusted, and that a
- * writer cannot change a file its plan did not name. No model is called.
+ * the order and the inputs of the steps, that a reply is checked before it is trusted, that a
+ * writer cannot change a file its plan did not name, and that the reviewer's fixes stay in
+ * memories/ and are checked again. No model is called.
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -29,8 +30,8 @@ type Result = {
   plan: { files: { path: string; action: string }[] };
   candidates: { id: string }[];
   writerReplies: unknown[];
-  flags: { path: string }[];
-  alerts: { kind: string }[];
+  flags: { path: string; fix?: string }[];
+  alerts: { kind: string; message: string }[];
   passages: string;
 };
 const { correct, dream } = lib as unknown as {
@@ -91,14 +92,21 @@ const candidate = (id: string, sessionId: string, lineId: string) => ({
   signaled: false,
 });
 
-/** Replies by agent, with a log of every call. A writer's reply may also write its file. */
-const stub = (replies: { extractor?: (call: Call) => unknown; planner?: unknown; writer?: (call: Call) => unknown; reviewer?: unknown }) => {
+/** Replies by agent, with a log of every call. A writer's or a reviewer's reply may also write files. */
+const stub = (replies: {
+  extractor?: (call: Call) => unknown;
+  planner?: unknown;
+  writer?: (call: Call) => unknown;
+  reviewer?: unknown;
+  review?: (call: Call) => unknown;
+}) => {
   const calls: Call[] = [];
   const run: Run = async (call) => {
     calls.push(call);
     if (call.agent === "dream-extractor") return replies.extractor?.(call);
     if (call.agent === "dream-planner") return replies.planner;
     if (call.agent === "dream-writer") return replies.writer?.(call);
+    if (replies.review !== undefined) return replies.review(call);
     return replies.reviewer ?? { status: "ok", flags: [] };
   };
   return { run, calls };
@@ -308,6 +316,90 @@ describe("dream: what it refuses", () => {
     expect(error?.message).toContain("the mechanical checks failed");
     expect(error?.message).toContain("fact without a source date");
     expect(calls.some((call) => call.agent === "dream-reviewer")).toBe(false);
+  });
+});
+
+describe("dream: the reviewer's fixes", () => {
+  const lineA = line("sA");
+  type Verdict = { ok: boolean; output: string };
+  const flag = (over: Record<string, unknown> = {}) => ({ path: "memories/api.md", fact: "A fact.", problem: "Unsupported.", evidence: "sA-01", severity: "medium", ...over });
+
+  /** One file written, then `review(call, copy)` as the reviewer; `verdicts` are the checks' answers, in order. */
+  const reviewing = async (review: (call: Call, copy: string) => unknown, verdicts: Verdict[] = []) => {
+    const { copy, inputsDir } = makeCopy();
+    const s = stub({
+      extractor: () => ({ status: "ok", candidates: [candidate("sA-01", "sA", lineA.uuid)] }),
+      planner: { status: "ok", files: [{ path: "memories/api.md", action: "update", candidates: ["sA-01"] }], docsIssues: [] },
+      writer: (call) => {
+        writeFileSync(call.writable[0] as string, FILE("API", "About the API."));
+        return { status: "ok", path: "memories/api.md", facts: [{ text: "A fact.", candidates: ["sA-01"] }], alerts: [] };
+      },
+      review: (call) => review(call, copy),
+    });
+    let checks = 0;
+    const check = () => verdicts[checks++] ?? OK_CHECK();
+    const outcome = await dream({ ...base(copy, inputsDir, { check }), lines: [lineA], run: s.run }).then(
+      (result) => ({ result, error: undefined }),
+      (caught: Error) => ({ result: undefined, error: caught }),
+    );
+    return { ...outcome, calls: s.calls, copy, checks: () => checks };
+  };
+
+  it("lets the reviewer edit memories/ of the copy only, then refreshes the index and runs the checks again", async () => {
+    const { result, calls, copy, checks } = await reviewing((_call, dir) => {
+      writeFileSync(path.join(dir, "memories", "api.md"), FILE("API", "The API, as a hypothesis.", "Hypothesis: a fact. (source: 2026-11-02)"));
+      return { status: "ok", flags: [flag({ fix: "rewrote the fact as a hypothesis" })] };
+    });
+
+    const reviewer = calls.find((call) => call.agent === "dream-reviewer");
+    expect(reviewer?.writable).toEqual([path.join(copy, "memories", "**")]);
+    expect(reviewer?.prompt).toContain(path.join(copy, "memories"));
+    expect(checks()).toBe(2);
+    expect(readFileSync(path.join(copy, "index.md"), "utf8")).toContain("- [API](memories/api.md): The API, as a hypothesis.");
+    expect(result?.flags).toEqual([flag({ fix: "rewrote the fact as a hypothesis" })]);
+    expect(result?.alerts).toEqual([]);
+  });
+
+  it("runs the checks once when the reviewer changed nothing", async () => {
+    const { result, checks } = await reviewing(() => ({ status: "ok", flags: [flag()] }));
+
+    expect(checks()).toBe(1);
+    expect(result?.flags).toEqual([flag()]);
+  });
+
+  it("stops when the checks fail on the reviewer's fixes, with their output", async () => {
+    const { error } = await reviewing(
+      (_call, dir) => {
+        writeFileSync(path.join(dir, "memories", "api.md"), FILE("API", "About the API.", "A fact without a date."));
+        return { status: "ok", flags: [flag({ fix: "reworded" })] };
+      },
+      [OK_CHECK(), { ok: false, output: "❌ C20\n   memories/api.md\n      fact without a source date\n" }],
+    );
+
+    expect(error?.message).toContain("the mechanical checks failed after the reviewer's fixes");
+    expect(error?.message).toContain("fact without a source date");
+  });
+
+  it("stops when the reviewer changed a file outside memories/", async () => {
+    const { error } = await reviewing((_call, dir) => {
+      writeFileSync(path.join(dir, "index.md"), "rewritten\n");
+      return { status: "ok", flags: [] };
+    });
+
+    expect(error?.message).toContain("the reviewer changed files it must not touch");
+    expect(error?.message).toContain("index.md");
+  });
+
+  it("alerts the owner when the reviewer's account and the copy disagree", async () => {
+    const { result } = await reviewing((_call, dir) => {
+      writeFileSync(path.join(dir, "memories", "api.md"), FILE("API", "About the API.", "Another fact. (source: 2026-11-02)"));
+      return { status: "ok", flags: [flag(), flag({ path: "memories/old.md", fix: "removed a bullet" })] };
+    });
+
+    expect(result?.alerts).toEqual([
+      { kind: "reviewer", message: "the reviewer changed memories/api.md without a fixed flag saying why" },
+      { kind: "reviewer", message: "the reviewer says it fixed memories/old.md, but the file did not change" },
+    ]);
   });
 });
 

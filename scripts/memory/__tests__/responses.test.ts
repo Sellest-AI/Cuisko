@@ -45,6 +45,12 @@ describe("the schemas", () => {
     expect(reviewerReply.safeParse({ status: "ok", flags: [{ path: "memories/api.md", fact: "f", problem: "p", evidence: "e", severity: "high" }] }).success).toBe(true);
   });
 
+  it("take a reviewer flag with what it fixed, and refuse an empty fix", () => {
+    const flag = (fix: string) => ({ path: "memories/api.md", fact: "f", problem: "p", evidence: "e", severity: "high", fix });
+    expect(reviewerReply.safeParse({ status: "ok", flags: [flag("removed the name")] }).success).toBe(true);
+    expect(reviewerReply.safeParse({ status: "ok", flags: [flag("")] }).success).toBe(false);
+  });
+
   it("refuse a path outside memories/, a nested one, and a candidate kind that does not exist", () => {
     const plan = (path: string) => plannerReply.safeParse({ status: "ok", files: [{ path, action: "create", candidates: ["a"] }], docsIssues: [] }).success;
 

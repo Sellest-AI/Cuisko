@@ -148,7 +148,7 @@ against code.claude.com and against this machine's own transcripts):
   | 1. `mask` in condense and excerpts | before a transcript enters any prompt | an email becomes `[email masked]`, a phone `[phone masked]`, a key or token `[secret masked]`, the owner's identity `[owner]` (below). The dreamers never see the raw value, so they cannot copy it |
   | 2. README rule, P2 and P4 | while the agents write | "Never record personal data: names, emails, phones, identifiers, secrets. Describe the pattern, not the person" ("a user hit a CSV export bug", not who) |
   | 3. C20 full, P5 | before the diff is shown | `scan` on the working copy; a hit is an error, and the dream stops there |
-  | 4. Reviewer, P6 | before the diff is shown | flags what a regex misses: a name, an address, a customer's recipe quoted as theirs |
+  | 4. Reviewer, P6 | before the diff is shown | flags what a regex misses (a name, an address, a customer's recipe quoted as theirs) and removes it from the copy; C20 full runs again on what it changed |
   | 5. C20 stable, in `pnpm verify` | every commit, including the `[m]` edits and a hand edit | `scan` on the plaintext working copy, never the git index (encrypted); a hit refuses the commit |
 
   **The owner's identity mask.** Transcripts carry the owner's identity in every path
