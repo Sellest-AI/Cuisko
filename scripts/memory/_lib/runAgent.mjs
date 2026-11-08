@@ -4,10 +4,9 @@
  * the errors and the cost, so the agent never starts sub-agents; its reply is JSON that the script
  * checks with Zod before anything uses it.
  *
- * The flag set was written from `claude --help` of Claude Code 2.1.x and the permission docs. What
- * only a real call can confirm is listed in docs/plans/agent-memory.md § Slice 7 checks, and the
- * owner's first dry run is that confirmation: a call that fails leaves its prompt, its reply and its
- * stderr in the dream's `logs/`, and the error names that file.
+ * The flag set was written from `claude --help` of Claude Code 2.1.x and the permission docs, then
+ * checked against the installed CLI and confirmed by the owner's first dry runs. A call that fails
+ * leaves its prompt, its reply and its stderr in the dream's `logs/`, and the error names that file.
  *
  *   - `--agent <name>` runs `.claude/agents/<name>.md` as the main thread, with its model and tools
  *   - `--permission-mode dontAsk` denies whatever would prompt; `--allowedTools` is the whole grant

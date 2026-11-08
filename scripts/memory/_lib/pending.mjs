@@ -1,5 +1,5 @@
 /**
- * A dream commit that was refused (spec §9.1 U9; the plan's "pending commit"). The dream cost
+ * A dream commit that was refused (spec §9.1 U9). The dream cost
  * money and the owner already chose, so a refused commit (the pre-commit's `pnpm verify` failed on
  * unrelated work, say) must not lose it. `pending.json` in the dream folder keeps what the commit
  * and the stamps need; the dream's own copy of the memory is the source of truth, never the git
