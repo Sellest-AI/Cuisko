@@ -92,6 +92,58 @@ copy silently.
 | Never commit secrets, force-push, or `git commit` unless asked                                 | —    |
 | Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                         | —    |
 
+## Code rules
+
+What the code you write must obey. `architecture-reviewer` checks every commit against these tables and the **Never** table, so a rule broken here comes back as a finding.
+
+### Naming
+
+| Check                           | Rule                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| File name — `convex/**`         | camelCase (`getOne.ts`)                                                        |
+| File name — components, screens | kebab-case (`recipe-card.tsx`, `saved-recipes.tsx`)                            |
+| File name — hooks, anywhere     | camelCase **matching the export** (`useRecipes.ts` → `useRecipes`)             |
+| File name — sub-components      | dot notation (`recipe-form.ingredients.tsx`)                                   |
+| File name — a module's screens  | one screen → `screen.tsx`; several → `<behaviour>-screen` (`list-screen.tsx`)  |
+| Component reaching 3 files      | folder + `index` — `select/index.tsx`, `index.ios.tsx`, `types.ts`             |
+| Router file names               | operation-based, not resource-based — `getOne.ts` ✅ / `getRecipe.ts` ❌         |
+| Components / types              | `PascalCase`, no `I` prefix                                                    |
+| Functions, variables            | `camelCase`; module-private `_camelCase`                                       |
+| Constants, const-arrays         | `SCREAMING_SNAKE`                                                              |
+| Convex indexes                  | `by_<field>[_and_<field>]`, fields in definition order                         |
+| Convex exports                  | only `anon` · `authed` · `admin` · `server` · `_internal` · `_internal_<verb>` |
+
+The table is the floor, not the bar. A name that is legal but says nothing (`data`, `tmp`, `res`,
+`handleThing2`) is a finding too.
+
+### Architecture
+
+- Every entry in the **Never** table above.
+- Every `docs/adr/` record whose `applies_to` glob matches a changed file.
+- Export name matches its builder (`admin` ⇒ `admin*`). **The highest-value check in this list** — a
+  mismatch is a silent authorization hole that nothing else detects.
+- Router file ≤ 90 lines of code (comments and blank lines not counted), and contains no loop, no domain branching, no domain-library import.
+- Screen ≤ ~120 lines of component code (its `StyleSheet`, comments and blank lines not counted) and calls a module hook rather than fetching.
+- `convex/functions/` follows CONVENTIONS §6: a file per concept, and a table read once per way of finding it, projected by its `to<Shape>` mapper, never by the router.
+- A new or changed entry in `EventProperties` (`convex/schema/events.ts`) declares the id of every row its event is about and of the rows another event joins on (ADR 0019). The type enforces what is declared, never what should be.
+
+### Schema (if `convex/schema/**` changed)
+
+- Every query path has an index; no `.filter()` with `.paginate()`.
+- Mutable table declares `updatedAt`; a join table never does; no hand-rolled `createdAt` (`_creationTime` exists).
+- Polymorphic refs are `v.union` of discriminated objects, not parallel optional FKs.
+- New foreign key ships with its cascade index **and** its `CASCADE` entry.
+- Join table carries `position` if order is meaningful.
+
+### Hygiene
+
+- No empty `catch {}`, no leftover `console.log`, no commented-out code.
+- No `@deprecated` code left shipping; delete it — git remembers.
+- No new `any` without a comment justifying it.
+- A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
+- Any `docs/` page this change just made wrong.
+- Any `docs/` page carrying release notes, a log or a to-do.
+
 ## Non-obvious patterns
 
 **Router files bind an access level to a shared handler.** The export *name* must match the builder —
@@ -125,13 +177,15 @@ root file. `_components/` and `_hooks/` are that module's interior, reached only
 
 **Keep going unless a step needs the user.** The status note rides with the next action — never
 "want me to continue?". Stop only when a decision is the user's, at a stop this file names (review
-findings left after the fix loop, red test, wrong branch, unagreed plan), or before anything destructive or outside this
+findings left after the `committing` skill's fix loop, red test, wrong branch, unagreed plan), or before anything destructive or outside this
 worktree (deleting data, force-push, `dev`, `main`, the shared stash).
 
 **A run that changed or investigated something ends with these headings, in this order:**
 **Changed** (by layer, and what verify said) · **Found** (noticed but not acted on, and what you
 could not confirm, with where you looked) · **Blocked on you** (what you need from the user), or
 **Next** when nothing is. When a section is empty, leave its heading out entirely.
+
+**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
 
 **Write replies in the spirit of ASD-STE100, about 80% of the way.** Short sentences, one idea each,
 active voice, the same word for the same thing. Skip its dictionary: technical terms stay, and
@@ -156,6 +210,10 @@ part lost them, name the one you think did and explain that, rather than repeati
 **Existing tests are the specification.** A fix adds tests. It never edits an existing assertion to
 make itself pass.
 
+**Before fixing a bug, find its root cause** with the `systematic-debugging` skill
+(`.claude/skills/systematic-debugging/SKILL.md`): one hypothesis at a time, and a stop after three
+failed fixes.
+
 - **A reported bug or edge case is pinned by a test before it is fixed: the rule that broke, not the
   instance.** A wrong output: the user's input and the output they expected. Bad data: the invariant
   over the whole table, or the function that let it in. Added to the existing test file (`convex/`,
@@ -174,191 +232,12 @@ End with the choice: narrow the fix, or confirm the new behaviour.
 
 How to write the test itself, and where each file goes: `docs/CONVENTIONS.md` §1.5.
 
-## Before committing — full review (REQUIRED)
+## Committing
 
-Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
-small — most defects this catches are one-line changes.
-
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C20 scripts + knip + tests).
-Run it before the reviews, and do not run it again before committing: the hook does. Run it by
-hand afterwards only when nothing will be committed.
-
-**Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
-`git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the
-findings in Step 5. The reviewer does **not** need it from you — it runs the same commands itself.
-
-**Step 3 — spawn `architecture-reviewer`. Every time.** A cold context catches what yours cannot:
-you know what you meant, so you read the diff as intent rather than as text. It is defined in
-`.claude/agents/architecture-reviewer.md`, runs read-only on Sonnet, and establishes its own inputs
-— the changed set from `git`, the applicable ADRs from their `applies_to` frontmatter, the criteria
-from the tables in this file.
-
-**Your prompt carries the intent, and nothing else:**
-
-- **what the change is for**, in two or three lines.
-- **what scope was deliberately left out** — placeholder data, a screen not yet wired to Convex, a
-  test deferred to the next slice. Absent scope reads as an omission to someone who was not there,
-  and you will get it back as a finding.
-- **anything that happened outside the diff** it would otherwise misread — a file moved rather than
-  rewritten, a rule you and the user agreed to break knowingly.
-
-**Do not list the changed files, and do not name the ADRs.** It is tempting: you already know both,
-and typing them looks like saving the reviewer a step. But a list you write is a filter you control,
-and you are the party under review — forget one untracked file and it is never checked; forget the
-one ADR your change happens to break and the review comes back clean on the rule you broke. Both
-failures are invisible in the output. The reviewer derives those from the repo so that no mistake of
-yours can narrow what it looks at. What you supply is what `git` cannot know: why.
-
-**Step 4 — `/code-review` when the diff contains logic.** It hunts defects, which Step 3 deliberately
-does not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Trigger is concrete —
-`convex/functions/`, `convex/router/` beyond a validator change, `src/modules/**/_hooks/`, or
-`shared/`. Skip it for pure `src/ui/` styling, docs, config and dependency bumps; a defect hunt on a
-stylesheet finds nothing and teaches you to skip the step that matters.
-
-**Both passes run on the same diff, and that is the point** — they are not redundant, they are split
-by question. Step 3 asks *does this obey the rules we wrote down*, and answers it from a table, which
-is why it can be a cheap model with no Bash. Step 4 asks *is this correct*, which needs a defect hunt
-and the depth to run one. Neither finds the other's issues. If you catch Step 3 reporting a race
-condition or Step 4 reporting a filename, the split has collapsed and the cheap pass has stopped
-being cheap.
-
-**Step 5 — verify every finding before fixing or relaying it.** Open the file each one names and
-confirm it. A reviewer that never saw the conversation also invents findings, and acting on one
-unchecked costs more trust than the whole review buys.
-
-### Naming
-
-| Check                           | Rule                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| File name — `convex/**`         | camelCase (`getOne.ts`)                                                        |
-| File name — components, screens | kebab-case (`recipe-card.tsx`, `saved-recipes.tsx`)                            |
-| File name — hooks, anywhere     | camelCase **matching the export** (`useRecipes.ts` → `useRecipes`)             |
-| File name — sub-components      | dot notation (`recipe-form.ingredients.tsx`)                                   |
-| File name — a module's screens  | one screen → `screen.tsx`; several → `<behaviour>-screen` (`list-screen.tsx`)  |
-| Component reaching 3 files      | folder + `index` — `select/index.tsx`, `index.ios.tsx`, `types.ts`             |
-| Router file names               | operation-based, not resource-based — `getOne.ts` ✅ / `getRecipe.ts` ❌         |
-| Components / types              | `PascalCase`, no `I` prefix                                                    |
-| Functions, variables            | `camelCase`; module-private `_camelCase`                                       |
-| Constants, const-arrays         | `SCREAMING_SNAKE`                                                              |
-| Convex indexes                  | `by_<field>[_and_<field>]`, fields in definition order                         |
-| Convex exports                  | only `anon` · `authed` · `admin` · `server` · `_internal` · `_internal_<verb>` |
-
-The table is the floor, not the bar. Read the names themselves too: a name that is legal but says
-nothing (`data`, `tmp`, `res`, `handleThing2`) is a finding. Report it — never rename silently.
-
-### Architecture
-
-- Every entry in the **Never** table above.
-- Every `docs/adr/` record whose `applies_to` glob matches a changed file.
-- Export name matches its builder (`admin` ⇒ `admin*`). **The highest-value check in this list** — a
-  mismatch is a silent authorization hole that nothing else detects.
-- Router file ≤ 90 lines of code (comments and blank lines not counted), and contains no loop, no domain branching, no domain-library import.
-- Screen ≤ ~120 lines of component code (its `StyleSheet`, comments and blank lines not counted) and calls a module hook rather than fetching.
-- `convex/functions/` follows CONVENTIONS §6: a file per concept, and a table read once per way of finding it, projected by its `to<Shape>` mapper, never by the router.
-- A new or changed entry in `EventProperties` (`convex/schema/events.ts`) declares the id of every row its event is about and of the rows another event joins on (ADR 0019). The type enforces what is declared, never what should be.
-
-### Schema (if `convex/schema/**` changed)
-
-- Every query path has an index; no `.filter()` with `.paginate()`.
-- Mutable table declares `updatedAt`; a join table never does; no hand-rolled `createdAt` (`_creationTime` exists).
-- Polymorphic refs are `v.union` of discriminated objects, not parallel optional FKs.
-- New foreign key ships with its cascade index **and** its `CASCADE` entry.
-- Join table carries `position` if order is meaningful.
-
-### Hygiene
-
-- No empty `catch {}`, no leftover `console.log`, no commented-out code.
-- No `@deprecated` code left shipping; delete it — git remembers.
-- No new `any` without a comment justifying it.
-- A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
-- Any `docs/` page this change just made wrong.
-- Any `docs/` page carrying release notes, a log or a to-do.
-
-**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
-
-### The fix loop
-
-**When the review finds anything, fix, re-run, and report what is left: three reviews at most**,
-like [the plan review loop](docs/plans/README.md#the-review-loop). BLOCKING breaks a written rule;
-NON-BLOCKING breaks none but costs something you can point at (a name that says nothing, a
-duplicated shape). Each round, verify every finding (Step 5), then:
-
-- **Fix it** if it is BLOCKING and the fix stays inside the change, or NON-BLOCKING and the
-  reviewer marked it `Effort: easy` (local, mechanical, no behaviour change). The tag is a hint.
-- **Leave it** if it is involved (reaches files the change never touched, an extraction), or the
-  user's call even when easy: a deliberate violation, a behaviour change, wider scope.
-- **Decline it**, with the reason, if it does not hold once the file is open.
-
-A fix obeys the rest of this file: one that turns an existing test red stops the loop ([Tests](#tests)).
-Then continue the same reviewer with `SendMessage`: `round n`, each finding marked fixed, left or
-declined, with a reason for the last two. The loop ends on a clean round, after round 3, or when a
-round fixed nothing. Then Step 4 on the fixed diff, and report:
-
-```
-Architecture review: 3 rounds, 3 fixed, 2 left, 1 declined
-FIXED     getOne.ts:48 `admin` → `adminQuery` (ADR 0001 · r1) · use-recipes.ts → useRecipes.ts (r1) · …
-LEFT — BLOCKING
-1. src/ui/cards/recipe.tsx:3 — imports `Doc<'recipes'>` from ~/lib/convex/api  (ADR 0002)
-   Couples the design system to the schema. Fix: a structural prop type.
-   Left because: the card then needs `servings`, which no screen passes yet; it widens the slice.
-LEFT — NON-BLOCKING
-2. convex/functions/recipes/loadRecipe.ts:22 — `const data = await ctx.db.get(id)`  (naming)
-   `data` says nothing three lines down. Fix: rename to `recipe`.
-   Left because: `loadRecipe` is outside this change, and the name reaches 6 callers.
-DECLINED  useRecipes.ts:14 "useQuery outside a hook": it is the hook (ADR 0006).
-```
-
-Every left finding cites its rule, what actually breaks, and why it was left. Then wait for approval.
-
-If a violation is deliberate, ask the user to confirm, and record it: a knowingly-broken rule must
-become `status: superseded` in its ADR. **Never leave a rule documented as active that the project
-has stopped following** — that single failure is what let 58 files drift in the predecessor project.
-
-## Writing a commit
-
-**First, check the branch: `git branch --show-current`.** The `pre-commit` hook validates the branch
-*name* against the type vocabulary; it cannot tell whether the change belongs there. So a commit
-landing on the wrong branch fails silently — and stays invisible, because nobody reviewing that PR
-expects it. Moving it afterwards costs a cherry-pick, a reset and a rebase.
-
-Ask what the branch exists to do, then:
-
-- The change serves that purpose → commit.
-- It does not — a doc, an unrelated fix, a chore no other commit here needs → **stop and ask the
-  user**, naming the branch it belongs on. Usually `dev`, or a branch of its own.
-- Unsure → ask. The question is cheaper than the move.
-
-Supporting work is not a stray: a `feat(groceries)` a `feat/planning-…` branch needs, or a `fix` for
-something the branch itself broke, belongs on the branch, even when its scope is another domain.
-
-- **The hooks check the files on disk, not what you commit.** An uncommitted edit can hide a broken
-  commit, so trust `pnpm verify` only once nothing is left uncommitted. Commit `package.json` whole.
-- **Into `dev`:** rename a `claude/…` branch to `<type>/…` (the hook refuses it), merge `dev` into
-  it, verify, then a plain `git merge`. Never `--no-ff`. A push to `dev` ships to preview phones and
-  the dev Convex deployment.
-- **Into `main`:** only `dev` is merged into `main`, and only when the user says so: that merge is
-  the release, to the production channel and the prod deployment (`docs/ARCHITECTURE.md` §
-  Releases).
-
-Format is Conventional Commits. The rules live in `commitlint.config.js`, which the `commit-msg` hook
-runs; branch names are checked by `.githooks/pre-commit`. When the two disagree with a doc, they win.
-One logical change per commit. Scopes and a worked example: `docs/CONVENTIONS.md` §10.
-
-**Write the body for an agent reading `git log` a year from now.** It will have the diff; what it
-cannot recover is intent. So the body is the payload, not decoration:
-
-- **The trigger** — what was broken, missing or newly required. Highest-value sentence in the message.
-- **What changed by layer**, not by file — "the check moved from `router/` into `procedures.ts`".
-- **The governing rule** when one applies (`ADR 0003`, `C4`, `lint R7`), so `git log --grep` finds it.
-- **What you deliberately did not do**, if a reader would wonder. Absent scope is invisible in a diff.
-
-Omit the body only when the subject is complete alone (`chore(deps): bump convex to 1.44`).
-
-⚠️ **Never start a body line with `word:`.** The parser reads `Note:`, `Result:`, `enforced:` as a
-footer token and treats everything after it as footers — silently wrecking the structure the history
-is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase mid-line. The
-`commit-msg` hook refuses it (`no-footer-shaped-body-line`), except for real footer tokens, so
-write the body without it rather than retrying until it passes.
+**Before any commit or merge, load the `committing` skill** (`.claude/skills/committing/SKILL.md`).
+It runs the full review — `pnpm verify`, `architecture-reviewer`, `/code-review` and the fix loop —
+checks the branch, and sets the commit-message rules. The hooks enforce only the format, not the
+review, so the skill is not optional.
 
 ## Sub-agents
 
@@ -366,34 +245,14 @@ For work that is large, parallel, or research-heavy, **spawn sub-agents rather t
 in one context.** Good candidates: auditing many files against a rule, exploring an unfamiliar area,
 independent slices of a migration, or a long investigation whose intermediate output you do not need.
 
-A sub-agent starts with **no memory of this conversation**. It only knows what you write in its
-prompt. Every spawn must therefore include:
-
-- **The goal**, and what "done" looks like.
-- **Exact file paths** to read — never "look around the codebase".
-- **Which docs apply**: `docs/CONVENTIONS.md`, plus the specific `docs/adr/` files matching the globs
-  it will touch.
-- **The commands** it may run (`pnpm verify`, `pnpm test <file>`).
-- **The output shape** you expect back (a list of `file:line` findings, a diff, a summary), plus
-  what it could not confirm and where it looked — a silent gap reads as a clean result.
-- **Boundaries** — read-only vs may-edit, and which paths are off limits.
-
-**A spawn you make more than once becomes a definition in `.claude/agents/`.** Everything above then
-lives in the definition instead of the prompt — a stable prefix the model caches, rather than one you
-retype and drift from each time — and the definition pins the model and the tool list, so a
-table-checking pass is not paying for a reasoning model with a shell it does not need.
-`architecture-reviewer` and `plan-reviewer` are the two that exist; they are the shape to copy.
-
-Prefer read-only sub-agents for investigation and keep edits in the main thread, so changes stay
-reviewable in one place. When several sub-agents will edit, give each a disjoint set of files.
-
-Their reports are not shown to the user — relay what matters. Never present a pending sub-agent's
-result as if it had returned.
+Before you write a spawn prompt or a new agent definition, read
+[`docs/SUB-AGENTS.md`](docs/SUB-AGENTS.md): what a prompt must carry, and when a spawn
+becomes a definition.
 
 ## Done means
 
 - `pnpm verify` is green.
-- **Only when you are asked to commit**: The architecture review above ran and reported clean, or the user approved the exceptions.
+- **Only when you are asked to commit**: The review in the `committing` skill ran and reported clean, or the user approved the exceptions.
 - Every new non-`anon`, non-`_internal` Convex export has a test asserting the wrong caller is rejected (C5).
 - Every new `_model/` file has a test in its `__tests__/`, every test file sits in a `__tests__/`, none sits where nothing runs it, and every `convex-test` file calling through `api.` / `internal.` warms its module in a `beforeAll` (C10).
 - Every bug or edge case the user reported has its test, and no existing assertion changed without the user's approval (see Tests).

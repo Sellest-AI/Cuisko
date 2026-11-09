@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Read-only conformance reviewer for Cuisko. Checks a diff against the project's naming, architecture, schema and hygiene rules — it does NOT hunt for defects, /code-review does that. Spawn it before every commit with the intent only; it derives the changed set itself. The author fixes what it can and continues it with SendMessage for up to three rounds (AGENTS.md § The fix loop).
+description: Read-only conformance reviewer for Cuisko. Checks a diff against the project's naming, architecture, schema and hygiene rules — it does NOT hunt for defects, /code-review does that. Spawn it before every commit with the intent only; it derives the changed set itself. The author fixes what it can and continues it with SendMessage for up to three rounds (the `committing` skill, § The fix loop).
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -36,10 +36,9 @@ and **where the prompt disagrees with what you derive, the repo wins.**
 
    `cat` each new file the third command lists; they arrive whole or not at all.
 
-2. **Read `AGENTS.md`.** Its `## Before committing` section holds the four criteria tables — Naming,
-   Architecture, Schema, Hygiene — and the `## Never` table above them. **Those tables are your
-   criteria. They are the source of truth; nothing is duplicated into this file, so a rule that
-   changed there is the rule you apply.**
+2. **Read `AGENTS.md`.** Its `## Never` table and its `## Code rules` tables — Naming, Architecture,
+   Schema, Hygiene — **are your criteria. They are the source of truth; nothing is duplicated into
+   this file, so a rule that changed there is the rule you apply.**
 
 3. **Work out which ADRs apply, yourself.** One command gives you every record's scope:
 
@@ -54,7 +53,7 @@ and **where the prompt disagrees with what you derive, the repo wins.**
 
 4. **Read the two long docs only when the diff raises the question they answer:**
    - `docs/CONVENTIONS.md` — when the diff **adds, moves or renames a file**, or adds a helper, hook
-     or component. It holds the "where does this go?" decision tree, which the `AGENTS.md` naming
+     or component. It holds the "where does this go?" decision tree, which the `AGENTS.md` Naming
      table does not.
    - `docs/ARCHITECTURE.md` — when the diff **crosses a layer** (`convex/` ↔ `src/modules/` ↔
      `src/ui/` ↔ `app/`). It holds the layer contracts and the data flow.

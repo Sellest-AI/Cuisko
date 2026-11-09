@@ -63,7 +63,7 @@ Nothing is lost by deleting the file, because anything durable in a plan belongs
 | A description of what the code does | The code. It is the source of truth |
 | A decision that constrains future code | A new record in [adr/](../adr/) |
 | A naming or placement rule | [CONVENTIONS.md](../CONVENTIONS.md) |
-| Why this slice existed at all | The commit body — [AGENTS.md](../../AGENTS.md) already requires the trigger |
+| Why this slice existed at all | The commit body — the `committing` skill (`.claude/skills/committing/SKILL.md`) already requires the trigger |
 
 If a plan contains something that fits none of those rows, it was a note, not a decision.
 
