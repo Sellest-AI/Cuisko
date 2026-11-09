@@ -4,7 +4,8 @@
  *
  *   1. read the pushed refs from stdin, as git writes them: `<local ref> <local sha> <remote ref> <remote sha>`
  *   2. keep branch pushes; drop tags and branch deletions (an all-zero local sha)
- *   3. MEMORY_SKIP=1 passes, with a reminder (spec §8.3)
+ *   3. MEMORY_SKIP=1 passes, with a reminder (spec §8.3); so does a clone whose memory is still
+ *      encrypted, with a warning that the dream is skipped
  *   4. missing or invalid stamps block, with the setup or reset command
  *   5–6. per pushed ref: the open branches and the reference date from its sha, then `select`
  *   7. nothing selected passes
@@ -15,15 +16,29 @@
  * Any other failure blocks too, with MEMORY_SKIP named: the worst case is a postponed review,
  * never a silent one.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
-import { mainRoot } from "./_lib/git.mjs";
+import { gitOrNull, mainRoot } from "./_lib/git.mjs";
+import { isEncrypted } from "./_lib/memoryFiles.mjs";
 import { readStamps, StampsError, stampsPath } from "./_lib/stamps.mjs";
 import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
 
 const ZERO_SHA = /^0+$/;
 const UPDATE_COMMAND = "pnpm memory:update";
+const SETUP_COMMAND = "pnpm memory:setup";
 const SKIP_HINT = "(If the dream cannot run: MEMORY_SKIP=1 git push)";
+const INDEX = path.join(".claude", "memory", "index.md");
+
+/**
+ * True when this clone holds the memory as transcrypt ciphertext (no key: a contributor, a fresh
+ * clone). The dream cannot run there, so blocking would only force MEMORY_SKIP on every push.
+ * A missing index (a branch older than the memory) is not encrypted: the usual check runs.
+ */
+const _memoryEncrypted = () => {
+  const index = path.join(gitOrNull("rev-parse", "--show-toplevel") ?? process.cwd(), INDEX);
+  return existsSync(index) && isEncrypted(readFileSync(index, "utf8"));
+};
 
 /** The branch pushes git announced. `HEAD:dev` arrives with `HEAD` as the local ref: the remote one names the branch then. */
 const _pushedBranches = (input) =>
@@ -64,6 +79,13 @@ const _check = () => {
 
   if (process.env.MEMORY_SKIP === "1") {
     process.stderr.write(`💭 MEMORY_SKIP=1: the push passes; unread sessions wait for the next ${UPDATE_COMMAND}.\n`);
+    return;
+  }
+
+  if (_memoryEncrypted()) {
+    process.stderr.write(
+      `⚠️ 💭 The memory is encrypted on this clone: dream skipped, the push passes.\n   To read and update the memory here: ${SETUP_COMMAND}\n`,
+    );
     return;
   }
 

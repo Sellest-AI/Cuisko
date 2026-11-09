@@ -155,6 +155,21 @@ describe("pre-push", () => {
     expect(result.stderr).toContain("MEMORY_SKIP=1");
   });
 
+  it.each([
+    ["with unread sessions", STAMPS],
+    ["without stamps", null],
+  ] as const)("passes on a clone whose memory is still encrypted, %s, warning that the dream is skipped", (_name, stamps) => {
+    const setup = makeRepo(stamps);
+    mkdirSync(path.join(setup.repo, ".claude", "memory"), { recursive: true });
+    writeFileSync(path.join(setup.repo, ".claude", "memory", "index.md"), "U2FsdGVkX19vZXJ0eXVpb3A=\n");
+    writeSession(setup, "s1", UNREAD);
+    const result = pushDev(setup);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain("memory is encrypted on this clone");
+    expect(result.stderr).toContain("dream skipped");
+    expect(result.stderr).toContain("pnpm memory:setup");
+  });
+
   it("blocks with the setup command when the stamps are missing", () => {
     const result = pushDev(makeRepo(null));
     expect(result.status).toBe(1);
