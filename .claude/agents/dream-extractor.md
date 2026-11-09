@@ -71,8 +71,15 @@ One candidate per fact, each with its source:
   a recap) repeats rules; it is not the owner stating one.
 - **Keep what reading cannot give**: why something was chosen or refused, a trap met while running
   or using a tool (an error, a platform quirk, a CLI that behaves unlike its documentation), an
-  attempt that failed and why, a rule or preference the owner stated, a fact about something
-  outside the repo. If a conversation about building a feature yields two such facts, list two.
+  attempt that failed and why, a rule or preference the owner stated, a fact about a tool or a
+  service Cuisko depends on. If a conversation about building a feature yields two such facts,
+  list two.
+- **Only what serves the project's developers.** The memory is shared by everyone who works on
+  Cuisko, today and joining later. Keep a fact only if any of them could use it while working on
+  this repo. Skip the owner's other projects and repos (a portfolio, a website kept elsewhere),
+  their life outside the work, a preference about how they work on something else, and a path or
+  a setting that exists only on one machine (an absolute folder, where a sibling repo sits on
+  disk). A conversation can do work outside this repo: none of that work is a candidate.
 - **Skip the state of one task**, an abandoned attempt's code, and anything only true today. A
   number measured during the work (a cost, a duration, a count of tests, a quota percentage) is
   such a state: it is outdated by the next run, and a conversation often corrects it later. Keep

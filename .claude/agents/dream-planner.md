@@ -41,6 +41,9 @@ fewer, sound files are better than many.
 
 - Use only the candidate ids you were given. A plan that cites an id nobody extracted is refused.
 - **No personal data in your plan**, in a reason or in a docs issue. Describe the pattern.
+- **Only what serves the project's developers.** Drop a candidate no developer of this repo could
+  use while working on it: the owner's other projects or repos, their life outside the work, a path
+  or a setting that exists only on one machine. `reason`: `outside the project`.
 - **A statement about the code is a fact only if it is true in the repo today.** Check with Grep and
   Read before you assign it. The writer checks again and records what is not true as a hypothesis.
 - **Finding a statement in the code, in `docs/` or in `AGENTS.md` is a reason to drop it, never to
@@ -50,8 +53,14 @@ fewer, sound files are better than many.
   model runs which agent, what a hook prints), leave its candidate out of the plan. Keep a group
   only for what reading does not give: a reason, a trap, a failed attempt, an owner's rule, a
   behaviour of a tool outside the repo.
+- **A commit message counts as the repo.** A reason or a decision is often written in the body of
+  the commit that made the change. Before you keep a candidate, search the history for its subject:
+  `git log --oneline -i --grep='<a key word>'` for the commit messages, and
+  `git log --oneline -S '<a phrase>'` for the commits that added or removed it. When a commit body
+  already states the decision and its reason, drop the candidate, with `reason` naming the commit
+  (`already in <hash>`). Keep only the part no commit says.
 - **Account for every candidate.** Each id goes in exactly one file, or in `dropped` with a one-line
-  `reason` the owner can check: which memory file or doc already says it, or why it is not a
+  `reason` the owner can check: which memory file, doc or commit already says it, or why it is not a
   lesson (a one-off operation, a measured number). The owner reads this list to see what the dream
   chose not to keep.
 - **Bash is for `git log` only.** Every other command is refused. Read files with Read, search with

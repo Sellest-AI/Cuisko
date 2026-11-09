@@ -10,8 +10,12 @@ not in `docs/`, not in `git log`. A decision and its reason, a trap and how to a
 convention applied but written nowhere, a verified rule about how a dependency behaves, the lesson
 of an abandoned attempt.
 
-Do not record what the code or `docs/` already says, the state of one task, or the code of an
-abandoned attempt.
+Do not record what the code, `docs/` or a commit message already says, the state of one task, or
+the code of an abandoned attempt.
+
+The memory is shared by every developer of Cuisko, today and joining later. Record only what any of
+them could use while working on this repo: never the owner's other projects or repos, their life
+outside the work, or a path or a setting that exists only on one machine.
 
 ## Never
 
