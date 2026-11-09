@@ -21,6 +21,7 @@
  * U8  [o] accept · [m] modify (an instruction, or :e to edit by hand; the checks run again) ·
  *     [i] ignore (stamps written, nothing kept) · [a] abort (nothing written)
  * U9  git commit limited to .claude/memory, with MEMORY_UPDATE=1 and the trailer Memory-Update: yes
+ *     (the hook output shows as one progress line, in full only when the commit is refused)
  * U10 stamps: each pair reviewed up to its newest selected line; readsCountedUntil only when a
  *     commit was made (the reads are counted again otherwise); sessions with no transcript pruned
  * U11 remove the dream folder
@@ -32,7 +33,7 @@
  * P5 check C20 --full, P6 the reviewer, P7 the owner's choice. Spec sections are named in each
  * _lib module's docblock.
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -50,6 +51,8 @@ import { runAgent } from "./_lib/runAgent.mjs";
 import { acquireDreamLock, pruneStamps, readStamps, recordReview, StampsError, stampsPath, writeStamps } from "./_lib/stamps.mjs";
 import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
 import { applyReads, applySessions, countReads, sessionStarts } from "./_lib/usage.mjs";
+import { createSteps } from "./_lib/steps.mjs";
+import { createVerifyProgress, formatProgress, verifySteps } from "./_lib/verifyProgress.mjs";
 
 const MEMORY = ".claude/memory";
 const TMP = ".tmp/memory";
@@ -102,23 +105,56 @@ const _restoreMemory = (top) => {
 };
 
 /** U9: the repo's memory becomes the copy's, committed alone. Returns the commit's sha, or null when git refused. */
-const _commit = ({ top, dreamDir, memoryDir, message, io }) => {
+const _commit = async ({ top, dreamDir, memoryDir, message, io }) => {
   mirrorMemory(path.join(dreamDir, "memory"), memoryDir);
   gitIn(top, "add", "-A", "--", MEMORY);
   const messageFile = path.join(dreamDir, "commit-message.txt");
   writeFileSync(messageFile, message);
   io.out("Committing the memory (the pre-commit runs pnpm verify, as for any commit)...");
-  const run = spawnSync("git", ["commit", "-F", messageFile, "--", MEMORY], {
-    cwd: top,
-    stdio: "inherit",
-    env: { ...process.env, MEMORY_UPDATE: "1" },
-  });
+  const run = await _runShowingProgress({ top, args: ["commit", "-F", messageFile, "--", MEMORY], io });
   if (run.status !== 0) {
+    io.err(run.output.trimEnd());
     _restoreMemory(top);
     return null;
   }
   return gitIn(top, "rev-parse", "HEAD");
 };
+
+/** The steps the repo's `pnpm verify` runs, from its package.json; none when it has no verify. */
+const _verifySteps = (top) => {
+  const manifest = path.join(top, "package.json");
+  return existsSync(manifest) ? verifySteps(JSON.parse(readFileSync(manifest, "utf8")).scripts) : [];
+};
+
+/**
+ * Runs `git <args>` with its output kept, not shown: the owner sees one status line, the verify
+ * steps finished and the last line printed. The caller prints `output` when the run failed.
+ */
+const _runShowingProgress = ({ top, args, io }) =>
+  new Promise((resolve, reject) => {
+    const progress = createVerifyProgress(_verifySteps(top));
+    let output = "";
+    // The output is read from a pipe, so the tools would drop their colours: kept for a failure the owner reads.
+    const child = spawn("git", args, { cwd: top, env: { ...process.env, MEMORY_UPDATE: "1", ...(io.color ? { FORCE_COLOR: "1" } : {}) } });
+    const read = (chunk) => {
+      const text = chunk.toString();
+      output += text;
+      progress.push(text);
+      io.status?.(formatProgress(progress.state()));
+    };
+    io.status?.(formatProgress(progress.state()));
+    child.stdout.on("data", read);
+    child.stderr.on("data", read);
+    child.on("error", (error) => {
+      io.status?.(null);
+      reject(error);
+    });
+    child.on("close", (status) => {
+      progress.end();
+      io.status?.(null);
+      resolve({ status, output });
+    });
+  });
 
 /** U10: the stamps after a review. */
 const _stamp = ({ stampsFile, selected, onOpenBranches, outcome, commit, readsCountedUntil, at }) => {
@@ -238,7 +274,7 @@ const _show = ({ io, top, memoryDir, dreamDir, report, changes }) => {
 /**
  * U7–U8: show, ask, and loop on [m]. Returns `{ choice: "accepted" | "edited" | "ignored" | "aborted" | "nochange" }`.
  */
-const _decide = async ({ io, top, memoryDir, dreamDir, report, passages, run, check, now, today }) => {
+const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, run, check, now, today }) => {
   const copy = path.join(dreamDir, "memory");
   const diff = () => _diff({ top, memoryDir, dreamDir });
   let edited = false;
@@ -267,7 +303,9 @@ const _decide = async ({ io, top, memoryDir, dreamDir, report, passages, run, ch
         verdict = await check();
       } else {
         corrections += 1;
+        steps.step("Applying your correction");
         const result = await correct({ instruction, copy, run, check, diff, passages, now, today, name: `correction-${corrections}` });
+        steps.end();
         report.alerts.push(...result.reply.alerts);
         for (const { path: name, note } of result.reply.notes ?? []) report.notes.set(name, note);
         verdict = result.verdict;
@@ -313,6 +351,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
   let dreamDir = null;
   let stampsFile = null;
   let finished = false;
+  const steps = createSteps({ status: io.status, out: io.out });
   const stopListening = io.onInterrupt?.(() => {
     if (dreamDir !== null && !finished && stampsFile !== null) _markFailed(stampsFile, now.toISOString());
     release();
@@ -344,7 +383,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       }
       dreamDir = dir;
       io.out(`Finishing the pending dream commit from ${dir}.`);
-      const commit = _commit({ top, dreamDir: dir, memoryDir, message: pending.message, io });
+      const commit = await _commit({ top, dreamDir: dir, memoryDir, message: pending.message, io });
       if (commit === null) throw new UpdateError(`The commit was refused again. Fix what it reported, then run this again; the dream is kept in ${dir}.`);
       _stamp({ stampsFile, selected: pending.selected, onOpenBranches: pending.onOpenBranches, outcome: pending.outcome, commit, readsCountedUntil: pending.readsCountedUntil, at: now.toISOString() });
       rmSync(dir, { recursive: true, force: true });
@@ -383,15 +422,20 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       lines: selected,
       copy,
       context: { identity: ownerIdentity(top), repoRoot },
-      run,
+      run: async (call) => {
+        const reply = await run(call);
+        steps.finished();
+        return reply;
+      },
       check: checkCopy,
       diff,
       now,
       today,
       inputsDir: path.join(dreamDir, "inputs"),
-      progress: (message) => io.out(message),
+      progress: steps.step,
     });
 
+    steps.end();
     const report = {
       flags: result.flags,
       notes: new Map(result.notes.map(({ path: name, note }) => [name, note])),
@@ -407,7 +451,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       return 0;
     }
 
-    const decision = await _decide({ io, top, memoryDir, dreamDir, report, passages: result.passages, run, check: checkCopy, now, today });
+    const decision = await _decide({ io, steps, top, memoryDir, dreamDir, report, passages: result.passages, run, check: checkCopy, now, today });
     if (decision.choice === "aborted") {
       rmSync(dreamDir, { recursive: true, force: true });
       finished = true;
@@ -420,7 +464,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     let commit = null;
     if (kept) {
       const message = _commitMessage({ sessions: countSessions(selected), changes: decision.changes });
-      commit = _commit({ top, dreamDir, memoryDir, message, io });
+      commit = await _commit({ top, dreamDir, memoryDir, message, io });
       if (commit === null) {
         writePending(dreamDir, {
           version: 1,
@@ -441,6 +485,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     _finish({ io, outcome: decision.choice, changes: decision.changes, commit });
     return 0;
   } catch (error) {
+    steps.fail();
     const known = error instanceof UpdateError;
     io.err(known ? error.message : `memory:update failed: ${error.message}`);
     if (dreamDir !== null && !finished) {
@@ -454,8 +499,45 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
   }
 };
 
+const SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
+
+/**
+ * One line redrawn in place behind a spinner, cut to the terminal's width; `null` clears it. On a
+ * terminal only: a pipe or a log would keep every frame.
+ */
+const _statusLine = ({ color }) => {
+  if (process.stdout.isTTY !== true) return () => {};
+  let text = "";
+  let frame = 0;
+  let timer = null;
+  let since = 0;
+  const draw = () => {
+    const spinner = SPINNER[frame % SPINNER.length];
+    frame += 1;
+    // The time first, so a long last line cut at the edge never hides it.
+    const elapsed = `${Math.floor((Date.now() - since) / 1000)}s`.padStart(4);
+    const line = [...`${elapsed}  ${text}`].slice(0, Math.max(0, (process.stdout.columns ?? 80) - 3)).join("");
+    process.stdout.write(`\r\u001b[2K${color ? `\u001b[36m${spinner}\u001b[39m` : spinner} ${line}`);
+  };
+  return (next) => {
+    if (next === null) {
+      clearInterval(timer);
+      timer = null;
+      process.stdout.write("\r\u001b[2K");
+      return;
+    }
+    text = next;
+    if (timer === null) {
+      since = Date.now();
+      timer = setInterval(draw, 80);
+      draw();
+    }
+  };
+};
+
 /** The real terminal. */
 const _terminal = () => ({
+  status: _statusLine({ color: process.stdout.isTTY === true && process.env.NO_COLOR === undefined }),
   // Colour on a terminal only, and never when the owner set NO_COLOR (no-color.org).
   color: process.stdout.isTTY === true && process.env.NO_COLOR === undefined,
   out: (text) => process.stdout.write(`${text}\n`),

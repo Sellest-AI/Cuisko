@@ -186,7 +186,7 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
     .map(([sessionId, own]) => ({ sessionId, own, ...condense(own, context) }))
     .filter((conversation) => conversation.text !== "");
 
-  progress(`P2  extracting from ${conversations.length} conversation(s)`);
+  progress(`P2  extracting from ${conversations.length} conversation(s)`, conversations.length);
   const extracted = await mapLimit(conversations, parallel, (conversation) =>
     run({
       agent: "dream-extractor",
@@ -221,7 +221,7 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
   for (const entry of plan.files.filter((file) => file.action === "delete")) rmSync(path.join(copy, entry.path), { force: true });
 
   const writing = plan.files.filter((file) => file.action !== "delete");
-  progress(`P4  writing ${writing.length} file(s), deleting ${plan.files.length - writing.length}`);
+  progress(`P4  writing ${writing.length} file(s), deleting ${plan.files.length - writing.length}`, writing.length);
   const writerReplies = await mapLimit(writing, parallel, async (entry, at) => {
     const file = path.join(copy, entry.path);
     const reply = await run({

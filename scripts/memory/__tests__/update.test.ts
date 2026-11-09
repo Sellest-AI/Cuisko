@@ -22,6 +22,7 @@ type Io = {
   ask: (question: string) => Promise<string>;
   edit: (files: string[]) => Promise<void> | void;
   onInterrupt: (callback: () => void) => () => void;
+  status?: (text: string | null) => void;
 };
 type Deps = { run?: (call: Call) => Promise<unknown>; check?: (options?: { memoryDir?: string; full?: boolean }) => { ok: boolean; output: string }; hasClaude?: () => boolean; now?: () => Date };
 type Stamps = {
@@ -111,7 +112,9 @@ const makeIo = (answers: string[] = [], onEdit: (files: string[]) => void = () =
   const out: string[] = [];
   const err: string[] = [];
   const asked: string[] = [];
+  const statuses: (string | null)[] = [];
   const io: Io & { interrupt?: () => void } = {
+    status: (text) => void statuses.push(text),
     out: (text) => void out.push(text),
     err: (text) => void err.push(text),
     ask: async (question) => {
@@ -126,7 +129,7 @@ const makeIo = (answers: string[] = [], onEdit: (files: string[]) => void = () =
       return () => {};
     },
   };
-  return { io, out, err, asked, text: () => out.join("\n"), errors: () => err.join("\n") };
+  return { io, out, err, asked, statuses, text: () => out.join("\n"), errors: () => err.join("\n") };
 };
 
 /** Replies by agent. `plan` is what the planner returns; the writer writes `API_NEW` unless told. */
@@ -529,6 +532,37 @@ describe("--dry-run", () => {
   });
 });
 
+describe("the steps", () => {
+  it("shows each agent step on the status line while it runs, then prints it with ✓", async () => {
+    const repo = makeRepo();
+    const t = makeIo(["a"]);
+
+    expect(await update(repo, t.io, makeModels())).toBe(0);
+
+    expect(t.statuses).toContain("P3  planning from 1 candidate(s)");
+    const done = t.out.filter((line) => line.startsWith("✓ P"));
+    expect(done.map((line) => line.replace(/ \(\d+s\)$/, ""))).toEqual([
+      "✓ P2  extracting from 1 conversation(s)",
+      "✓ P3  planning from 1 candidate(s)",
+      "✓ P4  writing 1 file(s), deleting 0",
+      "✓ P5  mechanical checks",
+      "✓ P6  review",
+    ]);
+    expect(t.out.indexOf(done.at(-1) as string)).toBeLessThan(t.out.findIndex((line) => line.startsWith("Summary:")));
+  });
+
+  it("shows the [m] correction on the status line, and marks the step that failed with ✗", async () => {
+    const corrected = makeIo(["m", "say ms, not millisecond", "o"]);
+    await update(makeRepo(), corrected.io, makeModels());
+    expect(corrected.out.some((line) => /^✓ Applying your correction \(\d+s\)$/.test(line))).toBe(true);
+
+    const failed = makeIo();
+    await update(makeRepo(), failed.io, makeModels({ throwAt: "dream-planner" }));
+    expect(failed.out.some((line) => /^✗ P3 {2}planning from 1 candidate\(s\) \(\d+s\)$/.test(line))).toBe(true);
+    expect(failed.statuses.at(-1)).toBeNull();
+  });
+});
+
 describe("failures", () => {
   it("keeps the dream folder, writes lastRun failed and nothing else, and leaves the memory alone", async () => {
     const repo = makeRepo();
@@ -581,13 +615,38 @@ describe("the pending commit", () => {
    * A hook directory whose pre-commit refuses: the owner's `pnpm verify` failing. The mode matters
    * on Linux CI: git silently skips a hook that is not executable, and the commit then succeeds.
    */
-  const refuseCommits = (repo: Repo) => {
+  const installHook = (repo: Repo, lines: string[]) => {
     const hooks = path.join(repo.root, ".hooks");
     mkdirSync(hooks, { recursive: true });
-    writeFileSync(path.join(hooks, "pre-commit"), "#!/bin/sh\necho 'verify failed (test)' >&2\nexit 1\n", { mode: 0o755 });
+    writeFileSync(path.join(hooks, "pre-commit"), ["#!/bin/sh", ...lines, ""].join("\n"), { mode: 0o755 });
     git(repo.root, "config", "core.hooksPath", hooks);
     return () => git(repo.root, "config", "--unset", "core.hooksPath");
   };
+  const refuseCommits = (repo: Repo) => installHook(repo, ["echo 'C3 query and index rules'", "echo 'verify failed (test)' >&2", "exit 1"]);
+
+  it("a refused commit prints the hook's whole output, so the owner sees what failed", async () => {
+    const repo = makeRepo();
+    refuseCommits(repo);
+    const t = makeIo(["o"]);
+
+    expect(await update(repo, t.io, makeModels())).toBe(1);
+
+    expect(t.errors()).toContain("C3 query and index rules");
+    expect(t.errors()).toContain("verify failed (test)");
+    expect(t.statuses.at(-1)).toBeNull();
+  });
+
+  it("an accepted commit shows one progress line and none of the hook's output", async () => {
+    const repo = makeRepo();
+    installHook(repo, ["echo '. lint$ eslint .'", "echo 'a line of the test run' >&2", "echo '. lint: Done'"]);
+    const t = makeIo(["o"]);
+
+    expect(await update(repo, t.io, makeModels())).toBe(0);
+
+    expect(`${t.text()}\n${t.errors()}`).not.toContain("a line of the test run");
+    expect(t.statuses).toContain("Verifying · . lint: Done");
+    expect(t.statuses.at(-1)).toBeNull();
+  });
 
   it("a refused commit keeps the dream and its pending.json, restores the memory, writes no stamps", async () => {
     const repo = makeRepo();
