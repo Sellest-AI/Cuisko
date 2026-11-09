@@ -98,7 +98,7 @@ const writerPrompt = ({ entry, file, candidates, passages, today }) =>
 const correctionPrompt = ({ instruction, diff, passages, today, folder }) =>
   [
     "The owner reviewed the dream's diff and wants a correction.",
-    `Today is ${today} (UTC). The files you may create, edit or delete are in ${folder}.`,
+    `Today is ${today} (UTC). The files you may create or edit are in ${folder}. To delete a file, name it in \`drop\`: you cannot delete it yourself.`,
     "",
     "<instruction>",
     instruction,
@@ -299,6 +299,7 @@ export const correct = async ({ instruction, copy, run, check, diff, passages, n
     schema: correctionReply,
     writable: [path.join(copy, "memories", "**")],
   });
+  for (const name of reply.drop ?? []) rmSync(path.join(copy, name), { force: true });
   const outside = changedPaths(before, snapshotMemory(copy)).filter((file) => !file.startsWith("memories/"));
   if (outside.length > 0) _stop("the correction changed files it must not touch", outside);
   refreshIndex(copy, now);

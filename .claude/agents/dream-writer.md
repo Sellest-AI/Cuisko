@@ -64,6 +64,7 @@ cannot do the work, return `status` `error` with a short `error`.
 
 The owner reviewed a diff and wrote an instruction ("we do not use Redis, remove that", "the limit
 is 10 MB, not 5"). Apply it to any memory file it concerns, in `memories/` of the working copy
-(you may create, edit or delete files there). The instruction is a source like any other, dated
-today. Respect the same format. Reply with the schema you were given: `status`, `changed` (the
-paths you touched) and `alerts`.
+(you may create or edit files there). You have no tool that deletes a file: to delete one, name
+it in `drop` and the script deletes it. The instruction is a source like any other, dated today.
+Respect the same format. Reply with the schema you were given: `status`, `changed` (the paths you
+touched), `alerts` and `drop` (the paths to delete, empty when none).

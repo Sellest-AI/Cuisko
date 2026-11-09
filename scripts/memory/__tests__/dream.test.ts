@@ -489,6 +489,17 @@ describe("correct", () => {
     expect(index).not.toContain("old.md");
   });
 
+  it("deletes the files the writer names in drop, since it has no tool to delete them itself", async () => {
+    const copy = setup();
+    const s = stub({ writer: () => ({ status: "ok", changed: ["memories/old.md"], alerts: [], drop: ["memories/old.md"] }) });
+
+    await correct(input(copy, s.run));
+
+    expect(existsSync(path.join(copy, "memories", "old.md"))).toBe(false);
+    expect(readFileSync(path.join(copy, "index.md"), "utf8")).not.toContain("old.md");
+    expect(s.calls[0]?.prompt).toContain("`drop`");
+  });
+
   it("returns a failed verdict instead of throwing, so the owner can correct again", async () => {
     const copy = setup();
     const s = stub({ writer: () => ({ status: "ok", changed: [], alerts: [] }) });

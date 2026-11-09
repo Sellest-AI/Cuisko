@@ -22,7 +22,8 @@ MUST: mask personal data before a transcript enters any prompt (`mask` in
 MUST: run each dream agent through `runAgent`: it reads the repo but not `.env*` or `.git/`, runs
       no Bash but `git log`, and writes only where the script grants. A writer gets its one file;
       the reviewer gets `memories/` of the dream's copy, and the script deletes the files it names
-      in `drop`, only if the dream created them. After each step the script compares the
+      in `drop`, only if the dream created them. A `[m]` correction may drop any file in
+      `memories/`: the owner asked for it and sees the diff again. After each step the script compares the
       copy with what it was and stops the dream on a change outside the grant, then runs C20 again.
 MUST: write a statement about the code as a fact only if it holds in the repo today, else as a
       `Hypothesis: ` bullet, and end every fact with its source date.

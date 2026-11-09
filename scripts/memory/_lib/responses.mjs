@@ -62,12 +62,17 @@ export const writerReply = z.object({
   alerts: z.array(alert),
 });
 
-/** [m]: the files a correction touched. The owner's instruction is the source, not a candidate. */
+/**
+ * [m]: the files a correction touched. The owner's instruction is the source, not a candidate.
+ * `drop` names the files to delete: the script deletes them, since the writer has no tool that can.
+ * Any file in `memories/` may go: the owner asked for it and sees the diff again.
+ */
 export const correctionReply = z.object({
   status,
   error: z.string().optional(),
   changed: z.array(z.string().regex(MEMORY_PATH)),
   alerts: z.array(alert),
+  drop: z.array(z.string().regex(MEMORY_PATH)).default([]),
 });
 
 /**
