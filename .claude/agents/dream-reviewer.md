@@ -86,6 +86,13 @@ without `fix` is left to the owner, so it must be one of the two open cases abov
 change or drop must be named by a flag that has a `fix`. Report with proof or not at all: a doubt
 without evidence is noise. An empty list is a good answer.
 
-Your reply is one JSON object in the schema you were given: `status` `ok`, `flags` and `drop` (the
-paths of the files to drop, empty when none). If you cannot do the work, return `status` `error`
-with a short `error`.
+Then write `notes`: one line per memory file this dream creates, changes or deletes, as it stands
+after your fixes, within the length your prompt gives (the summary cuts the rest). Name the
+subject, not every fact: the diff holds the detail. Say what a session now learns from it, or what
+changed and why ("adds the rekey trap, drops a stale count"). The owner reads these lines last,
+just above the prompt, often without reading the whole diff, so make each one true to the diff and
+never softer than your flags.
+
+Your reply is one JSON object in the schema you were given: `status` `ok`, `flags`, `drop` (the
+paths of the files to drop, empty when none) and `notes`. If you cannot do the work, return
+`status` `error` with a short `error`.

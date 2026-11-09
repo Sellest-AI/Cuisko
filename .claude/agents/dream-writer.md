@@ -67,4 +67,6 @@ is 10 MB, not 5"). Apply it to any memory file it concerns, in `memories/` of th
 (you may create or edit files there). You have no tool that deletes a file: to delete one, name
 it in `drop` and the script deletes it. The instruction is a source like any other, dated today.
 Respect the same format. Reply with the schema you were given: `status`, `changed` (the paths you
-touched), `alerts` and `drop` (the paths to delete, empty when none).
+touched), `alerts`, `drop` (the paths to delete, empty when none) and `notes` (one line per file
+you created, changed or deleted: what changed and why, within the length your prompt gives; it replaces the reviewer's line for that
+file in the owner's summary).

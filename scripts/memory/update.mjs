@@ -44,7 +44,7 @@ import { compareMemories, copyMemory, mirrorMemory, refreshIndex } from "./_lib/
 import { isEncrypted, readMemoryFiles } from "./_lib/memoryFiles.mjs";
 import { dreamDirs, findPending, pairsOf, writePending } from "./_lib/pending.mjs";
 import { ownerIdentity } from "./_lib/pii.mjs";
-import { formatReport, memoryDiff, rankingChanges } from "./_lib/review.mjs";
+import { formatReport, formatSummary, memoryDiff, rankingChanges } from "./_lib/review.mjs";
 import { droppedCandidates } from "./_lib/responses.mjs";
 import { runAgent } from "./_lib/runAgent.mjs";
 import { acquireDreamLock, pruneStamps, readStamps, recordReview, StampsError, stampsPath, writeStamps } from "./_lib/stamps.mjs";
@@ -92,13 +92,6 @@ const _commitMessage = ({ sessions, changes }) =>
     "",
     "Memory-Update: yes",
     "",
-  ].join("\n");
-
-const _listChanges = (changes) =>
-  [
-    ...changes.created.map((file) => `  creates   ${file}`),
-    ...changes.modified.map((file) => `  modifies  ${file}`),
-    ...changes.deleted.map((file) => `  deletes   ${file}`),
   ].join("\n");
 
 /** Puts `.claude/memory` back to HEAD: what U9 changed and a refused commit left behind. */
@@ -206,7 +199,7 @@ const _select = ({ top, branch, stamps }) => {
 const _stampName = (now) => now.toISOString().replace(/[-:]/g, "").replace(/\..*/, "").replace("T", "-");
 
 /** The diff from the repo's memories/ to the dream's (an empty folder stands in for a memory with none yet). */
-const _diff = ({ top, memoryDir, dreamDir }) => {
+const _diff = ({ top, memoryDir, dreamDir, color = false }) => {
   const empty = path.join(dreamDir, "empty");
   mkdirSync(empty, { recursive: true });
   const memories = path.join(memoryDir, "memories");
@@ -214,17 +207,32 @@ const _diff = ({ top, memoryDir, dreamDir }) => {
     cwd: top,
     from: path.relative(top, existsSync(memories) ? memories : empty),
     to: path.relative(top, path.join(dreamDir, "memory", "memories")),
+    color,
   });
 };
 
-/** The diff, the ranking changes and the alerts: everything the owner reads before choosing. */
-const _show = ({ io, top, memoryDir, dreamDir, report }) => {
+/** Each changed file with its text on both sides, as formatSummary takes it. */
+const _changedFiles = ({ memoryDir, copy, changes }) => {
+  const read = (dir, name) => readFileSync(path.join(dir, name), "utf8");
+  return [
+    ...changes.created.map((name) => ({ path: name, after: read(copy, name) })),
+    ...changes.modified.map((name) => ({ path: name, before: read(memoryDir, name), after: read(copy, name) })),
+    ...changes.deleted.map((name) => ({ path: name, before: read(memoryDir, name) })),
+  ];
+};
+
+/**
+ * Everything the owner reads before choosing: the diff, the ranking changes, the alerts, then the
+ * summary last, right above the prompt, where the owner lands after scrolling.
+ */
+const _show = ({ io, top, memoryDir, dreamDir, report, changes }) => {
   const copy = path.join(dreamDir, "memory");
-  io.out(`\n${_diff({ top, memoryDir, dreamDir })}`);
+  io.out(`\n${_diff({ top, memoryDir, dreamDir, color: io.color })}`);
   const ranking = rankingChanges(readFileSync(path.join(memoryDir, "index.md"), "utf8"), readFileSync(path.join(copy, "index.md"), "utf8"));
   if (ranking.length > 0) io.out(`Index ranking:\n${ranking.map((row) => `  ${row}`).join("\n")}\n`);
   const text = formatReport(report);
   if (text !== "") io.out(text);
+  io.out(formatSummary({ files: _changedFiles({ memoryDir, copy, changes }), notes: report.notes, flags: report.flags, color: io.color }));
 };
 
 /**
@@ -242,8 +250,7 @@ const _decide = async ({ io, top, memoryDir, dreamDir, report, passages, run, ch
       if (text !== "") io.out(text);
       return { choice: "nochange", changes };
     }
-    _show({ io, top, memoryDir, dreamDir, report });
-    io.out(`Changes:\n${_listChanges(changes)}\n`);
+    _show({ io, top, memoryDir, dreamDir, report, changes });
     const answer = (await io.ask("[o] accept   [m] modify   [i] ignore   [a] abort  > ")).toLowerCase();
     if (answer.startsWith("o")) return { choice: edited ? "edited" : "accepted", changes };
     if (answer.startsWith("i")) return { choice: "ignored", changes };
@@ -262,6 +269,7 @@ const _decide = async ({ io, top, memoryDir, dreamDir, report, passages, run, ch
         corrections += 1;
         const result = await correct({ instruction, copy, run, check, diff, passages, now, today, name: `correction-${corrections}` });
         report.alerts.push(...result.reply.alerts);
+        for (const { path: name, note } of result.reply.notes ?? []) report.notes.set(name, note);
         verdict = result.verdict;
       }
       if (verdict.ok) break;
@@ -386,6 +394,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
 
     const report = {
       flags: result.flags,
+      notes: new Map(result.notes.map(({ path: name, note }) => [name, note])),
       alerts: [...result.alerts],
       docsIssues: result.plan.docsIssues,
       deletions: result.plan.files.filter((file) => file.action === "delete"),
@@ -393,8 +402,8 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     };
     if (dryRun) {
       const changes = compareMemories(memoryDir, copy);
-      _show({ io, top, memoryDir, dreamDir, report });
-      io.out(`Dry run: nothing was written. Changes it would propose:\n${_listChanges(changes) || "  none"}\nThe dream folder, with its logs, stays in ${dreamDir}.`);
+      _show({ io, top, memoryDir, dreamDir, report, changes });
+      io.out(`Dry run: nothing was written. The dream folder, with its logs, stays in ${dreamDir}.`);
       return 0;
     }
 
@@ -447,6 +456,8 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
 
 /** The real terminal. */
 const _terminal = () => ({
+  // Colour on a terminal only, and never when the owner set NO_COLOR (no-color.org).
+  color: process.stdout.isTTY === true && process.env.NO_COLOR === undefined,
   out: (text) => process.stdout.write(`${text}\n`),
   err: (text) => process.stderr.write(`${text}\n`),
   ask: async (question) => {

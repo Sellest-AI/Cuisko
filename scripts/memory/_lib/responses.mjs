@@ -10,6 +10,8 @@
  */
 import { z } from "zod";
 
+import { NOTE_LENGTH } from "./review.mjs";
+
 const MEMORY_PATH = /^memories\/[^/]+\.md$/;
 const status = z.enum(["ok", "error"]);
 const alertKind = z.enum(["flip-flop", "kept-old-value", "docs-outdated", "other"]);
@@ -28,6 +30,14 @@ const candidate = z.object({
 });
 
 const alert = z.object({ kind: alertKind, message: z.string().min(1) });
+
+/**
+ * One line per memory file a change creates, edits or deletes: the owner's summary, above the
+ * prompt. The length is told, not enforced: formatSummary cuts a longer note.
+ */
+const notes = z
+  .array(z.object({ path: z.string().regex(MEMORY_PATH), note: z.string().min(1).describe(`One line, at most ${NOTE_LENGTH} characters.`) }))
+  .default([]);
 
 /** P2: the candidates of one conversation. */
 export const extractorReply = z.object({ status, error: z.string().optional(), candidates: z.array(candidate) });
@@ -65,7 +75,8 @@ export const writerReply = z.object({
 /**
  * [m]: the files a correction touched. The owner's instruction is the source, not a candidate.
  * `drop` names the files to delete: the script deletes them, since the writer has no tool that can.
- * Any file in `memories/` may go: the owner asked for it and sees the diff again.
+ * Any file in `memories/` may go: the owner asked for it and sees the diff again. `notes` replace
+ * the reviewer's notes for the files the correction touched.
  */
 export const correctionReply = z.object({
   status,
@@ -73,13 +84,15 @@ export const correctionReply = z.object({
   changed: z.array(z.string().regex(MEMORY_PATH)),
   alerts: z.array(alert),
   drop: z.array(z.string().regex(MEMORY_PATH)).default([]),
+  notes,
 });
 
 /**
  * P6: what the reviewer doubts, with its evidence. `fix` says what it changed in the copy when it
  * fixed the flag itself; a flag without it is left for the owner. `drop` names files this dream
  * created that the reviewer finds not worth keeping: the script deletes them, since Edit cannot. A
- * reply without it parses as an empty list.
+ * reply without it parses as an empty list. `notes` say, after the fixes, what each changed file
+ * now teaches or why it changed: the owner reads them last, just above the prompt.
  */
 export const reviewerReply = z.object({
   status,
@@ -95,6 +108,7 @@ export const reviewerReply = z.object({
     }),
   ),
   drop: z.array(z.string().regex(MEMORY_PATH)).default([]),
+  notes,
 });
 
 /** `schema` as the JSON text `claude -p --json-schema` takes. */

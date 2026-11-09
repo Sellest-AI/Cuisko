@@ -130,7 +130,7 @@ const makeIo = (answers: string[] = [], onEdit: (files: string[]) => void = () =
 };
 
 /** Replies by agent. `plan` is what the planner returns; the writer writes `API_NEW` unless told. */
-const makeModels = (over: { plan?: unknown; writer?: (call: Call) => unknown; throwAt?: string } = {}) => {
+const makeModels = (over: { plan?: unknown; writer?: (call: Call) => unknown; review?: () => unknown; throwAt?: string } = {}) => {
   const calls: Call[] = [];
   const run = async (call: Call): Promise<unknown> => {
     calls.push(call);
@@ -149,7 +149,7 @@ const makeModels = (over: { plan?: unknown; writer?: (call: Call) => unknown; th
       writeFileSync(call.writable[0] as string, API_NEW);
       return { status: "ok", path: "memories/api.md", facts: [{ text: "Convex needs ms timestamps.", candidates: ["s1-01"] }], alerts: [] };
     }
-    return { status: "ok", flags: [] };
+    return over.review?.() ?? { status: "ok", flags: [] };
   };
   return { run, calls, agents: () => calls.map((call) => call.agent) };
 };
@@ -439,6 +439,32 @@ describe("the choices", () => {
     expect(memoryFile(repo, "memories/api.md")).toContain("Convex needs ms timestamps");
     expect(stampsOf(repo).sessions.s1?.branches.dev?.outcome).toBe("edited");
     expect(models.agents().filter((agent) => agent === "dream-reviewer")).toHaveLength(1);
+  });
+
+  it("ends the report with the summary, after the diff, and a correction's note replaces the reviewer's", async () => {
+    const repo = makeRepo();
+    const models = makeModels({
+      review: () => ({ status: "ok", flags: [], notes: [{ path: "memories/api.md", note: "Says Convex wants milliseconds." }] }),
+      writer: (call) => {
+        if (call.name.startsWith("correction")) {
+          writeFileSync(path.join(path.dirname(call.writable[0] as string).replace(/\*\*$/, ""), "api.md"), API_NEW.replace("millisecond", "ms"));
+          return { status: "ok", changed: ["memories/api.md"], alerts: [], notes: [{ path: "memories/api.md", note: "Now says ms." }] };
+        }
+        writeFileSync(call.writable[0] as string, API_NEW);
+        return { status: "ok", path: "memories/api.md", facts: [{ text: "f", candidates: ["s1-01"] }], alerts: [] };
+      },
+    });
+    const t = makeIo(["m", "say ms, not millisecond", "o"]);
+
+    expect(await update(repo, t.io, models)).toBe(0);
+
+    const summaries = t.out.flatMap((text, at) => (text.startsWith("Summary:") ? [at] : []));
+    expect(summaries).toHaveLength(2);
+    expect(t.out.slice(0, summaries[0]).some((text) => text.includes("diff --git"))).toBe(true);
+    expect(t.out[summaries[0] as number]).toContain("~ memories/api.md");
+    expect(t.out[summaries[0] as number]).toContain("Says Convex wants milliseconds.");
+    expect(t.out[summaries[1] as number]).toContain("Now says ms.");
+    expect(t.out[summaries[1] as number]).not.toContain("Says Convex wants milliseconds.");
   });
 
   it("[m] with :e opens the files of the copy, and the checks run on what the owner saved", async () => {

@@ -12,7 +12,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import * as lib from "../_lib/review.mjs";
 
 type Flag = { path: string; fact: string; problem: string; evidence: string; severity: "low" | "medium" | "high"; fix?: string };
-const { formatReport, memoryDiff, rankingChanges } = lib as unknown as {
+type SummaryFile = { path: string; before?: string; after?: string };
+const { formatReport, formatSummary, memoryDiff, NOTE_LENGTH, rankingChanges } = lib as unknown as {
+  NOTE_LENGTH: number;
+  formatSummary: (input: { files: SummaryFile[]; notes: Map<string, string>; flags: Flag[]; color?: boolean }) => string;
   formatReport: (input: {
     flags: Flag[];
     alerts: { kind: string; message: string }[];
@@ -20,7 +23,7 @@ const { formatReport, memoryDiff, rankingChanges } = lib as unknown as {
     deletions: { path: string; reason?: string }[];
     dropped?: { id: string; fact: string; reason: string }[];
   }) => string;
-  memoryDiff: (input: { cwd: string; from: string; to: string }) => string;
+  memoryDiff: (input: { cwd: string; from: string; to: string; color?: boolean }) => string;
   rankingChanges: (before: string, after: string, limit?: number) => string[];
 };
 
@@ -80,6 +83,14 @@ describe("memoryDiff", () => {
     expect(diff).not.toContain("same.md");
   });
 
+  it("colours the diff only when asked: the agents read the same diff in their prompts", () => {
+    const root = sides();
+    writeFileSync(path.join(root, "b", "new.md"), "brand new\n");
+
+    expect(memoryDiff({ cwd: root, from: "a", to: "b" })).not.toContain("\u001b[");
+    expect(memoryDiff({ cwd: root, from: "a", to: "b", color: true })).toContain("\u001b[");
+  });
+
   it("is empty when the two sides are equal", () => {
     expect(memoryDiff({ cwd: sides(), from: "a", to: "b" })).toBe("");
   });
@@ -129,5 +140,69 @@ describe("formatReport", () => {
 
   it("is empty when there is nothing to say", () => {
     expect(formatReport({ flags: [], alerts: [], docsIssues: [], deletions: [] })).toBe("");
+  });
+});
+
+describe("formatSummary", () => {
+  const MEMORY = (summary: string, ...facts: string[]) =>
+    [
+      "---",
+      `summary: ${summary}`,
+      "status: stable",
+      "last_verified: 2026-11-09",
+      "---",
+      "",
+      "# Title",
+      "",
+      "## Facts",
+      "",
+      ...facts.map((fact) => `- ${fact}`),
+      "",
+      "## Links",
+      "",
+      "- `AGENTS.md`",
+      "",
+    ].join("\n");
+  const flag = (fix?: string): Flag => ({ path: "memories/traps.md", fact: "A fact.", problem: "Wrong.", evidence: "sA-01", severity: "high", ...(fix === undefined ? {} : { fix }) });
+
+  it("lists each file with its change, the facts it gained and lost, and the reviewer's note, under one header", () => {
+    const text = formatSummary({
+      files: [
+        { path: "memories/setup.md", after: MEMORY("Why gstack is not installed.", "No gstack.", "No ponytail.") },
+        { path: "memories/traps.md", before: MEMORY("Traps.", "Push blocks.", "Old count."), after: MEMORY("Traps.", "Push blocks.", "Rekey.", "No cd.") },
+        { path: "memories/old.md", before: MEMORY("Old.", "Gone.") },
+      ],
+      notes: new Map([["memories/traps.md", "Adds the rekey trap, drops a stale count."]]),
+      flags: [flag(), flag("removed the bullet")],
+    });
+
+    expect(text).toBe(
+      [
+        "Summary: 1 new, 1 changed, 1 deleted · 1 flag left for you · 1 fixed by the reviewer",
+        "  + memories/setup.md  new, 2 facts",
+        "      Why gstack is not installed.",
+        "  ~ memories/traps.md  +2 −1 facts",
+        "      Adds the rekey trap, drops a stale count.",
+        "  − memories/old.md  deleted",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("cuts a note longer than one line at NOTE_LENGTH, so a wordy reviewer cannot bury the prompt", () => {
+    const long = `${"Explains why gstack was not installed. ".repeat(10)}End.`;
+    const text = formatSummary({ files: [{ path: "memories/setup.md", after: MEMORY("Setup.", "A fact.") }], notes: new Map([["memories/setup.md", long]]), flags: [] });
+
+    const line = text.split("\n")[2]?.trim() ?? "";
+    expect(line).toHaveLength(NOTE_LENGTH);
+    expect(line.endsWith("…")).toBe(true);
+    expect(long.startsWith(line.slice(0, -1))).toBe(true);
+  });
+
+  it("colours the marks only when asked", () => {
+    const input = { files: [{ path: "memories/setup.md", after: MEMORY("Setup.", "A fact.") }], notes: new Map<string, string>(), flags: [] };
+
+    expect(formatSummary(input)).not.toContain("\u001b[");
+    expect(formatSummary({ ...input, color: true })).toContain("\u001b[32m+");
   });
 });

@@ -1,6 +1,7 @@
 /**
  * What the owner sees before choosing (spec §9.1 U7): the diff of the memory files, how the index
- * ranking moved, and every alert the agents raised. The reviewer fixes what it can prove, and the
+ * ranking moved, every alert the agents raised, and last, just above the prompt, a summary of each
+ * changed file, since the owner scrolls to the bottom anyway. The reviewer fixes what it can prove, and the
  * diff already holds its fixes; the owner decides, so this text has to make both what it changed
  * and what it left open hard to miss.
  */
@@ -35,16 +36,77 @@ export const rankingChanges = (before, after, limit = 10) => {
  * the paths read relative. `git diff --no-index` also shows files that are new on one side, which a
  * plain `git diff` of tracked files would not. Exit 1 means "they differ", not a failure.
  */
-export const memoryDiff = ({ cwd, from, to }) => {
+export const memoryDiff = ({ cwd, from, to, color = false }) => {
   // git treats a missing side as an empty file and says nothing: a wrong path would read as "no change".
   for (const side of [from, to]) {
     if (!existsSync(path.resolve(cwd, side))) throw new Error(`could not diff the memory: ${side} does not exist`);
   }
-  const run = spawnSync("git", ["diff", "--no-index", "--no-color", "--", from, to], { cwd, encoding: "utf8" });
+  // Colour only for the owner's terminal: the agents read the same diff in their prompts.
+  const run = spawnSync("git", ["diff", "--no-index", color ? "--color=always" : "--no-color", "--", from, to], { cwd, encoding: "utf8" });
   if (run.error !== undefined || (run.status !== 0 && run.status !== 1)) {
     throw new Error(`could not diff the memory: ${run.error?.message ?? run.stderr}`);
   }
   return run.stdout;
+};
+
+/** The bullets of a memory's `## Facts` section, one string per fact. */
+const _facts = (text) => {
+  const lines = text.split("\n");
+  const start = lines.findIndex((line) => line.trim() === "## Facts");
+  if (start === -1) return [];
+  const end = lines.findIndex((line, at) => at > start && line.startsWith("## "));
+  return lines.slice(start + 1, end === -1 ? undefined : end).filter((line) => line.startsWith("- ")).map((line) => line.slice(2).trim());
+};
+
+const _frontSummary = (text) => /^summary:\s*(.+)$/m.exec(text)?.[1]?.trim();
+
+/**
+ * The longest note the summary prints. The agents are told it; a schema `max` would instead throw
+ * away a whole dream for one wordy line, so the summary cuts what goes past it.
+ */
+export const NOTE_LENGTH = 300;
+
+const _cut = (text) => (text.length <= NOTE_LENGTH ? text : `${text.slice(0, NOTE_LENGTH - 1).trimEnd()}…`);
+
+const _plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+const _paint = (color, code, text) => (color ? `\u001b[${code}m${text}\u001b[0m` : text);
+
+/**
+ * The last thing the owner reads before choosing: one line per changed file, with the facts it
+ * gained and lost (counted by the script, not taken from a model) and the reviewer's note, or the
+ * correction's note for a file the owner corrected. A new file without a note shows its own summary.
+ * `files` holds `{ path, before?, after? }`: no `before` is new, no `after` is deleted.
+ */
+export const formatSummary = ({ files, notes, flags, color = false }) => {
+  const created = files.filter((file) => file.before === undefined);
+  const deleted = files.filter((file) => file.after === undefined);
+  const open = flags.filter((flag) => flag.fix === undefined).length;
+  const fixed = flags.length - open;
+  const header = [
+    `${created.length} new, ${files.length - created.length - deleted.length} changed, ${deleted.length} deleted`,
+    `${_plural(open, "flag")} left for you`,
+    `${fixed} fixed by the reviewer`,
+  ].join(" · ");
+  const rows = files.flatMap((file) => {
+    let mark;
+    let change;
+    if (file.before === undefined) {
+      mark = _paint(color, 32, "+");
+      change = `new, ${_plural(_facts(file.after).length, "fact")}`;
+    } else if (file.after === undefined) {
+      mark = _paint(color, 31, "−");
+      change = "deleted";
+    } else {
+      const was = new Set(_facts(file.before));
+      const now = new Set(_facts(file.after));
+      mark = _paint(color, 33, "~");
+      change = `+${[...now].filter((fact) => !was.has(fact)).length} −${[...was].filter((fact) => !now.has(fact)).length} facts`;
+    }
+    const note = notes.get(file.path) ?? (file.before === undefined ? _frontSummary(file.after) : undefined);
+    return [`  ${mark} ${file.path}  ${change}`, ...(note === undefined ? [] : [`      ${_cut(note)}`])];
+  });
+  return [_paint(color, 1, `Summary: ${header}`), ...rows, ""].join("\n");
 };
 
 const _section = (title, rows) => (rows.length === 0 ? [] : [`${title}`, ...rows.map((row) => `  ${row}`), ""]);

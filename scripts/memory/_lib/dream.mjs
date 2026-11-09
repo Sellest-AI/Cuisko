@@ -16,7 +16,7 @@
  *   P4  one writer per file, in parallel              → the files; a delete is done by the script
  *   --  the script refreshes usage.json and index.md
  *   P5  mechanical checks (C20 --full)                → errors stop the dream
- *   P6  one reviewer                                  → flags, fixes, and new files to drop;
+ *   P6  one reviewer                                  → flags, fixes, notes, and new files to drop;
  *                                                       C20 --full again if it changed a file
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -26,6 +26,7 @@ import { condense, excerpts } from "./condense.mjs";
 import { changedPaths, refreshIndex, snapshotMemory } from "./memoryDir.mjs";
 import { readMemoryFiles } from "./memoryFiles.mjs";
 import { checkPlan, checkWriterReply, correctionReply, extractorReply, plannerReply, reviewerReply, screenDeletions, UNUSED_AFTER_SESSIONS, writerReply } from "./responses.mjs";
+import { NOTE_LENGTH } from "./review.mjs";
 import { mapLimit } from "./runAgent.mjs";
 import { readUsage } from "./usage.mjs";
 
@@ -99,6 +100,7 @@ const correctionPrompt = ({ instruction, diff, passages, today, folder }) =>
   [
     "The owner reviewed the dream's diff and wants a correction.",
     `Today is ${today} (UTC). The files you may create or edit are in ${folder}. To delete a file, name it in \`drop\`: you cannot delete it yourself.`,
+    `In \`notes\`, give one line per file you create, change or delete: what changed and why, at most ${NOTE_LENGTH} characters.`,
     "",
     "<instruction>",
     instruction,
@@ -118,6 +120,7 @@ const reviewerPrompt = ({ diff, plan, candidates, passages, writerReplies, folde
   [
     "Review the memory changes in this diff against their sources, and fix, trim or remove what you flag.",
     `The files you may edit are in ${folder}. Nothing else is writable. To drop a file the plan creates, name it in \`drop\`.`,
+    `In \`notes\`, give one line per memory file this dream creates, changes or deletes, as it stands after your fixes: what a session now learns from it, or what changed and why, at most ${NOTE_LENGTH} characters.`,
     "",
     "<diff>",
     diff,
@@ -279,6 +282,7 @@ export const dream = async ({ lines, copy, context, run, check, diff, now, today
     candidates,
     writerReplies,
     flags: review.flags,
+    notes: review.notes ?? [],
     alerts: [...deletionAlerts, ...writerReplies.flatMap((reply) => reply.alerts), ..._fixMismatches(review.flags, fixed), ...dropAlerts],
     passages,
   };

@@ -32,6 +32,7 @@ type Result = {
   candidates: { id: string }[];
   writerReplies: unknown[];
   flags: { path: string; fix?: string }[];
+  notes: { path: string; note: string }[];
   alerts: { kind: string; message: string }[];
   passages: string;
 };
@@ -415,6 +416,13 @@ describe("dream: the reviewer's fixes", () => {
     expect(readFileSync(path.join(copy, "index.md"), "utf8")).not.toContain("memories/new.md");
     expect(checks()).toBe(2);
     expect(result?.alerts).toEqual([]);
+  });
+
+  it("asks the reviewer for a note per changed file, and returns its notes for the owner's summary", async () => {
+    const { result, calls } = await reviewing(() => ({ status: "ok", flags: [], notes: [{ path: "memories/api.md", note: "Adds that Convex wants milliseconds." }] }));
+
+    expect(calls.find((call) => call.agent === "dream-reviewer")?.prompt).toContain("`notes`");
+    expect(result?.notes).toEqual([{ path: "memories/api.md", note: "Adds that Convex wants milliseconds." }]);
   });
 
   it("keeps a file the dream did not create when the reviewer asks to drop it, and tells the owner", async () => {
