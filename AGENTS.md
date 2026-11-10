@@ -191,7 +191,9 @@ worktree (deleting data, force-push, `dev`, `main`, the shared stash).
 could not confirm, with where you looked) · **Blocked on you** (what you need from the user), or
 **Next** when nothing is. When a section is empty, leave its heading out entirely.
 
-**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
+**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do. Then speak when a step changes something: a
+finding, a surprise, a red test, a change of plan. A step that went as expected needs no line. "A short line when something happens beats a perfect summary
+at the end".
 
 **Write replies in the spirit of ASD-STE100, about 80% of the way.** Short sentences, one idea each,
 active voice, the same word for the same thing. Skip its dictionary: technical terms stay, and
