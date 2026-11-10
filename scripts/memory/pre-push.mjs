@@ -125,6 +125,7 @@ const _check = () => {
     `💭 ${counts} (${_lastDream(stamps)}).`,
     `   Run:  ${UPDATE_COMMAND}${unread.length > 1 ? " (on each of these branches)" : ""}`,
     "   Then: git push",
+    "   On dev, one command does both: pnpm push:dev",
     `   ${SKIP_HINT}`,
   ]);
 };

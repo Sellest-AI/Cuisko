@@ -120,6 +120,7 @@ describe("pre-push", () => {
     expect(result.stderr).toContain("💭 1 unread Claude session on dev (no dream yet).");
     expect(result.stderr).toContain("Run:  pnpm memory:update");
     expect(result.stderr).toContain("Then: git push");
+    expect(result.stderr).toContain("pnpm push:dev");
     expect(result.stderr).toContain("MEMORY_SKIP=1 git push");
   });
 

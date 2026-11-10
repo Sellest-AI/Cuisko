@@ -315,7 +315,8 @@ describe("the choices", () => {
     expect(message).toMatch(/^chore\(memory\): update after 1 session\n\n- modifies memories\/api\.md\n\nMemory-Update: yes$/);
     expect(message).not.toMatch(/Co-Authored-By/i);
     expect(memoryFile(repo, "memories/api.md")).toBe(API_NEW);
-    expect(t.text()).toContain("You can run: git push");
+    expect(t.text()).toContain("Memory updated");
+    expect(t.text()).not.toContain("git push");
   });
 
   it("[o] writes the stamps: the pair reviewed, the reads counted, the commit recorded, the dream folder gone", async () => {

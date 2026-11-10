@@ -311,9 +311,9 @@ const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, 
 };
 
 const _finish = ({ io, outcome, changes, commit }) => {
-  if (outcome === "accepted" || outcome === "edited") io.out(`✅ Memory updated (${_plural(changes.created.length + changes.modified.length + changes.deleted.length, "file")} changed, commit ${commit?.slice(0, 7)}). You can run: git push`);
-  else if (outcome === "ignored") io.out("✅ Changes ignored; the sessions are marked as read. You can run: git push");
-  else io.out("✅ No change needed. You can run: git push");
+  if (outcome === "accepted" || outcome === "edited") io.out(`✅ Memory updated (${_plural(changes.created.length + changes.modified.length + changes.deleted.length, "file")} changed, commit ${commit?.slice(0, 7)}).`);
+  else if (outcome === "ignored") io.out("✅ Changes ignored; the sessions are marked as read.");
+  else io.out("✅ No change needed.");
 };
 
 /** The reindex mode: no pull, no dream, no commit, no stamps. */

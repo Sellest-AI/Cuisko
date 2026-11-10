@@ -55,6 +55,7 @@
     "release": "node scripts/release/bump-version.mjs",
     "memory:setup": "node scripts/memory/setup.mjs",
     "memory:update": "node scripts/memory/update.mjs",
+    "push:dev": "node scripts/memory/push-dev.mjs",
     "verify": "pnpm run \"/^(typecheck:.*|lint|check)$/\" && pnpm test",
     "prepare": "git config core.hooksPath .githooks && node scripts/memory/setup.mjs --auto"
   },
