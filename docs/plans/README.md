@@ -28,9 +28,11 @@ precisely to settle that seam before either half is built.
 ## Lifecycle
 
 ```
+0. Grill it        the `grilling` skill: rounds of questions with a recommended answer, until the
+                   design tree has no open branch; the answers become the plan's text
 1. Write it        before code, in a short session — the model is cheap and unbiased here
 2. Review it       plan-reviewer and the author loop until it says READY; no user in the loop
-3. Ask once        what neither could settle reaches the user in one batch, at the end
+3. Ask once        what the review loop could not settle reaches the user in one batch, at the end
 4. Agree it        the other half of the work reads it and pushes back; this is the point
 5. Build from it   in slice order, thin end-to-end first; tick each slice as it lands
 6. Take it down    deleted in the commit that finishes the slice

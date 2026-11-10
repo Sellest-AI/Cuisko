@@ -60,6 +60,10 @@ is a rewrite for one side. One file, one screen or a dep bump needs none. Its sl
 a slice found mid-build gets one before it is built, and each is ticked when it is completed. The
 plan file is deleted once every box is ticked, before merging.
 
+**Before you write a new plan, load the `grilling` skill** (`.claude/skills/grilling/SKILL.md`).
+It interviews the user in rounds, with a recommended answer for each question, until nothing is left
+open.
+
 **Every new plan goes through the review loop** (`docs/plans/README.md`) before the user sees it:
 `plan-reviewer` re-runs on each revision until `READY`, and the questions neither of you can settle
 reach the user once, in one batch, at the end. Then the user agrees the plan.
@@ -241,7 +245,10 @@ It runs the full review — `pnpm verify`, `architecture-reviewer`, `/code-revie
 checks the branch, and sets the commit-message rules. The hooks enforce only the format, not the
 review, so the skill is not optional.
 
-## Sub-agents
+## Agents and Sub-agents
+
+**Load `writing-for-agents`** (`.claude/skills/writing-for-agents/SKILL.md`) before you create or
+edit a skill, an agent definition, `AGENTS.md` or `CLAUDE.md`.
 
 For work that is large, parallel, or research-heavy, **spawn sub-agents rather than doing everything
 in one context.** Good candidates: auditing many files against a rule, exploring an unfamiliar area,
