@@ -42,11 +42,13 @@ one ADR your change happens to break and the review comes back clean on the rule
 failures are invisible in the output. The reviewer derives those from the repo so that no mistake of
 yours can narrow what it looks at. What you supply is what `git` cannot know: why.
 
-**Step 4 — `/code-review` when the diff contains logic.** It hunts defects, which Step 3 deliberately
-does not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Trigger is concrete —
-`convex/functions/`, `convex/router/` beyond a validator change, `src/modules/**/_hooks/`, or
-`shared/`. Skip it for pure `src/ui/` styling, docs, config and dependency bumps; a defect hunt on a
-stylesheet finds nothing and teaches you to skip the step that matters.
+**Step 4 — `/code-review` when the diff changes code that runs.** It hunts defects, which Step 3
+deliberately does not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Any changed
+function body, condition or algorithm triggers it, in any folder — for example `src/modules/*`,
+`scripts/` and `convex/*`. Skip it only when nothing in the diff executes: `src/ui/` styling, copy,
+docs, config, dependency bumps, a pure rename or move, a validator-only change. The skip list is
+the exception, so a folder it does not name is reviewed; a defect hunt on a stylesheet finds
+nothing and teaches you to skip the step that matters.
 
 **Both passes run on the same diff, and that is the point** — they are not redundant, they are split
 by question. Step 3 asks *does this obey the rules we wrote down*, and answers it from a table, which
