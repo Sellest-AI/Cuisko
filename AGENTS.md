@@ -3,8 +3,8 @@
 <!--
   MAINTENANCE: every line here must be a command, a boundary, a non-obvious pattern,
   or a pointer. No directory trees, no architecture prose — those live in docs/ and
-  are read on demand. Budget is 400 lines — a ceiling, not a target: this file is
-  loaded on every request, so an unnecessary line is paid for on every one. Past 400,
+  are read on demand. Budget is 300 lines — a ceiling, not a target: this file is
+  loaded on every request, so an unnecessary line is paid for on every one. Past 300,
   extract to docs/ rather than trimming what earns its place.
   Nested files live at convex/AGENTS.md and src/ui/AGENTS.md — agents read the
   NEAREST one, so state a rule in the folder it governs rather than adding it here.
