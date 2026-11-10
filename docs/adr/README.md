@@ -43,18 +43,25 @@ supersedes: []
 MUST / MUST NOT / MAY — RFC 2119, one rule per line. No judgement to exercise.
 
 ## Why
-Short. The narrative belongs in ../ARCHITECTURE.md, linked.
+What this decision costs and what it was chosen over: each rejected option as "X rather than Y,
+because…", and the defect that bought the rule, if one did. How the layers fit together belongs in
+../ARCHITECTURE.md, linked.
 
 ## Verify
 The command that proves compliance.
 ```
 
-Four properties, each doing a job:
+A section beside these (`## Consequence for tests`, `## Revised`) is added when a reader needs it,
+not by default.
+
+Five properties, each doing a job:
 
 - **`applies_to`** — an agent loads the ADR only for files it governs, so cost scales with relevance
   rather than with project size.
 - **MUST / MUST NOT / MAY** — imperatives, not explanation. A rule that requires interpretation gets
   interpreted differently each time.
+- **`## Why`** — the rejected options, named. Without them, the next reader "fixes" a deliberate
+  choice back to the obvious one the record already turned down.
 - **`## Verify`** — a rule with no mechanical check decays, and you get no signal when it stops
   holding. The check is written into the rule itself.
 - **`status`** — a rule the project stops following becomes `superseded`, **not** silent drift.
