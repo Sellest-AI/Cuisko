@@ -38,6 +38,8 @@ If you learn something worth keeping, say it in your reply, on one short line st
 
 - `docs/PRODUCT.md` — what the app is for, who it serves, what it refuses to be. Read it when a
   choice affects what the user sees or is worded for them.
+- `docs/DESIGN.md` — how the app looks, moves and feels: tokens, type, touch, motion, states.
+  Read it before you write or change anything under `src/ui/` or any screen.
 - `docs/CONVENTIONS.md` — naming, file placement, the "where does this go?" decision tree.
 - `docs/adr/` — decisions that constrain code. Each declares `applies_to` globs; read the ones
   matching the files you are touching.
