@@ -16,10 +16,15 @@
  * The state files are found with `git rev-parse --git-path`, so a worktree (whose .git is a file)
  * finds its own. Exit 1 with the reason, 0 otherwise.
  *
+ * It also decides which check the commit runs. A MEMORY_UPDATE=1 commit it lets through stages
+ * only .claude/memory/, so it prints `memory-only` on stdout and .githooks/pre-commit runs C20
+ * instead of the whole verify. One place reads the staged paths, so the lock and the skip never
+ * disagree on what "only the memory" means.
+ *
  * This is a guard rail against mistakes, not a boundary: `--no-verify` or a typed MEMORY_UPDATE=1
  * still pass. The encryption workflow and the owner's diff are the gates.
  */
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, writeSync } from "node:fs";
 import path from "node:path";
 
 import { git } from "./_lib/git.mjs";
@@ -27,6 +32,8 @@ import { git } from "./_lib/git.mjs";
 const MEMORY_DIR = ".claude/memory/";
 const LOCKED = [/^\.claude\/memory\/index\.md$/, /^\.claude\/memory\/usage\.json$/, /^\.claude\/memory\/memories\//];
 const DREAMS_DIR = ".tmp/memory";
+/** What the lock prints when the commit stages only the memory: the hook then runs C20 alone. */
+const MEMORY_ONLY = "memory-only";
 
 /** Staged paths, POSIX. `--no-renames`: a memory file moved out shows as its deletion too. */
 const _stagedPaths = () => git("diff", "--cached", "--name-only", "--no-renames", "-z").split("\0").filter(Boolean);
@@ -57,6 +64,8 @@ if (process.env.MEMORY_UPDATE === "1") {
       `Staged outside it: ${outside.join(", ")}`,
     ]);
   }
+  // Synchronous: process.exit can drop a pending stdout write to a pipe, and the hook reads a pipe.
+  writeSync(1, `${MEMORY_ONLY}\n`);
   process.exit(0);
 }
 

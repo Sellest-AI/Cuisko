@@ -10,7 +10,8 @@ supersedes: []
 MUST: change `.claude/memory/index.md`, `usage.json` and `memories/**` only through
       `pnpm memory:update`, whose commit carries `MEMORY_UPDATE=1` and the trailer
       `Memory-Update: yes`. The pre-commit lock refuses any other commit staging them, except a merge
-      or a revert, and refuses a `MEMORY_UPDATE=1` commit that stages anything else.
+      or a revert, and refuses a `MEMORY_UPDATE=1` commit that stages anything else. That commit
+      runs `pnpm check:memory` (C20) instead of `pnpm verify`: it changes nothing else verify checks.
 MUST NOT: let a session agent write the memory. `.claude/settings.json` denies `Edit` on those
           three paths; a session says what is worth keeping on one reply line starting `Memory:`.
 MUST: keep every memory path encrypted by transcrypt through `.gitattributes`. A plaintext memory
@@ -67,8 +68,9 @@ the repo. Each module's docblock names the section it implements.
 
 `pnpm test` runs `scripts/memory/__tests__/` (the lock, the push block, the dream's grants and
 checks, the masks) and `c20-memory-integrity.test.ts`. `pnpm check:memory` runs C20 on the memory,
-and `pnpm verify` runs it on every commit. `memory-encryption.yml` reads the stored blobs of every
-push in CI. The deny rules were probed once in a live session: an `Edit` on `index.md` is refused.
+and the pre-commit runs it on every commit: inside `pnpm verify`, or alone on a `MEMORY_UPDATE=1`
+commit. `memory-encryption.yml` reads the stored blobs of every push in CI. The deny rules were
+probed once in a live session: an `Edit` on `index.md` is refused.
 
 ## See also
 

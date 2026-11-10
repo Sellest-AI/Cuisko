@@ -52,7 +52,7 @@ import { acquireDreamLock, pruneStamps, readStamps, recordReview, StampsError, s
 import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
 import { applyReads, applySessions, countReads, sessionStarts } from "./_lib/usage.mjs";
 import { createSteps } from "./_lib/steps.mjs";
-import { createVerifyProgress, formatProgress, verifySteps } from "./_lib/verifyProgress.mjs";
+import { createLastLine, formatHookStatus } from "./_lib/hookStatus.mjs";
 
 const MEMORY = ".claude/memory";
 const TMP = ".tmp/memory";
@@ -110,8 +110,8 @@ const _commit = async ({ top, dreamDir, memoryDir, message, io }) => {
   gitIn(top, "add", "-A", "--", MEMORY);
   const messageFile = path.join(dreamDir, "commit-message.txt");
   writeFileSync(messageFile, message);
-  io.out("Committing the memory (the pre-commit runs pnpm verify, as for any commit)...");
-  const run = await _runShowingProgress({ top, args: ["commit", "-F", messageFile, "--", MEMORY], io });
+  io.out("Committing the memory (the pre-commit checks it)...");
+  const run = await _runShowingStatus({ top, args: ["commit", "-F", messageFile, "--", MEMORY], io });
   if (run.status !== 0) {
     io.err(run.output.trimEnd());
     _restoreMemory(top);
@@ -120,29 +120,23 @@ const _commit = async ({ top, dreamDir, memoryDir, message, io }) => {
   return gitIn(top, "rev-parse", "HEAD");
 };
 
-/** The steps the repo's `pnpm verify` runs, from its package.json; none when it has no verify. */
-const _verifySteps = (top) => {
-  const manifest = path.join(top, "package.json");
-  return existsSync(manifest) ? verifySteps(JSON.parse(readFileSync(manifest, "utf8")).scripts) : [];
-};
-
 /**
- * Runs `git <args>` with its output kept, not shown: the owner sees one status line, the verify
- * steps finished and the last line printed. The caller prints `output` when the run failed.
+ * Runs `git <args>` with its output kept, not shown: the owner sees one status line with the last
+ * line printed. The caller prints `output` when the run failed.
  */
-const _runShowingProgress = ({ top, args, io }) =>
+const _runShowingStatus = ({ top, args, io }) =>
   new Promise((resolve, reject) => {
-    const progress = createVerifyProgress(_verifySteps(top));
+    const lastLine = createLastLine();
     let output = "";
     // The output is read from a pipe, so the tools would drop their colours: kept for a failure the owner reads.
     const child = spawn("git", args, { cwd: top, env: { ...process.env, MEMORY_UPDATE: "1", ...(io.color ? { FORCE_COLOR: "1" } : {}) } });
     const read = (chunk) => {
       const text = chunk.toString();
       output += text;
-      progress.push(text);
-      io.status?.(formatProgress(progress.state()));
+      lastLine.push(text);
+      io.status?.(formatHookStatus(lastLine.state()));
     };
-    io.status?.(formatProgress(progress.state()));
+    io.status?.(formatHookStatus(lastLine.state()));
     child.stdout.on("data", read);
     child.stderr.on("data", read);
     child.on("error", (error) => {
@@ -150,7 +144,7 @@ const _runShowingProgress = ({ top, args, io }) =>
       reject(error);
     });
     child.on("close", (status) => {
-      progress.end();
+      lastLine.end();
       io.status?.(null);
       resolve({ status, output });
     });

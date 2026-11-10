@@ -106,6 +106,20 @@ describe("the lock script", () => {
     expect(lock(repo, { MEMORY_UPDATE: "1" }).status).toBe(0);
   });
 
+  it("tells the hook a MEMORY_UPDATE=1 commit stages only the memory, so it runs C20 alone", () => {
+    const repo = makeRepo();
+    stage(repo, ".claude/memory/index.md");
+    expect(lock(repo, { MEMORY_UPDATE: "1" }).stdout).toBe("memory-only\n");
+  });
+
+  it("tells the hook nothing for any other commit it lets through, so it runs verify", () => {
+    const repo = makeRepo();
+    stage(repo, "src/a.ts");
+    expect(lock(repo).stdout).toBe("");
+    stage(repo, ".claude/memory/index.md");
+    expect(lock(repo, { GIT_HOOK_NAME: "pre-merge-commit" }).stdout).toBe("");
+  });
+
   it("refuses a MEMORY_UPDATE=1 commit staging a file outside the memory", () => {
     const repo = makeRepo();
     stage(repo, ".claude/memory/index.md");
@@ -215,5 +229,62 @@ describe("through the real hooks", () => {
     const result = commit(worktree, "--no-edit");
     expect(result.stderr).not.toContain("Commit refused");
     expect(result.status).toBe(0);
+  });
+
+  /**
+   * A memory:update commit stages only .claude/memory (the lock refuses anything else), so the
+   * hook runs the memory check, not the whole verify. The fake `pnpm` fails verify and passes
+   * check:memory, so the commit passes only when verify is skipped.
+   */
+  describe("a memory:update commit", () => {
+    const verifyFails = tempDir("bin-verify-fails");
+    writeFileSync(
+      path.join(verifyFails, "pnpm"),
+      '#!/bin/sh\nif [ "$*" = "check:memory" ]; then echo "memory checked"; exit 0; fi\necho "verify ran" >&2\nexit 1\n',
+    );
+    chmodSync(path.join(verifyFails, "pnpm"), 0o755);
+    const env = { PATH: `${verifyFails}${path.delimiter}${process.env.PATH ?? ""}` };
+    const commitWith = (repo: string, extra: Record<string, string>) =>
+      run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore(memory): update"], repo, { ...env, ...extra });
+
+    it("runs the memory check instead of pnpm verify", () => {
+      const repo = makeHookedRepo();
+      stage(repo, ".claude/memory/index.md");
+      const result = commitWith(repo, { MEMORY_UPDATE: "1" });
+      expect(result.stderr).not.toContain("verify ran");
+      // Git hands a hook's stdout to stderr.
+      expect(result.stdout + result.stderr).toContain("memory checked");
+      expect(result.status).toBe(0);
+    });
+
+    it("runs the memory check for a memory file with a non-ASCII name", () => {
+      const repo = makeHookedRepo();
+      stage(repo, ".claude/memory/memories/café.md");
+      const result = commitWith(repo, { MEMORY_UPDATE: "1" });
+      expect(result.stderr).not.toContain("verify ran");
+      expect(result.status).toBe(0);
+    });
+
+    it("is refused when the memory check fails", () => {
+      const repo = makeHookedRepo();
+      const memoryFails = tempDir("bin-memory-fails");
+      writeFileSync(path.join(memoryFails, "pnpm"), '#!/bin/sh\necho "C20 failed" >&2\nexit 1\n');
+      chmodSync(path.join(memoryFails, "pnpm"), 0o755);
+      stage(repo, ".claude/memory/index.md");
+      const result = run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore(memory): update"], repo, {
+        PATH: `${memoryFails}${path.delimiter}${process.env.PATH ?? ""}`,
+        MEMORY_UPDATE: "1",
+      });
+      expect(result.stderr).toContain("the memory check failed");
+      expect(result.status).not.toBe(0);
+    });
+
+    it("still runs pnpm verify for any other commit", () => {
+      const repo = makeHookedRepo();
+      stage(repo, "src/a.ts");
+      const result = commitWith(repo, {});
+      expect(result.stderr).toContain("verify ran");
+      expect(result.status).not.toBe(0);
+    });
   });
 });

@@ -56,7 +56,7 @@ cuisko/
 │   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept.
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
-├── .githooks/            pre-commit (memory lock + branch name + verify), pre-merge-commit (the same, on a merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).
+├── .githooks/            pre-commit (memory lock + branch name + verify, or C20 alone on a memory-only MEMORY_UPDATE=1 commit), pre-merge-commit (the same, on a merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).
 ├── .github/workflows/    ci.yml (verify on every push), deploy.yml (ships dev and main, see Releases).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
@@ -543,7 +543,9 @@ contact with a growing codebase.
 `pnpm verify` runs all of it. It runs in **three** places, deliberately: on demand, in the
 [pre-commit](../.githooks/pre-commit) and [pre-merge-commit](../.githooks/pre-merge-commit) hooks —
 so a failing commit, merge commits included, cannot be created — and in CI on every push, which is
-what catches a `--no-verify` bypass.
+what catches a `--no-verify` bypass. A `MEMORY_UPDATE=1` commit staging only `.claude/memory/` runs
+C20 alone: the one `pnpm memory:update` makes, or the one its reindex mode tells the owner to type
+([ADR 0021](./adr/0021-the-agent-memory-is-written-by-the-dream.md)).
 
 A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4, C6 and C8 against
 the working set at the end of an agent turn, so a violation surfaces one turn after it is written
