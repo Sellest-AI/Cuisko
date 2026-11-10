@@ -136,6 +136,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
                 chef={recipe?.chef ? { avatarSeed: recipe.chef.seed, name: recipe.chef.name } : undefined}
                 title={recipe?.title ?? ""}
                 description={recipe?.description ?? ""}
+                filing={recipe && { cuisine: recipe.cuisine, tags: recipe.tags }}
                 expanded={active === "overview"}
               />
             </View>

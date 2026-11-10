@@ -9,8 +9,12 @@ import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import type { Cuisine } from "@shared/cuisines";
+import type { Tag } from "@shared/tags";
+
 import { SCREEN_PADDING } from "../../constants";
 import { CUISKO_HEAD } from "~/lib/mascots";
+import { IntroTags } from "./intro.tags";
 
 type Props = {
   /** Absent: a catalog recipe, credited to Cuisko. Without a name: an author who deleted their account. */
@@ -20,6 +24,11 @@ type Props = {
   },
   title: string;
   description: string;
+  /** Absent while the recipe loads; the tags row then has nothing to list and is not drawn. */
+  filing?: {
+    cuisine: Cuisine;
+    tags: readonly Tag[];
+  };
   /** Whether the intro belongs on screen — it collapses rather than unmounts when it does not. */
   expanded: boolean;
 };
@@ -34,7 +43,7 @@ type Props = {
  * natural height regardless of what the box is currently animating to, and the box animates
  * between 0 and that number.
  */
-export const RecipeIntro = ({ chef, title, description, expanded }: Props) => {
+export const RecipeIntro = ({ chef, title, description, filing, expanded }: Props) => {
   const t = useTranslations("Recipe");
   const [height, setHeight] = useState(0);
 
@@ -91,6 +100,8 @@ export const RecipeIntro = ({ chef, title, description, expanded }: Props) => {
             {description}
           </Text.Body>
         </Pressable>
+        {/* The opened description is where the cook asked for more; the row is part of that more. */}
+        {descriptionExpanded && filing && <IntroTags cuisine={filing.cuisine} tags={filing.tags} />}
       </View>
     </m.View>
   );
