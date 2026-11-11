@@ -3,7 +3,7 @@ import type { MutationCtx } from "@convex/procedures";
 import type { FatUse, RecipeUnit } from "@shared/ingredients";
 import { allergenTagsOf, type ComputedTag, dietTagsOf, nutritionTagsOf } from "@shared/tags";
 
-import { nutritionOfLines } from "./recipeNutrition";
+import { nutritionOfLines, type WeighableLine } from "./recipeNutrition";
 
 /**
  * One recipe line, already matched to a catalog row.
@@ -43,6 +43,10 @@ export type TaggableLine = {
  *
  * A recipe can therefore earn one group and not another, and that is correct: knowing a dish is
  * low-calorie says nothing about whether anyone has checked it for peanuts.
+ *
+ * The lines come back too, each with the row it links, as loaded here: the save schedules the
+ * repair of the rows it could not weigh (`scheduleRepairs`) from them, with no read of its own.
+ * They are empty whenever the tags are refused for a missing line.
  */
 export const computeTags = async (
   ctx: Pick<MutationCtx, "db">,
@@ -53,13 +57,13 @@ export const computeTags = async (
     lineCount: number;
     servings: number;
   },
-): Promise<ComputedTag[]> => {
-  if (lineCount === 0 || lines.length !== lineCount) return [];
+): Promise<{ tags: ComputedTag[]; lines: WeighableLine[] }> => {
+  if (lineCount === 0 || lines.length !== lineCount) return { tags: [], lines: [] };
 
   const ingredients = await Promise.all(lines.map(({ ingredientId }) => ctx.db.get(ingredientId)));
   // A row deleted between the match and this read is an unknown ingredient, and an unknown
   // ingredient is not a vegetable.
-  if (ingredients.some((ingredient) => ingredient === null)) return [];
+  if (ingredients.some((ingredient) => ingredient === null)) return { tags: [], lines: [] };
 
   const rows = ingredients as Doc<"ingredients">[];
 
@@ -78,18 +82,15 @@ export const computeTags = async (
 
   // The figures the recipe screen shows (ADR 0015), so a tag never contradicts them: weighing the
   // lines here too is how the tags once counted a whole bottle of frying oil the screen did not.
-  const totals = nutritionOfLines(
-    rows.map((ingredient, index) => {
-      const { quantity, unit, fatUse } = lines[index]!;
-      return { ingredient, quantity, unit, ...(fatUse && { fatUse }) };
-    }),
-    lineCount,
-    servings,
-  );
+  const weighable = rows.map((ingredient, index) => {
+    const { quantity, unit, fatUse } = lines[index]!;
+    return { ingredient, quantity, unit, ...(fatUse && { fatUse }) };
+  });
+  const totals = nutritionOfLines(weighable, lineCount, servings);
 
   // `undefined` is a line that could not be weighed, not a recipe with no calories: it gets the
   // tags it earned elsewhere and no nutrition claim at all.
   const nutrition = totals ? nutritionTagsOf(totals.perServing) : [];
 
-  return [...diet, ...freeFrom, ...nutrition];
+  return { tags: [...diet, ...freeFrom, ...nutrition], lines: weighable };
 };

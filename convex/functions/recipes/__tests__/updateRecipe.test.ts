@@ -1,8 +1,11 @@
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test } from "vitest";
+
+import { internal } from "@convex/_generated/api";
 
 import { insertTestRecipe } from "@convex/functions/recipes/__tests__/recipes.fixtures";
 import { modules } from "@convex/lib/__tests__/modules.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
 import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { FatUse, Unit } from "@shared/ingredients";
@@ -13,7 +16,9 @@ import type { RecipeEditor } from "@convex/schema/recipePayloads";
 import type { RecipeStatus } from "@convex/schema/recipes";
 import { loadRecipe } from "../loadRecipe";
 import { recipeFingerprint } from "../recipeFingerprint";
-import { updateRecipe } from "../updateRecipe";
+
+/** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
+beforeAll(() => warmActions(modules, "/convex/router/recipes/updateOne.", "/convex/router/recipes/getOne.", "/convex/router/ingredients/resolve."));
 
 let t: ReturnType<typeof convexTest>;
 let userId: string;
@@ -137,25 +142,32 @@ const recipe = (ingredients: SanitizedRecipe["ingredients"], servings: number): 
   ingredients,
 });
 
-const update = (
+const update = async (
   recipeId: Id<"recipes">,
   ingredients: SanitizedRecipe["ingredients"],
   { analyzed = true, complete = true, servings = 4, by = "cook" as RecipeEditor["by"] } = {},
 ) =>
-  t.run(async (ctx) =>
-    updateRecipe(ctx, {
-      recipeId,
-      locale: "fr",
-      recipe: recipe(ingredients, servings),
-      analyzed,
-      links: linksOf(ingredients),
-      complete,
-      // A verifier that read the row as it stands — the stale case is `verifyOne.test.ts`'s.
-      editor: by === "cook"
-        ? { by }
-        : { by, fingerprint: recipeFingerprint(await loadRecipe(ctx, { recipe: recipeId, locale: "fr" })) },
-    }),
-  );
+  t.mutation(internal.router.recipes.updateOne._internal_persist, {
+    recipeId,
+    locale: "fr",
+    recipe: recipe(ingredients, servings),
+    analyzed,
+    links: linksOf(ingredients),
+    complete,
+    editor: await editorOf(recipeId, by),
+  });
+
+/** A verifier that read the row as it stands — the stale case is `verifyOne.test.ts`'s. */
+const editorOf = async (recipeId: Id<"recipes">, by: RecipeEditor["by"]): Promise<RecipeEditor> =>
+  by === "cook"
+    ? { by }
+    : { by, fingerprint: recipeFingerprint(await t.run((ctx) => loadRecipe(ctx, { recipe: recipeId, locale: "fr" }))) };
+
+/** The rows the update left a repair job for. */
+const repaired = async () =>
+  (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()))
+    .filter(({ name }) => name === "router/ingredients/repairOne:_internal")
+    .map(({ args }) => (args[0] as { ingredientId: string }).ingredientId);
 
 beforeEach(async () => {
   t = convexTest(schema, modules);
@@ -497,6 +509,35 @@ describe("functions/recipes/updateRecipe", () => {
       const row = await t.run((ctx) => ctx.db.get(recipeId));
       expect(row!.servings).toBe(3);
       expect(row!.tags).toContain("high-calorie");
+    });
+  });
+  describe("the repairs it schedules", () => {
+    // The onion fixture holds no weight and only the four main nutrients.
+    test("an analyzed rewrite schedules a repair for the row it links", async () => {
+      const recipeId = await seedRecipe();
+
+      await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }]);
+
+      expect(await repaired()).toEqual([onionId]);
+    });
+
+    test("the job carries the title as edited, not the one stored", async () => {
+      const recipeId = await seedRecipe();
+
+      await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }]);
+
+      const titles = (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()))
+        .filter(({ name }) => name === "router/ingredients/repairOne:_internal")
+        .map(({ args }) => (args[0] as { recipeTitle?: string }).recipeTitle);
+      expect(titles).toEqual(["Soupe à l'oignon, revisitée"]);
+    });
+
+    test("the cook's own text, carried through unanalyzed, schedules none", async () => {
+      const recipeId = await seedRecipe();
+
+      await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }], { analyzed: false });
+
+      expect(await repaired()).toEqual([]);
     });
   });
 });

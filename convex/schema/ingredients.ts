@@ -143,6 +143,18 @@ export const ingredients = defineTable({
    */
   source: v.optional(vIngredientSource),
   /**
+   * When `repairIngredient` last asked the model to fill this row's missing fields, even if it
+   * filled none. Information only, never a guard: a new gap — the first recipe that counts this
+   * row in slices — must still be repaired. A repair leaves `source` as it was.
+   *
+   * @limitation A seed row can carry a model's guessed `gramsPerSlice` or `sodium` that reads as
+   * curated: `source` still says seed, and `repairedAt` is the only trace. **Accepted because** a
+   * field-level source would be a schema change for every row, for a figure that is rare.
+   * **Until fixed**, a row with `repairedAt` set may hold model figures. **The fix** is a source per
+   * repaired field, written by `patchIngredient`.
+   */
+  repairedAt: v.optional(v.number()),
+  /**
    * Which diet this ingredient is suitable for — the field the `vegan` / `vegetarian` /
    * `pescatarian` tags are actually decided from.
    *

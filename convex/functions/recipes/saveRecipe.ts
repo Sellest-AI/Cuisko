@@ -1,7 +1,7 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { hashText, setTranslation } from "@convex/lib/i18n";
 import type { Localized } from "@convex/schema/i18n";
-import type { MutationCtx } from "@convex/procedures";
+import type { TracedMutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
@@ -10,6 +10,7 @@ import { deriveRecipeFields } from "./deriveRecipeFields";
 import { insertRecipe } from "./insertRecipe";
 import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import type { RecipeLink } from "./resolveRecipeIngredients";
+import { scheduleRepairs } from "./scheduleRepairs";
 
 type Args = {
   userId?: Id<"users">;
@@ -45,20 +46,23 @@ const _machine = (locale: Locale, value: string): Localized =>
  * second pass over an already-canonical address is free. One that cannot be canonicalized is
  * stored as absent rather than refused — no real path produces one, and a case that cannot occur
  * naturally does not deserve an error path.
+ *
+ * The rows the recipe cannot yet weigh or score are repaired after it, one job each
+ * (`scheduleRepairs`), so its nutrition and its Cui-Score arrive once they are filled.
  */
 export const saveRecipe = async (
-  ctx: MutationCtx,
+  ctx: TracedMutationCtx,
   { userId, locale, recipe, links, sourceUrl }: Args,
 ) => {
   const merged = await mergeDuplicateLinks(ctx, { links, lineCount: recipe.ingredients.length });
 
-  const { tags } = await deriveRecipeFields(ctx, {
+  const { tags, lines } = await deriveRecipeFields(ctx, {
     tags: recipe.tags,
     servings: recipe.servings,
     ...merged,
   });
 
-  return insertRecipe(ctx, {
+  const recipeId = await insertRecipe(ctx, {
     recipe: {
       userId,
       title: _machine(locale, recipe.title),
@@ -77,4 +81,8 @@ export const saveRecipe = async (
     links: merged.links,
     names: recipe.ingredients.map((line) => line.name),
   });
+
+  await scheduleRepairs(ctx, lines, { recipeTitle: recipe.title });
+
+  return recipeId;
 };

@@ -1,13 +1,17 @@
 import { convexTest } from "convex-test";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeAll, beforeEach, describe, expect, test } from "vitest";
 
+import { internal } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 
 import schema from "../../../schema";
 import type { RecipeLink } from "../resolveRecipeIngredients";
-import { saveRecipe } from "../saveRecipe";
 import { modules } from "@convex/lib/__tests__/modules.fixtures";
+import { warmActions } from "@convex/lib/__tests__/warmUp.fixtures";
+
+/** Imports the module under test before any test is timed — see router/preferences/__tests__/getPlanningSeed.test.ts. */
+beforeAll(() => warmActions(modules, "/convex/router/recipes/createOne.", "/convex/router/ingredients/resolve."));
 
 let t: ReturnType<typeof convexTest>;
 let userId: string;
@@ -99,16 +103,21 @@ const recipe = (ingredients: SanitizedRecipe["ingredients"]): SanitizedRecipe =>
   ingredients,
 });
 
+/** Through the persist the action calls, so the save runs with the traced ctx it gets in production. */
 const save = (ingredients: SanitizedRecipe["ingredients"], sourceUrl?: string) =>
-  t.run((ctx) =>
-    saveRecipe(ctx, {
-      userId: userId as Id<"users">,
-      locale: "fr",
-      recipe: recipe(ingredients),
-      links: linksOf(ingredients),
-      sourceUrl,
-    }),
-  );
+  t.mutation(internal.router.recipes.createOne._internal_persist, {
+    userId: userId as Id<"users">,
+    locale: "fr",
+    recipe: recipe(ingredients),
+    links: linksOf(ingredients),
+    ...(sourceUrl !== undefined && { sourceUrl }),
+  });
+
+/** The repair jobs a save left: the row each repairs, the fields it asks, and the recipe's title. */
+const repairs = async () =>
+  (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()))
+    .filter(({ name }) => name === "router/ingredients/repairOne:_internal")
+    .map(({ args }) => args[0] as { ingredientId: string; missing: string[]; recipeTitle?: string });
 
 /**
  * `t.run` hands back a ctx over the GENERIC data model, so `withIndex` has no index to name here
@@ -383,5 +392,28 @@ describe("functions/recipes/saveRecipe", () => {
     const row = await t.run((ctx) => ctx.db.get(recipeId));
 
     expect(row!.sourceUrl).toBeUndefined();
+  });
+  describe("the repairs it schedules", () => {
+    // The fixture rows hold the four main nutrients, no other nutrient and no weight.
+    test("a row it cannot weigh or score gets one repair job, asking for what it lacks", async () => {
+      await save([{ name: "oignon", quantity: 2, unit: "pcs" }]);
+
+      expect(await repairs()).toEqual([
+        {
+          ingredientId: catalog["oignon"],
+          missing: ["gramsPerPiece", "saturatedFat", "sugars", "fiber", "sodium", "iron"],
+          recipeTitle: "Soupe à l'oignon",
+        },
+      ]);
+    });
+
+    test("a recipe with a line nothing linked schedules none: it can never show a score", async () => {
+      await save([
+        { name: "oignon", quantity: 2, unit: "pcs" },
+        { name: "safran de Kozani", quantity: 1, unit: "g" },
+      ]);
+
+      expect(await repairs()).toEqual([]);
+    });
   });
 });

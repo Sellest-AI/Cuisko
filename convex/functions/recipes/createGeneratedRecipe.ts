@@ -27,7 +27,7 @@ export const createGeneratedRecipe = async (
   ctx: TracedActionCtx,
   { userId, locale, recipe, links, sourceUrl }: Args,
 ): Promise<Id<"recipes">> => {
-  const recipeId = await ctx.runMutation(internal.router.recipes.createOne._internal_persist, {
+  const recipeId = await ctx.runTracedMutation(internal.router.recipes.createOne._internal_persist, {
     userId,
     locale,
     recipe,

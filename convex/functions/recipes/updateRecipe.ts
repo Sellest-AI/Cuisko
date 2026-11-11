@@ -3,7 +3,7 @@ import { hashText, setTranslation } from "@convex/lib/i18n";
 import type { Localized, TranslationStatus } from "@convex/schema/i18n";
 import type { RecipeEditor } from "@convex/schema/recipePayloads";
 import type { RecipeStatus } from "@convex/schema/recipes";
-import type { MutationCtx } from "@convex/procedures";
+import type { TracedMutationCtx } from "@convex/procedures";
 import type { SanitizedRecipe } from "@convex/agent/tools/sanitizeRecipe";
 import type { Locale } from "@shared/translations";
 import { serializeInstructions } from "@shared/recipes";
@@ -14,6 +14,7 @@ import { mergeDuplicateLinks } from "./mergeDuplicateLinks";
 import { rewriteRecipeContent } from "./recipeContent";
 import { recipeSearchText } from "./recipeSearchText";
 import type { RecipeLink } from "./resolveRecipeIngredients";
+import { scheduleRepairs } from "./scheduleRepairs";
 import { syncRecipeLinks } from "./syncRecipeLinks";
 
 type Args = {
@@ -63,7 +64,7 @@ const _statusAfter = (current: RecipeStatus, { by }: RecipeEditor): RecipeStatus
  * paths could disagree about what a recipe's own tags are.
  */
 export const updateRecipe = async (
-  ctx: MutationCtx,
+  ctx: TracedMutationCtx,
   { recipeId, locale, recipe, analyzed, links, complete, editor }: Args,
 ) => {
   const existing = await ctx.db.get(recipeId);
@@ -140,7 +141,7 @@ export const updateRecipe = async (
   // `lineCount` travels WITH `resolved` too: an incomplete resolve keeps the previous links, so the
   // count it answers for is their own and not the edited recipe's — holding three old links against
   // a four-line edit reads as an unresolved line and wipes every tag.
-  const { tags, facets } = await deriveRecipeFields(ctx, {
+  const { tags, facets, lines } = await deriveRecipeFields(ctx, {
     tags: recipe.tags,
     servings,
     links: resolved,
@@ -189,6 +190,10 @@ export const updateRecipe = async (
    * links, so every row matches and nothing is written.
    */
   await syncRecipeLinks(ctx, { recipeId, rows: old, links: resolved });
+
+  // Only an analyzed rewrite can link a row the catalog just bought; the cook's own text carried
+  // straight through relinks what was already there, and its repairs were scheduled back then.
+  if (analyzed) await scheduleRepairs(ctx, lines, { recipeTitle: recipe.title });
 
   return recipeId;
 };

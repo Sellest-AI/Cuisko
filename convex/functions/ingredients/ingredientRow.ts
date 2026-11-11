@@ -131,6 +131,27 @@ const FRUIT_VEG_LEGUME_PERCENT: Partial<Record<Category, number>> = {
 };
 
 /**
+ * A row's Nutri-Score, from its nutrition and its category — or none while one of the four
+ * nutrients the grade reads is missing.
+ *
+ * Exported so a writer that patches a row's nutrition derives the grade the way `ingredientRow`
+ * does (ADR 0011), not with its own guess at the fruit/vegetable share.
+ */
+export const nutriScoreOf = (
+  nutrition: Doc<"ingredients">["nutrition"],
+  category: Category,
+): Doc<"ingredients">["nutriScore"] => {
+  const { saturatedFat, sugars, fiber, sodium } = nutrition;
+  if (saturatedFat === undefined || sugars === undefined || fiber === undefined || sodium === undefined)
+    return undefined;
+
+  return computeNutriScore(
+    { ...nutrition, saturatedFat, sugars, fiber, sodium },
+    FRUIT_VEG_LEGUME_PERCENT[category] ?? 0,
+  );
+};
+
+/**
  * **The one row sanitizer for `ingredients` (ADR 0011).** Facts in, every field the table declares
  * out. Pure: it touches no database, so every writer can compose it and it can be tested against
  * the seed's own catalog with no `ctx` in the loop.
@@ -222,10 +243,7 @@ export const ingredientRow = (facts: IngredientFacts, source: IngredientSource):
     shelfLifeDays: facts.shelfLifeDays,
     openedShelfLifeDays: facts.openedShelfLifeDays,
     nutrition: facts.nutrition,
-    nutriScore: computeNutriScore(
-      facts.nutrition,
-      FRUIT_VEG_LEGUME_PERCENT[facts.category] ?? 0,
-    ),
+    nutriScore: nutriScoreOf(facts.nutrition, facts.category),
     source,
   };
 };

@@ -281,3 +281,56 @@ describe("refreshRecipe", () => {
     expect((await row(recipeId))!.updatedAt).toBe(first.updatedAt);
   });
 });
+
+describe("refreshRecipe with skipArchived", () => {
+  test("an archived recipe is not written", async () => {
+    const onion = await seedIngredient("onion", { diet: "vegan" });
+    const recipeId = await seedRecipe(["soup"]);
+    await seedLine(recipeId, onion, 0);
+    await t.run((ctx) => ctx.db.patch(recipeId, { isArchived: true }));
+    const before = (await row(recipeId))!;
+
+    await t.run((ctx) => refreshRecipe(ctx, recipeId, { skipArchived: true }));
+
+    expect((await row(recipeId))!).toEqual(before);
+  });
+
+  /** `whole: true` is "nothing to report", not a finding: the lines were never read. */
+  test("an archived recipe is reported skipped", async () => {
+    const recipeId = await seedRecipe(["soup"]);
+    await t.run((ctx) => ctx.db.patch(recipeId, { isArchived: true }));
+
+    expect(await t.run((ctx) => refreshRecipe(ctx, recipeId, { skipArchived: true }))).toEqual({
+      refreshed: false, merged: false, whole: true, skipped: true,
+    });
+  });
+
+  /** A line can outlive its recipe while a cascade is pending; a background refresh steps over it. */
+  test("a recipe gone is reported skipped, not thrown", async () => {
+    const recipeId = await seedRecipe(["soup"]);
+    await t.run((ctx) => ctx.db.delete(recipeId));
+
+    expect(await t.run((ctx) => refreshRecipe(ctx, recipeId, { skipArchived: true }))).toEqual({
+      refreshed: false, merged: false, whole: true, skipped: true,
+    });
+  });
+
+  test("a recipe gone still throws without the option", async () => {
+    const recipeId = await seedRecipe(["soup"]);
+    await t.run((ctx) => ctx.db.delete(recipeId));
+
+    await expect(t.run((ctx) => refreshRecipe(ctx, recipeId))).rejects.toThrow(/does not exist/);
+  });
+
+  test("a live recipe is still refreshed", async () => {
+    const onion = await seedIngredient("onion", { diet: "vegan" });
+    const recipeId = await seedRecipe(["soup"]);
+    await seedLine(recipeId, onion, 0);
+
+    expect(await t.run((ctx) => refreshRecipe(ctx, recipeId, { skipArchived: true }))).toEqual({
+      refreshed: true,
+      merged: false,
+      whole: true,
+    });
+  });
+});

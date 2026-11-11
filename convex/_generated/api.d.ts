@@ -22,6 +22,7 @@ import type * as agent_config_index from "../agent/config/index.js";
 import type * as agent_config_models from "../agent/config/models.js";
 import type * as agent_config_prompts_assistant from "../agent/config/prompts/assistant.js";
 import type * as agent_config_prompts_extractVideoRecipe from "../agent/config/prompts/extractVideoRecipe.js";
+import type * as agent_config_prompts_repairIngredient from "../agent/config/prompts/repairIngredient.js";
 import type * as agent_config_prompts_sanitizeIngredient from "../agent/config/prompts/sanitizeIngredient.js";
 import type * as agent_config_prompts_sanitizeRecipe from "../agent/config/prompts/sanitizeRecipe.js";
 import type * as agent_config_prompts_suggestDishes from "../agent/config/prompts/suggestDishes.js";
@@ -35,6 +36,7 @@ import type * as agent_tools_findWebRecipe from "../agent/tools/findWebRecipe.js
 import type * as agent_tools_generateIngredientImage from "../agent/tools/generateIngredientImage.js";
 import type * as agent_tools_generateRecipeImages from "../agent/tools/generateRecipeImages.js";
 import type * as agent_tools_planMeal from "../agent/tools/planMeal.js";
+import type * as agent_tools_repairIngredient from "../agent/tools/repairIngredient.js";
 import type * as agent_tools_sanitizeIngredient from "../agent/tools/sanitizeIngredient.js";
 import type * as agent_tools_sanitizeRecipe from "../agent/tools/sanitizeRecipe.js";
 import type * as agent_tools_searchIngredients from "../agent/tools/searchIngredients.js";
@@ -99,9 +101,12 @@ import type * as functions_ingredients_lookup_openFoodFacts from "../functions/i
 import type * as functions_ingredients_lookup_taxonomy from "../functions/ingredients/lookup/taxonomy.js";
 import type * as functions_ingredients_matchIngredient from "../functions/ingredients/matchIngredient.js";
 import type * as functions_ingredients_mergeIngredient from "../functions/ingredients/mergeIngredient.js";
+import type * as functions_ingredients_missingFields from "../functions/ingredients/missingFields.js";
 import type * as functions_ingredients_missingIngredientIds from "../functions/ingredients/missingIngredientIds.js";
+import type * as functions_ingredients_patchIngredient from "../functions/ingredients/patchIngredient.js";
 import type * as functions_ingredients_persistRestoredIngredient from "../functions/ingredients/persistRestoredIngredient.js";
 import type * as functions_ingredients_rememberAlias from "../functions/ingredients/rememberAlias.js";
+import type * as functions_ingredients_repairIngredient from "../functions/ingredients/repairIngredient.js";
 import type * as functions_ingredients_replaceInRecipes from "../functions/ingredients/replaceInRecipes.js";
 import type * as functions_ingredients_reportedIngredient from "../functions/ingredients/reportedIngredient.js";
 import type * as functions_ingredients_resolveIngredient from "../functions/ingredients/resolveIngredient.js";
@@ -186,6 +191,7 @@ import type * as functions_recipes_recipeImages from "../functions/recipes/recip
 import type * as functions_recipes_recipeNutrition from "../functions/recipes/recipeNutrition.js";
 import type * as functions_recipes_recipeSearchText from "../functions/recipes/recipeSearchText.js";
 import type * as functions_recipes_refreshRecipe from "../functions/recipes/refreshRecipe.js";
+import type * as functions_recipes_refreshRecipesUsing from "../functions/recipes/refreshRecipesUsing.js";
 import type * as functions_recipes_regenerateRecipe from "../functions/recipes/regenerateRecipe.js";
 import type * as functions_recipes_reportedRecipe from "../functions/recipes/reportedRecipe.js";
 import type * as functions_recipes_resolveRecipeIngredients from "../functions/recipes/resolveRecipeIngredients.js";
@@ -193,6 +199,7 @@ import type * as functions_recipes_restoreRecipe from "../functions/recipes/rest
 import type * as functions_recipes_restoreReplaces from "../functions/recipes/restoreReplaces.js";
 import type * as functions_recipes_saveRecipe from "../functions/recipes/saveRecipe.js";
 import type * as functions_recipes_saveTranslations from "../functions/recipes/saveTranslations.js";
+import type * as functions_recipes_scheduleRepairs from "../functions/recipes/scheduleRepairs.js";
 import type * as functions_recipes_searchForUser from "../functions/recipes/searchForUser.js";
 import type * as functions_recipes_setFavorite from "../functions/recipes/setFavorite.js";
 import type * as functions_recipes_syncRecipeLinks from "../functions/recipes/syncRecipeLinks.js";
@@ -280,11 +287,13 @@ import type * as router_ingredients_getIngredient from "../router/ingredients/ge
 import type * as router_ingredients_list from "../router/ingredients/list.js";
 import type * as router_ingredients_mergeIngredient from "../router/ingredients/mergeIngredient.js";
 import type * as router_ingredients_missingIds from "../router/ingredients/missingIds.js";
+import type * as router_ingredients_repairOne from "../router/ingredients/repairOne.js";
 import type * as router_ingredients_replaceInRecipes from "../router/ingredients/replaceInRecipes.js";
 import type * as router_ingredients_resolve from "../router/ingredients/resolve.js";
 import type * as router_ingredients_restoreOne from "../router/ingredients/restoreOne.js";
 import type * as router_ingredients_search from "../router/ingredients/search.js";
 import type * as router_ingredients_seedCatalog from "../router/ingredients/seedCatalog.js";
+import type * as router_ingredients_updateOne from "../router/ingredients/updateOne.js";
 import type * as router_media_images_deleteOne from "../router/media/images/deleteOne.js";
 import type * as router_media_images_deleteOneNode from "../router/media/images/deleteOneNode.js";
 import type * as router_media_images_getMany from "../router/media/images/getMany.js";
@@ -329,6 +338,7 @@ import type * as router_recipes_importVideo from "../router/recipes/importVideo.
 import type * as router_recipes_importVideoNode from "../router/recipes/importVideoNode.js";
 import type * as router_recipes_missingIds from "../router/recipes/missingIds.js";
 import type * as router_recipes_recordShare from "../router/recipes/recordShare.js";
+import type * as router_recipes_refreshUsing from "../router/recipes/refreshUsing.js";
 import type * as router_recipes_restoreOne from "../router/recipes/restoreOne.js";
 import type * as router_recipes_search from "../router/recipes/search.js";
 import type * as router_recipes_setFavorite from "../router/recipes/setFavorite.js";
@@ -379,6 +389,7 @@ declare const fullApi: ApiFromModules<{
   "agent/config/models": typeof agent_config_models;
   "agent/config/prompts/assistant": typeof agent_config_prompts_assistant;
   "agent/config/prompts/extractVideoRecipe": typeof agent_config_prompts_extractVideoRecipe;
+  "agent/config/prompts/repairIngredient": typeof agent_config_prompts_repairIngredient;
   "agent/config/prompts/sanitizeIngredient": typeof agent_config_prompts_sanitizeIngredient;
   "agent/config/prompts/sanitizeRecipe": typeof agent_config_prompts_sanitizeRecipe;
   "agent/config/prompts/suggestDishes": typeof agent_config_prompts_suggestDishes;
@@ -392,6 +403,7 @@ declare const fullApi: ApiFromModules<{
   "agent/tools/generateIngredientImage": typeof agent_tools_generateIngredientImage;
   "agent/tools/generateRecipeImages": typeof agent_tools_generateRecipeImages;
   "agent/tools/planMeal": typeof agent_tools_planMeal;
+  "agent/tools/repairIngredient": typeof agent_tools_repairIngredient;
   "agent/tools/sanitizeIngredient": typeof agent_tools_sanitizeIngredient;
   "agent/tools/sanitizeRecipe": typeof agent_tools_sanitizeRecipe;
   "agent/tools/searchIngredients": typeof agent_tools_searchIngredients;
@@ -456,9 +468,12 @@ declare const fullApi: ApiFromModules<{
   "functions/ingredients/lookup/taxonomy": typeof functions_ingredients_lookup_taxonomy;
   "functions/ingredients/matchIngredient": typeof functions_ingredients_matchIngredient;
   "functions/ingredients/mergeIngredient": typeof functions_ingredients_mergeIngredient;
+  "functions/ingredients/missingFields": typeof functions_ingredients_missingFields;
   "functions/ingredients/missingIngredientIds": typeof functions_ingredients_missingIngredientIds;
+  "functions/ingredients/patchIngredient": typeof functions_ingredients_patchIngredient;
   "functions/ingredients/persistRestoredIngredient": typeof functions_ingredients_persistRestoredIngredient;
   "functions/ingredients/rememberAlias": typeof functions_ingredients_rememberAlias;
+  "functions/ingredients/repairIngredient": typeof functions_ingredients_repairIngredient;
   "functions/ingredients/replaceInRecipes": typeof functions_ingredients_replaceInRecipes;
   "functions/ingredients/reportedIngredient": typeof functions_ingredients_reportedIngredient;
   "functions/ingredients/resolveIngredient": typeof functions_ingredients_resolveIngredient;
@@ -543,6 +558,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/recipeNutrition": typeof functions_recipes_recipeNutrition;
   "functions/recipes/recipeSearchText": typeof functions_recipes_recipeSearchText;
   "functions/recipes/refreshRecipe": typeof functions_recipes_refreshRecipe;
+  "functions/recipes/refreshRecipesUsing": typeof functions_recipes_refreshRecipesUsing;
   "functions/recipes/regenerateRecipe": typeof functions_recipes_regenerateRecipe;
   "functions/recipes/reportedRecipe": typeof functions_recipes_reportedRecipe;
   "functions/recipes/resolveRecipeIngredients": typeof functions_recipes_resolveRecipeIngredients;
@@ -550,6 +566,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/restoreReplaces": typeof functions_recipes_restoreReplaces;
   "functions/recipes/saveRecipe": typeof functions_recipes_saveRecipe;
   "functions/recipes/saveTranslations": typeof functions_recipes_saveTranslations;
+  "functions/recipes/scheduleRepairs": typeof functions_recipes_scheduleRepairs;
   "functions/recipes/searchForUser": typeof functions_recipes_searchForUser;
   "functions/recipes/setFavorite": typeof functions_recipes_setFavorite;
   "functions/recipes/syncRecipeLinks": typeof functions_recipes_syncRecipeLinks;
@@ -637,11 +654,13 @@ declare const fullApi: ApiFromModules<{
   "router/ingredients/list": typeof router_ingredients_list;
   "router/ingredients/mergeIngredient": typeof router_ingredients_mergeIngredient;
   "router/ingredients/missingIds": typeof router_ingredients_missingIds;
+  "router/ingredients/repairOne": typeof router_ingredients_repairOne;
   "router/ingredients/replaceInRecipes": typeof router_ingredients_replaceInRecipes;
   "router/ingredients/resolve": typeof router_ingredients_resolve;
   "router/ingredients/restoreOne": typeof router_ingredients_restoreOne;
   "router/ingredients/search": typeof router_ingredients_search;
   "router/ingredients/seedCatalog": typeof router_ingredients_seedCatalog;
+  "router/ingredients/updateOne": typeof router_ingredients_updateOne;
   "router/media/images/deleteOne": typeof router_media_images_deleteOne;
   "router/media/images/deleteOneNode": typeof router_media_images_deleteOneNode;
   "router/media/images/getMany": typeof router_media_images_getMany;
@@ -686,6 +705,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/importVideoNode": typeof router_recipes_importVideoNode;
   "router/recipes/missingIds": typeof router_recipes_missingIds;
   "router/recipes/recordShare": typeof router_recipes_recordShare;
+  "router/recipes/refreshUsing": typeof router_recipes_refreshUsing;
   "router/recipes/restoreOne": typeof router_recipes_restoreOne;
   "router/recipes/search": typeof router_recipes_search;
   "router/recipes/setFavorite": typeof router_recipes_setFavorite;

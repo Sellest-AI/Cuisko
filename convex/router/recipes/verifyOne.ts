@@ -64,7 +64,7 @@ const _verify = async (
   }
 
   const { corrections, recipe, links, complete } = verification;
-  await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {
+  await ctx.runTracedMutation(internal.router.recipes.updateOne._internal_persist, {
     recipeId,
     locale,
     analyzed: true,
