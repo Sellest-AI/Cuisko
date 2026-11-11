@@ -10,13 +10,16 @@
 
 import type * as agent___bench___bakeOff from "../agent/__bench__/bakeOff.js";
 import type * as agent___bench___format from "../agent/__bench__/format.js";
+import type * as agent___bench___generate from "../agent/__bench__/generate.js";
 import type * as agent___bench___index from "../agent/__bench__/index.js";
 import type * as agent___bench___judge from "../agent/__bench__/judge.js";
 import type * as agent___bench___pool from "../agent/__bench__/pool.js";
 import type * as agent___bench___provider from "../agent/__bench__/provider.js";
+import type * as agent___bench___suite from "../agent/__bench__/suite.js";
 import type * as agent___bench___table from "../agent/__bench__/table.js";
 import type * as agent___bench___transcript from "../agent/__bench__/transcript.js";
 import type * as agent___bench___types from "../agent/__bench__/types.js";
+import type * as agent___bench___verdict from "../agent/__bench__/verdict.js";
 import type * as agent_agents from "../agent/agents.js";
 import type * as agent_config_index from "../agent/config/index.js";
 import type * as agent_config_models from "../agent/config/models.js";
@@ -377,13 +380,16 @@ import type {
 declare const fullApi: ApiFromModules<{
   "agent/__bench__/bakeOff": typeof agent___bench___bakeOff;
   "agent/__bench__/format": typeof agent___bench___format;
+  "agent/__bench__/generate": typeof agent___bench___generate;
   "agent/__bench__/index": typeof agent___bench___index;
   "agent/__bench__/judge": typeof agent___bench___judge;
   "agent/__bench__/pool": typeof agent___bench___pool;
   "agent/__bench__/provider": typeof agent___bench___provider;
+  "agent/__bench__/suite": typeof agent___bench___suite;
   "agent/__bench__/table": typeof agent___bench___table;
   "agent/__bench__/transcript": typeof agent___bench___transcript;
   "agent/__bench__/types": typeof agent___bench___types;
+  "agent/__bench__/verdict": typeof agent___bench___verdict;
   "agent/agents": typeof agent_agents;
   "agent/config/index": typeof agent_config_index;
   "agent/config/models": typeof agent_config_models;

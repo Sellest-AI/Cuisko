@@ -49,16 +49,16 @@ const _render = (output: unknown) =>
 /** A fenced block, with the language the content actually is. */
 const _fence = (body: string, language = "") => `\`\`\`${language}\n${body}\n\`\`\``;
 
-/** One run, un-blinded, with the deterministic findings attached to it. */
-const _run = (attempt: Attempt, index: number) => {
+/** One run, un-blinded, with the deterministic findings attached to it, under a `depth` heading. */
+const _run = (attempt: Attempt, index: number, depth: string) => {
   const tools = toolUseLines(attempt.toolUses);
   const toolBlock = tools ? [...tools, ""] : [];
 
   if (!attempt.ok)
-    return [`#### Run ${index + 1} — FAILED after ${attempt.ms} ms`, "", ...toolBlock, _fence(attempt.error)];
+    return [`${depth} Run ${index + 1} — FAILED after ${attempt.ms} ms`, "", ...toolBlock, _fence(attempt.error)];
 
   return [
-    `#### Run ${index + 1} — ${num(attempt.ms)} ms · ${num(attempt.tokens)} tokens ` +
+    `${depth} Run ${index + 1} — ${num(attempt.ms)} ms · ${num(attempt.tokens)} tokens ` +
     `(${num(attempt.reasoning)} reasoning) · ${usd(attempt.cost)}`,
     "",
     ...(attempt.flags.length
@@ -74,26 +74,40 @@ const _run = (attempt: Attempt, index: number) => {
   ];
 };
 
+/** One input, and every run each letter made on it. */
+export type TranscriptCase = {
+  /** The case's heading when there are several: "feta sodium". */
+  title?: string;
+  input: string;
+  attempts: Map<string, Attempt[]>;
+};
+
+/** A case's heading in a suite, its number and its title; nothing for a single input. */
+const _heading = (cases: readonly TranscriptCase[], index: number) =>
+  `Input ${index + 1} of ${cases.length}${cases[index]!.title ? ` — ${cases[index]!.title}` : ""}`;
+
 /**
  * Write the dossier and return its path.
  *
  * Everything it needs is already in the caller's hands when the table is printed — this adds no
  * call and costs nothing but the write, which is why it is not opt-in.
+ *
+ * Several cases (`runSuite`) are one dossier: every input in turn, then each candidate's answers
+ * grouped by input, so a fault that recurs across inputs reads as one.
  */
 export const transcript = (options: {
   title: string;
   judge: string;
   runs: number;
   system: string;
-  input: string;
+  cases: readonly TranscriptCase[];
   criteria: readonly string[];
   verdict: Verdict;
   entrants: Map<string, Entrant>;
-  attempts: Map<string, Attempt[]>;
   spent: number;
 }) => {
-  const { title, judge, runs, system, input, criteria, verdict, entrants, attempts, spent } =
-    options;
+  const { title, judge, runs, system, cases, criteria, verdict, entrants, spent } = options;
+  const several = cases.length > 1;
 
   const ranked = [...verdict.rows].sort((a, b) => a.rank - b.rank);
   const named = (label: string) => {
@@ -105,7 +119,9 @@ export const transcript = (options: {
   const body = [
     `# ${title} bake-off — ${_stamp()}`,
     "",
-    `${entrants.size} models × ${runs} runs, judged by ${judge}, ${usd(spent)} spent.`,
+    `${entrants.size} models × ${runs} runs` +
+    (several ? ` × ${cases.length} inputs` : "") +
+    `, judged by ${judge}, ${usd(spent)} spent.`,
     "",
     "## What to do with this file",
     "",
@@ -140,8 +156,9 @@ export const transcript = (options: {
     "",
     "## What they were given to work from",
     "",
-    _fence(input),
-    "",
+    ...(several
+      ? cases.flatMap((each, index) => [`### ${_heading(cases, index)}`, "", _fence(each.input), ""])
+      : [_fence(cases[0]!.input), ""]),
     "## How they were ranked",
     "",
     "Heaviest first. The judge was given these, plus consistency across runs and speed as a " +
@@ -164,7 +181,8 @@ export const transcript = (options: {
     "## Every answer",
     "",
     ...ranked.flatMap((row) => {
-      const all = attempts.get(row.label) ?? [];
+      const runsOn = (each: TranscriptCase) => each.attempts.get(row.label) ?? [];
+      const all = cases.flatMap(runsOn);
       const ok = succeeded(all);
 
       return [
@@ -173,7 +191,13 @@ export const transcript = (options: {
         `${ok.length}/${all.length} ok · ~${num(median(ok.map((a) => a.ms)))} ms · ` +
         `~${num(median(ok.map((a) => a.tokens)))} tokens · ${usd(meanCost(ok))}/run`,
         "",
-        ...all.flatMap((attempt, index) => [..._run(attempt, index), ""]),
+        ...(several
+          ? cases.flatMap((each, index) => [
+            `#### ${_heading(cases, index)}`,
+            "",
+            ...runsOn(each).flatMap((attempt, run) => [..._run(attempt, run, "#####"), ""]),
+          ])
+          : all.flatMap((attempt, index) => [..._run(attempt, index, "####"), ""])),
       ];
     }),
   ].join("\n");

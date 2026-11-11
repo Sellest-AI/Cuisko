@@ -8,9 +8,11 @@
  * markdown transcript every run leaves behind — belongs here and is the same for every bake-off.
  *
  * ⚠️ Every call costs real money and real minutes. Callers belong in a `*.manual.test.ts`.
- * `runBakeOff`'s own docblock has the running instructions.
+ * `runBakeOff`'s own docblock has the running instructions. Several inputs of one task, ranked by
+ * one judge: `runSuite`.
  */
 export { runBakeOff } from "./bakeOff";
+export { runSuite } from "./suite";
 export type {
   Answer,
   Attempt,
@@ -21,4 +23,7 @@ export type {
   Entrant,
   ProviderRouting,
   Success,
+  Suite,
+  SuiteCase,
+  SuiteResult,
 } from "./types";

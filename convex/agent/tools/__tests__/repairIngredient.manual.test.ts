@@ -2,8 +2,8 @@
  * A live check of `repairIngredient`'s one call: does the shipped model fill a weight that exists,
  * refuse one that does not, and give each nutrient in its unit?
  *
- * ⚠️ THIS COSTS MONEY — it calls OpenRouter for real, about half a cent a case with the judge. Run it
- * by hand, after a prompt change:
+ * ⚠️ THIS COSTS MONEY — it calls OpenRouter for real: 3 runs of each case, then one judge call
+ * over every case (`runSuite`). Run it by hand, after a prompt change:
  *
  *     pnpm test:manual repairIngredient
  *
@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RepairableField } from "@convex/schema/ingredientPayloads";
 
-import { runBakeOff, type Candidate } from "../../__bench__";
+import { runSuite, type Candidate } from "../../__bench__";
 import { REPAIR_INGREDIENT_PROMPT } from "../../config/prompts/repairIngredient";
 import { parseModelOutput } from "../../utils";
 import {
@@ -152,20 +152,30 @@ const CASES: Case[] = [
   },
 ];
 
-describe("repairIngredient · live", () => {
-  it.each(CASES)("$title", { timeout: 300_000 }, async ({ title, food, check }) => {
-    const schema = repairIngredientSchema(food.missing);
+/** One case as the suite runs it: the tool's real user prompt, schema and parser for that food. */
+const _suiteCase = ({ title, food, check }: Case) => {
+  const schema = repairIngredientSchema(food.missing);
 
-    const result = await runBakeOff({
-      title: `repairIngredient · ${title}`,
+  return {
+    title,
+    prompt: repairIngredientUserPrompt(food),
+    answer: {
+      schema,
+      parse: (raw: unknown) =>
+        toRepairOutput(food.missing, parseModelOutput(schema, raw) as Parameters<typeof toRepairOutput>[1]),
+      check,
+    },
+  };
+};
+
+describe("repairIngredient · live", () => {
+  // One test, one judge over every case: the judge sees the model's whole spread, and is paid once.
+  it("fills, refuses and converts across every case", { timeout: 900_000 }, async () => {
+    const { cases } = await runSuite({
+      title: "repairIngredient",
       candidates: CANDIDATES,
       system: REPAIR_INGREDIENT_PROMPT,
-      prompt: repairIngredientUserPrompt(food),
-      answer: {
-        schema,
-        parse: (raw) => toRepairOutput(food.missing, parseModelOutput(schema, raw) as Parameters<typeof toRepairOutput>[1]),
-        check,
-      },
+      cases: CASES.map(_suiteCase),
       criteria: ["Is each figure a true typical value for this raw food, in its unit, and is each refusal a weight nobody measures?"],
       runs: 3,
     });
@@ -173,7 +183,8 @@ describe("repairIngredient · live", () => {
     // `clean`, not `ok` alone: a flagged run still counts as `ok`. The sibling bake-offs compare a
     // field of models and leave a fully flagged one to be read; this file scores the one model that
     // ships, so a case it fails on every run is the shipped prompt's regression, and must be red.
-    expect(result.ok).toBeGreaterThan(0);
-    expect(result.clean).toBeGreaterThan(0);
+    // Every case is checked before the assertion, so one red run names every case that failed.
+    const failing = cases.filter(({ result }) => !result.clean).map(({ title }) => title);
+    expect(failing).toEqual([]);
   });
 });

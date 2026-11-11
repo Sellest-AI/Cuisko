@@ -67,7 +67,10 @@ const _handOff = (transcript: string) => [
 export const table = (options: {
   title: string;
   judge: string;
+  /** Per entrant, per input. */
   runs: number;
+  /** How many inputs each run was repeated over: 1 for a bake-off, the case count for a suite. */
+  inputs?: number;
   candidates: readonly Candidate[];
   verdict: Verdict;
   entrants: Map<string, Entrant>;
@@ -75,7 +78,7 @@ export const table = (options: {
   judgeCost: number | undefined;
   transcript: string;
 }) => {
-  const { title, judge, runs, candidates, verdict, entrants, attempts, judgeCost, transcript } =
+  const { title, judge, runs, inputs = 1, candidates, verdict, entrants, attempts, judgeCost, transcript } =
     options;
 
   const rows = [...verdict.rows].sort((a, b) => a.rank - b.rank);
@@ -152,7 +155,9 @@ export const table = (options: {
   const text = [
     "",
     "═".repeat(WIDTH),
-    `  ${title} bake-off — ${entrants.size} entrants × ${runs} runs, judged by ${judge}`,
+    `  ${title} bake-off — ${entrants.size} entrants × ${runs} runs` +
+      (inputs > 1 ? ` × ${inputs} inputs` : "") +
+      `, judged by ${judge}`,
     "═".repeat(WIDTH),
     ...ranking,
     ...(compared.length ? ["", "─".repeat(WIDTH), "  WORTH THE TOKENS?", ...compared] : []),
