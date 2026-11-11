@@ -1,16 +1,22 @@
 /**
  * A live check of `repairIngredient`'s one call: does the shipped model fill a weight that exists,
- * and refuse one that does not?
+ * refuse one that does not, and give each nutrient in its unit?
  *
- * ⚠️ THIS COSTS MONEY — it calls OpenRouter for real. Run it by hand, after a prompt change:
+ * ⚠️ THIS COSTS MONEY — it calls OpenRouter for real, about half a cent a case with the judge. Run it
+ * by hand, after a prompt change:
  *
- *     pnpm test:manual
+ *     pnpm test:manual repairIngredient
  *
  * It needs a real `OPENROUTER_API_KEY` in `.env.local`. Nothing automatic runs this file: it
  * belongs to the `manual` project alone.
  *
  * The prompt, schema, user prompt and parser are imported from the tool, so what is scored is what
  * ships. `wrapAgent` is not shared: the harness calls the provider directly.
+ *
+ * **No food here is one the prompt names.** The prompt gives a slice of ham as 40 g and chicken as
+ * the density nobody measures; a case built on either scores whether the model can copy its own
+ * instructions, which it always can. Each food carries its own typical figures too, because the
+ * model reads them as context and a feta shown a ham's macros is a question nobody asks.
  */
 import { describe, expect, it } from "vitest";
 
@@ -30,49 +36,144 @@ import {
 /** The incumbent: `ingredientsAgent` runs on `models.ingredients`, GPT-6 Luna at low effort. */
 const CANDIDATES: Candidate[] = [{ name: "openai/gpt-6-luna", modes: ["low"] }];
 
-const bench = (title: string, input: RepairIngredientInput, check: (output: RepairIngredientOutput) => string[]) => {
-  const schema = repairIngredientSchema(input.missing);
+type Check = (output: RepairIngredientOutput) => string[];
 
-  return runBakeOff({
-    title,
-    candidates: CANDIDATES,
-    system: REPAIR_INGREDIENT_PROMPT,
-    prompt: repairIngredientUserPrompt(input),
-    answer: {
-      schema,
-      parse: (raw) => toRepairOutput(input.missing, parseModelOutput(schema, raw) as Parameters<typeof toRepairOutput>[1]),
-      check,
-    },
-    criteria: ["Is each figure a true typical value for this raw food, and is each refusal a weight nobody measures?"],
-    runs: 3,
-  });
+type Case = {
+  title: string;
+  food: RepairIngredientInput;
+  check: Check;
 };
 
-const _food = (fr: string, en: string, category: RepairIngredientInput["category"], missing: RepairableField[]) => ({
+/** A food as a row holds it: both names, a category, how it is bought, and its four macros per 100 g. */
+const _food = (
+  [fr, en]: [string, string],
+  category: RepairIngredientInput["category"],
+  defaultUnit: RepairIngredientInput["defaultUnit"],
+  [calories, protein, fat, carbohydrates]: [number, number, number, number],
+  missing: RepairableField[],
+): RepairIngredientInput => ({
   names: { fr, en },
   category,
-  defaultUnit: "g" as const,
-  nutrition: { calories: 115, protein: 20, fat: 3.5, carbohydrates: 1 },
+  defaultUnit,
+  nutrition: { calories, protein, fat, carbohydrates },
   missing,
 });
 
+/** The field answered, within `[min, max]`, and not refused. `why` is what a wrong answer means. */
+const _within = (field: RepairableField, min: number, max: number, why: string): Check => ({ fields, refused }) => {
+  if ((refused as RepairableField[]).includes(field)) return [`refused ${field} — ${why}`];
+  const value = fields[field];
+
+  return value === undefined || value < min || value > max ? [`${field} ${value} — ${why}`] : [];
+};
+
+/** The weight refused, and given no number. */
+const _refuses = (field: RepairableField, why: string): Check => ({ fields, refused }) =>
+  (refused as RepairableField[]).includes(field) && fields[field] === undefined ? [] : [`${field} ${fields[field]} — ${why}`];
+
+const _all = (...checks: Check[]): Check => (output) => checks.flatMap((check) => check(output));
+
+const CASES: Case[] = [
+  // Weights the prompt never states.
+  {
+    title: "saumon fumé slice",
+    food: _food(["Saumon fumé", "Smoked salmon"], "SEAFOOD", "g", [180, 22, 10, 0.5], ["gramsPerSlice"]),
+    check: _within("gramsPerSlice", 15, 40, "a slice of smoked salmon is 20–30 g"),
+  },
+  {
+    title: "avocat piece",
+    food: _food(["Avocat", "Avocado"], "FRUIT", "pcs", [160, 2, 15, 1.9], ["gramsPerPiece"]),
+    check: _within("gramsPerPiece", 150, 250, "one avocado is about 200 g"),
+  },
+  {
+    title: "sauce soja density",
+    food: _food(["Sauce soja", "Soy sauce"], "CONDIMENT", "ml", [60, 8, 0.5, 5], ["gramsPerMl"]),
+    check: _within("gramsPerMl", 1.1, 1.25, "soy sauce is denser than water, about 1.15"),
+  },
+
+  // Weights with no answer.
+  {
+    title: "côte de porc density",
+    food: _food(["Côte de porc", "Pork chop"], "MEAT", "pcs", [200, 19, 14, 0], ["gramsPerMl"]),
+    check: _refuses("gramsPerMl", "nobody measures a pork chop in ml"),
+  },
+  {
+    title: "semoule piece",
+    food: _food(["Semoule de blé", "Semolina"], "GRAIN", "g", [360, 12, 1.5, 72], ["gramsPerPiece"]),
+    check: _refuses("gramsPerPiece", "semolina has no piece"),
+  },
+
+  // Weights a cook does measure, however unlike the prompt's examples: refusing them is the error.
+  {
+    title: "sucre en poudre density",
+    food: _food(["Sucre en poudre", "Caster sugar"], "SWEETENER", "g", [400, 0, 0, 100], ["gramsPerMl"]),
+    check: _within("gramsPerMl", 0.7, 0.95, "sugar is spooned and measured in cups, about 0.85"),
+  },
+  {
+    title: "ananas slice",
+    food: _food(["Ananas", "Pineapple"], "FRUIT", "pcs", [50, 0.5, 0.1, 12], ["gramsPerSlice"]),
+    check: _within("gramsPerSlice", 50, 120, "a round of pineapple is about 80 g"),
+  },
+
+  // Nutrients, where the risk is the unit: sodium in mg, not salt, not grams.
+  {
+    title: "feta sodium",
+    food: _food(["Feta", "Feta"], "DAIRY", "g", [265, 14, 21, 1.5], ["sodium"]),
+    check: _within("sodium", 800, 1400, "feta holds about 1100 mg of sodium; 2.8 is its salt in grams"),
+  },
+  {
+    title: "lentilles iron",
+    food: _food(["Lentilles vertes crues", "Raw green lentils"], "LEGUME", "g", [330, 24, 1.5, 48], ["iron"]),
+    check: _within("iron", 5, 10, "raw lentils hold about 7 mg of iron"),
+  },
+  {
+    title: "miel sugars",
+    food: _food(["Miel", "Honey"], "SWEETENER", "g", [320, 0.4, 0, 82], ["sugars"]),
+    check: _within("sugars", 70, 82, "nearly all of honey's 82 g of carbohydrates is sugar, and never more"),
+  },
+
+  // A whole repair, as a save asks it: a weight and the four score nutrients at once.
+  {
+    title: "avocat mixed",
+    food: _food(
+      ["Avocat", "Avocado"],
+      "FRUIT",
+      "pcs",
+      [160, 2, 15, 1.9],
+      ["gramsPerPiece", "saturatedFat", "sugars", "fiber", "sodium"],
+    ),
+    check: _all(
+      _within("gramsPerPiece", 150, 250, "one avocado is about 200 g"),
+      _within("saturatedFat", 1.5, 3.5, "about 2 g of an avocado's 15 g of fat is saturated"),
+      _within("sugars", 0, 1.9, "avocado has under 1 g of sugars, and never more than its 1.9 g of carbohydrates"),
+      _within("fiber", 4, 8, "avocado holds about 6.7 g of fiber"),
+      _within("sodium", 0, 20, "avocado holds about 7 mg of sodium"),
+    ),
+  },
+];
+
 describe("repairIngredient · live", () => {
-  it("fills a slice of ham", { timeout: 300_000 }, async () => {
-    const result = await bench("repairIngredient · jambon slice", _food("Jambon blanc", "Ham", "MEAT", ["gramsPerSlice"]), ({ fields, refused }) => [
-      ...(refused.length ? [`refused ${refused.join(", ")} — ham is sold sliced`] : []),
-      ...(fields.gramsPerSlice === undefined || fields.gramsPerSlice < 15 || fields.gramsPerSlice > 80
-        ? [`gramsPerSlice ${fields.gramsPerSlice} — a slice of ham is 25–50 g`]
-        : []),
-    ]);
+  it.each(CASES)("$title", { timeout: 300_000 }, async ({ title, food, check }) => {
+    const schema = repairIngredientSchema(food.missing);
 
+    const result = await runBakeOff({
+      title: `repairIngredient · ${title}`,
+      candidates: CANDIDATES,
+      system: REPAIR_INGREDIENT_PROMPT,
+      prompt: repairIngredientUserPrompt(food),
+      answer: {
+        schema,
+        parse: (raw) => toRepairOutput(food.missing, parseModelOutput(schema, raw) as Parameters<typeof toRepairOutput>[1]),
+        check,
+      },
+      criteria: ["Is each figure a true typical value for this raw food, in its unit, and is each refusal a weight nobody measures?"],
+      runs: 3,
+    });
+
+    // `clean`, not `ok` alone: a flagged run still counts as `ok`. The sibling bake-offs compare a
+    // field of models and leave a fully flagged one to be read; this file scores the one model that
+    // ships, so a case it fails on every run is the shipped prompt's regression, and must be red.
     expect(result.ok).toBeGreaterThan(0);
-  });
-
-  it("refuses the density of chicken", { timeout: 300_000 }, async () => {
-    const result = await bench("repairIngredient · poulet density", _food("Blanc de poulet", "Chicken breast", "MEAT", ["gramsPerMl"]), ({ fields, refused }) => [
-      ...(refused.includes("gramsPerMl") ? [] : [`gramsPerMl ${fields.gramsPerMl} — nobody measures chicken in ml`]),
-    ]);
-
-    expect(result.ok).toBeGreaterThan(0);
+    expect(result.clean).toBeGreaterThan(0);
   });
 });
