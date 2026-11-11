@@ -1,6 +1,6 @@
 import { internal } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { repairIngredient as repairIngredientTool } from "@convex/agent/tools/repairIngredient";
+import { repairIngredient as repairIngredientTool, type RepairIngredientInput } from "@convex/agent/tools/repairIngredient";
 import type { TracedActionCtx } from "@convex/procedures";
 import type { IngredientPatch, RatioField, RepairableField } from "@convex/schema/ingredientPayloads";
 import { clampNutrientParts } from "@shared/nutrition";
@@ -43,11 +43,28 @@ const _consistent = (
   };
 };
 
+/** Lines shown per unit: enough for "30 pcs" to read as cubes, short enough for a row fifty recipes use. */
+const USES_PER_UNIT = 3;
+
+type IngredientUse = NonNullable<RepairIngredientInput["uses"]>[number];
+
+/**
+ * The lines the model is shown: the first few in each unit, so a unit only one recipe writes is
+ * never crowded out by the forty that write another.
+ */
+const _shownUses = (uses: IngredientUse[]): IngredientUse[] => {
+  const shown = new Map<string, IngredientUse[]>();
+  for (const use of uses) {
+    const inUnit = shown.get(use.unit) ?? [];
+    if (inUnit.length < USES_PER_UNIT) shown.set(use.unit, [...inUnit, use]);
+  }
+
+  return [...shown.values()].flat();
+};
+
 type RepairArgs = {
   ingredientId: Id<"ingredients">;
   missing: RepairableField[];
-  /** The recipe that asked, shown to the model as context. */
-  recipeTitle?: string;
 };
 
 type RepairResult = {
@@ -63,7 +80,8 @@ type RepairResult = {
  *
  * 1. The row is read again, and only the fields still missing are asked: another job may have
  *    filled them since the save. Nothing left → no call, and no `repairedAt`.
- * 2. One structured call, its schema built from the fields asked.
+ * 2. One structured call, its schema built from the fields asked, shown how live recipes write the
+ *    row: "1 pcs" of yogurt is a pot only to a model that sees the line.
  * 3. The consistency check: sugars and saturated fat lowered to the row's carbohydrates and fat.
  * 4. The patch, which writes only fields still unset, stamped `repaired` whatever it wrote.
  *
@@ -79,7 +97,7 @@ type RepairResult = {
  */
 export const repairIngredient = async (
   ctx: TracedActionCtx,
-  { ingredientId, missing, recipeTitle }: RepairArgs,
+  { ingredientId, missing }: RepairArgs,
 ): Promise<RepairResult> => {
   const row = await ctx.runQuery(internal.router.ingredients.getIngredient._internal, { ingredientId });
   if (!row) return { refused: [], contradicted: [] };
@@ -87,9 +105,10 @@ export const repairIngredient = async (
   const asked = stillMissing(row, missing);
   if (!asked.length) return { refused: [], contradicted: [] };
 
+  const uses = await ctx.runQuery(internal.router.ingredients.getUses._internal, { ingredientId });
   const { fields, refused } = await repairIngredientTool.run(ctx, {
     names: _namesOf(row),
-    recipeTitle,
+    uses: _shownUses(uses),
     category: row.category,
     defaultUnit: row.defaultUnit,
     nutrition: row.nutrition,

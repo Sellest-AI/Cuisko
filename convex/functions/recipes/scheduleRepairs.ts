@@ -12,11 +12,6 @@ import type { WeighableLine } from "./recipeNutrition";
  */
 export const MAX_REPAIRS = 30;
 
-type ScheduleRepairsOptions = {
-  /** The recipe that asked, shown to the model as context. */
-  recipeTitle?: string;
-};
-
 /**
  * One repair job per catalog row these lines cannot yet weigh or score, scheduled from the save's
  * own mutation.
@@ -25,13 +20,13 @@ type ScheduleRepairsOptions = {
  * its own. A recipe missing a line hands none — it can never show a score, so a repair buys it
  * nothing. A row written in two units is one job asking for both units' weights.
  *
- * The job carries no recipeId: what it fills belongs to the row, and `patchIngredient` refreshes
- * every recipe that uses it.
+ * The job carries no recipeId and no title: what it fills belongs to the row, `patchIngredient`
+ * refreshes every recipe that uses it, and the repair reads the lines of every one of them itself
+ * (`router/ingredients/getUses`) — this recipe's included, since the job runs after the save commits.
  */
 export const scheduleRepairs = async (
   ctx: TracedMutationCtx,
   lines: WeighableLine[],
-  { recipeTitle }: ScheduleRepairsOptions = {},
 ): Promise<void> => {
   const rows = new Map<Id<"ingredients">, { row: Doc<"ingredients">; units: RecipeUnit[] }>();
   for (const { ingredient, unit } of lines) {
@@ -44,7 +39,6 @@ export const scheduleRepairs = async (
     .map(({ row, units }) => ({
       ingredientId: row._id,
       missing: missingFields(row, units),
-      recipeTitle,
     }))
     .filter(({ missing }) => missing.length > 0)
     .slice(0, MAX_REPAIRS);

@@ -21,7 +21,6 @@ export const _internal = internalAction({
   args: {
     ingredientId: v.id("ingredients"),
     missing: v.array(vRepairableField),
-    recipeTitle: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<void> => {
     const { refused, contradicted } = await repairIngredient(ctx, args);

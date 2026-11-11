@@ -8,7 +8,7 @@ import {
 } from "@convex/schema/ingredientPayloads";
 import { CATEGORIES } from "@shared/categories";
 import { retryPromise } from "@shared/helpers";
-import { UNITS } from "@shared/ingredients";
+import { RECIPE_UNITS, UNITS } from "@shared/ingredients";
 import { SUPPORTED_LOCALES, type Locale } from "@shared/translations";
 
 import { ingredientsAgent } from "../agents";
@@ -16,7 +16,6 @@ import { REPAIR_INGREDIENT_PROMPT } from "../config/prompts/repairIngredient";
 import { createTool, parseModelOutput, providerSchema, wrapAgent, type TracedToolCtx } from "../utils";
 
 const _inputSchema = z.object({
-  recipeTitle: z.string().optional().describe("The recipe's title, for the trace and the prompt."),
   names: z.object(
     Object.fromEntries(SUPPORTED_LOCALES.map((locale) => [locale, z.string()])) as { [K in Locale]: z.ZodString },
   ).describe("The row's name in every language."),
@@ -24,6 +23,10 @@ const _inputSchema = z.object({
   defaultUnit: z.enum(UNITS).describe("How the food is bought."),
   nutrition: z.record(z.string(), z.number()).describe("What the row already holds, per 100 g."),
   missing: z.array(z.enum(REPAIRABLE_FIELDS)).min(1).describe("The fields to fill, and only these."),
+  uses: z
+    .array(z.object({ quantity: z.number(), unit: z.enum(RECIPE_UNITS), recipeTitle: z.string() }))
+    .optional()
+    .describe("Recipe lines that write the food: what a weight is asked for."),
 });
 
 export type RepairIngredientInput = z.infer<typeof _inputSchema>;
@@ -62,17 +65,18 @@ export const repairIngredientSchema = (missing: readonly RepairableField[]) => {
 
 /** What the call is shown. Exported so the manual test scores the prompt the tool sends. */
 export const repairIngredientUserPrompt = ({
-  recipeTitle,
   names,
   category,
   defaultUnit,
   nutrition,
   missing,
+  uses,
 }: RepairIngredientInput) =>
   [
-    recipeTitle && `The recipe that needs more details from this ingredient is ${recipeTitle}.`,
     `The food: ${JSON.stringify(names)} — category ${category}, bought in ${defaultUnit}.`,
     `What the row already holds, per 100 g: ${JSON.stringify(nutrition)}`,
+    uses?.length &&
+      `How recipes write it: ${uses.map(({ quantity, unit, recipeTitle }) => `${quantity} ${unit} in "${recipeTitle}"`).join("; ")}.`,
     `Fill these fields, and only these: ${missing.join(", ")}.`,
   ]
     .filter(Boolean)

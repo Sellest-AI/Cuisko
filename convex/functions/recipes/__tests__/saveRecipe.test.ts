@@ -113,11 +113,11 @@ const save = (ingredients: SanitizedRecipe["ingredients"], sourceUrl?: string) =
     ...(sourceUrl !== undefined && { sourceUrl }),
   });
 
-/** The repair jobs a save left: the row each repairs, the fields it asks, and the recipe's title. */
+/** The repair jobs a save left: the row each repairs, and the fields it asks. */
 const repairs = async () =>
   (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()))
     .filter(({ name }) => name === "router/ingredients/repairOne:_internal")
-    .map(({ args }) => args[0] as { ingredientId: string; missing: string[]; recipeTitle?: string });
+    .map(({ args }) => args[0] as { ingredientId: string; missing: string[] });
 
 /**
  * `t.run` hands back a ctx over the GENERIC data model, so `withIndex` has no index to name here
@@ -402,7 +402,6 @@ describe("functions/recipes/saveRecipe", () => {
         {
           ingredientId: catalog["oignon"],
           missing: ["gramsPerPiece", "saturatedFat", "sugars", "fiber", "sodium", "iron"],
-          recipeTitle: "Soupe à l'oignon",
         },
       ]);
     });

@@ -822,7 +822,13 @@ The projection is the only place a payload's fields are chosen: a `to<Shape>` fu
 loader's own return when the shape has a single loader (`loadRecipe`). A wider shape extends
 a narrower one (`RecipeDetail = RecipeCard & {…}`); a second projection for a shape is a finding.
 The router picks the loader and passes `viewer`, and never maps fields, except that an internal
-export may add what only the server should see (`getOne._internal` adds `userId` and `sourceUrl`). Never one loader that reads everything and
+export may add what only the server should see (`getOne._internal` adds `userId` and `sourceUrl`).
+An `_internal` query, mutation or action that does one specific job, and is small enough, may hold
+that work in its handler, with no `functions/` file (`ingredients/getUses` drops archived recipes
+and picks the title). It stays there while every caller reaches it through `ctx.runQuery`,
+`ctx.runMutation` or the scheduler, as an action must: a `functions/` file behind it would only
+add a hop. The work moves into a `functions/` file once a caller could call it directly — a query
+or mutation that needs it inside its own transaction — and the router then calls that file too. Never one loader that reads everything and
 projects it down: every row a query reads is billed and re-runs the query when it changes, so the
 loader decides the joins.
 

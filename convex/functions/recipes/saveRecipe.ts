@@ -82,7 +82,7 @@ export const saveRecipe = async (
     names: recipe.ingredients.map((line) => line.name),
   });
 
-  await scheduleRepairs(ctx, lines, { recipeTitle: recipe.title });
+  await scheduleRepairs(ctx, lines);
 
   return recipeId;
 };

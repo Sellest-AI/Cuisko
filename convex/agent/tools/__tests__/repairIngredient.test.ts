@@ -67,10 +67,17 @@ describe("repairIngredientUserPrompt", () => {
     expect(prompt).not.toContain("Measured");
   });
 
-  test("names the recipe when it has one", () => {
-    expect(repairIngredientUserPrompt({ ...HAM, missing: [...HAM.missing], recipeTitle: "Croque-monsieur" })).toContain(
-      "Croque-monsieur",
-    );
+  test("lists how recipes write the food, with each recipe", () => {
+    const prompt = repairIngredientUserPrompt({
+      ...HAM,
+      missing: [...HAM.missing],
+      uses: [
+        { quantity: 2, unit: "slice", recipeTitle: "Croque-monsieur" },
+        { quantity: 150, unit: "g", recipeTitle: "Quiche" },
+      ],
+    });
+
+    expect(prompt).toContain('How recipes write it: 2 slice in "Croque-monsieur"; 150 g in "Quiche".');
   });
 
   test("says nothing of a recipe when it has none", () => {

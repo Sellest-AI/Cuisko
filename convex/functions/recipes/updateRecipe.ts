@@ -193,7 +193,7 @@ export const updateRecipe = async (
 
   // Only an analyzed rewrite can link a row the catalog just bought; the cook's own text carried
   // straight through relinks what was already there, and its repairs were scheduled back then.
-  if (analyzed) await scheduleRepairs(ctx, lines, { recipeTitle: recipe.title });
+  if (analyzed) await scheduleRepairs(ctx, lines);
 
   return recipeId;
 };

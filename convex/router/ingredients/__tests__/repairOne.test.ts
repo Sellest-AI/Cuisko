@@ -32,6 +32,7 @@ beforeAll(() =>
     modules,
     "/convex/router/ingredients/repairOne.",
     "/convex/router/ingredients/getIngredient.",
+    "/convex/router/ingredients/getUses.",
     "/convex/router/ingredients/updateOne.",
     "/convex/router/recipes/refreshUsing.",
   ),
@@ -151,18 +152,28 @@ describe("router/ingredients/repairOne", () => {
     expect(captureException.mock.calls.map(([, args]) => args.distinctId)).toEqual([chicken]);
   });
 
-  test("the recipe's title reaches the tool", async () => {
+  /** "1 pcs" of yogurt is a pot only to a model that sees the line, so the lines reach the tool. */
+  test("the tool sees how live recipes write the row, the newest few lines per unit", async () => {
     const ham = await seedHam();
+    const recipe = (title: string, isArchived = false) =>
+      t.run((ctx) => insertTestRecipe(ctx.db, { title: { values: { fr: title, en: title }, meta: {} }, isArchived }));
+    const line = (recipeId: Id<"recipes">, quantity: number, unit: "slice" | "g") =>
+      t.run((ctx) => ctx.db.insert("recipeIngredients", { recipeId, ingredientId: ham, position: 0, quantity, unit, updatedAt: 1 }));
+    for (const title of ["Croque 1", "Croque 2", "Croque 3", "Croque 4"]) await line(await recipe(title), 2, "slice");
+    await line(await recipe("Quiche"), 150, "g");
+    await line(await recipe("Deleted salad", true), 100, "g");
     toolRun.mockResolvedValue({ fields: { gramsPerSlice: 40 }, refused: [] });
 
-    await t.action(internal.router.ingredients.repairOne._internal, {
-      ingredientId: ham,
-      missing: ["gramsPerSlice"],
-      recipeTitle: "Croque-monsieur",
-      __trace: trace(null),
-    });
+    await repair(ham, ["gramsPerSlice"]);
 
-    expect(toolRun).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ recipeTitle: "Croque-monsieur" }));
+    expect(toolRun.mock.calls[0]?.[1]).toMatchObject({
+      uses: [
+        { quantity: 150, unit: "g", recipeTitle: "Quiche" },
+        { quantity: 2, unit: "slice", recipeTitle: "Croque 4" },
+        { quantity: 2, unit: "slice", recipeTitle: "Croque 3" },
+        { quantity: 2, unit: "slice", recipeTitle: "Croque 2" },
+      ],
+    });
   });
 
   test("nothing refused sends Error tracking nothing", async () => {

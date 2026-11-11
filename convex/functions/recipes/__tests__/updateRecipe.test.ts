@@ -521,17 +521,6 @@ describe("functions/recipes/updateRecipe", () => {
       expect(await repaired()).toEqual([onionId]);
     });
 
-    test("the job carries the title as edited, not the one stored", async () => {
-      const recipeId = await seedRecipe();
-
-      await update(recipeId, [{ name: "oignon", quantity: 3, unit: "pcs" }]);
-
-      const titles = (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()))
-        .filter(({ name }) => name === "router/ingredients/repairOne:_internal")
-        .map(({ args }) => (args[0] as { recipeTitle?: string }).recipeTitle);
-      expect(titles).toEqual(["Soupe à l'oignon, revisitée"]);
-    });
-
     test("the cook's own text, carried through unanalyzed, schedules none", async () => {
       const recipeId = await seedRecipe();
 

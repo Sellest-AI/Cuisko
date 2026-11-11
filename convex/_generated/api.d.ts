@@ -287,6 +287,7 @@ import type * as router_ingredients_exportCatalog from "../router/ingredients/ex
 import type * as router_ingredients_generateImage from "../router/ingredients/generateImage.js";
 import type * as router_ingredients_generateImageNode from "../router/ingredients/generateImageNode.js";
 import type * as router_ingredients_getIngredient from "../router/ingredients/getIngredient.js";
+import type * as router_ingredients_getUses from "../router/ingredients/getUses.js";
 import type * as router_ingredients_list from "../router/ingredients/list.js";
 import type * as router_ingredients_mergeIngredient from "../router/ingredients/mergeIngredient.js";
 import type * as router_ingredients_missingIds from "../router/ingredients/missingIds.js";
@@ -657,6 +658,7 @@ declare const fullApi: ApiFromModules<{
   "router/ingredients/generateImage": typeof router_ingredients_generateImage;
   "router/ingredients/generateImageNode": typeof router_ingredients_generateImageNode;
   "router/ingredients/getIngredient": typeof router_ingredients_getIngredient;
+  "router/ingredients/getUses": typeof router_ingredients_getUses;
   "router/ingredients/list": typeof router_ingredients_list;
   "router/ingredients/mergeIngredient": typeof router_ingredients_mergeIngredient;
   "router/ingredients/missingIds": typeof router_ingredients_missingIds;

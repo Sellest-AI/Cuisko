@@ -17,6 +17,9 @@
  * the density nobody measures; a case built on either scores whether the model can copy its own
  * instructions, which it always can. Each food carries its own typical figures too, because the
  * model reads them as context and a feta shown a ham's macros is a question nobody asks.
+ *
+ * The cases from real recipe lines are not named by the prompt either: it gives a stock cube and
+ * a pot of fromage blanc, they ask for a sugar cube and a pot of yogurt.
  */
 import { describe, expect, it } from "vitest";
 
@@ -44,19 +47,24 @@ type Case = {
   check: Check;
 };
 
-/** A food as a row holds it: both names, a category, how it is bought, and its four macros per 100 g. */
+/**
+ * A food as a row holds it: both names, a category, how it is bought, and its four macros per 100 g.
+ * `uses` are the recipe lines that write it, as the tool is shown them.
+ */
 const _food = (
   [fr, en]: [string, string],
   category: RepairIngredientInput["category"],
   defaultUnit: RepairIngredientInput["defaultUnit"],
   [calories, protein, fat, carbohydrates]: [number, number, number, number],
   missing: RepairableField[],
+  uses?: RepairIngredientInput["uses"],
 ): RepairIngredientInput => ({
   names: { fr, en },
   category,
   defaultUnit,
   nutrition: { calories, protein, fat, carbohydrates },
   missing,
+  ...(uses && { uses }),
 });
 
 /** The field answered, within `[min, max]`, and not refused. `why` is what a wrong answer means. */
@@ -113,6 +121,87 @@ const CASES: Case[] = [
     title: "ananas slice",
     food: _food(["Ananas", "Pineapple"], "FRUIT", "pcs", [50, 0.5, 0.1, 12], ["gramsPerSlice"]),
     check: _within("gramsPerSlice", 50, 120, "a round of pineapple is about 80 g"),
+  },
+
+  // Lines a real import wrote and the source confirms, which the shipped prompt refused: a pot, a
+  // log and a sausage are what a recipe counts, and a chopped food is spooned. Each row is
+  // as the catalog holds it, and each line is the recipe's own.
+  {
+    title: "yaourt nature piece",
+    food: _food(["Yaourt nature", "Plain yogurt"], "DAIRY", "g", [61, 3.5, 3.3, 4.7], ["gramsPerPiece"], [
+      { quantity: 1, unit: "pcs", recipeTitle: "Easy Chicken Korma" },
+    ]),
+    check: _within("gramsPerPiece", 100, 150, "\"1 yaourt\" is one pot, 125 g"),
+  },
+  {
+    title: "fromage de chèvre piece",
+    food: _food(["Fromage de chèvre", "Goat cheese"], "DAIRY", "g", [364, 22, 30, 2.5], ["gramsPerPiece"], [
+      { quantity: 1, unit: "pcs", recipeTitle: "Vegetable Tian with Goat Cheese and Honey" },
+    ]),
+    check: _within("gramsPerPiece", 50, 250, "one goat cheese, a crottin or a log, is 60–200 g"),
+  },
+  {
+    title: "chorizo piece",
+    food: _food(["Chorizo", "Chorizo"], "MEAT", "g", [455, 24, 38, 1.9], ["gramsPerPiece"], [
+      { quantity: 6, unit: "pcs", recipeTitle: "Easy Sausage Casserole" },
+      { quantity: 1, unit: "pcs", recipeTitle: "Mixed Paella" },
+    ]),
+    check: _within("gramsPerPiece", 50, 250, "one chorizo sausage is 65–225 g"),
+  },
+  {
+    title: "oignon density",
+    food: _food(["Oignon", "Onion"], "VEGETABLE", "pcs", [40, 1.1, 0.1, 9.3], ["gramsPerMl"], [
+      { quantity: 1, unit: "tbsp", recipeTitle: "Steak Tartare" },
+      { quantity: 2, unit: "pcs", recipeTitle: "Soupe à l'oignon" },
+    ]),
+    check: _within("gramsPerMl", 0.4, 0.8, "a tablespoon of chopped onion is about 10 g"),
+  },
+  {
+    title: "ananas density",
+    food: _food(["Ananas", "Pineapple"], "FRUIT", "pcs", [50, 0.5, 0.1, 13], ["gramsPerMl"], [
+      { quantity: 2, unit: "tbsp", recipeTitle: "Beef bulgogi stir-fry" },
+    ]),
+    check: _within("gramsPerMl", 0.5, 0.9, "chopped pineapple is spooned, about 0.7 g per ml"),
+  },
+
+  // Lines a real import linked to the wrong row. No answer is right, and the refusal is what flags
+  // the line: a number here would weigh "4 tsp of fish fillet" as if it meant something.
+  {
+    title: "filet de poisson by the spoon",
+    food: _food(["Filet de poisson", "Fish fillet"], "SEAFOOD", "pcs", [77.6, 18.1, 0.57, 0], ["gramsPerMl"], [
+      { quantity: 4, unit: "tsp", recipeTitle: "Seafood Risotto" },
+    ]),
+    check: _refuses("gramsPerMl", "a fish fillet is never spooned; the line meant fish stock"),
+  },
+  {
+    title: "frites by the spoon",
+    food: _food(["Frites", "French fries"], "VEGETABLE", "g", [312, 3.4, 15, 41], ["gramsPerMl"], [
+      { quantity: 3.5, unit: "tsp", recipeTitle: "General Tso's chicken" },
+    ]),
+    check: _refuses("gramsPerMl", "fries are never spooned; the line meant potato flour"),
+  },
+  {
+    title: "sucre blanc piece",
+    food: _food(["Sucre blanc", "White sugar"], "SWEETENER", "g", [387, 0, 0, 100], ["gramsPerPiece"], [
+      { quantity: 30, unit: "pcs", recipeTitle: "Vietnamese Caramel Pork" },
+      { quantity: 1, unit: "tbsp", recipeTitle: "Crêpes" },
+    ]),
+    check: _refuses("gramsPerPiece", "white sugar is sold loose; 30 pieces are sugar cubes, another row"),
+  },
+  {
+    title: "sauce chili douce piece",
+    food: _food(["Sauce chili douce", "Sweet chilli sauce"], "CONDIMENT", "ml", [188, 0.5, 0.2, 46], ["gramsPerPiece"], [
+      { quantity: 1, unit: "pcs", recipeTitle: "Garlic Shrimp" },
+    ]),
+    check: _refuses("gramsPerPiece", "a sauce has no piece, and no recipe uses a whole bottle"),
+  },
+  {
+    title: "cube de bouillon d'agneau density",
+    food: _food(["Cube de bouillon d'agneau", "Lamb stock cube"], "OTHER", "pcs", [250, 10, 15, 20], ["gramsPerMl"], [
+      { quantity: 300, unit: "ml", recipeTitle: "Goat curry" },
+      { quantity: 3, unit: "l", recipeTitle: "Scotch broth" },
+    ]),
+    check: _refuses("gramsPerMl", "a cube is not poured; 300 ml is the stock made from it"),
   },
 
   // Nutrients, where the risk is the unit: sodium in mg, not salt, not grams.

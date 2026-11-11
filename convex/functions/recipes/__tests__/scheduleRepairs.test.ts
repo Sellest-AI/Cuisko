@@ -43,7 +43,7 @@ const TRACE = { traceId: "trace-1", operation: "recipes/createOne" as const, dis
  * Runs it with the traced ctx a persist hands it, over a `db` that throws on any use: the save
  * already loaded these rows, and a read here would pay for them twice.
  */
-const schedule = (lines: WeighableLine[], options?: { recipeTitle?: string }) =>
+const schedule = (lines: WeighableLine[]) =>
   t.run((ctx) => {
     const noDb = new Proxy({}, { get: () => { throw new Error("scheduleRepairs read the database"); } });
     const traced = {
@@ -55,7 +55,7 @@ const schedule = (lines: WeighableLine[], options?: { recipeTitle?: string }) =>
         ctx.scheduler.runAfter(delayMs, ref, { ...args, __trace: TRACE } as never),
     } as unknown as TracedMutationCtx;
 
-    return scheduleRepairs(traced, lines, options);
+    return scheduleRepairs(traced, lines);
   });
 
 const jobs = () =>
@@ -98,15 +98,6 @@ describe("functions/recipes/scheduleRepairs", () => {
         name: "router/ingredients/repairOne:_internal",
         args: { ingredientId: "ham", missing: ["gramsPerSlice"], __trace: TRACE },
       },
-    ]);
-  });
-
-  test("every job carries the recipe's title, for the repair's prompt", async () => {
-    await schedule([line(ham("ham"), "slice"), line(ham("bread"), "slice")], { recipeTitle: "Croque-monsieur" });
-
-    expect((await jobs()).map(({ args }) => (args as { recipeTitle?: string }).recipeTitle)).toEqual([
-      "Croque-monsieur",
-      "Croque-monsieur",
     ]);
   });
 
