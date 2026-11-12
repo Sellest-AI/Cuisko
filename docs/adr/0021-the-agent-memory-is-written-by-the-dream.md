@@ -42,7 +42,10 @@ MUST NOT: delete a memory as unused before `UNUSED_AFTER_SESSIONS` (in
           reading it. Staleness is counted in sessions, never in days, so a repo nobody works on
           ages nothing. A memory whose subject is gone may go sooner; the owner judges its reason.
 MUST: refuse a branch push while a finished Claude session on it is unread by a dream.
-      `MEMORY_SKIP=1 git push` is the owner's escape, for one push. A clone whose memory is still
+      `MEMORY_SKIP=1 git push` is the owner's escape, for one push. Claude sessions push with it
+      always set (`.claude/settings.json`): a session pushing is itself a session not yet read, so
+      the hook would refuse every push it makes. @limitation until the CI `memory` check exists,
+      nothing re-checks those pushes. A clone whose memory is still
       encrypted (no key) cannot dream: its push passes, with a warning that the dream is skipped.
 MUST NOT: set `cleanupPeriodDays` to 0. Setup refuses it: transcripts the dream has not read
           would be lost.
