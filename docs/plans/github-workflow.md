@@ -667,6 +667,7 @@ script), `pre-push.test.ts` (the message names `pr:push`), `update.test.ts` (the
 | The owner clicks Create twice | the first run deletes the draft; the second finds no file | one issue | — (the CLI) |
 | A PR names a closed or missing issue | `issue` red, naming it | the red check | `pullRequest.test.ts` + the CLI's error |
 | A PR names an issue a stranger opened | `issue` red: its author is not `OWNER` or `MEMBER` | the red check; the owner opens their own issue | `pullRequest.test.ts` |
+| A member's organization membership is private | GitHub reports them as `CONTRIBUTOR`; `issue` red on their issues | "opened by someone outside the project"; they make their membership public (docs/external/github.md) | slice 3's run |
 | A hotfix or a failed fast-forward leaves `dev` without `main`'s tip | the bot opens the `sync/main-<date>` PR | a PR into `dev` to merge with "Create a merge commit" | `pullRequest.test.ts` (the skips) + the skill |
 | The fold PR falls behind `dev` | nobody runs `pr:push` on it | "branch out of date"; rerun "Memory usage fold" from the Actions tab: it rebuilds the branch from `dev` and force-updates it | — (workflow config) |
 | Two sessions run `pr:push` at once | the second's dream finds the dream lock (shared by every worktree) and stops, nothing pushed; a pending dream of another branch stops it too, naming that branch | the dream's message; the agent waits for the other run's notice, then reruns | update tests (existing) |

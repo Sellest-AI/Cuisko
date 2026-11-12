@@ -17,8 +17,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, wri
 import path from "node:path";
 
 import { readLocalEnv } from "../../_lib/localEnv.mjs";
-
-const API = "https://api.github.com";
+import { GitHubApiError, githubRequest } from "./githubApi.mjs";
 /** A token closer than this to its end is treated as expired: a push may outlive the check. */
 const MARGIN_MS = 5 * 60 * 1000;
 const APP_ID = "SELLEST_AGENT_APP_ID";
@@ -87,16 +86,14 @@ const _writeCache = (file, { appId, repo, value }) => {
   }
 };
 
-const _call = async (fetchImpl, url, init, what) => {
-  const response = await fetchImpl(url, {
-    ...init,
-    headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "cuisko-scripts", ...init.headers },
-  });
-  if (!response.ok) {
-    const body = await response.text();
-    throw new AppTokenError(`${what}: GitHub answered ${response.status}${body ? ` (${body.slice(0, 200)})` : ""}`);
+/** A refused request is a reason for no token, printed like the others. */
+const _call = async (route, options) => {
+  try {
+    return await githubRequest(route, options);
+  } catch (error) {
+    if (error instanceof GitHubApiError) throw new AppTokenError(error.message);
+    throw error;
   }
-  return response.json();
 };
 
 /**
@@ -124,14 +121,13 @@ export const installationToken = async ({ root, mainRoot, repo, now, fetch: fetc
     throw new AppTokenError(`${PRIVATE_KEY} in .env.local cannot sign: ${error.message}`);
   }
 
-  const auth = { Authorization: `Bearer ${jwt}` };
-  const installation = await _call(fetchImpl, `${API}/repos/${repo}/installation`, { headers: auth }, `finding the App's installation on ${repo}`);
-  const access = await _call(
-    fetchImpl,
-    `${API}/app/installations/${installation.id}/access_tokens`,
-    { method: "POST", headers: auth },
-    "creating an installation token",
-  );
+  const installation = await _call(`/repos/${repo}/installation`, { token: jwt, fetch: fetchImpl, what: `finding the App's installation on ${repo}` });
+  const access = await _call(`/app/installations/${installation.id}/access_tokens`, {
+    token: jwt,
+    fetch: fetchImpl,
+    method: "POST",
+    what: "creating an installation token",
+  });
   const value = { token: access.token, expiresAt: new Date(access.expires_at) };
   if (typeof value.token !== "string" || Number.isNaN(value.expiresAt.getTime())) {
     throw new AppTokenError(`creating an installation token: GitHub's reply has no token or expiry (${JSON.stringify(access).slice(0, 200)})`);
