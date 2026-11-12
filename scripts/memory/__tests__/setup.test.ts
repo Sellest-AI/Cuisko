@@ -233,7 +233,7 @@ describe("setup --auto: never fails the install", () => {
     fakeConfigured(repo);
     const settings = JSON.parse(REAL_SETTINGS);
     settings.autoMemoryEnabled = true;
-    settings.permissions.deny = ["Edit(/.claude/memory/index.md)"];
+    settings.permissions.deny = ["Edit(/.claude/memory/memories/**)"];
     settings.hooks.SessionStart = settings.hooks.SessionStart.filter(
       (entry: { matcher?: string }) => entry.matcher === undefined,
     );
@@ -242,8 +242,8 @@ describe("setup --auto: never fails the install", () => {
       code: 0,
       output: [
         "memory: .claude/settings.json lacks autoMemoryEnabled: false, " +
-          "the deny rule Edit(/.claude/memory/usage.json), " +
-          "the deny rule Edit(/.claude/memory/memories/**), " +
+          "the deny rule Edit(/.claude/memory/usage/**), " +
+          "the deny rule Edit(/.claude/memory/.built/**), " +
           "a SessionStart entry (matcher startup|resume|clear|compact) running session-start-memory.mjs",
       ],
     });
@@ -326,7 +326,7 @@ describe("setup by hand: loud", () => {
 
 describe.skipIf(REAL_TRANSCRYPT === undefined)("setup with a real transcrypt", () => {
   const withTranscrypt = () => ({ PATH: [GIT_DIR, path.dirname(REAL_TRANSCRYPT!)].join(path.delimiter) });
-  const MEMORY_FILE = ".claude/memory/memories/probe.md";
+  const MEMORY_FILE = ".claude/memory/memories/probe/probe-fact-a1b2.md";
 
   /** A repo whose .gitattributes encrypts the memory files, as this repository's does. */
   const makeMemoryRepo = () => {
@@ -345,7 +345,7 @@ describe.skipIf(REAL_TRANSCRYPT === undefined)("setup with a real transcrypt", (
       writeFileSync(path.join(repo, "unrelated.txt"), "work in progress\n"); // a dirty tree
       git(repo, "add", "unrelated.txt");
       // An untracked memory file: transcrypt's re-checkout never touches it, so it must not block.
-      mkdirSync(path.join(repo, ".claude", "memory", "memories"), { recursive: true });
+      mkdirSync(path.dirname(path.join(repo, MEMORY_FILE)), { recursive: true });
       writeFileSync(path.join(repo, ".claude", "memory", "memories", "early.md"), "drafted before setup\n");
 
       const first = runSetup(repo, { env: withTranscrypt() });
@@ -355,7 +355,7 @@ describe.skipIf(REAL_TRANSCRYPT === undefined)("setup with a real transcrypt", (
       });
       expect(existsSync(path.join(repo, ".githooks"))).toBe(false);
 
-      mkdirSync(path.join(repo, ".claude", "memory", "memories"), { recursive: true });
+      mkdirSync(path.dirname(path.join(repo, MEMORY_FILE)), { recursive: true });
       writeFileSync(path.join(repo, MEMORY_FILE), "a fact\n");
       git(repo, "add", MEMORY_FILE);
       expect(git(repo, "show", `:${MEMORY_FILE}`)).toMatch(/^U2FsdGVkX1/);
@@ -369,7 +369,7 @@ describe.skipIf(REAL_TRANSCRYPT === undefined)("setup with a real transcrypt", (
     "refuses when a tracked memory file has uncommitted changes",
     () => {
       const repo = makeMemoryRepo();
-      mkdirSync(path.join(repo, ".claude", "memory", "memories"), { recursive: true });
+      mkdirSync(path.dirname(path.join(repo, MEMORY_FILE)), { recursive: true });
       // Committed as ciphertext, the way a clone without the key receives it.
       writeFileSync(path.join(repo, MEMORY_FILE), "U2FsdGVkX1+committed\n");
       git(repo, "add", MEMORY_FILE);

@@ -16,11 +16,11 @@
  * Any other failure blocks too, with MEMORY_SKIP named: the worst case is a postponed review,
  * never a silent one.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { gitOrNull, mainRoot } from "./_lib/git.mjs";
-import { isEncrypted } from "./_lib/memoryFiles.mjs";
+import { isEncrypted, readFacts } from "./_lib/memoryFiles.mjs";
 import { readStamps, StampsError, stampsPath } from "./_lib/stamps.mjs";
 import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
 
@@ -28,16 +28,17 @@ const ZERO_SHA = /^0+$/;
 const UPDATE_COMMAND = "pnpm memory:update";
 const SETUP_COMMAND = "pnpm memory:setup";
 const SKIP_HINT = "(If the dream cannot run: MEMORY_SKIP=1 git push)";
-const INDEX = path.join(".claude", "memory", "index.md");
+const MEMORY_DIR = path.join(".claude", "memory");
 
 /**
- * True when this clone holds the memory as transcrypt ciphertext (no key: a contributor, a fresh
+ * True when this clone holds the facts as transcrypt ciphertext (no key: a contributor, a fresh
  * clone). The dream cannot run there, so blocking would only force MEMORY_SKIP on every push.
- * A missing index (a branch older than the memory) is not encrypted: the usual check runs.
+ * `usage/` is never encrypted and says nothing. No fact (a branch older than the memory) is not
+ * encrypted: the usual check runs.
  */
 const _memoryEncrypted = () => {
-  const index = path.join(gitOrNull("rev-parse", "--show-toplevel") ?? process.cwd(), INDEX);
-  return existsSync(index) && isEncrypted(readFileSync(index, "utf8"));
+  const { facts } = readFacts(path.join(gitOrNull("rev-parse", "--show-toplevel") ?? process.cwd(), MEMORY_DIR));
+  return facts.some((fact) => isEncrypted(fact.text));
 };
 
 /** The branch pushes git announced. `HEAD:dev` arrives with `HEAD` as the local ref: the remote one names the branch then. */
