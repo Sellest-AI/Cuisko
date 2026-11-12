@@ -333,7 +333,7 @@ in the fix commit's body (it survives the rebase merge into `dev`, then the merg
 The owner creates every issue, two ways:
 
 - **On GitHub** (web, mobile): the issue forms (§3 "Forms").
-- **From a session:** the agent writes a draft to `.tmp/issues/<slug>.md`. The mod `issues@cuisko`
+- **From a session:** the agent writes a draft to `.tmp/issues/<slug>.md`. The mod `issues@sellest`
   draws a card for it with two buttons. **Create issue** runs `issue:create` on the file: it runs
   plain `gh issue create` with the draft's title, body and labels, with `GH_TOKEN`, `GH_CONFIG_DIR`
   and every `GIT_CONFIG_*` removed from its env, so `gh` uses the owner's login. It refuses when
@@ -427,14 +427,15 @@ Kept as code in `.github/labels.json` (JSON: no YAML parser to add), applied by 
 + scripts/github/__tests__/…                       appToken, pullRequest, prFile, issueDraft, labels, pr-push
 + scripts/memory/__tests__/memorySummary.test.ts
 + scripts/_lib/__tests__/localEnv.test.ts
-+ .claude-plugin/marketplace.json                  marketplace "cuisko", lists ./.claude/plugins/issues
++ .claude-plugin/marketplace.json                  marketplace "sellest", lists ./.claude/plugins/issues
 + .claude/plugins/issues/.claude-plugin/plugin.json
-+ .claude/plugins/issues/hooks/index.ts            the band, its two buttons
++ .claude/plugins/issues/hooks/register.tsx        the band, its two buttons (hooks.json names it)
++ .claude/plugins/issues/types/index.d.ts          the mod's $.state contract
 + .claude/plugins/issues/README.md                 what it does, the Claude Code version tested
 + .claude/skills/working-issues/SKILL.md           an issue's path, the PR file, the release, the hotfix
 + docs/external/github.md                          the App, its key in .env.local, the code owner, the rulesets
 + docs/adr/0022-changes-reach-dev-and-main-by-pull-request.md
-○ .claude/settings.json                            the env block; deny rules; the cuisko marketplace + issues@cuisko enabled
+○ .claude/settings.json                            the env block; deny rules; the sellest marketplace + issues@sellest enabled
 ○ .env.example                                     SELLEST_AGENT_APP_ID, SELLEST_AGENT_PRIVATE_KEY
 ○ package.json                                     gh:bot, pr:push, issue:create, github:labels; push:dev removed
 - scripts/memory/push-dev.mjs                      replaced by pr:push; its test goes with it
@@ -723,7 +724,7 @@ app.
       session") → a session runs `pr:push` in the background, to the end, with a real dream: a
       branch goes from local commits to an open PR with its Memory section. The live lease run is
       slice 8's second merge (nothing moved `dev` during this slice); `pr-push.test.ts` covers it
-- [ ] 6. `issueDraft`, `issue:create` and its test, then the mod → a draft in `.tmp/issues/` shows a
+- [x] 6. `issueDraft`, `issue:create` and its test, then the mod → a draft in `.tmp/issues/` shows a
       card; Create issue creates it as the owner
 - [ ] 7. `working-issues` skill, `committing` updated, AGENTS.md, ARCHITECTURE.md, deployments.md,
       ADR 0022 and the ADR 0021 amendment, the deny rules, `dependabot.yml` → a real issue goes

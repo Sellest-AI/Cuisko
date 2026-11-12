@@ -40,6 +40,9 @@ module.exports = defineConfig([
       // Worktrees other sessions open inside the repo (git-excluded via .git/info/exclude); each
       // carries its own convex/_generated, which would otherwise fail the hook for everyone.
       ".claude/worktrees/**",
+      // Claude Code mods: their JSX compiles against the engine's `h`, not React, and they import
+      // the engine's `claude-code` module, which no package provides.
+      ".claude/plugins/**",
       // Scratch space for repo scripts (gitignored): a dream's working copy of the memory.
       ".tmp/**",
     ],
