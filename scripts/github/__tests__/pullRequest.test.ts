@@ -9,7 +9,7 @@ import * as lib from "../_lib/pullRequest.mjs";
 
 type Verdict = { ok: true } | { ok: false; reason: string };
 type Pr = { author: string; headRef: string; headRepo: string; baseRepo: string };
-type Issue = { number: number; state: string; authorAssociation: string; pullRequest: boolean };
+type Issue = { number: number; state: string; pullRequest: boolean };
 type Commit = { sha: string; message: string; parents: string[] };
 /** `pullRequest.mjs` is plain JavaScript; the contract is restated here so a drift stops compiling. */
 const { linkedIssues, isSkipped, issueVerdict, memoryVerdict, prFromEnv } = lib as unknown as {
@@ -88,16 +88,10 @@ describe("isSkipped", () => {
 });
 
 describe("issueVerdict", () => {
-  const issue = (extra: Partial<Issue> = {}): Issue => ({ number: 12, state: "open", authorAssociation: "OWNER", pullRequest: false, ...extra });
+  const issue = (extra: Partial<Issue> = {}): Issue => ({ number: 12, state: "open", pullRequest: false, ...extra });
 
-  it("accepts an open issue the owner or a member opened", () => {
+  it("accepts an open issue, whoever opened it", () => {
     expect(issueVerdict(issue())).toEqual({ ok: true });
-    expect(issueVerdict(issue({ authorAssociation: "MEMBER" }))).toEqual({ ok: true });
-  });
-
-  it("refuses an issue a stranger or a contributor opened", () => {
-    expect(issueVerdict(issue({ authorAssociation: "NONE" })).ok).toBe(false);
-    expect(issueVerdict(issue({ authorAssociation: "CONTRIBUTOR" })).ok).toBe(false);
   });
 
   it("refuses a closed issue, a missing one and a pull request", () => {

@@ -127,11 +127,15 @@ const correctionPrompt = ({ instruction, diff, passages, today, folder }) =>
     "",
   ].join("\n");
 
-const reviewerPrompt = ({ diff, plan, candidates, passages, writerReplies, folder }) =>
+/** Told to the reviewer of an --auto dream, where no owner reads the flags before the commit. */
+const NON_INTERACTIVE = "The terminal is non-interactive: fix as many flags as you can; everything you leave flagged is dropped.";
+
+const reviewerPrompt = ({ diff, plan, candidates, passages, writerReplies, folder, interactive }) =>
   [
     "Review the memory changes in this diff against their sources, and fix, trim or remove what you flag.",
     `You may edit the facts this diff creates or changes, in ${folder}. Create no file, rename none, and touch no other. To drop a fact this diff creates, name it in \`drop\`.`,
     `In \`notes\`, give one line per fact this dream creates, changes or deletes, as it stands after your fixes: what a session now learns from it, or what changed and why, at most ${NOTE_LENGTH} characters.`,
+    ...(interactive ? [] : [NON_INTERACTIVE]),
     "",
     "<diff>",
     diff,
@@ -248,7 +252,7 @@ const _usageOf = (dir, topics, today) => {
  * writable }`), `check()` runs C20 on the copy and returns `{ ok, output }`, `diff()` returns the
  * diff the reviewer reads. Returns what update.mjs shows the owner.
  */
-export const dream = async ({ lines, copy, context, run, check, diff, today, inputsDir, progress = () => {}, inlineLimit = INLINE_LIMIT, parallel = PARALLEL }) => {
+export const dream = async ({ lines, copy, context, run, check, diff, today, inputsDir, progress = () => {}, interactive = true, inlineLimit = INLINE_LIMIT, parallel = PARALLEL }) => {
   const conversations = [...Map.groupBy(lines, (line) => line.sessionId)]
     .map(([sessionId, own]) => ({ sessionId, own, ...condense(own, context) }))
     .filter((conversation) => conversation.text !== "");
@@ -328,7 +332,7 @@ export const dream = async ({ lines, copy, context, run, check, diff, today, inp
   const review = await run({
     agent: "dream-reviewer",
     name: "reviewer",
-    prompt: reviewerPrompt({ diff: await diff(), plan, candidates, passages, writerReplies, folder }),
+    prompt: reviewerPrompt({ diff: await diff(), plan, candidates, passages, writerReplies, folder, interactive }),
     schema: reviewerReply,
     writable: [path.join(folder, "**")],
   });

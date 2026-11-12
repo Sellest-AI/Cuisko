@@ -29,9 +29,8 @@ merging one would ship to production without passing through `dev`.
 - `git push origin dev` and `git push origin main` are refused by GitHub, for every account.
 - A PR into `dev` cannot be merged while `verify`, `issue` or `memory` is red, or without the
   owner's approval. The same holds on `main` for `verify` and the approval.
-- Every issue a PR fixes was opened by the owner: the `issue` check refuses an issue whose
-  `author_association` is not `OWNER` or `MEMBER` (anyone may open an issue on a public repo).
-  Every comment, branch, commit and PR an agent makes is authored by `sellest-agent[bot]`.
+- Every PR fixes an open issue, whoever opened it: the owner decides which issue an agent works
+  on, and reads a stranger's issue before giving it to one. Every comment, branch, commit and PR an agent makes is authored by `sellest-agent[bot]`.
 - Nothing is committed on `dev` by hand or by an agent: the memory reaches `dev` inside a PR.
 - A release is one PR, `dev → main`, whose body lists the issues it closes; those issues close when
   it merges.
@@ -314,7 +313,7 @@ into `dev`. Two jobs, each a thin call into a tested script. It only reads, so a
 
 | Job | Passes when | Skips (passes) when |
 | --- | --- | --- |
-| `issue` | the PR body names at least one issue with `Fixes`, `Closes` or `Resolves #N`, and each named issue exists, is open, and has `author_association` `OWNER` or `MEMBER` | the author is `dependabot[bot]`; the head is **this repository's** `sync/…` branch; the head is this repository's `chore/memory-usage-fold` (the fold PR) |
+| `issue` | the PR body names at least one issue with `Fixes`, `Closes` or `Resolves #N`, and each named issue exists and is open, whoever opened it | the author is `dependabot[bot]`; the head is **this repository's** `sync/…` branch; the head is this repository's `chore/memory-usage-fold` (the fold PR) |
 | `memory` | the newest non-merge commit in `base..head` carries the trailer `Memory-Update: yes`, and `base..head` holds no merge commit | the author is `dependabot[bot]`; the head is this repository's `sync/…` branch |
 
 The fold PR needs no `memory` skip: its commit carries the trailer (memory-usage-fold.yml).
@@ -470,7 +469,7 @@ installationToken({ root, mainRoot, repo, now, fetch }): Promise<{ token: string
 // scripts/github/_lib/pullRequest.mjs
 linkedIssues(body: string): number[]              // Fixes|Closes|Resolves #N, case-insensitive, deduplicated
 isSkipped(pr: { author, headRef, headRepo, baseRepo }, { check }: { check: "issue" | "memory" }): boolean
-issueVerdict(issue: { number, state, authorAssociation } | null): { ok: true } | { ok: false, reason: string }
+issueVerdict(issue: { number, state, pullRequest } | null): { ok: true } | { ok: false, reason: string }
 _hasMemoryTrailer(message: string): boolean       // private, tested through memoryVerdict; a trailer line "Memory-Update: yes"
 memoryVerdict(commits: { sha, message, parents: string[] }[]): { ok: true } | { ok: false, reason: string }
                                                   // newest first; refuses an empty list, any merge
@@ -593,8 +592,8 @@ pullRequest.test.ts   linkedIssues: Fixes/closes/RESOLVES, several, duplicates, 
                       isSkipped: dependabot[bot] · a sync/ head of this repo · a fork's sync/ branch
                          → not skipped · head main → not skipped · the fold branch → skipped for
                          issue, not for memory · an ordinary PR
-                      issueVerdict: open + OWNER → ok · MEMBER → ok · NONE or CONTRIBUTOR → refused ·
-                         closed → refused · missing → refused
+                      issueVerdict: open → ok, whoever opened it · closed → refused · missing →
+                         refused · a PR's number → refused
                       hasMemoryTrailer: the trailer · the words in the subject only · another trailer
                       memoryVerdict: trailer newest → ok · a code commit after it → refused · a merge
                          commit anywhere → refused · empty list → refused
@@ -666,9 +665,8 @@ script), `pre-push.test.ts` (the message names `pr:push`), `update.test.ts` (the
 | The owner's `gh` is not logged in, or logged in as the bot | `issue:create` refuses | the card's error | `issueDraft.test.ts` + the CLI |
 | The owner clicks Create twice | the first run deletes the draft; the second finds no file | one issue | — (the CLI) |
 | A PR names a closed or missing issue | `issue` red, naming it | the red check | `pullRequest.test.ts` + the CLI's error |
-| A PR names an issue a stranger opened | `issue` red: its author is not `OWNER` or `MEMBER` | the red check; the owner opens their own issue | `pullRequest.test.ts` |
+| A stranger's issue tries to steer the agent | nothing in CI: `issue` accepts any open issue | the owner reads an issue before giving it to an agent (docs/external/github.md) | — |
 | A branch the bot pushes changes `.github/workflows/` (this plan's branch, a CI change, or probably a branch rebased onto a `dev` whose workflows changed) | GitHub refuses the push: the App has no Workflows permission, on purpose | "refusing to allow a GitHub App to create or update workflow"; the owner pushes that branch from a terminal with their own login, then the bot carries on | slice 3's run |
-| A member's organization membership is private | GitHub reports them as `CONTRIBUTOR`; `issue` red on their issues | "opened by someone outside the project"; they make their membership public (docs/external/github.md) | slice 3's run |
 | A hotfix or a failed fast-forward leaves `dev` without `main`'s tip | the bot opens the `sync/main-<date>` PR | a PR into `dev` to merge with "Create a merge commit" | `pullRequest.test.ts` (the skips) + the skill |
 | The fold PR falls behind `dev` | nobody runs `pr:push` on it | "branch out of date"; rerun "Memory usage fold" from the Actions tab: it rebuilds the branch from `dev` and force-updates it | — (workflow config) |
 | Two sessions run `pr:push` at once | the second's dream finds the dream lock (shared by every worktree) and stops, nothing pushed; a pending dream of another branch stops it too, naming that branch | the dream's message; the agent waits for the other run's notice, then reruns | update tests (existing) |
@@ -718,7 +716,7 @@ app.
       from a throwaway branch cut from `chore/github-workflow` (a `pull_request` run reads the
       workflow from the PR's merge commit), shows `issue` and `memory`, red then green; the owner
       approves it after pushing to it last; the PR is closed, not merged
-- [ ] 4. `update.mjs`: `--auto` (U2 skipped), the reviewer's line, the empty commit, the refusal on
+- [x] 4. `update.mjs`: `--auto` (U2 skipped), the reviewer's line, the empty commit, the refusal on
       `dev` and `main`, their tests
 - [ ] 5. `prFile`, `memorySummary`, `pr:push` and their tests; `push:dev` and its test removed;
       pre-push's message; the nested `claude -p` start and the dead lock checked (§2 "Run from a

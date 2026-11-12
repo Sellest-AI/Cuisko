@@ -36,7 +36,10 @@ MUST: run each dream agent through `runAgent`: it reads the repo but not `.env*`
 MUST: write a statement about the code as a fact only if it holds in the repo today, else as a
       `Hypothesis: ` fact, and end every fact with its source date.
 MUST: show the owner the whole diff, the reviewer's fixes and its open flags before anything reaches
-      the repo. Nothing is written without `[o]` or a `[m]` correction.
+      the repo. Nothing is written without `[o]` or a `[m]` correction. The one exception is
+      `--auto`, the dream `pr:push` runs with no terminal: it answers `[o]`, tells the reviewer so,
+      and drops every flag left open, naming each. The owner then reads the diff in the PR, before
+      it reaches `dev`.
 MUST NOT: delete a memory as unused before `UNUSED_AFTER_SESSIONS` (in
           [responses.mjs](../../scripts/memory/_lib/responses.mjs)) sessions started without
           reading it. Staleness is counted in sessions, never in days, so a repo nobody works on
@@ -44,13 +47,15 @@ MUST NOT: delete a memory as unused before `UNUSED_AFTER_SESSIONS` (in
 MUST: refuse a branch push while a finished Claude session on it is unread by a dream.
       `MEMORY_SKIP=1 git push` is the owner's escape, for one push. Claude sessions push with it
       always set (`.claude/settings.json`): a session pushing is itself a session not yet read, so
-      the hook would refuse every push it makes. @limitation until the CI `memory` check exists,
-      nothing re-checks those pushes. A clone whose memory is still
+      the hook would refuse every push it makes. The PR's `memory` check (`pull-request.yml`)
+      re-checks the branch: its newest commit must be a dream's. A clone whose memory is still
       encrypted (no key) cannot dream: its push passes, with a warning that the dream is skipped.
 MUST NOT: set `cleanupPeriodDays` to 0. Setup refuses it: transcripts the dream has not read
           would be lost.
-MAY: commit the memory (`chore(memory): …`) on whichever branch the dream ran on, `dev` included.
-     It is the one sanctioned direct commit on `dev`.
+MUST: commit the memory (`chore(memory): …`) on the work branch the dream ran on, never on `dev`
+      or `main`: `memory:update` refuses both, and the memory reaches `dev` inside a PR. A dream
+      that reads no session still commits, empty, with the trailer, unless the branch's newest
+      commit already carries it, so the `memory` check sees the dream ran.
 MAY: pin the dream agents to the model aliases `haiku`, `opus` and `sonnet`. The owner chose them
      on purpose: the dream follows each family's newest model.
 

@@ -15,10 +15,9 @@ The App's approval of a PR never counts: only code owners approve, and they are 
 add a reviewer, give them the Write role (repository Settings → Collaborators and teams) and add
 their login to `CODEOWNERS`.
 
-A PR into `dev` may fix only an issue opened by a member of the `Sellest-AI` organization (the
-`issue` check). GitHub reports a member as such only when their membership is **public**
-(organization → People → Public); a private member shows as `CONTRIBUTOR`, and the check refuses
-their issues. Everyone who opens issues makes their membership public.
+Anyone may open an issue, and a PR into `dev` may fix any open issue (the `issue` check). The
+owner decides which issue an agent works on. An issue a stranger wrote is untrusted text the agent
+reads, so the owner reads it before giving it to an agent.
 
 ## The App
 

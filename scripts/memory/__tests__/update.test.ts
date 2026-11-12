@@ -62,9 +62,13 @@ const API_READ = "2026-11-02T10:02:00.000Z";
 
 const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
+/** The work branch the dream runs on: it refuses `dev` and `main`. The session itself ran on `dev`. */
+const BRANCH = "fix/12-eggs";
+const NON_INTERACTIVE = "The terminal is non-interactive";
+
 /**
- * A repo on `dev` with one fact and one finished session that read its topic. `memories`: fact path
- * -> text; `usage`: usage file name -> contents, already in the repo.
+ * A repo on a work branch cut from `dev`, with one fact and one finished session that read its
+ * topic. `memories`: fact path -> text; `usage`: usage file name -> contents, already in the repo.
  */
 const makeRepo = (memories: Record<string, string> = { [API]: API_OLD }, usage: Record<string, Usage> = {}) => {
   const base = mkdtempSync(path.join(os.tmpdir(), "memory-update-"));
@@ -86,6 +90,7 @@ const makeRepo = (memories: Record<string, string> = { [API]: API_OLD }, usage: 
   }
   git(root, "add", "-A");
   execFileSync("git", ["commit", "-q", "-m", "feat: base"], { cwd: root, env: { ...process.env, GIT_COMMITTER_DATE: "2026-11-05T00:00:00Z", GIT_AUTHOR_DATE: "2026-11-05T00:00:00Z" } });
+  git(root, "checkout", "-q", "-b", BRANCH);
 
   const stampsFile = path.join(root, ".git", "dream-stamps.json");
   writeFileSync(stampsFile, JSON.stringify({ version: 1, initializedAt: "2026-10-01T00:00:00.000Z", sessions: {} }));
@@ -278,7 +283,7 @@ describe("U1: the refusals", () => {
     expect(existsSync(path.join(repo.root, ".git", "dream.lock"))).toBe(false);
   });
 
-  it("says there is nothing to read, and changes nothing, when no session is unread", async () => {
+  it("says there is nothing to read, calls no model and writes no stamps, when no session is unread", async () => {
     const repo = makeRepo();
     rmSync(repo.transcript);
     const t = makeIo();
@@ -288,6 +293,154 @@ describe("U1: the refusals", () => {
     expect(t.text()).toContain("Nothing to read");
     expect(models.calls).toEqual([]);
     expect(stampsOf(repo).lastRun).toBeUndefined();
+  });
+
+  it("refuses on dev and on main, interactive or not, and calls no model", async () => {
+    const repo = makeRepo();
+    const models = makeModels();
+    for (const [branch, argv] of [["dev", []], ["dev", ["--auto"]], ["main", []], ["main", ["--auto"]]] as const) {
+      git(repo.root, "checkout", "-q", "-B", branch);
+      const t = makeIo();
+
+      expect(await update(repo, t.io, models, [...argv])).toBe(1);
+      expect(t.errors()).toContain("never on dev or main");
+    }
+    expect(models.calls).toEqual([]);
+  });
+
+  it("refuses --auto with --dry-run", async () => {
+    const t = makeIo();
+
+    expect(await update(makeRepo(), t.io, makeModels(), ["--auto", "--dry-run"])).toBe(1);
+    expect(t.errors()).toContain("--auto and --dry-run");
+  });
+});
+
+describe("nothing to read on a work branch", () => {
+  const head = (repo: Repo) => git(repo.root, "rev-parse", "HEAD");
+
+  it("commits an empty memory commit with the trailer, so the PR's memory check sees the dream ran", async () => {
+    const repo = makeRepo();
+    rmSync(repo.transcript);
+    const before = { head: head(repo), stamps: readFileSync(repo.stampsFile, "utf8") };
+
+    expect(await update(repo, makeIo().io, makeModels(), ["--auto"])).toBe(0);
+
+    expect(git(repo.root, "rev-parse", "HEAD~1")).toBe(before.head);
+    expect(headFiles(repo)).toEqual([]);
+    expect(git(repo.root, "log", "-1", "--format=%B")).toBe("chore(memory): no session to read\n\nMemory-Update: yes");
+    expect(readFileSync(repo.stampsFile, "utf8")).toBe(before.stamps);
+  });
+
+  it("adds no commit when HEAD already carries the trailer: a rerun after dev moved", async () => {
+    const repo = makeRepo();
+    rmSync(repo.transcript);
+    await update(repo, makeIo().io, makeModels());
+    const before = head(repo);
+    const t = makeIo();
+
+    expect(await update(repo, t.io, makeModels(), ["--auto"])).toBe(0);
+
+    expect(head(repo)).toBe(before);
+    expect(t.text()).toContain("Nothing to read");
+  });
+
+  it("refuses when something is staged outside the memory, which an empty commit would take in", async () => {
+    const repo = makeRepo();
+    rmSync(repo.transcript);
+    writeFileSync(path.join(repo.root, "other.txt"), "unrelated\n");
+    git(repo.root, "add", "other.txt");
+    const before = head(repo);
+    const t = makeIo();
+
+    expect(await update(repo, t.io, makeModels(), ["--auto"])).toBe(1);
+
+    expect(t.errors()).toContain("staged outside .claude/memory");
+    expect(head(repo)).toBe(before);
+    expect(git(repo.root, "diff", "--cached", "--name-only")).toBe("other.txt");
+  });
+
+  it("commits nothing on --dry-run", async () => {
+    const repo = makeRepo();
+    rmSync(repo.transcript);
+    const before = head(repo);
+
+    expect(await update(repo, makeIo().io, makeModels(), ["--dry-run"])).toBe(0);
+    expect(head(repo)).toBe(before);
+  });
+});
+
+describe("--auto", () => {
+  /** An upstream that cannot be fetched: a `git pull` fails, so a run that pulls fails. */
+  const withUnreachableUpstream = (repo: Repo) => {
+    git(repo.root, "remote", "add", "origin", path.join(repo.root, "no-such-remote"));
+    git(repo.root, "update-ref", `refs/remotes/origin/${BRANCH}`, "HEAD");
+    git(repo.root, "branch", "-q", `--set-upstream-to=origin/${BRANCH}`);
+  };
+  const reviewerPrompt = (models: ReturnType<typeof makeModels>) => models.calls.find((call) => call.agent === "dream-reviewer")?.prompt;
+  const openFlag = (flagPath: string) => ({ path: flagPath, fact: "A fact.", problem: "Goes back on the owner's correction.", evidence: "git log", severity: "high" });
+
+  it("asks nothing, does not pull, and commits the dream as [o] would", async () => {
+    const repo = makeRepo();
+    withUnreachableUpstream(repo);
+    const pulling = makeIo(["a"]);
+    expect(await update(repo, pulling.io, makeModels())).toBe(1);
+    expect(pulling.errors()).toContain("git pull failed");
+    const t = makeIo();
+
+    expect(await update(repo, t.io, makeModels(), ["--auto"])).toBe(0);
+
+    expect(t.asked).toEqual([]);
+    expect(t.text()).not.toContain("git pull");
+    expect(memoryFile(repo, API)).toBe(API_NEW);
+    expect(headFiles(repo)).toContain(`.claude/memory/${API}`);
+    expect(git(repo.root, "log", "-1", "--format=%B")).toMatch(/\n\nMemory-Update: yes$/);
+    expect(stampsOf(repo).sessions.s1?.branches.dev?.outcome).toBe("accepted");
+  });
+
+  it("puts back a changed fact the reviewer leaves flagged, and names it", async () => {
+    const repo = makeRepo();
+    const models = makeModels({ review: () => ({ status: "ok", flags: [openFlag(API)], drop: [], notes: [{ path: API, note: "Rewords the timestamps." }] }) });
+    const t = makeIo();
+
+    expect(await update(repo, t.io, models, ["--auto"])).toBe(0);
+
+    expect(memoryFile(repo, API)).toBe(API_OLD);
+    expect(headFiles(repo)).not.toContain(`.claude/memory/${API}`);
+    expect(t.text()).toContain(`Dropped, left flagged by the reviewer\n  ${API}: Goes back on the owner's correction.`);
+  });
+
+  it("removes a created fact the reviewer leaves flagged, and names it", async () => {
+    const repo = makeRepo();
+    let created = "";
+    const models = makeModels({
+      plan: { ...EMPTY_PLAN, topics: [{ topic: "upload", action: "create", candidates: ["s1-01"] }] },
+      writer: (call) => {
+        writeFileSync(path.join(folderOf(call), "draft.md"), FACT("Ten MB uploads", "Uploads stop at ten MB. (source: 2026-11-02)"));
+        return { status: "ok", topic: "upload", facts: [{ text: "Ten MB.", candidates: ["s1-01"] }], alerts: [] };
+      },
+      review: () => {
+        const folder = path.join(repo.root, ".tmp", "memory", dreamDirs(repo)[0] as string, "memory", "memories", "upload");
+        created = `memories/upload/${readdirSync(folder)[0]}`;
+        return { status: "ok", flags: [openFlag(created)], drop: [], notes: [] };
+      },
+    });
+    const t = makeIo();
+
+    expect(await update(repo, t.io, models, ["--auto"])).toBe(0);
+
+    expect(existsSync(path.join(repo.memory, "memories", "upload"))).toBe(false);
+    expect(t.text()).toContain(`  ${created}: Goes back on the owner's correction.`);
+  });
+
+  it("tells the reviewer that what it leaves flagged is dropped; the owner's terminal does not", async () => {
+    const auto = makeModels();
+    await update(makeRepo(), makeIo().io, auto, ["--auto"]);
+    const owner = makeModels();
+    await update(makeRepo(), makeIo(["a"]).io, owner);
+
+    expect(reviewerPrompt(auto)).toContain(NON_INTERACTIVE);
+    expect(reviewerPrompt(owner)).not.toContain(NON_INTERACTIVE);
   });
 });
 
@@ -300,14 +453,14 @@ describe("U2: the pull", () => {
     execFileSync("git", ["init", "-q", "--bare", "-b", "dev", remote]);
     git(repo.root, "remote", "add", "origin", remote);
     git(repo.root, "config", "pull.rebase", "false");
-    git(repo.root, "push", "-q", "-u", "origin", "dev");
-    git(other, "clone", "-q", remote, "clone");
+    git(repo.root, "push", "-q", "-u", "origin", BRANCH);
+    git(other, "clone", "-q", "-b", BRANCH, remote, "clone");
     const clone = path.join(other, "clone");
     for (const [key, value] of [["user.name", "Other"], ["user.email", "other@example.test"], ["commit.gpgsign", "false"]] as const) git(clone, "config", key, value);
     upstreamEdit(clone);
     git(clone, "add", "-A");
     git(clone, "commit", "-q", "-m", "chore: change from the other machine");
-    git(clone, "push", "-q", "origin", "dev");
+    git(clone, "push", "-q", "origin", BRANCH);
     writeFileSync(path.join(repo.memory, API), localText);
     git(repo.root, "commit", "-q", "-am", "chore: local memory edit");
   };
@@ -763,7 +916,7 @@ describe("the pending commit", () => {
     const t = makeIo();
 
     expect(await update(repo, t.io, makeModels())).toBe(1);
-    expect(t.errors()).toContain("pending on branch dev");
+    expect(t.errors()).toContain(`pending on branch ${BRANCH}`);
   });
 
   it("refuses when the memory changed at HEAD since the dream started, and mirrors nothing", async () => {

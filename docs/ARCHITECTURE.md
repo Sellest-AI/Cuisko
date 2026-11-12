@@ -53,7 +53,7 @@ cuisko/
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
 │   │   └── recipes/     `seed:catalog` / `catalog:verify` / `catalog:export` / `catalog:restore` (README inside).
 │   ├── images/          Hand-run asset preparation (compress, sanitize).
-│   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept; `pnpm memory:fold` folds the usage files of closed months (the monthly Action runs it); `pnpm push:dev` runs that dream, then pushes a clean `dev`.
+│   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept, on a work branch, never on `dev` or `main` (`--auto` accepts them with no prompt); `pnpm memory:fold` folds the usage files of closed months (the monthly Action runs it); `pnpm push:dev` runs that dream, then pushes a clean `dev`.
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
 ├── .githooks/            pre-commit (memory lock + branch name + verify, or C20 alone on a memory-only MEMORY_UPDATE=1 commit), pre-merge-commit (the same, on a merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).
