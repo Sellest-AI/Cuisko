@@ -59,6 +59,7 @@
     "memory:setup": "node scripts/memory/setup.mjs",
     "memory:update": "node scripts/memory/update.mjs",
     "pr:push": "node scripts/github/pr-push.mjs",
+    "issue:create": "node scripts/github/create-issue.mjs",
     "verify": "pnpm run \"/^(typecheck:.*|lint|check)$/\" && pnpm test",
     "prepare": "git config core.hooksPath .githooks && node scripts/memory/setup.mjs --auto"
   },

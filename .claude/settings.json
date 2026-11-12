@@ -5,6 +5,12 @@
     "command": "context-mode statusline"
   },
   "autoMemoryEnabled": false,
+  "extraKnownMarketplaces": {
+    "sellest": { "source": { "source": "directory", "path": "./" } }
+  },
+  "enabledPlugins": {
+    "issues@sellest": true
+  },
   "env": {
     "GIT_AUTHOR_NAME": "Sellest Agent",
     "GIT_COMMITTER_NAME": "Sellest Agent",

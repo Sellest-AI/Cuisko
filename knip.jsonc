@@ -22,8 +22,8 @@
     // Run by git as the credential helper .claude/settings.json sets for Claude sessions.
     "scripts/github/git-credential.mjs"
   ],
-  // Run by Claude Code from .claude/settings.json.
-  "ignoreFiles": [".claude/hooks/**"],
+  // Run by Claude Code from .claude/settings.json, and the mods it loads from .claude/plugins.
+  "ignoreFiles": [".claude/hooks/**", ".claude/plugins/**"],
   // The index's tuning constants and `score` are its tested contract; nothing else imports them.
   "ignoreIssues": { "scripts/memory/_lib/memoryIndex.mjs": ["exports"] },
   "ignoreDependencies": [

@@ -24,6 +24,8 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.mts", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  // The worktrees other sessions open inside the repo — a full copy of the tree each.
-  "exclude": ["node_modules", "convex", "dist", ".expo", ".claude/worktrees"]
+  // The worktrees other sessions open inside the repo — a full copy of the tree each. The Claude
+  // Code mods under .claude/plugins compile against the engine's types, laid by Claude Code, through
+  // their own tsconfig.json.
+  "exclude": ["node_modules", "convex", "dist", ".expo", ".claude/worktrees", ".claude/plugins"]
 }
