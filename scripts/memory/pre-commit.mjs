@@ -1,6 +1,6 @@
 /**
  * The memory lock (spec §5.3), run by .githooks/pre-commit before verify. Only memory:update
- * writes the memory: a commit staging index.md, usage.json or a file under memories/ is refused
+ * writes the memory: a commit staging a file under memories/ or usage/ is refused
  * unless it comes from one of these:
  *
  *   - memory:update, which sets MEMORY_UPDATE=1 for its own commit. Such a commit must stage
@@ -30,7 +30,7 @@ import path from "node:path";
 import { git } from "./_lib/git.mjs";
 
 const MEMORY_DIR = ".claude/memory/";
-const LOCKED = [/^\.claude\/memory\/index\.md$/, /^\.claude\/memory\/usage\.json$/, /^\.claude\/memory\/memories\//];
+const LOCKED = [/^\.claude\/memory\/memories\//, /^\.claude\/memory\/usage\//];
 const DREAMS_DIR = ".tmp/memory";
 /** What the lock prints when the commit stages only the memory: the hook then runs C20 alone. */
 const MEMORY_ONLY = "memory-only";

@@ -20,7 +20,7 @@ jobs:
       - name: Every encrypted memory path is ciphertext
         shell: bash
         run: |
-          # The same three patterns as .gitattributes. README.md and _template.md stay plain.
+          # The same pattern as .gitattributes. README.md, _template.md and usage/ stay plain.
           # `U2FsdGVkX1` is what transcrypt (openssl, salted) writes first in an encrypted file.
           status=0
           while IFS= read -r file; do
@@ -29,5 +29,5 @@ jobs:
               echo "::error file=$file::stored in plaintext. Run pnpm install with MEMORY_KEY set, then re-add the file."
               status=1
             fi
-          done < <(git ls-files -- .claude/memory/index.md .claude/memory/usage.json '.claude/memory/memories/*')
+          done < <(git ls-files -- '.claude/memory/memories/*')
           exit "$status"

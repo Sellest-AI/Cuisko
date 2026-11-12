@@ -31,7 +31,7 @@ than just glance at — a diff, a log, a test run — goes through it, not Bash.
 
 ## Memory
 
-Your memory is in .claude/memory/ and is read-only for you: it is updated after the session, from the conversation. Start by reading index.md.
+Your memory is in .claude/memory/ and is read-only for you: it is updated after the session, from the conversation. Its index is shown at session start, built into .claude/memory/.built/.
 If you learn something worth keeping, say it in your reply, on one short line starting with `Memory:`. Never write it to a file.
 
 ## Before writing code

@@ -47,9 +47,9 @@ const KNOWN_FLAGS = { auto: new Set(["--auto"]), byHand: new Set(["--reset-stamp
 /** The memory's lines in .claude/settings.json (spec §5.1, §5.3), checked on every run. */
 const SETTINGS_FILE = ".claude/settings.json";
 const MEMORY_DENIES = [
-  "Edit(/.claude/memory/index.md)",
-  "Edit(/.claude/memory/usage.json)",
   "Edit(/.claude/memory/memories/**)",
+  "Edit(/.claude/memory/usage/**)",
+  "Edit(/.claude/memory/.built/**)",
 ];
 const MEMORY_HOOK = "session-start-memory.mjs";
 const MEMORY_MATCHER = "startup|resume|clear|compact";

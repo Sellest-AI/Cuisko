@@ -144,46 +144,35 @@ describe("formatReport", () => {
 });
 
 describe("formatSummary", () => {
-  const MEMORY = (summary: string, ...facts: string[]) =>
-    [
-      "---",
-      `summary: ${summary}`,
-      "status: stable",
-      "last_verified: 2026-11-09",
-      "---",
-      "",
-      "# Title",
-      "",
-      "## Facts",
-      "",
-      ...facts.map((fact) => `- ${fact}`),
-      "",
-      "## Links",
-      "",
-      "- `AGENTS.md`",
-      "",
-    ].join("\n");
-  const flag = (fix?: string): Flag => ({ path: "memories/traps.md", fact: "A fact.", problem: "Wrong.", evidence: "sA-01", severity: "high", ...(fix === undefined ? {} : { fix }) });
+  const FACT = (title: string, body: string) => ["---", `title: ${title}`, "status: stable", "created: 2026-11-02", "last_verified: 2026-11-09", "---", "", body, ""].join("\n");
+  const MEMORY = (title: string, body = "A fact. (source: 2026-11-02)") => FACT(title, body);
+  const flag = (fix?: string): Flag => ({ path: "memories/traps/push-blocks-a1b2.md", fact: "A fact.", problem: "Wrong.", evidence: "sA-01", severity: "high", ...(fix === undefined ? {} : { fix }) });
 
-  it("lists each file with its change, the facts it gained and lost, and the reviewer's note, under one header", () => {
+  it("lists each fact with its change and the reviewer's note, a new fact without one under its title", () => {
     const text = formatSummary({
       files: [
-        { path: "memories/setup.md", after: MEMORY("Why gstack is not installed.", "No gstack.", "No ponytail.") },
-        { path: "memories/traps.md", before: MEMORY("Traps.", "Push blocks.", "Old count."), after: MEMORY("Traps.", "Push blocks.", "Rekey.", "No cd.") },
-        { path: "memories/old.md", before: MEMORY("Old.", "Gone.") },
+        { path: "memories/setup/no-gstack-k3x9.md", after: FACT("Why gstack is not installed", "It overlaps the skills. (source: 2026-11-02)") },
+        { path: "memories/traps/push-blocks-a1b2.md", before: FACT("Push blocks", "Old."), after: FACT("Push blocks", "New.") },
+        { path: "memories/traps/rekey-c3d4.md", after: FACT("Rekey from PowerShell", "Run setup. (source: 2026-11-09)") },
+        { path: "memories/old/gone-e5f6.md", before: FACT("Gone", "Gone.") },
       ],
-      notes: new Map([["memories/traps.md", "Adds the rekey trap, drops a stale count."]]),
-      flags: [flag(), flag("removed the bullet")],
+      notes: new Map([
+        ["memories/traps/push-blocks-a1b2.md", "Says why the push blocks."],
+        ["memories/traps/rekey-c3d4.md", "Adds the rekey trap."],
+      ]),
+      flags: [flag(), flag("removed the sentence")],
     });
 
     expect(text).toBe(
       [
-        "Summary: 1 new, 1 changed, 1 deleted · 1 flag left for you · 1 fixed by the reviewer",
-        "  + memories/setup.md  new, 2 facts",
-        "      Why gstack is not installed.",
-        "  ~ memories/traps.md  +2 −1 facts",
-        "      Adds the rekey trap, drops a stale count.",
-        "  − memories/old.md  deleted",
+        "Summary: 2 new, 1 changed, 1 deleted · 1 flag left for you · 1 fixed by the reviewer",
+        "  + memories/setup/no-gstack-k3x9.md  new",
+        "      Why gstack is not installed",
+        "  ~ memories/traps/push-blocks-a1b2.md  changed",
+        "      Says why the push blocks.",
+        "  + memories/traps/rekey-c3d4.md  new",
+        "      Adds the rekey trap.",
+        "  − memories/old/gone-e5f6.md  deleted",
         "",
       ].join("\n"),
     );
@@ -191,7 +180,7 @@ describe("formatSummary", () => {
 
   it("cuts a note longer than one line at NOTE_LENGTH, so a wordy reviewer cannot bury the prompt", () => {
     const long = `${"Explains why gstack was not installed. ".repeat(10)}End.`;
-    const text = formatSummary({ files: [{ path: "memories/setup.md", after: MEMORY("Setup.", "A fact.") }], notes: new Map([["memories/setup.md", long]]), flags: [] });
+    const text = formatSummary({ files: [{ path: "memories/setup/setup-a1a1.md", after: MEMORY("Setup") }], notes: new Map([["memories/setup/setup-a1a1.md", long]]), flags: [] });
 
     const line = text.split("\n")[2]?.trim() ?? "";
     expect(line).toHaveLength(NOTE_LENGTH);
@@ -200,7 +189,7 @@ describe("formatSummary", () => {
   });
 
   it("colours the marks only when asked", () => {
-    const input = { files: [{ path: "memories/setup.md", after: MEMORY("Setup.", "A fact.") }], notes: new Map<string, string>(), flags: [] };
+    const input = { files: [{ path: "memories/setup/setup-a1a1.md", after: MEMORY("Setup") }], notes: new Map<string, string>(), flags: [] };
 
     expect(formatSummary(input)).not.toContain("\u001b[");
     expect(formatSummary({ ...input, color: true })).toContain("\u001b[32m+");

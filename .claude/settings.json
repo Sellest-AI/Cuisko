@@ -7,9 +7,9 @@
   "autoMemoryEnabled": false,
   "permissions": {
     "deny": [
-      "Edit(/.claude/memory/index.md)",
-      "Edit(/.claude/memory/usage.json)",
-      "Edit(/.claude/memory/memories/**)"
+      "Edit(/.claude/memory/memories/**)",
+      "Edit(/.claude/memory/usage/**)",
+      "Edit(/.claude/memory/.built/**)"
     ]
   },
   "hooks": {

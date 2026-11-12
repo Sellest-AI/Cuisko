@@ -44,11 +44,18 @@ if ! command -v pnpm >/dev/null 2>&1; then
 fi
 
 # ── Memory lock ──────────────────────────────────────────────────────────────────────────
-# index.md, usage.json and memories/ under .claude/memory are written by `pnpm memory:update`
-# only; this refuses any other commit staging them. Merges and conflicted reverts pass. Before
+# memories/ and usage/ under .claude/memory are written by `pnpm memory:update` (and usage/ by
+# the monthly fold Action) only; this refuses any other commit staging them. Merges and conflicted reverts pass. Before
 # verify, so a refused commit fails in a second, not after the tests. A refusal stops the hook
 # here (set -e). It prints `memory-only` for a MEMORY_UPDATE=1 commit staging only the memory.
 lock_decision=$(node "$(git rev-parse --show-toplevel)/scripts/memory/pre-commit.mjs")
+
+# ── Git's own variables stop here ────────────────────────────────────────────────────────
+# Git hands a hook GIT_DIR and GIT_INDEX_FILE, and in a worktree GIT_DIR names that worktree's
+# git folder. The tests below run git in throwaway repos: with GIT_DIR inherited, their `git init`
+# reinitialises this repo instead, as a bare one, and every checkout of it stops working. Nothing
+# after the lock reads the index, and git finds this repo from the working tree without them.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX
 
 # ── A memory:update commit ───────────────────────────────────────────────────────────────
 # A commit staging only .claude/memory/ changes no code, test or doc: C20 is the one check that

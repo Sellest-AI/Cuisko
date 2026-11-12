@@ -53,6 +53,7 @@
     "check:memory": "node scripts/checks/c20-memory-integrity.mjs",
     "check": "node scripts/checks/run-all.mjs && knip",
     "release": "node scripts/release/bump-version.mjs",
+    "memory:fold": "node scripts/memory/fold.mjs",
     "memory:setup": "node scripts/memory/setup.mjs",
     "memory:update": "node scripts/memory/update.mjs",
     "push:dev": "node scripts/memory/push-dev.mjs",
