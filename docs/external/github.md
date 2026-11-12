@@ -15,6 +15,11 @@ The App's approval of a PR never counts: only code owners approve, and they are 
 add a reviewer, give them the Write role (repository Settings → Collaborators and teams) and add
 their login to `CODEOWNERS`.
 
+A PR into `dev` may fix only an issue opened by a member of the `Sellest-AI` organization (the
+`issue` check). GitHub reports a member as such only when their membership is **public**
+(organization → People → Public); a private member shows as `CONTRIBUTOR`, and the check refuses
+their issues. Everyone who opens issues makes their membership public.
+
 ## The App
 
 GitHub → the organization's Settings → Developer settings → GitHub Apps → `sellest-agent`.
@@ -24,6 +29,9 @@ GitHub → the organization's Settings → Developer settings → GitHub Apps �
   Apps → `sellest-agent` → Review request), or tokens keep the old set. A token keeps the
   permissions it was bought with: after a change, delete `.tmp/github/token.json` in the main
   checkout.
+- **No Workflows permission, on purpose.** The bot cannot change the checks that guard its own
+  work, so GitHub refuses any push of its that changes `.github/workflows/`. The owner pushes such
+  a branch from a terminal, with their own login; the bot then opens or updates the PR as usual.
 - **App ID.** On the App's General page. It goes in `SELLEST_AGENT_APP_ID`.
 - **Private key.** General page → Private keys → Generate. GitHub shows the `.pem` once; it goes in
   `SELLEST_AGENT_PRIVATE_KEY`, base64-encoded on one line. A new key does not revoke the old one:
