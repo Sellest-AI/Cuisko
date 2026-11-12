@@ -1,0 +1,23 @@
+[
+  { "group": "type", "name": "bug", "color": "d73a4a", "description": "Something works wrong" },
+  { "group": "type", "name": "feature", "color": "a2eeef", "description": "Something new for the user" },
+  { "group": "type", "name": "chore", "color": "cfd3d7", "description": "Work no user sees: tooling, CI, a refactor" },
+  { "group": "type", "name": "docs", "color": "0075ca", "description": "Documentation only" },
+
+  { "group": "area", "name": "account", "color": "c5def5", "description": "src/modules/account" },
+  { "group": "area", "name": "assistant", "color": "c5def5", "description": "src/modules/assistant" },
+  { "group": "area", "name": "auth", "color": "c5def5", "description": "src/modules/auth" },
+  { "group": "area", "name": "groceries", "color": "c5def5", "description": "src/modules/groceries" },
+  { "group": "area", "name": "health", "color": "c5def5", "description": "src/modules/health" },
+  { "group": "area", "name": "home", "color": "c5def5", "description": "src/modules/home" },
+  { "group": "area", "name": "households", "color": "c5def5", "description": "src/modules/households" },
+  { "group": "area", "name": "navigation", "color": "c5def5", "description": "src/modules/navigation" },
+  { "group": "area", "name": "network", "color": "c5def5", "description": "src/modules/network" },
+  { "group": "area", "name": "onboarding", "color": "c5def5", "description": "src/modules/onboarding" },
+  { "group": "area", "name": "planning", "color": "c5def5", "description": "src/modules/planning" },
+  { "group": "area", "name": "recipes", "color": "c5def5", "description": "src/modules/recipes" },
+  { "group": "area", "name": "infra", "color": "bfdadc", "description": "CI, release, tooling" },
+
+  { "group": "dependabot", "name": "dependencies", "color": "0366d6", "description": "Pull requests that update a dependency file" },
+  { "group": "dependabot", "name": "javascript", "color": "168700", "description": "Pull requests that update JavaScript code" }
+]
