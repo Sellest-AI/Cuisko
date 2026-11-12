@@ -1,6 +1,6 @@
 /**
  * The `issue` check of a PR into dev (.github/workflows/pull-request.yml): the body names at least
- * one issue with `Fixes #N`, and every issue it names is open and was opened by the owner's side.
+ * one issue with `Fixes #N`, and every issue it names is open.
  *
  * Reads PR_BODY, PR_AUTHOR, HEAD_REF, HEAD_REPO, BASE_REPO and GH_TOKEN from the environment.
  */
@@ -11,7 +11,7 @@ import { isSkipped, issueVerdict, linkedIssues, prFromEnv, requiredEnv } from ".
 const _issue = async (repo, number, token) => {
   try {
     const issue = await githubRequest(`/repos/${repo}/issues/${number}`, { token, what: `reading #${number}` });
-    return { number, state: issue.state, authorAssociation: issue.author_association, pullRequest: issue.pull_request !== undefined };
+    return { number, state: issue.state, pullRequest: issue.pull_request !== undefined };
   } catch (error) {
     if (error instanceof GitHubApiError && (error.status === 404 || error.status === 410)) return null;
     throw error;
@@ -32,7 +32,7 @@ try {
     for (const number of numbers) {
       const verdict = issueVerdict(await _issue(pr.baseRepo, number, GH_TOKEN));
       if (verdict.ok) {
-        console.log(`#${number}: open, opened by the project.`);
+        console.log(`#${number}: open.`);
       } else {
         console.log(`::error::#${number} ${verdict.reason}.`);
         process.exitCode = 1;

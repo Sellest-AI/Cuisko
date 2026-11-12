@@ -3,7 +3,7 @@
  * (.github/workflows/pull-request.yml). Pure: the CLIs check-issue.mjs and check-memory.mjs read
  * GitHub and git, and pass what they read here.
  *
- * - `issue`: the body names at least one issue the owner's side opened, still open.
+ * - `issue`: the body names at least one issue, and every issue it names is still open.
  * - `memory`: the branch's newest commit is a dream's (`Memory-Update: yes`), and the branch holds
  *   no merge commit, so the memory was updated after the last code change, by `pr:push`.
  */
@@ -11,8 +11,6 @@
 const DEPENDABOT = "dependabot[bot]";
 /** The monthly fold PR: it names no issue, and its commit carries the trailer, so only `issue` skips it. */
 const FOLD_BRANCH = "chore/memory-usage-fold";
-/** Who may open an issue a PR is allowed to fix. */
-const TRUSTED = new Set(["OWNER", "MEMBER"]);
 
 /**
  * The issues the body closes, in order, each once: GitHub's closing keywords (`Fixes`, `closed`,
@@ -49,9 +47,10 @@ export const isSkipped = ({ author, headRef, headRepo, baseRepo }, { check }) =>
 };
 
 /**
- * Whether one named issue may be fixed by this PR.
+ * Whether one named issue may be fixed by this PR. Anyone may open it: the owner decides which
+ * issue an agent works on, so who wrote it is not this check's question.
  *
- * @param {{ number: number, state: string, authorAssociation: string, pullRequest: boolean } | null} issue
+ * @param {{ number: number, state: string, pullRequest: boolean } | null} issue
  *   null when GitHub has no issue of that number; `pullRequest` when the number is a PR's
  * @returns {{ ok: true } | { ok: false, reason: string }}
  */
@@ -59,9 +58,6 @@ export const issueVerdict = (issue) => {
   if (issue === null) return { ok: false, reason: "does not exist" };
   if (issue.pullRequest) return { ok: false, reason: "is a pull request, not an issue" };
   if (issue.state !== "open") return { ok: false, reason: `is ${issue.state}` };
-  if (!TRUSTED.has(issue.authorAssociation)) {
-    return { ok: false, reason: `was opened by someone outside the project (${issue.authorAssociation}): the owner opens the issue a PR fixes` };
-  }
   return { ok: true };
 };
 

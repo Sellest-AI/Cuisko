@@ -4,11 +4,15 @@
  *
  *   pnpm memory:update              the whole dream, U1–U11
  *   pnpm memory:update --dry-run    U1 and U3–U7: show the diff, change nothing, write no stamps
+ *   pnpm memory:update --auto       pr:push's dream: no U2, no prompt; U8 answers [o], and what the
+ *                                   reviewer leaves flagged is dropped and named
  *
- * U1  refuse unless the branch, the memory, the stamps and the claude command are in order; take
- *     the dream lock; finish a pending commit if one is waiting
- * U2  git pull (not in --dry-run: a pull cannot be undone)
- * U3  select the unread lines; none: "Nothing to read", and nothing changes
+ * U1  refuse unless the branch (never dev or main: the memory reaches dev inside a PR), the memory,
+ *     the stamps and the claude command are in order; take the dream lock; finish a pending commit
+ *     if one is waiting
+ * U2  git pull (not in --dry-run: a pull cannot be undone; not in --auto: pr:push has just fetched)
+ * U3  select the unread lines; none: "Nothing to read". Then, unless HEAD already carries the
+ *     trailer, an empty commit with it, so the PR's memory check sees the dream ran; no stamps
  * U4  make .tmp/memory/dream-<stamp>/, copy the memory into it, count the reads of each topic and
  *     the session starts, and write them as this dream's own usage file in the copy
  * U5  P2–P6 (dream.mjs) on the copy
@@ -35,7 +39,7 @@
  * _lib module's docblock.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -69,9 +73,72 @@ class UpdateError extends Error {
 }
 
 const _arguments = (argv) => {
-  const unknown = argv.filter((arg) => arg !== "--dry-run");
-  if (unknown.length > 0) throw new UpdateError(`unknown argument ${unknown[0]}. Usage: pnpm memory:update [--dry-run]`);
-  return { dryRun: argv.includes("--dry-run") };
+  const unknown = argv.filter((arg) => arg !== "--dry-run" && arg !== "--auto");
+  if (unknown.length > 0) throw new UpdateError(`unknown argument ${unknown[0]}. Usage: pnpm memory:update [--dry-run] [--auto]`);
+  const dryRun = argv.includes("--dry-run");
+  const auto = argv.includes("--auto");
+  if (dryRun && auto) throw new UpdateError("--auto and --dry-run cannot be combined: --auto commits, --dry-run writes nothing.");
+  return { dryRun, auto };
+};
+
+/** The empty commit's message: it says the dream ran and found nothing, so the trailer is all it carries. */
+const EMPTY_MESSAGE = "chore(memory): no session to read\n\nMemory-Update: yes\n";
+
+/** Whether HEAD's message carries `Memory-Update: yes`, read by git's own trailer parser (one value per line). */
+const _headHasTrailer = (top) =>
+  gitIn(top, "log", "-1", "--format=%(trailers:key=Memory-Update,valueonly)", "HEAD")
+    .split("\n")
+    .some((value) => /^yes$/i.test(value.trim()));
+
+/**
+ * U3 with nothing to read: an empty commit with the trailer, unless HEAD already has one (a rerun,
+ * or a resync after dev moved). An empty commit takes no pathspec, so anything staged would go in
+ * with it: refused. The memory is clean (U1), so whatever is staged is outside it.
+ */
+const _commitEmpty = async ({ top, io }) => {
+  if (_headHasTrailer(top)) return;
+  if (gitIn(top, "diff", "--cached", "--name-only") !== "") {
+    throw new UpdateError(`Something is staged outside ${MEMORY}: an empty memory commit would take it in. Commit or unstage it, then run this again.`);
+  }
+  const dir = path.join(top, TMP);
+  mkdirSync(dir, { recursive: true });
+  const messageFile = path.join(dir, "empty-commit-message.txt");
+  writeFileSync(messageFile, EMPTY_MESSAGE);
+  try {
+    const run = await _runShowingStatus({ top, args: ["commit", "--allow-empty", "-F", messageFile], io });
+    if (run.status !== 0) {
+      io.err(run.output.trimEnd());
+      throw new UpdateError("The empty memory commit was refused. Fix what it reported, then run this again.");
+    }
+  } finally {
+    rmSync(messageFile, { force: true });
+  }
+  io.out(`✅ Empty memory commit ${gitIn(top, "rev-parse", "--short", "HEAD")}: the branch records that the dream ran.`);
+};
+
+/**
+ * --auto: no owner reads the flags the reviewer leaves open, so each one's change is dropped from
+ * the copy: a fact the dream created goes, a fact it changed or deleted comes back as the repo has
+ * it. Only a path the dream changed is touched, so a flag cannot name a file outside the memory.
+ * Returns the open flags, each to be named.
+ */
+const _dropOpenFlags = ({ memoryDir, copy, flags }) => {
+  const open = flags.filter((flag) => flag.fix === undefined);
+  const changes = compareMemories(memoryDir, copy);
+  const changed = new Set([...changes.created, ...changes.modified, ...changes.deleted]);
+  for (const { path: name } of open) {
+    if (!changed.has(name)) continue;
+    const original = path.join(memoryDir, name);
+    const target = path.join(copy, name);
+    if (existsSync(original)) {
+      mkdirSync(path.dirname(target), { recursive: true });
+      copyFileSync(original, target);
+    } else {
+      rmSync(target, { force: true });
+      if (readdirSync(path.dirname(target)).length === 0) rmSync(path.dirname(target), { recursive: true });
+    }
+  }
+  return open;
 };
 
 /** C20 on a memory folder, as P5 needs it. */
@@ -178,6 +245,9 @@ const _markFailed = (stampsFile, at) => {
 const _preflight = ({ top, hasClaude, io }) => {
   const branch = gitInOrNull(top, "symbolic-ref", "--short", "-q", "HEAD");
   if (!branch) throw new UpdateError("HEAD is detached. Switch to the branch you are about to push, then run this again.");
+  if (branch === "dev" || branch === "main") {
+    throw new UpdateError(`You are on ${branch}. The dream commits the memory on the branch you are about to push, never on dev or main: switch to that branch, then run this again.`);
+  }
   const memoryDir = path.join(top, MEMORY);
   const { facts } = readFacts(memoryDir);
   if (facts.length === 0) throw new UpdateError(`There is no memory here (no fact in ${MEMORY}/memories/). Is this branch older than the memory? Merge dev into it.`);
@@ -271,7 +341,7 @@ const _show = ({ io, top, memoryDir, dreamDir, report, changes, now }) => {
 /**
  * U7–U8: show, ask, and loop on [m]. Returns `{ choice: "accepted" | "edited" | "ignored" | "aborted" | "nochange" }`.
  */
-const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, run, check, now, today }) => {
+const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, run, check, now, today, auto }) => {
   const copy = path.join(dreamDir, "memory");
   const diff = () => _diff({ top, memoryDir, dreamDir });
   let edited = false;
@@ -284,6 +354,7 @@ const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, 
       return { choice: "nochange", changes };
     }
     _show({ io, top, memoryDir, dreamDir, report, changes, now });
+    if (auto) return { choice: "accepted", changes };
     const answer = (await io.ask("[o] accept   [m] modify   [i] ignore   [a] abort  > ")).toLowerCase();
     if (answer.startsWith("o")) return { choice: edited ? "edited" : "accepted", changes };
     if (answer.startsWith("i")) return { choice: "ignored", changes };
@@ -354,7 +425,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     release();
   });
   try {
-    const { dryRun } = _arguments(argv);
+    const { dryRun, auto } = _arguments(argv);
     const top = gitIn(cwd, "rev-parse", "--show-toplevel");
     const check = deps.check ?? (({ memoryDir = path.join(top, MEMORY), full = true } = {}) => _runCheck({ top, memoryDir, full }));
     release = acquireDreamLock(commonDir(cwd));
@@ -383,12 +454,13 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       return 0;
     }
 
-    if (!dryRun) _pull({ top, io });
+    if (!dryRun && !auto) _pull({ top, io });
 
     const stamps = readStamps(stampsFile);
     const { lines, selected, onOpenBranches, repoRoot, sha } = _select({ top, branch, stamps });
     if (selected.length === 0) {
       io.out("Nothing to read: every finished session has been read.");
+      if (!dryRun) await _commitEmpty({ top, io });
       return 0;
     }
     io.out(`${_plural(countSessions(selected), "session")} to read.`);
@@ -421,12 +493,20 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       today,
       inputsDir: path.join(dreamDir, "inputs"),
       progress: steps.step,
+      interactive: !auto,
     });
 
     steps.end();
+    const dropped = auto ? _dropOpenFlags({ memoryDir, copy, flags: result.flags }) : [];
+    if (dropped.length > 0) {
+      io.out(`Dropped, left flagged by the reviewer\n${dropped.map(({ path: name, problem }) => `  ${name}: ${problem}`).join("\n")}\n`);
+      const verdict = await checkCopy();
+      if (!verdict.ok) throw new UpdateError(`The checks failed after dropping what the reviewer left flagged:\n${verdict.output}`);
+    }
+    const droppedPaths = new Set(dropped.map(({ path: name }) => name));
     const report = {
-      flags: result.flags,
-      notes: new Map(result.notes.map(({ path: name, note }) => [name, note])),
+      flags: result.flags.filter((flag) => !dropped.includes(flag)),
+      notes: new Map(result.notes.filter(({ path: name }) => !droppedPaths.has(name)).map(({ path: name, note }) => [name, note])),
       alerts: [...result.alerts],
       docsIssues: result.plan.docsIssues,
       deletions: [
@@ -442,7 +522,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       return 0;
     }
 
-    const decision = await _decide({ io, steps, top, memoryDir, dreamDir, report, passages: result.passages, run, check: checkCopy, now, today });
+    const decision = await _decide({ io, steps, top, memoryDir, dreamDir, report, passages: result.passages, run, check: checkCopy, now, today, auto });
     if (decision.choice === "aborted") {
       rmSync(dreamDir, { recursive: true, force: true });
       finished = true;

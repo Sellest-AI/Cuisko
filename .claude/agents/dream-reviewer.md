@@ -79,6 +79,11 @@ rewrite its `title`.
    correction, and only the owner can undo it.
 2. A deletion the planner proposed whose reason does not hold: you cannot restore the fact.
 
+When your prompt says the terminal is non-interactive, no owner reads the diff before it is
+committed, and the script drops every flag you leave open: a fact this dream created goes, a fact it
+changed or deleted comes back as the repository has it. So decide every flag you can. The two cases
+above still stay open, and dropping them is the right outcome.
+
 Bash is for `git log` only; every other command is refused. You run from the dream folder, not the
 repo root: anchor every path at the repo top with `:/`, as above, or `git log` finds nothing and
 says nothing. A command that starts with `cd`, uses `git -C` or pipes into another command is
