@@ -58,7 +58,7 @@
     "memory:fold": "node scripts/memory/fold.mjs",
     "memory:setup": "node scripts/memory/setup.mjs",
     "memory:update": "node scripts/memory/update.mjs",
-    "push:dev": "node scripts/memory/push-dev.mjs",
+    "pr:push": "node scripts/github/pr-push.mjs",
     "verify": "pnpm run \"/^(typecheck:.*|lint|check)$/\" && pnpm test",
     "prepare": "git config core.hooksPath .githooks && node scripts/memory/setup.mjs --auto"
   },

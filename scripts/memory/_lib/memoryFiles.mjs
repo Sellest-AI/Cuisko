@@ -17,6 +17,9 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 
+/** The facts' folder, from the repository's root, as git names paths. */
+export const MEMORIES_PATH = ".claude/memory/memories/";
+
 /** What transcrypt writes first in an encrypted file (`openssl enc` salted header, base64). */
 const ENCRYPTED_PREFIX = "U2FsdGVkX1";
 
@@ -70,6 +73,9 @@ const _parseHeader = (text) => {
   const errors = parsed.success ? [] : parsed.error.issues.map((issue) => `header ${issue.path.join(".") || "(root)"}: ${issue.message}`);
   return { header: parsed.success ? parsed.data : null, body: text.slice(match[0].length), errors };
 };
+
+/** The `title` of a fact file's header, or null when the header is missing or malformed. */
+export const factTitle = (text) => _parseHeader(text).header?.title ?? null;
 
 /** The fact of a body: the text before `## Links` (or any other `## ` heading), lines joined. */
 const _factText = (body) => {
