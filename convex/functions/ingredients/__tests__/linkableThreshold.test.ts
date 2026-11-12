@@ -181,6 +181,10 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["crème fraîche épaisse légère", "creme-fraiche-light"],
     // Mincing is a preparation for a vegetable, a product only for meat.
     ["ail haché", "garlic"],
+    // Whole or ground, the same spice: never the nigella row, which an English name once won.
+    ["graines de cumin", "cumin"],
+    ["cumin en grains", "cumin"],
+    ["huile de canola", "canola-oil"],
   ])("%s links to %s", async (name, slug) => {
     expect(await linked(name)).toBe(slug);
   });
@@ -214,6 +218,14 @@ describe("functions/ingredients: the bar a name is linked at", () => {
     ["dried rosemary", "dried-rosemary"],
     ["basil leaves", "basil"],
     ["minced garlic", "garlic"],
+    // UK names a British recipe writes for a row the catalog names otherwise: "cornflour" is the
+    // starch, never cornmeal, and "rapeseed oil" is colza. Both linked to the wrong row on import.
+    ["cornflour", "cornstarch"],
+    ["rapeseed oil", "canola-oil"],
+    ["cumin seeds", "cumin"],
+    ["cumin seed", "cumin"],
+    ["corn starch", "cornstarch"],
+    ["rapeseed", "canola-oil"],
   ])("%s links to %s in English", async (name, slug) => {
     expect(await linked(name, "en")).toBe(slug);
   });
@@ -240,6 +252,18 @@ describe("functions/ingredients: the bar a name is linked at", () => {
       expect(await linked(name)).toBe("unmatched");
     },
   );
+
+  /**
+   * A generic name the catalog once aliased to one specific row. "Pâte de curry" is any curry paste,
+   * and the red one carries shrimp: linked, it took the vegetarian promise off every Indian curry.
+   * "Chicken thigh" is a piece of a leg, a third of its weight, and the boneless one is its own row.
+   */
+  test.each([
+    ["pâte de curry", "curry-paste-red", "fr"],
+    ["chicken thigh", "chicken-thigh", "en"],
+  ] as const)("%s is not linked to %s", async (name, wrong, locale) => {
+    expect(await linked(name, locale)).not.toBe(wrong);
+  });
 
   // A cardamom pod is not the ground spice.
   test.each(["sumac", "kombu", "quatre-quarts breton", "pois chiches secs", "gousse de cardamome"])(
