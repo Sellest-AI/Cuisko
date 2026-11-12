@@ -1,0 +1,47 @@
+name: Task
+description: Work no user sees (tooling, CI, a refactor), or documentation.
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: The label is added from this answer.
+      options:
+        - chore
+        - docs
+    validations:
+      required: true
+  - type: textarea
+    id: work
+    attributes:
+      label: What needs doing
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why now
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where in the code. The labels are added from this answer.
+      multiple: true
+      options:
+        - account
+        - assistant
+        - auth
+        - groceries
+        - health
+        - home
+        - households
+        - navigation
+        - network
+        - onboarding
+        - planning
+        - recipes
+        - infra
+    validations:
+      required: true

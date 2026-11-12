@@ -344,7 +344,7 @@ The owner creates every issue, two ways:
 
 ### Labels
 
-Kept as code in `.github/labels.yml`, applied by `github:labels --apply` through `gh:bot`.
+Kept as code in `.github/labels.json` (JSON: no YAML parser to add), applied by `github:labels --apply` as the sellest-agent App, with its installation token.
 
 - Type, exactly one: `bug`, `feature`, `chore`, `docs`.
 - Area, one or more: `account`, `assistant`, `auth`, `groceries`, `health`, `home`, `households`,
@@ -407,7 +407,7 @@ Kept as code in `.github/labels.yml`, applied by `github:labels --apply` through
 + .github/ISSUE_TEMPLATE/3-task.yml                label chore or docs, chosen in the form
 + .github/pull_request_template.md                 Fixes · Changed · How it was verified · Memory
 + .github/dependabot.yml                           npm, weekly, target-branch dev
-+ .github/labels.yml                               the label set, name · color · description
++ .github/labels.json                              the label set, group · name · color · description
 + .github/rulesets/protect-dev.json                imported by hand
 + .github/rulesets/protect-main.json               imported by hand, replaces the live one
 + .github/workflows/pull-request.yml               jobs issue, memory
@@ -463,8 +463,8 @@ readLocalEnv(name: string, { root, mainRoot }: { root: string, mainRoot: string 
 
 // scripts/github/_lib/appToken.mjs
 _appJwt({ appId: string, privateKey: string, now: Date }): string     // private; RS256, iat now-60s, exp now+9min
-installationToken({ cwd, now, fetch }): Promise<{ token: string, expiresAt: Date }>
-    // reads the two variables, finds the installation of origin's repo, caches in .tmp/github/token.json;
+installationToken({ root, mainRoot, repo, now, fetch }): Promise<{ token: string, expiresAt: Date }>
+    // reads the two variables, finds the installation of `repo`, caches in .tmp/github/token.json;
     // throws AppTokenError naming what is missing (variable, key format, HTTP status)
 
 // scripts/github/_lib/pullRequest.mjs
@@ -488,7 +488,7 @@ parseDraft(text: string): { title: string, type: Type, areas: Area[], body: stri
 issueArgs(draft): string[]                        // gh issue create --title … --body-file - --label …
 
 // scripts/github/_lib/labels.mjs
-labelPlan(wanted: Label[], live: Label[]): { create: Label[], update: Label[], remove: Label[] }
+labelPlan(wanted: Label[], live: Label[]): { create: Label[], update: (Label & { from: string })[], remove: Label[] }
 ```
 
 **The PR file** (`.tmp/pr/<branch with / as ->.md`, written by the agent):
@@ -530,7 +530,7 @@ node scripts/github/check-issue.mjs       reads PR_BODY, PR_AUTHOR, HEAD_REF, HE
                                           GH_TOKEN from env
 node scripts/github/check-memory.mjs      reads BASE_SHA, HEAD_SHA, PR_AUTHOR, HEAD_REF, HEAD_REPO,
                                           BASE_REPO; uses git
-github:labels [--apply]                   prints the plan; --apply runs it with gh:bot
+github:labels [--apply]                   prints the plan; --apply runs it as the sellest-agent App
 ```
 
 `HEAD_REPO` and `BASE_REPO` come from `github.event.pull_request.head.repo.full_name` and
@@ -708,9 +708,10 @@ app.
       SessionStart check (after `isDreamSession`) and its test → a session, in the main checkout
       and in a worktree, pushes a throwaway branch and comments on a throwaway issue as
       `sellest-agent[bot]`, and Git Credential Manager is never asked
-- [ ] 2. labels file + `sync-labels` + its test, applied; issue forms, `config.yml`, PR template,
-      CODEOWNERS → the owner opens a test issue from the Bug form, and a Task issue "Changes reach
-      dev and main by pull request" that this slice's own PR names with `Fixes #N` in its PR file
+- [x] 2. labels file + `sync-labels` + its test, applied; issue forms, `config.yml`, PR template,
+      CODEOWNERS → the owner opens a Task issue "Changes reach dev and main by pull request" (#9) that
+      this slice's own PR names with `Fixes #N` in its PR file. GitHub shows issue forms only from
+      the default branch, `main`, so the Bug form is tried after the next release to `main`
 - [ ] 3. `pullRequest.mjs` + the two check CLIs + their tests + the workflow → a test PR into `dev`,
       from a throwaway branch cut from `chore/github-workflow` (a `pull_request` run reads the
       workflow from the PR's merge commit), shows `issue` and `memory`, red then green; the owner
