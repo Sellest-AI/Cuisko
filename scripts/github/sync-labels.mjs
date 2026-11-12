@@ -12,24 +12,10 @@ import path from "node:path";
 import { gitIn } from "../memory/_lib/git.mjs";
 import { AppTokenError, repoOf } from "./_lib/appToken.mjs";
 import { botToken } from "./_lib/botToken.mjs";
+import { githubRequest } from "./_lib/githubApi.mjs";
 import { labelPlan } from "./_lib/labels.mjs";
 
-const API = "https://api.github.com";
-
-const _github = async (token, method, url, body) => {
-  const response = await fetch(`${API}${url}`, {
-    method,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "cuisko-scripts",
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!response.ok) throw new Error(`${method} ${url}: GitHub answered ${response.status} (${(await response.text()).slice(0, 200)})`);
-  return response.status === 204 ? null : response.json();
-};
+const _github = (token, method, route, body) => githubRequest(route, { token, method, body, what: `${method} ${route}` });
 
 const _line = (sign, label) => `  ${sign} ${label.name.padEnd(18)} #${label.color}  ${label.description}`;
 

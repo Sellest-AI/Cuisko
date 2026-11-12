@@ -471,7 +471,7 @@ installationToken({ root, mainRoot, repo, now, fetch }): Promise<{ token: string
 linkedIssues(body: string): number[]              // Fixes|Closes|Resolves #N, case-insensitive, deduplicated
 isSkipped(pr: { author, headRef, headRepo, baseRepo }, { check }: { check: "issue" | "memory" }): boolean
 issueVerdict(issue: { number, state, authorAssociation } | null): { ok: true } | { ok: false, reason: string }
-hasMemoryTrailer(message: string): boolean        // a trailer line "Memory-Update: yes"
+_hasMemoryTrailer(message: string): boolean       // private, tested through memoryVerdict; a trailer line "Memory-Update: yes"
 memoryVerdict(commits: { sha, message, parents: string[] }[]): { ok: true } | { ok: false, reason: string }
                                                   // newest first; refuses an empty list, any merge
                                                   // commit, and a newest commit without the trailer
@@ -667,6 +667,8 @@ script), `pre-push.test.ts` (the message names `pr:push`), `update.test.ts` (the
 | The owner clicks Create twice | the first run deletes the draft; the second finds no file | one issue | — (the CLI) |
 | A PR names a closed or missing issue | `issue` red, naming it | the red check | `pullRequest.test.ts` + the CLI's error |
 | A PR names an issue a stranger opened | `issue` red: its author is not `OWNER` or `MEMBER` | the red check; the owner opens their own issue | `pullRequest.test.ts` |
+| A branch the bot pushes changes `.github/workflows/` (this plan's branch, a CI change, or probably a branch rebased onto a `dev` whose workflows changed) | GitHub refuses the push: the App has no Workflows permission, on purpose | "refusing to allow a GitHub App to create or update workflow"; the owner pushes that branch from a terminal with their own login, then the bot carries on | slice 3's run |
+| A member's organization membership is private | GitHub reports them as `CONTRIBUTOR`; `issue` red on their issues | "opened by someone outside the project"; they make their membership public (docs/external/github.md) | slice 3's run |
 | A hotfix or a failed fast-forward leaves `dev` without `main`'s tip | the bot opens the `sync/main-<date>` PR | a PR into `dev` to merge with "Create a merge commit" | `pullRequest.test.ts` (the skips) + the skill |
 | The fold PR falls behind `dev` | nobody runs `pr:push` on it | "branch out of date"; rerun "Memory usage fold" from the Actions tab: it rebuilds the branch from `dev` and force-updates it | — (workflow config) |
 | Two sessions run `pr:push` at once | the second's dream finds the dream lock (shared by every worktree) and stops, nothing pushed; a pending dream of another branch stops it too, naming that branch | the dream's message; the agent waits for the other run's notice, then reruns | update tests (existing) |
@@ -712,7 +714,7 @@ app.
       CODEOWNERS → the owner opens a Task issue "Changes reach dev and main by pull request" (#9) that
       this slice's own PR names with `Fixes #N` in its PR file. GitHub shows issue forms only from
       the default branch, `main`, so the Bug form is tried after the next release to `main`
-- [ ] 3. `pullRequest.mjs` + the two check CLIs + their tests + the workflow → a test PR into `dev`,
+- [x] 3. `pullRequest.mjs` + the two check CLIs + their tests + the workflow → a test PR into `dev`,
       from a throwaway branch cut from `chore/github-workflow` (a `pull_request` run reads the
       workflow from the PR's merge commit), shows `issue` and `memory`, red then green; the owner
       approves it after pushing to it last; the PR is closed, not merged

@@ -57,7 +57,7 @@ cuisko/
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
 ├── .githooks/            pre-commit (memory lock + branch name + verify, or C20 alone on a memory-only MEMORY_UPDATE=1 commit), pre-merge-commit (the same, on a merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).
-├── .github/workflows/    ci.yml (verify on every push), deploy.yml (ships dev and main, see Releases), memory-encryption.yml (no plaintext fact is pushed), memory-usage-fold.yml (folds the memory usage of closed months).
+├── .github/workflows/    ci.yml (verify on every push), deploy.yml (ships dev and main, see Releases), memory-encryption.yml (no plaintext fact is pushed), memory-usage-fold.yml (folds the memory usage of closed months), pull-request.yml (the `issue` and `memory` checks on every PR into dev).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
 ├── fingerprint.config.js The runtime version: what makes a merge an update or a build.
