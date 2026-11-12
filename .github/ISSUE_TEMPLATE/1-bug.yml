@@ -1,0 +1,90 @@
+name: Bug
+description: Something in the app works wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you saw, in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the week plan
+        2. Add a recipe that needs 2 eggs
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often
+      options:
+        - Always
+        - Sometimes
+        - Once
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - iOS
+        - Android
+        - Web
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: Build
+      options:
+        - Production
+        - Preview
+        - Dev
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: If you know it.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where in the app. The labels are added from this answer.
+      multiple: true
+      options:
+        - account
+        - assistant
+        - auth
+        - groceries
+        - health
+        - home
+        - households
+        - navigation
+        - network
+        - onboarding
+        - planning
+        - recipes
+        - infra
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or video
+      description: Drag files here.
