@@ -127,6 +127,11 @@ describe("the lock script", () => {
     expect(lock(repo, { MEMORY_UPDATE: "1" }).stdout).toBe("memory-only\n");
   });
 
+  it("tells the hook an empty MEMORY_UPDATE=1 commit is memory-only: the dream that read no session", () => {
+    const repo = makeRepo();
+    expect(lock(repo, { MEMORY_UPDATE: "1" })).toMatchObject({ status: 0, stdout: "memory-only\n" });
+  });
+
   it("tells the hook nothing for any other commit it lets through, so it runs verify", () => {
     const repo = makeRepo();
     stage(repo, "src/a.ts");

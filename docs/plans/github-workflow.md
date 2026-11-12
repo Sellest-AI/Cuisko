@@ -718,11 +718,11 @@ app.
       approves it after pushing to it last; the PR is closed, not merged
 - [x] 4. `update.mjs`: `--auto` (U2 skipped), the reviewer's line, the empty commit, the refusal on
       `dev` and `main`, their tests
-- [ ] 5. `prFile`, `memorySummary`, `pr:push` and their tests; `push:dev` and its test removed;
+- [x] 5. `prFile`, `memorySummary`, `pr:push` and their tests; `push:dev` and its test removed;
       pre-push's message; the nested `claude -p` start and the dead lock checked (§2 "Run from a
       session") → a session runs `pr:push` in the background, to the end, with a real dream: a
-      branch goes from local commits to an open PR with its Memory section; after `dev` moves, a
-      second `pr:push` rebases and pushes with the lease
+      branch goes from local commits to an open PR with its Memory section. The live lease run is
+      slice 8's second merge (nothing moved `dev` during this slice); `pr-push.test.ts` covers it
 - [ ] 6. `issueDraft`, `issue:create` and its test, then the mod → a draft in `.tmp/issues/` shows a
       card; Create issue creates it as the owner
 - [ ] 7. `working-issues` skill, `committing` updated, AGENTS.md, ARCHITECTURE.md, deployments.md,
@@ -731,7 +731,8 @@ app.
       open until slice 8
 - [ ] 8. **Owner step:** import `protect-dev` and the new `protect-main`; retarget PR #6 → this
       slice's own PR is the first merged under the rules; then `pr:push` on slice 7's branch
-      rebases it onto `dev` (dropping this slice's commits, now merged) and it merges second
+      rebases it onto `dev` (dropping this slice's commits, now merged), pushes with the lease, and
+      it merges second
 
 ---
 
