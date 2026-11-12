@@ -147,6 +147,7 @@ The table is the floor, not the bar. A name that is legal but says nothing (`dat
 - No `@deprecated` code left shipping; delete it — git remembers.
 - No new `any` without a comment justifying it.
 - A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
+- Settings travel in one options object, last, so every flag is named at the call; inputs that can be missing travel as one named object (CONVENTIONS §1.7).
 - Any `docs/` page this change just made wrong.
 - Any `docs/` page carrying release notes, a log or a to-do.
 

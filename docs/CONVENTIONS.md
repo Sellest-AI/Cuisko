@@ -285,6 +285,48 @@ existing-assertion rule ([AGENTS.md](../AGENTS.md), "Tests") then makes the chan
 decision rather than a surprise. Lifting a limitation deletes the tag and rewrites that test in the
 same commit.
 
+### 1.7 Parameters — settings in one options object, last 👁
+
+A function takes what it cannot work without as positional parameters, and as few of them as it can.
+Its **settings** — values with a default that tune how it works — go in **one object, as the last
+parameter**, with their defaults set there.
+
+```ts
+// ❌ What does `false` mean? Adding a third flag shifts every call site.
+useBarSuggestions(value, false, 30);
+
+// ✅ Each flag is named where it is used, and a new one breaks no caller.
+useBarSuggestions(value, { withRecipes: false, limit: 30 });
+```
+
+A bare `true` or `false` in a call is the sign to look for: it cannot be read without opening the
+function. The rule applies to code you write or change; it is not a reason to rewrite a signature you
+are not otherwise touching.
+
+**An input is not a setting, even when it can be missing.** The facts a function decides from are
+peers: none of them tunes the others. Required inputs stay positional, however many there are. When
+one of them can be missing, pass them all as **one named object** rather than leaving an
+`undefined` gap or splitting them into positions plus options.
+
+```ts
+// ❌ A gap where the section is missing, and `mode` looks more important than the other two.
+stockIntentOf("default", undefined, "list");
+stockIntentOf("default", { openSection: undefined, addTo: "list" });
+
+// ✅ Three facts, each one named.
+stockIntentOf({ mode: "default", addTo: "list" });
+```
+
+**Destructure the options in the signature, and depend on the values.** An inline `{ withRecipes:
+false }` is a new object on every render. That costs nothing while the function reads only the
+booleans inside it, and it recomputes every time once the object itself enters a dependency array or
+reaches a `React.memo` component as a prop.
+
+```ts
+// ✅ `useMemo` compares booleans, which are equal from one render to the next.
+export const useBarSuggestions = (text: string, { enabled = true, withRecipes = true } = {}) => {
+```
+
 ---
 
 ## 2. The export contract 📐 C1
@@ -475,12 +517,12 @@ numeric registry id, Vite to a URL string. `expo-image` accepts either.
 **French and English are both first-class, from launch** — see
 [PRODUCT.md § Bilingual by nature](./PRODUCT.md).
 
-| Layer                  | Rule                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| Layer                  | Rule                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted. The words for a `shared/` vocabulary live in `Vocabulary.*`, one key per entry 📐 C12. |
-| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                   |
-| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                            |
-| Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
+| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                                                                                                        |
+| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                                                                                                                 |
+| Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe.                                                                                      |
 
 **A stored vocabulary token is English; the word a cook reads is a translation key.** That much is
 S11, and it costs nothing for tags, diets and cuisines because the user TAPS a chip — nothing is
@@ -711,7 +753,7 @@ exact property the optional-FK design had. Nested unions buy write-validity and 
 | A4  | `isAuthorized` is never imported by `router/` — only by `functions/`                         | 🔒 R7           |
 | A5  | Webhooks are defined with `verifiedWebhook`; `verify` has no default                         | 🔒 R5 + 🔬       |
 | A6  | Every `authed` / `admin` / `server` export has a test asserting the wrong caller is rejected | 📐 C5           |
-| A7  | Endpoints that cost money are rate-limited (ADR 0018); writes on demand stay review          | 📐 C16 + 👁     |
+| A7  | Endpoints that cost money are rate-limited (ADR 0018); writes on demand stay review          | 📐 C16 + 👁      |
 | A8  | Never return credentials, tokens or secrets from any procedure                               | 👁              |
 | A9  | Constant-time comparison for secret equality                                                 | 👁              |
 | A10 | Errors are `ConvexError({ code })`, never bare `Error` with a message the UI parses          | 👁              |
@@ -1022,26 +1064,27 @@ the column: a ⏳ is the only thing in this section that is a backlog item, and 
 is settled. **Never add a ⏳ for a rule you simply have not got round to** — that is how this section
 would rot into a wish list, and a rule nobody intends to mechanise should say so plainly instead.
 
-| Rule                                             | Why no mechanism                                                                                                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself. |
-| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                      |
-| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                 |
-| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                         |
-| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                      |
-| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                         |
-| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.         |
-| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                             |
-| A7 — rate limiting of writes on demand           | C16 follows what a paid call imports and what a `@costly` action is called by; a write that costs nothing outside the database has no such mark to follow.        |
-| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                    |
-| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                |
-| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                     |
-| Screen ≤ ~120 lines of component code           | A cap would fight legitimate layout composition.                                                                                                                 |
-| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).            |
+| Rule                                             | Why no mechanism                                                                                                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself.                                                      |
+| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                                                                           |
+| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                                                                      |
+| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                                                                              |
+| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                                                                           |
+| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                                                                              |
+| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.                                                              |
+| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                                                                                  |
+| A7 — rate limiting of writes on demand           | C16 follows what a paid call imports and what a `@costly` action is called by; a write that costs nothing outside the database has no such mark to follow.                                                            |
+| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                                                                         |
+| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                                                                     |
+| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                                                                          |
+| Settings in one options object, last             | Whether a parameter is a setting or an input is a design call, and a lint rule on boolean literals in calls would also flag `setOpen(false)`.                                                                                      |
+| Screen ≤ ~120 lines of component code            | A cap would fight legitimate layout composition.                                                                                                                                                                      |
+| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).                                                                 |
 | A new plan goes through the review loop          | Whether `plan-reviewer` ran, and whether a declined finding deserved it, lives in the conversation. The Review log makes the outcome readable, not checked. See [plans/README.md](./plans/README.md#the-review-loop). |
-| A reported bug is pinned; assertions stay put     | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not. |
-| A known, accepted choice carries `@limitation`   | Whether a behaviour is a chosen cost or just how the code works is the judgement itself. The tag makes the answer greppable once someone has given it.           |
-| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.          |
+| A reported bug is pinned; assertions stay put    | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not.                              |
+| A known, accepted choice carries `@limitation`   | Whether a behaviour is a chosen cost or just how the code works is the judgement itself. The tag makes the answer greppable once someone has given it.                                                                |
+| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.                                                               |
 
 **The rule about this section: do not promote a tag before its mechanism exists.** A 👁 that claims
 to be 📐 is worse than no rule at all, because a green `pnpm verify` then certifies something nobody
