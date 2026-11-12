@@ -18,29 +18,14 @@ import { productNameOf } from "../_hooks/useSuggestions";
 import { useNavigationBar } from "../_hooks/useNavigationBar";
 import { useStagedPhoto } from "../_hooks/useStagedPhoto";
 import { useAskCuisko } from "~/modules/assistant/hooks";
-import { useGrocerySort, useProductActions, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
+import { useGrocerySort, useGroceriesPage, useProductActions, useStockActions, usePendingIngredients } from "~/modules/groceries/hooks";
 import { usePathname, router } from "expo-router";
 import { type Intent } from "@shared/inputIntent";
 import { useInputIntent } from "../_hooks/useInputIntent";
-import type { AssistantMode } from "../_hooks/useNavigationBar";
+import { stockIntentOf } from "../_model/stockIntent";
 import { useDebounce } from "~/hooks/useDebounce";
 
 const MIC_ICON_SIZE = 20;
-
-/**
- * What a submission does to stock, decided by the mode the bar is in.
- *
- * "cellar" means the shopper is telling us what they own, so it goes in. Every other mode — the
- * list, a recipe, or no mode at all — means they are writing something down to buy.
- *
- * Named rather than inlined because two submissions now need it: an ingredient the catalog already
- * holds, and one the resolver had to go and find. They must agree, or the same word typed twice
- * lands in two different places depending on whether we happened to know it.
- *
- * The return type is inferred rather than imported: `Intent` lives in the groceries module's
- * `_model/`, which is its interior (lint R8), and the literal union is what `apply` accepts.
- */
-const _stockIntent = (mode: AssistantMode) => (mode === "cellar" ? ("buy" as const) : ("relist" as const));
 
 type Props = {
   style?: ViewStyle,
@@ -76,6 +61,17 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
    */
   const isChatOnly = pathname.startsWith("/assistant");
 
+  const { mode, setMode, registerInputRef } = useNavigationBar();
+
+  /**
+   * On the groceries page, or after a home "+" button, the bar adds food and nothing else: no
+   * recipe in the panel, and none on Enter. The shopper came to write something down to buy or to
+   * own, and a dish fits on neither list.
+   */
+  const { isOpen: isOnGroceries, openSection, addTo } = useGroceriesPage();
+  const isAddingFood = mode === "cellar" || mode === "shopping-list" || isOnGroceries;
+  const stockIntent = stockIntentOf({ mode, openSection, addTo });
+
   // The suggestions panel is laid out above the input and then pulled back down over it, so it
   // needs the input's height. Measured rather than assumed: the row grows with the font scale.
   const [inputHeight, setInputHeight] = useState(0);
@@ -88,7 +84,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
    * row, so they would not even start together. Enter would then be able to disagree with the
    * list the cook is looking at, which is the one thing this pairing must never do.
    */
-  const bar = useBarSuggestions(value, !isChatOnly);
+  const bar = useBarSuggestions(value, { enabled: !isChatOnly, withRecipes: !isAddingFood });
   const { kind, ingredient, hasSuggestions } = bar;
   const { matchingSuggestion, rest, unit, amount } = ingredient;
   const showSuggestions = focused && hasSuggestions;
@@ -111,7 +107,6 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
   const isCheckingAnimation = useDebounce(isChecking, 200);
   const spin = useSpin(isCheckingAnimation && !isSendIcon);
 
-  const { mode, registerInputRef } = useNavigationBar();
   const { photo, discard: discardPhoto } = useStagedPhoto();
   const ref = useRef<TextInput>(null);
   /**
@@ -141,18 +136,25 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
    * the yuzu card, and under a per-meal or per-aisle heading it could be anywhere down the page;
    * on the plain list it is on top. Only an add does this — a tap on a card in the grid is the
    * shopper walking the store in the order they chose, and must not lose it.
+   *
+   * **A home "+" counts for one add.** The page this opens already leads with where that "+" sent
+   * the food, so from the next word on the section on screen gives the same answer — and a mode
+   * left standing would overrule it, or follow the shopper home and send their next word to the
+   * cellar from a plain bar. The bar's own delayed reset is for a close with nothing added.
+   *
+   * The page's own `addTo` goes for the same reason: once the food is in, the section the page now
+   * leads with is the answer. Left on, it would outvote that section for every word after.
    */
   const showGroceries = (intent: "buy" | "relist") => {
     const section = intent === "buy" ? "cellar" : "to-buy";
 
+    setMode("default");
     setSort("standard");
-    if (pathname.startsWith("/groceries")) router.setParams({ section });
+    if (pathname.startsWith("/groceries")) router.setParams({ section, addTo: undefined });
     else router.push({ pathname: "/groceries", params: { section } });
   }
 
   const submitSuggestion = (suggestionId: string, unit: Unit, amount: number) => {
-    const stockIntent = _stockIntent(mode);
-
     // Deliberately not awaited: `apply` handles its own failure, and the bar closes on the
     // gesture rather than on the write landing — Convex reflects the row when it does.
     void apply(stockIntent, { ingredientId: suggestionId, unit: unit }, Number(amount));
@@ -170,7 +172,6 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
    * "500g yuzu" does not go to a dictionary as "500g yuzu".
    */
   const submitUnknown = (text: string, unit: Unit | null, amount: number | null) => {
-    const stockIntent = _stockIntent(mode);
     void addUnknown(text, stockIntent, unit, amount);
     showGroceries(stockIntent);
   }
@@ -285,6 +286,7 @@ export const NavigationBarInput = ({ style, focused, onFocus, onBlur, onVoice, o
     void resolve(value, {
       hasCatalogHit: matchingSuggestion !== null,
       hasRecipeHit: kind === "recipe",
+      canBeRecipe: !isAddingFood,
     }).then((intent) => {
       route(intent);
       release();

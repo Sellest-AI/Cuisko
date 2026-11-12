@@ -49,9 +49,18 @@ type SuggestionKind = "ingredient" | "recipe";
  * empty — but "empty" is exactly the input a bar would one day answer with recently-used foods, and
  * on that day the suggestions would come back on the assistant screen with nothing in the diff to
  * explain why. Stated here, the intent survives that change.
+ *
+ * **`withRecipes: false` takes gate 2 out, and only gate 2.** On the groceries page, or after a home
+ * "+" button, the shopper is writing down something to buy or to own: a dish can go on neither, so
+ * every input falls through to the ingredient side — the catalog when it knows the word, the
+ * resolver when it does not.
  */
-export const useBarSuggestions = (text: string, enabled = true) => {
+export const useBarSuggestions = (
+  text: string,
+  { enabled = true, withRecipes = true }: { enabled?: boolean; withRecipes?: boolean } = {},
+) => {
   const ingredient = useSuggestions(enabled ? text : "");
+  const asksRecipes = enabled && withRecipes;
 
   /**
    * Asked even while gate 1 is going to win, because a hook cannot be called conditionally — and
@@ -65,7 +74,7 @@ export const useBarSuggestions = (text: string, enabled = true) => {
    * holds titles as they are written: `query` normalises "pommes de terre" into "pomme terre",
    * which is right for finding a catalog row by typo and wrong for finding a name.
    */
-  const matches = useRecipeMatches(enabled ? ingredient.rest : "");
+  const matches = useRecipeMatches(asksRecipes ? ingredient.rest : "");
   const { recipes: candidates, term } = matches;
 
   /**
@@ -75,8 +84,8 @@ export const useBarSuggestions = (text: string, enabled = true) => {
    * every keystroke until the debounce caught up.
    */
   const recipes = useMemo(
-    () => candidates.filter((recipe) => coversTitle(term, recipe.title)),
-    [candidates, term],
+    () => (asksRecipes ? candidates.filter((recipe) => coversTitle(term, recipe.title)) : []),
+    [asksRecipes, candidates, term],
   );
 
   const kind: SuggestionKind =
@@ -85,7 +94,7 @@ export const useBarSuggestions = (text: string, enabled = true) => {
   return {
     kind,
     ingredient,
-    recipes: enabled ? recipes : [],
+    recipes,
     /**
      * Whether there is anything at all to draw — the bar opens its panel on this.
      *

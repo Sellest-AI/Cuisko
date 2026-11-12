@@ -149,13 +149,43 @@ describe("the debounce window", () => {
   });
 });
 
+describe("when the bar is adding food", () => {
+  /**
+   * The groceries page and the home "+" buttons: the shopper is writing down something to buy or
+   * to own, and a dish named "Tomates farcies" is not something either list can hold.
+   */
+  const adding = (text: string) =>
+    renderHook(() => useBarSuggestions(text, { withRecipes: false })).result.current;
+
+  it("stays on ingredients when a recipe title covers the input", () => {
+    state.matches.recipes = [{ id: "r1", title: "Tomates farcies" }];
+
+    const bar = adding("tomates farcies");
+
+    expect(bar.kind).toBe("ingredient");
+    expect(bar.recipes).toEqual([]);
+  });
+
+  it("asks the recipe search for nothing at all", () => {
+    adding("tomates farcies");
+
+    expect(state.asked).toBe("");
+  });
+
+  it("still offers what the catalog matched", () => {
+    state.ingredient = { isFullyCovered: true, hasSuggestions: true };
+
+    expect(adding("tomates").hasSuggestions).toBe(true);
+  });
+});
+
 describe("when the bar is disabled", () => {
   /**
    * The assistant screen turns the bar into a chat box, and a chat box does not offer to put words
    * on a grocery list.
    */
   const disabled = (text: string) =>
-    renderHook(() => useBarSuggestions(text, false)).result.current;
+    renderHook(() => useBarSuggestions(text, { enabled: false })).result.current;
 
   it("offers nothing, however well the catalog matched", () => {
     state.ingredient = { isFullyCovered: true, hasSuggestions: true };

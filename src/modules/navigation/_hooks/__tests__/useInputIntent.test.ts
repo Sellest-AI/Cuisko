@@ -105,6 +105,37 @@ describe("the two guesses", () => {
 });
 
 /**
+ * The groceries page and the home "+" buttons: a dish cannot go on a list or into a cellar, so a
+ * model that reads the words as one has nothing to say about where they go.
+ */
+describe("when the bar is adding food", () => {
+  const adding = (text: string) =>
+    renderHook(() => useInputIntent()).result.current.resolve(text, { ...NOTHING, canBeRecipe: false });
+
+  test("a recipe answer keeps the fall-through's own answer", async () => {
+    answering({ kind: "recipe" });
+
+    await expect(adding("boeuf bourguignon")).resolves.toEqual({ kind: "unknown" });
+  });
+
+  /**
+   * Long enough to read as a sentence, and the model says it is a dish — so it is not a question,
+   * and the assistant is the wrong place for it. The resolver is the one that can hold it.
+   */
+  test("a recipe answer on a sentence-long input goes to the resolver", async () => {
+    answering({ kind: "recipe" });
+
+    await expect(adding("boeuf bourguignon maison carottes")).resolves.toEqual({ kind: "unknown" });
+  });
+
+  test("a product answer still lands", async () => {
+    answering({ kind: "product" });
+
+    await expect(adding("toothpaste")).resolves.toEqual({ kind: "product" });
+  });
+});
+
+/**
  * The promise the bar is built on: the worst this can do is cost a round trip.
  *
  * Both cases below keep the LOCAL answer, and the two local answers differ — the fall-through keeps
