@@ -118,6 +118,29 @@ if (existsSync(architecture)) {
   }
 }
 
+/* ── GitHub identity ────────────────────────────────────────────────────────────────────── */
+
+/**
+ * A session acts on GitHub as the `sellest-agent` App (docs/external/github.md): git through the
+ * credential helper, `gh` through `pnpm gh:bot`. Without its key or a token, every push and comment
+ * would fail mid-task, so the session is told up front. Silent when a token comes back, which is
+ * from the cache on most starts. Bounded: a slow network costs at most `TOKEN_TIMEOUT_MS`.
+ */
+const TOKEN_TIMEOUT_MS = 4000;
+
+try {
+  const { identityLine } = await import("../../scripts/github/_lib/botToken.mjs");
+  // One deadline for both requests a token costs, so the hook stays inside its own timeout.
+  const signal = AbortSignal.timeout(TOKEN_TIMEOUT_MS);
+  const timedFetch = (url, init) => fetch(url, { ...init, signal });
+  const line = await identityLine({ cwd: ROOT, fetch: timedFetch });
+  if (line !== null) lines.push(line);
+} catch (error) {
+  // The import itself failed (a syntax error in scripts/github/): say so rather than go quiet.
+  const reason = String(error?.message ?? error).split("\n")[0];
+  lines.push(`GitHub App sellest-agent could not be checked (${reason}): push, comment and open no PR until it is fixed.`);
+}
+
 /* ── Emit ───────────────────────────────────────────────────────────────────────────────── */
 
 process.stdout.write(

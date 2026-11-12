@@ -52,6 +52,8 @@ documentation this project exists to avoid — see the note on drift in [adr/REA
 
 **Deployments** — Convex deployments, EAS channels and the CI secrets: [deployments.md](./deployments.md).
 
+**GitHub** — the owner and the App `sellest-agent`, which Claude sessions act as: [github.md](./github.md).
+
 **Website** — cuisko.app, the showcase website, is a repo of its own (Next.js), on Vercel.
 `cuisko.app` is the primary domain and `www` redirects to it; keep it that way, because the app's
 links claim the apex and Apple and Android refuse a verification file behind a redirect. The site

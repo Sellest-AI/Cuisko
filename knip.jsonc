@@ -16,8 +16,11 @@
     // Run by .githooks/pre-commit and .githooks/pre-push, which knip does not read.
     "scripts/memory/pre-commit.mjs",
     "scripts/memory/pre-push.mjs",
-    // Run by Claude Code from .claude/settings.json; an entry so knip sees what it imports.
-    ".claude/hooks/session-start-memory.mjs"
+    // Run by Claude Code from .claude/settings.json; entries so knip sees what they import.
+    ".claude/hooks/session-start-memory.mjs",
+    ".claude/hooks/session-start.mjs",
+    // Run by git as the credential helper .claude/settings.json sets for Claude sessions.
+    "scripts/github/git-credential.mjs"
   ],
   // Run by Claude Code from .claude/settings.json.
   "ignoreFiles": [".claude/hooks/**"],
