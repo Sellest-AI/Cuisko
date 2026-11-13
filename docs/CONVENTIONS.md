@@ -911,7 +911,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 
 **Always**
 
-- [ ] `pnpm verify` passes — the pre-commit hook refuses the commit otherwise
+- [ ] `pnpm verify` passes — the `committing` skill runs it, and CI refuses the PR otherwise
 - [ ] Reviewer sub-agent ran and reported clean, or its findings were approved 👁
 - [ ] The slice's plan file is deleted; anything worth keeping was promoted to an ADR first 👁
 - [ ] `docs/` updated if a layer, convention or table changed (📐 C6 catches dead links/paths only)

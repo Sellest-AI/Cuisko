@@ -1,6 +1,6 @@
 ---
 id: 0022
-applies_to: ["scripts/github/**", ".github/rulesets/**", ".github/workflows/pull-request.yml", ".github/dependabot.yml", ".github/CODEOWNERS", ".github/pull_request_template.md", ".claude/settings.json", ".claude/skills/working-issues/**", ".claude/skills/committing/**", ".claude/plugins/issues/**"]
+applies_to: ["scripts/github/**", ".githooks/**", ".github/rulesets/**", ".github/workflows/pull-request.yml", ".github/dependabot.yml", ".github/CODEOWNERS", ".github/pull_request_template.md", ".claude/settings.json", ".claude/skills/working-issues/**", ".claude/skills/committing/**", ".claude/plugins/issues/**"]
 status: accepted
 supersedes: []
 ---
@@ -26,6 +26,9 @@ MUST: merge an ordinary PR into `dev` with "Rebase and merge"; a `sync/` PR into
 MUST NOT: force-push, except `pr:push` on a work branch, with an explicit lease sha
           (`--force-with-lease=<branch>:<sha>`), never on `dev` or `main`.
 MUST: open dependency PRs into `dev` (`.github/dependabot.yml`), never into `main`.
+MUST: run `pnpm verify` once per agent commit, in Step 1 of the `committing` skill. The
+      `pre-commit` hook runs only the fast checks (branch name, memory lock, C20 on a memory
+      commit); a merge commit, clean or conflicted, still runs the whole verify in the hooks.
 
 ## Why
 
@@ -55,6 +58,13 @@ rulesets make that the only road.
   Those rules catch the common forms a session might type (`git push origin dev`, `--force`); a
   refspec such as `HEAD:refs/heads/main` gets past them. The rulesets are the gate: they refuse
   every direct push to `dev` and `main`, whatever its form.
+- **Verify once per commit, in the skill rather than the hook,** because CI `verify` is now a
+  required check, so the hook only gave earlier feedback, and each agent commit ran verify twice
+  to get it. It cannot go entirely: "Rebase and merge" lands every commit of a PR on `dev`, CI
+  checks only the head, and a red commit in the middle would break `git bisect`. The owner's own
+  commits are not verified locally; CI checks their PR. A merge commit keeps the hook's verify,
+  because its tree is the one no branch commit verified. No pre-push verify: it would check only
+  the tip, which CI checks already.
 
 How a change travels, from the issue to the release: [ARCHITECTURE.md § Releases](../ARCHITECTURE.md#releases).
 Who holds which credentials: [external/github.md](../external/github.md).
@@ -62,7 +72,9 @@ Who holds which credentials: [external/github.md](../external/github.md).
 ## Verify
 
 `pnpm test` runs `scripts/github/__tests__/` (the checks' verdicts and skips, the PR file, the
-issue draft, `pr:push` against a bare origin with its lease). On GitHub, the rulesets refuse
+issue draft, `pr:push` against a bare origin with its lease), and
+`scripts/memory/__tests__/pre-commit.test.ts` runs the real hooks: no verify on a plain commit,
+verify on a clean and on a conflicted merge. On GitHub, the rulesets refuse
 `git push origin dev` and an unapproved merge; the `issue` and `memory` checks run on every PR
 into `dev`.
 

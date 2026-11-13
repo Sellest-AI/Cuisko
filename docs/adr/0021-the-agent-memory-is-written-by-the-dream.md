@@ -91,9 +91,10 @@ the repo. Each module's docblock names the section it implements.
 
 `pnpm test` runs `scripts/memory/__tests__/` (the lock, the push block, the dream's grants and
 checks, the masks) and `c20-memory-integrity.test.ts`. `pnpm check:memory` runs C20 on the memory,
-and the pre-commit runs it on every commit: inside `pnpm verify`, or alone on a `MEMORY_UPDATE=1`
-commit. `memory-encryption.yml` reads the stored blobs of every push in CI. `fold.test.ts` checks
-that a fold changes no total. The deny rules were probed once in a live session, on the layout
+and the pre-commit runs it alone on a `MEMORY_UPDATE=1` commit. On any other commit it runs inside
+`pnpm verify`: the `committing` skill's, a merge commit's in the hooks, and CI's.
+`memory-encryption.yml` reads the stored blobs of every push in CI. `fold.test.ts` checks that a
+fold changes no total. The deny rules were probed once in a live session, on the layout
 before facts: an `Edit` on `index.md` was refused.
 
 ## See also

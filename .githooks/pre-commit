@@ -1,12 +1,15 @@
 #!/bin/sh
 #
-# Refuses a commit that `pnpm verify` would fail: typecheck, lint (R1–R8), C1–C20, knip, tests.
-# Refuses first a commit staging the agent memory outside `pnpm memory:update` (the memory lock).
-# The commit memory:update makes runs only the memory check (C20), not the whole verify.
+# The fast checks, on every commit: the branch name, then the memory lock (a commit staging the
+# agent memory outside `pnpm memory:update` is refused). The commit memory:update makes also runs
+# the memory check (C20).
 #
-# CI runs the same command, but CI runs *after* the bad commit exists and after it has been
-# pushed. Every rule in AGENTS.md is only real because something fails when it is broken, and
-# the earliest place to fail is here.
+# A plain commit does not run `pnpm verify` here. An agent runs it once, in Step 1 of the
+# `committing` skill, and CI `verify` is the required check into `dev` and `main` (ADR 0022).
+# Running it here too made every agent commit verify twice.
+#
+# A merge commit still runs the whole `pnpm verify`: through pre-merge-commit on a clean merge,
+# and here when a conflicted merge is committed. Its tree is the one no branch commit verified.
 #
 # Installed by the `prepare` script (`git config core.hooksPath .githooks`), which pnpm runs on
 # install — so a fresh clone is protected after `pnpm install`, with no dependency to add.
@@ -40,7 +43,7 @@ if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "dev" ]; then
 fi
 
 if ! command -v pnpm >/dev/null 2>&1; then
-  echo "✖ pnpm not found on PATH — cannot verify this commit." >&2
+  echo "✖ pnpm not found on PATH — cannot run this commit's checks." >&2
   echo "  Install pnpm, or bypass deliberately with: git commit --no-verify" >&2
   exit 1
 fi
@@ -52,6 +55,15 @@ fi
 # here (set -e). It prints `memory-only` for a MEMORY_UPDATE=1 commit staging only the memory.
 lock_decision=$(node "$(git rev-parse --show-toplevel)/scripts/memory/pre-commit.mjs")
 
+# ── Is this a merge commit? ──────────────────────────────────────────────────────────────
+# pre-merge-commit sets GIT_HOOK_NAME on a clean merge, which has no MERGE_HEAD yet. A conflicted
+# merge is finished by `git commit`, which runs this hook alone, with MERGE_HEAD in place. Read
+# before the unset below: in a worktree, MERGE_HEAD lives in that worktree's git folder.
+is_merge=""
+if [ "${GIT_HOOK_NAME:-}" = "pre-merge-commit" ] || [ -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
+  is_merge=1
+fi
+
 # ── Git's own variables stop here ────────────────────────────────────────────────────────
 # Git hands a hook GIT_DIR and GIT_INDEX_FILE, and in a worktree GIT_DIR names that worktree's
 # git folder. The tests below run git in throwaway repos: with GIT_DIR inherited, their `git init`
@@ -62,12 +74,6 @@ unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX
 # ── A memory:update commit ───────────────────────────────────────────────────────────────
 # A commit staging only .claude/memory/ changes no code, test or doc: C20 is the one check that
 # reads the memory (the tests build their own repos, the other checks scan code and docs/).
-#
-# @limitation `git commit --amend` is not told apart: the staged paths are compared with the
-# commit being amended, so `MEMORY_UPDATE=1 git commit --amend` keeps that commit's code changes
-# without verifying them again. They passed this hook when first committed, memory:update never
-# amends, and CI runs the whole verify on every push. A typed MEMORY_UPDATE=1 is already a known
-# bypass (ADR 0021), and a pre-commit hook has no reliable way to see an amend.
 if [ "$lock_decision" = "memory-only" ]; then
   echo "→ pre-commit: memory commit, pnpm check:memory"
   if ! pnpm check:memory; then
@@ -80,13 +86,16 @@ if [ "$lock_decision" = "memory-only" ]; then
   exit 0
 fi
 
-echo "→ pre-commit: pnpm verify"
-
-if ! pnpm verify; then
-  echo "" >&2
-  echo "✖ Commit refused: pnpm verify failed." >&2
-  echo "  Fix the findings above and commit again." >&2
-  exit 1
+# ── A merge commit ───────────────────────────────────────────────────────────────────────
+# Only a merge commit runs the whole verify here (see the header). A plain commit stops above.
+if [ -n "$is_merge" ]; then
+  echo "→ pre-commit: merge commit, pnpm verify"
+  if ! pnpm verify; then
+    echo "" >&2
+    echo "✖ Commit refused: pnpm verify failed on the merged tree." >&2
+    echo "  Fix the findings above and commit again." >&2
+    exit 1
+  fi
 fi
 
 echo "✓ pre-commit: clean"

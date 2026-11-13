@@ -13,8 +13,9 @@ Run this **every time**, before staging, on every changed file. Do not skip it b
 small — most defects this catches are one-line changes.
 
 **Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C20 scripts + knip + tests).
-Run it before the reviews, and do not run it again before committing: the hook does. Run it by
-hand afterwards only when nothing will be committed.
+Run it before the reviews. This run is the commit's verify: the `pre-commit` hook runs only the fast
+checks, and CI checks only a PR's head, while "Rebase and merge" lands every commit on `dev`. So
+commit only on a green run of the tree you commit: if the fix loop changes a file, run it again.
 
 **Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
 `git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the
@@ -116,7 +117,7 @@ Ask what the branch exists to do, then:
 Supporting work is not a stray: a `feat(groceries)` a `feat/planning-…` branch needs, or a `fix` for
 something the branch itself broke, belongs on the branch, even when its scope is another domain.
 
-- **The hooks check the files on disk, not what you commit.** An uncommitted edit can hide a broken
+- **`pnpm verify` checks the files on disk, not what you commit.** An uncommitted edit can hide a broken
   commit, so trust `pnpm verify` only once nothing is left uncommitted. Commit `package.json` whole.
 - **Into `dev` or `main`:** you never merge into them, and GitHub refuses a push to either
   ([ADR 0022](../../../docs/adr/0022-changes-reach-dev-and-main-by-pull-request.md)). A commit stays

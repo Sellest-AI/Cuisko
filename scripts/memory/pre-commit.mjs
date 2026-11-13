@@ -1,5 +1,5 @@
 /**
- * The memory lock (spec §5.3), run by .githooks/pre-commit before verify. Only memory:update
+ * The memory lock (spec §5.3), run by .githooks/pre-commit after the branch-name check. Only memory:update
  * writes the memory: a commit staging a file under memories/ or usage/ is refused
  * unless it comes from one of these:
  *
