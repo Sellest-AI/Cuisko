@@ -726,7 +726,7 @@ app.
       slice 8's second merge (nothing moved `dev` during this slice); `pr-push.test.ts` covers it
 - [x] 6. `issueDraft`, `issue:create` and its test, then the mod → a draft in `.tmp/issues/` shows a
       card; Create issue creates it as the owner
-- [ ] 7. `working-issues` skill, `committing` updated, AGENTS.md, ARCHITECTURE.md, deployments.md,
+- [x] 7. `working-issues` skill, `committing` updated, AGENTS.md, ARCHITECTURE.md, deployments.md,
       ADR 0022 and the ADR 0021 amendment, the deny rules, `dependabot.yml` → a real issue goes
       through the whole path, on a branch cut from `chore/github-workflow`; its PR into `dev` stays
       open until slice 8
