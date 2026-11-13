@@ -266,12 +266,21 @@ describe("through the real hooks", () => {
     chmodSync(path.join(recorder, "pnpm"), 0o755);
     const env = { PATH: `${recorder}${path.delimiter}${process.env.PATH ?? ""}` };
 
-    stage(worktree, "src/a.ts");
-    expect(run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore: code"], worktree, env).status).toBe(0);
-    stage(worktree, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
-    expect(run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore(memory): update"], worktree, { ...env, MEMORY_UPDATE: "1" }).status).toBe(0);
+    const gitWith = (cwd: string, args: string[], extra: Record<string, string> = {}) =>
+      run("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], cwd, { ...env, ...extra });
 
+    // A merge commit is the one plain commits leave to verify: dev gains a commit, the worktree merges it.
+    stage(repo, "src/b.ts");
+    expect(gitWith(repo, ["commit", "-q", "-m", "chore: on dev"]).status).toBe(0);
+    stage(worktree, "src/a.ts");
+    expect(gitWith(worktree, ["commit", "-q", "-m", "chore: code"]).status).toBe(0);
+    expect(gitWith(worktree, ["merge", "-q", "--no-ff", "--no-edit", "dev"]).status).toBe(0);
+    stage(worktree, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+    expect(gitWith(worktree, ["commit", "-q", "-m", "chore(memory): update"], { MEMORY_UPDATE: "1" }).status).toBe(0);
+
+    // The recorder appends one line per pnpm call that saw a variable, so empty means none did.
     expect(readFileSync(seen, "utf8")).toBe("");
+    expect(git(worktree, "rev-list", "--count", "--merges", "HEAD")).toBe("1");
   });
 
   /**
@@ -321,13 +330,64 @@ describe("through the real hooks", () => {
       expect(result.stderr).toContain("the memory check failed");
       expect(result.status).not.toBe(0);
     });
+  });
 
-    it("still runs pnpm verify for any other commit", () => {
+  /**
+   * A plain commit runs only the fast checks: an agent runs verify once, in the committing skill,
+   * and CI verify gates the PR. A merge commit still runs verify, clean or conflicted: its tree is
+   * the one no branch commit verified. The fake `pnpm` fails verify, so a commit passes only when
+   * verify is skipped.
+   */
+  describe("verify", () => {
+    const verifyFails = tempDir("bin-verify-only-fails");
+    writeFileSync(path.join(verifyFails, "pnpm"), '#!/bin/sh\necho "verify ran" >&2\nexit 1\n');
+    chmodSync(path.join(verifyFails, "pnpm"), 0o755);
+    const env = { PATH: `${verifyFails}${path.delimiter}${process.env.PATH ?? ""}` };
+    const gitWith = (repo: string, ...args: string[]) =>
+      run("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], repo, env);
+
+    /**
+     * On dev, a commit changing src/a.ts; on chore/other, one changing `fileOnOther`. Merging
+     * chore/other into dev conflicts when that file is src/a.ts too.
+     */
+    const divergedRepo = (fileOnOther: string) => {
+      const repo = makeHookedRepo();
+      git(repo, "branch", "chore/other");
+      stage(repo, "src/a.ts");
+      expect(gitWith(repo, "commit", "-q", "-m", "chore: on dev").status).toBe(0);
+      git(repo, "switch", "-q", "chore/other");
+      write(repo, fileOnOther, "from chore/other\n");
+      git(repo, "add", fileOnOther);
+      expect(gitWith(repo, "commit", "-q", "-m", "chore: on other").status).toBe(0);
+      git(repo, "switch", "-q", "dev");
+      return repo;
+    };
+
+    it("is not run for a plain commit", () => {
       const repo = makeHookedRepo();
       stage(repo, "src/a.ts");
-      const result = commitWith(repo, {});
+      const result = gitWith(repo, "commit", "-q", "-m", "chore: code");
+      expect(result.stderr).not.toContain("verify ran");
+      expect(result.status).toBe(0);
+    });
+
+    it("refuses a clean merge commit it fails", () => {
+      const repo = divergedRepo("src/b.ts");
+      const result = gitWith(repo, "merge", "-q", "--no-ff", "--no-edit", "chore/other");
       expect(result.stderr).toContain("verify ran");
       expect(result.status).not.toBe(0);
+      expect(git(repo, "rev-list", "--count", "--merges", "HEAD")).toBe("0");
+    });
+
+    it("refuses a conflicted merge, once resolved, that it fails", () => {
+      const repo = divergedRepo("src/a.ts");
+      expect(gitWith(repo, "merge", "-q", "--no-edit", "chore/other").status).not.toBe(0);
+      write(repo, "src/a.ts", "resolved\n");
+      git(repo, "add", "src/a.ts");
+      const result = gitWith(repo, "commit", "--no-edit");
+      expect(result.stderr).toContain("verify ran");
+      expect(result.status).not.toBe(0);
+      expect(git(repo, "rev-list", "--count", "--merges", "HEAD")).toBe("0");
     });
   });
 });
