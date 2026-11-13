@@ -138,6 +138,10 @@ cannot recover is intent. So the body is the payload, not decoration:
 
 Omit the body only when the subject is complete alone (`chore(deps): bump convex to 1.44`).
 
+**Write the message to a file in your scratchpad and commit with `git commit -F <file>`.** The
+session's deny rules read each line of an inline heredoc as a command of its own, so a body line
+starting with `gh` refuses the whole commit.
+
 ⚠️ **Never start a body line with `word:`.** The parser reads `Note:`, `Result:`, `enforced:` as a
 footer token and treats everything after it as footers — silently wrecking the structure the history
 is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase mid-line. The
