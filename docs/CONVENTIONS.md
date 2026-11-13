@@ -4,6 +4,11 @@ Read before writing a file. Naming, placement, and the patterns that are not neg
 The narrative behind these rules is in [ARCHITECTURE.md](./ARCHITECTURE.md); the decisions that
 constrain code are in [adr/](./adr/).
 
+**Some rules here are also in [AGENTS.md](../AGENTS.md), on purpose.** Every session loads AGENTS.md,
+and this file only when a task sends an agent here. So the "Never" table, the code rules and the
+"Done means" list repeat the rules that must hold in every session. Keep both copies. A change to
+one of these rules updates both files.
+
 **Every rule carries an enforcement tag.**
 
 | Tag          | Meaning                                               |
@@ -212,8 +217,7 @@ src/modules/recipes/_model/step.ts     → src/modules/recipes/_model/__tests__/
 shared/recipes.ts                      → shared/__tests__/recipes.test.ts
 ```
 
-`_model/` and `_hooks/` co-located until C10 gained rule 3; they do not any more. The rule is
-mechanical on purpose — given a path there is exactly one legal place for its test, so a reviewer
+The rule is mechanical on purpose — given a path there is exactly one legal place for its test, so a reviewer
 never needs an opinion, and neither "once the folder gets crowded" nor "except in `_model/`" is a
 thing anyone has to remember.
 
@@ -490,6 +494,11 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 **Only `src/lib/convex/api.ts` may import `convex/_generated`.** 🔒 R3
 
+**A value the server derives and ships is read from the payload, never recomputed.** 🔒 R9 — a
+client copy is a second producer on a second release schedule, and the two disagree while an OTA
+update and a backend deploy are out of step. R9 bans each such function by name, so it covers only
+the ones listed in `eslint.config.js`. See [ADR 0015](./adr/0015-one-producer-for-a-shared-derivation.md).
+
 **A bundled image is a static `import`, never a `require()`.** 👁
 
 ```ts
@@ -632,6 +641,8 @@ written straight into a component. Promote it in the commit that adds that lint 
 | S12 | A field a model writes whose value is a locale-dependent word is a closed vocabulary (S11)      | 👁    |
 | S13 | A closed vocabulary fixed **outside** this app is `v.array` of literals on the row, not a table | 👁    |
 | S14 | A field whose emptiness is a CLAIM is optional, so `undefined` ≠ `[]` — never a second flag     | 👁    |
+| S15 | A derived search field is written only through its table's one row sanitizer                    | 📐 C11 |
+| S16 | A value the app PROMISES (a diet, an allergen) is a `filterField`, never a search term          | 👁    |
 
 The `@immutable` / `@singleton` markers go in the table's leading comment and must carry a reason.
 They are the sanctioned exemption, so an intentional exception is a visible declaration rather than
@@ -900,6 +911,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] Screen contains no `useQuery` 🔒
 - [ ] Data access lives in the module's `_hooks/` 👁
 - [ ] UI props are structural types, not `Doc<'x'>` 🔬
+- [ ] No client recomputes a value the server ships on the payload 🔒 R9
 - [ ] Screen under ~120 lines of component code, styles and comments not counted 👁
 
 **Tests**
@@ -916,7 +928,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] The slice's plan file is deleted; anything worth keeping was promoted to an ADR first 👁
 - [ ] `docs/` updated if a layer, convention or table changed (📐 C6 catches dead links/paths only)
 - [ ] No `@deprecated` code left behind — delete it, git remembers 👁
-- [ ] No empty `catch {}` 🔒
+- [ ] No empty `catch {}` 🔒 R6
 
 ---
 
@@ -953,7 +965,7 @@ oversights:
 | "100% test coverage"                | Coverage targets produce tests that assert nothing. Two things are mandatory — the authorization suite (A6) and a test per `_model/` file (C10) — and the rest is judgement about altitude, not a number. See [ADR 0008](./adr/0008-tests-are-layered.md). |
 | "Every file needs a header comment" | Comment density should match the surrounding code. Noise ages badly.                                                                                                                                                                                       |
 | "One export per file"               | The multi-access-level pattern is *better* than splitting: the shared handler is the point.                                                                                                                                                                |
-| "No barrel files"                   | `functions/*/index.ts` barrels worked well in the predecessor (13/13 domains). Keep them; avoid deep re-export chains.                                                                                                                                     |
+| "No barrel files"                   | A module's `hooks.ts` and a sub-module's `index.ts` are barrels by design (§1.1). Keep a barrel one level deep: no barrel re-exports another barrel.                                                                                                       |
 
 ---
 
@@ -1052,8 +1064,9 @@ same *change* — a patch; what differs is the process around it. As a commit ty
 judgement at commit time ("is this urgent enough?") with no downstream consequence, and a rule
 with no consequence decays. As a branch it means something real: skip the queue, cut a release.
 
-Both hooks can be bypassed with `git commit --no-verify` — which also skips `pnpm verify`. CI does
-not skip anything.
+The hooks check the format, not the code: a plain commit does not run `pnpm verify` (the
+`committing` skill runs it once), and a merge commit does. `git commit --no-verify` skips the hooks.
+CI runs `pnpm verify` on every PR, and skips nothing.
 
 ---
 
