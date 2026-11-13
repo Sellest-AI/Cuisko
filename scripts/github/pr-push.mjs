@@ -1,6 +1,6 @@
 /**
- * pr:push — takes a work branch from local commits to an up-to-date pull request (the plan's §2
- * "pr:push"; ADR 0021 for the dream).
+ * pr:push — takes a work branch from local commits to an up-to-date pull request (ADR 0022 for the
+ * road and the lease; ADR 0021 for the dream).
  *
  *   pnpm pr:push
  *
@@ -11,6 +11,8 @@
  *    pushed (.tmp/github/pushed/<branch slug>): someone else pushed. A local rebase left by a run
  *    that stopped before its push is accepted.
  * 2. git rebase origin/<base>. A conflict: git rebase --abort, stop; the branch is unchanged.
+ *    The rebase replays memory commits without the pre-commit hook. That is safe: C20 checked
+ *    each one when it was made, and CI runs verify on the result.
  * 3. memory:update --auto, on top of the base. A failure stops here: nothing is pushed.
  * 4. push: never pushed → push -u · origin's sha in HEAD → plain push · otherwise
  *    --force-with-lease=<branch>:<lease>, the one force-push the project allows. Then HEAD's sha is

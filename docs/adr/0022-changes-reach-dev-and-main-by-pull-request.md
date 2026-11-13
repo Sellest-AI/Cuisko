@@ -46,6 +46,9 @@ rulesets make that the only road.
 - **Last-push approval off,** because the owner's own merge into `dev` is the last push of every
   release PR's head, and the owner is the only code owner. Stale-approval dismissal keeps the
   guarantee that the approval came after the last push.
+- **No "Restrict updates" rule, and no bypass for the owner,** because with that rule on, only a
+  bypass actor can merge: the deploy key alone would be able to. Code-owner approval is the gate
+  instead. Adding the rule back locks the owner out of every merge.
 - **The force-push exception,** because a PR behind `dev` must be rebased to pass "branch up to
   date", and a rebased branch can only be force-pushed. The lease refuses to overwrite a push made
   since `pr:push` fetched. `pr:push` runs it as a child process, out of the deny rules' reach.
