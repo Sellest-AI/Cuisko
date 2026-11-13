@@ -14,6 +14,8 @@ MUST: change `.claude/memory/memories/**` and `usage/**` only through `pnpm memo
       runs `pnpm check:memory` (C20) instead of `pnpm verify`: it changes nothing else verify checks.
       The one other writer is `memory-usage-fold.yml`: once a month it folds the `usage/` files of
       closed months, with the same variable and trailer, on its own branch and through a PR into `dev`.
+      Nobody runs `pr:push` on that branch: when its PR falls behind `dev`, run the workflow again
+      from the Actions tab, and it rebuilds the branch from `dev`.
 MUST: keep one fact per file, `memories/<topic>/<title slug>-<4 random characters>.md`, named by
       the script when the fact is created and never renamed, and one `usage/` file per dream. Two
       branches then write the same file only when they change the same fact. The index and the topic

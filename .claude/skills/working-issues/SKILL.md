@@ -89,7 +89,7 @@ You never create an issue: the owner does, by clicking the card the `issues@sell
    | --- | --- |
    | a rebase conflict, code | resolve it on request, then run `pr:push` again |
    | a rebase conflict on a memory fact | the other PR changed that fact: wait for it to merge, then decide `git rebase --skip` with the user |
-   | someone pushed to the branch | `git fetch`, read what they pushed, and ask the user |
+   | someone pushed to the branch | `git fetch`, read what they pushed, and ask the user. "Update branch" pressed on GitHub is such a push: ask before resetting onto `origin/<branch>` |
    | the dream lock, or another branch's pending dream | wait for that run's notice, then run it again |
    | a dream failure | fix the cause it names, then run it again: the rerun is safe |
 
