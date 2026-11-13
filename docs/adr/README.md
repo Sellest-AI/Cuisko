@@ -26,6 +26,7 @@ carries the command that proves it still holds.
 | [0019](./0019-a-paid-call-is-traced.md) | A paid call is traced to the route it was made for, and tracing never throws | `convex/router/**`, `convex/functions/**`, `convex/agent/**`, `convex/lib/**`, `convex/procedures.ts`, `convex/schema/tracing.ts`, `scripts/database/**` | `pnpm check:traces`, `pnpm check:events`, `pnpm typecheck`, `pnpm test` |
 | [0020](./0020-an-agent-acts-as-a-verified-cook.md) | An outside agent acts as a verified cook, and never says who that is | `convex/mcp.ts`, `convex/functions/mcp/**`, `convex/router/users/getMcpUser.ts`, `convex/functions/users/purgeUser.ts` | `pnpm test` |
 | [0021](./0021-the-agent-memory-is-written-by-the-dream.md) | The agent memory is written by the dream alone, encrypted, and shown to the owner first | `scripts/memory/**`, `.claude/memory/**`, `.claude/agents/dream-*.md`, `.githooks/**`, `.gitattributes` | `pnpm check:memory`, `pnpm test` |
+| [0022](./0022-changes-reach-dev-and-main-by-pull-request.md) | Changes reach `dev` and `main` by a pull request the owner approved | `scripts/github/**`, `.github/rulesets/**`, `.github/workflows/pull-request.yml`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/settings.json`, `.claude/skills/working-issues/**`, `.claude/skills/committing/**`, `.claude/plugins/issues/**` | `pnpm test` |
 `pnpm verify` runs all of them — on demand, in the pre-commit and pre-merge-commit hooks, and in CI.
 
 ## Format

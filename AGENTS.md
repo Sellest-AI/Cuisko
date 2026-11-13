@@ -25,6 +25,7 @@ pnpm test:app      # jsdom project only — components, hooks, _model/
 pnpm test:convex   # edge-runtime project only — Convex functions
 pnpm test:scripts  # node project only — the C1–C20 checks and every other script under scripts/
 pnpm gh:bot <args> # every `gh` command a session runs: gh as the sellest-agent App (docs/external/github.md)
+pnpm pr:push       # a work branch to its PR into dev: rebase, dream, push, open or edit — run in the background
 ```
 
 Use the `context-mode` plugin when available: any command whose output you will process rather
@@ -96,7 +97,9 @@ copy silently.
 | Never hold session state about a household in a plain `atom` — use `householdAtom`             | 0016 |
 | Never add an `authed` operation that costs money (a model, storage) without `enforceRateLimit` | 0018 |
 | Never write an empty `catch {}`                                                                | —    |
-| Never commit secrets, force-push, or `git commit` unless asked                                 | —    |
+| Never commit secrets, or `git commit` unless asked                                             | —    |
+| Never force-push — the one exception is `pnpm pr:push`, with its lease, on a work branch       | 0022 |
+| Never push to, merge into or commit on `dev` or `main` — the owner merges a PR                 | 0022 |
 | Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                         | —    |
 
 ## Code rules
@@ -242,9 +245,15 @@ End with the choice: narrow the fix, or confirm the new behaviour.
 
 How to write the test itself, and where each file goes: `docs/CONVENTIONS.md` §1.5.
 
+## Issues and pull requests
+
+**Every change starts as an issue the owner created and reaches `dev` through a PR.** Load the
+`working-issues` skill (`.claude/skills/working-issues/SKILL.md`) to draft an issue, work one,
+answer a review, release or hotfix. It runs `committing` for each commit and `pnpm pr:push` for the PR.
+
 ## Committing
 
-**Before any commit or merge, load the `committing` skill** (`.claude/skills/committing/SKILL.md`).
+**Before any commit, load the `committing` skill** (`.claude/skills/committing/SKILL.md`).
 It runs the full review — `pnpm verify`, `architecture-reviewer`, `/code-review` and the fix loop —
 checks the branch, and sets the commit-message rules. The hooks enforce only the format, not the
 review, so the skill is not optional.

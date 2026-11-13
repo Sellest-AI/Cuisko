@@ -1,3 +1,4 @@
+<!-- Into dev: "Rebase and merge" (a sync/ PR: "Create a merge commit"). Into main: "Create a merge commit". -->
 Fixes #
 
 ## Changed

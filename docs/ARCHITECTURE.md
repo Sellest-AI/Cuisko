@@ -52,7 +52,7 @@ cuisko/
 │   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
 │   │   └── recipes/     `seed:catalog` / `catalog:verify` / `catalog:export` / `catalog:restore` (README inside).
-│   ├── github/          GitHub as the `sellest-agent` App: `pnpm gh:bot` (gh with its token), `pnpm github:labels`, the PR checks CI runs, and `pnpm pr:push` (rebase onto the base, dream with `--auto`, push with a lease, open or edit the PR).
+│   ├── github/          GitHub as the `sellest-agent` App: `pnpm gh:bot` (gh with its token), `pnpm github:labels`, the PR checks CI runs, `pnpm issue:create` (an issue draft filed as the owner, by the `issues@sellest` mod's button), and `pnpm pr:push` (rebase onto the base, dream with `--auto`, push with a lease, open or edit the PR).
 │   ├── images/          Hand-run asset preparation (compress, sanitize).
 │   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept, on a work branch, never on `dev` or `main` (`--auto` accepts them with no prompt); `pnpm memory:fold` folds the usage files of closed months (the monthly Action runs it).
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
@@ -563,7 +563,18 @@ its mechanism.
 
 ## Releases
 
-Work merges into `dev`; merging `dev` into `main` is the release. A push to either that passes
+Work reaches `dev` through a PR per issue; the `dev` → `main` PR is the release. Both are merged by
+the owner, never pushed ([ADR 0022](./adr/0022-changes-reach-dev-and-main-by-pull-request.md)):
+
+```
+issue (the owner) ─► branch <type>/<n>-<slug> ─► pnpm pr:push ─► PR into dev
+                     verify · issue · memory green, the owner approves ─► "Rebase and merge"
+dev ─► PR "release: <version>" into main, opened by the bot ─► "Create a merge commit"
+                     its Fixes #N lines close the issues
+hotfix/<n>-<slug> from main ─► PR into main ─► sync/main-<date> ─► PR into dev, merge commit
+```
+
+The steps for an agent are in the `working-issues` skill. A merge into either branch that passes
 `verify` ships itself, each to its own world ([deploy.yml](../.github/workflows/deploy.yml)):
 
 ```
@@ -584,8 +595,8 @@ The latest build, not any build: an older one on the same fingerprint (a native 
 a test build made by hand) would take the update while the phones on the latest build got none.
 
 A release commit is pushed to `dev` too when `dev` has not moved since, so the next `dev` → `main`
-merge does not fight over the version line; when it has, the run warns, and `main` is merged back
-into `dev` by hand. Only `main` ever builds: a preview APK is built by hand
+merge does not fight over the version line; when it has, the run warns, and `main` comes back into
+`dev` through a `sync/main-<date>` PR. Only `main` ever builds: a preview APK is built by hand
 (`eas build --profile preview`) when a native change should reach the preview phones.
 
 **Three numbers, three jobs.** The **runtime version** is the native fingerprint (`app.json`

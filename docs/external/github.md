@@ -49,3 +49,26 @@ GitHub → the organization's Settings → Developer settings → GitHub Apps �
   5 minutes before it expires (GitHub gives one hour).
 - When the variables are missing or GitHub refuses the key, the SessionStart hook says so in the
   session's first context, and the session does not push.
+
+## The rulesets
+
+`.github/rulesets/protect-dev.json` and `protect-main.json` are the source of truth. Only an admin
+can write a ruleset, and the App is not one, so the owner applies a change by hand: repository
+Settings → Rules → Rulesets → New ruleset → Import a ruleset. For a ruleset that already exists,
+delete the live one, then import the file. Each file's `bypass_actors` holds the release's deploy
+key alone ([deployments.md](./deployments.md)).
+
+| | `protect-dev` | `protect-main` |
+| --- | --- | --- |
+| Merge with | "Rebase and merge"; "Create a merge commit" for a `sync/` PR | "Create a merge commit" |
+| Required checks | `verify`, `issue`, `memory` | `verify` |
+
+Both refuse a direct push, a force-push and a deletion, and need one code owner's approval after
+the last push. Why each setting: [ADR 0022](../adr/0022-changes-reach-dev-and-main-by-pull-request.md).
+
+## Issues from a session
+
+A session never creates an issue. It writes a draft to `.tmp/issues/`, and the `issues@sellest`
+mod draws a card for it above the prompt: **Create issue** files it with the owner's own `gh`
+login. The mod is in `.claude/plugins/issues/`; its README says how it is enabled. The owner's
+`gh` must be logged in as the owner: check with `gh auth status` in a terminal.

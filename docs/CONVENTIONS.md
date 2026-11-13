@@ -1035,13 +1035,17 @@ cannot be reverted cleanly, and degrades every later `git log --oneline`.
 a `scope-enum` rule in [commitlint.config.js](../commitlint.config.js) once the domain list settles
 — enforcing it while domains are still appearing would just produce `--no-verify` habits.
 
-**Branches** use the same vocabulary plus `hotfix/`:
+**Branches** use the same vocabulary plus `hotfix/` and `sync/`:
 
 ```
 <type>/<kebab-case-summary>        feat/recipe-scaling
-                                   fix/pagination-short-pages
-                                   hotfix/auth-token-expiry
+                                   fix/12-pagination-short-pages
+                                   hotfix/14-auth-token-expiry
+                                   sync/main-2026-11-13
 ```
+
+A branch that fixes an issue carries its number first. `sync/main-<date>` brings `main` back into
+`dev` after a hotfix ([ADR 0022](./adr/0022-changes-reach-dev-and-main-by-pull-request.md)).
 
 **`hotfix` is a branch prefix and not a commit type, deliberately.** A hotfix and a fix are the
 same *change* — a patch; what differs is the process around it. As a commit type it would force a

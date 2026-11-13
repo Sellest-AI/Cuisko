@@ -18,7 +18,9 @@ set -e
 
 # ── Branch naming ────────────────────────────────────────────────────────────────────────
 # Same vocabulary as the commit types, plus `hotfix/` — which exists here and NOT as a commit
-# type, because urgency is a property of the process, not of the change.
+# type, because urgency is a property of the process, not of the change — and `sync/`, the branch
+# that brings `main` back into `dev` through a PR (`sync/main-<YYYY-MM-DD>`, ADR 0022): its merge
+# of `origin/dev` runs this hook through pre-merge-commit.
 #
 # Skipped when HEAD is detached (rebase, bisect, `git commit` during a merge), where the branch
 # name is not the committer's to choose.
@@ -27,11 +29,11 @@ branch=$(git symbolic-ref --short -q HEAD || echo "")
 # `main` and `dev` are the two long-lived branches: nothing is committed on them directly, but
 # merging into them runs this hook (through pre-merge-commit), and their names are fixed.
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "dev" ]; then
-  if ! echo "$branch" | grep -Eq '^(feat|fix|hotfix|refactor|perf|docs|test|chore|ci)/[a-z0-9]+(-[a-z0-9]+)*$'; then
+  if ! echo "$branch" | grep -Eq '^(feat|fix|hotfix|sync|refactor|perf|docs|test|chore|ci)/[a-z0-9]+(-[a-z0-9]+)*$'; then
     echo "✖ Commit refused: branch name \"$branch\" does not follow the convention." >&2
     echo "" >&2
     echo "  Format:  <type>/<kebab-case-summary>" >&2
-    echo "  Types:   feat fix hotfix refactor perf docs test chore ci" >&2
+    echo "  Types:   feat fix hotfix sync refactor perf docs test chore ci" >&2
     echo "  Example: git branch -m feat/recipe-scaling" >&2
     exit 1
   fi

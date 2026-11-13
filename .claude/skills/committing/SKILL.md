@@ -1,6 +1,6 @@
 ---
 name: committing
-description: Use before every git commit or merge in Cuisko — when the user asks to commit, to merge into dev, or to release to main. Runs the full review (pnpm verify, architecture-reviewer, /code-review, the fix loop), checks the branch, and writes the commit message. Use it instead of any generic commit skill.
+description: Use before every git commit in Cuisko — when the user asks to commit. Runs the full review (pnpm verify, architecture-reviewer, /code-review, the fix loop), checks the branch, and writes the commit message. Use it instead of any generic commit skill.
 ---
 
 # Committing in Cuisko
@@ -110,7 +110,7 @@ Ask what the branch exists to do, then:
 
 - The change serves that purpose → commit.
 - It does not — a doc, an unrelated fix, a chore no other commit here needs → **stop and ask the
-  user**, naming the branch it belongs on. Usually `dev`, or a branch of its own.
+  user**, naming the branch it belongs on. Usually a branch of its own, cut from `origin/dev`.
 - Unsure → ask. The question is cheaper than the move.
 
 Supporting work is not a stray: a `feat(groceries)` a `feat/planning-…` branch needs, or a `fix` for
@@ -118,12 +118,11 @@ something the branch itself broke, belongs on the branch, even when its scope is
 
 - **The hooks check the files on disk, not what you commit.** An uncommitted edit can hide a broken
   commit, so trust `pnpm verify` only once nothing is left uncommitted. Commit `package.json` whole.
-- **Into `dev`:** rename a `claude/…` branch to `<type>/…` (the hook refuses it), merge `dev` into
-  it, verify, then a plain `git merge`. Never `--no-ff`. A push to `dev` ships to preview phones and
-  the dev Convex deployment.
-- **Into `main`:** only `dev` is merged into `main`, and only when the user says so: that merge is
-  the release, to the production channel and the prod deployment (`docs/ARCHITECTURE.md` §
-  Releases).
+- **Into `dev` or `main`:** you never merge into them, and GitHub refuses a push to either
+  ([ADR 0022](../../../docs/adr/0022-changes-reach-dev-and-main-by-pull-request.md)). A commit stays
+  on its work branch; `pnpm pr:push` takes the branch to its PR, and the owner merges it. Rename a
+  `claude/…` branch to `<type>/<n>-<slug>` first: the hook refuses it. The PR, the release and the
+  hotfix are in the `working-issues` skill.
 
 Format is Conventional Commits. The rules live in `commitlint.config.js`, which the `commit-msg` hook
 runs; branch names are checked by `.githooks/pre-commit`. When the two disagree with a doc, they win.
