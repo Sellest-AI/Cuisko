@@ -6,7 +6,7 @@ One folder per domain. It owns that domain's data and everything drawn with it.
 
     src/modules/planning/
     ├── weekly-plan.tsx     PUBLIC  — any module or route may import this
-    ├── screen.tsx          PUBLIC
+    ├── list-screen.tsx     PUBLIC
     ├── hooks.ts            PUBLIC  — the door: re-exports the hooks other modules may call
     ├── tunnel/             PUBLIC  — a sub-module: one flow, several screens of its own
     │   ├── chrome.tsx              the frame its routes mount into

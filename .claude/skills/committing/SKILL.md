@@ -12,7 +12,7 @@ Commit only when the user asks (AGENTS.md, **Never**). Then run the two parts be
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C20 scripts + knip + tests).
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R9 + the C1–C20 scripts + knip + tests).
 Run it before the reviews. This run is the commit's verify: the `pre-commit` hook runs only the fast
 checks, and CI checks only a PR's head, while "Rebase and merge" lands every commit on `dev`. So
 commit only on a green run of the tree you commit: if the fix loop changes a file, run it again.
@@ -53,7 +53,7 @@ nothing and teaches you to skip the step that matters.
 
 **Both passes run on the same diff, and that is the point** — they are not redundant, they are split
 by question. Step 3 asks *does this obey the rules we wrote down*, and answers it from a table, which
-is why it can be a cheap model with no Bash. Step 4 asks *is this correct*, which needs a defect hunt
+is why it can be a cheap model whose shell runs four commands. Step 4 asks *is this correct*, which needs a defect hunt
 and the depth to run one. Neither finds the other's issues. If you catch Step 3 reporting a race
 condition or Step 4 reporting a filename, the split has collapsed and the cheap pass has stopped
 being cheap.

@@ -622,33 +622,6 @@ Where each channel and deployment lives: [external/deployments.md](./external/de
 
 ---
 
-## Build order
-
-Scaffolding first, then one vertical slice at a time. Step 1 is not skippable, and step 4 is *one*
-domain — the predecessor built breadth-first and got twenty dialects of the same architecture.
-
-- [x] **1. Scaffolding** — tsconfigs, aliases, `env.ts`, `procedures.ts` (complete surface),
-      R1–R6, C1–C3, CI. `pnpm verify` green on an empty repo.
-- [x] **2. Doc layer** — `AGENTS.md` + nested files, `docs/CONVENTIONS.md`, this page, the ADRs.
-- [x] **3. Auth** — `@convex-dev/auth` with the Password provider, `usersExtended` created by the
-      `afterUserCreatedOrUpdated` callback, the `procedures.ts` merge, `Providers`, and the
-      authorization test harness (C5 now requires one per gated export).
-- [x] **4. UI foundations** — `theme` and the first `src/ui/components/` primitives.
-- [ ] **5. First vertical slice: recipes** — thin end to end first, then deepened. The hook comes
-      *first*: `modules/recipes/_hooks/useRecipes.ts` returning hardcoded, fully typed data, so the
-      screen can be built against the real interface while the backend is still empty. Then
-      `schema/recipes.ts` with one operation and its rejection test; then the hook's internals swap
-      to the real query and the screen changes nothing; then list, pagination, mutations, empty and
-      error states. Ordering the layers bottom-up instead puts five of them between the start and
-      anything runnable, and the interface is discovered during wiring rather than agreed before it.
-      This slice is the template every later domain copies. It is also what first makes
-      `ownedQuery` / `ownedMutation` usable — `OwnedTable` resolves to `never` until those tables
-      exist.
-- [ ] **6. Ingredients** — proves the join-table model and the cascade.
-- [ ] **7+** — storage, payments (one system), AI.
-
----
-
 ## Where the reasoning came from
 
 `docs/_reference/` is a frozen audit of the predecessor project this architecture was derived from.

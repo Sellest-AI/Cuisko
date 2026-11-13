@@ -75,12 +75,12 @@ These checks are wrong more often than not when guessed, so spend the call:
 
 ## Docs left behind — look these up
 
-A code change can make a `docs/*` page, or `AGENTS.md` / `src/modules/AGENTS.md`, wrong without
+A code change can make a `docs/*` page, or every `AGENTS.md`, wrong without
 touching it. That is invisible in a diff, so `Grep` for it. For every changed code file, pull out
 what a doc could name: a **file path or folder** that was moved, renamed or deleted; an **exported
 function, hook, component or table** that was renamed, removed or newly added; a **rule, count or
 range** that moved (check-script or lint-rule ranges, the number of ADRs, the router line cap); a **convention** the diff
-now follows differently. Then `Grep` `docs/` (and the two `AGENTS.md` files) for the old name or
+now follows differently. Then `Grep` `docs/` (and every `AGENTS.md`) for the old name or
 number, and for the new one when something was added that a layer or placement page should list.
 
 - A hit on something the diff removed or renamed, in a page the diff did not touch, is a finding:
