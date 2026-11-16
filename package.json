@@ -53,8 +53,13 @@
     "check:memory": "node scripts/checks/c20-memory-integrity.mjs",
     "check": "node scripts/checks/run-all.mjs && knip",
     "release": "node scripts/release/bump-version.mjs",
+    "gh:bot": "node scripts/github/gh-bot.mjs",
+    "github:labels": "node scripts/github/sync-labels.mjs",
+    "memory:fold": "node scripts/memory/fold.mjs",
     "memory:setup": "node scripts/memory/setup.mjs",
     "memory:update": "node scripts/memory/update.mjs",
+    "pr:push": "node scripts/github/pr-push.mjs",
+    "issue:create": "node scripts/github/create-issue.mjs",
     "verify": "pnpm run \"/^(typecheck:.*|lint|check)$/\" && pnpm test",
     "prepare": "git config core.hooksPath .githooks && node scripts/memory/setup.mjs --auto"
   },

@@ -52,12 +52,13 @@ cuisko/
 │   │   ├── _lib/        What they share: the deploy-key client, downloads, folder names, the zip.
 │   │   ├── ingredients/ `ingredients:export` / `ingredients:restore` (README inside).
 │   │   └── recipes/     `seed:catalog` / `catalog:verify` / `catalog:export` / `catalog:restore` (README inside).
+│   ├── github/          GitHub as the `sellest-agent` App: `pnpm gh:bot` (gh with its token), `pnpm github:labels`, the PR checks CI runs, `pnpm issue:create` (an issue draft filed as the owner, by the `issues@sellest` mod's button), and `pnpm pr:push` (rebase onto the base, dream with `--auto`, push with a lease, open or edit the PR).
 │   ├── images/          Hand-run asset preparation (compress, sanitize).
-│   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept.
+│   ├── memory/          The agent memory's tooling. `pnpm memory:setup` configures transcrypt for this clone (`prepare` runs it on every install); `pnpm memory:update` reads the unread Claude sessions and proposes memory changes for the owner to accept, on a work branch, never on `dev` or `main` (`--auto` accepts them with no prompt); `pnpm memory:fold` folds the usage files of closed months (the monthly Action runs it).
 │   └── release/         `pnpm release`: the next version, from the commits, into package.json + app.json.
 ├── patches/              Patches to dependencies, each registered in pnpm-workspace.yaml with the issue that retires it.
-├── .githooks/            pre-commit (memory lock + branch name + verify), pre-merge-commit (the same, on a merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).
-├── .github/workflows/    ci.yml (verify on every push), deploy.yml (ships dev and main, see Releases).
+├── .githooks/            pre-commit (branch name + memory lock, C20 on a memory-only MEMORY_UPDATE=1 commit, verify on a merge commit only), pre-merge-commit (the same, on a clean merge), commit-msg (commitlint), pre-push (refused while a Claude session is unread by a dream).
+├── .github/workflows/    ci.yml (verify on every push), deploy.yml (ships dev and main, see Releases), memory-encryption.yml (no plaintext fact is pushed), memory-usage-fold.yml (folds the memory usage of closed months), pull-request.yml (the `issue` and `memory` checks on every PR into dev).
 ├── .claude/              Agent harness: SessionStart context + Stop-time C checks (advisory).
 ├── env.ts                Client env — Zod validated.
 ├── fingerprint.config.js The runtime version: what makes a merge an update or a build.
@@ -540,10 +541,14 @@ contact with a growing codebase.
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
 | Env is complete                                                        | Zod throw at module load                          | `pnpm test`            |
 
-`pnpm verify` runs all of it. It runs in **three** places, deliberately: on demand, in the
-[pre-commit](../.githooks/pre-commit) and [pre-merge-commit](../.githooks/pre-merge-commit) hooks —
-so a failing commit, merge commits included, cannot be created — and in CI on every push, which is
-what catches a `--no-verify` bypass.
+`pnpm verify` runs all of it. It runs in **three** places, deliberately: once per agent commit, in
+Step 1 of the `committing` skill; on a merge commit, in the [pre-commit](../.githooks/pre-commit)
+and [pre-merge-commit](../.githooks/pre-merge-commit) hooks, because a merged tree is the one no
+branch commit verified; and in CI on every PR, a required check into `dev` and `main`
+([ADR 0022](./adr/0022-changes-reach-dev-and-main-by-pull-request.md)). A plain commit runs only the
+hook's fast checks. A `MEMORY_UPDATE=1` commit staging only `.claude/memory/` also runs C20: the
+one `pnpm memory:update` makes, or the monthly usage fold of `memory-usage-fold.yml`
+([ADR 0021](./adr/0021-the-agent-memory-is-written-by-the-dream.md)).
 
 A fourth location is **advisory, not a gate**: the Stop hook in `.claude/` runs C1–C4, C6 and C8 against
 the working set at the end of an agent turn, so a violation surfaces one turn after it is written
@@ -560,7 +565,18 @@ its mechanism.
 
 ## Releases
 
-Work merges into `dev`; merging `dev` into `main` is the release. A push to either that passes
+Work reaches `dev` through a PR per issue; the `dev` → `main` PR is the release. Both are merged by
+the owner, never pushed ([ADR 0022](./adr/0022-changes-reach-dev-and-main-by-pull-request.md)):
+
+```
+issue (the owner) ─► branch <type>/<n>-<slug> ─► pnpm pr:push ─► PR into dev
+                     verify · issue · memory green, the owner approves ─► "Rebase and merge"
+dev ─► PR "release: <version>" into main, opened by the bot ─► "Create a merge commit"
+                     its Fixes #N lines close the issues
+hotfix/<n>-<slug> from main ─► PR into main ─► sync/main-<date> ─► PR into dev, merge commit
+```
+
+The steps for an agent are in the `working-issues` skill. A merge into either branch that passes
 `verify` ships itself, each to its own world ([deploy.yml](../.github/workflows/deploy.yml)):
 
 ```
@@ -581,8 +597,8 @@ The latest build, not any build: an older one on the same fingerprint (a native 
 a test build made by hand) would take the update while the phones on the latest build got none.
 
 A release commit is pushed to `dev` too when `dev` has not moved since, so the next `dev` → `main`
-merge does not fight over the version line; when it has, the run warns, and `main` is merged back
-into `dev` by hand. Only `main` ever builds: a preview APK is built by hand
+merge does not fight over the version line; when it has, the run warns, and `main` comes back into
+`dev` through a `sync/main-<date>` PR. Only `main` ever builds: a preview APK is built by hand
 (`eas build --profile preview`) when a native change should reach the preview phones.
 
 **Three numbers, three jobs.** The **runtime version** is the native fingerprint (`app.json`
@@ -603,33 +619,6 @@ merged since. Whichever way the last release came, the next one counts from its 
 Convex deploys first, so an update never calls a function the server lacks.
 The reverse is not guarded: removing a function an installed build still calls breaks that build.
 Where each channel and deployment lives: [external/deployments.md](./external/deployments.md).
-
----
-
-## Build order
-
-Scaffolding first, then one vertical slice at a time. Step 1 is not skippable, and step 4 is *one*
-domain — the predecessor built breadth-first and got twenty dialects of the same architecture.
-
-- [x] **1. Scaffolding** — tsconfigs, aliases, `env.ts`, `procedures.ts` (complete surface),
-      R1–R6, C1–C3, CI. `pnpm verify` green on an empty repo.
-- [x] **2. Doc layer** — `AGENTS.md` + nested files, `docs/CONVENTIONS.md`, this page, the ADRs.
-- [x] **3. Auth** — `@convex-dev/auth` with the Password provider, `usersExtended` created by the
-      `afterUserCreatedOrUpdated` callback, the `procedures.ts` merge, `Providers`, and the
-      authorization test harness (C5 now requires one per gated export).
-- [x] **4. UI foundations** — `theme` and the first `src/ui/components/` primitives.
-- [ ] **5. First vertical slice: recipes** — thin end to end first, then deepened. The hook comes
-      *first*: `modules/recipes/_hooks/useRecipes.ts` returning hardcoded, fully typed data, so the
-      screen can be built against the real interface while the backend is still empty. Then
-      `schema/recipes.ts` with one operation and its rejection test; then the hook's internals swap
-      to the real query and the screen changes nothing; then list, pagination, mutations, empty and
-      error states. Ordering the layers bottom-up instead puts five of them between the start and
-      anything runnable, and the interface is discovered during wiring rather than agreed before it.
-      This slice is the template every later domain copies. It is also what first makes
-      `ownedQuery` / `ownedMutation` usable — `OwnedTable` resolves to `never` until those tables
-      exist.
-- [ ] **6. Ingredients** — proves the join-table model and the cascade.
-- [ ] **7+** — storage, payments (one system), AI.
 
 ---
 

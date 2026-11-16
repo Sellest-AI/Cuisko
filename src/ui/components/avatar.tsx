@@ -1,6 +1,6 @@
 import { Blobatar } from "@blobatar/react-native";
 import { AnimatedBlobatar } from "@blobatar/react-native/animated";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, View, ViewStyle } from "react-native";
 import { theme } from "theme";
 import { useIsMotionAllowed } from "@ui/hooks/useIsMotionAllowed";
 import { Pressable } from "./pressable";
@@ -9,6 +9,16 @@ import { Pressable } from "./pressable";
 const BORDER = 2;
 
 const DEFAULT_SIZE = 40;
+
+/**
+ * The face is decoration, and the library hides it from screen readers with two native-only props.
+ * On web `react-native-svg` hands them to the `<svg>` as they are, and React warns about both on
+ * every avatar. They are cleared there — the library spreads what it is given after its own — and
+ * the browser's own word for the same thing takes their place. Native keeps the library's.
+ */
+const HIDDEN_ON_WEB = Platform.OS === "web"
+  ? { accessibilityElementsHidden: undefined, importantForAccessibility: undefined, "aria-hidden": true }
+  : {};
 
 type Props = {
   /**
@@ -67,8 +77,8 @@ export const Avatar = ({ seed, size = DEFAULT_SIZE, style, elevated, animated = 
         * stop, and this one sits on the first screen of the app. An old device is spared it too.
         */}
       {(!isMotionAllowed || !animated)
-        ? <Blobatar name={seed} size={face} />
-        : <AnimatedBlobatar name={seed} size={face} animate />}
+        ? <Blobatar name={seed} size={face} {...HIDDEN_ON_WEB} />
+        : <AnimatedBlobatar name={seed} size={face} animate {...HIDDEN_ON_WEB} />}
     </Component>
   )
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  clampNutrientParts,
   computeNutriScore,
   cuiScoreOf,
   NUTRI_SCORE_GRADES,
@@ -227,5 +228,27 @@ describe("cuiScoreOf", () => {
   test("adds the same 0-3 offset to every grade for a given seed", () => {
     // "carbonara" hashes to an offset of 1.
     expect(NUTRI_SCORE_GRADES.map((grade) => cuiScoreOf(grade, "carbonara"))).toEqual([93, 81, 61, 41, 21]);
+  });
+});
+
+/** Sugars are counted inside carbohydrates, saturated fat inside fat: a part never exceeds its whole. */
+describe("clampNutrientParts", () => {
+  test("a part above its whole is lowered to it, and named with both figures", () => {
+    expect(clampNutrientParts({ carbohydrates: 1, fat: 3.5, sugars: 5, saturatedFat: 4 })).toEqual({
+      nutrition: { carbohydrates: 1, fat: 3.5, sugars: 1, saturatedFat: 3.5 },
+      clamped: ["sugars 5 > carbohydrates 1", "saturatedFat 4 > fat 3.5"],
+    });
+  });
+
+  /** White sugar, honey, cola: every gram of carbohydrate is sugar, and that is not an error. */
+  test("a part equal to its whole is kept", () => {
+    expect(clampNutrientParts({ carbohydrates: 99.8, fat: 0, sugars: 99.8 })).toEqual({
+      nutrition: { carbohydrates: 99.8, fat: 0, sugars: 99.8 },
+      clamped: [],
+    });
+  });
+
+  test("an absent part stays absent", () => {
+    expect(clampNutrientParts({ carbohydrates: 1, fat: 0 }).nutrition).not.toHaveProperty("sugars");
   });
 });

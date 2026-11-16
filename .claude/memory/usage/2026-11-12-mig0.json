@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "sessions": [],
+  "reads": {
+    "convex-transactions-and-migrations": {
+      "count": 1,
+      "last": "2026-11-12T00:05:24.586Z"
+    },
+    "docs-link-examples-and-checks": {
+      "count": 2,
+      "last": "2026-11-08T21:22:26.217Z"
+    },
+    "ingredient-repair-and-bad-links": {
+      "count": 1,
+      "last": "2026-11-12T00:05:24.586Z"
+    },
+    "memory-dream-traps": {
+      "count": 5,
+      "last": "2026-11-11T23:54:48.220Z"
+    },
+    "windows-shell-traps": {
+      "count": 5,
+      "last": "2026-11-08T21:44:45.692Z"
+    }
+  }
+}

@@ -120,6 +120,7 @@ describe("pre-push", () => {
     expect(result.stderr).toContain("💭 1 unread Claude session on dev (no dream yet).");
     expect(result.stderr).toContain("Run:  pnpm memory:update");
     expect(result.stderr).toContain("Then: git push");
+    expect(result.stderr).toContain("pnpm pr:push");
     expect(result.stderr).toContain("MEMORY_SKIP=1 git push");
   });
 
@@ -160,8 +161,8 @@ describe("pre-push", () => {
     ["without stamps", null],
   ] as const)("passes on a clone whose memory is still encrypted, %s, warning that the dream is skipped", (_name, stamps) => {
     const setup = makeRepo(stamps);
-    mkdirSync(path.join(setup.repo, ".claude", "memory"), { recursive: true });
-    writeFileSync(path.join(setup.repo, ".claude", "memory", "index.md"), "U2FsdGVkX19vZXJ0eXVpb3A=\n");
+    mkdirSync(path.join(setup.repo, ".claude", "memory", "memories", "convex-api"), { recursive: true });
+    writeFileSync(path.join(setup.repo, ".claude", "memory", "memories", "convex-api", "convex-refuses-iso-dates-k3x9.md"), "U2FsdGVkX19vZXJ0eXVpb3A=\n");
     writeSession(setup, "s1", UNREAD);
     const result = pushDev(setup);
     expect(result.status).toBe(0);

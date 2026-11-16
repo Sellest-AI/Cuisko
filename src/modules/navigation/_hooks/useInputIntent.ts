@@ -6,12 +6,17 @@ import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
 import { useAction } from "~/lib/convex/client";
 
-/** What the bar's panel already worked out, and the only evidence the local rules read. */
+/** What the bar knows about the input: what its panel worked out, and what the screen allows. */
 type Evidence = {
   /** `rankSuggestions` found a confident catalog match for what was typed. */
   hasCatalogHit: boolean;
   /** The panel's ruling came out as recipes — a title covers the input. */
   hasRecipeHit: boolean;
+  /**
+   * Whether a dish is a place the words can go. False on the groceries page and after a home "+"
+   * button, where the panel already offers no recipe; this carries the same rule to the model.
+   */
+  canBeRecipe?: boolean;
 };
 
 /**
@@ -38,6 +43,11 @@ type Evidence = {
  * today: an unconfident judgment (the floor lives on the server), one that could not be reached, or
  * a caller who is not signed in — `classify.authed` refuses that one, and a shopper typing into the
  * bar before signing in must still get their word onto a list.
+ *
+ * **`canBeRecipe: false` sends a `recipe` answer to the resolver.** A dish has nowhere to go there,
+ * and the model has still said something: the words name a thing, not a question. So they reach
+ * the resolver as a food, even when they were long enough for the word count to guess "sentence".
+ * A product answer still lands.
  */
 export const useInputIntent = () => {
   const locale = useLocale();
@@ -53,6 +63,8 @@ export const useInputIntent = () => {
 
       try {
         const confirmed = await classify({ text: term, locale });
+
+        if (evidence.canBeRecipe === false && confirmed.kind === "recipe") return { kind: "unknown" };
 
         // No opinion means keep the one we had: for the fall-through that is the resolver, and for
         // the word count the assistant. Both are exactly where the input goes today.

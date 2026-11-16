@@ -5,11 +5,61 @@
     "command": "context-mode statusline"
   },
   "autoMemoryEnabled": false,
+  "extraKnownMarketplaces": {
+    "sellest": { "source": { "source": "directory", "path": "./" } }
+  },
+  "enabledPlugins": {
+    "issues@sellest": true
+  },
+  "env": {
+    "GIT_AUTHOR_NAME": "Sellest Agent",
+    "GIT_COMMITTER_NAME": "Sellest Agent",
+    "GIT_AUTHOR_EMAIL": "355952112+sellest-agent[bot]@users.noreply.github.com",
+    "GIT_COMMITTER_EMAIL": "355952112+sellest-agent[bot]@users.noreply.github.com",
+    "GIT_CONFIG_COUNT": "3",
+    "GIT_CONFIG_KEY_0": "credential.https://github.com.helper",
+    "GIT_CONFIG_VALUE_0": "",
+    "GIT_CONFIG_KEY_1": "credential.https://github.com.helper",
+    "GIT_CONFIG_VALUE_1": "!node \"$(git rev-parse --show-toplevel)/scripts/github/git-credential.mjs\"",
+    "GIT_CONFIG_KEY_2": "url.https://github.com/.insteadOf",
+    "GIT_CONFIG_VALUE_2": "git@github.com:",
+    "MEMORY_SKIP": "1"
+  },
   "permissions": {
     "deny": [
-      "Edit(/.claude/memory/index.md)",
-      "Edit(/.claude/memory/usage.json)",
-      "Edit(/.claude/memory/memories/**)"
+      "Bash(gh *)",
+      "PowerShell(gh *)",
+      "Bash(pnpm issue:create*)",
+      "Bash(pnpm -s issue:create*)",
+      "Bash(pnpm run issue:create*)",
+      "Bash(npm run issue:create*)",
+      "PowerShell(pnpm issue:create*)",
+      "PowerShell(pnpm -s issue:create*)",
+      "PowerShell(pnpm run issue:create*)",
+      "PowerShell(npm run issue:create*)",
+      "Bash(node scripts/github/create-issue*)",
+      "PowerShell(node scripts/github/create-issue*)",
+      "Bash(git push * dev*)",
+      "Bash(git push * main*)",
+      "Bash(git push * HEAD:dev*)",
+      "Bash(git push * HEAD:main*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "PowerShell(git push * dev*)",
+      "PowerShell(git push * main*)",
+      "PowerShell(git push * HEAD:dev*)",
+      "PowerShell(git push * HEAD:main*)",
+      "PowerShell(git push --force*)",
+      "PowerShell(git push -f*)",
+      "Bash(pnpm gh:bot pr merge*)",
+      "Bash(pnpm gh:bot pr review*--approve*)",
+      "Bash(pnpm gh:bot api *rulesets*)",
+      "PowerShell(pnpm gh:bot pr merge*)",
+      "PowerShell(pnpm gh:bot pr review*--approve*)",
+      "PowerShell(pnpm gh:bot api *rulesets*)",
+      "Edit(/.claude/memory/memories/**)",
+      "Edit(/.claude/memory/usage/**)",
+      "Edit(/.claude/memory/.built/**)"
     ]
   },
   "hooks": {

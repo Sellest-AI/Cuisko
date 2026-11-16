@@ -1,5 +1,5 @@
 /**
- * The memory lock (spec §5.3): only memory:update commits index.md, usage.json and memories/.
+ * The memory lock (spec §5.3): only memory:update commits memories/ and usage/.
  * Too loose, and a session agent's Bash edit lands unreviewed. Too tight, and the pull of a
  * memory commit made on the other machine is refused, which stops the next dream at U2.
  *
@@ -54,13 +54,13 @@ const write = (repo: string, file: string, text: string) => {
   writeFileSync(path.join(repo, file), text);
 };
 
-/** A repo on `dev` with a memory folder, a source file and an empty memories/ entry, committed without hooks. */
+/** A repo on `dev` with a memory folder (a fact, a usage file, the README) and a source file, committed without hooks. */
 const makeRepo = () => {
   const repo = tempDir("repo");
   git(repo, "init", "-q", "-b", "dev");
-  write(repo, ".claude/memory/index.md", "# index\n");
+  write(repo, ".claude/memory/usage/2026-11-01-u1u1.json", "{}\n");
   write(repo, ".claude/memory/README.md", "# rules\n");
-  write(repo, ".claude/memory/memories/auth.md", "# auth\n");
+  write(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md", "# auth\n");
   write(repo, "src/a.ts", "export {};\n");
   git(repo, "add", "-A");
   git(repo, "commit", "-q", "--no-verify", "-m", "init");
@@ -78,17 +78,32 @@ const stage = (repo: string, file: string) => {
 describe("the lock script", () => {
   it("refuses a commit staging a memory file, naming it", () => {
     const repo = makeRepo();
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     const result = lock(repo);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("the memory is written by pnpm memory:update only");
-    expect(result.stderr).toContain("Staged: .claude/memory/index.md");
+    expect(result.stderr).toContain("Staged: .claude/memory/memories/auth/tokens-expire-a1b2.md");
+  });
+
+  it("refuses a new usage file, and a usage file deleted", () => {
+    const added = makeRepo();
+    stage(added, ".claude/memory/usage/2026-11-12-x9y8.json");
+    expect(lock(added).stderr).toContain("Staged: .claude/memory/usage/2026-11-12-x9y8.json");
+    const removed = makeRepo();
+    git(removed, "rm", "-q", ".claude/memory/usage/2026-11-01-u1u1.json");
+    expect(lock(removed).status).toBe(1);
+  });
+
+  it("passes a file of the memory folder outside memories/ and usage/, such as the old index", () => {
+    const repo = makeRepo();
+    stage(repo, ".claude/memory/index.md");
+    expect(lock(repo).status).toBe(0);
   });
 
   it("refuses a memory file moved out of memories/", () => {
     const repo = makeRepo();
     mkdirSync(path.join(repo, "docs"));
-    git(repo, "mv", ".claude/memory/memories/auth.md", "docs/auth.md");
+    git(repo, "mv", ".claude/memory/memories/auth/tokens-expire-a1b2.md", "docs/auth.md");
     expect(lock(repo).status).toBe(1);
   });
 
@@ -101,14 +116,33 @@ describe("the lock script", () => {
 
   it("passes a MEMORY_UPDATE=1 commit staging only the memory", () => {
     const repo = makeRepo();
-    stage(repo, ".claude/memory/index.md");
-    stage(repo, ".claude/memory/memories/auth.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     expect(lock(repo, { MEMORY_UPDATE: "1" }).status).toBe(0);
+  });
+
+  it("tells the hook a MEMORY_UPDATE=1 commit stages only the memory, so it runs C20 alone", () => {
+    const repo = makeRepo();
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+    expect(lock(repo, { MEMORY_UPDATE: "1" }).stdout).toBe("memory-only\n");
+  });
+
+  it("tells the hook an empty MEMORY_UPDATE=1 commit is memory-only: the dream that read no session", () => {
+    const repo = makeRepo();
+    expect(lock(repo, { MEMORY_UPDATE: "1" })).toMatchObject({ status: 0, stdout: "memory-only\n" });
+  });
+
+  it("tells the hook nothing for any other commit it lets through, so it runs verify", () => {
+    const repo = makeRepo();
+    stage(repo, "src/a.ts");
+    expect(lock(repo).stdout).toBe("");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+    expect(lock(repo, { GIT_HOOK_NAME: "pre-merge-commit" }).stdout).toBe("");
   });
 
   it("refuses a MEMORY_UPDATE=1 commit staging a file outside the memory", () => {
     const repo = makeRepo();
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     stage(repo, "src/a.ts");
     const result = lock(repo, { MEMORY_UPDATE: "1" });
     expect(result.status).toBe(1);
@@ -117,20 +151,20 @@ describe("the lock script", () => {
 
   it.each(["MERGE_HEAD", "REVERT_HEAD"])("passes while %s exists", (state) => {
     const repo = makeRepo();
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     writeFileSync(path.join(repo, ".git", state), `${git(repo, "rev-parse", "HEAD")}\n`);
     expect(lock(repo).status).toBe(0);
   });
 
   it("passes when pre-merge-commit handed over", () => {
     const repo = makeRepo();
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     expect(lock(repo, { GIT_HOOK_NAME: "pre-merge-commit" }).status).toBe(0);
   });
 
   it("refuses a cherry-pick", () => {
     const repo = makeRepo();
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     writeFileSync(path.join(repo, ".git", "CHERRY_PICK_HEAD"), `${git(repo, "rev-parse", "HEAD")}\n`);
     expect(lock(repo).status).toBe(1);
   });
@@ -138,7 +172,7 @@ describe("the lock script", () => {
   it("names the pending dream commit when one waits", () => {
     const repo = makeRepo();
     write(repo, ".tmp/memory/dream-20261108-1000/pending.json", "{}");
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     const result = lock(repo);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("a dream commit is pending: rerun pnpm memory:update");
@@ -175,7 +209,7 @@ describe("through the real hooks", () => {
 
   /** On dev, a memory commit made the way memory:update makes it. */
   const memoryCommit = (repo: string) => {
-    stage(repo, ".claude/memory/index.md");
+    stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     expect(commit(repo, "-m", "chore(memory): update", "--trailer", "Memory-Update: yes").status).not.toBe(0);
     const result = run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore(memory): update"], repo, {
       ...hookEnv,
@@ -204,16 +238,156 @@ describe("through the real hooks", () => {
     git(repo, "worktree", "add", "-q", "-b", "chore/wt", worktree);
     memoryCommit(repo);
 
-    write(worktree, ".claude/memory/index.md", "# index, from the worktree\n");
-    git(worktree, "add", ".claude/memory/index.md");
+    write(worktree, ".claude/memory/memories/auth/tokens-expire-a1b2.md", "from the worktree\n");
+    git(worktree, "add", ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     git(worktree, "commit", "-q", "--no-verify", "-m", "chore: diverge");
     expect(merge(worktree, "dev").status).not.toBe(0);
-    expect(readFileSync(path.join(worktree, ".claude/memory/index.md"), "utf8")).toContain("<<<<<<<");
+    expect(readFileSync(path.join(worktree, ".claude/memory/memories/auth/tokens-expire-a1b2.md"), "utf8")).toContain("<<<<<<<");
 
-    write(worktree, ".claude/memory/index.md", "# index, resolved\n");
-    git(worktree, "add", ".claude/memory/index.md");
+    write(worktree, ".claude/memory/memories/auth/tokens-expire-a1b2.md", "resolved\n");
+    git(worktree, "add", ".claude/memory/memories/auth/tokens-expire-a1b2.md");
     const result = commit(worktree, "--no-edit");
     expect(result.stderr).not.toContain("Commit refused");
     expect(result.status).toBe(0);
+  });
+
+  /**
+   * In a worktree git hands the hook GIT_DIR and GIT_INDEX_FILE. Verify's tests run git in
+   * throwaway repos: with GIT_DIR inherited, their `git init` reinitialises the committing repo
+   * instead, as a bare one, and every checkout of it stops working.
+   */
+  it("runs verify and the memory check without git's own variables, from a worktree too", () => {
+    const repo = makeHookedRepo();
+    const worktree = path.join(tempDir("wt-env"), "wt");
+    git(repo, "worktree", "add", "-q", "-b", "chore/wt-env", worktree);
+    const recorder = tempDir("bin-records-env");
+    const seen = path.join(recorder, "seen.txt");
+    writeFileSync(path.join(recorder, "pnpm"), `#!/bin/sh\nenv | grep -E '^GIT_(DIR|INDEX_FILE|WORK_TREE|PREFIX)=' >> "${seen.replace(/\\/g, "/")}"\nexit 0\n`);
+    chmodSync(path.join(recorder, "pnpm"), 0o755);
+    const env = { PATH: `${recorder}${path.delimiter}${process.env.PATH ?? ""}` };
+
+    const gitWith = (cwd: string, args: string[], extra: Record<string, string> = {}) =>
+      run("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], cwd, { ...env, ...extra });
+
+    // A merge commit is the one plain commits leave to verify: dev gains a commit, the worktree merges it.
+    stage(repo, "src/b.ts");
+    expect(gitWith(repo, ["commit", "-q", "-m", "chore: on dev"]).status).toBe(0);
+    stage(worktree, "src/a.ts");
+    expect(gitWith(worktree, ["commit", "-q", "-m", "chore: code"]).status).toBe(0);
+    expect(gitWith(worktree, ["merge", "-q", "--no-ff", "--no-edit", "dev"]).status).toBe(0);
+    stage(worktree, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+    expect(gitWith(worktree, ["commit", "-q", "-m", "chore(memory): update"], { MEMORY_UPDATE: "1" }).status).toBe(0);
+
+    // The recorder appends one line per pnpm call that saw a variable, so empty means none did.
+    expect(readFileSync(seen, "utf8")).toBe("");
+    expect(git(worktree, "rev-list", "--count", "--merges", "HEAD")).toBe("1");
+  });
+
+  /**
+   * A memory:update commit stages only .claude/memory (the lock refuses anything else), so the
+   * hook runs the memory check, not the whole verify. The fake `pnpm` fails verify and passes
+   * check:memory, so the commit passes only when verify is skipped.
+   */
+  describe("a memory:update commit", () => {
+    const verifyFails = tempDir("bin-verify-fails");
+    writeFileSync(
+      path.join(verifyFails, "pnpm"),
+      '#!/bin/sh\nif [ "$*" = "check:memory" ]; then echo "memory checked"; exit 0; fi\necho "verify ran" >&2\nexit 1\n',
+    );
+    chmodSync(path.join(verifyFails, "pnpm"), 0o755);
+    const env = { PATH: `${verifyFails}${path.delimiter}${process.env.PATH ?? ""}` };
+    const commitWith = (repo: string, extra: Record<string, string>) =>
+      run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore(memory): update"], repo, { ...env, ...extra });
+
+    it("runs the memory check instead of pnpm verify", () => {
+      const repo = makeHookedRepo();
+      stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+      const result = commitWith(repo, { MEMORY_UPDATE: "1" });
+      expect(result.stderr).not.toContain("verify ran");
+      // Git hands a hook's stdout to stderr.
+      expect(result.stdout + result.stderr).toContain("memory checked");
+      expect(result.status).toBe(0);
+    });
+
+    it("runs the memory check for a memory file with a non-ASCII name", () => {
+      const repo = makeHookedRepo();
+      stage(repo, ".claude/memory/memories/auth/café-a1b2.md");
+      const result = commitWith(repo, { MEMORY_UPDATE: "1" });
+      expect(result.stderr).not.toContain("verify ran");
+      expect(result.status).toBe(0);
+    });
+
+    it("is refused when the memory check fails", () => {
+      const repo = makeHookedRepo();
+      const memoryFails = tempDir("bin-memory-fails");
+      writeFileSync(path.join(memoryFails, "pnpm"), '#!/bin/sh\necho "C20 failed" >&2\nexit 1\n');
+      chmodSync(path.join(memoryFails, "pnpm"), 0o755);
+      stage(repo, ".claude/memory/memories/auth/tokens-expire-a1b2.md");
+      const result = run("git", ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "chore(memory): update"], repo, {
+        PATH: `${memoryFails}${path.delimiter}${process.env.PATH ?? ""}`,
+        MEMORY_UPDATE: "1",
+      });
+      expect(result.stderr).toContain("the memory check failed");
+      expect(result.status).not.toBe(0);
+    });
+  });
+
+  /**
+   * A plain commit runs only the fast checks: an agent runs verify once, in the committing skill,
+   * and CI verify gates the PR. A merge commit still runs verify, clean or conflicted: its tree is
+   * the one no branch commit verified. The fake `pnpm` fails verify, so a commit passes only when
+   * verify is skipped.
+   */
+  describe("verify", () => {
+    const verifyFails = tempDir("bin-verify-only-fails");
+    writeFileSync(path.join(verifyFails, "pnpm"), '#!/bin/sh\necho "verify ran" >&2\nexit 1\n');
+    chmodSync(path.join(verifyFails, "pnpm"), 0o755);
+    const env = { PATH: `${verifyFails}${path.delimiter}${process.env.PATH ?? ""}` };
+    const gitWith = (repo: string, ...args: string[]) =>
+      run("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], repo, env);
+
+    /**
+     * On dev, a commit changing src/a.ts; on chore/other, one changing `fileOnOther`. Merging
+     * chore/other into dev conflicts when that file is src/a.ts too.
+     */
+    const divergedRepo = (fileOnOther: string) => {
+      const repo = makeHookedRepo();
+      git(repo, "branch", "chore/other");
+      stage(repo, "src/a.ts");
+      expect(gitWith(repo, "commit", "-q", "-m", "chore: on dev").status).toBe(0);
+      git(repo, "switch", "-q", "chore/other");
+      write(repo, fileOnOther, "from chore/other\n");
+      git(repo, "add", fileOnOther);
+      expect(gitWith(repo, "commit", "-q", "-m", "chore: on other").status).toBe(0);
+      git(repo, "switch", "-q", "dev");
+      return repo;
+    };
+
+    it("is not run for a plain commit", () => {
+      const repo = makeHookedRepo();
+      stage(repo, "src/a.ts");
+      const result = gitWith(repo, "commit", "-q", "-m", "chore: code");
+      expect(result.stderr).not.toContain("verify ran");
+      expect(result.status).toBe(0);
+    });
+
+    it("refuses a clean merge commit it fails", () => {
+      const repo = divergedRepo("src/b.ts");
+      const result = gitWith(repo, "merge", "-q", "--no-ff", "--no-edit", "chore/other");
+      expect(result.stderr).toContain("verify ran");
+      expect(result.status).not.toBe(0);
+      expect(git(repo, "rev-list", "--count", "--merges", "HEAD")).toBe("0");
+    });
+
+    it("refuses a conflicted merge, once resolved, that it fails", () => {
+      const repo = divergedRepo("src/a.ts");
+      expect(gitWith(repo, "merge", "-q", "--no-edit", "chore/other").status).not.toBe(0);
+      write(repo, "src/a.ts", "resolved\n");
+      git(repo, "add", "src/a.ts");
+      const result = gitWith(repo, "commit", "--no-edit");
+      expect(result.stderr).toContain("verify ran");
+      expect(result.status).not.toBe(0);
+      expect(git(repo, "rev-list", "--count", "--merges", "HEAD")).toBe("0");
+    });
   });
 });

@@ -1,0 +1,6 @@
+{
+  "name": "issues",
+  "version": "0.1.0",
+  "description": "A band above the prompt for each issue draft in .tmp/issues/: Create issue creates it as the owner, Discard deletes it.",
+  "types": "./types/index.d.ts"
+}

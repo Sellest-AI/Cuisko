@@ -1,6 +1,25 @@
 import { PostHogProvider } from "posthog-react-native";
+import { Platform } from "react-native";
 
 import { env } from "env";
+
+/**
+ * The browser's own storage, on web; `undefined` everywhere else, where PostHog finds its own.
+ *
+ * PostHog looks for the native file system or AsyncStorage, and on web there is neither: without a
+ * storage of its own it threw "No storage available" on the first render, and the page stayed blank.
+ * `localStorage` keeps the cook's anonymous id across reloads, as the file does on a phone.
+ *
+ * None during the web build's server render, where there is no `window`. PostHog falls back to
+ * memory there by itself.
+ */
+const webStorage = () =>
+  Platform.OS === "web" && typeof window !== "undefined"
+    ? {
+      getItem: (key: string) => window.localStorage.getItem(key),
+      setItem: (key: string, value: string) => window.localStorage.setItem(key, value),
+    }
+    : undefined;
 
 /**
  * Product analytics for the whole app, sent to the same PostHog project the backend reports what
@@ -15,7 +34,7 @@ import { env } from "env";
 export const AnalyticsProvider = ({ children }: { children: React.ReactNode }) => (
   <PostHogProvider
     apiKey={env.EXPO_PUBLIC_POSTHOG_KEY}
-    options={{ host: env.EXPO_PUBLIC_POSTHOG_HOST }}
+    options={{ host: env.EXPO_PUBLIC_POSTHOG_HOST, customStorage: webStorage() }}
     autocapture={{ captureScreens: false }}
   >
     {children}

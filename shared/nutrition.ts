@@ -406,3 +406,33 @@ export const roundFacts = (facts: IngredientFacts): IngredientFacts => ({
   ...(facts.sodium !== undefined && { sodium: Math.round(facts.sodium) }),
   ...(facts.iron !== undefined && { iron: _toTenth(facts.iron) }),
 });
+
+/** Each nutrient a label counts inside another: "carbohydrate, of which sugars", "fat, of which saturates". */
+const _NUTRIENT_PARTS = [
+  { part: "sugars", whole: "carbohydrates" },
+  { part: "saturatedFat", whole: "fat" },
+] as const;
+
+type PartedNutrition = { carbohydrates: number; fat: number; sugars?: number; saturatedFat?: number };
+
+/**
+ * The nutrition with each part lowered to its whole where it exceeds it, and each one lowered named
+ * with both figures (`"sugars 5 > carbohydrates 1"`), for a caller to report.
+ *
+ * Lowered rather than dropped: a part above its whole is impossible, and the whole is the closest
+ * figure that is not. A part equal to its whole is a real food — white sugar, honey, cola — and is
+ * kept. The whole is trusted, so a wrong whole keeps a wrong part: that is why the change is named.
+ */
+export const clampNutrientParts = <N extends PartedNutrition>(nutrition: N): { nutrition: N; clamped: string[] } => {
+  const clamped: string[] = [];
+  const lowered: PartedNutrition = { ...nutrition };
+
+  for (const { part, whole } of _NUTRIENT_PARTS) {
+    const value = lowered[part];
+    if (value === undefined || value <= lowered[whole]) continue;
+    clamped.push(`${part} ${value} > ${whole} ${lowered[whole]}`);
+    lowered[part] = lowered[whole];
+  }
+
+  return { nutrition: lowered as N, clamped };
+};

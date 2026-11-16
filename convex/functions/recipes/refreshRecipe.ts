@@ -83,12 +83,22 @@ const _sameTags = (a: readonly Tag[], b: readonly Tag[]) =>
  * Returns whether it rewrote the derived fields (`refreshed`), whether it folded duplicate lines
  * (`merged`), and whether the recipe was whole — `refreshed: false` alone cannot tell "already
  * current" from "skipped for a missing line", and a caller reporting to a person must.
+ *
+ * `skipArchived` is the background refresh's option (`refreshRecipesUsing`). It leaves an archived
+ * recipe untouched, lines included: no list shows it (ADR 0017), and a restore re-derives it anyway.
+ * It steps over a recipe gone too: a line can outlive its recipe while a cascade is pending, and one
+ * such line must not fail every later page. Either way the result says `skipped` — the lines were
+ * never read, so `whole` is not a finding. Without the option, a recipe gone is a caller's bug and
+ * throws.
  */
 export const refreshRecipe = async (
   ctx: MutationCtx,
   recipeId: Id<"recipes">,
-): Promise<{ refreshed: boolean; merged: boolean; whole: boolean }> => {
+  options?: { skipArchived?: boolean },
+): Promise<{ refreshed: boolean; merged: boolean; whole: boolean; skipped?: true }> => {
   const recipe = await ctx.db.get(recipeId);
+  const skip = options?.skipArchived && (!recipe || recipe.isArchived);
+  if (skip) return { refreshed: false, merged: false, whole: true, skipped: true };
   if (!recipe) throw new Error(`refreshRecipe: recipe ${recipeId} does not exist.`);
 
   const stored = await ctx.db

@@ -4,17 +4,18 @@
 #
 # A merge commit does not run pre-commit, and it is the one tree no branch commit ever
 # verified: the branch passed against the target it started from (`dev` or `main`), the target
-# passed against itself, and nothing checked the two together. This runs the same gate on that
-# combination.
+# passed against itself, and nothing checked the two together. This runs pre-commit's checks on
+# that combination, and pre-commit runs the whole `pnpm verify` for a merge only.
 #
-# Not run on a fast-forward (no commit is made; the target becomes a tip pre-commit already passed)
-# nor on a conflicted merge (resolving it ends in `git commit`, which runs pre-commit).
+# Not run on a fast-forward (no commit is made; the target becomes a tip CI already passed)
+# nor on a conflicted merge (resolving it ends in `git commit`, which runs pre-commit, and
+# pre-commit sees MERGE_HEAD and runs verify).
 #
 # Genuinely need to bypass it?  git merge --no-verify
 
-# pre-commit cannot tell it runs for a merge: $0 is still `pre-commit` there, and a clean merge has
-# no MERGE_HEAD yet. The memory lock (scripts/memory/pre-commit.mjs) reads this to let a pulled
-# memory commit through.
+# pre-commit cannot tell it runs for a clean merge: $0 is still `pre-commit` there, and a clean
+# merge has no MERGE_HEAD yet. pre-commit reads this to run verify, and the memory lock
+# (scripts/memory/pre-commit.mjs) reads it to let a pulled memory commit through.
 export GIT_HOOK_NAME=pre-merge-commit
 
 exec "$(dirname "$0")/pre-commit" "$@"

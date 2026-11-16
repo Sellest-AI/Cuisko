@@ -740,8 +740,6 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   "ground-beef-80-20": { fr: ["viande hachée", "steak haché", "bœuf haché"], en: ["ground beef", "minced beef"] },
   "beef-ground-90-10": { fr: ["viande hachée maigre"] },
   "chicken-breast": { fr: ["blanc de poulet", "escalope de poulet"] },
-  // The whole leg, as France sells a cuisse; English recipes buy the same piece as a thigh.
-  "chicken-thigh": { en: ["chicken thigh"] },
   // The slug predates the row's cut: it is the French bavette, flank, never a sirloin.
   "beef-steak-sirloin": { fr: ["bavette"], en: ["bavette"] },
   // Not bare "poulet": a line reading "500 g de poulet" means pieces, and belongs on a part row.
@@ -756,7 +754,13 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
     fr: ["cassonade", "sucre blond", "sucre de canne blond"],
     en: ["light brown sugar", "golden caster sugar"],
   },
-  cornstarch: { fr: ["fécule de maïs"] },
+  // "Cornflour" is the British word for this starch. Not "corn flour": in American English that is
+  // fine cornmeal, another row.
+  cornstarch: { fr: ["fécule de maïs"], en: ["cornflour", "corn starch"] },
+  // Colza is sold as rapeseed oil in Britain, and as canola in America, the row's own name.
+  "canola-oil": { fr: ["huile de canola"], en: ["rapeseed oil", "rapeseed"] },
+  // Whole or ground, the same spice: a line reading "cumin seeds" is not nigella.
+  cumin: { fr: ["graines de cumin", "cumin en grains"], en: ["cumin seeds", "cumin seed"] },
   honey: { fr: ["miel liquide"] },
   // Extra virgin is a grade, not another food: a cupboard holding either covers a recipe asking for
   // the other. CIQUAL files it apart, so without these the recipe import invented a second row.
@@ -843,7 +847,6 @@ const ALIASES: Record<string, { fr?: string[]; en?: string[] }> = {
   // is what an unqualified recipe line means — silken is always written as such.
   "tofu-firm": { fr: ["tofu"] },
   "bean-sprouts": { fr: ["pousses de soja"] },
-  "curry-paste-red": { fr: ["pâte de curry"] },
   ghee: { fr: ["beurre clarifié"] },
   nori: { fr: ["feuilles de nori"] },
   // -- Spellings the recipe import created rows for, on the rows they meant ----------------------

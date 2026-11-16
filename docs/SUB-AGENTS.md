@@ -1,7 +1,7 @@
 # Sub-agents
 
 How to spawn a sub-agent well, and when a spawn becomes a definition in `.claude/agents/`. When to
-spawn one is in the root `AGENTS.md`, § Sub-agents, which points here.
+spawn one is in the root `AGENTS.md`, § Agents and Sub-agents, which points here.
 
 ## What the prompt carries
 

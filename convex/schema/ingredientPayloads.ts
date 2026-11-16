@@ -158,3 +158,51 @@ export const vMergeOutcome = v.object({
   recentlyUsedDropped: v.number(),
   aliasesCarried: v.number(),
 });
+
+/**
+ * The weights `toGrams` reads off a row: the three questions a unit can ask that grams do not.
+ * Each is `undefined` on a row that cannot answer it, which is what makes a recipe line unweighable.
+ */
+export const RATIO_FIELDS = ["gramsPerPiece", "gramsPerSlice", "gramsPerMl"] as const;
+
+export type RatioField = (typeof RATIO_FIELDS)[number];
+
+/**
+ * The nutrients a row may lack: the four Nutri-Score inputs the column leaves optional, and `iron`.
+ * Calories, protein, fat and carbohydrates are not here because the column requires them.
+ */
+export const NUTRIENT_FIELDS = ["saturatedFat", "sugars", "fiber", "sodium", "iron"] as const;
+
+export type NutrientField = (typeof NUTRIENT_FIELDS)[number];
+
+/** Every field `repairIngredient` can be asked to fill: the weights, then the nutrients. */
+export const REPAIRABLE_FIELDS = [...RATIO_FIELDS, ...NUTRIENT_FIELDS] as const;
+
+/** A field `repairIngredient` can be asked to fill. */
+export const vRepairableField = v.union(...REPAIRABLE_FIELDS.map((field) => v.literal(field)));
+
+export type RepairableField = RatioField | NutrientField;
+
+/** Whether a field is one of the row's top-level weights, rather than a nutrient in `nutrition`. */
+export const isRatioField = (field: RepairableField): field is RatioField =>
+  (RATIO_FIELDS as readonly string[]).includes(field);
+
+/**
+ * A partial update of a catalog row, flat: a patch names only the fields it writes.
+ *
+ * Flat although the row is not: the nutrients live in `nutrition`, and `patchIngredient` merges
+ * them into it, because `db.patch` would store a nested `nutrition` whole and erase the rest.
+ * The list is what the repair writes; it grows when a second caller needs more.
+ */
+export const vIngredientPatch = v.object({
+  gramsPerPiece: v.optional(v.number()),
+  gramsPerSlice: v.optional(v.number()),
+  gramsPerMl: v.optional(v.number()),
+  saturatedFat: v.optional(v.number()),
+  sugars: v.optional(v.number()),
+  fiber: v.optional(v.number()),
+  sodium: v.optional(v.number()),
+  iron: v.optional(v.number()),
+});
+
+export type IngredientPatch = Infer<typeof vIngredientPatch>;

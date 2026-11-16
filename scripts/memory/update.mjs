@@ -4,22 +4,27 @@
  *
  *   pnpm memory:update              the whole dream, U1–U11
  *   pnpm memory:update --dry-run    U1 and U3–U7: show the diff, change nothing, write no stamps
- *   pnpm memory:update --reindex    bring usage.json and index.md in line with memories/ after a
- *                                   hand-written file; no pull, no dream, no commit, no stamps
+ *   pnpm memory:update --auto       pr:push's dream: no U2, no prompt; U8 answers [o], and what the
+ *                                   reviewer leaves flagged is dropped and named
  *
- * U1  refuse unless the branch, the memory, the stamps and the claude command are in order; take
- *     the dream lock; finish a pending commit if one is waiting
- * U2  git pull (not in --dry-run: a pull cannot be undone)
- * U3  select the unread lines; none: "Nothing to read", and nothing changes
- * U4  make .tmp/memory/dream-<stamp>/, copy the memory into it, count the reads and the sessions
- *     since each file's last read, refresh the index
+ * U1  refuse unless the branch (never dev or main: the memory reaches dev inside a PR), the memory,
+ *     the stamps and the claude command are in order; take the dream lock; finish a pending commit
+ *     if one is waiting
+ * U2  git pull (not in --dry-run: a pull cannot be undone; not in --auto: pr:push has just fetched)
+ * U3  select the unread lines; none: "Nothing to read". Then, unless HEAD already carries the
+ *     trailer, an empty commit with it, so the PR's memory check sees the dream ran; no stamps
+ * U4  make .tmp/memory/dream-<stamp>/, copy the memory into it, count the reads of each topic and
+ *     the session starts, and write them as this dream's own usage file in the copy
  * U5  P2–P6 (dream.mjs) on the copy
- * U6  the repo's memory is made equal to the copy only when the owner accepts — deviation from the
- *     spec's order: the diff is taken between the repo and the copy, so nothing needs undoing
- * U7  show the diff, the ranking changes and every alert, and the candidates the planner left out;
- *     no change in memories/ is "nochange", and still shows that report
- * U8  [o] accept · [m] modify (an instruction, or :e to edit by hand; the checks run again) ·
- *     [i] ignore (stamps written, nothing kept) · [a] abort (nothing written)
+ * U6  the repo's memory is brought in line with the copy only when the owner accepts — deviation
+ *     from the spec's order: the diff is taken between the repo and the copy, so nothing needs
+ *     undoing
+ * U7  show the diff, the ranking change (both indexes rendered in memory) and every alert, and the
+ *     candidates the planner left out; no fact changed is "nochange", and still shows that report
+ * U8  [o] accept · [m] modify (an instruction, or :e to edit by hand; the new facts are named and
+ *     the checks run again) · [i] ignore (stamps written, nothing kept) · [a] abort (nothing
+ *     written). A "nochange" dream that wrote a usage file commits it without asking: it holds no
+ *     prose, only topic names, counts and dates, and C20 checks it
  * U9  git commit limited to .claude/memory, with MEMORY_UPDATE=1 and the trailer Memory-Update: yes
  *     (the hook output shows as one progress line, in full only when the commit is refused)
  * U10 stamps: each pair reviewed up to its newest selected line; readsCountedUntil only when a
@@ -34,15 +39,16 @@
  * _lib module's docblock.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { correct, dream } from "./_lib/dream.mjs";
+import { renderMemory } from "./_lib/built.mjs";
+import { correct, dream, nameNewFacts } from "./_lib/dream.mjs";
 import { commonDir, gitIn, gitInOrNull, mainRoot } from "./_lib/git.mjs";
-import { compareMemories, copyMemory, mirrorMemory, refreshIndex } from "./_lib/memoryDir.mjs";
-import { isEncrypted, readMemoryFiles } from "./_lib/memoryFiles.mjs";
+import { compareMemories, copyMemory, mirrorMemory, snapshotMemory } from "./_lib/memoryDir.mjs";
+import { isEncrypted, readFacts, topicsOf } from "./_lib/memoryFiles.mjs";
 import { dreamDirs, findPending, pairsOf, writePending } from "./_lib/pending.mjs";
 import { ownerIdentity } from "./_lib/pii.mjs";
 import { formatReport, formatSummary, memoryDiff, rankingChanges } from "./_lib/review.mjs";
@@ -50,9 +56,9 @@ import { droppedCandidates } from "./_lib/responses.mjs";
 import { runAgent } from "./_lib/runAgent.mjs";
 import { acquireDreamLock, pruneStamps, readStamps, recordReview, StampsError, stampsPath, writeStamps } from "./_lib/stamps.mjs";
 import { countSessions, findTranscripts, mayHoldUnread, openBranches, projectsDir, readLines, referenceDate, select } from "./_lib/transcripts.mjs";
-import { applyReads, applySessions, countReads, sessionStarts } from "./_lib/usage.mjs";
+import { countReads, dreamUsage, newUsageFile, sessionStarts, USAGE_DIR } from "./_lib/usage.mjs";
 import { createSteps } from "./_lib/steps.mjs";
-import { createVerifyProgress, formatProgress, verifySteps } from "./_lib/verifyProgress.mjs";
+import { createLastLine, formatHookStatus } from "./_lib/hookStatus.mjs";
 
 const MEMORY = ".claude/memory";
 const TMP = ".tmp/memory";
@@ -67,16 +73,77 @@ class UpdateError extends Error {
 }
 
 const _arguments = (argv) => {
-  const known = new Set(["--dry-run", "--reindex"]);
-  const unknown = argv.filter((arg) => !known.has(arg));
-  if (unknown.length > 0) throw new UpdateError(`unknown argument ${unknown[0]}. Usage: pnpm memory:update [--dry-run | --reindex]`);
-  if (argv.includes("--dry-run") && argv.includes("--reindex")) throw new UpdateError("--dry-run and --reindex cannot go together");
-  return { dryRun: argv.includes("--dry-run"), reindex: argv.includes("--reindex") };
+  const unknown = argv.filter((arg) => arg !== "--dry-run" && arg !== "--auto");
+  if (unknown.length > 0) throw new UpdateError(`unknown argument ${unknown[0]}. Usage: pnpm memory:update [--dry-run] [--auto]`);
+  const dryRun = argv.includes("--dry-run");
+  const auto = argv.includes("--auto");
+  if (dryRun && auto) throw new UpdateError("--auto and --dry-run cannot be combined: --auto commits, --dry-run writes nothing.");
+  return { dryRun, auto };
 };
 
-/** C20 on a memory folder, as P5 and --reindex need it. */
-const _runCheck = ({ top, memoryDir, full, now }) => {
-  const args = [CHECK, "--memory-dir", memoryDir, ...(full ? ["--full", "--now", now.toISOString()] : [])];
+/** The empty commit's message: it says the dream ran and found nothing, so the trailer is all it carries. */
+const EMPTY_MESSAGE = "chore(memory): no session to read\n\nMemory-Update: yes\n";
+
+/** Whether HEAD's message carries `Memory-Update: yes`, read by git's own trailer parser (one value per line). */
+const _headHasTrailer = (top) =>
+  gitIn(top, "log", "-1", "--format=%(trailers:key=Memory-Update,valueonly)", "HEAD")
+    .split("\n")
+    .some((value) => /^yes$/i.test(value.trim()));
+
+/**
+ * U3 with nothing to read: an empty commit with the trailer, unless HEAD already has one (a rerun,
+ * or a resync after dev moved). An empty commit takes no pathspec, so anything staged would go in
+ * with it: refused. The memory is clean (U1), so whatever is staged is outside it.
+ */
+const _commitEmpty = async ({ top, io }) => {
+  if (_headHasTrailer(top)) return;
+  if (gitIn(top, "diff", "--cached", "--name-only") !== "") {
+    throw new UpdateError(`Something is staged outside ${MEMORY}: an empty memory commit would take it in. Commit or unstage it, then run this again.`);
+  }
+  const dir = path.join(top, TMP);
+  mkdirSync(dir, { recursive: true });
+  const messageFile = path.join(dir, "empty-commit-message.txt");
+  writeFileSync(messageFile, EMPTY_MESSAGE);
+  try {
+    const run = await _runShowingStatus({ top, args: ["commit", "--allow-empty", "-F", messageFile], io });
+    if (run.status !== 0) {
+      io.err(run.output.trimEnd());
+      throw new UpdateError("The empty memory commit was refused. Fix what it reported, then run this again.");
+    }
+  } finally {
+    rmSync(messageFile, { force: true });
+  }
+  io.out(`✅ Empty memory commit ${gitIn(top, "rev-parse", "--short", "HEAD")}: the branch records that the dream ran.`);
+};
+
+/**
+ * --auto: no owner reads the flags the reviewer leaves open, so each one's change is dropped from
+ * the copy: a fact the dream created goes, a fact it changed or deleted comes back as the repo has
+ * it. Only a path the dream changed is touched, so a flag cannot name a file outside the memory.
+ * Returns the open flags, each to be named.
+ */
+const _dropOpenFlags = ({ memoryDir, copy, flags }) => {
+  const open = flags.filter((flag) => flag.fix === undefined);
+  const changes = compareMemories(memoryDir, copy);
+  const changed = new Set([...changes.created, ...changes.modified, ...changes.deleted]);
+  for (const { path: name } of open) {
+    if (!changed.has(name)) continue;
+    const original = path.join(memoryDir, name);
+    const target = path.join(copy, name);
+    if (existsSync(original)) {
+      mkdirSync(path.dirname(target), { recursive: true });
+      copyFileSync(original, target);
+    } else {
+      rmSync(target, { force: true });
+      if (readdirSync(path.dirname(target)).length === 0) rmSync(path.dirname(target), { recursive: true });
+    }
+  }
+  return open;
+};
+
+/** C20 on a memory folder, as P5 needs it. */
+const _runCheck = ({ top, memoryDir, full }) => {
+  const args = [CHECK, "--memory-dir", memoryDir, ...(full ? ["--full"] : [])];
   const run = spawnSync(process.execPath, args, { cwd: top, encoding: "utf8", env: { ...process.env, CHECK_ROOT: top } });
   return { ok: run.status === 0, output: `${run.stdout ?? ""}${run.stderr ?? ""}` };
 };
@@ -85,17 +152,20 @@ const _hasClaude = () => spawnSync("claude", ["--version"], { stdio: "ignore" })
 
 const _plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
-const _commitMessage = ({ sessions, changes }) =>
+const _commitMessage = ({ sessions, changes, usageFile }) =>
   [
-    `chore(memory): update after ${_plural(sessions, "session")}`,
+    `chore(memory): ${_changeCount(changes) === 0 ? "usage" : "update"} after ${_plural(sessions, "session")}`,
     "",
     ...changes.created.map((file) => `- creates ${file}`),
     ...changes.modified.map((file) => `- modifies ${file}`),
     ...changes.deleted.map((file) => `- deletes ${file}`),
+    ...(usageFile === null ? [] : [`- adds ${USAGE_DIR}/${usageFile}`]),
     "",
     "Memory-Update: yes",
     "",
   ].join("\n");
+
+const _changeCount = (changes) => changes.created.length + changes.modified.length + changes.deleted.length;
 
 /** Puts `.claude/memory` back to HEAD: what U9 changed and a refused commit left behind. */
 const _restoreMemory = (top) => {
@@ -110,8 +180,8 @@ const _commit = async ({ top, dreamDir, memoryDir, message, io }) => {
   gitIn(top, "add", "-A", "--", MEMORY);
   const messageFile = path.join(dreamDir, "commit-message.txt");
   writeFileSync(messageFile, message);
-  io.out("Committing the memory (the pre-commit runs pnpm verify, as for any commit)...");
-  const run = await _runShowingProgress({ top, args: ["commit", "-F", messageFile, "--", MEMORY], io });
+  io.out("Committing the memory (the pre-commit checks it)...");
+  const run = await _runShowingStatus({ top, args: ["commit", "-F", messageFile, "--", MEMORY], io });
   if (run.status !== 0) {
     io.err(run.output.trimEnd());
     _restoreMemory(top);
@@ -120,29 +190,23 @@ const _commit = async ({ top, dreamDir, memoryDir, message, io }) => {
   return gitIn(top, "rev-parse", "HEAD");
 };
 
-/** The steps the repo's `pnpm verify` runs, from its package.json; none when it has no verify. */
-const _verifySteps = (top) => {
-  const manifest = path.join(top, "package.json");
-  return existsSync(manifest) ? verifySteps(JSON.parse(readFileSync(manifest, "utf8")).scripts) : [];
-};
-
 /**
- * Runs `git <args>` with its output kept, not shown: the owner sees one status line, the verify
- * steps finished and the last line printed. The caller prints `output` when the run failed.
+ * Runs `git <args>` with its output kept, not shown: the owner sees one status line with the last
+ * line printed. The caller prints `output` when the run failed.
  */
-const _runShowingProgress = ({ top, args, io }) =>
+const _runShowingStatus = ({ top, args, io }) =>
   new Promise((resolve, reject) => {
-    const progress = createVerifyProgress(_verifySteps(top));
+    const lastLine = createLastLine();
     let output = "";
     // The output is read from a pipe, so the tools would drop their colours: kept for a failure the owner reads.
     const child = spawn("git", args, { cwd: top, env: { ...process.env, MEMORY_UPDATE: "1", ...(io.color ? { FORCE_COLOR: "1" } : {}) } });
     const read = (chunk) => {
       const text = chunk.toString();
       output += text;
-      progress.push(text);
-      io.status?.(formatProgress(progress.state()));
+      lastLine.push(text);
+      io.status?.(formatHookStatus(lastLine.state()));
     };
-    io.status?.(formatProgress(progress.state()));
+    io.status?.(formatHookStatus(lastLine.state()));
     child.stdout.on("data", read);
     child.stderr.on("data", read);
     child.on("error", (error) => {
@@ -150,7 +214,7 @@ const _runShowingProgress = ({ top, args, io }) =>
       reject(error);
     });
     child.on("close", (status) => {
-      progress.end();
+      lastLine.end();
       io.status?.(null);
       resolve({ status, output });
     });
@@ -181,10 +245,13 @@ const _markFailed = (stampsFile, at) => {
 const _preflight = ({ top, hasClaude, io }) => {
   const branch = gitInOrNull(top, "symbolic-ref", "--short", "-q", "HEAD");
   if (!branch) throw new UpdateError("HEAD is detached. Switch to the branch you are about to push, then run this again.");
+  if (branch === "dev" || branch === "main") {
+    throw new UpdateError(`You are on ${branch}. The dream commits the memory on the branch you are about to push, never on dev or main: switch to that branch, then run this again.`);
+  }
   const memoryDir = path.join(top, MEMORY);
-  const index = path.join(memoryDir, "index.md");
-  if (!existsSync(index)) throw new UpdateError(`There is no memory here (${MEMORY}/index.md is missing). Is this branch older than the memory? Merge dev into it.`);
-  if (isEncrypted(readFileSync(index, "utf8"))) throw new UpdateError("The memory is still encrypted on this clone. Run: pnpm memory:setup");
+  const { facts } = readFacts(memoryDir);
+  if (facts.length === 0) throw new UpdateError(`There is no memory here (no fact in ${MEMORY}/memories/). Is this branch older than the memory? Merge dev into it.`);
+  if (facts.some(({ text }) => isEncrypted(text))) throw new UpdateError("The memory is still encrypted on this clone. Run: pnpm memory:setup");
   const stampsFile = stampsPath(top);
   try {
     readStamps(stampsFile);
@@ -200,7 +267,7 @@ const _preflight = ({ top, hasClaude, io }) => {
 /** The memory must be clean: what a dream changes must be the dream's alone. */
 const _requireCleanMemory = (top) => {
   if (gitIn(top, "status", "--porcelain", "--", MEMORY) !== "") {
-    throw new UpdateError(`${MEMORY} has uncommitted changes. Commit or discard them, then run this again. (For a hand-written memory file: pnpm memory:update --reindex.)`);
+    throw new UpdateError(`${MEMORY} has uncommitted changes. Commit or discard them, then run this again.`);
   }
 };
 
@@ -261,10 +328,10 @@ const _changedFiles = ({ memoryDir, copy, changes }) => {
  * Everything the owner reads before choosing: the diff, the ranking changes, the alerts, then the
  * summary last, right above the prompt, where the owner lands after scrolling.
  */
-const _show = ({ io, top, memoryDir, dreamDir, report, changes }) => {
+const _show = ({ io, top, memoryDir, dreamDir, report, changes, now }) => {
   const copy = path.join(dreamDir, "memory");
   io.out(`\n${_diff({ top, memoryDir, dreamDir, color: io.color })}`);
-  const ranking = rankingChanges(readFileSync(path.join(memoryDir, "index.md"), "utf8"), readFileSync(path.join(copy, "index.md"), "utf8"));
+  const ranking = rankingChanges(renderMemory(memoryDir, { now }).index, renderMemory(copy, { now }).index);
   if (ranking.length > 0) io.out(`Index ranking:\n${ranking.map((row) => `  ${row}`).join("\n")}\n`);
   const text = formatReport(report);
   if (text !== "") io.out(text);
@@ -274,19 +341,20 @@ const _show = ({ io, top, memoryDir, dreamDir, report, changes }) => {
 /**
  * U7–U8: show, ask, and loop on [m]. Returns `{ choice: "accepted" | "edited" | "ignored" | "aborted" | "nochange" }`.
  */
-const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, run, check, now, today }) => {
+const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, run, check, now, today, auto }) => {
   const copy = path.join(dreamDir, "memory");
   const diff = () => _diff({ top, memoryDir, dreamDir });
   let edited = false;
   let corrections = 0;
   for (;;) {
     const changes = compareMemories(memoryDir, copy);
-    if (changes.created.length + changes.modified.length + changes.deleted.length === 0) {
+    if (_changeCount(changes) === 0) {
       const text = formatReport(report);
       if (text !== "") io.out(text);
       return { choice: "nochange", changes };
     }
-    _show({ io, top, memoryDir, dreamDir, report, changes });
+    _show({ io, top, memoryDir, dreamDir, report, changes, now });
+    if (auto) return { choice: "accepted", changes };
     const answer = (await io.ask("[o] accept   [m] modify   [i] ignore   [a] abort  > ")).toLowerCase();
     if (answer.startsWith("o")) return { choice: edited ? "edited" : "accepted", changes };
     if (answer.startsWith("i")) return { choice: "ignored", changes };
@@ -298,13 +366,14 @@ const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, 
       edited = true;
       let verdict;
       if (instruction === ":e") {
-        await io.edit(readMemoryFiles(copy).files.map((file) => file.file));
-        refreshIndex(copy, now);
+        const before = snapshotMemory(copy);
+        await io.edit(readFacts(copy).facts.map((fact) => fact.file));
+        nameNewFacts(copy, { before });
         verdict = await check();
       } else {
         corrections += 1;
         steps.step("Applying your correction");
-        const result = await correct({ instruction, copy, run, check, diff, passages, now, today, name: `correction-${corrections}` });
+        const result = await correct({ instruction, copy, run, check, diff, passages, today, name: `correction-${corrections}` });
         steps.end();
         report.alerts.push(...result.reply.alerts);
         for (const { path: name, note } of result.reply.notes ?? []) report.notes.set(name, note);
@@ -317,26 +386,25 @@ const _decide = async ({ io, steps, top, memoryDir, dreamDir, report, passages, 
 };
 
 const _finish = ({ io, outcome, changes, commit }) => {
-  if (outcome === "accepted" || outcome === "edited") io.out(`✅ Memory updated (${_plural(changes.created.length + changes.modified.length + changes.deleted.length, "file")} changed, commit ${commit?.slice(0, 7)}). You can run: git push`);
-  else if (outcome === "ignored") io.out("✅ Changes ignored; the sessions are marked as read. You can run: git push");
-  else io.out("✅ No change needed. You can run: git push");
+  if (outcome === "accepted" || outcome === "edited") io.out(`✅ Memory updated (${_plural(_changeCount(changes), "fact")} changed, commit ${commit?.slice(0, 7)}).`);
+  else if (outcome === "ignored") io.out("✅ Changes ignored; the sessions are marked as read.");
+  else if (commit !== null) io.out(`✅ No fact to change; the reads are committed (commit ${commit.slice(0, 7)}).`);
+  else io.out("✅ No change needed.");
 };
 
-/** The reindex mode: no pull, no dream, no commit, no stamps. */
-const _reindex = ({ top, io, now, check }) => {
-  const memoryDir = path.join(top, MEMORY);
-  const index = path.join(memoryDir, "index.md");
-  if (!existsSync(index)) throw new UpdateError(`${MEMORY}/index.md is missing.`);
-  if (isEncrypted(readFileSync(index, "utf8"))) throw new UpdateError("The memory is still encrypted on this clone. Run: pnpm memory:setup");
-  const incomplete = readMemoryFiles(memoryDir).files.filter((file) => file.title === null || file.summary === null);
-  if (incomplete.length > 0) {
-    throw new UpdateError(`These files need a title and a summary first (see ${MEMORY}/_template.md): ${incomplete.map((file) => file.path).join(", ")}`);
-  }
-  const files = refreshIndex(memoryDir, now);
-  io.out(`Reindexed ${_plural(files.length, "memory file")}.`);
-  const verdict = check({ full: false });
-  if (!verdict.ok) throw new UpdateError(`The memory does not pass the checks:\n${verdict.output}`);
-  io.out(`Commit them yourself: MEMORY_UPDATE=1 git commit -- ${MEMORY}`);
+/**
+ * U4: this dream's usage file, written into the copy: the session starts it read and the reads of
+ * each topic in them. None when the window holds no start and no read. Returns its name, or null.
+ */
+const _writeUsage = ({ copy, lines, repoRoot, window, today }) => {
+  const topics = [...topicsOf(readFacts(copy).facts).keys()];
+  const counts = countReads({ lines, repoRoot, topics, ...window });
+  const starts = sessionStarts({ lines, repoRoot, ...window });
+  if (counts.size === 0 && starts.length === 0) return null;
+  const folder = path.join(copy, USAGE_DIR);
+  const { name, text } = newUsageFile(dreamUsage(counts, starts), { today, taken: new Set(existsSync(folder) ? readdirSync(folder) : []) });
+  writeFileSync(path.join(folder, name), text);
+  return name;
 };
 
 /**
@@ -357,17 +425,11 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     release();
   });
   try {
-    const { dryRun, reindex } = _arguments(argv);
+    const { dryRun, auto } = _arguments(argv);
     const top = gitIn(cwd, "rev-parse", "--show-toplevel");
-    const check = deps.check ?? (({ memoryDir = path.join(top, MEMORY), full = true } = {}) => _runCheck({ top, memoryDir, full, now }));
+    const check = deps.check ?? (({ memoryDir = path.join(top, MEMORY), full = true } = {}) => _runCheck({ top, memoryDir, full }));
     release = acquireDreamLock(commonDir(cwd));
     const pendingFound = findPending(path.join(top, TMP));
-
-    if (reindex) {
-      if (pendingFound !== null) throw new UpdateError(`A dream commit is pending (${pendingFound.dir}). Run pnpm memory:update to finish it first.`);
-      _reindex({ top, io, now, check });
-      return 0;
-    }
 
     const { branch, memoryDir, stampsFile: file } = _preflight({ top, hasClaude: deps.hasClaude ?? _hasClaude, io });
     stampsFile = file;
@@ -392,12 +454,13 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       return 0;
     }
 
-    if (!dryRun) _pull({ top, io });
+    if (!dryRun && !auto) _pull({ top, io });
 
     const stamps = readStamps(stampsFile);
     const { lines, selected, onOpenBranches, repoRoot, sha } = _select({ top, branch, stamps });
     if (selected.length === 0) {
       io.out("Nothing to read: every finished session has been read.");
+      if (!dryRun) await _commitEmpty({ top, io });
       return 0;
     }
     io.out(`${_plural(countSessions(selected), "session")} to read.`);
@@ -410,9 +473,7 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     mkdirSync(path.join(dreamDir, "logs"), { recursive: true });
     copyMemory(memoryDir, copy);
     const window = { since: stamps.readsCountedUntil ?? stamps.initializedAt, until: now.toISOString() };
-    const counts = countReads({ lines, repoRoot, memoryFiles: readMemoryFiles(copy).files.map((file) => file.path), ...window });
-    const starts = sessionStarts({ lines, repoRoot, ...window });
-    refreshIndex(copy, now, (usage) => applySessions(applyReads(usage, counts), counts, starts));
+    const usageFile = _writeUsage({ copy, lines, repoRoot, window, today });
 
     // U5
     const run = deps.run ?? ((call) => runAgent({ ...call, cwd: dreamDir, repoRoot: top, logDir: path.join(dreamDir, "logs") }));
@@ -429,29 +490,39 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
       },
       check: checkCopy,
       diff,
-      now,
       today,
       inputsDir: path.join(dreamDir, "inputs"),
       progress: steps.step,
+      interactive: !auto,
     });
 
     steps.end();
+    const dropped = auto ? _dropOpenFlags({ memoryDir, copy, flags: result.flags }) : [];
+    if (dropped.length > 0) {
+      io.out(`Dropped, left flagged by the reviewer\n${dropped.map(({ path: name, problem }) => `  ${name}: ${problem}`).join("\n")}\n`);
+      const verdict = await checkCopy();
+      if (!verdict.ok) throw new UpdateError(`The checks failed after dropping what the reviewer left flagged:\n${verdict.output}`);
+    }
+    const droppedPaths = new Set(dropped.map(({ path: name }) => name));
     const report = {
-      flags: result.flags,
-      notes: new Map(result.notes.map(({ path: name, note }) => [name, note])),
+      flags: result.flags.filter((flag) => !dropped.includes(flag)),
+      notes: new Map(result.notes.filter(({ path: name }) => !droppedPaths.has(name)).map(({ path: name, note }) => [name, note])),
       alerts: [...result.alerts],
       docsIssues: result.plan.docsIssues,
-      deletions: result.plan.files.filter((file) => file.action === "delete"),
+      deletions: [
+        ...result.plan.delete.map(({ fact, reason }) => ({ path: fact, reason })),
+        ...result.plan.deleteTopics.map(({ topic, reason }) => ({ path: `memories/${topic}/`, reason })),
+      ],
       dropped: droppedCandidates(result.plan, result.candidates),
     };
     if (dryRun) {
       const changes = compareMemories(memoryDir, copy);
-      _show({ io, top, memoryDir, dreamDir, report, changes });
+      _show({ io, top, memoryDir, dreamDir, report, changes, now });
       io.out(`Dry run: nothing was written. The dream folder, with its logs, stays in ${dreamDir}.`);
       return 0;
     }
 
-    const decision = await _decide({ io, steps, top, memoryDir, dreamDir, report, passages: result.passages, run, check: checkCopy, now, today });
+    const decision = await _decide({ io, steps, top, memoryDir, dreamDir, report, passages: result.passages, run, check: checkCopy, now, today, auto });
     if (decision.choice === "aborted") {
       rmSync(dreamDir, { recursive: true, force: true });
       finished = true;
@@ -460,10 +531,11 @@ export const runUpdate = async ({ argv, cwd = process.cwd(), io, deps = {} }) =>
     }
 
     const pairs = { selected: pairsOf(selected), onOpenBranches: pairsOf(onOpenBranches) };
-    const kept = decision.choice === "accepted" || decision.choice === "edited";
+    // A dream with no fact to change still commits its usage file, without asking (U8).
+    const kept = decision.choice === "accepted" || decision.choice === "edited" || (decision.choice === "nochange" && usageFile !== null);
     let commit = null;
     if (kept) {
-      const message = _commitMessage({ sessions: countSessions(selected), changes: decision.changes });
+      const message = _commitMessage({ sessions: countSessions(selected), changes: decision.changes, usageFile });
       commit = await _commit({ top, dreamDir, memoryDir, message, io });
       if (commit === null) {
         writePending(dreamDir, {

@@ -46,7 +46,7 @@ const handler = async (ctx: Context, args: Args): Promise<Id<"recipes">> => {
     locale,
   });
 
-  await ctx.runMutation(internal.router.recipes.updateOne._internal_persist, {
+  await ctx.runTracedMutation(internal.router.recipes.updateOne._internal_persist, {
     recipeId: args.recipeId,
     locale,
     analyzed,

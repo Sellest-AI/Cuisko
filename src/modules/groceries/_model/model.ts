@@ -351,6 +351,20 @@ export const sectionFromParam = (value: string | string[] | undefined): Section 
   return first === "to-buy" || first === "cellar" || first === "recently-bought" ? first : undefined;
 };
 
+/**
+ * Where a food typed on this page goes, when the page was opened with a destination of its own —
+ * apart from the section it leads with. The cellar after a dish is cooked carries "list": the food
+ * a cook types next is one they just used up.
+ */
+export type AddTo = "list" | "cellar";
+
+/** What an `addTo` URL param is allowed to mean — the same reading as `sectionFromParam`. */
+export const addToFromParam = (value: string | string[] | undefined): AddTo | undefined => {
+  const first = Array.isArray(value) ? value[0] : value;
+
+  return first === "list" || first === "cellar" ? first : undefined;
+};
+
 export type QuantityOption = {
   amount: number;
   unit: Unit;
