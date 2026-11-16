@@ -1,0 +1,11 @@
+# Dependency PRs go into dev, like every other change (ADR 0022): into main, merging one would ship
+# to production without passing through the preview phones. The `issue` and `memory` checks skip
+# dependabot[bot]; `verify` still runs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    labels: [dependencies, javascript]

@@ -16,6 +16,7 @@ import {
   ghostsFor,
   rowsOf,
   sectionFromParam,
+  addToFromParam,
   stockFor,
   takeFromCellar,
   UNDO_WINDOW_MS,
@@ -960,6 +961,20 @@ describe("what a section param is allowed to mean", () => {
 
   it.each([[undefined], [""], ["junk"], [[""]], [[]]])("sees no preference in %s", (value) => {
     expect(sectionFromParam(value)).toBeUndefined();
+  });
+});
+
+describe("what an addTo param is allowed to mean", () => {
+  it.each(["list", "cellar"])("accepts %s", (value) => {
+    expect(addToFromParam(value)).toBe(value);
+  });
+
+  it("takes the first of a repeated param", () => {
+    expect(addToFromParam(["list", "cellar"])).toBe("list");
+  });
+
+  it.each([[undefined], [""], ["to-buy"], [[]]])("sees no preference in %s", (value) => {
+    expect(addToFromParam(value)).toBeUndefined();
   });
 });
 

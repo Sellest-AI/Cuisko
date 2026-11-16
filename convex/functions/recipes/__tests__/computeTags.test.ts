@@ -62,7 +62,7 @@ const line = (ingredientId: Id<"ingredients">, quantity = 1): TaggableLine => ({
 });
 
 const compute = (lines: TaggableLine[], lineCount = lines.length, servings = 1) =>
-  t.run((ctx) => computeTags(ctx, { lines, lineCount, servings }));
+  t.run(async (ctx) => (await computeTags(ctx, { lines, lineCount, servings })).tags);
 
 beforeEach(() => {
   t = convexTest(schema, modules);
@@ -91,6 +91,28 @@ describe("functions/recipes/computeTags", () => {
       await t.run((ctx) => ctx.db.delete(vegetable));
 
       expect(await compute([line(vegetable)])).toEqual([]);
+    });
+  });
+
+  /** The lines go back with the tags, for `scheduleRepairs` to work from without a read of its own. */
+  describe("the lines it loaded", () => {
+    const lines = (taggable: TaggableLine[], lineCount = taggable.length) =>
+      t.run(async (ctx) => (await computeTags(ctx, { lines: taggable, lineCount, servings: 1 })).lines);
+
+    test("come back with the row each one links, in order", async () => {
+      const vegetable = await catalog("VEGETABLE", BLAND);
+      const fish = await catalog("SEAFOOD", BLAND);
+
+      expect(await lines([line(vegetable, 2), line(fish)])).toEqual([
+        { ingredient: expect.objectContaining({ _id: vegetable }), quantity: 2, unit: "pcs" },
+        { ingredient: expect.objectContaining({ _id: fish }), quantity: 1, unit: "pcs" },
+      ]);
+    });
+
+    test("are none for a recipe missing a line", async () => {
+      const vegetable = await catalog("VEGETABLE", BLAND);
+
+      expect(await lines([line(vegetable)], 2)).toEqual([]);
     });
   });
 

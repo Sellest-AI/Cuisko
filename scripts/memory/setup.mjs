@@ -47,9 +47,9 @@ const KNOWN_FLAGS = { auto: new Set(["--auto"]), byHand: new Set(["--reset-stamp
 /** The memory's lines in .claude/settings.json (spec §5.1, §5.3), checked on every run. */
 const SETTINGS_FILE = ".claude/settings.json";
 const MEMORY_DENIES = [
-  "Edit(/.claude/memory/index.md)",
-  "Edit(/.claude/memory/usage.json)",
   "Edit(/.claude/memory/memories/**)",
+  "Edit(/.claude/memory/usage/**)",
+  "Edit(/.claude/memory/.built/**)",
 ];
 const MEMORY_HOOK = "session-start-memory.mjs";
 const MEMORY_MATCHER = "startup|resume|clear|compact";
@@ -57,18 +57,6 @@ const MEMORY_MATCHER = "startup|resume|clear|compact";
 const flags = process.argv.slice(2);
 const auto = flags.includes("--auto");
 const resetStamps = flags.includes("--reset-stamps");
-
-/** `MEMORY_KEY` from a dotenv file, or null when the file or the key is absent or empty. */
-const readKey = (file) => {
-  if (!existsSync(file)) return null;
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const match = /^\s*(?:export\s+)?MEMORY_KEY\s*=\s*(.*?)\s*$/.exec(line);
-    if (!match) continue;
-    const value = match[1].replace(/^(["'])(.*)\1$/, "$2");
-    return value === "" ? null : value;
-  }
-  return null;
-};
 
 /** The first file named `name` on PATH, in `~/bin` or in `~/.local/bin`; null when none. */
 const findExecutable = (names) => {
@@ -152,6 +140,7 @@ const checkSettings = (root) => {
 
 const run = async () => {
   const { commonDir: findCommonDir, git, gitOrNull } = await import("./_lib/git.mjs");
+  const { readLocalEnv } = await import("../_lib/localEnv.mjs");
 
   /** Blocking: the memory cannot work until it is fixed. */
   const missing = [];
@@ -171,7 +160,7 @@ const run = async () => {
   const root = git("rev-parse", "--show-toplevel");
   const commonDir = findCommonDir();
   // In a worktree `.env.local` may live only in the main checkout, which owns the common dir.
-  const key = readKey(path.join(root, ".env.local")) ?? readKey(path.join(path.dirname(commonDir), ".env.local"));
+  const key = readLocalEnv("MEMORY_KEY", { root, mainRoot: path.dirname(commonDir) });
 
   if (gitOrNull("config", "core.hooksPath") !== ".githooks") {
     git("config", "core.hooksPath", ".githooks");

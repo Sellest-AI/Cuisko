@@ -1,15 +1,17 @@
 /**
  * The dream with its models replaced by hand-written replies (spec §10, P2–P6). What is pinned:
  * the order and the inputs of the steps, that a reply is checked before it is trusted, that a
- * writer cannot change a file its plan did not name, and that the reviewer's fixes stay in
- * memories/ and are checked again. No model is called.
+ * writer changes its own topic folder only and never renames or deletes a fact, that only the
+ * script names a fact, and that the reviewer's fixes stay inside what the dream wrote and are
+ * checked again. No model is called.
  */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import * as lib from "../_lib/dream.mjs";
+import * as files from "../_lib/memoryFiles.mjs";
 import * as responses from "../_lib/responses.mjs";
 
 type Line = {
@@ -27,8 +29,9 @@ type Line = {
 };
 type Call = { agent: string; name: string; prompt: string; writable: string[] };
 type Run = (call: Call) => Promise<unknown>;
+type Verdict = { ok: boolean; output: string };
 type Result = {
-  plan: { files: { path: string; action: string }[] };
+  plan: { topics: { topic: string; action: string }[]; delete: unknown[]; deleteTopics: unknown[] };
   candidates: { id: string }[];
   writerReplies: unknown[];
   flags: { path: string; fix?: string }[];
@@ -36,10 +39,12 @@ type Result = {
   alerts: { kind: string; message: string }[];
   passages: string;
 };
+type CorrectionReply = { changed: string[]; notes: { path: string; note: string }[] };
 const { UNUSED_AFTER_SESSIONS } = responses as unknown as { UNUSED_AFTER_SESSIONS: number };
+const { isFactName } = files as unknown as { isFactName: (name: string) => boolean };
 const { correct, dream } = lib as unknown as {
   dream: (input: Record<string, unknown>) => Promise<Result>;
-  correct: (input: Record<string, unknown>) => Promise<{ reply: unknown; verdict: { ok: boolean; output: string } }>;
+  correct: (input: Record<string, unknown>) => Promise<{ reply: CorrectionReply; verdict: Verdict }>;
 };
 
 const dirs: string[] = [];
@@ -47,35 +52,40 @@ afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
 });
 
-const NOW = new Date("2026-11-08T12:00:00Z");
 const CONTEXT = { identity: {}, repoRoot: "C:/work/cuisko" };
-const FILE = (title: string, summary: string, fact = "A fact. (source: 2026-11-02)") =>
-  `---\nsummary: ${summary}\nstatus: stable\nlast_verified: 2026-11-08\n---\n\n# ${title}\n\n## Facts\n\n- ${fact}\n`;
+const FACT = (title: string, fact = "A fact. (source: 2026-11-02)", created = "2026-09-01") =>
+  `---\ntitle: ${title}\nstatus: stable\ncreated: ${created}\nlast_verified: 2026-11-08\n---\n\n${fact}\n`;
 
-const makeCopy = (memories: Record<string, string> = { "api.md": FILE("API", "About the API."), "old.md": FILE("Old", "Old stuff.") }) => {
+/** The facts of the copy every test starts from: two in topic api, one in topic old. */
+const API_FACT = "memories/api/dates-are-timestamps-k3f9.md";
+const API_OLD_FACT = "memories/api/old-endpoint-q1w2.md";
+const OLD_FACT = "memories/old/old-stuff-p2a7.md";
+
+/**
+ * A working copy: the owner's two files, three facts, and one usage file. `sessions` sessions
+ * started after the api topic was last read and after the old topic was created; old was never
+ * read, so `sessions` is its sessionsSinceRead too.
+ */
+const makeCopy = ({ sessions = UNUSED_AFTER_SESSIONS }: { sessions?: number } = {}) => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "memory-dream-"));
   dirs.push(dir);
-  mkdirSync(path.join(dir, "copy", "memories"), { recursive: true });
   const copy = path.join(dir, "copy");
+  for (const folder of ["memories/api", "memories/old", "usage"]) mkdirSync(path.join(copy, folder), { recursive: true });
   writeFileSync(path.join(copy, "README.md"), "# Rules\n");
   writeFileSync(path.join(copy, "_template.md"), "# Template\n");
-  writeFileSync(path.join(copy, "index.md"), "stale\n");
+  writeFileSync(path.join(copy, API_FACT), FACT("Dates are timestamps"));
+  writeFileSync(path.join(copy, API_OLD_FACT), FACT("Old endpoint"));
+  writeFileSync(path.join(copy, OLD_FACT), FACT("Old stuff"));
+  const starts = Array.from({ length: sessions }, (_, at) => new Date(Date.UTC(2026, 9, 2, 0, at)).toISOString());
   writeFileSync(
-    path.join(copy, "usage.json"),
-    JSON.stringify({
-      version: 1,
-      files: Object.fromEntries(
-        Object.keys(memories).map((name) => {
-          const entry = { created: "2026-09-01", reads: 4, lastRead: "2026-11-01T00:00:00.000Z" };
-          // old.md is the file the plans delete as unused: enough sessions ran without reading it.
-          return [`memories/${name}`, name === "old.md" ? { ...entry, sessionsSinceRead: UNUSED_AFTER_SESSIONS } : entry];
-        }),
-      ),
-    }),
+    path.join(copy, "usage", "2026-11-01-a1b2.json"),
+    JSON.stringify({ version: 2, sessions: starts, reads: { api: { count: 4, last: "2026-10-01T00:00:00.000Z" } } }),
   );
-  for (const [name, text] of Object.entries(memories)) writeFileSync(path.join(copy, "memories", name), text);
   return { dir, copy, inputsDir: path.join(dir, "inputs") };
 };
+
+/** The facts of one topic folder of the copy, by file name. */
+const factsIn = (copy: string, topic: string) => (existsSync(path.join(copy, "memories", topic)) ? readdirSync(path.join(copy, "memories", topic)).sort() : []);
 
 let counter = 0;
 const line = (sessionId: string, over: Partial<Line> = {}): Line => {
@@ -104,6 +114,12 @@ const candidate = (id: string, sessionId: string, lineId: string) => ({
   signaled: false,
 });
 
+/** A planner reply: the lists it may leave out parse as empty, so the fake gives them. */
+const planOf = (over: Record<string, unknown>) => ({ status: "ok", topics: [], delete: [], deleteTopics: [], dropped: [], docsIssues: [], ...over });
+
+/** The folder a writer was granted: its one writable glob, without the `**`. */
+const folderOf = (call: Call) => path.dirname(call.writable[0] as string);
+
 /** Replies by agent, with a log of every call. A writer's or a reviewer's reply may also write files. */
 const stub = (replies: {
   extractor?: (call: Call) => unknown;
@@ -124,46 +140,55 @@ const stub = (replies: {
   return { run, calls };
 };
 
-const OK_CHECK = () => ({ ok: true, output: "" });
+const OK_CHECK = (): Verdict => ({ ok: true, output: "" });
 const base = (copy: string, inputsDir: string, over: Record<string, unknown> = {}) => ({
   copy,
   inputsDir,
   context: CONTEXT,
   check: OK_CHECK,
   diff: () => "the diff",
-  now: NOW,
   today: "2026-11-08",
   ...over,
 });
+
+const settle = <T>(promise: Promise<T>) =>
+  promise.then(
+    (result) => ({ result, error: undefined }),
+    (caught: Error) => ({ result: undefined, error: caught }),
+  );
 
 describe("dream: the whole chain", () => {
   const lineA = line("sA");
   const lineB = line("sB", { role: "assistant", text: "Mail jean@example.com about it." });
 
-  const happy = () => {
-    const { copy, inputsDir } = makeCopy();
+  /** sA-01 updates topic api with a new fact, sB-01 creates topic upload; the plan also deletes a fact and topic old. */
+  const happy = (over: { sessions?: number } = {}) => {
+    const { copy, inputsDir } = makeCopy(over);
     const s = stub({
       extractor: (call) => ({
         status: "ok",
         candidates: call.name === "extractor-sA" ? [candidate("sA-01", "sA", lineA.uuid)] : [candidate("sB-01", "sB", lineB.uuid)],
       }),
-      planner: {
-        status: "ok",
-        files: [
-          { path: "memories/api.md", action: "update", candidates: ["sA-01"] },
-          { path: "memories/upload.md", action: "create", candidates: ["sB-01"] },
-          { path: "memories/old.md", action: "delete", candidates: [], reason: "Never read." },
+      planner: planOf({
+        topics: [
+          { topic: "api", action: "update", candidates: ["sA-01"] },
+          { topic: "upload", action: "create", candidates: ["sB-01"] },
         ],
+        delete: [{ fact: API_OLD_FACT, reason: "The endpoint is gone.", because: "gone" }],
+        deleteTopics: [{ topic: "old", reason: "Never read.", because: "unused" }],
         docsIssues: [{ doc: "docs/ARCHITECTURE.md", issue: "Stale." }],
-      },
+      }),
       writer: (call) => {
-        const file = call.writable[0] as string;
-        const title = path.basename(file, ".md");
-        writeFileSync(file, FILE(title, `About ${title}.`));
-        const id = call.prompt.includes("sA-01") ? "sA-01" : "sB-01";
-        return { status: "ok", path: `memories/${path.basename(file)}`, facts: [{ text: "A fact.", candidates: [id] }], alerts: [{ kind: "flip-flop", message: "went back" }] };
+        const isApi = call.name.endsWith("-api");
+        writeFileSync(path.join(folderOf(call), "fact.md"), FACT(isApi ? "Dates in milliseconds" : "Upload limits", "A fact. (source: 2026-11-02)", "2026-11-08"));
+        return {
+          status: "ok",
+          topic: isApi ? "api" : "upload",
+          facts: [{ text: "A fact.", candidates: [isApi ? "sA-01" : "sB-01"] }],
+          alerts: [{ kind: "flip-flop", message: "went back" }],
+        };
       },
-      reviewer: { status: "ok", flags: [{ path: "memories/upload.md", fact: "A fact.", problem: "Unsupported.", evidence: "sB-01", severity: "medium" }] },
+      reviewer: { status: "ok", flags: [{ path: "memories/upload/fact.md", fact: "A fact.", problem: "Unsupported.", evidence: "sB-01", severity: "medium" }] },
     });
     return { copy, inputsDir, ...s };
   };
@@ -175,34 +200,100 @@ describe("dream: the whole chain", () => {
 
     expect(calls.map((call) => call.agent)).toEqual(["dream-extractor", "dream-extractor", "dream-planner", "dream-writer", "dream-writer", "dream-reviewer"]);
     expect(result.candidates.map((c) => c.id)).toEqual(["sA-01", "sB-01"]);
+    expect(result.plan.topics.map((entry) => entry.topic)).toEqual(["api", "upload"]);
     expect(result.flags).toHaveLength(1);
-    expect(result.alerts).toEqual([{ kind: "flip-flop", message: "went back" }, { kind: "flip-flop", message: "went back" }]);
+    expect(result.alerts).toEqual([
+      { kind: "flip-flop", message: "went back" },
+      { kind: "flip-flop", message: "went back" },
+    ]);
     expect(result.writerReplies).toHaveLength(2);
   });
 
-  it("gives each writer one file to write, and a delete is done by the script", async () => {
+  it("grants each writer its own topic folder, the new one included", async () => {
     const { copy, inputsDir, run, calls } = happy();
 
     await dream({ ...base(copy, inputsDir), lines: [lineA, lineB], run });
 
     const writers = calls.filter((call) => call.agent === "dream-writer");
-    expect(writers.map((call) => call.writable)).toEqual([[path.join(copy, "memories", "api.md")], [path.join(copy, "memories", "upload.md")]]);
-    expect(existsSync(path.join(copy, "memories", "old.md"))).toBe(false);
-    expect(calls.every((call) => !call.prompt.includes("memories/old.md") || call.agent === "dream-planner" || call.agent === "dream-reviewer")).toBe(true);
+    expect(writers.map((call) => call.name)).toEqual(["writer-1-api", "writer-2-upload"]);
+    expect(writers.map((call) => call.writable)).toEqual([[path.join(copy, "memories", "api", "**")], [path.join(copy, "memories", "upload", "**")]]);
+    expect(writers[1]?.prompt).toContain(`The one folder you may write is ${path.join(copy, "memories", "upload")}`);
   });
 
-  it("refreshes usage.json and the index after the writers: new file in grace, deleted file gone", async () => {
+  it("deletes the facts and the topics the plan deletes before the writers run", async () => {
     const { copy, inputsDir, run } = happy();
 
     await dream({ ...base(copy, inputsDir), lines: [lineA, lineB], run });
 
-    const usage = JSON.parse(readFileSync(path.join(copy, "usage.json"), "utf8")) as { files: Record<string, { created: string; reads: number }> };
-    expect(Object.keys(usage.files)).toEqual(["memories/api.md", "memories/upload.md"]);
-    expect(usage.files["memories/upload.md"]).toMatchObject({ created: "2026-11-08", reads: 0 });
-    expect(usage.files["memories/api.md"]?.reads).toBe(4);
-    const index = readFileSync(path.join(copy, "index.md"), "utf8");
-    expect(index).toContain("- [upload](memories/upload.md): About upload.");
-    expect(index).not.toContain("old.md");
+    expect(existsSync(path.join(copy, API_OLD_FACT))).toBe(false);
+    expect(existsSync(path.join(copy, "memories", "old"))).toBe(false);
+    expect(existsSync(path.join(copy, API_FACT))).toBe(true);
+  });
+
+  it("keeps a topic the planner deletes as unused when too few sessions ran since it was read, and tells the owner", async () => {
+    const { copy, inputsDir, run } = happy({ sessions: 10 });
+
+    const result = await dream({ ...base(copy, inputsDir), lines: [lineA, lineB], run });
+
+    expect(existsSync(path.join(copy, OLD_FACT))).toBe(true);
+    expect(result.plan.deleteTopics).toEqual([]);
+    expect(result.alerts[0]).toEqual({
+      kind: "planner",
+      message: `kept topic old: the planner wants to delete it as unused, but only 10 session(s) started since it was last read (${UNUSED_AFTER_SESSIONS} needed)`,
+    });
+  });
+
+  it("names every new fact from its title, and leaves a fact already named as it was", async () => {
+    const { copy, inputsDir, run } = happy();
+
+    await dream({ ...base(copy, inputsDir), lines: [lineA, lineB], run });
+
+    const api = factsIn(copy, "api");
+    expect(api).toHaveLength(2);
+    expect(api).toContain(path.basename(API_FACT));
+    expect(api.find((name) => name !== path.basename(API_FACT))).toMatch(/^dates-in-milliseconds-[a-z0-9]{4}\.md$/);
+    expect(factsIn(copy, "upload")).toEqual([expect.stringMatching(/^upload-limits-[a-z0-9]{4}\.md$/)]);
+  });
+
+  it("gives facts with the same title in two topics written in parallel two different legal names", async () => {
+    const { copy, inputsDir } = makeCopy();
+    const s = stub({
+      extractor: () => ({ status: "ok", candidates: [candidate("sA-01", "sA", lineA.uuid), candidate("sA-02", "sA", lineA.uuid)] }),
+      planner: planOf({
+        topics: [
+          { topic: "api", action: "update", candidates: ["sA-01"] },
+          { topic: "upload", action: "create", candidates: ["sA-02"] },
+        ],
+      }),
+      writer: (call) => {
+        const isApi = call.name.endsWith("-api");
+        writeFileSync(path.join(folderOf(call), "new.md"), FACT("Same title"));
+        return { status: "ok", topic: isApi ? "api" : "upload", facts: [{ text: "f", candidates: [isApi ? "sA-01" : "sA-02"] }], alerts: [] };
+      },
+    });
+
+    await dream({ ...base(copy, inputsDir), lines: [lineA], run: s.run, parallel: 2 });
+
+    const named = [...factsIn(copy, "api").filter((name) => name.startsWith("same-title-")), ...factsIn(copy, "upload")];
+    expect(named).toHaveLength(2);
+    expect(named.every((name) => isFactName(name) && name.startsWith("same-title-"))).toBe(true);
+    expect(new Set(named).size).toBe(2);
+  });
+
+  it("renames a new fact even when the writer gave it a legal-looking name", async () => {
+    const { copy, inputsDir } = makeCopy();
+    const s = stub({
+      extractor: () => ({ status: "ok", candidates: [candidate("sA-01", "sA", lineA.uuid)] }),
+      planner: planOf({ topics: [{ topic: "upload", action: "create", candidates: ["sA-01"] }] }),
+      writer: (call) => {
+        writeFileSync(path.join(folderOf(call), "chosen-by-model-ab12.md"), FACT("Upload limits"));
+        return { status: "ok", topic: "upload", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] };
+      },
+    });
+
+    await dream({ ...base(copy, inputsDir), lines: [lineA], run: s.run });
+
+    expect(factsIn(copy, "upload")).toEqual([expect.stringMatching(/^upload-limits-[a-z0-9]{4}\.md$/)]);
   });
 
   it("masks personal data in every prompt a model reads", async () => {
@@ -214,12 +305,18 @@ describe("dream: the whole chain", () => {
     expect(calls.find((call) => call.name === "extractor-sB")?.prompt).toContain("[email masked]");
   });
 
-  it("hands the planner the usage of each file, and the reviewer the diff, the plan and the writers' replies", async () => {
+  it("hands the planner each topic's facts and usage totals, and the reviewer the diff, the plan and the writers' replies", async () => {
     const { copy, inputsDir, run, calls } = happy();
 
     await dream({ ...base(copy, inputsDir), lines: [lineA, lineB], run });
 
-    expect(calls.find((call) => call.agent === "dream-planner")?.prompt).toContain('"reads": 4');
+    const planner = calls.find((call) => call.agent === "dream-planner")?.prompt ?? "";
+    expect(planner).toContain('"topic": "api"');
+    expect(planner).toContain('"reads": 4');
+    expect(planner).toContain('"lastRead": "2026-10-01T00:00:00.000Z"');
+    expect(planner).toContain(`"sessionsSinceRead": ${UNUSED_AFTER_SESSIONS}`);
+    expect(planner).toContain(`"path": "${API_FACT}"`);
+    expect(planner).toContain('"title": "Dates are timestamps"');
     const review = calls.find((call) => call.agent === "dream-reviewer")?.prompt ?? "";
     expect(review).toContain("the diff");
     expect(review).toContain('"action": "create"');
@@ -244,7 +341,7 @@ describe("dream: the whole chain", () => {
     const result = await dream({ ...base(copy, inputsDir), lines: [lineA], run: s.run });
 
     expect(s.calls.map((call) => call.agent)).toEqual(["dream-extractor"]);
-    expect(result.plan.files).toEqual([]);
+    expect(result.plan.topics).toEqual([]);
   });
 });
 
@@ -255,10 +352,7 @@ describe("dream: what it refuses", () => {
   const failing = async (replies: Parameters<typeof stub>[0], over: Record<string, unknown> = {}) => {
     const { copy, inputsDir } = makeCopy();
     const s = stub(replies);
-    const error = await dream({ ...base(copy, inputsDir, over), lines: [lineA], run: s.run }).then(
-      () => undefined,
-      (caught: Error) => caught,
-    );
+    const { error } = await settle(dream({ ...base(copy, inputsDir, over), lines: [lineA], run: s.run }));
     return { error, calls: s.calls, copy };
   };
 
@@ -274,56 +368,85 @@ describe("dream: what it refuses", () => {
     expect(wrongLine.calls.map((call) => call.agent)).toEqual(["dream-extractor"]);
   });
 
-  it("refuses a plan that cites a candidate nobody extracted, before any writer runs", async () => {
-    const { error, calls } = await failing({
+  it("refuses a plan that cites a candidate nobody extracted, before anything is deleted or written", async () => {
+    const { error, calls, copy } = await failing({
       extractor: cands(candidate("sA-01", "sA", lineA.uuid)),
-      planner: { status: "ok", files: [{ path: "memories/api.md", action: "update", candidates: ["ghost"] }], docsIssues: [] },
+      planner: planOf({
+        topics: [{ topic: "api", action: "update", candidates: ["ghost"] }],
+        delete: [{ fact: API_OLD_FACT, reason: "Gone.", because: "gone" }],
+      }),
     });
 
     expect(error?.message).toContain("the plan cannot be used");
     expect(error?.message).toContain("ghost");
     expect(calls.some((call) => call.agent === "dream-writer")).toBe(false);
+    expect(existsSync(path.join(copy, API_OLD_FACT))).toBe(true);
   });
 
-  const planFor = (path: string) => ({ status: "ok", files: [{ path, action: "update", candidates: ["sA-01"] }], docsIssues: [] });
-  const withWriter = (writer: (call: Call) => unknown) => ({ extractor: cands(candidate("sA-01", "sA", lineA.uuid)), planner: planFor("memories/api.md"), writer });
+  const withWriter = (writer: (call: Call) => unknown) => ({
+    extractor: cands(candidate("sA-01", "sA", lineA.uuid)),
+    planner: planOf({ topics: [{ topic: "api", action: "update", candidates: ["sA-01"] }] }),
+    writer,
+  });
+  const reply = { status: "ok", topic: "api", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] };
 
-  it("refuses a writer that answers for another file or writes nothing", async () => {
-    const wrongFile = await failing(withWriter(() => ({ status: "ok", path: "memories/other.md", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] })));
-    const nothing = await failing(
-      withWriter((call) => {
-        rmSync(call.writable[0] as string);
-        return { status: "ok", path: "memories/api.md", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] };
-      }),
-    );
+  it("refuses a writer that answers for another topic or writes nothing", async () => {
+    const wrongTopic = await failing(withWriter(() => ({ ...reply, topic: "other" })));
+    const nothing = await failing(withWriter(() => reply));
 
-    expect(wrongFile.error?.message).toContain("answered for memories/other.md");
-    expect(nothing.error?.message).toContain("wrote nothing");
+    expect(wrongTopic.error?.message).toContain("the writer for topic api cannot be used");
+    expect(wrongTopic.error?.message).toContain("answered for topic other, not api");
+    expect(nothing.error?.message).toContain("a writer wrote nothing");
+    expect(nothing.error?.message).toContain("topic api");
   });
 
-  it("refuses a writer that changed a file outside its plan", async () => {
+  it("refuses a writer that changed files outside its topic folder", async () => {
     const { error, copy } = await failing(
       withWriter((call) => {
-        writeFileSync(call.writable[0] as string, FILE("API", "About the API."));
-        writeFileSync(path.join(path.dirname(call.writable[0] as string), "old.md"), "tampered");
-        writeFileSync(path.join(path.dirname(call.writable[0] as string), "..", "README.md"), "tampered");
-        return { status: "ok", path: "memories/api.md", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] };
+        const copyDir = path.join(folderOf(call), "..", "..");
+        writeFileSync(path.join(copyDir, API_FACT), FACT("Dates are timestamps", "Edited. (source: 2026-11-02)"));
+        writeFileSync(path.join(copyDir, OLD_FACT), "tampered");
+        writeFileSync(path.join(copyDir, "README.md"), "tampered");
+        return reply;
       }),
     );
 
-    expect(error?.message).toContain("changed files outside the plan");
-    expect(error?.message).toContain("memories/old.md");
+    expect(error?.message).toContain("a writer changed files outside its topic");
+    expect(error?.message).toContain(OLD_FACT);
     expect(error?.message).toContain("README.md");
-    expect(readFileSync(path.join(copy, "memories", "old.md"), "utf8")).toBe("tampered");
+    expect(error?.message).not.toContain(API_FACT);
+    expect(readFileSync(path.join(copy, OLD_FACT), "utf8")).toBe("tampered");
+  });
+
+  it("refuses a writer that renamed a fact, or deleted one, in its own topic", async () => {
+    const renamed = await failing(
+      withWriter((call) => {
+        renameSync(path.join(folderOf(call), path.basename(API_FACT)), path.join(folderOf(call), "better-name-zz99.md"));
+        return reply;
+      }),
+    );
+    const deleted = await failing(
+      withWriter((call) => {
+        rmSync(path.join(folderOf(call), path.basename(API_OLD_FACT)));
+        writeFileSync(path.join(folderOf(call), path.basename(API_FACT)), FACT("Dates are timestamps", "Edited. (source: 2026-11-02)"));
+        return reply;
+      }),
+    );
+
+    expect(renamed.error?.message).toContain("a writer renamed or deleted facts");
+    expect(renamed.error?.message).toContain(API_FACT);
+    expect(deleted.error?.message).toContain("a writer renamed or deleted facts");
+    expect(deleted.error?.message).toContain(API_OLD_FACT);
+    expect(renamed.calls.some((call) => call.agent === "dream-reviewer")).toBe(false);
   });
 
   it("stops on a failed mechanical check, with its output, before the reviewer", async () => {
     const good = withWriter((call) => {
-      writeFileSync(call.writable[0] as string, FILE("API", "About the API."));
-      return { status: "ok", path: "memories/api.md", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] };
+      writeFileSync(path.join(folderOf(call), "new.md"), FACT("New fact"));
+      return reply;
     });
 
-    const { error, calls } = await failing(good, { check: () => ({ ok: false, output: "❌ C20\n   memories/api.md\n      fact without a source date\n" }) });
+    const { error, calls } = await failing(good, { check: () => ({ ok: false, output: "❌ C20\n   memories/api/new.md\n      fact without a source date\n" }) });
 
     expect(error?.message).toContain("the mechanical checks failed");
     expect(error?.message).toContain("fact without a source date");
@@ -333,44 +456,47 @@ describe("dream: what it refuses", () => {
 
 describe("dream: the reviewer's fixes", () => {
   const lineA = line("sA");
-  type Verdict = { ok: boolean; output: string };
-  const flag = (over: Record<string, unknown> = {}) => ({ path: "memories/api.md", fact: "A fact.", problem: "Unsupported.", evidence: "sA-01", severity: "medium", ...over });
+  const flag = (over: Record<string, unknown> = {}) => ({ path: API_FACT, fact: "A fact.", problem: "Unsupported.", evidence: "sA-01", severity: "medium", ...over });
 
   /**
-   * One file written, then `review(call, copy)` as the reviewer; `verdicts` are the checks' answers,
-   * in order; `planned` is the one plan entry, by default an update of api.md.
+   * One topic written, then `review(call, copy)` as the reviewer; `verdicts` are the checks'
+   * answers, in order. By default the writer edits API_FACT in topic api; with `create`, it writes
+   * a new fact in topic upload, which the script then names.
    */
-  const reviewing = async (review: (call: Call, copy: string) => unknown, verdicts: Verdict[] = [], planned = { path: "memories/api.md", action: "update" }) => {
+  const reviewing = async (review: (call: Call, copy: string) => unknown, { verdicts = [], create = false }: { verdicts?: Verdict[]; create?: boolean } = {}) => {
     const { copy, inputsDir } = makeCopy();
+    const topic = create ? "upload" : "api";
     const s = stub({
       extractor: () => ({ status: "ok", candidates: [candidate("sA-01", "sA", lineA.uuid)] }),
-      planner: { status: "ok", files: [{ ...planned, candidates: ["sA-01"] }], docsIssues: [] },
+      planner: planOf({ topics: [{ topic, action: create ? "create" : "update", candidates: ["sA-01"] }] }),
       writer: (call) => {
-        writeFileSync(call.writable[0] as string, FILE("API", "About the API."));
-        return { status: "ok", path: planned.path, facts: [{ text: "A fact.", candidates: ["sA-01"] }], alerts: [] };
+        if (create) writeFileSync(path.join(folderOf(call), "new.md"), FACT("Upload limits"));
+        else writeFileSync(path.join(copy, API_FACT), FACT("Dates are timestamps", "Dates are milliseconds. (source: 2026-11-02)"));
+        return { status: "ok", topic, facts: [{ text: "A fact.", candidates: ["sA-01"] }], alerts: [] };
       },
       review: (call) => review(call, copy),
     });
     let checks = 0;
     const check = () => verdicts[checks++] ?? OK_CHECK();
-    const outcome = await dream({ ...base(copy, inputsDir, { check }), lines: [lineA], run: s.run }).then(
-      (result) => ({ result, error: undefined }),
-      (caught: Error) => ({ result: undefined, error: caught }),
-    );
+    const outcome = await settle(dream({ ...base(copy, inputsDir, { check }), lines: [lineA], run: s.run }));
     return { ...outcome, calls: s.calls, copy, checks: () => checks };
   };
 
-  it("lets the reviewer edit memories/ of the copy only, then refreshes the index and runs the checks again", async () => {
+  /** The one fact the dream created in topic upload, as a memory path. */
+  const createdFact = (copy: string) => `memories/upload/${factsIn(copy, "upload")[0]}`;
+
+  it("lets the reviewer edit a fact this dream wrote, then runs the checks again", async () => {
     const { result, calls, copy, checks } = await reviewing((_call, dir) => {
-      writeFileSync(path.join(dir, "memories", "api.md"), FILE("API", "The API, as a hypothesis.", "Hypothesis: a fact. (source: 2026-11-02)"));
+      writeFileSync(path.join(dir, API_FACT), FACT("Dates are timestamps", "Hypothesis: dates are milliseconds. (source: 2026-11-02)"));
       return { status: "ok", flags: [flag({ fix: "rewrote the fact as a hypothesis" })] };
     });
 
     const reviewer = calls.find((call) => call.agent === "dream-reviewer");
+    expect(reviewer?.name).toBe("reviewer");
     expect(reviewer?.writable).toEqual([path.join(copy, "memories", "**")]);
     expect(reviewer?.prompt).toContain(path.join(copy, "memories"));
     expect(checks()).toBe(2);
-    expect(readFileSync(path.join(copy, "index.md"), "utf8")).toContain("- [API](memories/api.md): The API, as a hypothesis.");
+    expect(readFileSync(path.join(copy, API_FACT), "utf8")).toContain("Hypothesis: dates are milliseconds.");
     expect(result?.flags).toEqual([flag({ fix: "rewrote the fact as a hypothesis" })]);
     expect(result?.alerts).toEqual([]);
   });
@@ -385,75 +511,105 @@ describe("dream: the reviewer's fixes", () => {
   it("stops when the checks fail on the reviewer's fixes, with their output", async () => {
     const { error } = await reviewing(
       (_call, dir) => {
-        writeFileSync(path.join(dir, "memories", "api.md"), FILE("API", "About the API.", "A fact without a date."));
+        writeFileSync(path.join(dir, API_FACT), FACT("Dates are timestamps", "A fact without a date."));
         return { status: "ok", flags: [flag({ fix: "reworded" })] };
       },
-      [OK_CHECK(), { ok: false, output: "❌ C20\n   memories/api.md\n      fact without a source date\n" }],
+      { verdicts: [OK_CHECK(), { ok: false, output: `❌ C20\n   ${API_FACT}\n      fact without a source date\n` }] },
     );
 
     expect(error?.message).toContain("the mechanical checks failed after the reviewer's fixes");
     expect(error?.message).toContain("fact without a source date");
   });
 
-  it("stops when the reviewer changed a file outside memories/", async () => {
-    const { error } = await reviewing((_call, dir) => {
-      writeFileSync(path.join(dir, "index.md"), "rewritten\n");
+  it("refuses a reviewer that creates a file, edits a fact this dream did not write, or renames or deletes a fact", async () => {
+    const created = await reviewing((_call, dir) => {
+      writeFileSync(path.join(dir, "memories", "api", "extra.md"), FACT("Extra"));
+      return { status: "ok", flags: [] };
+    });
+    const untouched = await reviewing((_call, dir) => {
+      writeFileSync(path.join(dir, OLD_FACT), FACT("Old stuff", "Rewritten. (source: 2026-11-02)"));
+      return { status: "ok", flags: [] };
+    });
+    const deleted = await reviewing((_call, dir) => {
+      rmSync(path.join(dir, API_OLD_FACT));
+      return { status: "ok", flags: [] };
+    });
+    const outside = await reviewing((_call, dir) => {
+      writeFileSync(path.join(dir, "README.md"), "rewritten\n");
       return { status: "ok", flags: [] };
     });
 
-    expect(error?.message).toContain("the reviewer changed files it must not touch");
-    expect(error?.message).toContain("index.md");
+    for (const { error } of [created, untouched, deleted, outside]) expect(error?.message).toContain("the reviewer changed files it must not touch");
+    expect(created.error?.message).toContain("memories/api/extra.md: the reviewer may not create a file");
+    expect(untouched.error?.message).toContain(`${OLD_FACT}: the reviewer may edit only the facts this dream wrote`);
+    expect(deleted.error?.message).toContain(`${API_OLD_FACT}: the reviewer may not rename or delete a fact; it names it in drop`);
+    expect(outside.error?.message).toContain("README.md");
   });
 
-  it("drops a file this dream created when the reviewer names it, and takes it out of the index", async () => {
+  it("lets the reviewer edit a fact this dream created, under the name the script gave it", async () => {
     const { result, copy, checks } = await reviewing(
-      () => ({ status: "ok", flags: [flag({ path: "memories/new.md", fix: "dropped the file" })], drop: ["memories/new.md"] }),
-      [],
-      { path: "memories/new.md", action: "create" },
+      (_call, dir) => {
+        const fact = createdFact(dir);
+        writeFileSync(path.join(dir, fact), FACT("Upload limits", "Trimmed. (source: 2026-11-02)"));
+        return { status: "ok", flags: [flag({ path: fact, fix: "trimmed" })] };
+      },
+      { create: true },
     );
 
-    expect(existsSync(path.join(copy, "memories", "new.md"))).toBe(false);
-    expect(readFileSync(path.join(copy, "index.md"), "utf8")).not.toContain("memories/new.md");
+    expect(checks()).toBe(2);
+    expect(readFileSync(path.join(copy, createdFact(copy)), "utf8")).toContain("Trimmed.");
+    expect(result?.alerts).toEqual([]);
+  });
+
+  it("drops a fact this dream created when the reviewer names it, and runs the checks again", async () => {
+    let dropped = "";
+    const { result, copy, checks } = await reviewing(
+      (_call, dir) => {
+        dropped = createdFact(dir);
+        return { status: "ok", flags: [flag({ path: dropped, fix: "dropped the fact" })], drop: [dropped] };
+      },
+      { create: true },
+    );
+
+    expect(dropped).toMatch(/^memories\/upload\/upload-limits-[a-z0-9]{4}\.md$/);
+    expect(existsSync(path.join(copy, dropped))).toBe(false);
     expect(checks()).toBe(2);
     expect(result?.alerts).toEqual([]);
   });
 
-  it("asks the reviewer for a note per changed file, and returns its notes for the owner's summary", async () => {
-    const { result, calls } = await reviewing(() => ({ status: "ok", flags: [], notes: [{ path: "memories/api.md", note: "Adds that Convex wants milliseconds." }] }));
+  it("asks the reviewer for a note per changed fact, and returns its notes for the owner's summary", async () => {
+    const { result, calls } = await reviewing(() => ({ status: "ok", flags: [], notes: [{ path: API_FACT, note: "Adds that Convex wants milliseconds." }] }));
 
     expect(calls.find((call) => call.agent === "dream-reviewer")?.prompt).toContain("`notes`");
-    expect(result?.notes).toEqual([{ path: "memories/api.md", note: "Adds that Convex wants milliseconds." }]);
+    expect(result?.notes).toEqual([{ path: API_FACT, note: "Adds that Convex wants milliseconds." }]);
   });
 
-  it("keeps a file the dream did not create when the reviewer asks to drop it, and tells the owner", async () => {
-    const { result, copy } = await reviewing(() => ({ status: "ok", flags: [], drop: ["memories/api.md", "memories/old.md"] }));
+  it("keeps a fact the dream did not create when the reviewer asks to drop it, and tells the owner", async () => {
+    const { result, copy, checks } = await reviewing(() => ({ status: "ok", flags: [], drop: [API_FACT, OLD_FACT] }));
 
-    expect(existsSync(path.join(copy, "memories", "api.md"))).toBe(true);
-    expect(existsSync(path.join(copy, "memories", "old.md"))).toBe(true);
+    expect(existsSync(path.join(copy, API_FACT))).toBe(true);
+    expect(existsSync(path.join(copy, OLD_FACT))).toBe(true);
+    expect(checks()).toBe(1);
     expect(result?.alerts).toEqual([
-      { kind: "reviewer", message: "the reviewer wants to drop memories/api.md, which this dream did not create; it is kept" },
-      { kind: "reviewer", message: "the reviewer wants to drop memories/old.md, which this dream did not create; it is kept" },
+      { kind: "reviewer", message: `the reviewer wants to drop ${API_FACT}, which this dream did not create; it is kept` },
+      { kind: "reviewer", message: `the reviewer wants to drop ${OLD_FACT}, which this dream did not create; it is kept` },
     ]);
   });
 
   it("alerts the owner when the reviewer's account and the copy disagree", async () => {
     const { result } = await reviewing((_call, dir) => {
-      writeFileSync(path.join(dir, "memories", "api.md"), FILE("API", "About the API.", "Another fact. (source: 2026-11-02)"));
-      return { status: "ok", flags: [flag(), flag({ path: "memories/old.md", fix: "removed a bullet" })] };
+      writeFileSync(path.join(dir, API_FACT), FACT("Dates are timestamps", "Another fact. (source: 2026-11-02)"));
+      return { status: "ok", flags: [flag(), flag({ path: OLD_FACT, fix: "removed a sentence" })] };
     });
 
     expect(result?.alerts).toEqual([
-      { kind: "reviewer", message: "the reviewer changed memories/api.md without a fixed flag saying why" },
-      { kind: "reviewer", message: "the reviewer says it fixed memories/old.md, but the file did not change" },
+      { kind: "reviewer", message: `the reviewer changed ${API_FACT} without a fixed flag saying why` },
+      { kind: "reviewer", message: `the reviewer says it fixed ${OLD_FACT}, but the file did not change` },
     ]);
   });
 });
 
 describe("correct", () => {
-  const setup = () => {
-    const { copy } = makeCopy();
-    return copy;
-  };
   const input = (copy: string, run: Run, over: Record<string, unknown> = {}) => ({
     instruction: "The limit is 10 MB, not 5.",
     copy,
@@ -461,15 +617,15 @@ describe("correct", () => {
     check: OK_CHECK,
     diff: () => "the current diff",
     passages: "### sA-01\n...",
-    now: NOW,
     today: "2026-11-08",
     name: "correction-1",
     ...over,
   });
+  const ok = { status: "ok", changed: [], alerts: [], drop: [], notes: [] };
 
   it("gives the writer the instruction, the diff and the passages, and the right to edit memories/ only", async () => {
-    const copy = setup();
-    const s = stub({ writer: () => ({ status: "ok", changed: ["memories/api.md"], alerts: [] }) });
+    const { copy } = makeCopy();
+    const s = stub({ writer: () => ({ ...ok, changed: [API_FACT] }) });
 
     const { verdict } = await correct(input(copy, s.run));
 
@@ -478,54 +634,93 @@ describe("correct", () => {
     expect(s.calls[0]?.prompt).toContain("The limit is 10 MB, not 5.");
     expect(s.calls[0]?.prompt).toContain("the current diff");
     expect(s.calls[0]?.prompt).toContain("### sA-01");
-  });
-
-  it("refreshes the index after a correction that creates and deletes files", async () => {
-    const copy = setup();
-    const s = stub({
-      writer: () => {
-        writeFileSync(path.join(copy, "memories", "limits.md"), FILE("Limits", "Upload limits."));
-        rmSync(path.join(copy, "memories", "old.md"));
-        return { status: "ok", changed: ["memories/limits.md", "memories/old.md"], alerts: [] };
-      },
-    });
-
-    await correct(input(copy, s.run));
-
-    const index = readFileSync(path.join(copy, "index.md"), "utf8");
-    expect(index).toContain("memories/limits.md");
-    expect(index).not.toContain("old.md");
-  });
-
-  it("deletes the files the writer names in drop, since it has no tool to delete them itself", async () => {
-    const copy = setup();
-    const s = stub({ writer: () => ({ status: "ok", changed: ["memories/old.md"], alerts: [], drop: ["memories/old.md"] }) });
-
-    await correct(input(copy, s.run));
-
-    expect(existsSync(path.join(copy, "memories", "old.md"))).toBe(false);
-    expect(readFileSync(path.join(copy, "index.md"), "utf8")).not.toContain("old.md");
     expect(s.calls[0]?.prompt).toContain("`drop`");
   });
 
+  it("deletes any fact the writer names in drop, since it has no tool to delete it itself", async () => {
+    const { copy } = makeCopy();
+    const s = stub({ writer: () => ({ ...ok, changed: [OLD_FACT], drop: [OLD_FACT] }) });
+
+    const { verdict } = await correct(input(copy, s.run));
+
+    expect(verdict.ok).toBe(true);
+    expect(existsSync(path.join(copy, OLD_FACT))).toBe(false);
+  });
+
+  it("refuses a correction that removed a fact without naming it in drop", async () => {
+    const { copy } = makeCopy();
+    const s = stub({
+      writer: () => {
+        renameSync(path.join(copy, OLD_FACT), path.join(copy, "memories", "old", "renamed-zz99.md"));
+        return ok;
+      },
+    });
+
+    await expect(correct(input(copy, s.run))).rejects.toThrow("the correction renamed or deleted facts without naming them in drop");
+  });
+
+  it("refuses a correction that touched a file other than a fact", async () => {
+    const { copy } = makeCopy();
+    const s = stub({
+      writer: () => {
+        writeFileSync(path.join(copy, "README.md"), "tampered");
+        return ok;
+      },
+    });
+
+    await expect(correct(input(copy, s.run))).rejects.toThrow("the correction changed files it must not touch");
+  });
+
+  it("names a new fact, in a new topic too, and its changed path and note follow the new name", async () => {
+    const { copy } = makeCopy();
+    const s = stub({
+      writer: () => {
+        mkdirSync(path.join(copy, "memories", "limits"), { recursive: true });
+        writeFileSync(path.join(copy, "memories", "limits", "new.md"), FACT("Upload limit", "The limit is 10 MB. (source: correction of 2026-11-08)"));
+        return { ...ok, changed: ["memories/limits/new.md", API_FACT], notes: [{ path: "memories/limits/new.md", note: "The limit is 10 MB." }] };
+      },
+    });
+
+    const { reply } = await correct(input(copy, s.run));
+
+    const named = `memories/limits/${factsIn(copy, "limits")[0]}`;
+    expect(named).toMatch(/^memories\/limits\/upload-limit-[a-z0-9]{4}\.md$/);
+    expect(reply.changed).toEqual([named, API_FACT]);
+    expect(reply.notes).toEqual([{ path: named, note: "The limit is 10 MB." }]);
+  });
+
   it("returns a failed verdict instead of throwing, so the owner can correct again", async () => {
-    const copy = setup();
-    const s = stub({ writer: () => ({ status: "ok", changed: [], alerts: [] }) });
+    const { copy } = makeCopy();
+    const s = stub({ writer: () => ok });
 
     const { verdict } = await correct(input(copy, s.run, { check: () => ({ ok: false, output: "dead link" }) }));
 
     expect(verdict).toEqual({ ok: false, output: "dead link" });
   });
 
-  it("refuses a correction that touched the index, usage.json or the owner's files", async () => {
-    const copy = setup();
+  it("keeps the name the dream gave a fact through a later correction of it", async () => {
+    const lineA = line("sA");
+    const { copy, inputsDir } = makeCopy();
     const s = stub({
-      writer: () => {
-        writeFileSync(path.join(copy, "README.md"), "tampered");
-        return { status: "ok", changed: [], alerts: [] };
+      extractor: () => ({ status: "ok", candidates: [candidate("sA-01", "sA", lineA.uuid)] }),
+      planner: planOf({ topics: [{ topic: "upload", action: "create", candidates: ["sA-01"] }] }),
+      writer: (call) => {
+        if (call.name === "correction-1") {
+          const fact = `memories/upload/${factsIn(copy, "upload")[0]}`;
+          writeFileSync(path.join(copy, fact), FACT("Upload limits", "The limit is 10 MB. (source: correction of 2026-11-08)"));
+          return { ...ok, changed: [fact] };
+        }
+        writeFileSync(path.join(folderOf(call), "new.md"), FACT("Upload limits", "The limit is 5 MB. (source: 2026-11-02)"));
+        return { status: "ok", topic: "upload", facts: [{ text: "f", candidates: ["sA-01"] }], alerts: [] };
       },
     });
 
-    await expect(correct(input(copy, s.run))).rejects.toThrow("the correction changed files it must not touch");
+    await dream({ ...base(copy, inputsDir), lines: [lineA], run: s.run });
+    const given = factsIn(copy, "upload");
+    const { reply } = await correct(input(copy, s.run));
+
+    expect(factsIn(copy, "upload")).toEqual(given);
+    expect(reply.changed).toEqual([`memories/upload/${given[0]}`]);
+    expect(readFileSync(path.join(copy, "memories", "upload", given[0] as string), "utf8")).toContain("10 MB");
   });
 });

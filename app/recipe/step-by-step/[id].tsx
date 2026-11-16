@@ -21,8 +21,11 @@ import { StepByStepScreen } from "~/modules/recipes/step-by-step-screen";
  * transition; popping to home and then pushing the list played two animations back to back.
  * Expo Router has no reset of its own, so this goes through React Navigation's, whose route names
  * are the root layout's files.
+ *
+ * `addTo: "list"` because the cellar is on top to show what the dish used, not to take in food: a
+ * cook who types something next has just used it up and wants it on the list.
  */
-type CookedStack = { index: undefined; groceries: { section: "cellar" } };
+type CookedStack = { index: undefined; groceries: { section: "cellar"; addTo: "list" } };
 
 export default function StepByStep() {
   const router = useRouter();
@@ -35,7 +38,7 @@ export default function StepByStep() {
       onClose={() => router.back()}
       onCooked={() => navigation.reset({
         index: 1,
-        routes: [{ name: "index" }, { name: "groceries", params: { section: "cellar" } }],
+        routes: [{ name: "index" }, { name: "groceries", params: { section: "cellar", addTo: "list" } }],
       })}
     />
   );

@@ -1,6 +1,7 @@
 # Deployments
 
-Where Cuisko runs, and what a merge to `dev` or `main` ships to. How the pipeline decides between an update
+Where Cuisko runs, and what a merge to `dev` or `main` ships to. A merge is always the owner's, of a
+pull request ([ADR 0022](../adr/0022-changes-reach-dev-and-main-by-pull-request.md)). How the pipeline decides between an update
 and a build is in [ARCHITECTURE.md § Releases](../ARCHITECTURE.md#releases); this page is only the
 where, and only as far as where to look: see [the rule](./README.md#the-rule).
 
@@ -65,11 +66,12 @@ A separate pair because widening the deploy keys would let every deploy rewrite 
 hand: `node scripts/release/apple-client-secret.mjs <path to the .p8>`, then `npx convex env set
 AUTH_APPLE_SECRET <output>` on dev and with `--prod`. A failed run still leaves four months.
 
-**Why a deploy key.** A store release commits the version bump and pushes it to `main`, and the
-`protect-main` ruleset takes changes to `main` only through a pull request. The workflow's own token
-cannot bypass it (GitHub Actions is not a bypass actor), so the release pushes through the deploy
-key, and **Deploy keys** sit on the ruleset's bypass list. Deploy keys are off by default in the
-Sellest-AI organization; they were enabled for this. Anyone holding the key can push to `main`, so
+**Why a deploy key.** A store release commits the version bump and pushes it to `main`, then
+fast-forwards `dev` to it, and the `protect-main` and `protect-dev` rulesets
+(`.github/rulesets/`) take changes to either only through a pull request. The workflow's own token
+cannot bypass them (GitHub Actions is not a bypass actor), so the release pushes through the deploy
+key, and **Deploy keys** sit on both rulesets' bypass lists, the only entry there. Deploy keys are off by default in the
+Sellest-AI organization; they were enabled for this. Anyone holding the key can push to `main` and `dev`, so
 rotate it (new key, new secret, old key deleted) if it may have leaked. Generate it outside the
 repository: the private half must never sit in the working tree, and `.gitignore` refuses
 `cuisko-release*` as a guard.

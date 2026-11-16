@@ -1,0 +1,43 @@
+name: Feature
+description: Something new the app should do.
+labels: [feature]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: Who meets it, when, and what it stops them from doing.
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where in the app. The labels are added from this answer.
+      multiple: true
+      options:
+        - account
+        - assistant
+        - auth
+        - groceries
+        - health
+        - home
+        - households
+        - navigation
+        - network
+        - onboarding
+        - planning
+        - recipes
+        - infra
+    validations:
+      required: true

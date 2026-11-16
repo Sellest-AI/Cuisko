@@ -1,0 +1,11 @@
+{
+  "name": "sellest",
+  "owner": { "name": "Sellest" },
+  "plugins": [
+    {
+      "name": "issues",
+      "source": "./.claude/plugins/issues",
+      "description": "A card above the prompt for each issue draft in .tmp/issues/: Create issue creates it as the owner, Discard deletes it."
+    }
+  ]
+}

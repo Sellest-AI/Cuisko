@@ -73,27 +73,57 @@ const _run = (label: string, index: number, attempt: Attempt) => {
   ].join("\n");
 };
 
+/** One input, and what every candidate returned for it. */
+export type JudgedCase = {
+  /** Shown as the case's heading when there are several: "feta sodium". */
+  title?: string;
+  input: string;
+  candidates: { label: string; attempts: Attempt[] }[];
+};
+
+/** What each candidate returned for one input, under the input it was given. */
+const _case = ({ input, candidates }: JudgedCase, depth: string) => [
+  `${depth} What they were given to work from`,
+  "",
+  input,
+  "",
+  `${depth} What each candidate returned`,
+  "",
+  ...candidates.map(({ label, attempts }) =>
+    [`${depth}# Candidate ${label}`, ...attempts.map((attempt, index) => _run(label, index, attempt))]
+      .join("\n\n"),
+  ),
+];
+
 /**
  * Everything the judge sees, in one prompt.
  *
  * The candidates arrive under blind letters and in shuffled order, and the paragraph about modes
  * is not optional politeness — without it a judge that spots two near-identical answers concludes
  * one copied the other rather than that it is one model at two efforts.
+ *
+ * Several cases (`runSuite`) are one prompt too: each case under its own heading, the letters the
+ * same model in every case, so the judge ranks a candidate on its whole spread rather than on the
+ * one input it happened to be shown.
  */
 export const judgePrompt = (options: {
   rules: string;
-  input: string;
   criteria: readonly string[];
   runs: number;
-  candidates: { label: string; attempts: Attempt[] }[];
+  cases: readonly JudgedCase[];
 }) => {
-  const { rules, input, criteria, runs, candidates } = options;
-  const flagged = candidates.some(({ attempts }) =>
-    attempts.some((attempt) => attempt.ok && attempt.flags.length),
+  const { rules, criteria, runs, cases } = options;
+  const several = cases.length > 1;
+  const count = cases[0]?.candidates.length ?? 0;
+  const flagged = cases.some(({ candidates }) =>
+    candidates.some(({ attempts }) => attempts.some((attempt) => attempt.ok && attempt.flags.length)),
   );
 
   return [
-    `${candidates.length} candidates were given the same input and the same rules. Rank them.`,
+    several
+      ? `${count} candidates were given the same rules and the same ${cases.length} inputs, one at a ` +
+        "time. Each letter is the same candidate in every input. Rank them over all the inputs together."
+      : `${count} candidates were given the same input and the same rules. Rank them.`,
     "",
     "Some candidates may be the same underlying model run at a different reasoning setting, which " +
     "is why two of them can read almost identically. You are not told which, and you must not " +
@@ -103,25 +133,25 @@ export const judgePrompt = (options: {
     "",
     rules,
     "",
-    "# What they were given to work from",
-    "",
-    input,
-    "",
-    "# What each candidate returned",
-    "",
-    ...candidates.map(({ label, attempts }) =>
-      [`## Candidate ${label}`, ...attempts.map((attempt, index) => _run(label, index, attempt))]
-        .join("\n\n"),
-    ),
-    "",
+    ...(several
+      ? cases.flatMap((judged, index) => [
+        `# Input ${index + 1} of ${cases.length}${judged.title ? ` — ${judged.title}` : ""}`,
+        "",
+        ..._case(judged, "##"),
+        "",
+      ])
+      : [..._case(cases[0]!, "#"), ""]),
     "# How to weigh them",
     "",
     "In this order, heaviest first:",
-    // The caller's criteria first, then the two the harness owns because it is the harness that
-    // knows how many runs there were and that speed was measured at all.
+    // The caller's criteria first, then the ones the harness owns because it is the harness that
+    // knows how many runs and inputs there were and that speed was measured at all.
     ...[
       ...criteria,
-      `Consistency across the ${runs} runs.`,
+      several
+        ? `Consistency across the ${runs} runs of each input, and across the ${cases.length} inputs: ` +
+          "a candidate right on most inputs and wrong on one is worse than one right on all."
+        : `Consistency across the ${runs} runs.`,
       "Speed, last and only as a tie-break.",
     ].map((criterion, index) => `${index + 1}. ${criterion}`),
     "",

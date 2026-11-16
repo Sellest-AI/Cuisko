@@ -9,13 +9,17 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-/** The path -> position of each memory the index lists, in index order. */
+/** The link -> position of each topic the index lists, in index order. */
 const _positions = (indexText) => {
-  const listed = [...indexText.matchAll(/^- \[(.*)\]\((memories\/[^)\s]+)\): /gm)];
+  const listed = [...indexText.matchAll(/^- \[(.*)\]\(([^)\s]+)\): /gm)];
   return new Map(listed.map((match, at) => [match[2], { position: at + 1, title: match[1] }]));
 };
 
-/** How the order of the index changed, as short lines: a memory that moved, appeared or left. */
+/**
+ * How the order of the index changed, as short lines: a topic that moved, appeared or left.
+ * `before` and `after` are two rendered indexes (memoryIndex.mjs `renderTopicIndex`), never a built
+ * file: the dream renders both at its own `now`.
+ */
 export const rankingChanges = (before, after, limit = 10) => {
   const was = _positions(before);
   const now = _positions(after);
@@ -49,16 +53,8 @@ export const memoryDiff = ({ cwd, from, to, color = false }) => {
   return run.stdout;
 };
 
-/** The bullets of a memory's `## Facts` section, one string per fact. */
-const _facts = (text) => {
-  const lines = text.split("\n");
-  const start = lines.findIndex((line) => line.trim() === "## Facts");
-  if (start === -1) return [];
-  const end = lines.findIndex((line, at) => at > start && line.startsWith("## "));
-  return lines.slice(start + 1, end === -1 ? undefined : end).filter((line) => line.startsWith("- ")).map((line) => line.slice(2).trim());
-};
-
-const _frontSummary = (text) => /^summary:\s*(.+)$/m.exec(text)?.[1]?.trim();
+/** A fact file's title, from its header. */
+const _title = (text) => /^title:\s*(.+)$/m.exec(text)?.[1]?.trim();
 
 /**
  * The longest note the summary prints. The agents are told it; a schema `max` would instead throw
@@ -73,10 +69,10 @@ const _plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
 const _paint = (color, code, text) => (color ? `\u001b[${code}m${text}\u001b[0m` : text);
 
 /**
- * The last thing the owner reads before choosing: one line per changed file, with the facts it
- * gained and lost (counted by the script, not taken from a model) and the reviewer's note, or the
- * correction's note for a file the owner corrected. A new file without a note shows its own summary.
- * `files` holds `{ path, before?, after? }`: no `before` is new, no `after` is deleted.
+ * The last thing the owner reads before choosing: one line per changed fact (a fact is a file),
+ * and the reviewer's note, or the correction's note for a fact the owner corrected. A new fact
+ * without a note shows its title. `files` holds `{ path, before?, after? }`: no `before` is new,
+ * no `after` is deleted.
  */
 export const formatSummary = ({ files, notes, flags, color = false }) => {
   const created = files.filter((file) => file.before === undefined);
@@ -93,17 +89,15 @@ export const formatSummary = ({ files, notes, flags, color = false }) => {
     let change;
     if (file.before === undefined) {
       mark = _paint(color, 32, "+");
-      change = `new, ${_plural(_facts(file.after).length, "fact")}`;
+      change = "new";
     } else if (file.after === undefined) {
       mark = _paint(color, 31, "−");
       change = "deleted";
     } else {
-      const was = new Set(_facts(file.before));
-      const now = new Set(_facts(file.after));
       mark = _paint(color, 33, "~");
-      change = `+${[...now].filter((fact) => !was.has(fact)).length} −${[...was].filter((fact) => !now.has(fact)).length} facts`;
+      change = "changed";
     }
-    const note = notes.get(file.path) ?? (file.before === undefined ? _frontSummary(file.after) : undefined);
+    const note = notes.get(file.path) ?? (file.before === undefined ? _title(file.after) : undefined);
     return [`  ${mark} ${file.path}  ${change}`, ...(note === undefined ? [] : [`      ${_cut(note)}`])];
   });
   return [_paint(color, 1, `Summary: ${header}`), ...rows, ""].join("\n");

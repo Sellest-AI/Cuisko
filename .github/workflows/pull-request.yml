@@ -1,0 +1,53 @@
+name: Pull request
+
+# The two checks a PR into dev must pass besides verify (the protect-dev ruleset requires all
+# three). Each job is a thin call into a tested script: scripts/github/_lib/pullRequest.mjs decides.
+# `edited` reruns `issue` when the body changes; `synchronize` reruns both on every push.
+on:
+  pull_request:
+    branches: [dev]
+    types: [opened, edited, synchronize, reopened]
+
+# Anyone can open a PR on a public repo, a fork included. These jobs only read.
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The scripts import node built-ins only: no install.
+      - run: node scripts/github/check-issue.mjs
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+          GH_TOKEN: ${{ github.token }}
+
+  memory:
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history: the check reads base..head. GITHUB_SHA is GitHub's test merge commit,
+      # not the branch tip, so the two ends come from the event.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/github/check-memory.mjs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}

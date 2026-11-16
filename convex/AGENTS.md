@@ -26,8 +26,8 @@ Choosing between the three: one follow-up after a write commits is `ctx.schedule
 workflow. Recurring on a clock is `crons/`. Multi-step and must survive a mid-sequence failure is
 `workflows/`. A cron can call a workflow.
 
-`agent/`, `crons/` and `workflows/` are empty placeholders — their components are not installed
-and `crons.ts` does not exist yet. Add both when the first job or agent lands.
+`crons/` and `workflows/` are empty placeholders — `@convex-dev/workflow` is not installed and
+`crons.ts` does not exist yet. Add both when the first job lands.
 
 Files camelCase. Indexes named `by_<field>[_and_<field>]`.
 Every `ctx.db.query()` uses an index. Never `.filter()` with `.paginate()`.

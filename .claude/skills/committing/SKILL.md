@@ -1,6 +1,6 @@
 ---
 name: committing
-description: Use before every git commit or merge in Cuisko — when the user asks to commit, to merge into dev, or to release to main. Runs the full review (pnpm verify, architecture-reviewer, /code-review, the fix loop), checks the branch, and writes the commit message. Use it instead of any generic commit skill.
+description: Use before every git commit in Cuisko — when the user asks to commit. Runs the full review (pnpm verify, architecture-reviewer, /code-review, the fix loop), checks the branch, and writes the commit message. Use it instead of any generic commit skill.
 ---
 
 # Committing in Cuisko
@@ -12,9 +12,10 @@ Commit only when the user asks (AGENTS.md, **Never**). Then run the two parts be
 Run this **every time**, before staging, on every changed file. Do not skip it because a change looks
 small — most defects this catches are one-line changes.
 
-**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R8 + the C1–C20 scripts + knip + tests).
-Run it before the reviews, and do not run it again before committing: the hook does. Run it by
-hand afterwards only when nothing will be committed.
+**Step 1 — automated.** `pnpm verify` (typecheck + lint R1–R9 + the C1–C20 scripts + knip + tests).
+Run it before the reviews. This run is the commit's verify: the `pre-commit` hook runs only the fast
+checks, and CI checks only a PR's head, while "Rebase and merge" lands every commit on `dev`. So
+commit only on a green run of the tree you commit: if the fix loop changes a file, run it again.
 
 **Step 2 — get the changed set.** `git diff --name-only`, `git diff --cached --name-only` and
 `git ls-files --others --exclude-standard`. You need it to decide Step 4's trigger and to check the
@@ -42,15 +43,17 @@ one ADR your change happens to break and the review comes back clean on the rule
 failures are invisible in the output. The reviewer derives those from the repo so that no mistake of
 yours can narrow what it looks at. What you supply is what `git` cannot know: why.
 
-**Step 4 — `/code-review` when the diff contains logic.** It hunts defects, which Step 3 deliberately
-does not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Trigger is concrete —
-`convex/functions/`, `convex/router/` beyond a validator change, `src/modules/**/_hooks/`, or
-`shared/`. Skip it for pure `src/ui/` styling, docs, config and dependency bumps; a defect hunt on a
-stylesheet finds nothing and teaches you to skip the step that matters.
+**Step 4 — `/code-review` when the diff changes code that runs.** It hunts defects, which Step 3
+deliberately does not: off-by-one, unhandled rejection, an unreachable branch, an N+1. Any changed
+function body, condition or algorithm triggers it, in any folder — for example `src/modules/*`,
+`scripts/` and `convex/*`. Skip it only when nothing in the diff executes: `src/ui/` styling, copy,
+docs, config, dependency bumps, a pure rename or move, a validator-only change. The skip list is
+the exception, so a folder it does not name is reviewed; a defect hunt on a stylesheet finds
+nothing and teaches you to skip the step that matters.
 
 **Both passes run on the same diff, and that is the point** — they are not redundant, they are split
 by question. Step 3 asks *does this obey the rules we wrote down*, and answers it from a table, which
-is why it can be a cheap model with no Bash. Step 4 asks *is this correct*, which needs a defect hunt
+is why it can be a cheap model whose shell runs four commands. Step 4 asks *is this correct*, which needs a defect hunt
 and the depth to run one. Neither finds the other's issues. If you catch Step 3 reporting a race
 condition or Step 4 reporting a filename, the split has collapsed and the cheap pass has stopped
 being cheap.
@@ -108,20 +111,19 @@ Ask what the branch exists to do, then:
 
 - The change serves that purpose → commit.
 - It does not — a doc, an unrelated fix, a chore no other commit here needs → **stop and ask the
-  user**, naming the branch it belongs on. Usually `dev`, or a branch of its own.
+  user**, naming the branch it belongs on. Usually a branch of its own, cut from `origin/dev`.
 - Unsure → ask. The question is cheaper than the move.
 
 Supporting work is not a stray: a `feat(groceries)` a `feat/planning-…` branch needs, or a `fix` for
 something the branch itself broke, belongs on the branch, even when its scope is another domain.
 
-- **The hooks check the files on disk, not what you commit.** An uncommitted edit can hide a broken
+- **`pnpm verify` checks the files on disk, not what you commit.** An uncommitted edit can hide a broken
   commit, so trust `pnpm verify` only once nothing is left uncommitted. Commit `package.json` whole.
-- **Into `dev`:** rename a `claude/…` branch to `<type>/…` (the hook refuses it), merge `dev` into
-  it, verify, then a plain `git merge`. Never `--no-ff`. A push to `dev` ships to preview phones and
-  the dev Convex deployment.
-- **Into `main`:** only `dev` is merged into `main`, and only when the user says so: that merge is
-  the release, to the production channel and the prod deployment (`docs/ARCHITECTURE.md` §
-  Releases).
+- **Into `dev` or `main`:** you never merge into them, and GitHub refuses a push to either
+  ([ADR 0022](../../../docs/adr/0022-changes-reach-dev-and-main-by-pull-request.md)). A commit stays
+  on its work branch; `pnpm pr:push` takes the branch to its PR, and the owner merges it. Rename a
+  `claude/…` branch to `<type>/<n>-<slug>` first: the hook refuses it. The PR, the release and the
+  hotfix are in the `working-issues` skill.
 
 Format is Conventional Commits. The rules live in `commitlint.config.js`, which the `commit-msg` hook
 runs; branch names are checked by `.githooks/pre-commit`. When the two disagree with a doc, they win.
@@ -136,6 +138,10 @@ cannot recover is intent. So the body is the payload, not decoration:
 - **What you deliberately did not do**, if a reader would wonder. Absent scope is invisible in a diff.
 
 Omit the body only when the subject is complete alone (`chore(deps): bump convex to 1.44`).
+
+**Write the message to a file in your scratchpad and commit with `git commit -F <file>`.** The
+session's deny rules read each line of an inline heredoc as a command of its own, so a body line
+starting with `gh` refuses the whole commit.
 
 ⚠️ **Never start a body line with `word:`.** The parser reads `Note:`, `Result:`, `enforced:` as a
 footer token and treats everything after it as footers — silently wrecking the structure the history

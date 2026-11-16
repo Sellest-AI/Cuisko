@@ -119,6 +119,26 @@ describe("the store", () => {
     expect(again.readDevice(nextKey)).toEqual({ data: "new" });
   });
 
+  /**
+   * The web build renders every page in Node first (`web.output: "static"`), where there is no
+   * `window` and MMKV throws on any access. Loading this module pruned at once, which took the whole
+   * server render down with "Tried to access storage on the server".
+   */
+  it("loads, reads as a miss and writes nothing during a server render, where there is no DOM", async () => {
+    vi.stubGlobal("window", undefined);
+    try {
+      const { clearDeviceCache, deleteDevice, deviceKey, readDevice, writeDevice } = await load();
+      const key = deviceKey(getMe, {});
+
+      writeDevice(key, { data: { name: "Camille" } });
+      expect(readDevice(key)).toBeUndefined();
+      deleteDevice(key);
+      clearDeviceCache();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("clears every entry", async () => {
     const { clearDeviceCache, deviceKey, readDevice, writeDevice } = await load();
     const me = deviceKey(getMe, {});

@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "sessions": [
+    "2026-11-12T15:14:25.522Z",
+    "2026-11-12T19:41:29.700Z",
+    "2026-11-12T22:45:35.743Z"
+  ],
+  "reads": {
+    "background-commit-exit-code": {
+      "count": 1,
+      "last": "2026-11-12T18:52:49.374Z"
+    },
+    "git-hook-scripts": {
+      "count": 1,
+      "last": "2026-11-12T18:52:04.232Z"
+    },
+    "memory-encryption-key": {
+      "count": 1,
+      "last": "2026-11-12T18:52:04.232Z"
+    },
+    "windows-shell-traps": {
+      "count": 2,
+      "last": "2026-11-12T18:22:20.912Z"
+    }
+  }
+}

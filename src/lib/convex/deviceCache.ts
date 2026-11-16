@@ -13,8 +13,13 @@ export type DeviceEntry = { data: unknown };
 /**
  * One store for every device-cached query. MMKV reads synchronously, which is what lets a hook read
  * its entry while it renders; on web it falls back to `localStorage` by itself.
+ *
+ * None during a server render. The web build renders every page in Node first (`web.output:
+ * "static"`), where there is no `window` and MMKV throws on any access — and the prune below runs
+ * at load, so one import took the whole render down. There is no device there to cache on, so
+ * every read is a miss and every write is dropped; the browser then reads its own store.
  */
-const storage = createMMKV({ id: "convex-device-cache" });
+const storage = typeof window === "undefined" ? undefined : createMMKV({ id: "convex-device-cache" });
 
 /**
  * The identity of the running JS bundle, not `APP_VERSION`: an OTA update ships new mapping code
@@ -51,6 +56,7 @@ export const deviceKey = (
 
 /** Synchronous. A stored value that no longer parses is dropped and read as a miss. */
 export const readDevice = (key: string): DeviceEntry | undefined => {
+  if (!storage) return undefined;
   const raw = storage.getString(key);
   if (raw === undefined) return undefined;
   try {
@@ -64,22 +70,24 @@ export const readDevice = (key: string): DeviceEntry | undefined => {
 
 /** Skips the write when the stored JSON is the same: most live answers repeat the last one. */
 export const writeDevice = (key: string, entry: DeviceEntry) => {
+  if (!storage) return;
   const raw = JSON.stringify(entry);
   if (storage.getString(key) !== raw) storage.set(key, raw);
 };
 
 export const deleteDevice = (key: string) => {
-  storage.remove(key);
+  storage?.remove(key);
 };
 
 /** Removes what earlier bundles stored. Run once, when this module loads. */
 export const pruneOtherBundles = () => {
+  if (!storage) return;
   for (const key of storage.getAllKeys()) if (!key.startsWith(PREFIX)) storage.remove(key);
 };
 
 /** Every entry, whatever its bundle: a session that ends leaves nothing of its cook on disk. */
 export const clearDeviceCache = () => {
-  storage.clearAll();
+  storage?.clearAll();
 };
 
 pruneOtherBundles();

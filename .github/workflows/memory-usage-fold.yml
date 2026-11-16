@@ -1,0 +1,70 @@
+name: Memory usage fold
+
+# Each dream writes one file under .claude/memory/usage/, so the folder grows by a file per dream.
+# Once a month, this folds the files of every closed month into one `usage/<YYYY-MM>.json`
+# (scripts/memory/fold.mjs). The totals the index ranks by are the same before and after.
+#
+# It commits as the Sellest-AI GitHub App `sellest-agent`, shared by the org's repos (org secrets
+# SELLEST_AGENT_APP_ID and SELLEST_AGENT_PRIVATE_KEY), on the fixed branch chore/memory-usage-fold,
+# and opens one PR into dev, or lets the open one follow the new commit: two folds of the same
+# month can never both be open. Only the App writes that branch, so it is force-pushed.
+#
+# No key is needed: usage/ is never encrypted. `pnpm install` runs `setup.mjs --auto`, which does
+# nothing in CI, and sets core.hooksPath to .githooks, so the commit goes through the memory lock.
+# It commits with MEMORY_UPDATE=1, as memory:update does: the lock then runs C20 alone, which
+# skips because the facts are ciphertext here.
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+concurrency: memory-usage-fold
+
+permissions:
+  contents: read
+
+jobs:
+  fold:
+    runs-on: ubuntu-latest
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SELLEST_AGENT_APP_ID }}
+          private-key: ${{ secrets.SELLEST_AGENT_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          token: ${{ steps.app.outputs.token }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/memory/fold.mjs --write
+      - name: Commit, push and open the PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          BRANCH: chore/memory-usage-fold
+          BOT: ${{ steps.app.outputs.app-slug }}[bot]
+        run: |
+          if [ -z "$(git status --porcelain -- .claude/memory/usage)" ]; then
+            echo "Nothing folded: no closed month had a dream file."
+            exit 0
+          fi
+          # The App's own identity: GitHub links a commit to the bot by "<user id>+<login>".
+          bot_id=$(gh api "/users/$BOT" --jq .id)
+          git config user.name "$BOT"
+          git config user.email "$bot_id+$BOT@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add -A -- .claude/memory/usage
+          MEMORY_UPDATE=1 git commit -q -m "chore(memory): fold the usage of closed months" -m "Memory-Update: yes"
+          git push --force origin "$BRANCH"
+          open=$(gh pr list --head "$BRANCH" --base dev --state open --json number --jq length)
+          if [ "$open" = "0" ]; then
+            gh pr create --base dev --head "$BRANCH" \
+              --title "chore(memory): fold the usage of closed months" \
+              --body "The monthly fold of .claude/memory/usage/ (scripts/memory/fold.mjs). Totals are unchanged; only the file count drops."
+          fi

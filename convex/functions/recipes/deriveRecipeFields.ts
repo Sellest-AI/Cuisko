@@ -2,6 +2,7 @@ import type { MutationCtx } from "@convex/procedures";
 import { type AuthoredTag, facetsOf, type RecipeFacets, type Tag } from "@shared/tags";
 
 import { computeTags } from "./computeTags";
+import type { WeighableLine } from "./recipeNutrition";
 import type { RecipeLink } from "./resolveRecipeIngredients";
 
 type Args = {
@@ -32,6 +33,8 @@ type Args = {
 export type DerivedRecipeFields = {
   tags: Tag[];
   facets: RecipeFacets;
+  /** Every line with the row it links, as `computeTags` loaded them. Empty for a recipe missing a line. */
+  lines: WeighableLine[];
 };
 
 /**
@@ -59,9 +62,9 @@ export const deriveRecipeFields = async (
     servings,
   });
 
-  const tags = [...authored, ...computed];
+  const tags = [...authored, ...computed.tags];
 
   // A projection of `tags` rather than a second derivation, so the boolean and the tag cannot
   // disagree.
-  return { tags, facets: facetsOf(tags) };
+  return { tags, facets: facetsOf(tags), lines: computed.lines };
 };

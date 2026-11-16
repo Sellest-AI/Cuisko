@@ -216,8 +216,14 @@ export type BakeOff<Raw, Parsed = Raw> = {
    */
   provider?: ProviderRouting;
 
-  /** The one that ranks them. It never generates, so it is not in the running. */
-  judge?: string;
+  /**
+   * The one that ranks them. It never generates, so it is not in the running.
+   *
+   * `false` skips the judge, and the table and transcript built on its verdict: the runs and their
+   * checks are all that comes back. That is how `runSuite` runs each of its cases, before the one
+   * judge it calls over all of them.
+   */
+  judge?: string | false;
 
   /** Per entrant. Three is enough to see a model that is good on average and wild in variance. */
   runs?: number;
@@ -270,8 +276,40 @@ export type BakeOffResult = {
   /**
    * Where the full transcript was written, relative to the repo root — every prompt, every answer,
    * every flag and the judge's notes, in one markdown file. See `transcript.ts` for who reads it.
+   * Undefined when `judge` was `false`: there was no verdict to write down.
    */
-  path: string;
+  path: string | undefined;
   entrants: Map<string, Entrant>;
   attempts: Map<string, Attempt[]>;
+};
+
+/** One input of a suite, with the answer contract and checks for that input alone. */
+export type SuiteCase<Raw, Parsed = Raw> = {
+  /** Printed with the suite's own title, and shown to the judge: "feta sodium". */
+  title: string;
+  /** The user message for this case. In practice: the tool's real user prompt for one input. */
+  prompt: string;
+  answer?: Answer<Raw, Parsed>;
+};
+
+/**
+ * A bake-off over several inputs: every case is generated on its own, as the tool ships, and ONE
+ * judge then ranks the field over all of them.
+ *
+ * For a task whose quality is a spread — a weight, a refusal, a unit — that no single input shows.
+ * Eleven bake-offs would mean eleven judges, each seeing one case: eleven calls, and no judge that
+ * sees a model getting the units right and the refusals wrong.
+ */
+export type Suite<Raw, Parsed = Raw> = Omit<BakeOff<Raw, Parsed>, "prompt" | "answer" | "judge"> & {
+  cases: readonly SuiteCase<Raw, Parsed>[];
+  judge?: string;
+};
+
+export type SuiteResult = {
+  /** Each case's own runs, in order, for the assertion: `clean` per case is what a check proved. */
+  cases: { title: string; result: BakeOffResult }[];
+  /** Every generation and the one judge call. */
+  spent: number;
+  /** The one transcript, every case in it. */
+  path: string;
 };

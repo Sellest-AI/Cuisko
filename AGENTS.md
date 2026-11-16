@@ -3,8 +3,8 @@
 <!--
   MAINTENANCE: every line here must be a command, a boundary, a non-obvious pattern,
   or a pointer. No directory trees, no architecture prose — those live in docs/ and
-  are read on demand. Budget is 400 lines — a ceiling, not a target: this file is
-  loaded on every request, so an unnecessary line is paid for on every one. Past 400,
+  are read on demand. Budget is 300 lines — a ceiling, not a target: this file is
+  loaded on every request, so an unnecessary line is paid for on every one. Past 300,
   extract to docs/ rather than trimming what earns its place.
   Nested files live at convex/AGENTS.md and src/ui/AGENTS.md — agents read the
   NEAREST one, so state a rule in the folder it governs rather than adding it here.
@@ -16,14 +16,16 @@ Expo (React Native) + Convex. TypeScript throughout. iOS / Android / Web.
 ## Commands
 
 ```bash
-pnpm verify        # typecheck + lint + C1–C20 + knip + test — the pre-commit and pre-merge-commit hooks
-                   # run this and refuse the commit if it fails. `--no-verify` bypasses them; CI does not.
+pnpm verify        # typecheck + lint + C1–C20 + knip + test — run once per commit by the `committing` skill.
+                   # The hooks run it on a merge commit only; CI runs it on every PR, a required check.
 pnpm convex:dev    # MUST be running before `pnpm start`
 pnpm start         # Expo dev server
 pnpm test <file>   # single test file — never `pnpm test -- <file>`: vitest then runs every file
 pnpm test:app      # jsdom project only — components, hooks, _model/
 pnpm test:convex   # edge-runtime project only — Convex functions
-pnpm test:scripts  # node project only — the C1–C20 checks, and the database, release and memory scripts
+pnpm test:scripts  # node project only — the C1–C20 checks and every other script under scripts/
+pnpm gh:bot <args> # every `gh` command a session runs: gh as the sellest-agent App (docs/external/github.md)
+pnpm pr:push       # a work branch to its PR into dev: rebase, dream, push, open or edit — run in the background
 ```
 
 Use the `context-mode` plugin when available: any command whose output you will process rather
@@ -31,13 +33,15 @@ than just glance at — a diff, a log, a test run — goes through it, not Bash.
 
 ## Memory
 
-Your memory is in .claude/memory/ and is read-only for you: it is updated after the session, from the conversation. Start by reading index.md.
+Your memory is in .claude/memory/ and is read-only for you: it is updated after the session, from the conversation. Its index is shown at session start, built into .claude/memory/.built/.
 If you learn something worth keeping, say it in your reply, on one short line starting with `Memory:`. Never write it to a file.
 
 ## Before writing code
 
 - `docs/PRODUCT.md` — what the app is for, who it serves, what it refuses to be. Read it when a
   choice affects what the user sees or is worded for them.
+- `docs/DESIGN.md` — how the app looks, moves and feels: tokens, type, touch, motion, states.
+  Read it before you write or change anything under `src/ui/` or any screen.
 - `docs/CONVENTIONS.md` — naming, file placement, the "where does this go?" decision tree.
 - `docs/adr/` — decisions that constrain code. Each declares `applies_to` globs; read the ones
   matching the files you are touching.
@@ -57,6 +61,10 @@ between whoever writes the backend and whoever wires the screen, and a seam disc
 is a rewrite for one side. One file, one screen or a dep bump needs none. Its slices are checkboxes:
 a slice found mid-build gets one before it is built, and each is ticked when it is completed. The
 plan file is deleted once every box is ticked, before merging.
+
+**Before you write a new plan, load the `grilling` skill** (`.claude/skills/grilling/SKILL.md`).
+It interviews the user in rounds, with a recommended answer for each question, until nothing is left
+open.
 
 **Every new plan goes through the review loop** (`docs/plans/README.md`) before the user sees it:
 `plan-reviewer` re-runs on each revision until `READY`, and the questions neither of you can settle
@@ -89,7 +97,9 @@ copy silently.
 | Never hold session state about a household in a plain `atom` — use `householdAtom`             | 0016 |
 | Never add an `authed` operation that costs money (a model, storage) without `enforceRateLimit` | 0018 |
 | Never write an empty `catch {}`                                                                | —    |
-| Never commit secrets, force-push, or `git commit` unless asked                                 | —    |
+| Never commit secrets, or `git commit` unless asked                                             | —    |
+| Never force-push — the one exception is `pnpm pr:push`, with its lease, on a work branch       | 0022 |
+| Never push to, merge into or commit on `dev` or `main` — the owner merges a PR                 | 0022 |
 | Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                         | —    |
 
 ## Code rules
@@ -141,6 +151,7 @@ The table is the floor, not the bar. A name that is legal but says nothing (`dat
 - No `@deprecated` code left shipping; delete it — git remembers.
 - No new `any` without a comment justifying it.
 - A known choice accepted with its downside carries `@limitation` (CONVENTIONS §1.6), never a bare `TODO`.
+- Settings travel in one options object, last, so every flag is named at the call; inputs that can be missing travel as one named object (CONVENTIONS §1.7).
 - Any `docs/` page this change just made wrong.
 - Any `docs/` page carrying release notes, a log or a to-do.
 
@@ -185,7 +196,9 @@ worktree (deleting data, force-push, `dev`, `main`, the shared stash).
 could not confirm, with where you looked) · **Blocked on you** (what you need from the user), or
 **Next** when nothing is. When a section is empty, leave its heading out entirely.
 
-**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do; as each step lands, say what it showed. "A short line per step beats a perfect summary at the end".
+**Say what you're doing while you're doing it.** Before a long stretch, say what you're about to do. Then speak when a step changes something: a
+finding, a surprise, a red test, a change of plan. A step that went as expected needs no line. "A short line when something happens beats a perfect summary
+at the end".
 
 **Write replies in the spirit of ASD-STE100, about 80% of the way.** Short sentences, one idea each,
 active voice, the same word for the same thing. Skip its dictionary: technical terms stay, and
@@ -232,14 +245,23 @@ End with the choice: narrow the fix, or confirm the new behaviour.
 
 How to write the test itself, and where each file goes: `docs/CONVENTIONS.md` §1.5.
 
+## Issues and pull requests
+
+**Every change starts as an issue the owner created and reaches `dev` through a PR.** Load the
+`working-issues` skill (`.claude/skills/working-issues/SKILL.md`) to draft an issue, work one,
+answer a review, release or hotfix. It runs `committing` for each commit and `pnpm pr:push` for the PR.
+
 ## Committing
 
-**Before any commit or merge, load the `committing` skill** (`.claude/skills/committing/SKILL.md`).
+**Before any commit, load the `committing` skill** (`.claude/skills/committing/SKILL.md`).
 It runs the full review — `pnpm verify`, `architecture-reviewer`, `/code-review` and the fix loop —
 checks the branch, and sets the commit-message rules. The hooks enforce only the format, not the
 review, so the skill is not optional.
 
-## Sub-agents
+## Agents and Sub-agents
+
+**Load `writing-for-agents`** (`.claude/skills/writing-for-agents/SKILL.md`) before you create or
+edit a skill, an agent definition, `AGENTS.md` or `CLAUDE.md`.
 
 For work that is large, parallel, or research-heavy, **spawn sub-agents rather than doing everything
 in one context.** Good candidates: auditing many files against a rule, exploring an unfamiliar area,

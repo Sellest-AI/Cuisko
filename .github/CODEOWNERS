@@ -1,0 +1,4 @@
+# Only a code owner's approval counts for a merge (the protect-dev and protect-main rulesets).
+# The sellest-agent App is not one, so it can never approve its own work. To add a reviewer, give
+# them the Write role on the repository and add their login here.
+* @franckdsf

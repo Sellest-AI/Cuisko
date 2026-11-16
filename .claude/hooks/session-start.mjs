@@ -1,15 +1,15 @@
 /**
  * SessionStart — the facts every session otherwise opens by rediscovering.
  *
- * Branch, working set, whether a slice is in flight, where the build order stands, and whether the
- * installed dependencies still match the lockfile. An agent spends its first few tool calls
+ * Branch, working set, whether a slice is in flight, and whether the installed dependencies still
+ * match the lockfile. An agent spends its first few tool calls
  * establishing some of this, and only when it thinks to look — which is the failure mode, not the
  * cost. Printing it deterministically costs CPU cycles and zero inference.
  *
  * Prints a JSON envelope whose `additionalContext` is injected before the first turn. Stays quiet
  * when there is nothing to say. Never fails the session — every git call degrades to an empty string.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { changedFiles, git, isDreamSession, ROOT } from "./_lib.mjs";
@@ -92,30 +92,27 @@ if (existsSync(plansDir)) {
   }
 }
 
-/* ── Build order ────────────────────────────────────────────────────────────────────────── */
+/* ── GitHub identity ────────────────────────────────────────────────────────────────────── */
 
 /**
- * The one fact here that git cannot answer. Branch and working set cost one command each; knowing
- * which slice the project is actually on means reading a 470-line spec that AGENTS.md only sends
- * you to when a task crosses layers.
- *
- * The parse is bound to a literal heading, so a rename would break it. It says so out loud rather
- * than going quiet — a feature that disappears without a trace is worse than one that reports it
- * cannot find what it needs.
+ * A session acts on GitHub as the `sellest-agent` App (docs/external/github.md): git through the
+ * credential helper, `gh` through `pnpm gh:bot`. Without its key or a token, every push and comment
+ * would fail mid-task, so the session is told up front. Silent when a token comes back, which is
+ * from the cache on most starts. Bounded: a slow network costs at most `TOKEN_TIMEOUT_MS`.
  */
-const architecture = path.join(ROOT, "docs", "ARCHITECTURE.md");
+const TOKEN_TIMEOUT_MS = 4000;
 
-if (existsSync(architecture)) {
-  const section = readFileSync(architecture, "utf8").split(/^## Build order$/m)[1]?.split(/^## /m)[0];
-  const steps = [...(section ?? "").matchAll(/^- \[( |x)\] \*\*(.+?)\*\*/gm)];
-  const next = steps.find(([, mark]) => mark !== "x");
-
-  if (next) {
-    const done = steps.filter(([, mark]) => mark === "x").length;
-    lines.push(`Build order: next is ${next[2]} (${done}/${steps.length} steps done).`);
-  } else if (steps.length === 0) {
-    lines.push("Build order: could not parse the '## Build order' section of docs/ARCHITECTURE.md.");
-  }
+try {
+  const { identityLine } = await import("../../scripts/github/_lib/botToken.mjs");
+  // One deadline for both requests a token costs, so the hook stays inside its own timeout.
+  const signal = AbortSignal.timeout(TOKEN_TIMEOUT_MS);
+  const timedFetch = (url, init) => fetch(url, { ...init, signal });
+  const line = await identityLine({ cwd: ROOT, fetch: timedFetch });
+  if (line !== null) lines.push(line);
+} catch (error) {
+  // The import itself failed (a syntax error in scripts/github/): say so rather than go quiet.
+  const reason = String(error?.message ?? error).split("\n")[0];
+  lines.push(`GitHub App sellest-agent could not be checked (${reason}): push, comment and open no PR until it is fixed.`);
 }
 
 /* ── Emit ───────────────────────────────────────────────────────────────────────────────── */

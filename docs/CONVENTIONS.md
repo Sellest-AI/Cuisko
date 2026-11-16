@@ -4,6 +4,11 @@ Read before writing a file. Naming, placement, and the patterns that are not neg
 The narrative behind these rules is in [ARCHITECTURE.md](./ARCHITECTURE.md); the decisions that
 constrain code are in [adr/](./adr/).
 
+**Some rules here are also in [AGENTS.md](../AGENTS.md), on purpose.** Every session loads AGENTS.md,
+and this file only when a task sends an agent here. So the "Never" table, the code rules and the
+"Done means" list repeat the rules that must hold in every session. Keep both copies. A change to
+one of these rules updates both files.
+
 **Every rule carries an enforcement tag.**
 
 | Tag          | Meaning                                               |
@@ -212,8 +217,7 @@ src/modules/recipes/_model/step.ts     → src/modules/recipes/_model/__tests__/
 shared/recipes.ts                      → shared/__tests__/recipes.test.ts
 ```
 
-`_model/` and `_hooks/` co-located until C10 gained rule 3; they do not any more. The rule is
-mechanical on purpose — given a path there is exactly one legal place for its test, so a reviewer
+The rule is mechanical on purpose — given a path there is exactly one legal place for its test, so a reviewer
 never needs an opinion, and neither "once the folder gets crowded" nor "except in `_model/`" is a
 thing anyone has to remember.
 
@@ -284,6 +288,48 @@ tags.
 existing-assertion rule ([AGENTS.md](../AGENTS.md), "Tests") then makes the change a stated
 decision rather than a surprise. Lifting a limitation deletes the tag and rewrites that test in the
 same commit.
+
+### 1.7 Parameters — settings in one options object, last 👁
+
+A function takes what it cannot work without as positional parameters, and as few of them as it can.
+Its **settings** — values with a default that tune how it works — go in **one object, as the last
+parameter**, with their defaults set there.
+
+```ts
+// ❌ What does `false` mean? Adding a third flag shifts every call site.
+useBarSuggestions(value, false, 30);
+
+// ✅ Each flag is named where it is used, and a new one breaks no caller.
+useBarSuggestions(value, { withRecipes: false, limit: 30 });
+```
+
+A bare `true` or `false` in a call is the sign to look for: it cannot be read without opening the
+function. The rule applies to code you write or change; it is not a reason to rewrite a signature you
+are not otherwise touching.
+
+**An input is not a setting, even when it can be missing.** The facts a function decides from are
+peers: none of them tunes the others. Required inputs stay positional, however many there are. When
+one of them can be missing, pass them all as **one named object** rather than leaving an
+`undefined` gap or splitting them into positions plus options.
+
+```ts
+// ❌ A gap where the section is missing, and `mode` looks more important than the other two.
+stockIntentOf("default", undefined, "list");
+stockIntentOf("default", { openSection: undefined, addTo: "list" });
+
+// ✅ Three facts, each one named.
+stockIntentOf({ mode: "default", addTo: "list" });
+```
+
+**Destructure the options in the signature, and depend on the values.** An inline `{ withRecipes:
+false }` is a new object on every render. That costs nothing while the function reads only the
+booleans inside it, and it recomputes every time once the object itself enters a dependency array or
+reaches a `React.memo` component as a prop.
+
+```ts
+// ✅ `useMemo` compares booleans, which are equal from one render to the next.
+export const useBarSuggestions = (text: string, { enabled = true, withRecipes = true } = {}) => {
+```
 
 ---
 
@@ -448,6 +494,11 @@ See [ADR 0002](./adr/0002-ui-isolation.md) and [ADR 0006](./adr/0006-screens-nev
 
 **Only `src/lib/convex/api.ts` may import `convex/_generated`.** 🔒 R3
 
+**A value the server derives and ships is read from the payload, never recomputed.** 🔒 R9 — a
+client copy is a second producer on a second release schedule, and the two disagree while an OTA
+update and a backend deploy are out of step. R9 bans each such function by name, so it covers only
+the ones listed in `eslint.config.js`. See [ADR 0015](./adr/0015-one-producer-for-a-shared-derivation.md).
+
 **A bundled image is a static `import`, never a `require()`.** 👁
 
 ```ts
@@ -475,12 +526,12 @@ numeric registry id, Vite to a URL string. `expo-image` accepts either.
 **French and English are both first-class, from launch** — see
 [PRODUCT.md § Bilingual by nature](./PRODUCT.md).
 
-| Layer                  | Rule                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| Layer                  | Rule                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `translations/`        | The only home for user-facing copy. Every locale carries the same keys 📐 C8 — plurals excepted. The words for a `shared/` vocabulary live in `Vocabulary.*`, one key per entry 📐 C12. |
-| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                   |
-| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                            |
-| Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe. |
+| `src/ui/`              | Never imports `translations` — a component receives its strings as props 🔒 R1.                                                                                                        |
+| `app/`, `src/modules/` | Resolve the key here; pass the resulting string down.                                                                                                                                 |
+| Generated content      | Follows the user's language, model output included. A half-translated recipe is a broken recipe.                                                                                      |
 
 **A stored vocabulary token is English; the word a cook reads is a translation key.** That much is
 S11, and it costs nothing for tags, diets and cuisines because the user TAPS a chip — nothing is
@@ -590,6 +641,8 @@ written straight into a component. Promote it in the commit that adds that lint 
 | S12 | A field a model writes whose value is a locale-dependent word is a closed vocabulary (S11)      | 👁    |
 | S13 | A closed vocabulary fixed **outside** this app is `v.array` of literals on the row, not a table | 👁    |
 | S14 | A field whose emptiness is a CLAIM is optional, so `undefined` ≠ `[]` — never a second flag     | 👁    |
+| S15 | A derived search field is written only through its table's one row sanitizer                    | 📐 C11 |
+| S16 | A value the app PROMISES (a diet, an allergen) is a `filterField`, never a search term          | 👁    |
 
 The `@immutable` / `@singleton` markers go in the table's leading comment and must carry a reason.
 They are the sanctioned exemption, so an intentional exception is a visible declaration rather than
@@ -711,7 +764,7 @@ exact property the optional-FK design had. Nested unions buy write-validity and 
 | A4  | `isAuthorized` is never imported by `router/` — only by `functions/`                         | 🔒 R7           |
 | A5  | Webhooks are defined with `verifiedWebhook`; `verify` has no default                         | 🔒 R5 + 🔬       |
 | A6  | Every `authed` / `admin` / `server` export has a test asserting the wrong caller is rejected | 📐 C5           |
-| A7  | Endpoints that cost money are rate-limited (ADR 0018); writes on demand stay review          | 📐 C16 + 👁     |
+| A7  | Endpoints that cost money are rate-limited (ADR 0018); writes on demand stay review          | 📐 C16 + 👁      |
 | A8  | Never return credentials, tokens or secrets from any procedure                               | 👁              |
 | A9  | Constant-time comparison for secret equality                                                 | 👁              |
 | A10 | Errors are `ConvexError({ code })`, never bare `Error` with a message the UI parses          | 👁              |
@@ -822,7 +875,13 @@ The projection is the only place a payload's fields are chosen: a `to<Shape>` fu
 loader's own return when the shape has a single loader (`loadRecipe`). A wider shape extends
 a narrower one (`RecipeDetail = RecipeCard & {…}`); a second projection for a shape is a finding.
 The router picks the loader and passes `viewer`, and never maps fields, except that an internal
-export may add what only the server should see (`getOne._internal` adds `userId` and `sourceUrl`). Never one loader that reads everything and
+export may add what only the server should see (`getOne._internal` adds `userId` and `sourceUrl`).
+An `_internal` query, mutation or action that does one specific job, and is small enough, may hold
+that work in its handler, with no `functions/` file (`ingredients/getUses` drops archived recipes
+and picks the title). It stays there while every caller reaches it through `ctx.runQuery`,
+`ctx.runMutation` or the scheduler, as an action must: a `functions/` file behind it would only
+add a hop. The work moves into a `functions/` file once a caller could call it directly — a query
+or mutation that needs it inside its own transaction — and the router then calls that file too. Never one loader that reads everything and
 projects it down: every row a query reads is billed and re-runs the query when it changes, so the
 loader decides the joins.
 
@@ -852,6 +911,7 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 - [ ] Screen contains no `useQuery` 🔒
 - [ ] Data access lives in the module's `_hooks/` 👁
 - [ ] UI props are structural types, not `Doc<'x'>` 🔬
+- [ ] No client recomputes a value the server ships on the payload 🔒 R9
 - [ ] Screen under ~120 lines of component code, styles and comments not counted 👁
 
 **Tests**
@@ -863,12 +923,12 @@ not per-author. See [ARCHITECTURE.md](./ARCHITECTURE.md) for what each layer may
 
 **Always**
 
-- [ ] `pnpm verify` passes — the pre-commit hook refuses the commit otherwise
+- [ ] `pnpm verify` passes — the `committing` skill runs it, and CI refuses the PR otherwise
 - [ ] Reviewer sub-agent ran and reported clean, or its findings were approved 👁
 - [ ] The slice's plan file is deleted; anything worth keeping was promoted to an ADR first 👁
 - [ ] `docs/` updated if a layer, convention or table changed (📐 C6 catches dead links/paths only)
 - [ ] No `@deprecated` code left behind — delete it, git remembers 👁
-- [ ] No empty `catch {}` 🔒
+- [ ] No empty `catch {}` 🔒 R6
 
 ---
 
@@ -905,7 +965,7 @@ oversights:
 | "100% test coverage"                | Coverage targets produce tests that assert nothing. Two things are mandatory — the authorization suite (A6) and a test per `_model/` file (C10) — and the rest is judgement about altitude, not a number. See [ADR 0008](./adr/0008-tests-are-layered.md). |
 | "Every file needs a header comment" | Comment density should match the surrounding code. Noise ages badly.                                                                                                                                                                                       |
 | "One export per file"               | The multi-access-level pattern is *better* than splitting: the shared handler is the point.                                                                                                                                                                |
-| "No barrel files"                   | `functions/*/index.ts` barrels worked well in the predecessor (13/13 domains). Keep them; avoid deep re-export chains.                                                                                                                                     |
+| "No barrel files"                   | A module's `hooks.ts` and a sub-module's `index.ts` are barrels by design (§1.1). Keep a barrel one level deep: no barrel re-exports another barrel.                                                                                                       |
 
 ---
 
@@ -987,21 +1047,26 @@ cannot be reverted cleanly, and degrades every later `git log --oneline`.
 a `scope-enum` rule in [commitlint.config.js](../commitlint.config.js) once the domain list settles
 — enforcing it while domains are still appearing would just produce `--no-verify` habits.
 
-**Branches** use the same vocabulary plus `hotfix/`:
+**Branches** use the same vocabulary plus `hotfix/` and `sync/`:
 
 ```
 <type>/<kebab-case-summary>        feat/recipe-scaling
-                                   fix/pagination-short-pages
-                                   hotfix/auth-token-expiry
+                                   fix/12-pagination-short-pages
+                                   hotfix/14-auth-token-expiry
+                                   sync/main-2026-11-13
 ```
+
+A branch that fixes an issue carries its number first. `sync/main-<date>` brings `main` back into
+`dev` after a hotfix ([ADR 0022](./adr/0022-changes-reach-dev-and-main-by-pull-request.md)).
 
 **`hotfix` is a branch prefix and not a commit type, deliberately.** A hotfix and a fix are the
 same *change* — a patch; what differs is the process around it. As a commit type it would force a
 judgement at commit time ("is this urgent enough?") with no downstream consequence, and a rule
 with no consequence decays. As a branch it means something real: skip the queue, cut a release.
 
-Both hooks can be bypassed with `git commit --no-verify` — which also skips `pnpm verify`. CI does
-not skip anything.
+The hooks check the format, not the code: a plain commit does not run `pnpm verify` (the
+`committing` skill runs it once), and a merge commit does. `git commit --no-verify` skips the hooks.
+CI runs `pnpm verify` on every PR, and skips nothing.
 
 ---
 
@@ -1016,26 +1081,27 @@ the column: a ⏳ is the only thing in this section that is a backlog item, and 
 is settled. **Never add a ⏳ for a rule you simply have not got round to** — that is how this section
 would rot into a wish list, and a rule nobody intends to mechanise should say so plainly instead.
 
-| Rule                                             | Why no mechanism                                                                                                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself. |
-| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                      |
-| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                 |
-| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                         |
-| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                      |
-| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                         |
-| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.         |
-| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                             |
-| A7 — rate limiting of writes on demand           | C16 follows what a paid call imports and what a `@costly` action is called by; a write that costs nothing outside the database has no such mark to follow.        |
-| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                    |
-| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                |
-| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                     |
-| Screen ≤ ~120 lines of component code           | A cap would fight legitimate layout composition.                                                                                                                 |
-| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).            |
+| Rule                                             | Why no mechanism                                                                                                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router files contain no loop or domain branching | C2's line cap is a proxy. A precise version would have to distinguish "a loop shaping arguments" from "a loop doing domain work", which is the judgement itself.                                                      |
+| S4 — never store `createdAt`                     | Trivially greppable, but a field legitimately named `createdAt` from an external system is not a violation.                                                                                                           |
+| S6 — polymorphic refs                            | Detectable in the easy case; the interesting cases turn on whether the field is indexed, which is a design call.                                                                                                      |
+| S8 — `position` on ordered join tables           | Requires knowing whether order is meaningful. Nothing but a human knows.                                                                                                                                              |
+| S9 — sharded counters                            | Requires knowing whether a counter is concurrently written.                                                                                                                                                           |
+| S11 — enum pattern                               | A style preference with real exceptions.                                                                                                                                                                              |
+| S12 — model-written fields are vocabularies      | Requires knowing that a field is filled in by a generation tool, and that its value is a word rather than a name. Neither is visible in the schema file.                                                              |
+| A2 — never branch on a secret's truthiness       | A lint rule would need to know which identifiers are secrets. A1 already makes the branch pointless.                                                                                                                  |
+| A7 — rate limiting of writes on demand           | C16 follows what a paid call imports and what a `@costly` action is called by; a write that costs nothing outside the database has no such mark to follow.                                                            |
+| A8 — never return credentials                    | Would require taint tracking.                                                                                                                                                                                         |
+| A9 — constant-time comparison                    | Same problem as A2. `timingSafeEqual` exists; using it is review.                                                                                                                                                     |
+| ⏳ A10 — `ConvexError({ code })`                  | Mostly mechanisable; not built until an error convention has been exercised by real domains.                                                                                                                          |
+| Settings in one options object, last             | Whether a parameter is a setting or an input is a design call, and a lint rule on boolean literals in calls would also flag `setOpen(false)`.                                                                                      |
+| Screen ≤ ~120 lines of component code            | A cap would fight legitimate layout composition.                                                                                                                                                                      |
+| A cross-layer change starts with a plan          | "Crosses two layers" is the judgement itself — any mechanism deciding it would have to *be* that judgement. See [plans/README.md](./plans/README.md).                                                                 |
 | A new plan goes through the review loop          | Whether `plan-reviewer` ran, and whether a declined finding deserved it, lives in the conversation. The Review log makes the outcome readable, not checked. See [plans/README.md](./plans/README.md#the-review-loop). |
-| A reported bug is pinned; assertions stay put     | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not. |
-| A known, accepted choice carries `@limitation`   | Whether a behaviour is a chosen cost or just how the code works is the judgement itself. The tag makes the answer greppable once someone has given it.           |
-| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.          |
+| A reported bug is pinned; assertions stay put    | Whether the user reported a bug, or approved a behaviour change, lives in the conversation, not the repo. A changed `expect(...)` is visible in the diff; whether it was allowed is not.                              |
+| A known, accepted choice carries `@limitation`   | Whether a behaviour is a chosen cost or just how the code works is the judgement itself. The tag makes the answer greppable once someone has given it.                                                                |
+| ⏳ A landed slice deletes its plan file           | Mechanisable — a plan whose branch is merged is stale. Not built until the practice has run on a real slice and the check has something real to assert.                                                               |
 
 **The rule about this section: do not promote a tag before its mechanism exists.** A 👁 that claims
 to be 📐 is worse than no rule at all, because a green `pnpm verify` then certifies something nobody

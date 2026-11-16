@@ -1,5 +1,5 @@
 import { loadCatalogIngredient } from "@convex/functions/ingredients/catalogIngredient";
-import { publicQueryI18n } from "@convex/procedures";
+import { internalQuery, publicQueryI18n } from "@convex/procedures";
 import { ConvexError, v } from "convex/values";
 
 /** Anonymous for the same reason as `search.ts` and `list.ts`: the catalog is reference data. */
@@ -13,4 +13,10 @@ export const anon = publicQueryI18n({
 
     return loadCatalogIngredient(ctx, ingredient, ctx.i18n.locale);
   },
+});
+
+/** The whole row, for a job that only holds its id — `repairIngredient`. Internal: it is unprojected. */
+export const _internal = internalQuery({
+  args: { ingredientId: v.id("ingredients") },
+  handler: (ctx, { ingredientId }) => ctx.db.get(ingredientId),
 });

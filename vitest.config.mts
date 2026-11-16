@@ -168,7 +168,8 @@ export default defineConfig({
       /**
        * The C1-C20 scripts, which had no runner at all until this project existed, the scripts
        * under `scripts/database/` that talk to a deployment, the release version logic under
-       * `scripts/release/`, and the agent memory's tooling under `scripts/memory/`.
+       * `scripts/release/`, the agent memory's tooling under `scripts/memory/`, the GitHub App's
+       * under `scripts/github/`, and the shared helpers under `scripts/_lib/`.
        *
        * Plain node: nothing here needs a DOM or the Convex runtime. The checks' tests spawn the real
        * script as a subprocess; the catalog helpers are imported directly, and they need

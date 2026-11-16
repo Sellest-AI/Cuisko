@@ -16,6 +16,9 @@ expo-env.d.ts
 .env.*
 !.env.example
 
+# The agent memory's index and topic files, rebuilt from memories/ at each session start.
+.claude/memory/.built/
+
 # Scratch space for repo scripts. `pnpm memory:update` builds each dream in
 # .tmp/memory/dream-<stamp>/ and deletes it when the dream ends.
 .tmp/

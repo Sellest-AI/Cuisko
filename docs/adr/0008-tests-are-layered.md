@@ -192,7 +192,7 @@ moment the real data arrives.
 Maestro over Detox because a flow is YAML against a build rather than a second JavaScript runtime
 to keep alive; over Playwright because the target is a device, and react-native-web is a test
 surface this app does not ship on. It runs against an EAS build on a schedule, never in the
-pre-commit hook — `pnpm verify` is a per-commit gate and a device build is not.
+commit checks — `pnpm verify` is a per-commit gate and a device build is not.
 
 Until then this ADR claims no flow coverage, which is the point of writing the gap down.
 

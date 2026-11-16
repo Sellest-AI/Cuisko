@@ -26,7 +26,8 @@ carries the command that proves it still holds.
 | [0019](./0019-a-paid-call-is-traced.md) | A paid call is traced to the route it was made for, and tracing never throws | `convex/router/**`, `convex/functions/**`, `convex/agent/**`, `convex/lib/**`, `convex/procedures.ts`, `convex/schema/tracing.ts`, `scripts/database/**` | `pnpm check:traces`, `pnpm check:events`, `pnpm typecheck`, `pnpm test` |
 | [0020](./0020-an-agent-acts-as-a-verified-cook.md) | An outside agent acts as a verified cook, and never says who that is | `convex/mcp.ts`, `convex/functions/mcp/**`, `convex/router/users/getMcpUser.ts`, `convex/functions/users/purgeUser.ts` | `pnpm test` |
 | [0021](./0021-the-agent-memory-is-written-by-the-dream.md) | The agent memory is written by the dream alone, encrypted, and shown to the owner first | `scripts/memory/**`, `.claude/memory/**`, `.claude/agents/dream-*.md`, `.githooks/**`, `.gitattributes` | `pnpm check:memory`, `pnpm test` |
-`pnpm verify` runs all of them — on demand, in the pre-commit and pre-merge-commit hooks, and in CI.
+| [0022](./0022-changes-reach-dev-and-main-by-pull-request.md) | Changes reach `dev` and `main` by a pull request the owner approved | `scripts/github/**`, `.githooks/**`, `.github/rulesets/**`, `.github/workflows/pull-request.yml`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, `.claude/settings.json`, `.claude/skills/working-issues/**`, `.claude/skills/committing/**`, `.claude/plugins/issues/**` | `pnpm test` |
+`pnpm verify` runs all of them — on demand, once per agent commit from the `committing` skill, on a merge commit in the hooks, and in CI.
 
 ## Format
 
@@ -43,18 +44,25 @@ supersedes: []
 MUST / MUST NOT / MAY — RFC 2119, one rule per line. No judgement to exercise.
 
 ## Why
-Short. The narrative belongs in ../ARCHITECTURE.md, linked.
+What this decision costs and what it was chosen over: each rejected option as "X rather than Y,
+because…", and the defect that bought the rule, if one did. How the layers fit together belongs in
+../ARCHITECTURE.md, linked.
 
 ## Verify
 The command that proves compliance.
 ```
 
-Four properties, each doing a job:
+A section beside these (`## Consequence for tests`, `## Revised`) is added when a reader needs it,
+not by default.
+
+Five properties, each doing a job:
 
 - **`applies_to`** — an agent loads the ADR only for files it governs, so cost scales with relevance
   rather than with project size.
 - **MUST / MUST NOT / MAY** — imperatives, not explanation. A rule that requires interpretation gets
   interpreted differently each time.
+- **`## Why`** — the rejected options, named. Without them, the next reader "fixes" a deliberate
+  choice back to the obvious one the record already turned down.
 - **`## Verify`** — a rule with no mechanical check decays, and you get no signal when it stops
   holding. The check is written into the rule itself.
 - **`status`** — a rule the project stops following becomes `superseded`, **not** silent drift.
