@@ -5,15 +5,20 @@ status: accepted
 supersedes: []
 ---
 
-# A recipe is readable by any signed-in cook; only editing is gated
+# A recipe is readable by id by anyone; listing and editing are gated
 
-- `getOne.authed` MUST be built with `authQueryI18n`, not `ownedQueryI18n`: any signed-in caller
-  may read any recipe by id, whoever wrote it. That is what sharing a link and favoriting a catalog
-  recipe both mean.
+- A recipe MUST be readable by id by anyone in the app, whoever wrote it: that is what sharing a link
+  and favoriting a catalog recipe both mean. `getOne.authed` is built with `authQueryI18n`, not
+  `ownedQueryI18n`; `getOne.anon` with `publicQueryI18n`, for someone who opened a link without an
+  account.
+- `getOne.anon` MUST pass no viewer to `loadRecipe`: no `isOwned`, `isFavorited`, `sourceUrl` or
+  `userId`. The author's name ships in both.
+- Only the recipe page reads `anon`. A list or a search of recipes MUST NOT reach another cook's
+  recipe without an account: a link is sent by someone, a list is not.
 - The read payload MUST carry the derived `isOwned` boolean, and the screen MUST decide from it
-  what to show; it never compares ids. Today the payload withholds the owner's `userId` because no
-  surface shows an author yet; when one does, the author ships as a name (ADR 0010), and `isOwned`
-  stays the flag the screen reads.
+  what to show; it never compares ids. The payload withholds the owner's `userId`: the author ships as
+  a name (ADR 0010), and `isOwned` stays the flag the screen reads. Read without an account it
+  carries no flag, and the screen offers nothing the flag would gate.
 - A shared link previews the recipe to anyone holding it, signed in or not. `getOne.server` hands
   the showcase website's server the viewer-less payload (no `isOwned`, `isFavorited`, `sourceUrl`
   or `userId`), and the website MUST publish only its title, description and cover. Anything more on that page,
@@ -46,10 +51,13 @@ The rule most likely to be "fixed" by someone who has not read this is the build
 close. Here it is the decision. What protects a cook is not that strangers cannot read a recipe,
 but that they cannot change it.
 
+The read then opened to people without an account, for the same shared link: sending a recipe to
+someone who met a sign-in wall first lost the recipe, and App Review refused the wall.
+
 ## Verify
 
 `pnpm test` — `convex/router/recipes/__tests__/getOne.test.ts` pins that a stranger's recipe is
-returned with `isOwned: false` and without `userId`, and that `server` ships no owner id, viewer flag
-or source page; `setFavorite.test.ts` pins that a foreign
+returned with `isOwned: false` and without `userId`, and that `server` and `anon` ship no owner id,
+viewer flag or source page, and that `anon` answers with no session; `setFavorite.test.ts` pins that a foreign
 recipe can be favorited and a missing one cannot; `getFavorites.test.ts` pins that one cook never
 sees another's shelf.

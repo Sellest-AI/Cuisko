@@ -3,7 +3,7 @@ import { m } from "@ui/motion";
 
 import { NAVIGATION_BAR_HEIGHT } from "~/modules/navigation/constants";
 import { ButtonIcon } from "@ui/button-icon";
-import { ArrowLeft, Play } from "@ui/icons";
+import { ArrowLeft, Play, UserRound } from "@ui/icons";
 import { ButtonPill } from "@ui/button-pill";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -13,9 +13,11 @@ type Props = {
   style?: ViewStyle,
   onBack?: () => void,
   onStepByStep: () => void,
+  /** Signed out: drawn instead of the step-by-step pill. */
+  onSignIn?: () => void,
 }
 
-export const ChromeNavigationBar = ({ style, onBack, onStepByStep }: Props) => {
+export const ChromeNavigationBar = ({ style, onBack, onStepByStep, onSignIn }: Props) => {
   const t = useTranslations("Recipe");
 
   return (
@@ -43,11 +45,11 @@ export const ChromeNavigationBar = ({ style, onBack, onStepByStep }: Props) => {
           elevated
           variant="secondary"
           size="lg"
-          onPress={onStepByStep}
-          leftIcon={Play}
+          onPress={onSignIn ?? onStepByStep}
+          leftIcon={onSignIn ? UserRound : Play}
           style={styles.elevated}
         >
-          {t("Chrome.start_cooking")}
+          {t(onSignIn ? "Chrome.sign_in" : "Chrome.start_cooking")}
         </ButtonPill>
       </SafeAreaView>
     </m.View>

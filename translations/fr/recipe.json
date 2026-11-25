@@ -6,6 +6,7 @@
   },
   "Chrome": {
     "start_cooking": "Passer en cuisine",
+    "sign_in": "Se connecter",
     "not_found_title": "Cette recette est introuvable",
     "not_found_body": "Elle a peut-être été supprimée, ou le lien est incorrect.",
     "not_found_action": "Retour à mes recettes",

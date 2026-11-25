@@ -1,17 +1,30 @@
 import { loadRecipe } from "@convex/functions/recipes/loadRecipe";
-import { authQueryI18n, internalQuery, serverQuery } from "@convex/procedures";
+import { authQueryI18n, internalQuery, publicQueryI18n, serverQuery } from "@convex/procedures";
 import { DEFAULT_LOCALE, vLocale } from "@convex/schema/i18n";
 import { ConvexError, v } from "convex/values";
+
+/**
+ * The same recipe, for someone signed out who opened a shared link in the app.
+ *
+ * Open on purpose (ADR 0014): no list reaches a recipe without an account, only its id does. No
+ * viewer, so the payload carries no `isOwned`, `isFavorited` or `sourceUrl`, and never `userId`;
+ * the author's name ships, as it does in `authed`.
+ */
+export const anon = publicQueryI18n({
+  args: { id: v.id("recipes") },
+  handler: (ctx, { id }) => loadRecipe(ctx, { recipe: id, locale: ctx.i18n.locale }),
+});
 
 /**
  * One recipe, in full, for any signed-in cook — theirs or not.
  *
  * `authQueryI18n` rather than `ownedQueryI18n`, and that is the access model, not an oversight
- * (ADR 0014): a recipe is readable by id by anyone signed in, which is what sharing a link and
- * favoriting a catalog recipe both mean. What stays gated is gated where it happens — `updateOne`
- * checks ownership before a write, `getAll` and `search` list only the caller's own. The payload
- * carries `isOwned` for the screen to hide the pencil, and never the owner's `userId`. The source
- * page ships only to the owner and to an admin, which is why the viewer's role is passed down.
+ * (ADR 0014): a recipe is readable by id by anyone, which is what sharing a link and favoriting a
+ * catalog recipe both mean. The session decides the flags, not the read. What stays gated is gated
+ * where it happens — `updateOne` checks ownership before a write, `getAll` and `search` list only
+ * the caller's own. The payload carries `isOwned` for the screen to hide the pencil, and never the
+ * owner's `userId`. The source page ships only to the owner and to an admin, which is why the
+ * viewer's role is passed down.
  */
 export const authed = authQueryI18n({
   args: { id: v.id("recipes") },

@@ -24,6 +24,23 @@ export const recipeRoute = (id: string, servings?: number): Href => ({
   params: servings === undefined ? { id } : { id, servings: String(servings) },
 });
 
+/** A recipe and its two other tabs, never the pages beside them that write or cook (`/recipe/new`, …). */
+const _RECIPE_PAGE = /^\/recipe\/(?!(?:new|edit|step-by-step)(?:\/|$))([^/]+)(?:\/(ingredients|instructions))?\/?$/;
+
+/**
+ * The recipe page at a path, as a screen of the root stack, or nothing when the path is not one.
+ *
+ * For a reset that puts the recipe over another screen in one transition: a reset takes screen names
+ * and not paths, and resetting then pushing plays two animations back to back. The names are the
+ * files under `app/recipe/[id]/`.
+ */
+export const recipeScreenAt = (path: string) => {
+  const [, id, tab = "index"] = _RECIPE_PAGE.exec(path) ?? [];
+  if (!id) return undefined;
+
+  return { name: "recipe/[id]", params: { id, screen: tab, params: { id } } };
+};
+
 /**
  * The servings a route arrived with, or nothing worth seeding.
  *
@@ -54,7 +71,7 @@ const _SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
  * `.well-known` files), and serves a page with the store badges to a phone without it.
  * `recipeIdOfLink` below is the reader of the same format.
  *
- * The id is the Convex id itself: any signed-in cook can read any recipe (ADR 0014), so it grants
+ * The id is the Convex id itself: anyone holding it can read the recipe (ADR 0014), so it grants
  * nothing the link does not, and a slug or short code would need a table of its own.
  *
  * `?lang=` is the sharer's language. The website titles the link preview in it, so the card under

@@ -1,10 +1,11 @@
 import { router, useNavigationContainerRef, usePathname, type Href } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { clearDeviceCache } from "~/lib/convex/deviceCache";
 
 import { useAuth } from "./_hooks/useAuth";
+import { isGuestPath } from "./_model/auth-flow";
 import { AUTH } from "./constants";
 import { Cover } from "./cover";
 
@@ -38,12 +39,13 @@ type Destination = typeof AUTH | typeof ONBOARDING;
 /**
  * Sends each person to the side of the app they belong on, and holds the splash until it has.
  *
- * With no session, every route but `/auth` redirects there; signed in, `/auth` redirects to the
- * onboarding, which ends on home by itself. "No session" is no stored token, not "Convex has not
- * confirmed it": a stored session whose cook is on the device draws at once, offline included,
- * and a refresh failing on a weak network leaves the screen where it is. A session the server
- * refuses clears the token, and lands here as no session. A cold start with a live session never passes through
- * `/auth`, so it opens wherever it opens, home included. Nothing
+ * With no session, every route but `/auth` redirects there, except a recipe a shared link opened
+ * (`isGuestPath`); signed in, `/auth` redirects to the onboarding, which ends by itself. So does a
+ * recipe the cook went back to while their sign-in was in flight. "No session" is no stored token,
+ * not "Convex has not confirmed it": a stored session whose cook is on the device draws at once,
+ * offline included, and a refresh failing on a weak network leaves the screen where it is. A session
+ * the server refuses clears the token, and lands here as no session. A cold start with a live session
+ * never passes through `/auth`, so it opens wherever it opens, home included. Nothing
  * is decided while auth is settling or a signed-in person's row is still arriving: the first
  * screen drawn is the right one, rather than home flashing before a bounce to `/auth`, or a header
  * drawn anonymous before its avatar lands.
@@ -68,13 +70,26 @@ export const AuthGate = () => {
   const navigation = useNavigationContainerRef();
 
   const isOnAuth = pathname === AUTH.href;
+  const isOnGuestPage = isGuestPath(pathname);
   const isSignedOut = !hasSession && !isAuthenticating;
+
+  /**
+   * Whether someone was signed out here and no sign-in has been placed since. It tells a sign-in that
+   * lands on a recipe, its person having left `/auth` before it did, from a stored session opening
+   * one. Forgotten on the first settled page a sign-in is left on, or the next recipe the cook opens
+   * would be taken for that sign-in. Set during render, so no frame decides on the previous answer.
+   */
+  const [wasSignedOut, setWasSignedOut] = useState(false);
+
   const destination: Destination | null =
     isLoading ? null
-      : isSignedOut && !isOnAuth ? AUTH
-        : isAuthenticated && isOnAuth ? ONBOARDING
+      : isSignedOut && !isOnAuth && !isOnGuestPage ? AUTH
+        : isAuthenticated && (isOnAuth || (wasSignedOut && isOnGuestPage)) ? ONBOARDING
           : null;
   const isSettled = !isLoading && destination === null;
+
+  if (isSignedOut && !isLoading && !wasSignedOut) setWasSignedOut(true);
+  if (isAuthenticated && isSettled && wasSignedOut) setWasSignedOut(false);
 
   /** Two cooks can share a phone: a session that ends leaves nothing of the last one on disk. */
   useEffect(() => {

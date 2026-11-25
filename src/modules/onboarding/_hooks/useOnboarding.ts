@@ -2,6 +2,9 @@ import { router, useNavigationContainerRef, usePathname } from "expo-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useTakeReturnPath } from "~/modules/auth/hooks";
+import { recipeScreenAt } from "~/modules/recipes/routes";
+
 import {
   canLeave,
   ONBOARDING_STEPS,
@@ -27,6 +30,7 @@ import { doneStepsAtom, resetOnboardingAtom } from "./atoms";
 export const useOnboarding = () => {
   const path = usePathname();
   const navigation = useNavigationContainerRef();
+  const takeReturnPath = useTakeReturnPath();
 
   /**
    * The last path that was a step, so a sheet pushed over the flow does not drop the progress bar
@@ -75,18 +79,22 @@ export const useOnboarding = () => {
   }, [doneSteps]);
 
   /**
-   * Out of the flow and into the app: home, with the assistant sheet risen over it.
+   * Out of the flow and into the app: home, with the assistant sheet risen over it, or the recipe
+   * they were reading when they went to sign in.
    *
    * A reset rather than a push, so nothing of the onboarding is left to swipe back into, and home
    * sits *under* the sheet rather than being pushed after it: closing Cuisko shows home, not a
-   * blank stack.
+   * blank stack. One reset for the recipe too: pushed after it, home showed in between.
    */
   const finish = useCallback(() => {
+    const returnPath = takeReturnPath();
+    const recipe = returnPath ? recipeScreenAt(returnPath) : undefined;
+
     navigation.reset({
       index: 1,
-      routes: [{ name: "index" }, { name: "(modals)", params: { screen: "assistant" } }],
+      routes: [{ name: "index" }, recipe ?? { name: "(modals)", params: { screen: "assistant" } }],
     });
-  }, [navigation]);
+  }, [navigation, takeReturnPath]);
 
   /** Refused, not merely discouraged, while the step's action is not done: see `canLeave`. */
   const next = useCallback(() => {

@@ -1,3 +1,5 @@
+import { recipeScreenAt } from "~/modules/recipes/routes";
+
 /** The sign-in page, and the onboarding every sign-in walks after it (`auth-gate`). */
 const _AUTH_FLOW = /^\/(?:auth|onboarding)(?:\/|$)/;
 
@@ -8,3 +10,9 @@ const _AUTH_FLOW = /^\/(?:auth|onboarding)(?:\/|$)/;
  * the gate resets the navigator when it moves a sign-in on to the onboarding, which would close it.
  */
 export const isAuthFlowPath = (pathname: string): boolean => _AUTH_FLOW.test(pathname);
+
+/**
+ * Whether someone with no account may stay on a page: the recipe a shared link opens, and nothing
+ * else. Every other page sends them to sign in.
+ */
+export const isGuestPath = (pathname: string): boolean => recipeScreenAt(pathname) !== undefined;

@@ -6,6 +6,7 @@
   },
   "Chrome": {
     "start_cooking": "Start cooking",
+    "sign_in": "Sign in",
     "not_found_title": "This recipe is not here",
     "not_found_body": "It may have been deleted, or the link is wrong.",
     "not_found_action": "Back to my recipes",

@@ -84,13 +84,82 @@ describe("AuthGate", () => {
     expect(state.hide).toHaveBeenCalledOnce();
   });
 
-  /** A deep link is no way around it. */
+  /** A deep link is no way around it, except a recipe's (`isGuestPath`). */
   it("sends a signed-out person to /auth from any route", () => {
     state.pathname = "/groceries";
 
     render(<AuthGate />);
 
     expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
+  });
+
+  describe("on a recipe a shared link opened", () => {
+    it("leaves a signed-out person there, uncovered, and lifts the splash", () => {
+      state.pathname = "/recipe/k57abc/ingredients";
+
+      const view = render(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+      expect(state.replace).not.toHaveBeenCalled();
+      expect(state.hide).toHaveBeenCalledOnce();
+      expect(view.container).toBeEmptyDOMElement();
+    });
+
+    it.each(["/recipe/new", "/recipe/edit/k57abc", "/recipe/step-by-step/k57abc"])(
+      "sends a signed-out person on %s to /auth",
+      (pathname) => {
+        state.pathname = pathname;
+
+        render(<AuthGate />);
+
+        expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
+      },
+    );
+
+    /** They went back from /auth before their sign-in landed. It walks the onboarding all the same. */
+    it("sends a sign-in that lands on the recipe to the onboarding, and not the recipe opened after it", () => {
+      state.pathname = "/recipe/k57abc";
+      const view = render(<AuthGate />);
+
+      state.auth = SIGNING_IN;
+      view.rerender(<AuthGate />);
+      state.auth = SIGNED_IN;
+      view.rerender(<AuthGate />);
+      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("onboarding"));
+
+      state.pathname = "/onboarding/promise";
+      view.rerender(<AuthGate />);
+      state.pathname = "/recipe/k57abc";
+      view.rerender(<AuthGate />);
+      expect(state.reset).toHaveBeenCalledOnce();
+    });
+
+    it("leaves a recipe opened after a sign-in that landed elsewhere", () => {
+      state.pathname = "/recipe/k57abc";
+      const view = render(<AuthGate />);
+
+      state.pathname = "/";
+      state.auth = SIGNING_IN;
+      view.rerender(<AuthGate />);
+      state.auth = SIGNED_IN;
+      view.rerender(<AuthGate />);
+      state.pathname = "/recipe/k57abc";
+      view.rerender(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+    });
+
+    it("leaves a stored session there through its confirmation", () => {
+      state.pathname = "/recipe/k57abc";
+      state.auth = STORED_SESSION;
+      const view = render(<AuthGate />);
+
+      state.auth = SIGNED_IN;
+      view.rerender(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+      expect(state.hide).toHaveBeenCalledOnce();
+    });
   });
 
   /**

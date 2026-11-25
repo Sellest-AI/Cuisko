@@ -23,6 +23,7 @@ import { useTranslations } from "translations";
 import type { Id } from "~/lib/convex/api";
 import { CUISKO_HEAD } from "~/lib/mascots";
 import { openInBrowser } from "~/lib/openInBrowser";
+import { useRequireSignIn } from "~/modules/auth/hooks";
 
 import { useSetRecipeFavorite } from "../../_hooks/useSetRecipeFavorite";
 import { useShareRecipe } from "../../_hooks/useShareRecipe";
@@ -58,6 +59,9 @@ type Props = {
  * share and verify WRITES are called from here, though: a mutation is not a subscription, and each
  * control is the only thing that sends its own.
  *
+ * Someone with no account sees the same controls. The ones that write to an account ask them to sign
+ * in when tapped (`useRequireSignIn`); sharing works as it is.
+ *
  * The `…` menu holds what any cook may do, such as asking Cuisko about this recipe, and what only some
  * may: edit for the author, the original page for the author and an admin (the only ones the server
  * ships it to), the check against it for an admin. The check's bar and its results stay at the
@@ -68,18 +72,34 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl,
   const { set } = useSetRecipeFavorite();
   const { share } = useShareRecipe();
   const { canVerify, isVerifying, verify } = useVerifyRecipe(recipeId);
+  const { isSignedOut, signIn, requireSignIn } = useRequireSignIn();
 
   /** Guarded on the title: the message names the recipe, and a link with no name reads as spam. */
   const onShare = recipeId && title ? () => share({ id: recipeId, title }) : undefined;
 
   /**
    * Guarded on the flag having arrived, not only on the id: before the payload lands there is no
-   * state to send the opposite of, and a tap then would favorite or unfavorite at random.
+   * state to send the opposite of, and a tap then would favorite or unfavorite at random. Signed
+   * out the flag never arrives, and the tap asks for the sign-in whatever it would have been.
    */
-  const onHeart =
-    recipeId && isFavorited !== undefined
+  const onHeart = isSignedOut
+    ? signIn
+    : recipeId && isFavorited !== undefined
       ? () => set(recipeId as Id<"recipes">, !isFavorited)
       : undefined;
+
+  const onPlan = requireSignIn(() => router.push({ pathname: "/plan-recipe", params: { recipeId } }));
+
+  /**
+   * Opened with no question: the cook has not said what they want to know, and the id in the URL
+   * goes with whatever they type (`cookingContextOf`).
+   */
+  const onAskCuisko = requireSignIn(() =>
+    router.push({
+      pathname: "/assistant",
+      params: { recipeId, ...(servings !== undefined && { servings }) },
+    }),
+  );
 
   const canEdit = recipeId !== undefined && isOwned === true;
 
@@ -87,7 +107,7 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl,
     <View style={styles.header}>
       <View style={[styles.actions, styles.leftActions]}>
         <ButtonIcon
-          onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId } })}
+          onPress={onPlan}
           variant="primary"
           elevated
           size="sm"
@@ -111,8 +131,8 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl,
           {Heart}
         </ButtonIcon>
         {/*
-          * Anyone may share, not only the author: a recipe is readable by any signed-in cook
-          * (ADR 0014), and the link opens it for them.
+          * Anyone may share, not only the author: a recipe is readable by anyone holding its link
+          * (ADR 0014), account or not.
           */}
         <ButtonIcon onPress={onShare} disabled={onShare === undefined} variant="neutral" size="sm">
           {Share2}
@@ -154,7 +174,7 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl,
                 )}
                 <Pressable
                   style={styles.popoverItem}
-                  onPress={() => close(() => router.push({ pathname: "/plan-recipe", params: { recipeId } }))}
+                  onPress={() => close(onPlan)}
                 >
                   <CalendarPlusIcon size={22} />
                   <Text.Base>{t("Chrome.menu_plan")}</Text.Base>
@@ -193,17 +213,7 @@ export const RecipeHeader = ({ recipeId, title, isOwned, isFavorited, sourceUrl,
                     <Text.Base>{t("Chrome.menu_share")}</Text.Base>
                   </Pressable>
                 )}
-                {/*
-                  * Opened with no question: the cook has not said what they want to know, and the
-                  * id in the URL goes with whatever they type (`cookingContextOf`).
-                  */}
-                <Pressable
-                  style={styles.popoverItem}
-                  onPress={() => close(() => router.push({
-                    pathname: "/assistant",
-                    params: { recipeId, ...(servings !== undefined && { servings }) },
-                  }))}
-                >
+                <Pressable style={styles.popoverItem} onPress={() => close(onAskCuisko)}>
                   <View style={styles.cuiskoIcon}>
                     <Image source={CUISKO_HEAD} style={styles.cuiskoHead} contentFit="contain" />
                   </View>

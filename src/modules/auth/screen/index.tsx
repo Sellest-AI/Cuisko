@@ -1,6 +1,9 @@
+import { router } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 
-import { AppleLogo, CircleAlert, GoogleLogo } from "@ui/icons";
+import { ButtonIcon } from "@ui/button-icon";
+import { AppleLogo, ArrowLeft, CircleAlert, GoogleLogo } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { Pressable } from "@ui/pressable";
 import { useSafeAreaInsets } from "@ui/safe-area-view";
@@ -27,10 +30,17 @@ const REVIEW_PRESS_MS = 3000;
  *
  * Apple leads on iOS, where the App Store requires it beside Google (guideline 4.8), and is absent
  * elsewhere: Android users have Google, and a second web sign-in there would only add a choice.
+ *
+ * The back arrow is drawn over a recipe a shared link opened, the one page someone with no account
+ * comes here from. On an ordinary launch nothing is behind this page, and there is no arrow.
  */
 export const AuthScreen = () => {
   const t = useTranslations("Auth");
   const insets = useSafeAreaInsets();
+
+  /** Read once: with a second `/auth` pushed over this one, this one must not gain an arrow. */
+  const [canGoBack] = useState(() => router.canGoBack());
+
   const {
     isLoading,
     isSubmitting,
@@ -124,6 +134,18 @@ export const AuthScreen = () => {
           </Text.Sm>
         </View>
       </View>
+
+      {canGoBack && (
+        <ButtonIcon
+          variant="neutral"
+          size="sm"
+          onPress={() => router.back()}
+          accessibilityLabel={t("back")}
+          style={{ ...styles.back, top: insets.top + theme.spacing[8] }}
+        >
+          {ArrowLeft}
+        </ButtonIcon>
+      )}
     </View>
   );
 };
@@ -136,6 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   container: { backgroundColor: theme.colors.background, flex: 1 },
+  back: { left: theme.spacing[16], position: "absolute" },
   sheet: {
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.radius.lg,

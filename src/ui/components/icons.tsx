@@ -26,7 +26,7 @@ export {
   CircleAlert, CircleCheck, Ellipsis, EllipsisVertical, SlidersHorizontal, Search, Trash2, Heart,
   Share2, FileText, ListOrdered, Play, Pause, SkipBack, SkipForward, DatabaseX, Image, Lightbulb,
   Pencil, Globe, Lock, LogOut, HousePlus, House, ShoppingCart, SendHorizontal, ChefHat,
-  ShoppingBasket, Undo2, Book, Mail, WifiOff, Clipboard
+  ShoppingBasket, Undo2, Book, Mail, WifiOff, Clipboard, UserRound
 } from "lucide";
 export {
   ArrowRight as ArrowRightIcon, Check as CheckIcon,
