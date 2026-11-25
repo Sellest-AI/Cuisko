@@ -9,6 +9,8 @@ import { colors, theme } from "theme";
 type Props = {
   title: string;
   subtitle?: string;
+  /** How wide the title may run before it wraps: a longer one than a question may need more. */
+  titleMaxWidth?: number;
   tone?: "onTint" | "onLight";
 } & (
     | {
@@ -32,6 +34,7 @@ type Props = {
 
 const MASCOT_SIZE = 148;
 const ICON_SIZE = 24;
+const TITLE_MAX_WIDTH = 220;
 
 /**
  * The question at the top of a flow's step, and whoever is asking it: the planning tunnel's and the
@@ -41,7 +44,7 @@ const ICON_SIZE = 24;
  * what came back — those open with an icon and the thing itself, which is the answer they came for.
  * Which pose asks which question is the step's own decision; see `mascot` below.
  */
-export const StepHeader = ({ title, subtitle, mascot, icon, tone = "onTint" }: Props) => {
+export const StepHeader = ({ title, subtitle, mascot, icon, titleMaxWidth = TITLE_MAX_WIDTH, tone = "onTint" }: Props) => {
   const Icon = icon;
 
   return (
@@ -65,7 +68,7 @@ export const StepHeader = ({ title, subtitle, mascot, icon, tone = "onTint" }: P
           />
           <Image source={mascot} contentFit="contain" style={styles.mascot} />
           <Text.H4
-            style={{ ...styles.title, textBalance: true }}
+            style={{ ...styles.title, maxWidth: titleMaxWidth, textBalance: true }}
             color={tone === "onTint" ? colors.primary.base : colors.foreground}
           >
             {title}
@@ -94,7 +97,6 @@ const styles = StyleSheet.create({
   title: {
     textAlign: "center",
     marginTop: theme.spacing[20],
-    maxWidth: 220,
   },
   titleRow: {
     flexDirection: "row",

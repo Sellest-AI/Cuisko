@@ -32,7 +32,7 @@ const _keysOf = (state: Tree | undefined, keys = new Set<string>()): Set<string>
  * link included) has nothing to stay on: every route outside `OFFLINE_ROUTES` is arriving.
  *
  * Acts only once the navigator is ready and `AuthGate` has settled on a session, so it never races
- * that gate's reset to `/auth`.
+ * that gate's resets.
  *
  * A reset of the root stack rather than a push: sheets, the account drawer and the cooking screen
  * are root routes presented natively, so the reset closes them too, and nothing has to draw over a
