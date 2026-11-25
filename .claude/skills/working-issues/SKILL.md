@@ -72,7 +72,8 @@ You never create an issue: the owner does, by clicking the card the `issues@sell
    `Fixes #<n>`: GitHub closes the issue only when a commit or PR body naming it reaches `main`,
    and the release PR names none itself.
 6. **The PR file.** Write `.tmp/pr/<branch with / as ->.md` (`scripts/github/_lib/prFile.mjs`
-   checks it), shaped by `.github/pull_request_template.md`:
+   checks it), shaped by `.github/pull_request_template.md`, ending at its Memory section with no AI
+   attribution (AGENTS.md, **Never**):
 
    ```md
    ---
@@ -154,4 +155,5 @@ pnpm gh:bot pr create --base dev --head sync/main-<YYYY-MM-DD> --title "chore: s
 
 A conflict in the merge is resolved like any other. If `dev` moves while the PR is open, merge
 `origin/dev` into the branch again and push it plainly. Tell the user to merge it with "Create a
-merge commit". The `issue` and `memory` checks skip a `sync/` branch.
+merge commit". The `issue` and `memory` checks skip a `sync/` branch; only
+its body's AI attribution is checked.

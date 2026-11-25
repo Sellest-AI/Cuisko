@@ -537,6 +537,8 @@ contact with a growing codebase.
 | The agent memory is well formed and holds no personal data             | script C20, stable mode (skips when encrypted)    | `pnpm check:memory`    |
 | Nothing unused: files, dependencies, exports, types (not `convex/`)    | knip (`knip.jsonc`)                               | `pnpm check:unused`    |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
+| A commit carries no AI attribution (ADR 0022)                          | commitlint                                        | `commit-msg` hook      |
+| A PR into `dev` carries no AI attribution (ADR 0022)                   | `pr:push`, then the `issue` check                 | `pull-request.yml`     |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
 | Env is complete                                                        | Zod throw at module load                          | `pnpm test`            |

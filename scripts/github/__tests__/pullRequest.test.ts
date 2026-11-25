@@ -12,10 +12,11 @@ type Pr = { author: string; headRef: string; headRepo: string; baseRepo: string 
 type Issue = { number: number; state: string; pullRequest: boolean };
 type Commit = { sha: string; message: string; parents: string[] };
 /** `pullRequest.mjs` is plain JavaScript; the contract is restated here so a drift stops compiling. */
-const { linkedIssues, isSkipped, issueVerdict, memoryVerdict, prFromEnv } = lib as unknown as {
+const { attributionVerdict, linkedIssues, isSkipped, issueVerdict, memoryVerdict, prFromEnv } = lib as unknown as {
   prFromEnv: (env: Record<string, string | undefined>) => Pr;
+  attributionVerdict: (body: string) => Verdict;
   linkedIssues: (body: string) => number[];
-  isSkipped: (pr: Pr, options: { check: "issue" | "memory" }) => boolean;
+  isSkipped: (pr: Pr, options: { check: "issue" | "memory" | "attribution" }) => boolean;
   issueVerdict: (issue: Issue | null) => Verdict;
   memoryVerdict: (commits: Commit[]) => Verdict;
 };
@@ -53,6 +54,33 @@ describe("linkedIssues", () => {
   });
 });
 
+describe("attributionVerdict", () => {
+  it("refuses the PR line, with or without its link, the session link and the commit trailers", () => {
+    for (const line of [
+      "🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+      "Generated with Claude Code",
+      "https://claude.ai/code/session_01AbC",
+      "Co-Authored-By: Claude Opus <noreply@anthropic.com>",
+    ]) {
+      expect(attributionVerdict(`Fixes #12\n\n## Changed\n\n${line}\n`).ok, line).toBe(false);
+    }
+  });
+
+  it("refuses one hidden in an HTML comment: it is still in the body", () => {
+    expect(attributionVerdict("Fixes #12\n<!-- Generated with Claude Code -->").ok).toBe(false);
+  });
+
+  it("accepts a body that quotes one in code, and one that only names the tool", () => {
+    expect(attributionVerdict("Refuses `Generated with [Claude Code]` in a PR.")).toEqual({ ok: true });
+    expect(attributionVerdict("```\nCo-Authored-By: Claude <noreply@anthropic.com>\n```\n")).toEqual({ ok: true });
+    expect(attributionVerdict("Fixes #12\n\nClaude Code reads its settings at startup.")).toEqual({ ok: true });
+  });
+
+  it("refuses one that follows code", () => {
+    expect(attributionVerdict("Runs `pnpm verify`.\n\n```\n5 eggs\n```\n🤖 Generated with [Claude Code]").ok).toBe(false);
+  });
+});
+
 describe("isSkipped", () => {
   const pr = (headRef: string, extra: Partial<Pr> = {}): Pr => ({ author: "sellest-agent[bot]", headRef, headRepo: REPO, baseRepo: REPO, ...extra });
 
@@ -79,6 +107,13 @@ describe("isSkipped", () => {
   it("skips the fold PR for issue only", () => {
     expect(isSkipped(pr("chore/memory-usage-fold"), { check: "issue" })).toBe(true);
     expect(isSkipped(pr("chore/memory-usage-fold"), { check: "memory" })).toBe(false);
+  });
+
+  it("checks the attribution of every PR but Dependabot's, a sync/ branch and the fold PR included", () => {
+    expect(isSkipped(pr("dependabot/npm_and_yarn/expo-55.0.1", { author: "dependabot[bot]" }), { check: "attribution" })).toBe(true);
+    for (const headRef of ["sync/main-2026-11-12", "chore/memory-usage-fold", "fix/12-eggs-counted-twice"]) {
+      expect(isSkipped(pr(headRef), { check: "attribution" }), headRef).toBe(false);
+    }
   });
 
   it("checks an ordinary PR", () => {

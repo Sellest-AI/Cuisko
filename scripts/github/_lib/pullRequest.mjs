@@ -1,9 +1,12 @@
+import { findAiAttribution } from "../../_lib/aiAttribution.cjs";
+
 /**
  * What the `issue` and `memory` checks of a pull request into `dev` decide
  * (.github/workflows/pull-request.yml). Pure: the CLIs check-issue.mjs and check-memory.mjs read
  * GitHub and git, and pass what they read here.
  *
  * - `issue`: the body names at least one issue, and every issue it names is still open.
+ *   It also refuses a body that carries an AI attribution, which `pr:push` refuses before it pushes.
  * - `memory`: the branch's newest commit is a dream's (`Memory-Update: yes`), and the branch holds
  *   no merge commit, so the memory was updated after the last code change, by `pr:push`.
  */
@@ -11,6 +14,9 @@
 const DEPENDABOT = "dependabot[bot]";
 /** The monthly fold PR: it names no issue, and its commit carries the trailer, so only `issue` skips it. */
 const FOLD_BRANCH = "chore/memory-usage-fold";
+
+/** The body without what it holds in code, a fenced block or a `code span`: quoted, not said. */
+const _withoutCode = (body) => body.replace(/^(```|~~~)[\s\S]*?(?:^\1|$(?![\s\S]))/gm, "").replace(/`[^`\n]*`/g, "");
 
 /**
  * The issues the body closes, in order, each once: GitHub's closing keywords (`Fixes`, `closed`,
@@ -22,25 +28,38 @@ const FOLD_BRANCH = "chore/memory-usage-fold";
  * @returns {number[]}
  */
 export const linkedIssues = (body) => {
-  const visible = body
-    .replace(/<!--[\s\S]*?(?:-->|$)/g, "")
-    .replace(/^(```|~~~)[\s\S]*?(?:^\1|$(?![\s\S]))/gm, "")
-    .replace(/`[^`\n]*`/g, "");
+  const visible = _withoutCode(body.replace(/<!--[\s\S]*?(?:-->|$)/g, ""));
   const numbers = [...visible.matchAll(/\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\s*:?\s+#(\d+)\b/gi)].map((match) => Number(match[1]));
   return [...new Set(numbers)];
 };
 
 /**
+ * Whether the body carries no AI attribution. One quoted in code passes, so a PR about the rule can
+ * name it; one in an HTML comment does not, since it is still in the body.
+ *
+ * @param {string} body
+ * @returns {{ ok: true } | { ok: false, reason: string }}
+ */
+export const attributionVerdict = (body) => {
+  const found = findAiAttribution(_withoutCode(body));
+  if (found.length === 0) return { ok: true };
+  return { ok: false, reason: `carries an AI attribution (${found.join(", ")}): delete it` };
+};
+
+/**
  * Whether a check passes without looking: Dependabot's PRs, this repository's `sync/…` branches
- * (§ Flow of the plan: main merged back into dev), and the fold PR for `issue`. The head repository
- * is compared, not only the branch name, so a fork's `sync/…` branch is checked like any other.
+ * (main merged back into dev) for `issue` and `memory`, and the fold PR for `issue`. Only
+ * Dependabot skips `attribution`: its body quotes upstream release notes nobody here wrote. The head
+ * repository is compared, not only the branch name, so a fork's `sync/…` branch is checked like any
+ * other.
  *
  * @param {{ author: string, headRef: string, headRepo: string, baseRepo: string }} pr
- * @param {{ check: "issue" | "memory" }} options
+ * @param {{ check: "issue" | "memory" | "attribution" }} options
  * @returns {boolean}
  */
 export const isSkipped = ({ author, headRef, headRepo, baseRepo }, { check }) => {
   if (author === DEPENDABOT) return true;
+  if (check === "attribution") return false;
   const ours = headRepo === baseRepo;
   if (ours && headRef.startsWith("sync/")) return true;
   return check === "issue" && ours && headRef === FOLD_BRANCH;
