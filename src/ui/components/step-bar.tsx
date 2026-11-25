@@ -1,4 +1,5 @@
-import { StyleSheet, View, ViewStyle } from "react-native";
+import { ReactNode } from "react";
+import { Platform, StyleSheet, View, ViewStyle } from "react-native";
 
 import { ButtonIcon } from "@ui/button-icon";
 import { ButtonPill } from "@ui/button-pill";
@@ -36,6 +37,8 @@ type Props = {
   backIcon?: Icon;
   /** Defaults to an arrow, and to a list on the last step, where the tunnel writes the groceries. */
   nextIcon?: Icon;
+  /** Under the pill, centred: a second way on that should not compete with it. */
+  footer?: ReactNode;
   style?: ViewStyle;
 };
 
@@ -62,6 +65,7 @@ export const StepBar = ({
   onBack,
   backIcon,
   nextIcon,
+  footer,
   style,
 }: Props) => {
   const isLast = step === total;
@@ -70,61 +74,61 @@ export const StepBar = ({
 
   return (
     <m.View
-      style={[styles.container, style]}
+      style={[styles.container, !!footer && styles.withFooter, style]}
       from={{ opacity: 0, translateY: travel }}
       animate={{ opacity: 1, translateY: 0 }}
       exit={{ opacity: 0, translateY: travel }}
       exitTransition={{ type: "timing", duration: 300, delay: 100 }}
       transition={{ type: "timing", duration: 300, delay: 200 }}
     >
-      <SafeAreaView
-        style={[styles.flex, stretch && { alignItems: "stretch" }]}
-        edges={{ bottom: "android", top: "off" }}
-      >
-        {onBack && <ButtonIcon
-          elevated
-          variant="neutral-inverted"
-          size="lg"
-          onPress={onBack}
-          style={styles.back}
-        >
-          {backIcon ?? (step === 1 ? X : ArrowLeft)}
-        </ButtonIcon>}
-        <ButtonPill
-          style={stretch ? { width: "100%" } : undefined}
-          elevated
-          variant={variant}
-          size="lg"
-          disabled={disabled}
-          isLoading={isLoading}
-          onPress={onNext}
-          rightIcon={nextIcon ?? (isLast ? ListPlus : ArrowRight)}
-          onRightPress={onNext}
-          leftContent={showProgress && (
-            isLast ? undefined : (
-              <Text.Base color={colors.primary.subtle} weight={600}>
-                {step}/{total}
-              </Text.Base>
-            )
-          )}
-        >
-          <View style={styles.labels}>
-            <Text.Base
-              color={colors[variant].foreground}
-              weight={700}
-            >
-              {label}
-            </Text.Base>
-            {sublabel && (
-              <Text.Sm
-                color={colors[variant].subtle}
-                style={styles.sublabel}
-              >
-                {sublabel}
-              </Text.Sm>
+      <SafeAreaView edges={{ bottom: "android", top: "off" }}>
+        <View style={[styles.flex, stretch && { alignItems: "stretch" }]}>
+          {onBack && <ButtonIcon
+            elevated
+            variant="neutral-inverted"
+            size="lg"
+            onPress={onBack}
+            style={styles.back}
+          >
+            {backIcon ?? (step === 1 ? X : ArrowLeft)}
+          </ButtonIcon>}
+          <ButtonPill
+            style={stretch ? { width: "100%" } : undefined}
+            elevated
+            variant={variant}
+            size="lg"
+            disabled={disabled}
+            isLoading={isLoading}
+            onPress={onNext}
+            rightIcon={nextIcon ?? (isLast ? ListPlus : ArrowRight)}
+            onRightPress={onNext}
+            leftContent={showProgress && (
+              isLast ? undefined : (
+                <Text.Base color={colors.primary.subtle} weight={600}>
+                  {step}/{total}
+                </Text.Base>
+              )
             )}
-          </View>
-        </ButtonPill>
+          >
+            <View style={styles.labels}>
+              <Text.Base
+                color={colors[variant].foreground}
+                weight={700}
+              >
+                {label}
+              </Text.Base>
+              {sublabel && (
+                <Text.Sm
+                  color={colors[variant].subtle}
+                  style={styles.sublabel}
+                >
+                  {sublabel}
+                </Text.Sm>
+              )}
+            </View>
+          </ButtonPill>
+        </View>
+        {footer && <View style={styles.footer}>{footer}</View>}
       </SafeAreaView>
     </m.View>
   );
@@ -139,12 +143,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing[16],
     paddingBottom: theme.spacing[24],
   },
+  /** Android's inset already clears the system bar, and the footer's touch target brings room of its own. */
+  withFooter: { paddingBottom: Platform.select({ android: theme.spacing[8], default: theme.spacing[24] }) },
   flex: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: theme.spacing[16],
   },
+  footer: { alignItems: "center", marginTop: theme.spacing[4] },
   back: { alignSelf: "auto" },
   labels: { flexShrink: 0, marginRight: theme.spacing[6] },
   sublabel: { marginTop: 1 },

@@ -116,13 +116,13 @@ describe("AnalyticsTracking", () => {
   describe("where", () => {
     /** On device, the first screen after a sign-in went to the visitor, before the identify. */
     it("sends a screen only after the cook it belongs to is identified", async () => {
-      route.segments = ["onboarding", "promise"];
+      route.segments = ["recipe", "[id]"];
       const view = render(<AnalyticsTracking />);
       signIn("camille");
       view.rerender(<AnalyticsTracking />);
       await settle();
 
-      expect(screens()).toEqual(["/onboarding/promise"]);
+      expect(screens()).toEqual(["/recipe/[id]"]);
       expect(client.identify.mock.invocationCallOrder[0]).toBeLessThan(client.screen.mock.invocationCallOrder[0]!);
     });
 
@@ -142,24 +142,30 @@ describe("AnalyticsTracking", () => {
       expect(screens()).toEqual(["/recipe/[id]/step-by-step", "/(modals)/preferences", "/"]);
     });
 
-    /** A signed-out launch sits on home under the gate's cover, then on `/auth`. */
-    it("sends nothing while nobody is signed in, nor the sign-in screen the cook becomes known on", async () => {
-      const view = render(<AnalyticsTracking />);
-      route.segments = ["auth"];
-      view.rerender(<AnalyticsTracking />);
-      await settle();
-      signIn("camille");
-      view.rerender(<AnalyticsTracking />);
-      await settle();
+    /**
+     * A signed-out launch sits on home under the gate's cover, then on the onboarding or `/auth`. The
+     * cook becomes known on either: they can go back to the onboarding while their sign-in is in flight.
+     */
+    it.each([[["auth"]], [["onboarding", "promise"]]])(
+      "sends nothing while nobody is signed in, nor the screen the cook becomes known on (%j)",
+      async (segments) => {
+        const view = render(<AnalyticsTracking />);
+        route.segments = segments;
+        view.rerender(<AnalyticsTracking />);
+        await settle();
+        signIn("camille");
+        view.rerender(<AnalyticsTracking />);
+        await settle();
 
-      expect(client.screen).not.toHaveBeenCalled();
+        expect(client.screen).not.toHaveBeenCalled();
 
-      route.segments = ["onboarding", "promise"];
-      view.rerender(<AnalyticsTracking />);
-      await settle();
+        route.segments = ["(modals)", "assistant"];
+        view.rerender(<AnalyticsTracking />);
+        await settle();
 
-      expect(screens()).toEqual(["/onboarding/promise"]);
-    });
+        expect(screens()).toEqual(["/(modals)/assistant"]);
+      },
+    );
 
     it("sends a screen once per navigation, not once per render or auth flicker", async () => {
       signIn("camille");

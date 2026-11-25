@@ -4,7 +4,7 @@ import { OnboardingChrome } from "~/modules/onboarding/chrome";
 
 /**
  * Where the stack starts when something resets to the group by name rather than by path, as the
- * auth gate does after a sign-in: the promise, whatever order the files happen to register in.
+ * auth gate does on a first launch: the promise, whatever order the files happen to register in.
  */
 export const unstable_settings = { initialRouteName: "promise" };
 

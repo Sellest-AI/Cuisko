@@ -365,14 +365,15 @@ and back into the cellar. Grouped by the beat it serves.
 - Sign in with Google or with email and password; the splash holds until the profile is loaded.
 - **A shared recipe link opens the recipe without an account**: its three tabs, the servings and the
   share. The favorite, the plan, "add to list" and "ask Cuisko" stay in view and ask for the sign-in
-  when tapped, and "Sign in" stands where "Start cooking" does. After the sign-in and the onboarding
-  the recipe opens again. Nothing else in the app opens without an account.
-- **Every sign-in walks the onboarding** before home: a promise screen, then the list filled from the
+  when tapped, and "Sign in" stands where "Start cooking" does. After the sign-in
+  the recipe opens again. Besides it and the onboarding, nothing in the app opens without an account.
+- **The first launch walks the onboarding** before the sign-in: a promise screen, then the list filled from the
   navigation bar, recipes asked of Cuisko and one planned by asking for it, a step-by-step cook and
-  a generated week, each opened by a screenshot of the real screen. It runs on pretend data and
-  writes nothing to the account. It ends on home with Cuisko's chat open, or on the recipe that asked
-  for the sign-in. For now it runs again
-  after a sign-out or a reinstall, since nothing records that it was seen.
+  a generated week, each opened by a screenshot of the real screen. It runs on pretend data,
+  with no account. It ends on the sign-in, which opens home with Cuisko's chat open, or the recipe
+  that asked for the sign-in. The device records that it was walked or that someone signed in, so a
+  sign-out opens the sign-in page. A reinstall forgets it: the first screen offers "I already have
+  an account".
 - Create, join (by invite code), leave and switch households, from an account drawer. Each cook has
   a generated avatar and their own preferences.
 - Delete the account, from the same drawer. The sheet says it all before the second tap: what goes

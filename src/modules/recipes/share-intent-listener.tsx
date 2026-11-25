@@ -18,7 +18,7 @@ const SHARE_SHEET = "/share-import";
  * would decide here which link goes where, not mount a second reader. Renders nothing.
  *
  * Held until the cook is past signing in (`useIsInApp`): a sheet pushed during a sign-in would be
- * closed by the gate moving it on to the onboarding. A share arriving while the sheet is open
+ * closed by the gate moving it on to home. A share arriving while the sheet is open
  * replaces it rather than stacking a second, a recipe link included: the first import keeps running
  * and its recipe waits in the cook's list, as when they close the sheet themselves.
  */

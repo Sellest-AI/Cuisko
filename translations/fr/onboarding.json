@@ -1,8 +1,10 @@
 {
   "continue": "Continuer",
-  "meet_cuisko": "Rencontrer Cuisko",
+  "discover": "Découvrir Cuisko",
+  "enter_kitchen": "Passer en cuisine",
   "Promise": {
-    "title": "Cuisine mieux. Dépense moins. Gagne du temps.",
+    "title": "Dépense moins, gagne du temps. Cuisine mieux.",
+    "have_account": "J'ai déjà un compte",
     "subtitle": "Nos chefs économisent en moyenne 2h et 3€ par semaine grâce à Cuisko.",
     "Chips": {
       "from_cellar": "Cuisine avec ce que tu as",

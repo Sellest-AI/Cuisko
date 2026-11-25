@@ -445,7 +445,8 @@ own flag **and** neither transition in flight: `useConvexAuth` alone flips true 
 readable, and a screen trusting it fires its first query a beat too early. `hasSession` is the
 other question — a token is stored, confirmed or not — and it is what `AuthGate` redirects on: a
 stored session draws from the device offline, and only a token the server refused (cleared) sends
-the cook to `/auth`. `isAuthenticated` still decides when the server may be asked.
+the cook to `/auth` (to the onboarding on a device that has never walked it or been signed in).
+`isAuthenticated` still decides when the server may be asked.
 
 `storage.ts` exists for `clear()`. @convex-dev/auth leaves the refresh token behind on sign-out,
 and a stale refresh token silently restores the session on next launch.

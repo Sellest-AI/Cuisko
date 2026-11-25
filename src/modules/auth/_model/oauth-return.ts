@@ -13,7 +13,7 @@ const _OAUTH_RETURN = /^(?:[a-z][a-z0-9+.-]*:\/\/)?\/?\?(?:[^#]*&)?code=/i;
  *
  * On Android the auth session's `cuisko://?code=…` also reaches the app as a deep link, and read as
  * a route it is home (`/`). The sign-in then finishes on home instead of on `/auth`, and the gate,
- * which sends a sign-in to the onboarding only from `/auth`, lets it stay there. The code itself is
+ * which ends a sign-in (Cuisko's chat, the held recipe) only from `/auth`, lets it stay there. The code itself is
  * read by the auth session, not by the route, so dropping it here loses nothing.
  */
 export const routeForIncomingLink = (path: string): string => (_OAUTH_RETURN.test(path) ? AUTH_PATH : path);

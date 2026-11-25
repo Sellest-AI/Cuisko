@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { useSignedInUserId } from "./_hooks/useSignedInUserId";
 import { identityStep } from "./_model/analytics-identity";
-import { AUTH } from "./constants";
+import { isAuthFlowPath } from "./_model/auth-flow";
 
 /**
  * Tells analytics who is signed in, then which screen they are on, in that order.
@@ -17,9 +17,10 @@ import { AUTH } from "./constants";
  * **Where.** A screen view per route change, named by the route's pattern, never its path:
  * `/recipe/[id]` for every recipe, where the path would make each recipe a screen of its own. Groups
  * stay in (`/(modals)/…`), so a sheet and a page remain told apart. Nothing is sent while nobody is
- * signed in: a signed-out launch sits on home under the auth gate's cover, and someone reading a
- * shared recipe without an account is nobody here. Nor is the gate's own sign-in screen (`AUTH`): it
- * is the route when a sign-in finishes, but the cook saw it signed out.
+ * signed in: a signed-out launch sits on home under the auth gate's cover, someone walking the
+ * onboarding has no account yet, and someone reading a shared recipe without one is nobody here. Nor
+ * is a page of signing in (`isAuthFlowPath`): it is the route when a sign-in finishes, but the cook
+ * saw it signed out.
  *
  * **One effect, so the order holds.** Sent separately, the first screen after a sign-in raced the
  * identify and landed on the anonymous visitor. Here the screen goes out only after the identity
@@ -56,7 +57,7 @@ export const AnalyticsTracking = () => {
         }
         if (step === "identify" || step === "reset-and-identify") posthog.identify(userId);
 
-        if (screen === AUTH.href || screen === lastSent.current) return;
+        if (isAuthFlowPath(screen) || screen === lastSent.current) return;
         lastSent.current = screen;
         return posthog.screen(screen);
       })
