@@ -13,8 +13,8 @@ import { useTranslations } from "translations";
 import { Hint } from "./hint";
 import { LinearGradient } from "expo-linear-gradient";
 
-/** One character this often: quick enough not to be a wait, slow enough to read as typing. */
-const TYPE_MS = 10;
+/** One character per render, as fast as they come: the line still fills in, and is never a wait. */
+const TYPE_MS = 1;
 /** The typed line rests this long before it is sent, so the eye catches it whole. */
 const SEND_DELAY_MS = 240;
 /** The real bar's glyph size, so the two read as the same control. */

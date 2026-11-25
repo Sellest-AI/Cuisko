@@ -15,7 +15,7 @@ import { pantryAtom } from "./atoms";
  * How long a sent hint stays a ghost before it lands: long enough to be seen breathing, which is
  * what the real list does while it looks a word up, and short enough not to feel like a wait.
  */
-const RESOLVE_MS = 700;
+const RESOLVE_MS = 400;
 
 /**
  * The fake stock the onboarding teaches with: a to-buy list, a cellar, and the one line on its way
