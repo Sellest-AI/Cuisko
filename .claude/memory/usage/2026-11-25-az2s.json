@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "sessions": [
+    "2026-11-25T18:45:50.235Z"
+  ],
+  "reads": {
+    "guest-session-state": {
+      "count": 1,
+      "last": "2026-11-25T18:45:58.748Z"
+    },
+    "testing-on-web": {
+      "count": 1,
+      "last": "2026-11-25T19:08:05.213Z"
+    }
+  }
+}
