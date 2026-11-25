@@ -7,7 +7,8 @@ import { describe, expect, it } from "vitest";
 import * as lib from "../_lib/prFile.mjs";
 
 /** `prFile.mjs` is plain JavaScript; the contract is restated here so a drift stops compiling. */
-const { parsePrFile, renderPrBody } = lib as unknown as {
+const { parsePrFile, PrFileError, renderPrBody } = lib as unknown as {
+  PrFileError: new (message: string) => Error;
   parsePrFile: (text: string) => { title: string; base: "dev" | "main"; body: string };
   renderPrBody: (body: string, options: { memory: string }) => string;
 };
@@ -39,6 +40,12 @@ describe("parsePrFile", () => {
   it("refuses a file with no header, and a key it does not know", () => {
     expect(() => parsePrFile(BODY)).toThrow(/no header/);
     expect(() => parsePrFile(`---\ntitle: fix: eggs\nbas: main\n---\n${BODY}`)).toThrow(/"bas"/);
+  });
+
+  it("refuses a body that carries an AI attribution, so pr:push stops before the dream and the push", () => {
+    const signed = `---\ntitle: fix: eggs\n---\n${BODY}\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n`;
+    expect(() => parsePrFile(signed)).toThrow(PrFileError);
+    expect(() => parsePrFile(signed)).toThrow(/AI attribution/);
   });
 });
 

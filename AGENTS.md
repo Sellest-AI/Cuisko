@@ -100,7 +100,7 @@ copy silently.
 | Never commit secrets, or `git commit` unless asked                                             | —    |
 | Never force-push — the one exception is `pnpm pr:push`, with its lease, on a work branch       | 0022 |
 | Never push to, merge into or commit on `dev` or `main` — the owner merges a PR                 | 0022 |
-| Never add a `Co-Authored-By` or any AI-attribution trailer to a commit                         | —    |
+| Never add a `Co-Authored-By` or any AI attribution to a commit or a pull request               | 0022 |
 
 ## Code rules
 

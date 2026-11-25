@@ -149,4 +149,4 @@ is supposed to be readable by. Rewrite as "enforces it: …", or put the phrase 
 `commit-msg` hook refuses it (`no-footer-shaped-body-line`), except for real footer tokens, so
 write the body without it rather than retrying until it passes.
 
-No `Co-Authored-By` or any AI-attribution trailer (AGENTS.md, **Never**).
+No `Co-Authored-By` or any AI attribution, in a commit or a pull request (AGENTS.md, **Never**).
