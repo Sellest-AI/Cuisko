@@ -5,13 +5,15 @@ import { useTranslations } from "translations";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
+import { useAuthenticated } from "~/lib/convex/auth";
 import { useMutation } from "~/lib/convex/client";
 
 import { recipeLink } from "../routes";
 
 /**
  * The share button on the recipe screen: the OS share sheet with the recipe's link, then the
- * `recipe shared` event once the sheet says it went out.
+ * `recipe shared` event once the sheet says it went out. Signed out, the sheet opens and nothing is
+ * recorded: the event is a cook's.
  *
  * The payload is split by platform so the link appears once on each. iOS gets the link as `url`,
  * which Messages draws as a card, and the title as `message`; apps reading both would print the
@@ -27,6 +29,7 @@ import { recipeLink } from "../routes";
 export const useShareRecipe = () => {
   const t = useTranslations("Recipe");
   const locale = useLocale();
+  const { hasSession } = useAuthenticated();
   const { mutate } = useMutation(api.router.recipes.recordShare.authed);
 
   const share = useCallback(
@@ -41,14 +44,14 @@ export const useShareRecipe = () => {
             ? { message: text, url }
             : { title: text, message: t("Chrome.share_message_x_title_x_url", { title, url }) },
         );
-        if (result.action !== Share.sharedAction) return;
+        if (result.action !== Share.sharedAction || !hasSession) return;
 
         await mutate({ id: id as Id<"recipes"> });
       } catch (cause) {
         console.error("[recipes] share failed", cause);
       }
     },
-    [locale, mutate, t],
+    [hasSession, locale, mutate, t],
   );
 
   return { share };

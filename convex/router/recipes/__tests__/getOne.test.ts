@@ -349,6 +349,62 @@ describe("router/recipes/getOne", () => {
   });
 
   /**
+   * What the app reads for someone with no account, who opened a shared link. Open on purpose
+   * (ADR 0014): the viewer-less payload, whoever wrote the recipe.
+   */
+  describe("anon", () => {
+    const readAnon = (recipeId: Id<"recipes">, locale: "en" | "fr" = "en") =>
+      t.query(api.router.recipes.getOne.anon, { id: recipeId, locale });
+
+    test("gives a cook's recipe, its author named, to a caller with no session", async () => {
+      const recipe = await readAnon(await seedRecipe(await seedUser("Franck")));
+
+      expect(recipe.title).toBe("Onion soup");
+      expect(recipe.chef?.name).toBe("Franck");
+    });
+
+    test("credits a catalog recipe to nobody", async () => {
+      expect((await readAnon(await seedRecipe())).chef).toBeUndefined();
+    });
+
+    test("answers in the locale it was asked in", async () => {
+      expect((await readAnon(await seedRecipe(), "fr")).title).toBe("Soupe à l'oignon");
+    });
+
+    test("still gives an archived recipe", async () => {
+      const recipeId = await seedRecipe(await seedUser("Franck"));
+      await t.run((ctx) => ctx.db.patch(recipeId, { isArchived: true }));
+
+      expect(await readAnon(recipeId)).toMatchObject({ title: "Onion soup", isArchived: true });
+    });
+
+    test("reports an unknown id as NOT_FOUND", async () => {
+      const recipeId = await seedRecipe();
+      await t.run((ctx) => ctx.db.delete(recipeId));
+
+      await expect(readAnon(recipeId)).rejects.toThrow(/NOT_FOUND/);
+    });
+
+    /** The caller's session, owner's included, changes nothing: what it decides is `authed`'s to ship. */
+    test("ships no owner id, no viewer flags and no source page, whoever calls", async () => {
+      const ownerId = await seedUser("Franck");
+      const recipeId = await seedRecipe(ownerId);
+      await t.run((ctx) => ctx.db.patch(recipeId, { sourceUrl: "https://example.com/onion-soup" }));
+
+      const asOwner = await t
+        .withIdentity(asUser(ownerId))
+        .query(api.router.recipes.getOne.anon, { id: recipeId, locale: "en" });
+
+      for (const recipe of [await readAnon(recipeId), asOwner]) {
+        expect(recipe).not.toHaveProperty("userId");
+        expect(recipe).not.toHaveProperty("isOwned");
+        expect(recipe).not.toHaveProperty("isFavorited");
+        expect(recipe).not.toHaveProperty("sourceUrl");
+      }
+    });
+  });
+
+  /**
    * What the showcase website reads to preview a shared link. The id arrives from a URL, so a
    * malformed one is ordinary, and must fail the same way an unknown one does.
    */

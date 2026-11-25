@@ -10,6 +10,8 @@ import { SafeAreaView } from "@ui/safe-area-view";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import { useRequireSignIn } from "~/modules/auth/hooks";
+
 import { CONTENT_NEGATIVE_SPACE, COVER_PLACEHOLDER } from "../../constants";
 import { RecipeHeader } from "./header";
 import { RecipeIntro } from "./intro";
@@ -45,6 +47,9 @@ export const RecipeChrome = ({ children, servings }: Props) => {
    * any of them, so the choice is in the atom by the time a tab draws a quantity.
    */
   const { recipe, servings: chosenServings, isLoading, isMissing } = useRecipe(id, servingsParamOf(servings));
+
+  /** The step-by-step needs an account; someone a shared link brought here is offered one instead. */
+  const { isSignedOut, signIn } = useRequireSignIn();
 
   const active = path.startsWith(`/recipe/${id}/ingredients`) ? "ingredients"
     : path.startsWith(`/recipe/${id}/instructions`) ? "instructions"
@@ -171,6 +176,7 @@ export const RecipeChrome = ({ children, servings }: Props) => {
         // `back()` is a no-op; home is what is behind it then, as on the missing state above.
         onBack={() => (router.canGoBack() ? router.back() : router.replace("/"))}
         onStepByStep={() => router.push(`/recipe/step-by-step/${id}`)}
+        onSignIn={isSignedOut ? signIn : undefined}
       />
     </>
   );

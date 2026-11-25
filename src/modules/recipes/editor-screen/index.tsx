@@ -196,7 +196,7 @@ export const EditorScreen = ({ recipeId, style }: Props) => {
 
   /**
    * Only when asked to edit something: a new recipe has no id and is never missing. Reads are open
-   * to any signed-in cook (ADR 0014), so `useRecipeDraft` is what decides that a recipe which
+   * to anyone holding the id (ADR 0014), so `useRecipeDraft` is what decides that a recipe which
    * exists is still not this cook's to edit, and this is where that decision is drawn.
    */
   if (recipeId && isMissing)
