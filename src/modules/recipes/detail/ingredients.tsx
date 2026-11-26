@@ -8,6 +8,8 @@ import { Image } from "@ui/image";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
+import { useRequireSignIn } from "~/modules/auth/hooks";
+
 import { NutritionRow } from "../_components/nutrition-row";
 import { RecipeScreen } from "../_components/recipe-screen";
 import { columnWidth, SCREEN_PADDING } from "../constants";
@@ -22,6 +24,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
   /** An ingredient category is a shared vocabulary, so its words live with the rest of them. */
   const tVocabulary = useTranslations("Vocabulary");
   const { width } = useWindowDimensions();
+  const { requireSignIn } = useRequireSignIn();
 
   /** Already scaled — the hook owns that, so no screen can draw a list for the wrong count. */
   const { recipe, ingredients, servings, setServings } = useRecipe(id);
@@ -102,7 +105,7 @@ export const IngredientsScreen = ({ id }: { id?: string }) => {
         <ActionRow
           variant="flat"
           style={styles.action}
-          onPress={() => router.push({ pathname: "/plan-recipe", params: { recipeId: recipe.id } })}
+          onPress={requireSignIn(() => router.push({ pathname: "/plan-recipe", params: { recipeId: recipe.id } }))}
           content={t("Ingredients.add_to_list")}
           contentIcon={ListPlus}
           subtitle={t("Ingredients.add_to_list_subtitle")}

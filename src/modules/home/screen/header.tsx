@@ -6,13 +6,14 @@ import { Avatar } from "@ui/avatar";
 import { theme } from "theme";
 import { router } from "expo-router";
 import { SafeAreaView } from "@ui/safe-area-view";
-import { useAuth } from "~/modules/auth/hooks";
+import { useAuth, useRequireSignIn } from "~/modules/auth/hooks";
 import { useIsOffline } from "~/modules/network/hooks";
 import { HouseholdSelect } from "~/modules/households/household-select";
 
 /** Who you are, whose kitchen you are in, and the action the page puts on the right. */
 export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: ViewStyle }) => {
-  const { user, hasSession } = useAuth();
+  const { user } = useAuth();
+  const { requireSignIn } = useRequireSignIn();
   const isOffline = useIsOffline();
 
   return (
@@ -33,7 +34,7 @@ export const HomeHeader = ({ action, style }: { action?: ReactNode; style?: View
           <HouseholdSelect style={styles.offlineChip} /> :
           <Avatar
             seed={user?.avatarSeed ?? ANONYMOUS_AVATAR_SEED}
-            onPress={() => hasSession ? router.push("/account") : router.dismissTo("/auth")}
+            onPress={requireSignIn(() => router.push("/account"))}
             animated
             elevated
           />}

@@ -118,11 +118,12 @@ literally, rather than acquiring an exception.
 
 ```
 ✅ modal-sheet/index.ts                    the barrel — the only door
-   modal-sheet/state.ts                    the atom the three share; NOT re-exported
+   modal-sheet/state.ts                    the atom the hooks share; NOT re-exported
    modal-sheet/useMeasuredModalSheet.ts
    modal-sheet/useDeclaredModalSheet.ts
    modal-sheet/useModalSheetFrameHeight.ts
-❌ modal-sheet.tsx exporting all three, with the atom above them
+   modal-sheet/useIsModalSheetFullBleed.ts
+❌ modal-sheet.tsx exporting all four, with the atom above them
 ```
 
 **The barrel is the door, and the shared state is what it keeps out.** Several hooks over one atom,

@@ -165,6 +165,7 @@ import type * as functions_preferences_save from "../functions/preferences/save.
 import type * as functions_rateLimits_enforceRateLimit from "../functions/rateLimits/enforceRateLimit.js";
 import type * as functions_recipes_archiveRecipe from "../functions/recipes/archiveRecipe.js";
 import type * as functions_recipes_assertUnchangedSince from "../functions/recipes/assertUnchangedSince.js";
+import type * as functions_recipes_catalogShelf from "../functions/recipes/catalogShelf.js";
 import type * as functions_recipes_computeNutrition from "../functions/recipes/computeNutrition.js";
 import type * as functions_recipes_computeTags from "../functions/recipes/computeTags.js";
 import type * as functions_recipes_createGeneratedRecipe from "../functions/recipes/createGeneratedRecipe.js";
@@ -205,6 +206,7 @@ import type * as functions_recipes_saveTranslations from "../functions/recipes/s
 import type * as functions_recipes_scheduleRepairs from "../functions/recipes/scheduleRepairs.js";
 import type * as functions_recipes_searchForUser from "../functions/recipes/searchForUser.js";
 import type * as functions_recipes_setFavorite from "../functions/recipes/setFavorite.js";
+import type * as functions_recipes_shuffledWindow from "../functions/recipes/shuffledWindow.js";
 import type * as functions_recipes_syncRecipeLinks from "../functions/recipes/syncRecipeLinks.js";
 import type * as functions_recipes_toModelRecipe from "../functions/recipes/toModelRecipe.js";
 import type * as functions_recipes_updateRecipe from "../functions/recipes/updateRecipe.js";
@@ -332,6 +334,7 @@ import type * as router_recipes_findBySource from "../router/recipes/findBySourc
 import type * as router_recipes_findWebRecipe from "../router/recipes/findWebRecipe.js";
 import type * as router_recipes_generateImages from "../router/recipes/generateImages.js";
 import type * as router_recipes_getAll from "../router/recipes/getAll.js";
+import type * as router_recipes_getCatalog from "../router/recipes/getCatalog.js";
 import type * as router_recipes_getFavorites from "../router/recipes/getFavorites.js";
 import type * as router_recipes_getMany from "../router/recipes/getMany.js";
 import type * as router_recipes_getOne from "../router/recipes/getOne.js";
@@ -536,6 +539,7 @@ declare const fullApi: ApiFromModules<{
   "functions/rateLimits/enforceRateLimit": typeof functions_rateLimits_enforceRateLimit;
   "functions/recipes/archiveRecipe": typeof functions_recipes_archiveRecipe;
   "functions/recipes/assertUnchangedSince": typeof functions_recipes_assertUnchangedSince;
+  "functions/recipes/catalogShelf": typeof functions_recipes_catalogShelf;
   "functions/recipes/computeNutrition": typeof functions_recipes_computeNutrition;
   "functions/recipes/computeTags": typeof functions_recipes_computeTags;
   "functions/recipes/createGeneratedRecipe": typeof functions_recipes_createGeneratedRecipe;
@@ -576,6 +580,7 @@ declare const fullApi: ApiFromModules<{
   "functions/recipes/scheduleRepairs": typeof functions_recipes_scheduleRepairs;
   "functions/recipes/searchForUser": typeof functions_recipes_searchForUser;
   "functions/recipes/setFavorite": typeof functions_recipes_setFavorite;
+  "functions/recipes/shuffledWindow": typeof functions_recipes_shuffledWindow;
   "functions/recipes/syncRecipeLinks": typeof functions_recipes_syncRecipeLinks;
   "functions/recipes/toModelRecipe": typeof functions_recipes_toModelRecipe;
   "functions/recipes/updateRecipe": typeof functions_recipes_updateRecipe;
@@ -703,6 +708,7 @@ declare const fullApi: ApiFromModules<{
   "router/recipes/findWebRecipe": typeof router_recipes_findWebRecipe;
   "router/recipes/generateImages": typeof router_recipes_generateImages;
   "router/recipes/getAll": typeof router_recipes_getAll;
+  "router/recipes/getCatalog": typeof router_recipes_getCatalog;
   "router/recipes/getFavorites": typeof router_recipes_getFavorites;
   "router/recipes/getMany": typeof router_recipes_getMany;
   "router/recipes/getOne": typeof router_recipes_getOne;

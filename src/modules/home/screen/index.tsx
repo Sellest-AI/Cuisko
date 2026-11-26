@@ -1,11 +1,16 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { theme } from "theme";
 
 import { WeeklyPlan } from "~/modules/planning/weekly-plan";
 import { WeekSummaryReveal } from "~/modules/health/week-summary-reveal";
 import { FavoriteRecipes } from "~/modules/recipes/favorite-recipes";
+import { FeaturedRecipes } from "~/modules/recipes/featured-recipes";
+import { FeaturedCategories } from "~/modules/explore/featured-categories";
 import { useNavigationBarClearance } from "~/modules/navigation/hooks";
 
+import { useDiscoverPull } from "../_hooks/useDiscoverPull";
+import { Discover } from "./discover";
 import { HomeHeader } from "./header";
 import { QuickAccess } from "./quick-access";
 import { WeeklySpotlight } from "./spotlight";
@@ -24,9 +29,16 @@ import { LinearGradient } from "expo-linear-gradient";
  * composes it rather than the route. `FavoriteRecipes` comes from `recipes/` on the same terms,
  * and sits last: the plan is what the cook committed to, the ideas are the week's, and what they
  * kept is the shelf to reach for when neither is what they want tonight.
+ *
+ * `FeaturedRecipes`, from `recipes/` too, comes first of the three rows, before the ideas: the
+ * catalog's row, and the one a guest sees, since the other two need an account.
+ *
+ * Then the catalog: `FeaturedCategories` from `explore/`, and `Discover` at the very bottom,
+ * because the pull that opens the Explore page is a pull past the bottom (`useDiscoverPull`).
  */
 export const HomeScreen = () => {
   const clearance = useNavigationBarClearance();
+  const { ref, progress, onScroll, strip } = useDiscoverPull();
 
   return (
     <>
@@ -36,8 +48,11 @@ export const HomeScreen = () => {
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       />
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance }}
+      <Animated.ScrollView
+        ref={ref}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: clearance + 20 }}
         showsVerticalScrollIndicator={false}
       >
         <RadialGradient
@@ -49,16 +64,26 @@ export const HomeScreen = () => {
         <WeeklyPlan />
         <View style={styles.divider} />
         <QuickAccess />
-        <WeeklySpotlight />
+        <FeaturedRecipes style={styles.featured} />
+        <WeeklySpotlight style={styles.spotlight} />
         <FavoriteRecipes style={styles.favorites} />
-      </ScrollView>
+        <FeaturedCategories style={styles.categories} />
+        <Discover progress={progress} />
+        <Animated.View style={strip} />
+      </Animated.ScrollView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
   header: { marginBottom: theme.spacing[16] },
-  favorites: { marginTop: theme.spacing[16] },
+  featured: { marginTop: theme.spacing[28], marginBottom: -theme.spacing[16] },
+  favorites: { marginTop: theme.spacing[28], marginBottom: -theme.spacing[12] },
+  spotlight: { marginBottom: -theme.spacing[12] },
+  categories: {
+    marginTop: theme.spacing[28],
+    marginBottom: theme.spacing[16]
+  },
   divider: {
     height: 2,
     width: "100%",

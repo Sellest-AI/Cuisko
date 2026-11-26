@@ -8,6 +8,7 @@ import { CUISKO } from "~/lib/mascots";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 
 import { PromiseWall, type PromiseTone } from "./_components/promise-wall";
+import { SIGN_IN_HEIGHT } from "./constants";
 import { useOnboarding } from "./_hooks/useOnboarding";
 import { useProgressClearance } from "./_hooks/useProgressClearance";
 
@@ -36,6 +37,9 @@ const PROMISE_ROWS = [
   ],
 ] as const satisfies readonly (readonly { id: string; emoji: string; tone: PromiseTone }[])[];
 
+/** Wide enough for the promises to take two lines rather than three. */
+const TITLE_MAX_WIDTH = 340;
+
 /**
  * Screen 1: what the app gives back, before it asks for anything.
  *
@@ -55,13 +59,18 @@ export const OnboardingPromise = () => {
 
   return (
     <ScrollView contentContainerStyle={[styles.page, { paddingTop: clearance }]} showsVerticalScrollIndicator={false}>
-      <StepHeader title={t("Promise.title")} subtitle={t("Promise.subtitle")} mascot={CUISKO.fish} />
+      <StepHeader
+        title={t("Promise.title")}
+        subtitle={t("Promise.subtitle")}
+        titleMaxWidth={TITLE_MAX_WIDTH}
+        mascot={CUISKO.fish}
+      />
       <PromiseWall rows={rows} />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  /** Clears the pill, which floats over the page rather than sitting in it. */
-  page: { paddingBottom: NAVIGATION_BAR_OFFSET },
+  /** Clears the pill and the sign-in under it, which float over the page rather than sitting in it. */
+  page: { paddingBottom: NAVIGATION_BAR_OFFSET + SIGN_IN_HEIGHT },
 });

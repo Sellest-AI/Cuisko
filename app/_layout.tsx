@@ -51,6 +51,16 @@ export default function RootLayout() {
               animation: "slide_from_bottom",
             }}
           />
+          {/*
+            * Explore rises from the bottom because that is where home opens it: the pull past
+            * home's last row, and the Discover button below it.
+            */}
+          <Stack.Screen
+            name="explore"
+            options={{
+              animation: "slide_from_bottom",
+            }}
+          />
           <Stack.Screen
             name="recipes"
             options={{

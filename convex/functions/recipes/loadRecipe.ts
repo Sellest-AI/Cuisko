@@ -133,9 +133,9 @@ export type RecipeDetail = RecipeCard & {
   nutrition?: RecipeNutrition;
   /**
    * Whether the reader wrote it, and whether they kept it — present only when a `viewer` was
-   * given, which the client-facing `getOne.authed` does and internal callers do not.
+   * given, which the client-facing `getOne.authed` does and `getOne.anon` and internal callers do not.
    *
-   * Reads are open to any signed-in cook (ADR 0014), so the screen can no longer take ownership
+   * Reads are open to anyone holding the id (ADR 0014), so the screen can no longer take ownership
    * for granted: `isOwned` is what gates the pencil and the editor, and it is derived here rather
    * than shipped as `userId` so the payload still names nobody. `isFavorited` rides the same
    * payload rather than a second subscription — one round trip per screen open.
@@ -239,7 +239,7 @@ const _chefOf = async (
  * job — hands over the id and this fetches it.
  *
  * ⚠️ **Neither branch is an authorization check**, and the id branch is the one that can look like
- * one. A recipe is readable by any signed-in cook (ADR 0014), and what is NOT — editing, listing —
+ * one. A recipe is readable by anyone holding its id (ADR 0014), and what is NOT — editing, listing —
  * is gated where it happens, never here: `loadRecipe` will happily resolve any recipe in the table
  * for anybody who asks.
  */

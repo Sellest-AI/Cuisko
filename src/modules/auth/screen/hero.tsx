@@ -1,71 +1,58 @@
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { Image } from "@ui/image";
-import { useSafeAreaInsets } from "@ui/safe-area-view";
-import { Text } from "@ui/text";
 import { theme } from "theme";
 
-import appIcon from "assets/icons/icon.png";
 import heroImage from "assets/images/auth/auth-hero.webp";
 import { LinearGradient } from "expo-linear-gradient";
 
-const ICON_SIZE = 32;
+/**
+ * Tall enough for the photo to read as produce, short enough that the sheet still leaves the page
+ * that asked for the sign-in in sight above it on a small phone.
+ */
+const BANNER_HEIGHT = 320;
 
 /**
- * The photographed produce spread, with the app's lockup over it. Fills whatever height the sheet
- * below leaves; the sheet overlaps its bottom edge by one corner radius, so the photo runs under
- * the rounded corners rather than stopping short of them.
+ * The photographed produce spread: the banner at the top of the sign-in sheet. A fixed height,
+ * because the sheet is cut to its content's height (`useMeasuredModalSheet`) and a banner that
+ * filled the space left would leave it none.
  */
 export const Hero = () => {
-  const insets = useSafeAreaInsets();
-
   return (
     <View style={styles.container}>
       <Image
         source={heroImage}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
-        contentPosition="center"
+        contentPosition={Platform.select({ ios: "center", android: "top" })}
         transition={false}
       />
-
-      <LinearGradient
-        colors={[theme.colors.black, "transparent",]}
-        style={{
-          opacity: 0.4,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 300
-        }}
-      />
+      {/* Darkens the photo toward the sheet's body, under the close button. */}
       <LinearGradient
         colors={["transparent", theme.colors.black]}
-        style={{
-          opacity: 0.4,
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 300
-        }}
+        style={[StyleSheet.absoluteFill, styles.shade]}
       />
-      <View style={[styles.lockup, { paddingTop: insets.top + theme.spacing[20] }]}>
-        <Image source={appIcon} style={styles.icon} transition={false} />
-        <Text.H4 color={theme.colors.white}>Cuisko</Text.H4>
-      </View>
+      <View style={styles.bottomBar} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.neutral.base },
-  lockup: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: theme.spacing[16],
-    justifyContent: "center",
+  container: {
+    backgroundColor: theme.colors.neutral.base,
+    height: BANNER_HEIGHT,
+    overflow: "hidden",
+    marginBottom: -theme.spacing[20],
   },
-  icon: { borderRadius: theme.radius.xs, height: ICON_SIZE, width: ICON_SIZE },
+  shade: { opacity: 0.35 },
+  /** The body's rounded top corners, drawn over the photo's bottom edge. */
+  bottomBar: {
+    height: theme.spacing[24],
+    width: "100%",
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    position: "absolute",
+    bottom: 0,
+  }
 });

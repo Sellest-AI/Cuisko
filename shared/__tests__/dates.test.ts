@@ -1,6 +1,15 @@
 import { describe, expect, test } from "vitest";
 
-import { compareDateTimes, compareDates, mondayOf, seedOfWeekKey, weekKeyOf } from "../dates";
+import {
+  compareDateTimes,
+  compareDates,
+  mondayOf,
+  parseDateParam,
+  seedOfDayKey,
+  seedOfWeekKey,
+  toDateParam,
+  weekKeyOf,
+} from "../dates";
 
 /**
  * Fixed local dates rather than `Date.now()`-derived ones: 2026-09-14 is a Monday, so the
@@ -105,5 +114,63 @@ describe("mondayOf", () => {
     const wednesday = Date.UTC(2026, 8, 16, 12);
     expect(mondayOf(weekKeyOf(new Date(2026, 8, 16)))).toBeLessThan(wednesday);
     expect(mondayOf(weekKeyOf(new Date(2026, 8, 21)))).toBeGreaterThan(wednesday);
+  });
+});
+
+/** Moved with the functions from planning's `model.test.ts`; the assertions are unchanged. */
+describe("parseDateParam", () => {
+  test("reads a well-formed day at local midnight", () => {
+    const parsed = parseDateParam("2026-08-12");
+
+    expect(parsed && compareDates(parsed, new Date(2026, 7, 12)) === 0).toBe(true);
+    expect(parsed?.getHours()).toBe(0);
+  });
+
+  test("ignores a missing param, a repeated one, and anything not shaped like a date", () => {
+    expect(parseDateParam(undefined)).toBeUndefined();
+    expect(parseDateParam(["2026-08-12"])).toBeUndefined();
+    expect(parseDateParam("tomorrow")).toBeUndefined();
+    expect(parseDateParam("12/08/2026")).toBeUndefined();
+  });
+
+  /** Shaped like a date but not one — the case a bare `new Date()` turns into `Invalid Date`. */
+  test("ignores an impossible day", () => {
+    expect(parseDateParam("2026-02-31")).toBeUndefined();
+  });
+});
+
+describe("toDateParam", () => {
+  /**
+   * The regression behind a focus day that never survived the trip: the carousel was handing the
+   * list a `Date.toDateString()`, which `parseDateParam` rejects, so the week silently opened on
+   * its first plate. Only the round trip catches a producer and a parser drifting apart — each is
+   * self-consistent on its own.
+   */
+  test("writes the format its parser reads back", () => {
+    const day = new Date(2026, 7, 12);
+    const parsed = parseDateParam(toDateParam(day));
+
+    expect(parsed && compareDates(parsed, day) === 0).toBe(true);
+  });
+
+  test("pads a single-digit month and day, which is what the parser requires", () => {
+    expect(toDateParam(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+});
+
+describe("seedOfDayKey", () => {
+  test("the same day gives the same seed, wherever it is asked from", () => {
+    expect(seedOfDayKey("2026-11-26")).toBe(seedOfDayKey("2026-11-26"));
+  });
+
+  test("the next day gives another seed", () => {
+    expect(seedOfDayKey("2026-11-27")).not.toBe(seedOfDayKey("2026-11-26"));
+  });
+
+  test("is a fraction in [0, 1)", () => {
+    for (const key of ["2026-01-01", "2026-06-15", "2026-12-31"]) {
+      expect(seedOfDayKey(key)).toBeGreaterThanOrEqual(0);
+      expect(seedOfDayKey(key)).toBeLessThan(1);
+    }
   });
 });

@@ -3,7 +3,8 @@ import { getFunctionName } from "convex/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWeeklyPlan } from "../useWeeklyPlan";
-import { toDateParam } from "../../_model/model";
+import { toDateParam } from "@shared/dates";
+
 import { keptMeal } from "./fixtures";
 
 /**
@@ -18,6 +19,10 @@ const state = vi.hoisted(() => ({
   meals: [] as unknown[],
   /** What the range read is doing, so `isEmpty` can be asked about a read that has not answered. */
   status: "success" as "success" | "pending" | "error",
+  /** The household in view: none, and none on the way, is a guest. */
+  household: { householdId: "household-1", isLoading: false } as { householdId?: string; isLoading: boolean },
+  /** Who is looking: a cook with a session, unless a test says a guest. */
+  auth: { hasSession: true, isAuthenticating: false },
   push: vi.fn(),
 }));
 
@@ -25,8 +30,10 @@ vi.mock("expo-router", () => ({ router: { push: state.push } }));
 
 vi.mock("~/hooks/useLocale", () => ({ useLocale: () => "fr" }));
 
+vi.mock("~/lib/convex/auth", () => ({ useAuthenticated: () => state.auth }));
+
 vi.mock("~/modules/households/hooks", () => ({
-  useHousehold: () => ({ householdId: "household-1", isLoading: false }),
+  useHousehold: () => state.household,
 }));
 
 vi.mock("~/lib/convex/client", () => ({
@@ -48,6 +55,8 @@ vi.mock("~/lib/convex/client", () => ({
 
 beforeEach(() => {
   state.meals = [];
+  state.household = { householdId: "household-1", isLoading: false };
+  state.auth = { hasSession: true, isAuthenticating: false };
   state.status = "success";
   state.push.mockReset();
 });
@@ -162,6 +171,36 @@ describe("useWeeklyPlan", () => {
 
     it("is false when the read failed", () => {
       state.status = "error";
+
+      expect(week().result.current.isEmpty).toBe(false);
+    });
+
+    /** Home is open signed out: a guest has no week to read, and is shown the empty one. */
+    it("is true for a guest, who has no household and none on the way", () => {
+      state.household = { householdId: undefined, isLoading: false };
+      state.auth = { hasSession: false, isAuthenticating: false };
+
+      expect(week().result.current.isEmpty).toBe(true);
+    });
+
+    /** "Continuer avec Google" tapped: auth is busy, but nothing is stored yet, and no week is coming. */
+    it("stays true for a guest while their sign-in is in flight", () => {
+      /** As `useHousehold` answers then: loading while auth is busy, session or not. */
+      state.household = { householdId: undefined, isLoading: true };
+      state.auth = { hasSession: false, isAuthenticating: true };
+
+      expect(week().result.current.isEmpty).toBe(true);
+    });
+
+    /** Signed in, between the cook's row and their household's: their week is on the way, not empty. */
+    it("is false for a signed-in cook whose household has not arrived", () => {
+      state.household = { householdId: undefined, isLoading: false };
+
+      expect(week().result.current.isEmpty).toBe(false);
+    });
+
+    it("is false while the household is still being resolved", () => {
+      state.household = { householdId: undefined, isLoading: true };
 
       expect(week().result.current.isEmpty).toBe(false);
     });

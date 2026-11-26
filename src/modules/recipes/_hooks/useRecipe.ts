@@ -6,6 +6,7 @@ import { clampServings } from "@shared/servings";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api, type Id } from "~/lib/convex/api";
+import { useAuthenticated } from "~/lib/convex/auth";
 import { useQueryCached } from "~/lib/convex/client";
 
 import { scaleTo } from "../_model/detail";
@@ -32,6 +33,14 @@ import { servingsAtom } from "./atoms";
  * `initialServings` is the count the cook arrived with — a plate on the plan was cooked for six,
  * so the recipe opens for six. Only the chrome passes it, once per arrival; every other caller
  * reads the choice it seeded through the atom, the same way it reads a tap on the stepper.
+ *
+ * Signed out, someone who opened a shared link reads the same recipe through `getOne.anon`, without
+ * the fields that are about its reader: nobody owns or favorited it.
+ *
+ * @limitation Signed out with no signal, the page is a frame with nothing in it: `OfflineGate` acts
+ * only with a session. **Accepted because** a link is tapped where it was received, which is online.
+ * **Until fixed**, the recipe draws when the signal returns. **The fix** is an offline page that
+ * needs no session.
  */
 export const useRecipe = (id: string | undefined, initialServings?: number) => {
   const locale = useLocale();
@@ -64,12 +73,19 @@ export const useRecipe = (id: string | undefined, initialServings?: number) => {
    * An id from a route parameter is a string until the server says otherwise. The cast is what
    * every screen would otherwise write for itself; a string that names nothing comes back as an
    * error rather than a row. One that names somebody else's recipe comes back as the recipe: reads
-   * are open to any signed-in cook (ADR 0014), and the payload's `isOwned` says which it was.
+   * are open to anyone holding the id (ADR 0014), and the payload's `isOwned` says which it was.
    */
-  const query = useQueryCached(
-    api.router.recipes.getOne.authed,
-    id ? { id: id as Id<"recipes">, locale } : "skip",
-  );
+  const args = id ? { id: id as Id<"recipes">, locale } : "skip";
+
+  /**
+   * Chosen on the stored session rather than on Convex having confirmed it: a cook with one never
+   * draws the signed-out payload, and a weak network dropping the confirmation leaves the recipe on
+   * the screen. Nothing is asked while auth is deciding, which reads as loading below.
+   */
+  const { hasSession, isAuthenticating } = useAuthenticated();
+  const owned = useQueryCached(api.router.recipes.getOne.authed, hasSession ? args : "skip");
+  const shared = useQueryCached(api.router.recipes.getOne.anon, hasSession || isAuthenticating ? "skip" : args);
+  const query = hasSession ? owned : shared;
 
   /**
    * Whether there is anything to ask about, and the single answer both flags below are derived from.

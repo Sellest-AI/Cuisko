@@ -1,3 +1,5 @@
+import { attributionVerdict } from "./pullRequest.mjs";
+
 /**
  * The PR file, `.tmp/pr/<branch slug>.md`: what `pr:push` opens or edits the pull request with.
  * The agent writes it; `pr:push` reads it and fills its `## Memory` section.
@@ -36,7 +38,7 @@ const _unquote = (value) => (/^(["']).*\1$/.test(value) ? value.slice(1, -1) : v
 /**
  * The title, the base and the body of a PR file. Throws PrFileError when the header is missing or
  * malformed, has no title, names a key other than `title` and `base`, or a base other than `dev`
- * and `main`.
+ * and `main`, and when the body carries an AI attribution.
  *
  * @param {string} text
  * @returns {{ title: string, base: "dev" | "main", body: string }}
@@ -56,7 +58,10 @@ export const parsePrFile = (text) => {
   if (title === "") throw new PrFileError("The PR file has no title: add \"title: <type>(<scope>): <summary>\" to its header.");
   const base = fields.base === undefined || fields.base === "" ? "dev" : fields.base;
   if (!BASES.has(base)) throw new PrFileError(`The PR file's base is "${base}": a PR goes into dev, or into main for a hotfix.`);
-  return { title, base, body: text.slice(match[0].length).replace(/^\s*\n/, "") };
+  const body = text.slice(match[0].length).replace(/^\s*\n/, "");
+  const attribution = attributionVerdict(body);
+  if (!attribution.ok) throw new PrFileError(`The PR file's body ${attribution.reason}.`);
+  return { title, base, body };
 };
 
 /**

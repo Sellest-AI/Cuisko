@@ -19,14 +19,17 @@ import { sheetSizeAtom } from "./state";
  *
  * A virtualized list cannot be measured this way and should not try: `FlashList` reports no
  * intrinsic height and needs bounds of its own. Those screens use `useDeclaredModalSheet`.
+ *
+ * `isFullBleed` lets a screen that opens on a picture start at the sheet's top edge: the layout
+ * then draws no grabber, no top border and no fade (`useIsModalSheetFullBleed`).
  */
-export const useMeasuredModalSheet = () => {
+export const useMeasuredModalSheet = ({ isFullBleed = false }: { isFullBleed?: boolean } = {}) => {
   const setSize = useSetAtom(sheetSizeAtom);
 
   const onLayout = useCallback(
     (event: LayoutChangeEvent) =>
-      setSize({ kind: "measured", height: event.nativeEvent.layout.height }),
-    [setSize],
+      setSize({ kind: "measured", height: event.nativeEvent.layout.height, isFullBleed }),
+    [setSize, isFullBleed],
   );
 
   useEffect(() => () => setSize(null), [setSize]);

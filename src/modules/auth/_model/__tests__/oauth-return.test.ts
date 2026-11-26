@@ -9,6 +9,15 @@ describe("routeForIncomingLink", () => {
     expect(routeForIncomingLink("cuisko:///?state=x&code=4f2a")).toBe("/auth");
   });
 
+  /**
+   * Android killed the app while the browser was in front: the return relaunches it, and the auth
+   * session that would have read its code is gone. `/auth` would open as a lone sheet.
+   */
+  test("lands an OAuth return that starts the app on home", () => {
+    expect(routeForIncomingLink("cuisko://?code=4f2a", { isColdStart: true })).toBe("/");
+    expect(routeForIncomingLink("/?code=4f2a", { isColdStart: true })).toBe("/");
+  });
+
   test("lets every other link through as it came", () => {
     expect(routeForIncomingLink("cuisko://recipes")).toBe("cuisko://recipes");
     expect(routeForIncomingLink("/recipe/abc?servings=2")).toBe("/recipe/abc?servings=2");

@@ -5,6 +5,7 @@
     "command": "context-mode statusline"
   },
   "autoMemoryEnabled": false,
+  "attribution": { "commit": "", "pr": "", "sessionUrl": false },
   "extraKnownMarketplaces": {
     "sellest": { "source": { "source": "directory", "path": "./" } }
   },

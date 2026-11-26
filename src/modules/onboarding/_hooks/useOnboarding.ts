@@ -2,6 +2,8 @@ import { router, useNavigationContainerRef, usePathname } from "expo-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AUTH, HOME } from "~/modules/auth/constants";
+
 import {
   canLeave,
   ONBOARDING_STEPS,
@@ -15,14 +17,15 @@ import {
   stepOf,
   type OnboardingStep,
 } from "../_model/steps";
+import { markOnboardingSeen } from "../seen";
 import { doneStepsAtom, resetOnboardingAtom } from "./atoms";
 
 /**
  * Where the onboarding stands, whether the step on screen may be left yet, and the ways out of it.
  *
- * Nothing here reaches the backend. The flow writes nothing about having been seen: every sign-in
- * from `/auth` walks it again (the `@limitation` on `AuthGate`), so there is no flag to set on the way out, and no
- * Skip either: the only way into the app is through the last step.
+ * Nothing here reaches the backend: the flow runs before there is an account. Its end is home, signed
+ * out, and all it records is, on the device, that it was walked (`markOnboardingSeen`). There is no Skip;
+ * the first step's `goToSignIn` is for someone who has an account already.
  */
 export const useOnboarding = () => {
   const path = usePathname();
@@ -75,18 +78,17 @@ export const useOnboarding = () => {
   }, [doneSteps]);
 
   /**
-   * Out of the flow and into the app: home, with the assistant sheet risen over it.
-   *
-   * A reset rather than a push, so nothing of the onboarding is left to swipe back into, and home
-   * sits *under* the sheet rather than being pushed after it: closing Cuisko shows home, not a
-   * blank stack.
+   * Out of the flow and on to home, signed out: what needs an account there asks for it when tapped.
+   * Marked seen first, since `AuthGate` lets a guest stay home only past the onboarding. A reset
+   * rather than a push, so nothing of the onboarding is left to swipe back into.
    */
   const finish = useCallback(() => {
-    navigation.reset({
-      index: 1,
-      routes: [{ name: "index" }, { name: "(modals)", params: { screen: "assistant" } }],
-    });
+    markOnboardingSeen();
+    navigation.reset({ index: 0, routes: [{ name: HOME.name }] });
   }, [navigation]);
+
+  /** The sign-in sheet, over the first step: closing it returns there. */
+  const goToSignIn = useCallback(() => router.navigate(AUTH.href), []);
 
   /** Refused, not merely discouraged, while the step's action is not done: see `canLeave`. */
   const next = useCallback(() => {
@@ -110,6 +112,7 @@ export const useOnboarding = () => {
     /** The notches `progress` counts up to: one more than the parts (`PROGRESS_BAR_TOTAL`). */
     progressTotal: PROGRESS_BAR_TOTAL,
     total: PROGRESS_TOTAL,
+    isFirst: step === ONBOARDING_STEPS[0],
     isLast: nextOf(step) === null,
     /** Continue is shown: the step asks for nothing, or its action is done. */
     canContinue: canLeave(step, doneSteps),
@@ -124,5 +127,6 @@ export const useOnboarding = () => {
     restart,
     next,
     finish,
+    goToSignIn,
   };
 };

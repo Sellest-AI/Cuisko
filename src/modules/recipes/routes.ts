@@ -7,6 +7,15 @@ import { httpUrlOf } from "@shared/urls";
 import { WEBSITE } from "~/global/website";
 
 /**
+ * The cook's recipes page, with its search box focused on arrival when the cook came to search.
+ * `focus=search` is read by `app/recipes/index.tsx`, once, on mount.
+ */
+export const recipesRoute = ({ focusSearch }: { focusSearch?: boolean } = {}): Href => ({
+  pathname: "/recipes",
+  params: focusSearch ? { focus: "search" } : {},
+});
+
+/**
  * The way into a recipe page, and the one thing a caller may say about how to open it.
  *
  * A plate on the plan was planned for a number of people, and a cook tapping it wants the recipe
@@ -23,6 +32,23 @@ export const recipeRoute = (id: string, servings?: number): Href => ({
   pathname: "/recipe/[id]",
   params: servings === undefined ? { id } : { id, servings: String(servings) },
 });
+
+/** A recipe and its two other tabs, never the pages beside them that write or cook (`/recipe/new`, …). */
+const _RECIPE_PAGE = /^\/recipe\/(?!(?:new|edit|step-by-step)(?:\/|$))([^/]+)(?:\/(ingredients|instructions))?\/?$/;
+
+/**
+ * The recipe page at a path, as a screen of the root stack, or nothing when the path is not one.
+ *
+ * For a reset that puts the recipe over another screen in one transition: a reset takes screen names
+ * and not paths, and resetting then pushing plays two animations back to back. The names are the
+ * files under `app/recipe/[id]/`.
+ */
+export const recipeScreenAt = (path: string) => {
+  const [, id, tab = "index"] = _RECIPE_PAGE.exec(path) ?? [];
+  if (!id) return undefined;
+
+  return { name: "recipe/[id]", params: { id, screen: tab, params: { id } } };
+};
 
 /**
  * The servings a route arrived with, or nothing worth seeding.
@@ -54,7 +80,7 @@ const _SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
  * `.well-known` files), and serves a page with the store badges to a phone without it.
  * `recipeIdOfLink` below is the reader of the same format.
  *
- * The id is the Convex id itself: any signed-in cook can read any recipe (ADR 0014), so it grants
+ * The id is the Convex id itself: anyone holding it can read the recipe (ADR 0014), so it grants
  * nothing the link does not, and a slug or short code would need a table of its own.
  *
  * `?lang=` is the sharer's language. The website titles the link preview in it, so the card under

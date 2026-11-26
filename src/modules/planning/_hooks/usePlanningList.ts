@@ -5,12 +5,12 @@ import { api } from "~/lib/convex/api";
 import { usePaginatedQueryCached } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
+import { parseDateParam } from "@shared/dates";
 import {
   buildRows,
   indexOfDate,
   keptMealCardOf,
   openDates,
-  parseDateParam,
   planSections,
   startOfDay,
 } from "../_model/model";

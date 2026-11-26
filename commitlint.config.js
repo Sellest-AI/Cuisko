@@ -8,8 +8,11 @@
  * Enforced by the `commit-msg` hook, so this is a real rule and not a guideline. Merge and revert
  * commits are ignored by commitlint's own defaults.
  */
+const { findAiAttribution } = require("./scripts/_lib/aiAttribution.cjs");
+
 /**
- * The attribution trailers AGENTS.md's Never table bans, as patterns rather than as prose.
+ * `no-ai-attribution` refuses what AGENTS.md's Never table bans, by the patterns in
+ * scripts/_lib/aiAttribution.cjs, which the pull request check reads too.
  *
  * There is a rule for this precisely because the agent writing the commit is often told the
  * opposite: the harness injects a session instruction to sign commits with `Co-Authored-By:
@@ -21,10 +24,15 @@
  * commitlint's parser lifts out of the body, so a rule reading `parsed.body` would look straight
  * past the thing it exists to catch.
  */
-const AI_ATTRIBUTION = [
-  /noreply@anthropic\.com/i,
-  /co-?authored-by:\s*claude/i,
-];
+const _carriesNoAiAttribution = ({ raw }) => {
+  const found = findAiAttribution(raw ?? "");
+
+  return [
+    found.length === 0,
+    `commit message carries an AI attribution (${found.join(", ")}).\n` +
+      "AGENTS.md bans these outright. Delete it and commit again.",
+  ];
+};
 
 /**
  * A body line shaped like a footer token: one word (hyphens allowed) then a colon, at the start of
@@ -59,20 +67,12 @@ module.exports = {
     {
       rules: {
         /**
-         * Fails the commit when the message carries an AI-attribution trailer.
+         * Fails the commit when the message carries an AI attribution.
          *
-         * Reports every pattern that matched rather than the first, so a message carrying both
+         * Reports every pattern that matched rather than the first, so a message carrying two
          * does not have to be fixed twice.
          */
-        "no-ai-attribution": ({ raw }) => {
-          const found = AI_ATTRIBUTION.filter((pattern) => pattern.test(raw ?? ""));
-
-          return [
-            found.length === 0,
-            `commit message carries an AI-attribution trailer (${found.join(", ")}).\n` +
-              "AGENTS.md bans these outright. Delete the trailer and commit again.",
-          ];
-        },
+        "no-ai-attribution": _carriesNoAiAttribution,
 
         /**
          * Fails the commit when a line below the header starts with `word:` and `word` is not a

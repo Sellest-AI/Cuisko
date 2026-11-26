@@ -160,6 +160,9 @@ export const recipes = defineTable({
   .index("by_user_and_is_archived", ["userId", "isArchived"])
   // A random window of one owner's live recipes: the planning pool (`candidatePool`).
   .index("by_user_and_is_archived_and_shuffle_key", ["userId", "isArchived", "shuffleKey"])
+  // The same window inside one cuisine: the Explore page's tile, read with `userId` unset, so the
+  // catalog only (`catalogShelf`).
+  .index("by_user_and_is_archived_and_cuisine_and_shuffle_key", ["userId", "isArchived", "cuisine", "shuffleKey"])
   // "Which recipe of this cook already came from this page" — the dedupe / re-import question.
   // No query reads it yet; it is declared with the column so the answer is indexed from day one.
   .index("by_user_and_source_url", ["userId", "sourceUrl"])

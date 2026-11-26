@@ -1,9 +1,8 @@
-import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 
 import { AppleLogo, CircleAlert, GoogleLogo } from "@ui/icons";
 import { InfoBanner } from "@ui/info-banner";
 import { Pressable } from "@ui/pressable";
-import { useSafeAreaInsets } from "@ui/safe-area-view";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
@@ -18,8 +17,15 @@ import { ProviderButton } from "./provider-button";
 /** Long enough that no one reaches it by accident; the review notes tell the reviewer to hold it. */
 const REVIEW_PRESS_MS = 3000;
 
+type Props = {
+  /** The sheet is cut to this column's height (`useMeasuredModalSheet`). */
+  onLayout: (event: LayoutChangeEvent) => void;
+};
+
 /**
- * The welcome screen: what Cuisko is, and one tap to continue.
+ * The sign-in sheet: the produce banner, what Cuisko is, and one tap to continue. Opened over the page that asked for
+ * it — home, a recipe, the onboarding's first step — which stays in sight behind it; closing the
+ * sheet returns there.
  *
  * There is no sign-in / sign-up choice. An OAuth provider creates the account on first use, and
  * the backend runs the same path for a new and a returning user — asking someone to classify
@@ -28,9 +34,9 @@ const REVIEW_PRESS_MS = 3000;
  * Apple leads on iOS, where the App Store requires it beside Google (guideline 4.8), and is absent
  * elsewhere: Android users have Google, and a second web sign-in there would only add a choice.
  */
-export const AuthScreen = () => {
+export const AuthScreen = ({ onLayout }: Props) => {
   const t = useTranslations("Auth");
-  const insets = useSafeAreaInsets();
+
   const {
     isLoading,
     isSubmitting,
@@ -42,18 +48,11 @@ export const AuthScreen = () => {
     signInAsReviewer,
   } = useAuth();
 
-  if (isLoading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={theme.colors.primary.base} />
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <View onLayout={onLayout} style={styles.container}>
+      {/* From the sheet's top, under its close button: the photo is the sheet's own header. */}
       <Hero />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + Platform.select({ android: theme.spacing[28], default: theme.spacing[4] }) }]}>
+      <View style={styles.body}>
         <View style={styles.copy}>
           {/* The way in for a store reviewer: inert unless the backend says this build is in review. */}
           <Pressable
@@ -74,79 +73,80 @@ export const AuthScreen = () => {
           </Text.Base>
         </View>
 
-        <View style={styles.actions}>
-          {Platform.OS === "ios" ? (
-            <>
-              <ProviderButton
-                label={t("continue_with_apple")}
-                logo={AppleLogo}
-                isLoading={pendingProvider === "apple"}
-                disabled={isSubmitting}
-                onPress={() => void signInWithProvider("apple")}
-              />
+        {/*
+          * A sign-in that went through, its cook's row still arriving: the gate closes the sheet once
+          * it lands. The spinner takes the buttons' place, so the sheet keeps its height.
+          */}
+        {isLoading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={theme.colors.primary.base} />
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            {Platform.OS === "ios" ? (
+              <>
+                <ProviderButton
+                  label={t("continue_with_apple")}
+                  logo={AppleLogo}
+                  isLoading={pendingProvider === "apple"}
+                  disabled={isSubmitting}
+                  onPress={() => void signInWithProvider("apple")}
+                />
 
-              <View style={styles.divider}>
-                <View style={styles.rule} />
-                <Text.Base color={theme.colors.muted}>{t("or")}</Text.Base>
-                <View style={styles.rule} />
-              </View>
-            </>
-          ) : null}
+                <View style={styles.divider}>
+                  <View style={styles.rule} />
+                  <Text.Base color={theme.colors.muted}>{t("or")}</Text.Base>
+                  <View style={styles.rule} />
+                </View>
+              </>
+            ) : null}
 
-          <ProviderButton
-            variant="secondary"
-            label={t("continue_with_google")}
-            logo={GoogleLogo}
-            isLoading={pendingProvider === "google"}
-            disabled={isSubmitting}
-            onPress={() => void signInWithProvider("google")}
-          />
+            <ProviderButton
+              variant="secondary"
+              label={t("continue_with_google")}
+              logo={GoogleLogo}
+              isLoading={pendingProvider === "google"}
+              disabled={isSubmitting}
+              onPress={() => void signInWithProvider("google")}
+            />
 
-          {error ? (
-            <InfoBanner variant="warning" icon={CircleAlert} title={t("error_title")}>
-              {error}
-            </InfoBanner>
-          ) : null}
+            {error ? (
+              <InfoBanner variant="warning" icon={CircleAlert} title={t("error_title")}>
+                {error}
+              </InfoBanner>
+            ) : null}
 
-          {__DEV__ ? <DevSignIn isSubmitting={isSubmitting} onSubmit={(c) => void signIn(c)} /> : null}
+            {__DEV__ ? <DevSignIn isSubmitting={isSubmitting} onSubmit={(c) => void signIn(c)} /> : null}
 
-          {/* Signing in is what creates the account, so the texts it agrees to sit under the buttons. */}
-          <Text.Sm color={theme.colors.muted} style={styles.legal}>
-            {t("Legal.before_terms")}
-            <Text.Sm color={theme.colors.foreground} style={styles.link} onPress={() => openInBrowser(WEBSITE.TERMS_OF_USE)}>
-              {t("Legal.terms")}
+            {/* Signing in is what creates the account, so the texts it agrees to sit under the buttons. */}
+            <Text.Sm color={theme.colors.muted} style={styles.legal}>
+              {t("Legal.before_terms")}
+              <Text.Sm color={theme.colors.foreground} style={styles.link} onPress={() => openInBrowser(WEBSITE.TERMS_OF_USE)}>
+                {t("Legal.terms")}
+              </Text.Sm>
+              {t("Legal.between")}
+              <Text.Sm color={theme.colors.foreground} style={styles.link} onPress={() => openInBrowser(WEBSITE.PRIVACY_POLICY)}>
+                {t("Legal.privacy")}
+              </Text.Sm>
+              {t("Legal.after_privacy")}
             </Text.Sm>
-            {t("Legal.between")}
-            <Text.Sm color={theme.colors.foreground} style={styles.link} onPress={() => openInBrowser(WEBSITE.PRIVACY_POLICY)}>
-              {t("Legal.privacy")}
-            </Text.Sm>
-            {t("Legal.after_privacy")}
-          </Text.Sm>
-        </View>
+          </View>
+        )}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  loading: {
-    alignItems: "center",
-    backgroundColor: theme.colors.background,
-    flex: 1,
-    justifyContent: "center",
+  /** Auto-height: `useMeasuredModalSheet` measures this column, so it must not be `flex: 1`. */
+  container: {
+    gap: theme.spacing[28],
+    paddingBottom: Platform.select({ android: theme.spacing[28], default: theme.spacing[8] }),
   },
-  container: { backgroundColor: theme.colors.background, flex: 1 },
-  sheet: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: theme.radius.lg,
-    borderTopRightRadius: theme.radius.lg,
-    gap: theme.spacing[32],
-    marginTop: -theme.radius.lg,
-    paddingHorizontal: theme.spacing[32],
-    paddingTop: theme.spacing[32],
-  },
+  body: { gap: theme.spacing[32], paddingHorizontal: theme.spacing[32] },
   copy: { alignItems: "center", gap: theme.spacing[16] },
   tagline: { textAlign: "center" },
+  loading: { alignItems: "center", justifyContent: "center", minHeight: 160 },
   actions: { alignSelf: "center", gap: theme.spacing[16], maxWidth: 320, width: "100%" },
   divider: { alignItems: "center", flexDirection: "row", gap: theme.spacing[16] },
   rule: { backgroundColor: theme.colors.neutral.subtle, flex: 1, height: StyleSheet.hairlineWidth },

@@ -45,8 +45,7 @@ const DAY_GAP = theme.spacing[32];
  *
  * No questions here: the intro's screenshot shows the options the tunnel asks, and this screen goes
  * straight to the tunnel's own loader, then a week drawn from the fixtures, with one swap offered to
- * show a plan is a suggestion. Nothing is saved. The chrome's "Meet Cuisko" waits until the week
- * is drawn.
+ * show a plan is a suggestion. Nothing is saved. The chrome's button waits until the week is drawn.
  */
 export const OnboardingWeek = () => {
   const t = useTranslations("Onboarding");

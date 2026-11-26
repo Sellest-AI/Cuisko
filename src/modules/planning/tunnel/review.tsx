@@ -11,10 +11,10 @@ import { useTranslations } from "translations";
 import { NAVIGATION_BAR_OFFSET } from "~/modules/navigation/constants";
 import { recipeRoute } from "~/modules/recipes/routes";
 
+import { toDateParam } from "@shared/dates";
 import {
   buildRows,
   planSections,
-  toDateParam,
   toMealCard,
   type MealCard,
   type PlanningRow,

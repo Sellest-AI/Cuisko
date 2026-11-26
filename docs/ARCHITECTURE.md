@@ -445,7 +445,8 @@ own flag **and** neither transition in flight: `useConvexAuth` alone flips true 
 readable, and a screen trusting it fires its first query a beat too early. `hasSession` is the
 other question — a token is stored, confirmed or not — and it is what `AuthGate` redirects on: a
 stored session draws from the device offline, and only a token the server refused (cleared) sends
-the cook to `/auth`. `isAuthenticated` still decides when the server may be asked.
+the cook home, signed out (to the onboarding on a device that has never walked it or been signed in).
+`isAuthenticated` still decides when the server may be asked.
 
 `storage.ts` exists for `clear()`. @convex-dev/auth leaves the refresh token behind on sign-out,
 and a stale refresh token silently restores the session on next launch.
@@ -537,6 +538,8 @@ contact with a growing codebase.
 | The agent memory is well formed and holds no personal data             | script C20, stable mode (skips when encrypted)    | `pnpm check:memory`    |
 | Nothing unused: files, dependencies, exports, types (not `convex/`)    | knip (`knip.jsonc`)                               | `pnpm check:unused`    |
 | Commit messages follow Conventional Commits                            | commitlint                                        | `commit-msg` hook      |
+| A commit carries no AI attribution (ADR 0022)                          | commitlint                                        | `commit-msg` hook      |
+| A PR into `dev` carries no AI attribution (ADR 0022)                   | `pr:push`, then the `issue` check                 | `pull-request.yml`     |
 | Branch names follow `<type>/<summary>`                                 | `pre-commit` hook                                 | `pre-commit` hook      |
 | Ownership is checked                                                   | `ownedQuery`/`ownedMutation` type signatures      | `pnpm typecheck`       |
 | Env is complete                                                        | Zod throw at module load                          | `pnpm test`            |

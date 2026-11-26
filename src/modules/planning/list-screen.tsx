@@ -21,7 +21,8 @@ import { recipeRoute } from "~/modules/recipes/routes";
 import { MEAL_IMAGE } from "./_hooks/placeholders";
 import { usePlanningList } from "./_hooks/usePlanningList";
 import { PlanningListRow } from "./planning-row";
-import { toDateParam, type MealCard, type PlanningRow } from "./_model/model";
+import { toDateParam } from "@shared/dates";
+import { type MealCard, type PlanningRow } from "./_model/model";
 
 type Props = {
   /** The day to open on as `YYYY-MM-DD`, straight off the route — validated by the hook. */

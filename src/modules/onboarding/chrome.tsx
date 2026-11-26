@@ -1,8 +1,9 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { DefaultTheme, ThemeProvider } from "expo-router";
-import { ReactNode, useEffect } from "react";
+import { DefaultTheme, ThemeProvider, useFocusEffect } from "expo-router";
+import { ReactNode, useCallback } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
 
+import { Button } from "@ui/button";
 import { ArrowRight } from "@ui/icons";
 import { AnimatePresence } from "@ui/motion";
 import { StepBar } from "@ui/step-bar";
@@ -13,6 +14,7 @@ import { useTranslations } from "translations";
 
 import { NAVIGATION_BAR_HEIGHT } from "~/modules/navigation/constants";
 
+import { SIGN_IN_HEIGHT } from "./constants";
 import { PawLayer } from "./_components/paw-layer";
 import { useOnboarding } from "./_hooks/useOnboarding";
 import { PROGRESS_MARGIN, useProgressClearance } from "./_hooks/useProgressClearance";
@@ -41,7 +43,8 @@ const ONBOARDING_THEME = {
  * arriving is itself the sign that the action worked. It used to wait dimmed instead, and people
  * kept tapping it, so a step now shows only what can be done on it. On a section's intro it is
  * worded for the section ("Start tracking"). This also leaves the foot to a step that brings its
- * own way on (the cooking session, the week's loader) until its action is done.
+ * own way on (the cooking session, the week's loader) until its action is done. Under the first step's
+ * pill, the sign-in, for someone who has an account already.
  *
  * **Forward only.** There is no back button, no Skip, and the Android back button does nothing here
  * (the layout turns off the swipe on iOS): each screen builds on the one before, the gratin
@@ -52,18 +55,27 @@ const ONBOARDING_THEME = {
  */
 export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
   const t = useTranslations("Onboarding");
-  const { step, intro, position, progress, progressTotal, total, isLast, canContinue, next } = useOnboarding();
+  const { step, intro, position, progress, progressTotal, total, isFirst, isLast, canContinue, next, goToSignIn } = useOnboarding();
   const { top, bottom } = useSafeAreaInsets();
   const clearance = useProgressClearance();
 
-  /** `true` tells Android the press was handled, so it neither pops the step nor leaves the app. */
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => true);
+  /**
+   * `true` tells Android the press was handled, so it neither pops the step nor leaves the app. Only
+   * while the flow has the focus: the sign-in opened over the first step keeps its own way back.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener("hardwareBackPress", () => true);
 
-    return () => subscription.remove();
-  }, []);
+      return () => subscription.remove();
+    }, []),
+  );
 
-  const label = intro ? t(`Intros.${intro}.cta`) : isLast ? t("meet_cuisko") : t("continue");
+  const label = intro
+    ? t(`Intros.${intro}.cta`)
+    : isFirst ? t("discover")
+      : isLast ? t("enter_kitchen")
+        : t("continue");
   /** The cooking session is the app's `StepByStepView`, whose own bar already clears the Android buttons. */
   const isCookingSession = step === "cook";
 
@@ -117,6 +129,11 @@ export const OnboardingChrome = ({ children }: { children: ReactNode }) => {
               nextIcon={ArrowRight}
               style={{ alignItems: "stretch" }}
               onNext={next}
+              footer={isFirst && (
+                <Button variant="ghost" onPress={goToSignIn} style={styles.signIn}>
+                  {t("Promise.have_account")}
+                </Button>
+              )}
             />
           )}
         </AnimatePresence>
@@ -133,4 +150,5 @@ const styles = StyleSheet.create({
   bandWash: { opacity: GROUND_OPACITY },
   progress: { marginHorizontal: "auto", width: PROGRESS_WIDTH },
   flex: { flex: 1 },
+  signIn: { minHeight: SIGN_IN_HEIGHT },
 });

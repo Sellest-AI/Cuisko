@@ -15,7 +15,7 @@ import { useQueryCached } from "~/lib/convex/client";
  * deduplicates the subscription — opening the editor on a recipe already open elsewhere costs
  * nothing extra.
  *
- * **The editor's guard lives here.** The read is open to any signed-in cook (ADR 0014), so the
+ * **The editor's guard lives here.** The read is open to anyone holding the id (ADR 0014), so the
  * query answering is no longer proof the recipe is the caller's to edit. A recipe that arrives
  * with `isOwned` false is folded into `isMissing`: a crafted `/recipe/edit/[foreignId]` gets the
  * missing state, not a form whose save `updateOne` would refuse anyway. The real gate is that

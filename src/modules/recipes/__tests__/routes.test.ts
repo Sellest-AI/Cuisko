@@ -2,7 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import { MAX_SERVINGS, MIN_SERVINGS } from "@shared/servings";
 
-import { recipeIdOfLink, recipeLink, recipeRoute, servingsParamOf } from "../routes";
+import {
+  recipeIdOfLink,
+  recipeLink,
+  recipeRoute,
+  recipeScreenAt,
+  recipesRoute,
+  servingsParamOf,
+} from "../routes";
+
+describe("recipesRoute", () => {
+  it("opens the page as it is when no focus is asked for", () => {
+    expect(recipesRoute()).toEqual({ pathname: "/recipes", params: {} });
+  });
+
+  it("asks for the search box to be focused", () => {
+    expect(recipesRoute({ focusSearch: true })).toEqual({ pathname: "/recipes", params: { focus: "search" } });
+  });
+});
 
 describe("recipeRoute", () => {
   it("carries no servings when none were asked for", () => {
@@ -15,6 +32,26 @@ describe("recipeRoute", () => {
     expect(route).toEqual({ pathname: "/recipe/[id]", params: { id: "abc", servings: "6" } });
     expect(servingsParamOf("6")).toBe(6);
   });
+});
+
+describe("recipeScreenAt", () => {
+  it.each([
+    ["/recipe/k57abc", "index"],
+    ["/recipe/k57abc/ingredients", "ingredients"],
+    ["/recipe/k57abc/instructions/", "instructions"],
+  ])("names the tab %s opens on", (path, screen) => {
+    expect(recipeScreenAt(path)).toEqual({
+      name: "recipe/[id]",
+      params: { id: "k57abc", screen, params: { id: "k57abc" } },
+    });
+  });
+
+  it.each(["/recipe", "/recipes", "/recipe/new", "/recipe/edit/k57abc", "/recipe/step-by-step/k57abc", "/auth", "/"])(
+    "finds no recipe at %s",
+    (path) => {
+      expect(recipeScreenAt(path)).toBeUndefined();
+    },
+  );
 });
 
 describe("servingsParamOf", () => {

@@ -1,8 +1,10 @@
 {
   "continue": "Continue",
-  "meet_cuisko": "Meet Cuisko",
+  "discover": "Discover Cuisko",
+  "enter_kitchen": "Into the kitchen",
   "Promise": {
-    "title": "Cook better. Spend less. Save time.",
+    "title": "Spend less, save time. Cook better.",
+    "have_account": "I already have an account",
     "subtitle": "Our chefs save 2 hours and €3 a week on average with Cuisko.",
     "Chips": {
       "from_cellar": "Cook from what you have",

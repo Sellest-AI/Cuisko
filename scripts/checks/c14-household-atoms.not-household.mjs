@@ -21,6 +21,8 @@ export const NOT_HOUSEHOLD = {
     "or the undo is offered again, and each change names its own household",
   "src/modules/assistant/_hooks/atoms.ts:cuiskoContextAtom":
     "the recipe the open assistant was asked from, set by its route and put down when it closes",
+  "src/modules/auth/_hooks/atoms.ts:returnPathAtom":
+    "the page someone with no account was reading before they signed in: there is no household then",
   "src/modules/groceries/_hooks/atoms.ts:sortAtom":
     "a way of looking at the list, not a fact about the kitchen",
   "src/modules/network/_hooks/atoms.ts:isOfflineAtom":

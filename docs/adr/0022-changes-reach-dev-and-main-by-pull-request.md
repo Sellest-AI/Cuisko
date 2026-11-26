@@ -1,6 +1,6 @@
 ---
 id: 0022
-applies_to: ["scripts/github/**", ".githooks/**", ".github/rulesets/**", ".github/workflows/pull-request.yml", ".github/dependabot.yml", ".github/CODEOWNERS", ".github/pull_request_template.md", ".claude/settings.json", ".claude/skills/working-issues/**", ".claude/skills/committing/**", ".claude/plugins/issues/**"]
+applies_to: ["scripts/github/**", "scripts/_lib/aiAttribution.cjs", "commitlint.config.js", ".githooks/**", ".github/rulesets/**", ".github/workflows/pull-request.yml", ".github/dependabot.yml", ".github/CODEOWNERS", ".github/pull_request_template.md", ".claude/settings.json", ".claude/skills/working-issues/**", ".claude/skills/committing/**", ".claude/plugins/issues/**"]
 status: accepted
 supersedes: []
 ---
@@ -13,6 +13,9 @@ MUST: reach `dev` and `main` only through a pull request. `protect-dev` and `pro
 MUST: fix an open issue in every PR into `dev`, named in its body with `Fixes #N` (the `issue`
       check), and carry the dream's commit as its newest commit (the `memory` check). A
       Dependabot PR and a `sync/` branch of this repository skip both; the fold PR skips `issue`.
+MUST NOT: carry an AI attribution (`scripts/_lib/aiAttribution.cjs`) in a commit or a pull request.
+          `commitlint` refuses the commit, `pr:push` the PR file, and the `issue` check the body of
+          every PR into `dev` but Dependabot's, a `sync/` branch and the fold PR included.
 MUST: approve a PR by a code owner (`.github/CODEOWNERS`). The `sellest-agent` App's approval never
       counts, and the session never approves or merges: `.claude/settings.json` denies
       `gh:bot pr merge`, `pr review --approve` and the rulesets API.
@@ -65,6 +68,9 @@ rulesets make that the only road.
   commits are not verified locally; CI checks their PR. A merge commit keeps the hook's verify,
   because its tree is the one no branch commit verified. No pre-push verify: it would check only
   the tip, which CI checks already.
+- **No attribution check on a PR into `main`,** because `protect-dev` requires `issue` and `memory`
+  by name and head SHA: running them for another base could pass a PR into `dev`. There, the rule
+  and the empty `attribution` in `.claude/settings.json` stand alone, plus `pr:push` for a hotfix.
 
 How a change travels, from the issue to the release: [ARCHITECTURE.md § Releases](../ARCHITECTURE.md#releases).
 Who holds which credentials: [external/github.md](../external/github.md).
