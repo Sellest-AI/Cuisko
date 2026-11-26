@@ -19,6 +19,7 @@ import { useNavigationBar } from "../hooks";
 import { useBackLeadsHome } from "../_hooks/useBackLeadsHome";
 import { isSpokenSentence } from "~/lib/voice";
 import { useAskCuisko, useIsCuiskoAnswering } from "~/modules/assistant/hooks";
+import { useRequireSignIn } from "~/modules/auth/hooks";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
 import { SafeAreaView } from "~/ui/components/safe-area-view";
@@ -119,6 +120,8 @@ export const NavigationBar = () => {
     clearTimeout(focusTimer.current);
     focusTimer.current = setTimeout(() => focus(), FOCUS_AFTER_CAPTURE_MS);
   }
+
+  const { hasSession, isSignedOut, signIn } = useRequireSignIn();
 
   const { ask } = useAskCuisko();
   const isAnswering = useIsCuiskoAnswering();
@@ -287,6 +290,23 @@ export const NavigationBar = () => {
                   </m.View>}
                 </AnimatePresence>
               </SafeAreaView>
+              {/*
+                * A guest sees the bar as a cook does, and any tap on it asks for the sign-in: the
+                * field, the mic, the camera and the recipes button all reach a kitchen they do not
+                * have yet. One cover over the whole bar rather than a check in each control, so the
+                * field never takes focus and the keyboard never opens for nothing. Up as long as
+                * there is no session, auth still deciding included, when a tap does nothing.
+                */}
+              {!hasSession && (
+                <Pressable
+                  style={StyleSheet.absoluteFill}
+                  onPress={() => {
+                    if (isSignedOut) signIn();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("sign_in")}
+                />
+              )}
             </m.View>
           )}
         </AnimatePresence>

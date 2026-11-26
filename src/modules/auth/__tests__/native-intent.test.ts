@@ -5,8 +5,12 @@ import { redirectSystemPath } from "../native-intent";
 const route = (path: string) => redirectSystemPath({ path, initial: true });
 
 describe("redirectSystemPath", () => {
-  test("keeps an OAuth return on /auth, before any other rule", () => {
-    expect(route("cuisko://?code=4f2a")).toBe("/auth");
+  test("keeps an OAuth return on /auth while the app is open, before any other rule", () => {
+    expect(redirectSystemPath({ path: "cuisko://?code=4f2a", initial: false })).toBe("/auth");
+  });
+
+  test("lands an OAuth return that starts the app on home", () => {
+    expect(route("cuisko://?code=4f2a")).toBe("/");
   });
 
   test("lands iOS's share extension link on home, where the sheet opens over it", () => {

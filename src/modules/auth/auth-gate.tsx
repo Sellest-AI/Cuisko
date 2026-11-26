@@ -9,7 +9,7 @@ import { recipeScreenAt } from "~/modules/recipes/routes";
 import { useAuth } from "./_hooks/useAuth";
 import { useTakeReturnPath } from "./_hooks/useTakeReturnPath";
 import { isAuthFlowPath, isGuestPath } from "./_model/auth-flow";
-import { AUTH } from "./constants";
+import { AUTH, HOME } from "./constants";
 import { Cover } from "./cover";
 
 /**
@@ -37,19 +37,17 @@ SplashScreen.setOptions({ duration: 200 });
  */
 const ONBOARDING = { name: "onboarding", href: "/onboarding/promise" } as const;
 
-/** Home, under whatever a sign-in ends on: Cuisko's chat, or the recipe that asked for the sign-in. */
-const HOME = { name: "index", href: "/" } as const;
-
-type Destination = typeof AUTH | typeof ONBOARDING | typeof HOME;
+type Destination = typeof ONBOARDING | typeof HOME;
 
 /**
  * Sends each person to the side of the app they belong on, and holds the splash until it has.
  *
- * With no session, every route redirects to the onboarding, or to `/auth` on a device that is done
- * with it (`isOnboardingSeen`), except those two and a recipe a shared link opened (`isGuestPath`);
- * signed in, those two redirect home, with Cuisko's chat or the recipe that asked for the sign-in
- * over it. A recipe the cook went back to while their sign-in was in flight stays up: it is the page
- * they would be returned to. "No session" is no stored token,
+ * With no session, a device that has not walked the onboarding is sent to it, and one that has
+ * (`isOnboardingSeen`) is sent home, which it may browse signed out: what needs an account there
+ * opens the sign-in sheet (`useRequireSignIn`). The onboarding, `/auth` and a recipe a shared link
+ * opened (`isGuestPath`) are left where they are. Signed in, the onboarding and `/auth` redirect
+ * home, with the recipe that asked for the sign-in over it if one did. A recipe the cook went back
+ * to while their sign-in was in flight stays up: it is the page they would be returned to. "No session" is no stored token,
  * not "Convex has not confirmed it": a stored session whose cook is on the device draws at once,
  * offline included, and a refresh failing on a weak network leaves the screen where it is. A session
  * the server refuses clears the token, and lands here as no session. A cold start with a live session
@@ -75,10 +73,13 @@ export const AuthGate = () => {
   const isOnAuth = pathname === AUTH.href;
   const isInAuthFlow = isAuthFlowPath(pathname);
   const isSignedOut = !hasSession && !isAuthenticating;
+  const isOnboarded = isOnboardingSeen();
+  /** Home is open to a guest only past the onboarding: a first launch lands on it, and must not stay. */
+  const mayStaySignedOut = isInAuthFlow || isGuestPath(pathname) || (isOnboarded && pathname === HOME.href);
 
   const destination: Destination | null =
     isLoading ? null
-      : isSignedOut && !isInAuthFlow && !isGuestPath(pathname) ? (isOnboardingSeen() ? AUTH : ONBOARDING)
+      : isSignedOut && !mayStaySignedOut ? (isOnboarded ? HOME : ONBOARDING)
         : isAuthenticated && isInAuthFlow ? HOME
           : null;
   const isSettled = !isLoading && destination === null;
@@ -105,8 +106,8 @@ export const AuthGate = () => {
    * The container is not ready on the very first frame of a cold start, where the history is one
    * screen anyway; `router.replace` waits for it, and replacing that one screen is the same reset.
    *
-   * A sign-in ends with a screen over home: home sits *under* it, so closing it shows home, and one
-   * reset draws both, where a push after it showed home in between.
+   * A sign-in that a recipe asked for ends on that recipe, over home: home sits *under* it, so
+   * closing it shows home, and one reset draws both, where a push after it showed home in between.
    */
   useEffect(() => {
     if (!destination) return;
@@ -122,10 +123,9 @@ export const AuthGate = () => {
     const returnPath = takeReturnPath();
     const recipe = returnPath ? recipeScreenAt(returnPath) : undefined;
 
-    navigation.reset({
-      index: 1,
-      routes: [{ name: HOME.name }, recipe ?? { name: "(modals)", params: { screen: "assistant" } }],
-    });
+    navigation.reset(recipe
+      ? { index: 1, routes: [{ name: HOME.name }, recipe] }
+      : { index: 0, routes: [{ name: HOME.name }] });
   }, [destination, navigation, takeReturnPath]);
 
   /** A sign-in that landed on a page of the app ends there: a page still held would open at the next one. */

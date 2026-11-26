@@ -25,9 +25,12 @@ export const useRequireSignIn = () => {
    * Holds the page on screen, then opens `/auth` over it. `navigate` and not `push`, so a double tap
    * opens one. The page stays mounted under `/auth` and `usePathname` is the focused page, so the
    * second tap of that double would hold `/auth` itself without the check.
+   *
+   * Any other page clears what was held: home is open signed out, so a recipe left earlier would
+   * otherwise reopen after a sign-in asked from home.
    */
   const signIn = useCallback(() => {
-    if (isGuestPath(pathname)) holdReturnPath(pathname);
+    if (pathname !== AUTH.href) holdReturnPath(isGuestPath(pathname) ? pathname : undefined);
     router.navigate(AUTH.href);
   }, [holdReturnPath, pathname]);
 
@@ -41,5 +44,9 @@ export const useRequireSignIn = () => {
     [hasSession, isSignedOut, signIn],
   );
 
-  return { isSignedOut, signIn, requireSignIn };
+  /**
+   * `hasSession` for a control that covers itself rather than wrapping each action: covered without
+   * one, and the cover asks for the sign-in only once `isSignedOut`, inert while auth decides.
+   */
+  return { hasSession, isSignedOut, signIn, requireSignIn };
 };

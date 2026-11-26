@@ -13,7 +13,7 @@ import {
   MODAL_GRABBER_MARGIN_BOTTOM,
   MODAL_GRABBER_MARGIN_TOP,
 } from "~/modules/navigation/constants";
-import { useModalSheetFrameHeight } from "~/modules/navigation/modal-sheet";
+import { useIsModalSheetFullBleed, useModalSheetFrameHeight } from "~/modules/navigation/modal-sheet";
 
 export default function ModalsLayout() {
   const router = useRouter();
@@ -25,6 +25,13 @@ export default function ModalsLayout() {
    * nothing to resolve against and collapses to its own borders. A number measures either way.
    */
   const frameHeight = useModalSheetFrameHeight();
+
+  /**
+   * A screen that opens on a picture (the sign-in) starts at the frame's top edge: no grabber takes
+   * its strip, no border is drawn over the picture, and the fade that softens text scrolling under
+   * the chrome would only wash the picture out.
+   */
+  const isFullBleed = useIsModalSheetFullBleed();
 
   return (
     <SafeAreaView
@@ -40,28 +47,29 @@ export default function ModalsLayout() {
           height: isFullScreen ? undefined : frameHeight,
           overflow: "hidden",
           backgroundColor: theme.colors.background,
-          borderTopWidth: isFullScreen ? 0 : MODAL_FRAME_BORDER_WIDTH,
-          borderTopLeftRadius: isFullScreen ? 0 : 28,
-          borderTopRightRadius: isFullScreen ? 0 : 28,
-          borderBottomLeftRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
-          borderBottomRightRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 28 : 0,
-          borderLeftWidth: Platform.OS === "ios" ? MODAL_FRAME_BORDER_WIDTH : 0,
-          borderRightWidth: Platform.OS === "ios" ? MODAL_FRAME_BORDER_WIDTH : 0,
+          // A picture runs to the frame's edge: a border there would draw a line over it.
+          borderTopWidth: isFullScreen || isFullBleed ? 0 : MODAL_FRAME_BORDER_WIDTH,
+          borderTopLeftRadius: isFullScreen ? 0 : 24,
+          borderTopRightRadius: isFullScreen ? 0 : 24,
+          borderBottomLeftRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 24 : 0,
+          borderBottomRightRadius: isFullScreen ? 0 : Platform.OS === "ios" ? 24 : 0,
+          borderLeftWidth: Platform.OS === "ios" && !isFullBleed ? MODAL_FRAME_BORDER_WIDTH : 0,
+          borderRightWidth: Platform.OS === "ios" && !isFullBleed ? MODAL_FRAME_BORDER_WIDTH : 0,
           borderBottomWidth: Platform.OS === "ios" ? MODAL_FRAME_BORDER_WIDTH : 0,
           borderColor: theme.colors.border.default,
           flex: isFullScreen ? 1 : undefined,
         }}>
-        <View style={{
+        {!isFullBleed && <View style={{
           height: MODAL_GRABBER_HEIGHT,
           width: 86,
           borderRadius: theme.radius.full,
           backgroundColor: theme.colors.neutral.elevated,
           marginHorizontal: "auto",
+          zIndex: 1,
           marginTop: MODAL_GRABBER_MARGIN_TOP,
           marginBottom: MODAL_GRABBER_MARGIN_BOTTOM,
-          zIndex: 1,
         }}
-        />
+        />}
         <Stack
           screenOptions={{
             headerShown: false,
@@ -72,7 +80,7 @@ export default function ModalsLayout() {
             animation: "slide_from_right",
           }}
         />
-        <LinearGradient
+        {!isFullBleed && <LinearGradient
           colors={[theme.colors.background, theme.colors.transparent.light]}
           style={{
             pointerEvents: "none",
@@ -84,7 +92,7 @@ export default function ModalsLayout() {
           }}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-        />
+        />}
         <ButtonIcon
           elevated
           variant="neutral-inverted"

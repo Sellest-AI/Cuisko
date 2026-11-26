@@ -188,35 +188,49 @@ describe("AuthGate", () => {
   });
 
   describe("on a device that is done with the onboarding", () => {
-    it.each(["/", "/groceries", "/recipe/new", "/recipe/edit/k57abc", "/recipe/step-by-step/k57abc"])(
-      "sends a signed-out person on %s to /auth, and keeps the splash up until they are there",
+    /** Home is open signed out: what needs an account there asks for it when tapped. */
+    it.each(["/", "/auth", "/onboarding/promise"])("leaves a signed-out person on %s, uncovered, and lifts the splash", (pathname) => {
+      markOnboardingSeen();
+      state.pathname = pathname;
+
+      const view = render(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+      expect(state.replace).not.toHaveBeenCalled();
+      expect(state.hide).toHaveBeenCalledOnce();
+      expect(view.container).toBeEmptyDOMElement();
+    });
+
+    it.each(["/groceries", "/recipe/new", "/recipe/edit/k57abc", "/recipe/step-by-step/k57abc"])(
+      "sends a signed-out person on %s home, and keeps the splash up until they are there",
       (pathname) => {
         markOnboardingSeen();
         state.pathname = pathname;
 
         const view = render(<AuthGate />);
 
-        expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
+        expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("index"));
         expect(state.hide).not.toHaveBeenCalled();
 
-        state.pathname = "/auth";
+        state.pathname = "/";
         view.rerender(<AuthGate />);
 
         expect(state.hide).toHaveBeenCalledOnce();
       },
     );
 
-    it("replaces by /auth while the navigator is not ready", () => {
+    it("replaces by home while the navigator is not ready", () => {
       markOnboardingSeen();
+      state.pathname = "/groceries";
       state.isReady = false;
 
       render(<AuthGate />);
 
       expect(state.reset).not.toHaveBeenCalled();
-      expect(state.replace).toHaveBeenCalledExactlyOnceWith("/auth");
+      expect(state.replace).toHaveBeenCalledExactlyOnceWith("/");
     });
 
-    /** The cooks signed in from before the flag existed, too. */
+    /** The cooks signed in from before the flag existed, too: signed out, they stay home. */
     it.each([["confirmed", SIGNED_IN], ["stored", STORED_SESSION]])("is one a %s session was on", (_, auth) => {
       state.auth = auth;
       const view = render(<AuthGate />);
@@ -225,20 +239,16 @@ describe("AuthGate", () => {
       state.auth = SIGNED_OUT;
       view.rerender(<AuthGate />);
 
-      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
+      expect(state.reset).not.toHaveBeenCalled();
     });
   });
 
   describe("when a sign-in lands", () => {
-    const HOME_AND_ASSISTANT = {
-      index: 1,
-      routes: [{ name: "index" }, { name: "(modals)", params: { screen: "assistant" } }],
-    };
 
     beforeEach(() => getDefaultStore().set(returnPathAtom, undefined));
 
     /** The onboarding too: someone who went back to it from /auth while their sign-in was in flight. */
-    it.each(["/auth", "/onboarding/promise"])("goes from %s to the assistant over home, with nothing under it", (pathname) => {
+    it.each(["/auth", "/onboarding/promise"])("goes from %s home, with nothing over or under it", (pathname) => {
       state.pathname = pathname;
       state.auth = ROW_ARRIVING;
       const view = render(<AuthGate />);
@@ -247,7 +257,7 @@ describe("AuthGate", () => {
       state.auth = SIGNED_IN;
       view.rerender(<AuthGate />);
 
-      expect(state.reset).toHaveBeenCalledExactlyOnceWith(HOME_AND_ASSISTANT);
+      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("index"));
     });
 
     /** One navigation: a reset then a push showed home between the two. */
@@ -334,15 +344,16 @@ describe("AuthGate", () => {
     });
 
     /** The server refused the session, or a cook signed out: the next one finds nothing of them. */
-    it("sends to /auth and clears the device once the session is gone", () => {
+    it("sends home and clears the device once the session is gone", () => {
       writeDevice(deviceKey(getMe, {}), { data: { name: "Camille" } });
+      state.pathname = "/groceries";
       state.auth = STORED_SESSION;
       const view = render(<AuthGate />);
 
       state.auth = SIGNED_OUT;
       view.rerender(<AuthGate />);
 
-      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("auth"));
+      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("index"));
       expect(readDevice(deviceKey(getMe, {}))).toBeUndefined();
     });
   });

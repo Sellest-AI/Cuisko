@@ -2,7 +2,7 @@ import { router, useNavigationContainerRef, usePathname } from "expo-router";
 import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { AUTH } from "~/modules/auth/constants";
+import { AUTH, HOME } from "~/modules/auth/constants";
 
 import {
   canLeave,
@@ -23,8 +23,8 @@ import { doneStepsAtom, resetOnboardingAtom } from "./atoms";
 /**
  * Where the onboarding stands, whether the step on screen may be left yet, and the ways out of it.
  *
- * Nothing here reaches the backend: the flow runs before there is an account. Its end is the sign-in,
- * and all it records is, on the device, that it was walked (`markOnboardingSeen`). There is no Skip;
+ * Nothing here reaches the backend: the flow runs before there is an account. Its end is home, signed
+ * out, and all it records is, on the device, that it was walked (`markOnboardingSeen`). There is no Skip;
  * the first step's `goToSignIn` is for someone who has an account already.
  */
 export const useOnboarding = () => {
@@ -78,15 +78,16 @@ export const useOnboarding = () => {
   }, [doneSteps]);
 
   /**
-   * Out of the flow and on to the sign-in, which `AuthGate` takes into the app. A reset rather than
-   * a push, so nothing of the onboarding is left to swipe back into.
+   * Out of the flow and on to home, signed out: what needs an account there asks for it when tapped.
+   * Marked seen first, since `AuthGate` lets a guest stay home only past the onboarding. A reset
+   * rather than a push, so nothing of the onboarding is left to swipe back into.
    */
   const finish = useCallback(() => {
     markOnboardingSeen();
-    navigation.reset({ index: 0, routes: [{ name: AUTH.name }] });
+    navigation.reset({ index: 0, routes: [{ name: HOME.name }] });
   }, [navigation]);
 
-  /** Opened over the first step rather than in place of it: the sign-in's back arrow returns to it. */
+  /** The sign-in sheet, over the first step: closing it returns there. */
   const goToSignIn = useCallback(() => router.navigate(AUTH.href), []);
 
   /** Refused, not merely discouraged, while the step's action is not done: see `canLeave`. */

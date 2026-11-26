@@ -5,6 +5,8 @@ import { PlateCarouselEmpty } from "@ui/carousels/plate.empty";
 import { Text } from "@ui/text";
 import { theme } from "theme";
 import { useTranslations } from "translations";
+import { useRequireSignIn } from "~/modules/auth/hooks";
+
 import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 
 /**
@@ -24,7 +26,10 @@ import { EMPTY_PLATE_IMAGE } from "./_hooks/placeholders";
 export const WeeklyPlanEmpty = () => {
   const t = useTranslations("Planning");
 
-  const plan = () => router.push("/planning/new");
+  const { requireSignIn } = useRequireSignIn();
+
+  /** A guest sees this empty week too: planning it is the first thing that asks for an account. */
+  const plan = requireSignIn(() => router.push("/planning/new"));
 
   return (
     <View>

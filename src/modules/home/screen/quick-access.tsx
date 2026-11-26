@@ -11,6 +11,7 @@ import { type Href, router } from "expo-router";
 import { useStockCounts } from "~/modules/groceries/hooks";
 import { useNavigationBar } from "~/modules/navigation/hooks";
 import { AskCuiskoPill } from "~/modules/assistant/ask-cuisko-pill";
+import { useRequireSignIn } from "~/modules/auth/hooks";
 
 /**
  * The four starts, as a shelf of pills above the rows.
@@ -31,9 +32,15 @@ const STARTS: { key: "ask_cuisko" | "import_recipe" | "plan_week" | "my_recipes"
   { key: "my_recipes", icon: ForkKnife, href: "/recipes" },
 ];
 
-/** The things you reach for without going looking: what to add, and where things are kept. */
+/**
+ * The things you reach for without going looking: what to add, and where things are kept.
+ *
+ * Drawn as it is for a guest too, with every start and tile behind `requireSignIn`: each one opens
+ * the cook's own kitchen, which a guest does not have yet.
+ */
 export const QuickAccess = () => {
   const t = useTranslations("Home");
+  const { requireSignIn } = useRequireSignIn();
 
   const { focus } = useNavigationBar();
   const { toBuy, inStock, isLoading } = useStockCounts();
@@ -51,7 +58,7 @@ export const QuickAccess = () => {
         renderItem={({ item }) => {
           if (item.key === "ask_cuisko")
             return (
-              <AskCuiskoPill size="sm" onPress={() => router.push(item.href)} style={styles.start}>
+              <AskCuiskoPill size="sm" onPress={requireSignIn(() => router.push(item.href))} style={styles.start}>
                 {t(`QuickAccess.${item.key}`)}
               </AskCuiskoPill>
             )
@@ -60,7 +67,7 @@ export const QuickAccess = () => {
             <ButtonPill
               size="sm"
               variant="neutral"
-              onPress={() => router.push(item.href)}
+              onPress={requireSignIn(() => router.push(item.href))}
               style={styles.start}
               leftIcon={item.icon}
             >
@@ -73,8 +80,8 @@ export const QuickAccess = () => {
         <View style={styles.tiles}>
           <ActionCard
             variant="secondary"
-            onPress={() => router.push("/groceries")}
-            onIconPress={() => { focus("shopping-list") }}
+            onPress={requireSignIn(() => router.push("/groceries"))}
+            onIconPress={requireSignIn(() => focus("shopping-list"))}
             content={t("QuickAccess.grocery_list")}
             subtitle={isLoading ? undefined : t("QuickAccess.to_buy_x_items", { count: toBuy })}
             icon={ShoppingCart}
@@ -82,8 +89,8 @@ export const QuickAccess = () => {
           />
           <ActionCard
             variant="neutral"
-            onPress={() => router.push({ pathname: "/groceries", params: { section: "cellar" } })}
-            onIconPress={() => { focus("cellar") }}
+            onPress={requireSignIn(() => router.push({ pathname: "/groceries", params: { section: "cellar" } }))}
+            onIconPress={requireSignIn(() => focus("cellar"))}
             content={t("QuickAccess.cellar")}
             icon={Store}
             subtitle={isLoading ? undefined : t("QuickAccess.in_stock_x_items", { count: inStock })}
