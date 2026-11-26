@@ -19,7 +19,6 @@ import {
   MAX_SERVINGS,
   MAX_TASTES,
   mealSlotAt,
-  parseDateParam,
   parseMealSlot,
   planAfter,
   planDates,
@@ -29,7 +28,6 @@ import {
   replaceMeal,
   setDraftMealServings,
   setMealServings,
-  toDateParam,
   toggleTaste,
   toMealCard,
   type DaySection,
@@ -669,46 +667,6 @@ describe("draftMealOf", () => {
 
     expect(draftMealOf({ ...answer, alternatives: [alternative] }).alternatives).toEqual([alternative]);
     expect(draftMealOf(answer).alternatives).toEqual([]);
-  });
-});
-
-describe("parseDateParam", () => {
-  it("reads a well-formed day at local midnight", () => {
-    const parsed = parseDateParam("2026-08-12");
-
-    expect(parsed && isSameDay(parsed, TODAY)).toBe(true);
-    expect(parsed?.getHours()).toBe(0);
-  });
-
-  it("ignores a missing param, a repeated one, and anything not shaped like a date", () => {
-    expect(parseDateParam(undefined)).toBeUndefined();
-    expect(parseDateParam(["2026-08-12"])).toBeUndefined();
-    expect(parseDateParam("tomorrow")).toBeUndefined();
-    expect(parseDateParam("12/08/2026")).toBeUndefined();
-  });
-
-  /** Shaped like a date but not one — the case a bare `new Date()` turns into `Invalid Date`. */
-  it("ignores an impossible day", () => {
-    expect(parseDateParam("2026-02-31")).toBeUndefined();
-  });
-});
-
-describe("toDateParam", () => {
-  /**
-   * The regression behind a focus day that never survived the trip: the carousel was handing the
-   * list a `Date.toDateString()`, which `parseDateParam` rejects, so the week silently opened on
-   * its first plate. Only the round trip catches a producer and a parser drifting apart — each is
-   * self-consistent on its own.
-   */
-  it("writes the format its parser reads back", () => {
-    const day = new Date(2026, 7, 12);
-    const parsed = parseDateParam(toDateParam(day));
-
-    expect(parsed && isSameDay(parsed, day)).toBe(true);
-  });
-
-  it("pads a single-digit month and day, which is what the parser requires", () => {
-    expect(toDateParam(new Date(2026, 0, 5))).toBe("2026-01-05");
   });
 });
 

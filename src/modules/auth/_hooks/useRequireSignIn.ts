@@ -4,8 +4,7 @@ import { useCallback } from "react";
 
 import { useAuthenticated } from "~/lib/convex/auth";
 
-import { isGuestPath } from "../_model/auth-flow";
-import { AUTH } from "../constants";
+import { AUTH, HOME } from "../constants";
 import { returnPathAtom } from "./atoms";
 
 /**
@@ -26,11 +25,12 @@ export const useRequireSignIn = () => {
    * opens one. The page stays mounted under `/auth` and `usePathname` is the focused page, so the
    * second tap of that double would hold `/auth` itself without the check.
    *
-   * Any other page clears what was held: home is open signed out, so a recipe left earlier would
+   * Every page but home is held, so the sign-in ends where it was asked (`AuthGate`). Home clears
+   * what was held instead: the sign-in lands there anyway, and a recipe left earlier would
    * otherwise reopen after a sign-in asked from home.
    */
   const signIn = useCallback(() => {
-    if (pathname !== AUTH.href) holdReturnPath(isGuestPath(pathname) ? pathname : undefined);
+    if (pathname !== AUTH.href) holdReturnPath(pathname === HOME.href ? undefined : pathname);
     router.navigate(AUTH.href);
   }, [holdReturnPath, pathname]);
 

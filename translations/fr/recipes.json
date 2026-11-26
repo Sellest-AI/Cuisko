@@ -19,5 +19,13 @@
     "seconds_left_many": "Encore {{count, number}} secondes",
     "seconds_left_other": "Encore {{count, number}} secondes",
     "due": "Presque prête"
+  },
+  "Explore": {
+    "title": "Explorer",
+    "search_placeholder": "Rechercher une recette",
+    "categories": "Catégories",
+    "featured": "À la une",
+    "empty_title": "Rien ici pour l’instant",
+    "empty_body": "Essaie une autre cuisine."
   }
 }

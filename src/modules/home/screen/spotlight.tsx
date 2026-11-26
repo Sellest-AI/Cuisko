@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View, ViewStyle } from "react-native";
 
 import { CardRecipe } from "@ui/cards/recipe";
 import { Text } from "@ui/text";
@@ -21,7 +21,7 @@ const CARD_WIDTH = 160;
  * Nothing to show, no section: loading and a genuinely empty pool look the same, because an empty
  * shelf with a title is a promise the page cannot keep.
  */
-export const WeeklySpotlight = () => {
+export const WeeklySpotlight = ({ style }: { style?: ViewStyle }) => {
   const t = useTranslations("Home");
   const tVocabulary = useTranslations("Vocabulary");
   const { ideas } = useWeekIdeas();
@@ -29,7 +29,7 @@ export const WeeklySpotlight = () => {
   if (ideas.length === 0) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <Text.Lg style={styles.gutter}>{t("Spotlight.title")}</Text.Lg>
       <ScrollView
         horizontal

@@ -33,6 +33,7 @@ body:
         - account
         - assistant
         - auth
+        - explore
         - groceries
         - health
         - home

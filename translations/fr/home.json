@@ -16,5 +16,11 @@
   },
   "Spotlight": {
     "title": "Des idées pour la semaine"
+  },
+  "FeaturedCategories": {
+    "title": "Catégories à la une"
+  },
+  "Discover": {
+    "label": "Découvrir"
   }
 }

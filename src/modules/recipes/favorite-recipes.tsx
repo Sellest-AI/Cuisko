@@ -3,7 +3,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { theme } from "theme";
 import { useTranslations } from "translations";
 
-import { FavoritesShelf } from "./_components/favorites-shelf";
+import { RecipeShelf } from "./_components/recipe-shelf";
 import { useFavoriteRecipes } from "./_hooks/useFavoriteRecipes";
 
 type Props = {
@@ -30,7 +30,7 @@ export const FavoriteRecipes = ({ style }: Props) => {
   if (favorites.length === 0) return null;
 
   return (
-    <FavoritesShelf
+    <RecipeShelf
       title={t("favorites")}
       recipes={favorites.map((recipe) => ({
         id: recipe.id,

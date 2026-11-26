@@ -15,6 +15,9 @@ supersedes: []
   `userId`. The author's name ships in both.
 - Only the recipe page reads `anon`. A list or a search of recipes MUST NOT reach another cook's
   recipe without an account: a link is sent by someone, a list is not.
+- The one exception is the catalog, the recipes with no owner (`userId` unset): `getCatalog.anon`
+  lists it without an account, for the Explore page. Its ranges start with `userId = undefined`, so
+  it reaches no cook's recipe by construction, and no other list may.
 - The read payload MUST carry the derived `isOwned` boolean, and the screen MUST decide from it
   what to show; it never compares ids. The payload withholds the owner's `userId`: the author ships as
   a name (ADR 0010), and `isOwned` stays the flag the screen reads. Read without an account it

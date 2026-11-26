@@ -8,6 +8,7 @@ import { totalMinutesOf } from "@shared/recipes";
 import type { Tag } from "@shared/tags";
 
 import { suitsDiet } from "@convex/functions/recipes/dietFacet";
+import { shuffledWindow } from "@convex/functions/recipes/shuffledWindow";
 
 import { scaleLines } from "./scaleLines";
 import type { Candidate } from "./selectMeals";
@@ -96,41 +97,9 @@ export const OWN_SHARE = 0.3;
  */
 const NOT_A_PLATE: readonly Tag[] = ["side", "pastry", "sauce", "dessert", "drink", "snack", "breakfast"];
 
-/** The span `randomShuffleKey` draws from: every unsigned 32-bit integer. */
-const SHUFFLE_KEY_SPAN = 2 ** 32;
-
-/**
- * One owner's live recipes, from a random point of `by_user_and_is_archived_and_shuffle_key`,
- * wrapping once to the start when the range past the seed comes up short.
- *
- * The seed is a fraction and the keys are 32-bit integers, so it is stretched onto the key's span
- * first. Compared raw, every key but `0` sits past it: the window always opened at the lowest key,
- * the same week came back every run, and nothing past the first `WINDOW` keys was ever drawn.
- *
- * `userId` is the first field of the index and never relaxed: a shuffle over the bare key would
- * hand the planner other households' private recipes.
- */
-const _window = async (ctx: PoolCtx, userId: Id<"users"> | undefined, seed: number) => {
-  const start = Math.floor(seed * SHUFFLE_KEY_SPAN);
-
-  const after = await ctx.db
-    .query("recipes")
-    .withIndex("by_user_and_is_archived_and_shuffle_key", (q) =>
-      q.eq("userId", userId).eq("isArchived", false).gt("shuffleKey", start),
-    )
-    .take(WINDOW);
-
-  if (after.length === WINDOW) return after;
-
-  const before = await ctx.db
-    .query("recipes")
-    .withIndex("by_user_and_is_archived_and_shuffle_key", (q) =>
-      q.eq("userId", userId).eq("isArchived", false).lte("shuffleKey", start),
-    )
-    .take(WINDOW - after.length);
-
-  return [...after, ...before];
-};
+/** One owner's live recipes, from a random point of their shuffle — see `shuffledWindow`. */
+const _window = (ctx: PoolCtx, userId: Id<"users"> | undefined, seed: number) =>
+  shuffledWindow(ctx, { range: { index: "by_user_and_is_archived_and_shuffle_key", userId }, seed, size: WINDOW });
 
 /**
  * `rows` with everything written at or after `settledAt` moved to the back, each half in the order

@@ -37,7 +37,7 @@ export {
   CircleCheck as CircleCheckIcon, CircleMinus as CircleMinusIcon, ThumbsUp as ThumbsUpIcon,
   Smile as SmileIcon, Heart as HeartIcon, Share2 as Share2Icon, SquarePen as SquarePenIcon,
   Image as ImageIcon, ShoppingCartIcon, ClockAlertIcon, SendHorizontalIcon, LockIcon, FlameIcon,
-  BugOffIcon, ExternalLinkIcon
+  BugOffIcon, ExternalLinkIcon, Globe as GlobeIcon
 } from "lucide-react-native";
 
 export { GoogleLogo, AppleLogo, InstagramTile, TikTokTile, WebTile } from "./icons.logos";

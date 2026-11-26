@@ -23,6 +23,7 @@ import { useRequireSignIn } from "~/modules/auth/hooks";
 import { ButtonPill } from "@ui/button-pill";
 import { useTranslations } from "translations";
 import { SafeAreaView } from "~/ui/components/safe-area-view";
+import { isExplorePath } from "~/modules/explore/routes";
 
 const INITIAL_DELAY = 50;
 
@@ -56,8 +57,9 @@ export const NavigationBar = () => {
   const isAssistant = path.startsWith("/assistant");
   const isRecipes = path.startsWith("/recipes");
   const isPlanning = path === "/planning";
+  const isExplore = isExplorePath(path);
 
-  const hasNavigationBar = isHome || isGroceries || isAssistant || isPlanning || isRecipes;
+  const hasNavigationBar = isHome || isGroceries || isAssistant || isPlanning || isRecipes || isExplore;
   const backLeadsHome = useBackLeadsHome();
 
   const [inputFocused, setInputFocused] = useState(false);
@@ -242,7 +244,7 @@ export const NavigationBar = () => {
               <SafeAreaView edges={{ bottom: "android", top: "off" }} style={styles.flex}>
                 <AnimatePresence>
                   {(!isHome && !inputFocused && !isAssistant) &&
-                    <m.View {...sharedTransition(54)}>
+                    <m.View {...sharedTransition(54)} style={styles.aboveCover}>
                       <ButtonIcon
                         elevated
                         variant="neutral-inverted"
@@ -289,24 +291,28 @@ export const NavigationBar = () => {
                     </ButtonIcon>
                   </m.View>}
                 </AnimatePresence>
+                {/*
+                  * A guest sees the bar as a cook does, and any tap on it asks for the sign-in: the
+                  * field, the mic, the camera and the recipes button all reach a kitchen they do not
+                  * have yet. One cover over the whole row rather than a check in each control, so the
+                  * field never takes focus and the keyboard never opens for nothing. Up as long as
+                  * there is no session, auth still deciding included, when a tap does nothing.
+                  *
+                  * The back button is drawn above it (`aboveCover`): a guest on the Explore page
+                  * can always leave it. Inside the row, so the two are siblings and their `zIndex`
+                  * is honoured on Android as on iOS.
+                  */}
+                {!hasSession && (
+                  <Pressable
+                    style={[StyleSheet.absoluteFill, styles.cover]}
+                    onPress={() => {
+                      if (isSignedOut) signIn();
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("sign_in")}
+                  />
+                )}
               </SafeAreaView>
-              {/*
-                * A guest sees the bar as a cook does, and any tap on it asks for the sign-in: the
-                * field, the mic, the camera and the recipes button all reach a kitchen they do not
-                * have yet. One cover over the whole bar rather than a check in each control, so the
-                * field never takes focus and the keyboard never opens for nothing. Up as long as
-                * there is no session, auth still deciding included, when a tap does nothing.
-                */}
-              {!hasSession && (
-                <Pressable
-                  style={StyleSheet.absoluteFill}
-                  onPress={() => {
-                    if (isSignedOut) signIn();
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("sign_in")}
-                />
-              )}
             </m.View>
           )}
         </AnimatePresence>
@@ -337,4 +343,6 @@ const styles = StyleSheet.create({
   container: {
     paddingBottom: theme.spacing[24],
   },
+  cover: { zIndex: 1 },
+  aboveCover: { zIndex: 2 },
 });

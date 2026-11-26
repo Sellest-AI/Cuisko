@@ -17,5 +17,13 @@
     "seconds_left_one": "{{count, number}} second left",
     "seconds_left_other": "{{count, number}} seconds left",
     "due": "Almost there"
+  },
+  "Explore": {
+    "title": "Explore",
+    "search_placeholder": "Search a recipe",
+    "categories": "Categories",
+    "featured": "Featured",
+    "empty_title": "Nothing here yet",
+    "empty_body": "Try another cuisine."
   }
 }
