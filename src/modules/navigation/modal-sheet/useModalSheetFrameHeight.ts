@@ -3,7 +3,9 @@ import { Platform, useWindowDimensions } from "react-native";
 
 import {
   MODAL_FALLBACK_DETENT,
+  MODAL_FRAME_BORDER_WIDTH,
   MODAL_FRAME_CHROME,
+  MODAL_GRABBER_SPACE,
   MODAL_MAX_DETENT,
   MODAL_MIN_DETENT,
 } from "../constants";
@@ -25,7 +27,8 @@ import { sheetSizeAtom } from "./state";
  * screen out in, where an intrinsic height resolves to zero.
  *
  * A measured height is the screen's content alone, so the frame adds the chrome it wraps that
- * content in. No safe-area inset on either platform: an iOS sheet short of full height floats clear
+ * content in — less the grabber's strip and the top border on a full-bleed screen, which has
+ * neither. No safe-area inset on either platform: an iOS sheet short of full height floats clear
  * of the home indicator, and on Android the layout's `SafeAreaView` pads the inset below the frame.
  * iOS gets a few pixels of room under the content instead, tuned by eye on a device.
  *
@@ -43,7 +46,11 @@ export const useModalSheetFrameHeight = (): number => {
       ? MODAL_FALLBACK_DETENT * windowHeight
       : size.kind === "declared"
         ? size.ratio * windowHeight
-        : size.height + MODAL_FRAME_CHROME + iosBottomRoom;
+        : size.height +
+          MODAL_FRAME_CHROME +
+          iosBottomRoom -
+          // Full bleed: no grabber strip and no top border (`app/(modals)/_layout.tsx`).
+          (size.isFullBleed ? MODAL_GRABBER_SPACE + MODAL_FRAME_BORDER_WIDTH : 0);
 
   return Math.min(
     Math.max(requested, MODAL_MIN_DETENT * windowHeight),

@@ -27,7 +27,7 @@ const FLUSH_BUDGET_MS = 2_000;
  * the events the cook just sent would go with the restart. The flush gets `FLUSH_BUDGET_MS` and no
  * more; offline, PostHog retries for seconds, and analytics never holds the app (`AnalyticsTracking`).
  *
- * The app is covered while it waits. The sign-in screen is already up underneath, or the recipe the
+ * The app is covered while it waits. Home is already up underneath, signed out, or the recipe the
  * cook was on, which stays without an account; a sign-in started there would be torn down by the
  * restart, its provider sheet with it. Mounted after `AuthGate`, so the cover draws over the gate's
  * own; a layout effect, so neither page is painted uncovered in between. A restart that fails takes

@@ -23,13 +23,13 @@ beforeEach(() => {
 });
 
 describe("useOnboarding finish", () => {
-  it("ends on the sign-in with nothing under it, and the device remembers it was walked", () => {
+  it("ends on home, signed out, with nothing under it, and the device remembers it was walked", () => {
     const { result } = renderHook(() => useOnboarding(), { wrapper: Provider });
     expect(isOnboardingSeen()).toBe(false);
 
     act(() => result.current.finish());
 
-    expect(state.calls).toEqual([["reset", { index: 0, routes: [{ name: "auth" }] }]]);
+    expect(state.calls).toEqual([["reset", { index: 0, routes: [{ name: "index" }] }]]);
     expect(isOnboardingSeen()).toBe(true);
   });
 });

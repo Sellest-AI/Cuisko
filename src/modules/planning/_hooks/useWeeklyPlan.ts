@@ -6,6 +6,7 @@ import type { WeekDay } from "@ui/week-strip";
 
 import { useLocale } from "~/hooks/useLocale";
 import { api } from "~/lib/convex/api";
+import { useAuthenticated } from "~/lib/convex/auth";
 import { useQueryDevice } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
@@ -66,6 +67,12 @@ const _buildWeek = (today: Date): WeekDay[] =>
 export const useWeeklyPlan = () => {
   const locale = useLocale();
   const { householdId } = useHousehold();
+  /**
+   * No session stored, whatever auth is doing: a sign-in in flight has stored nothing yet, and no
+   * household can come before it does — `useHousehold` still says loading then, so it is not asked.
+   */
+  const { hasSession } = useAuthenticated();
+  const isGuest = !hasSession && !householdId;
 
   /**
    * One "today" per mount, at midnight. Rebuilding it every render would rebuild every `Date` with it,
@@ -163,8 +170,12 @@ export const useWeeklyPlan = () => {
      * `isSuccess` and not `!isPending`: a failed read also leaves `meals` empty, and drawing the
      * empty state on it would tell the user their week is unplanned when we simply do not know.
      * A skipped query (no household yet) reports pending, so nothing flashes before sign-in lands.
+     *
+     * A guest has no session, no household and none on the way: their week is the empty one, which
+     * is what Home shows them, with its button asking for the sign-in. A signed-in cook whose
+     * household has not arrived is still waiting on it, not empty.
      */
-    isEmpty: isSuccess && meals.length === 0,
+    isEmpty: (isSuccess || isGuest) && meals.length === 0,
     selectedDayIndex,
     selectedMealIndex,
     selectDay,

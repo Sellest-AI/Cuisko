@@ -362,18 +362,23 @@ and back into the cellar. Grouped by the beat it serves.
 
 ### Household and account
 
-- Sign in with Google or with email and password; the splash holds until the profile is loaded.
+- Sign in with Google or with email and password, from a sheet opened over the page that asked for
+  it; the splash holds until the profile is loaded.
+- **Home opens without an account** once the onboarding is walked: the week's plan, the quick access
+  and the navigation bar, drawn as for a cook with an empty kitchen. Any tap on them, and on the
+  avatar, opens the sign-in sheet. After the sign-in, the sheet closes on home, filled with the
+  cook's kitchen; the tapped action is not replayed.
 - **A shared recipe link opens the recipe without an account**: its three tabs, the servings and the
   share. The favorite, the plan, "add to list" and "ask Cuisko" stay in view and ask for the sign-in
   when tapped, and "Sign in" stands where "Start cooking" does. After the sign-in
-  the recipe opens again. Besides it and the onboarding, nothing in the app opens without an account.
+  the recipe opens again. Besides it, home and the onboarding, nothing in the app opens without an
+  account.
 - **The first launch walks the onboarding** before the sign-in: a promise screen, then the list filled from the
   navigation bar, recipes asked of Cuisko and one planned by asking for it, a step-by-step cook and
   a generated week, each opened by a screenshot of the real screen. It runs on pretend data,
-  with no account. It ends on the sign-in, which opens home with Cuisko's chat open, or the recipe
-  that asked for the sign-in. The device records that it was walked or that someone signed in, so a
-  sign-out opens the sign-in page. A reinstall forgets it: the first screen offers "I already have
-  an account".
+  with no account. It ends on home, signed out. The device records that it was walked or that
+  someone signed in, so a launch with no session, a sign-out included, opens home. A reinstall
+  forgets it: the first screen offers "I already have an account", which opens the sign-in sheet.
 - Create, join (by invite code), leave and switch households, from an account drawer. Each cook has
   a generated avatar and their own preferences.
 - Delete the account, from the same drawer. The sheet says it all before the second tap: what goes

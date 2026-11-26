@@ -89,6 +89,18 @@ describe("useRequireSignIn", () => {
     expect(take(result)).toBe("/recipe/k57other");
   });
 
+  /** Home is open signed out: a sign-in asked there ends there, not on a recipe left earlier. */
+  it("forgets a recipe held earlier when the sign-in is asked from home", () => {
+    const { result, rerender } = asking();
+
+    act(() => result.current.signIn());
+    state.pathname = "/";
+    rerender();
+    act(() => result.current.signIn());
+
+    expect(take(result)).toBeUndefined();
+  });
+
   it("does nothing on a tap while auth is deciding", () => {
     state.auth = DECIDING;
     const action = vi.fn();
@@ -100,5 +112,14 @@ describe("useRequireSignIn", () => {
     expect(action).not.toHaveBeenCalled();
     expect(state.navigate).not.toHaveBeenCalled();
     expect(take(result)).toBeUndefined();
+  });
+
+  /** A control that covers itself without a session must stay covered while auth decides, inert. */
+  it("reports no session while auth is deciding, apart from being signed out", () => {
+    state.auth = DECIDING;
+    const { result } = asking();
+
+    expect(result.current.hasSession).toBe(false);
+    expect(result.current.isSignedOut).toBe(false);
   });
 });

@@ -17,11 +17,11 @@ const SHARE_LANDING = "/";
  * @limitation Shared while the app is open on another page, iOS sends the cook home under the
  * sheet: the path is all this hook can answer, and the share link names no page to stay on.
  */
-export const redirectSystemPath = ({ path }: { path: string; initial: boolean }) => {
+export const redirectSystemPath = ({ path, initial }: { path: string; initial: boolean }) => {
   if (isShareExtensionLink(path)) return SHARE_LANDING;
 
   const recipeId = recipeIdOfLink(path);
   if (recipeId) return `/recipe/${encodeURIComponent(recipeId)}`;
 
-  return routeForIncomingLink(path);
+  return routeForIncomingLink(path, { isColdStart: initial });
 };

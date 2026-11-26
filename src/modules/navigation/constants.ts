@@ -14,6 +14,9 @@ export const MODAL_GRABBER_HEIGHT = 6;
 export const MODAL_GRABBER_MARGIN_TOP = 16;
 export const MODAL_GRABBER_MARGIN_BOTTOM = 4;
 
+/** The grabber with its margins: the strip it takes above the screen. A full-bleed sheet has none. */
+export const MODAL_GRABBER_SPACE = MODAL_GRABBER_MARGIN_TOP + MODAL_GRABBER_HEIGHT + MODAL_GRABBER_MARGIN_BOTTOM;
+
 /** The modal frame's border. Android draws only the top one; iOS frames the sheet all round. */
 export const MODAL_FRAME_BORDER_WIDTH = 2;
 
@@ -23,8 +26,7 @@ export const MODAL_FRAME_BORDER_WIDTH = 2;
  * cannot see what the layout wraps it in. Left out, the screen is cut by this much at the bottom.
  */
 export const MODAL_FRAME_CHROME =
-  MODAL_GRABBER_MARGIN_TOP + MODAL_GRABBER_HEIGHT + MODAL_GRABBER_MARGIN_BOTTOM +
-  MODAL_FRAME_BORDER_WIDTH * Platform.select({ ios: 2, default: 1 });
+  MODAL_GRABBER_SPACE + MODAL_FRAME_BORDER_WIDTH * Platform.select({ ios: 2, default: 1 });
 
 /**
  * Where a content-sized sheet stops. A screen that would ask for more has content no sheet can
