@@ -3,7 +3,8 @@ import { getFunctionName } from "convex/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWeeklyPlan } from "../useWeeklyPlan";
-import { toDateParam } from "../../_model/model";
+import { toDateParam } from "@shared/dates";
+
 import { keptMeal } from "./fixtures";
 
 /**

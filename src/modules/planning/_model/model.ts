@@ -9,6 +9,7 @@
 import type { Category } from "@shared/categories";
 import type { RecipeUnit } from "@shared/ingredients";
 import { localClock, startOfDay } from "@shared/clock";
+import { toDateParam } from "@shared/dates";
 import { clampServings, MAX_SERVINGS } from "@shared/servings";
 import { toggle } from "@shared/helpers";
 import { MEAL_SLOTS as MEAL_SLOT_VOCABULARY, SLOT_HOURS, type MealSlot } from "@shared/mealSlots";
@@ -753,39 +754,6 @@ export const ownedLinesOf = (meals: DraftMeal[], rowIds: string[]) => {
 
   return [...pairs.values()];
 };
-
-/**
- * A `YYYY-MM-DD` route param, or nothing.
- *
- * Anything else is ignored rather than trusted: a date is untrusted text on the way in, and an
- * `Invalid Date` reaching the list would compare false against every row and silently open at the
- * top. Parsed at local midnight so the day means the user's day, not UTC's.
- *
- * The parsed date is read back and compared, because `Date` does not reject an impossible day —
- * it rolls it over, turning `2026-02-31` into March 2nd and opening the list a week from where
- * the caller asked. Only a value that survives the round trip is the day it claimed to be.
- */
-export const parseDateParam = (value?: string | string[]): Date | undefined => {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
-
-  const [year, month, dayOfMonth] = value.split("-").map(Number) as [number, number, number];
-  const parsed = new Date(year, month - 1, dayOfMonth);
-
-  const isTheDayItClaimed =
-    parsed.getFullYear() === year &&
-    parsed.getMonth() === month - 1 &&
-    parsed.getDate() === dayOfMonth;
-
-  return isTheDayItClaimed ? parsed : undefined;
-};
-
-/** The inverse, kept beside its parser so the two formats cannot drift apart. */
-export const toDateParam = (date: Date) =>
-  [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
 
 /**
  * A slot name off a route, or nothing.

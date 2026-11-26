@@ -14,5 +14,11 @@
   },
   "Spotlight": {
     "title": "Ideas for this week"
+  },
+  "FeaturedCategories": {
+    "title": "Featured categories"
+  },
+  "Discover": {
+    "label": "Discover"
   }
 }

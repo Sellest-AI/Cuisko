@@ -3,6 +3,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 
 import { clearDeviceCache } from "~/lib/convex/deviceCache";
+import { isExplorePath } from "~/modules/explore/routes";
 import { isOnboardingSeen, markOnboardingSeen } from "~/modules/onboarding/seen";
 import { recipeScreenAt } from "~/modules/recipes/routes";
 
@@ -39,6 +40,9 @@ const ONBOARDING = { name: "onboarding", href: "/onboarding/promise" } as const;
 
 type Destination = typeof ONBOARDING | typeof HOME;
 
+/** How long home shows after a sign-in before the page that asked for it slides over it. */
+const RETURN_DELAY = 300;
+
 /**
  * Sends each person to the side of the app they belong on, and holds the splash until it has.
  *
@@ -46,7 +50,7 @@ type Destination = typeof ONBOARDING | typeof HOME;
  * (`isOnboardingSeen`) is sent home, which it may browse signed out: what needs an account there
  * opens the sign-in sheet (`useRequireSignIn`). The onboarding, `/auth` and a recipe a shared link
  * opened (`isGuestPath`) are left where they are. Signed in, the onboarding and `/auth` redirect
- * home, with the recipe that asked for the sign-in over it if one did. A recipe the cook went back
+ * home, with the page that asked for the sign-in over it if one did. A recipe the cook went back
  * to while their sign-in was in flight stays up: it is the page they would be returned to. "No session" is no stored token,
  * not "Convex has not confirmed it": a stored session whose cook is on the device draws at once,
  * offline included, and a refresh failing on a weak network leaves the screen where it is. A session
@@ -74,8 +78,12 @@ export const AuthGate = () => {
   const isInAuthFlow = isAuthFlowPath(pathname);
   const isSignedOut = !hasSession && !isAuthenticating;
   const isOnboarded = isOnboardingSeen();
-  /** Home is open to a guest only past the onboarding: a first launch lands on it, and must not stay. */
-  const mayStaySignedOut = isInAuthFlow || isGuestPath(pathname) || (isOnboarded && pathname === HOME.href);
+  /**
+   * Home and the Explore page are open to a guest only past the onboarding: a first launch lands on
+   * home, and must not stay. Explore lists only the catalog, so it asks no more of a guest than home.
+   */
+  const mayStaySignedOut =
+    isInAuthFlow || isGuestPath(pathname) || (isOnboarded && (pathname === HOME.href || isExplorePath(pathname)));
 
   const destination: Destination | null =
     isLoading ? null
@@ -108,6 +116,9 @@ export const AuthGate = () => {
    *
    * A sign-in that a recipe asked for ends on that recipe, over home: home sits *under* it, so
    * closing it shows home, and one reset draws both, where a push after it showed home in between.
+   * Any other page that asked (Explore) has no route built for it here, so it is pushed after the
+   * reset: one rule for every page, rather than a route per page. `RETURN_DELAY` after it, so home
+   * draws first and the page is seen sliding over it, rather than both landing in one jump.
    */
   useEffect(() => {
     if (!destination) return;
@@ -126,6 +137,9 @@ export const AuthGate = () => {
     navigation.reset(recipe
       ? { index: 1, routes: [{ name: HOME.name }, recipe] }
       : { index: 0, routes: [{ name: HOME.name }] });
+    // No clearTimeout: the reset moves the path home, which re-runs this effect and would cancel it.
+    // The cast holds: the path is one `usePathname` gave `useRequireSignIn`, a page of this app.
+    if (returnPath && !recipe) setTimeout(() => router.push(returnPath as Href), RETURN_DELAY);
   }, [destination, navigation, takeReturnPath]);
 
   /** A sign-in that landed on a page of the app ends there: a page still held would open at the next one. */

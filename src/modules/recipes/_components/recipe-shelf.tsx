@@ -11,8 +11,8 @@ import { COVER_PLACEHOLDER } from "../constants";
 type ShelfRecipe = {
   id: string;
   title: string;
-  /** Already a word, not a key: the shelf does not own the cuisine vocabulary, the screen does. */
-  subtitle: string;
+  /** Already a word, not a key: the shelf does not own the vocabulary, the screen does. None, no line. */
+  subtitle?: string;
   coverImageUrl?: string;
 };
 
@@ -29,18 +29,19 @@ type Props = {
 const CARD_WIDTH = 160;
 
 /**
- * One horizontal row of recipe cards under a heading: the cook's favorites, above their own grid
- * on the recipes page and at the foot of home (through `favorite-recipes` at the module root).
+ * One horizontal row of recipe cards under a heading. The cook's favorites, above their own grid
+ * on the recipes page and on home (`favorite-recipes`), and the catalog's featured row on home
+ * (`featured-recipes`).
  *
- * A row rather than a second grid section, so "Your recipes" stays in reach whatever the favorite
- * count — a grid would push it down a row per two favorites. The shelf bleeds past the page
+ * On the recipes page, a row rather than a second grid section, so "Your recipes" stays in reach
+ * whatever the favorite count — a grid would push it down a row per two favorites. The shelf bleeds past the page
  * gutter on both sides and pads itself back, so the cards scroll edge to edge while the first
  * one still lines up with the heading. It assumes that gutter: a page without one supplies it.
  *
  * It draws what it is given. Whether there is anything to draw, and whether a search is in flight,
  * is the screen's to decide — the shelf is not a search surface and does not know one exists.
  */
-export const FavoritesShelf = ({ title, recipes, style }: Props) => {
+export const RecipeShelf = ({ title, recipes, style }: Props) => {
   return (
     <View style={style}>
       <Text.Lg>{title}</Text.Lg>

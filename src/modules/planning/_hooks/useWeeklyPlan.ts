@@ -10,6 +10,7 @@ import { useAuthenticated } from "~/lib/convex/auth";
 import { useQueryDevice } from "~/lib/convex/client";
 import { useHousehold } from "~/modules/households/hooks";
 
+import { toDateParam } from "@shared/dates";
 import {
   addDays,
   dayStatusFor,
@@ -18,7 +19,6 @@ import {
   keptMealCardOf,
   mealSlotAt,
   startOfDay,
-  toDateParam,
   type MealSlot,
   type MealStatus,
 } from "../_model/model";

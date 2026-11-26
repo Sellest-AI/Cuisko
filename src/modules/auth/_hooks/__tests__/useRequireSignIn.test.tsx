@@ -101,6 +101,16 @@ describe("useRequireSignIn", () => {
     expect(take(result)).toBeUndefined();
   });
 
+  /** Any page but home comes back after the sign-in: the guest asked from there. */
+  it("holds the Explore page, as it holds a recipe", () => {
+    state.pathname = "/explore";
+    const { result } = asking();
+
+    act(() => result.current.signIn());
+
+    expect(take(result)).toBe("/explore");
+  });
+
   it("does nothing on a tap while auth is deciding", () => {
     state.auth = DECIDING;
     const action = vi.fn();

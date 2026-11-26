@@ -19,3 +19,8 @@ export { useRecipeMatches } from "./_hooks/useRecipeMatches";
  * imports a shared reel uses, so the recipes screen shows it arriving too.
  */
 export { useImportWebRecipe } from "./_hooks/useImportWebRecipe";
+/**
+ * The Explore page draws the catalog's recipes for the day, or one cuisine's. The page lives in
+ * `explore/`, which composes recipes as home does, and the data stays with its domain here.
+ */
+export { useExploreRecipes } from "./_hooks/useExploreRecipes";

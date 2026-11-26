@@ -7,6 +7,15 @@ import { httpUrlOf } from "@shared/urls";
 import { WEBSITE } from "~/global/website";
 
 /**
+ * The cook's recipes page, with its search box focused on arrival when the cook came to search.
+ * `focus=search` is read by `app/recipes/index.tsx`, once, on mount.
+ */
+export const recipesRoute = ({ focusSearch }: { focusSearch?: boolean } = {}): Href => ({
+  pathname: "/recipes",
+  params: focusSearch ? { focus: "search" } : {},
+});
+
+/**
  * The way into a recipe page, and the one thing a caller may say about how to open it.
  *
  * A plate on the plan was planned for a number of people, and a cook tapping it wants the recipe

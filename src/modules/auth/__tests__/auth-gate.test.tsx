@@ -31,6 +31,7 @@ const state = vi.hoisted(() => ({
   isReady: true,
   reset: vi.fn(),
   replace: vi.fn(),
+  push: vi.fn(),
   hide: vi.fn(),
 }));
 
@@ -41,7 +42,7 @@ vi.mock("expo-router", () => {
   return {
     usePathname: () => state.pathname,
     useNavigationContainerRef: () => navigation,
-    router: { replace: state.replace },
+    router: { replace: state.replace, push: state.push },
   };
 });
 
@@ -61,6 +62,7 @@ beforeEach(() => {
   state.isReady = true;
   state.reset.mockReset();
   state.replace.mockReset();
+  state.push.mockReset();
   state.hide.mockReset();
 });
 
@@ -176,6 +178,15 @@ describe("AuthGate", () => {
       expect(view.container).toBeEmptyDOMElement();
     });
 
+    /** The Explore page is open to a guest on the same terms as home: past the onboarding only. */
+    it("sends a signed-out person on /explore to the onboarding", () => {
+      state.pathname = "/explore";
+
+      render(<AuthGate />);
+
+      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("onboarding"));
+    });
+
     /** The first frame of a cold start: one screen of history, so replacing it is the same reset. */
     it("replaces instead of resetting while the navigator is not ready", () => {
       state.isReady = false;
@@ -218,6 +229,19 @@ describe("AuthGate", () => {
         expect(state.hide).toHaveBeenCalledOnce();
       },
     );
+
+    /** The catalog to browse, like home: what needs an account there asks for it when tapped. */
+    it("leaves a signed-out person on /explore, uncovered, and lifts the splash", () => {
+      markOnboardingSeen();
+      state.pathname = "/explore";
+
+      const view = render(<AuthGate />);
+
+      expect(state.reset).not.toHaveBeenCalled();
+      expect(state.replace).not.toHaveBeenCalled();
+      expect(state.hide).toHaveBeenCalledOnce();
+      expect(view.container).toBeEmptyDOMElement();
+    });
 
     it("replaces by home while the navigator is not ready", () => {
       markOnboardingSeen();
@@ -276,6 +300,25 @@ describe("AuthGate", () => {
         ],
       });
       expect(getDefaultStore().get(returnPathAtom)).toBeUndefined();
+    });
+
+    /** Any page but a recipe has no route to rebuild: home draws first, then the page is pushed over it. */
+    it("goes home, then to the page that was held when it is not a recipe", () => {
+      vi.useFakeTimers();
+      getDefaultStore().set(returnPathAtom, "/explore");
+      state.pathname = "/auth";
+      state.auth = SIGNED_IN;
+
+      const view = render(<AuthGate />);
+      state.pathname = "/";
+      view.rerender(<AuthGate />);
+
+      expect(state.reset).toHaveBeenCalledExactlyOnceWith(onlyScreen("index"));
+      expect(state.push).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(state.push).toHaveBeenCalledExactlyOnceWith("/explore");
+      expect(getDefaultStore().get(returnPathAtom)).toBeUndefined();
+      vi.useRealTimers();
     });
 
     /** Forgotten too, or the next sign-in on this phone would open it. */

@@ -11,13 +11,13 @@ import { FlashList } from "@shopify/flash-list";
 import { SafeAreaView } from "@ui/safe-area-view";
 import { CardRecipe } from "@ui/cards/recipe";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "translations";
 
 import { useFavoriteRecipes } from "./_hooks/useFavoriteRecipes";
 import { type ImportCard, useImportsInFlight } from "./_hooks/useImportsInFlight";
 import { useRecipeList } from "./_hooks/useRecipeList";
-import { FavoritesShelf } from "./_components/favorites-shelf";
+import { RecipeShelf } from "./_components/recipe-shelf";
 import { COVER_PLACEHOLDER } from "./constants";
 
 type Props = {
@@ -30,6 +30,11 @@ type Props = {
    * put the old term straight back.
    */
   initialQuery?: string,
+  /**
+   * Focus the box once, on mount: the cook tapped a search box elsewhere and came here to type.
+   * Read once for the same reason as `initialQuery`.
+   */
+  initialFocus?: boolean,
 }
 
 type Cell = ReturnType<typeof useRecipeList>["recipes"][number] | (ImportCard & { id?: undefined });
@@ -38,13 +43,17 @@ type Cell = ReturnType<typeof useRecipeList>["recipes"][number] | (ImportCard & 
 const _countdownKey = ({ countdown }: ImportCard) =>
   countdown.unit === "due" ? "Importing.due" as const : `Importing.${countdown.unit}_left` as const;
 
-export const RecipesScreen = ({ style, initialQuery }: Props) => {
+export const RecipesScreen = ({ style, initialQuery, initialFocus = false }: Props) => {
   const t = useTranslations("Recipes");
   /** A cuisine is a shared vocabulary, so its words live with the rest of them. */
   const tVocabulary = useTranslations("Vocabulary");
 
   const [query, setQuery] = useState(initialQuery ?? "");
   const searchRef = useRef<TextInput>(null);
+  const [shouldFocus] = useState(initialFocus);
+  useEffect(() => {
+    if (shouldFocus) searchRef.current?.focus();
+  }, [shouldFocus]);
   const { recipes, isLoading, isStale, isSearching, hasMore, loadMore } = useRecipeList(query);
   const { favorites } = useFavoriteRecipes();
   const imports = useImportsInFlight();
@@ -129,7 +138,7 @@ export const RecipesScreen = ({ style, initialQuery }: Props) => {
               style={styles.search}
             />
             {showsShelf && (
-              <FavoritesShelf
+              <RecipeShelf
                 title={t("favorites")}
                 recipes={favorites.map((recipe) => ({
                   id: recipe.id,

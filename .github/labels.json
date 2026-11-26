@@ -7,6 +7,7 @@
   { "group": "area", "name": "account", "color": "c5def5", "description": "src/modules/account" },
   { "group": "area", "name": "assistant", "color": "c5def5", "description": "src/modules/assistant" },
   { "group": "area", "name": "auth", "color": "c5def5", "description": "src/modules/auth" },
+  { "group": "area", "name": "explore", "color": "c5def5", "description": "src/modules/explore" },
   { "group": "area", "name": "groceries", "color": "c5def5", "description": "src/modules/groceries" },
   { "group": "area", "name": "health", "color": "c5def5", "description": "src/modules/health" },
   { "group": "area", "name": "home", "color": "c5def5", "description": "src/modules/home" },

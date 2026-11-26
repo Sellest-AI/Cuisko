@@ -17,13 +17,13 @@ import { useRecipe } from "~/modules/recipes/hooks";
 
 import { SectionLabel } from "@ui/section-label";
 import { usePlanRecipe, type PlannableDay } from "../_hooks/usePlanRecipe";
+import { toDateParam } from "@shared/dates";
 import {
   addDays,
   isSameDay,
   MAX_SERVINGS,
   MEAL_SLOTS,
   startOfDay,
-  toDateParam,
   type MealSlot,
 } from "../_model/model";
 import { Confirm } from "./confirm";
