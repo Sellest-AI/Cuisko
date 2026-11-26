@@ -33,7 +33,7 @@ importers:
         version: 3.1120.0
       '@blobatar/react-native':
         specifier: ^2.7.0
-        version: 2.7.0(336a135e6ce2c26d7846de35083a6ea9)
+        version: 2.7.0(cd1ef50dd3e346fcd676963cb7603c09)
       '@convex-dev/agent':
         specifier: ^0.7.1
         version: 0.7.1(@ai-sdk/provider-utils@5.0.29(zod@4.6.6))(@ai-sdk/provider@4.0.7)(ai@7.0.77(zod@4.6.6))(convex-helpers@0.1.121(@standard-schema/spec@1.1.0)(convex@1.43.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@4.6.6))(convex@1.43.0(react@19.2.3))(react@19.2.3)
@@ -198,16 +198,16 @@ importers:
         version: 1.28.0
       lucide-react-native:
         specifier: ^1.28.0
-        version: 1.28.0(react-native-svg@15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+        version: 1.28.0(react-native-svg@15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       morphicons:
         specifier: ^1.7.1
-        version: 1.7.1(react-native-svg@15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+        version: 1.7.1(react-native-svg@15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       moti:
         specifier: ^0.30.0
         version: 0.30.0(react-dom@19.2.3(react@19.2.3))(react-native-reanimated@4.5.1(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react@19.2.3)
       posthog-react-native:
         specifier: ^4.81.0
-        version: 4.81.0(abdc870295cf2033259a5c5e5547ad20)
+        version: 4.81.0(8c11030e5675d7c31e36bc45f9677ae0)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -242,8 +242,8 @@ importers:
         specifier: ~4.26.0
         version: 4.26.2(patch_hash=74fa7ce261c7f49f4f6337d73df54d18d2e224d5dd8cfc467e4f7bef63c9c83d)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-svg:
-        specifier: ^15.15.5
-        version: 15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+        specifier: ^15.16.1
+        version: 15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-web:
         specifier: ~0.21.0
         version: 0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -6563,8 +6563,8 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-svg@15.15.5:
-    resolution: {integrity: sha512-L4go5jA+GWutdJ/JucuN20cjAbMg1HmMtAP+wZ+3JLCf6Jd0bhXQHxciRP/AQm/FlrIEZwkMcHNZP+FXAiic0w==}
+  react-native-svg@15.16.1:
+    resolution: {integrity: sha512-Y4hCfg0o9ovGJYnNIySph5xWGqzawhW7MB2AjMUTpqJkrtPAx5XCeSk+jRMux2hanUvi9KvdVf2aZu0OFWtjgw==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -8492,12 +8492,12 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@blobatar/react-native@2.7.0(336a135e6ce2c26d7846de35083a6ea9)':
+  '@blobatar/react-native@2.7.0(cd1ef50dd3e346fcd676963cb7603c09)':
     dependencies:
       blobatar: 2.7.0(react@19.2.3)
       react: 19.2.3
       react-native: 0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
-      react-native-svg: 15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react-native-svg: 15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
     optionalDependencies:
       react-native-reanimated: 4.5.1(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-worklets: 0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
@@ -13893,11 +13893,11 @@ snapshots:
       '@oslojs/crypto': 1.0.1
       '@oslojs/encoding': 1.1.0
 
-  lucide-react-native@1.28.0(react-native-svg@15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+  lucide-react-native@1.28.0(react-native-svg@15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
     dependencies:
       react: 19.2.3
       react-native: 0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
-      react-native-svg: 15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react-native-svg: 15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
 
   lucide@1.28.0: {}
 
@@ -14348,11 +14348,11 @@ snapshots:
   moment@2.31.0:
     optional: true
 
-  morphicons@1.7.1(react-native-svg@15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+  morphicons@1.7.1(react-native-svg@15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
     optionalDependencies:
       react: 19.2.3
       react-native: 0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
-      react-native-svg: 15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react-native-svg: 15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
 
   moti@0.30.0(react-dom@19.2.3(react@19.2.3))(react-native-reanimated@4.5.1(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react@19.2.3):
     dependencies:
@@ -14761,7 +14761,7 @@ snapshots:
     dependencies:
       '@posthog/core': 1.58.0
 
-  posthog-react-native@4.81.0(abdc870295cf2033259a5c5e5547ad20):
+  posthog-react-native@4.81.0(8c11030e5675d7c31e36bc45f9677ae0):
     dependencies:
       '@posthog/core': 1.58.0
       '@posthog/types': 1.415.2
@@ -14772,7 +14772,7 @@ snapshots:
       expo-localization: 57.0.2(expo@57.0.26)(react@19.2.3)
       expo-updates: 57.0.15(expo-dev-client@57.0.13(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)))(expo@57.0.26)(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
       react-native-safe-area-context: 5.7.0(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
-      react-native-svg: 15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react-native-svg: 15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
 
   powershell-utils@0.1.0: {}
 
@@ -14952,7 +14952,7 @@ snapshots:
       react-native: 0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
       warn-once: 0.1.1
 
-  react-native-svg@15.15.5(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+  react-native-svg@15.16.1(react-native@0.86.2(patch_hash=639826ae5a59ce99e7284e1a81068c69b2f2a9d66f9f89d11881adfdd269536c)(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
     dependencies:
       css-select: 5.2.2
       css-tree: 1.1.3
